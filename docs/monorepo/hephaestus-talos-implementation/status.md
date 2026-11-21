@@ -133,6 +133,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.6: in Gaia, look at the moved chips, the conversation and a sandboxed frame with real agent HTML (background,
   code, tables, auto-height) against the Bridge.
 
+- WP6.9: open a real forge in Gaia: the frame sits under the board header with the Bridge's head and Flint hidden, tab
+  clicks keep the frame and the address in step, and the bar's Open in new tab opens Gaia's route on the same session.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -265,6 +268,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP6.8: an added re-review starts at the served `limits.reworkRoundThresholdLines`; a ticket the board serves no
   document for reads as closed (`EntityWorkModel`).
+
+- WP6.9: `BoardApp` reads the board again when the stream comes back live (`useBoardReading`), in case the relay
+  replays no `board` event after `Last-Event-ID`.
 
 ### Blocked
 
@@ -497,13 +503,13 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-G | WP6.6 | landed | 7fa059e1 | Second round (first: the sandboxed frame's own document styles, board.css:2084-2102, were not moved; the text pairs went into Gaia's list, not `BOARD_TEXT_PAIRS`; `BoardRouteLinks` wrote `#forge//` links without a provider, now it throws). Utils, chips, sandboxed HTML and conversation parts moved; moved early for imports: `shell/DetailRoute`, `ItemPresence`, a partial `BoardRouter` (WP6.8's), `flint/FlintSlotCues`, `UseCueOnChange` (WP6.7's). New `shell/BoardRouteLinks.ts` (`BoardTrackerContext`, `useBoardHrefOf`). `JobStateUtil` keyed by `BoardJobState`, `offersFreshAgent` gone (served `offers.takesFresh`). `StyleRuleReader` not moved (WP6.4's `stylesheetRulesOf`). The transplant's `src/` grep now looks only for reaches into forge (Gaia's own `src/shared` imports are allowed) |
 | 6-H | WP6.7 | landed | a6922cf1 | First round. Bridge `flint/` moved to `page/board/flint/` without the brain; `BoardFlint` (no `flintBrain`), `FlintHabitatScene` and `ManualFlintFrames` in `page/board/testing/`; `BoardServices` gains `flintFrameSource?`, `onFlintHandle?`; `styles/board/flint.css`; 33 `--flint-*` tokens named in `BOARD_SAME_IN_BOTH_THEMES_TOKENS`. `TicketsSpriteModel` reads the served `resolvedPriority`. Handoffs: WP6.11 restores BoardFlint.dom.tsx's two agent-panel habitat cases (need AgentsView); WP6.20 carries board.css:2410's Flint home-corner rule (`bottom: 72px` beside a pipeline bar); WP6.13/WP6.14 map `facts.resolvedPriority` onto the cued ticket. Not mounted until WP6.9 |
 | 6-I | WP6.8 | landed | 349a78c0 | First round. The shell's 21 modules, `BoardErrorBoundary` and 14 view models under `page/board/`; `BoardRouter` gains `routeOf`, `shownTabsOf`, `shownRouteOf`, `routeOfTarget`; models return a `BoardRoute`, followed through the new `BoardGoToContext`/`useBoardNavigation`. `page/notifications/NotificationBoundary.ts` is the one reach of the Notification API (lint holds it); `questionNotifier` left for WP6.10. `shell.css` and `pipeline.css` created. Header drops the theme button, Flint's brain wake and the Overseer controls (Gaia's forge bar has them). Handoffs: WP6.9 carries `.board-shell` and the margins of `.board-banners`/`.board-incident-notice` (board.css:299-301) with BoardApp; WP6.19's callers build `FlowWording` from the served `limits.reworkRoundThresholdLines`. `HeaderModel.workerCount` is dead |
-| 6-J | WP6.9 | running | | |
-| 6-K | WP6.10 | waiting | | |
-| 6-K | WP6.11 | waiting | | |
-| 6-K | WP6.12 | waiting | | |
-| 6-K | WP6.18 | waiting | | |
-| 6-K | WP6.19 | waiting | | |
-| 6-K | WP7.1 | waiting | | |
+| 6-J | WP6.9 | landed | 3c6c5532 | Third round, after a targeted fix (first: no spec checked the fragment Open in new tab opens, and the bar still sent `forge-open-in-browser` for a forge Gaia cannot talk to; second: `Board` mounted for 'cannot-show' forges that serve no board, so a dead stream reopened every 2 s, and the stored tab was overwritten before the first read). The forge route mounts `BoardApp` over the frame for unmoved tabs, keyed by tracker id (one Flint per document, proven), only where `ForgeContractUtil.canOpenInPlace` holds; GaiaRoute's forge form is `{trackerId, boardRoute}`; folder `views/forge/`; `fleet` and `events` v5, `fleetVersion` 5; the framed Bridge hides its head, banners and Flint but keeps its filter row; `BoardServices.questionNotifier` added here. The cannot-show area's own Open in new tab still sends `forge-open-in-browser` (WP6.23). The `<tab>/<item>` parse is written three times on the page |
+| 6-K | WP6.10 | running | | |
+| 6-K | WP6.11 | running | | |
+| 6-K | WP6.12 | running | | |
+| 6-K | WP6.18 | running | | |
+| 6-K | WP6.19 | running | | |
+| 6-K | WP7.1 | running | | |
 | 6-L | WP6.13 | waiting | | |
 | 6-L | WP6.14 | waiting | | |
 | 6-L | WP6.15 | waiting | | |
