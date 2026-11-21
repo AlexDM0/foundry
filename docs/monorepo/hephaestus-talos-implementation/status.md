@@ -167,6 +167,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - **WP8.13:** run `bun run storybook:design-system` and `storybook:brand` in `apps/gaia`; open Gaia and the splash to confirm styles and fonts load. Gaia's and forge's live tracker reach still lists `/packages/design-system` and the others; a person updates it, and `docs/monorepo/design.md:217` keeps the old reach in an example.
 - **WP8.6 (optional):** `curl -i` a live forge's `/api/board` with and without the token to see the 401 and the new policy header.
 
+- **WP8.8:** open a ticket body, an epic description and a constitution preview in Gaia on a live forge to see them render.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -617,8 +619,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 8-D | WP8.13 | landed | 9d6df992 | First round, on Fable. 1,163 files, mostly renames: the three packages are `apps/gaia/page/lib/{design-system,flint,brand}` behind interface files, Gaia's own parts are `page/components/`, and `LibraryBoundaries.spec.ts` holds the boundary (it also refuses `export *` in an interface file). `packages/` holds `forge-contracts` and `system-versions`; verify is 18 tasks. Touched apps/forge where forced (planted cases in `ImportDirection.spec.ts` and `ImportGraph.spec.ts`, seven doc rows). Not restored here: brace balance, hover movement, reduced motion and theme tokens for the library's stylesheets, lost with `bridge/` in WP8.2; fix package WP8.13b. Left for WP8.12: `guards-and-testing.md:80`, `backlog.md:52`. Verify 18/18 after landing |
 | 8-E | WP8.13b | landed | 9b7f0ac5 | First round, on Fable. `StyleBraceBalance`, `HoverMovesNothing`, `ReducedMotionStopsEveryAnimation` and `ThemeTokens` specs in `page/lib/design-system/` with the library's own `testing/StyleRuleReader.ts`; `page/lib/brand/StyleGuards.spec.ts`; flint has no stylesheet. No real violation found. `--shadow-control` and `--flare-light` have no dark value and are listed as same in both themes. Verify 18/18 after landing |
 | 8-E | WP8.7 | landed | c0880e8c | First round, on Fable. 61 files, 3,231 lines gone: no forge code runs, serves or commands Flint's brain and the contract names none. `POST /api/flint-brain/ask` answers 404 and both brain command kinds 400. The reader of the stored `flint-brain-ended` record is kept; such a record shows in the monitor's `activity[]` as an ordinary `agent` entry with no `kind` or `tokens`. `OverseerApiCommand` is gone (`ControlCommand`). `monitor-v3.json` edited in place again; WP8.10 must raise the version. Both forge recordings re-taken, unchanged. Left: `WorkerProfile.availableTools: 'none'` and its Claude adapter branch have no caller; `runbook.md:595` should say "every forge from 1.1" (WP8.12). Verify 18/18 after landing |
-| 8-F | WP8.8 | running | | |
-| 8-G | WP8.9 | waiting | | |
+| 8-F | WP8.8 | landed | ae2daac8 | First round, on Fable. Forge serves `bodyMarkdown`, `descriptionMarkdown` and `constitutionMarkdown`; forge's renderer, `RenderState.ts` and `src/lib/html-escape/` are gone and `marked` moved to Gaia. Gaia's model holds Markdown and `BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown)` renders into the page's unchanged HTML fields with `apps/gaia/src/lib/markdown-render/` (type `MarkdownRendering`); `BoardStateRoute` builds it once. `withAcceptanceItemsSeparated` is in `TicketAcceptanceUtil.ts`. `overseer-fetch-board.json` re-taken from a scratch forge, since Gaia's ingestion checks the recorded keys. WP8.10 must raise the board endpoint's version for the three renamed keys. Left for WP8.12: `apps/forge/README.md:146` lists `marked`, `react` and `react-dom`. Verify 18/18 after landing |
+| 8-G | WP8.9 | running | | |
 | 8-H | WP6.27 | waiting | | |
 | 8-I | WP8.10 | waiting | | |
 | 8-J | WP8.11 | waiting | | |
