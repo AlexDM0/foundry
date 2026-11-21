@@ -1,0 +1,75 @@
+/*
+ * The Assistant: the chat card beside a 388px card of its incidents, which stays in view and scrolls inside itself once it is taller than
+ * the window; under 1180px one column, the incidents after the chat. The chat's head holds Flint, the session's name and facts, and the
+ * count of its asks at the end. Each incident is a quiet card whose steps keep their time in a column of its own.
+ */
+.board-assistant-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 388px;
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+.board-assistant-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  position: sticky;
+  top: var(--sp-4);
+  max-height: calc(100dvh - 2 * var(--sp-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+}
+
+.board-assistant-rail .board-card {
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+}
+
+.board-assistant-chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.board-assistant-chat-head-end {
+  display: flex;
+  margin-left: auto;
+}
+
+.board-incident-step {
+  display: flex;
+  gap: var(--sp-2);
+  font-size: var(--fs-tab);
+  line-height: 18px;
+}
+
+.board-incident-step-time {
+  flex: none;
+  min-width: 36px;
+  font: 11.5px/18px var(--font-mono);
+  color: var(--ink-4);
+}
+
+@media (max-width: 1180px) {
+  .board-assistant-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .board-assistant-rail {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}

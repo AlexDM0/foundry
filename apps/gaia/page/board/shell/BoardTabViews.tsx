@@ -9,6 +9,7 @@ import type { BoardServices }        from '../@types/BoardServices.ts';
 import type { ConnectionState }      from '../api/BoardEventStreamClient.ts';
 import type { PreferenceStore }      from '../preferences/PreferenceStore.ts';
 import { AgentsView }                from '../views/agents/AgentsView.tsx';
+import { AssistantView }             from '../views/assistant/AssistantView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 
@@ -34,4 +35,5 @@ export const BOARD_TAB_VIEWS: BoardTabViewTable = {
       followTranscript={services.followTranscript}
     />
   ),
+  assistant: ({ board, services }) => <AssistantView board={board} followTranscript={services.followTranscript} />,
 };
