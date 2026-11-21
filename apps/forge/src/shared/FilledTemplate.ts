@@ -4,13 +4,12 @@ const PLACEHOLDER_PATTERN = /\{\{(\w+)\}\}/g;
 
 /** What an installed text names the product by, so a build's templates, skills and reference name its own program, folder and skills. */
 export function productNameTemplateValuesOf(
-  productNames: Pick<ProductNames, 'PROGRAM' | 'DATA_FOLDER' | 'PRODUCT_OWNER_SKILL' | 'ORCHESTRATE_SKILL' | 'PIPELINE_SETUP_SKILL'>,
+  productNames: Pick<ProductNames, 'PROGRAM' | 'DATA_FOLDER' | 'PRODUCT_OWNER_SKILL' | 'PIPELINE_SETUP_SKILL'>,
 ): Readonly<Record<string, string>> {
   return {
     program:            productNames.PROGRAM,
     dataFolder:         productNames.DATA_FOLDER,
     productOwnerSkill:  productNames.PRODUCT_OWNER_SKILL,
-    orchestrateSkill:   productNames.ORCHESTRATE_SKILL,
     pipelineSetupSkill: productNames.PIPELINE_SETUP_SKILL,
   };
 }

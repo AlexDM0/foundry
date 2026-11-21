@@ -55,7 +55,7 @@ function sentencesWith(installedTexts: Readonly<Record<string, string>>, planted
 describe('the scan itself', () => {
   /** Floors well under today's counts, to fail a scan that read the wrong files or a help screen it could not parse. */
   test('it reads the installed files and finds commands and flags in them and in the CLI', () => {
-    const expectedPaths = [...INSTALLED_TEMPLATE_PATHS, 'skills/agent-po/SKILL.md', 'skills/agent-progress-orchestrate/SKILL.md', 'skills/agent-pipeline/SKILL.md'];
+    const expectedPaths = [...INSTALLED_TEMPLATE_PATHS, 'skills/agent-po/SKILL.md', 'skills/agent-pipeline/SKILL.md'];
     expect(Object.keys(INSTALLED_TEXTS)).toEqual(expect.arrayContaining(expectedPaths));
     const namedSurface = namedSurfaceOf(INSTALLED_TEXTS, HELP_SURFACE);
     expect(namedSurface.commands.length, 'commands named').toBeGreaterThanOrEqual(10);

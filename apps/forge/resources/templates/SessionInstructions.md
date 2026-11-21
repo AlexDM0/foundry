@@ -9,8 +9,7 @@ drives every ticket through its build, review and merge; no session drives the b
   `decisions` waiting for User and the open `incidents`. Its `hephaestus` block says whether Hephaestus is up.
   Hephaestus's own state adds `mergeQueue` and `usage`.
 - When User asks to file, report or track a ticket, bug or research question, load the `{{productOwnerSkill}}`
-  skill. Only when User asks this session to run the board, load `{{orchestrateSkill}}`; it loads
-  `{{productOwnerSkill}}` itself. Filing or editing a ticket does not make a session the orchestrator.
+  skill.
 - A ticket is filed as a draft and builds only once `{{program}} ticket ready` readies it, which needs a numbered
   `## Acceptance` and a `## Brief` holding a non-blank line: the Brief is its builder's brief.
 - A worker's finding is a low ticket that waits for the ticket it was found on, in the group of that ticket. When
