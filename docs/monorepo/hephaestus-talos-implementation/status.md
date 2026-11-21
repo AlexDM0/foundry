@@ -15,7 +15,8 @@ fail, and no real `claude` session was started anywhere in the run.
 
 What the owner does now, in this order:
 
-1. **Gate G6, second half, what is left.** The clone is pulled and `setup` has run. Set each board up anew with `init`
+1. **Gate G6 is finished.** The clone is pulled and `setup` has run, and the owner said on 2026-11-21 that forge is
+   not in use anywhere yet, so no board waits on `init`. For a first board later: `init`
    (its pipeline's `reach` names no `/packages/design-system`, `/packages/flint` or `/packages/brand`, which are gone),
    The login items are not added again: the owner decided on 2026-11-21 that Hephaestus never launches itself at
    login (package WP10.1 removes the login item from forge; Gaia may start at login later, as a setting in its own
@@ -498,6 +499,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - **WP8.12:** 18 forge document figures were deleted with no source to re-render from; `system-topology` and `component-map` may be worth drawing again. Kept figures still show older retired names in their pixels ("Watcher", "agent-progress-v2").
 - **WP8.12, a person's files, left stale:** root `CLAUDE.md:7` and its tracker reach, root `README.md` (lines 40, 55, 112, 114, 125, 221), `docs/monorepo/design.md` (55, 59, 77, 217, 274), `scripts/GateCacheReport.ts:3`, `.claude/rules/design-system.md` and `flint.md`.
 
+- **WP10.1, to confirm:** a killed Hephaestus is no longer recorded `crashed` in the registry, since only a login-item start wrote that after a crash; a start by hand after a crash now starts. Gaia's `fleet` and `commands` versions were not raised for the removed `startForgesAtLogin`. `apps/forge/.platform-probes/os-task-scheduler-logon.js`, a Windows at-logon probe, is left as a platform record.
+
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
 - 2026-11-21, the owner: "I want you to switch to Fable models for all of the workflows after this". Every builder,
@@ -670,7 +673,9 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 9-A | WP9.2 | landed | bec16dce | 3 folders, 76 file names, 859 files, 7,931 hits. Raised: `progress.json` 3, registry 2 (Gaia `forgeRegistry` 2.0), `presence.json` 2, crash log 2, agent slot file 2. A scratch home named `hephaestus-home` pushed Talos's socket path past macOS's limit, so the spec uses `start-home` |
 | 9-A | WP9.3 | landed | bec16dce | 54 Markdown files, 1,146 hits; figures redrawn where their pixels named the Overseer; the stale Bridge comment in Gaia's `BoardStyleGuards.ts` reworded |
 | 9-A | WP9.4 | landed | bec16dce | Forge 3.0/3.0, `forge-contracts` 3.0.0, contract integers summary 2, monitor 5, control 3; Gaia 3.0/3.0 with fleet, events and `gaiaFleetDocument` 11; login item label `com.forge.hephaestus` (`com.agent-progress.overseer` kept as the released program's); Gaia's recordings re-taken as `hephaestus-fetch-*` |
-| 10-A | WP10.1 | running | | After the run, on the owner's word: remove the login item from forge |
+| 10-A | WP10.1 | landed | 63ca8d6a | First round, on Fable; the owner's words: Hephaestus never launches at login, and "nothing uses the login, no need for backwards compatibility" (for this operation only). 113 files, 1,928 lines gone: the `login-item` verb, `setup --login-item` and `--label`, the three platform writers, the label constants, and Gaia's "Start the running forges at login" switch with `startForgesAtLogin` in its settings, fleet document and `settings-set`. `--started-by` takes only `user`; only a successor can stay off after a crash, and a killed Hephaestus is no longer recorded `crashed` in the registry. `INSTALL_VERSION` 46; `forge-contracts` 4.0.0; forge's and Gaia's system versions and Gaia's `fleet` 11 and `commands` 6 not raised. `forge-registry` re-taken (its crash is now a killed Talos); four `login-item` answers cut by hand from `forge-program-done.json` and `forge-program-refused.json`; the `InstallChangeWatch` recording hand-set to 46. Gaia starts no forge when it launches. `verify:integration` 870 pass, 1 skip. Verify 18/18 after landing |
+| 10-B | WP10.2 | running | | On the owner's word: this repository has no forge tracker at all; remove the two-tracker design, the gate scripts and the `scripts/` workspace |
+| 10-C | Gaia design docs | running in a child session | | On the owner's word: tracked design documents replace every citation of the git-ignored `design_handoff*` folders (branch `gaia-design-docs`) |
 | 9-A | WP9.5 | landed | bec16dce | `RETIRED_NAMES` gains `Oversee`, `oversee`, `OVERSEE` and `watcher-lost`; the allowlist is `FrozenInstalledSurface.json`, `ProductNames.ts` and six vendor fixtures. `check.ts` exits 0. First check failed on two specs the rename had rewritten (a retired flag spelled from parts) and Watcher names left; the second on one printed sentence in `JobCommand.ts`; the third passed. One commit, about 1,080 paths. Verify 18/18 and `verify:integration` 872 pass, 1 skip after landing |
 
 ## Where the code differed from a stage file
