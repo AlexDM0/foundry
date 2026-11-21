@@ -1,5 +1,5 @@
 /**
- * What the timeline habitat answers between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `progress`). What matters: a
+ * What the timeline habitat answers between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `timeline`). What matters: a
  * ticket that becomes `in-progress` has Flint lay the bar along its own row, named by the id of the task at its own row's position, with the fallback
  * `lay-bar` cue; with no own row the element is known to be missing; and a ticket that stays in progress, that is new, or that leaves the state is no
  * change.

@@ -21,7 +21,7 @@ Paths are relative to `apps/gaia/`. Every sentence in quotes is the page's own c
 | C2 | Notifications and the window title | the "What notifies" dialog over `#forges` |
 | C3 | Launcher splash | `resources/page/loading.html` |
 
-There is no C1: it was Attention in the light theme, and both themes are part of every screen now.
+There is no C1; the mark is not reused, and both themes are part of every screen.
 
 ## Rules for every screen
 
@@ -55,15 +55,15 @@ names and the theme button shows, for the by-eye pass against the artboards.
 - **Both themes.** A screen is done when it matches its artboard in light and in dark. Every colour is a token with a light and a dark
   value (`page/StyleContract.spec.ts`, "the tokens").
 - **One primary per area.** An area (a list, a callout, a row, a panel, a dialog) has at most one orange primary button. Orange is work,
-  what waits on User and that one primary button; crimson is a failure only and never a button. Stop is never red and never primary,
-  except as the confirming "Stop" of the Forges view's stop panel.
+  what waits on User and that one primary button; crimson is a failure only and never a button. Stop is never red, and never
+  primary except as the confirming "Stop" of a Stop question (A4's stop panel, B1's popover).
 - **A colour is never alone.** Every dot, edge or tint stands beside its word: the condition word, the role word, the kind pill. A
-  condition dot is hidden from the accessibility tree (`page/components/ConditionDot.tsx`); the row beside it says the word or carries it
-  as its title. Fill holds, a ring changes, dashed waits.
+  condition dot is the design system's `StateDot`, hidden from the accessibility tree (`page/components/ConditionDot.tsx`); the row
+  beside it says the word or carries it as its title. Fill holds, a ring changes, dashed waits.
 - **No shadow at rest.**
 - **"You" only for what waits on User:** "Waiting on you", "2 wait on you". Attention's lead reads "What waits on you across every forge,
   and the forges that need a look.", and the list of what waits is labelled "Waiting on you".
-- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`apps/gaia/CLAUDE.md` rule 12;
+- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`CLAUDE.md` rule 12;
   `page/PageImportDirection.spec.ts` holds that only `page/board/` imports Flint).
 
 ## The shell
@@ -216,9 +216,9 @@ Held by: `page/views/attention/AttentionModel.spec.ts`, `page/views/attention/At
 | A row | The forge's condition dot, its name and condition word; a kind pill ("Escalated", "Question", "Draft", "Review", "Accept", "Crashed", "Down", "Not supervised", "Outage"), green for Accept and orange for every other; the mono id (`E4`, `#015`); the subject; a meta line of the forge's `metaText` (or the decision kind, `pipeline-proposal`) and the stamp's word with the age (`from incident I2 · opened 21m`; a meta line that opens with the stamp's word prints the age alone, `filed by intake · 2h 04m`) | The row's button carries the forge's action label ("Answer", "Ready", "Accept", "Open", "Start") and goes to the forge's board in place, `#forge/<trackerId>/<tab>/<item>` (`#forge/example-storefront-7c41/questions/E2`). Only the first row that can act has the primary button and the orange left edge; the others are quiet |
 | A forge alert row | Raised by Gaia from a forge's presence, never by the forge: "Forge crashed. It stays off until it is started." (or "Suspected crash before a reboot." and the error's name), "Forge is down: its Hephaestus is gone or hung.", "The forge stopped supervising its agents. They wait for a resume." | A crashed or down forge's "Start" sends `forge-start` and is disabled while it is on its way; a hung forge's "Open" goes to `#forge/<trackerId>` |
 | The outage row | When a network outage stopped agents that wait for User's resume: one row for the whole fleet, kind "Outage", condition word "network outage", the forges it names as its name (`Example Storefront and Invoice Service`), the subject `3 agents stopped on a network outage`, the meta line each forge's own count (`Example Storefront 2 · Invoice Service 1`) | "Open" goes to the Agents view, `#agents` |
-| Outage resume | "Resume agents stopped by an outage" in the page title whenever the fleet shows, never disabled, with nothing to resume or a forge down too | Sends `fleet-outage-resume`. Its answer shows atop the view, one line per forge that resumed ("Resumed 2 agents", "Resumed its agents"), refused (the forge's own sentence, else "Refused the resume.") or did not answer ("Did not answer. Nothing was resumed there."); a forge with nothing to resume has no line, and with none at all the answer reads "Nothing to resume". "Dismiss" takes it away; a failed send shows its refusal there with Try again |
+| Outage resume | "Resume agents stopped by an outage" in the page title whenever the fleet shows, not disabled by what it would resume, with nothing to resume or a forge down too (only the shell's fieldset disables it, while the connection banner shows) | Sends `fleet-outage-resume`. Its answer shows atop the view, one line per forge that resumed ("Resumed 2 agents", "Resumed its agents"), refused (the forge's own sentence, else "Refused the resume.") or did not answer ("Did not answer. Nothing was resumed there."); a forge with nothing to resume has no line, and with none at all the answer reads "Nothing to resume". "Dismiss" takes it away; a failed send shows its refusal there with Try again |
 | Forges that need a look | The micro-caps head "Forges that need a look · N" and one callout per look (see "Forges that need a look" below), absent with no look. A callout: the forge's dot, its name, its word ("Launches held." as a sentence, or a quiet pill such as "Dormant"), a sentence, a mono machine line where it has one | The callout's actions, from the table below. A refusal of a callout's command shows under that callout with the forge's code and sentence, "Try again" and a dismiss, until dismissed or the next success |
-| Pending restart | Under a callout whose "Update forge" was answered `restart-pending`: the pending step "Updated; restart pending." and "Its Hephaestus runs the old code until it restarts." | "Restart" sends `forge-restart` (primary; disabled while the forge's control contract is unknown); "Dismiss the pending restart" takes the step away. The step stays until a restart, stop or update of that forge succeeds |
+| Pending restart | Under a callout whose "Update forge" was answered `restart-pending`: the pending step "Updated; restart pending." and "Its Hephaestus runs the old code until it restarts." | "Restart" sends `forge-restart` (primary, but quiet under an older forge's callout, which keeps "Update forge" as its primary; disabled while the forge's control contract is unknown); "Dismiss the pending restart" takes the step away. The step stays until a restart, stop or update of that forge succeeds |
 | Running | The head "Running · N" and one card per forge that runs agents: its dot, name and condition word, `agentsInFlight / limit` in mono (or `3 agents` for a forge that reports no limit), a chip per job (role dot, mono id, its role word; a job that waits on User's decision is drawn as asking, with the word "asks"), and in orange "2 wait on you" | The card goes to `#forge/<trackerId>` |
 | Just happened | The newest four entries of `activity`: clock time, forge and the forge's own text; "No forge has reported activity yet." in its place when there is none | "All activity" goes to `#activity` |
 
@@ -245,7 +245,8 @@ counts the listed entries; while a forge cannot vouch for its count, the figure 
 
 A look is derived by the server from one forge's reading, never stored (`src/features/fleet/utils/ForgeLookUtil.ts`). A forge has at most
 one: the first row that applies, in this order. Warnings, notices, a held state and machine slots come only from a forge read in full now.
-The row numbers are the ones `ForgeLookUtil.spec.ts` cites; `older-contract` came in later and sits between rows 2 and 3.
+The row numbers are the ones `ForgeLookUtil.spec.ts` cites; `older-contract` has no number there and is
+listed as 2a, between rows 2 and 3.
 
 | Row | `kind` | When | Callout | Actions in Gaia |
 | --- | --- | --- | --- | --- |
@@ -257,7 +258,7 @@ The row numbers are the ones `ForgeLookUtil.spec.ts` cites; `older-contract` cam
 | 5 | `new-code` | a notice of kind `new-code` | neutral, pill "New code": the notice's sentence (else "This forge's code changed since its Hephaestus started.") and `code <codeVersion>` | "Restart onto the new code" sends `forge-restart` (primary; disabled while the forge's control contract is unknown) |
 | 6 | `counts-only` | fidelity `counts-only` | neutral, dashed, pill "Counts only" (B3) | "Update forge" sends `forge-update` (quiet) |
 | 7 | `dormant-with-ready-tickets` | fidelity `dormant`, and the last summary Gaia read in this run held ready tickets | neutral, dashed, pill "Dormant": "This forge is not running. 3 tickets are ready and nothing drives them." and `last command: <command>` | "Start forge" sends `forge-start` (quiet) |
-| 8 | `machine-limit-reached` | tickets wait for a machine slot | never a callout here: it shows once, on the machine panel | none |
+| 8 | `machine-limit-reached` | tickets wait for a machine slot | never a callout: it shows on the Forges view's machine panel (A4) and in the rail's This machine (B2) | none |
 
 A dormant forge Gaia read nothing of in this run has no look: Gaia never reads a board's files, so it does not know the ready count. A
 forge whose repository is gone has none either. Every callout with "Update forge" also holds the pending restart above.
@@ -426,7 +427,7 @@ Held by: `page/views/forges/ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, `Forg
 | Waiting cell | What waits on User in this forge as an orange `CountBadge`; nothing at zero or unknown; "not read" for a forge Gaia cannot talk to | none |
 | Code cell | The first seven characters of the code version, as a mono id | none |
 | Controls cell | Compact buttons by condition (table below) | "Pause" sends `forge-pause`; "Unpause" `forge-unpause`; "Start" `forge-start`; "Stop" opens the Stop dialog under the row (B2); "Open" goes to `#forge/<trackerId>`; "Look again" sends `fleet-look-again`; "Update forge" `forge-update`. A control Gaia cannot send carries why, naming both versions, as its title. |
-| Under a row | In order: an ahead forge's quiet versions line; the versions pair and its sentence when shown (U2); the forge's notice that its Assistant cannot come up, in Gaia's words, as a status ("This forge's Assistant cannot come up, so its open incidents take their defaults." in the artboard data); the outage count "2 agents stopped on a network outage"; the Stop dialog (B2); then, indented: "Updating the forge…" beside a starting ring while Update forge is on its way to an older forge, the row's refusal (B2), and a pending restart drawn without an edge | The refusal's "Try again" and "Dismiss this refusal"; the pending restart's "Restart" (`forge-restart`, primary) and "Dismiss the pending restart". |
+| Under a row | In order: an ahead forge's quiet versions line; the versions pair and its sentence when shown (U2); the forge's notice that its Assistant cannot come up, in Gaia's words, as a status ("This forge's Assistant cannot come up, so its open incidents take their defaults.", worded by the server in `src/adapters/page-api/ForgeSentenceUtil.ts`); the outage count "2 agents stopped on a network outage"; the Stop dialog (B2); then, indented: "Updating the forge…" beside a starting ring while Update forge is on its way to an older forge, the row's refusal (B2), and a pending restart drawn without an edge | The refusal's "Try again" and "Dismiss this refusal"; the pending restart's "Restart" (`forge-restart`, primary) and "Dismiss the pending restart". |
 | Notes under the table | While a row can open its versions: the versions explanation (U2). While a control is in use: "A control stays disabled while its command is on its way. A refusal is the forge's own sentence, shown beside the control that caused it." | none |
 | Held forge's banner | Under the table, one per held forge, labelled "<project>: Launches held": orange edge, held dot, the name, "Launches held.", the forge's held notice, or "Its install version changed. Nothing launches until this forge is updated.", then "Its 2 agents keep running." when any run | "Update forge" (quiet, at full height) sends `forge-update`. Under the banner: a refusal of `forge-update` or `forge-restart`, and the restart an update left pending: `PendingStep` "Updated; restart pending." "Its Hephaestus runs the old code until it restarts." with "Restart" (`forge-restart`, the held area's one primary) and "Dismiss the pending restart". |
 | Not found | Section head "Not found · 1"; per forge whose repository is gone: the dot, the name, a neutral "Missing" pill, "~/development/legacy-importer · the repository folder is gone" | "Hide in Gaia" sends `forge-hide`; its refusal shows under the entry. |
@@ -464,8 +465,8 @@ stays on for a forge whose Hephaestus does not answer, since the forge program t
 
 ### Add a repository
 
-At `#forges/add` the form of B4 opens in the package's widest `Dialog` over this view, titled "Add a repository", closed by "Close Add a
-repository". The form is `page/shared/add-repository/`, shared with B4.
+At `#forges/add` the form of B4 opens in the design-system library's widest `Dialog` over this view, titled "Add a repository",
+closed by "Close Add a repository". The form is `page/shared/add-repository/`, shared with B4.
 
 | Part | Shows | Controls and effect |
 | --- | --- | --- |
@@ -510,7 +511,8 @@ is still open; never on a click beside it (`FormDialogDismissal.ts`).
    (`ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, "this machine").
 3. Without a forge that enforces a machine limit the panel says "This forge version does not enforce a machine limit." and offers no
    stepper (same specs).
-4. (Withdrawn: forge serves no page, so there is no "Open in new tab"; Open goes to the forge's board in Gaia.)
+4. A row offers no way to a forge's own page, since a forge serves none: Open goes to the forge's board in Gaia, B1
+   (`ForgesModel.spec.ts`, "which buttons a row shows").
 5. On a held forge with a pending restart, Restart is the only primary button of its held area (`ForgesLayout.spec.tsx`,
    `Screens.visual.spec.ts`).
 6. Each root carries its full path as its title, for a window too narrow to print it whole (`ForgesLayout.spec.tsx`,
@@ -625,7 +627,7 @@ command states set in `page/testing/ArtboardScreens.tsx`.
 
 | Row or part | Shows | Controls and effect |
 | --- | --- | --- |
-| Example Storefront: the Stop dialog | Opened by the row's "Stop", in a card under the row, which is shown selected; a `ConfirmStrip` labelled "Stop Example Storefront": "Stop Hephaestus of Example Storefront? 4 agents are running." Two `ChoiceOption` cards: "Stop Hephaestus only" (chosen first) with "The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.", and "Stop the agents, then Hephaestus" with "The 4 agents wind down first and their tickets return to the board. Then Hephaestus stops." One agent is worded in the singular. When anything waits: "2 entries keep waiting on you while it is stopped." | "Cancel" closes it. "Stop" (primary, the one place Stop is primary) sends `forge-stop` with `agents: 'keep'` or `'stop-first'`, and closes the dialog once answered. While open, that row's controls are off. With no agent running, or a Hephaestus that does not answer Gaia, there is nothing to choose and Stop sends `agents: 'keep'`. A forge stopped elsewhere drops the dialog. |
+| Example Storefront: the Stop dialog | Opened by the row's "Stop", in a card under the row, which is shown selected; a `ConfirmStrip` labelled "Stop Example Storefront": "Stop Hephaestus of Example Storefront? 4 agents are running." Two `ChoiceOption` cards: "Stop Hephaestus only" (chosen first) with "The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.", and "Stop the agents, then Hephaestus" with "The 4 agents wind down first and their tickets return to the board. Then Hephaestus stops." One agent is worded in the singular. When anything waits: "2 entries keep waiting on you while it is stopped." | "Cancel" closes it. "Stop" (primary, the one place on this view Stop is primary) sends `forge-stop` with `agents: 'keep'` or `'stop-first'`, and closes the dialog once answered. While open, that row's controls are off. With no agent running, or a Hephaestus that does not answer Gaia, there is nothing to choose and Stop sends `agents: 'keep'`. A forge stopped elsewhere drops the dialog. |
 | Research Wiki: paused | Neutral dot, "Paused" in the secondary ink, "1 agent finishing · starts no new job" | "Unpause" is the row's primary and sends `forge-unpause`; Stop and Open as A4. |
 | Example Mobile App: a refusal | Under the row, indented: "The forge refused Stop: `hephaestus-still-live` Hephaestus did not stop within its tries." The code is mono; the sentence is the forge's own, as Gaia's server answered it. Never a red button. When Gaia itself refused or nothing answered, it reads "Gaia could not Stop: " with Gaia's code and sentence. | "Try again" (compact) sends the same command: a command naming only its forge from its kind, a Stop or a limit only as this view last sent it (no Try again otherwise). "Dismiss this refusal" removes it. |
 | Design System: starting | Gaia's own `forge start` on its way: orange ring dot, "Starting" in orange, "forge start · waiting for its API", the stepper shown and off, one disabled "Starting" button. A forge that reports itself `starting` reads the same. | none |
@@ -725,7 +727,7 @@ title kept.
 | Head | Micro-caps "Welcome to Gaia"; the display title "Nothing waits on you, because no forge is registered."; the lead "Gaia runs no agents of its own. It shows the forges on this machine, and a forge appears here the first time it is set up in a repository." | "Look again" sends `fleet-look-again`, disabled while it is on its way; its refusal shows under it with "Try again" |
 | Add a repository | A card titled "Add a repository": "Repository folder", a mono field (placeholder `~/development/example-storefront`) and "Choose a folder"; "Project name" (placeholder `Example Storefront`) and the hint "Starts as the folder's name."; under a hairline the sentence "Gaia sets up the board in that repository and starts its Hephaestus." and "Add and start", the one primary button | "Choose a folder" sends `path-choose` for a folder and fills the folder; disabled while a path is being chosen. The project name follows the folder's name until User types one, and again once cleared. "Add and start" sends `forge-add` with the trimmed folder and name; it can be sent only with both filled, a forge program known and no add on its way. A refused choice or add shows in the form, only beside the button whose send it was |
 | Forge program missing | Only while the settings name no forge program and Gaia found none: "Add and start" is disabled and its sentence reads "Add and start waits for the forge program. Choose it below."; under the card a dashed status line with a dashed dot: "**The forge program was not found.** Gaia can show running forges without it, but cannot start one." | "Choose the forge program" sends `path-choose` for a file, then `settings-set` of `forgeProgramPath`; a cancelled choice sends nothing more. Disabled while either is on its way; a refusal of either shows under the line |
-| Forge program found | Under the card: "Forge program" and its path from `~` (`~/.bun/bin/forge`; the one Gaia runs before the one the settings name), and once "A forge set up elsewhere appears here by itself." | none |
+| Forge program found | Under the card: "Forge program" and its path from `~` (`~/.bun/bin/forge`: the program Gaia runs, else the one Gaia's settings name), and once "A forge set up elsewhere appears here by itself." | none |
 
 **States.**
 
@@ -753,7 +755,7 @@ Held by: `page/shell/WindowTitle.spec.ts`, `page/views/forges/GaiaPanelModel.spe
 | Part | Shows | Controls and effect |
 | --- | --- | --- |
 | The window title | `(5) Gaia · Attention`: the rail's Attention count, `4+` included, then "Gaia" and the view's title ("Attention", "Agents", "Activity", "Forges", or a forge in place by its project, its tracker id while the document does not hold it). No count when nothing waits or before the first document. | none |
-| "What notifies" | Opened by the Gaia panel's "What notifies" (A4) over the Forges view: the package's wide `Dialog` titled "What notifies", "5 of 7 on" at the end of its title line, following the settings. One card of seven rows with a hairline between, each a `Checkbox` with the kind's name and its line (below). | A kind sends `settings-set` for `notifications` with only its own kind turned over. "Done" (primary) closes it, as do its close button ("Close What notifies") and Escape; a click beside it does not. A refused change shows under the card with "Try again" and its dismissal. |
+| "What notifies" | Opened by the Gaia panel's "What notifies" (A4) over the Forges view: the design-system library's wide `Dialog` titled "What notifies", "5 of 7 on" at the end of its title line, following the settings. One card of seven rows with a hairline between, each a `Checkbox` with the kind's name and its line (below). | A kind sends `settings-set` for `notifications` with only its own kind turned over. "Done" (primary) closes it, as do its close button ("Close What notifies") and Escape; a click beside it does not. A refused change shows under the card with "Try again" and its dismissal. |
 | Notifications off | While "Notify me while Gaia is open" is off: "\"Notify me while Gaia is open\" is off, so no kind notifies until it is on again." over the card | none |
 
 The seven kinds, in order, with their defaults from `GAIA_SETTINGS_DEFAULTS`:
@@ -832,8 +834,8 @@ paints dark for the dark choice and for auto on a dark system, light otherwise. 
 **Acceptance.**
 
 1. The splash shows from the launcher's first browser start when the launcher starts the server (`Launcher.spec.ts`).
-2. When Gaia's server already runs, the window opens on the splash at its last step, "Opening the window…", and moves to the page; it no
-   longer skips the splash (`Launcher.spec.ts`).
+2. When Gaia's server already runs, the window opens on the splash at its last step, "Opening the window…", and moves to the page; it
+   never skips the splash (`Launcher.spec.ts`).
 3. No request leaves the machine: tokens and fonts are files beside it, and it reads Gaia only through the launcher
    (`SplashPage.spec.ts`).
 4. It says each step's words and the closing line, and tells User to run nothing (`SplashPage.spec.ts`).

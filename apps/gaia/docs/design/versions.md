@@ -15,7 +15,7 @@ sheet and in `FLEET_VERSIONS_STATING_NO_VERSION` in Example Billing's place, sta
 
 The model, the four verdicts and where each is decided are in `docs/contracts.md` ("The version model", "The verdict on a forge"):
 one verdict per forge, from the forge's `GET /api/versions` and `SUPPORTED_FORGE_VERSION`, decided in
-`src/shared/utils/ForgeVersionsUtil.ts` and compared by `system-versions`' `SystemVersionUtil`. What the screens need of it:
+`src/shared/utils/ForgeVersionsUtil.ts` and compared by `src/shared/utils/SystemVersionUtil.ts`. What the screens need of it:
 
 | Verdict | When (S: the forge version this Gaia is built for) | Gaia talks to it | What the screens show |
 | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ pair open, and none).
 
 | Part | Shows | Controls and effect |
 | --- | --- | --- |
-| Title figures | "5 registered", "5 running", "2 not read"; "not read" is absent while every forge is read. | None. |
+| Title figures | "5 registered", "5 running", "2 not read"; "not read" counts the forges at a version this Gaia cannot talk to, and is absent without one. | None. |
 | Condition cell | Older: "Needs update" in orange by the `outdated` dot. Newer: "Not readable" in the secondary ink by the `unreadable` dot. Ahead and current: their own condition ("Live"). | None. |
 | Version subline | Under the condition: `current` a plain "forge 3.1"; any other a disclosure "1.8 · older", "4.1 · newer", "3.4 · ahead", and "older" alone for a forge that states no version. | The disclosure, named "1.8 · older, Example Billing, its version beside this Gaia’s", with `aria-expanded`, shows that row's versions pair, or hides it; one row's pair shows at a time. |
 | Versions pair | Under its row, expanded and not selected, a region named "Example Billing, its version beside this Gaia’s": the versions pair (see States and exact copy) and one sentence. | None. |
@@ -204,8 +204,8 @@ row and bar take the new verdict's form without a reload.
 
 ## Rules
 
-- The verdict is per forge, from the forge's `current` and `minimumSupported` and the one forge version this Gaia is built for; no
-  endpoint carries or decides a version. There is no Gaia minimum forge version and no `behind` verdict.
+- The verdict is per forge, never per endpoint, from the forge's `current` and `minimumSupported` and the one forge version this
+  Gaia is built for. There is no Gaia minimum forge version and no `behind` verdict.
 - A forge is spoken of in forge's own terms ("serves clients built for forge 4.0 and later"); Gaia's facts are its own version and
   the forge version it is built for.
 - A forge that serves no `/api/versions` is `older` and says "states no version".
@@ -232,11 +232,10 @@ row and bar take the new verdict's form without a reload.
 2. No sentence offers to update Gaia, names a command, speaks of an oldest Gaia or a Gaia minimum, or says "talks to forge"
    (`ForgeVersionsTextUtil.spec.ts`); a newer forge's dot, word, callout, disclosure and verdict carry no orange
    (`AttentionModel.spec.ts`, `ForgesModel.spec.ts`, `VersionsVerdictMark.spec.tsx`).
-3. Given a Gaia built for forge `3.1`: a forge at `1.8` is `older`; `3.0` is `older`; a forge with no `/api/versions` is `older`;
-   `3.1` is `current`; `3.4` serving `3.0` and later is `ahead`; `3.4` serving `3.1` and later is `ahead`; `3.4` serving `3.2` and
-   later is `newer`; `4.1` serving `4.0` and later is `newer`; with a Gaia built for `3.9`, `3.10` serving `3.0` and later is
-   `ahead`. The rule's edges are held in `src/shared/utils/ForgeVersionsUtil.spec.ts`, the order `3.10` above `3.9` in
-   `packages/system-versions/utils/SystemVersionUtil.spec.ts`.
+3. Given a Gaia built for forge `2.3`: a forge whose minimum is `2.4` or `3.0` is `newer`, even by a minor; a forge at `2.2`, `1.9`
+   or `0.9` is `older`; a forge with no `/api/versions` is `older`; `2.3` is `current`; `2.4` serving `2.3` and later and `3.1`
+   serving `1.0` and later are `ahead` (`src/shared/utils/ForgeVersionsUtil.spec.ts`). A version compares as major, then minor
+   (`src/shared/utils/SystemVersionUtil.spec.ts`).
 4. A forge that serves no `/api/versions` shows the older callout, row and bar with "states no version", Update forge primary
    (`AttentionModel.spec.ts`, `ForgesModel.spec.ts`, `ForgeModel.versions.spec.ts`).
 5. Opening a row's disclosure in Forges shows the versions pair and its sentence and sets `aria-expanded` to true; a current row
@@ -244,7 +243,8 @@ row and bar take the new verdict's form without a reload.
 6. Update forge goes idle, pending (its control disabled while on its way), then done (the pending step with Restart) or refused
    (the forge's code and sentence until dismissed), in the callout, the row and the bar alike (`AttentionLayout.spec.tsx`,
    `ForgesModel.spec.ts`, `ForgesLayout.spec.tsx`, `ForgeModel.versions.spec.ts`, `ForgeLayout.versions.spec.tsx`). After the
-   restart Gaia asks the forge's `/api/versions` again, and the screens follow the new verdict without a reload.
+   restart Gaia asks the forge's `/api/versions` again (`src/services/ForgeWatch.spec.ts`), and the screens follow the new verdict
+   without a reload.
 7. In place, a newer or older forge mounts no board: the area holds the notice and the versions pair, with no button
    (`ForgeModel.versions.spec.ts`, `ForgeLayout.versions.spec.tsx`).
 8. Every text pair holds 4.5:1 in both themes, among them the orange text on its tint, the secondary ink on the wash beside the

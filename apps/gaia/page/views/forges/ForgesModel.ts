@@ -255,7 +255,10 @@ const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live',
 /** The fidelities at which the forge's Hephaestus answered its last read, so a command it carries reaches it. */
 const HEPHAESTUS_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
 
-/** `docs/design/screens.md` A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
+/**
+ * `docs/design/screens.md` A4: which buttons each condition shows. Open is left out where the forge cannot open in place
+ * (`ForgeContractUtil.canOpenInPlace`).
+ */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
   'live':          ['pause', 'stop', 'open'],
   'paused':        ['unpause', 'stop', 'open'],

@@ -1,5 +1,5 @@
 /**
- * What a forge in place shows of a fleet document. What matters (`docs/design/screens.md` B1, with A4's buttons per condition and B2's Stop question): the
+ * What a forge in place shows of a fleet document. What matters (`docs/design/screens.md` B1, its controls per condition and its Stop question): the
  * bar names the forge's condition by its word beside the dot and shows one line of agents and what waits with its figures apart, artboard
  * B1's line, so the bar stays short, with the whole reading of a usage limit hit and since for its tooltip; a value the forge
  * did not report is absent, not zero; a Hephaestus that stopped answering says its line is as last reported; each condition shows exactly

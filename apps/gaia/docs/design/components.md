@@ -82,7 +82,7 @@ The rest are single values, the same in both themes, by family (the values are i
 | Splash | `--splash-stack-gap` | The splash's stack |
 | Rail | `--rail-width` (232 px), `--rail-section-gap`, `--rail-inset`, `--rail-row-height` (30 px), `--rail-machine-gap` | The rail |
 | Forge view | `--forge-bar-height` (56 px), `--forge-frame-notice-width`, `--forge-bar-update-refusal-width` | A forge's bar and its notices |
-| Views | `--view-side-width`, `--activity-…`, `--agents-…`, `--forges-…`, `--attention-…` | Each view's columns, rows and side widths |
+| Views | `--view-side-width`, `--activity-…`, `--agents-…`, `--fs-agents-role`, `--weight-agents-role`, `--fs-agents-panel-kind`, `--line-height-agents-last-line`, `--forges-…`, `--attention-…` | Each view's columns, rows and side widths |
 | Stale | `--stale-opacity` (0.62) | A row shown as last reported: it can be read, not acted on |
 
 ### 2.3 Gaia's stylesheet
