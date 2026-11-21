@@ -45,8 +45,8 @@ const OPT_OUT_SCENARIOS: Readonly<Record<string, readonly string[]>> = {
   '--no-hooks': ['--no-hooks'],
 };
 
-/** The tracker's own store is not installed: `progress.json` carries a fresh tracker id, and the `progress.html` stub its Overseer's URL. */
-const TRACKER_STORE_PATHS = new Set(['progress.json', 'progress.html', 'log.jsonl'].map((fileName) => `${PRODUCT_NAMES.DATA_FOLDER}/${fileName}`));
+/** The tracker's own store is not installed: `progress.json` carries a fresh tracker id. */
+const TRACKER_STORE_PATHS = new Set(['progress.json', 'log.jsonl'].map((fileName) => `${PRODUCT_NAMES.DATA_FOLDER}/${fileName}`));
 
 const TRACKER_LOCK_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/.lock/`;
 

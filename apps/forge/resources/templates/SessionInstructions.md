@@ -23,4 +23,3 @@ drives every ticket through its build, review and merge; no session drives the b
   time.
 - Never edit a file under `{{dataFolder}}`. Change a ticket's title or body with `{{program}} ticket edit`, and each
   other field with its own `ticket` verb; the board refuses what it does not allow.
-- Run `{{program}} open` once per session so User has the board in the browser.

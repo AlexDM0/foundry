@@ -3,8 +3,8 @@
  * `cli/adoption/constants/AgentInstall.ts` with the agent's installer, and reports per part whether its bytes changed: that is how an
  * orchestrator that read the brief earlier learns its copy is stale.
  */
-import { mkdirSync, readFileSync } from 'node:fs';
-import { dirname, join }           from 'node:path';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join }                   from 'node:path';
 
 import { createInstallManifestWriter }                      from '../../src/adapters/install/InstallManifestWriter.ts';
 import type { AgentInstaller }                              from '../../src/lib/agent-launch/AgentInstaller.ts';
@@ -31,6 +31,9 @@ export const IGNORE_OUTCOME_WORDS: Readonly<Record<EnsureIgnoredOutcome, string>
   'appended':             'entry added',
   'no-gitignore-written': 'not written — this directory is not a git repository',
 };
+
+/** The pointer to a board page older versions wrote into the tracker folder; no version writes it now, and a refresh removes one left behind. */
+const RETIRED_PROGRESS_PAGE_FILE_NAME = 'progress.html';
 
 /** Wide enough for the longest label, `.gitignore:`, so every value starts in one column. */
 const REPORT_LABEL_COLUMN_WIDTH = 13;
@@ -70,11 +73,8 @@ export function reportLineOf(reportLabel: string, value: string): string {
   return `  ${`${reportLabel}:`.padEnd(REPORT_LABEL_COLUMN_WIDTH)}${value}`;
 }
 
-export function refreshReportLinesOf(report: TrackerRefreshReport, htmlFilePath: string): string[] {
-  return [
-    ...report.partLines.map(({ reportLabel, line }) => reportLineOf(reportLabel, line)),
-    reportLineOf('dashboard', htmlFilePath),
-  ];
+export function refreshReportLinesOf(report: TrackerRefreshReport): string[] {
+  return report.partLines.map(({ reportLabel, line }) => reportLineOf(reportLabel, line));
 }
 
 function fileBytesOrNothing(filePath: string): Buffer | null {
@@ -153,11 +153,12 @@ function ignoreFolders(rootDirectory: string, folderNames: readonly string[]): s
   return folderNames.map((folderName) => `${folderName} ${IGNORE_OUTCOME_WORDS[ensureIgnored(rootDirectory, folderName)]}`).join('; ');
 }
 
-/** Touches nothing the tracker holds: not `progress.json`, not a ticket, not the log. */
+/** Touches nothing the tracker holds: not `progress.json`, not a ticket, not the log. The retired page pointer is no record of the tracker. */
 export function refreshTrackedRepository(request: TrackerRefreshRequest): TrackerRefreshReport {
   const {
     workspace, installedFileTexts, installedSkillFileTexts, agentInstaller, commandName, optOutFlags, writesTheBriefFirst, standardError
   } = request;
+  rmSync(join(workspace.trackerDirectory, RETIRED_PROGRESS_PAGE_FILE_NAME), { force: true });
   const installedFilePaths = installedFilePathsIn(workspace.rootDirectory);
   const { parts }          = AGENT_INSTALL;
   const briefsPart         = parts.find((part) => part.writing === 'briefs');

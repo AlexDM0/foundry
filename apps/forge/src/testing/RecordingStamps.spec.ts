@@ -23,7 +23,6 @@ const INSTALLED: Readonly<Record<RecordedSystem, string>> = {
   'eslint':           '9.39.1',
   'git':              '2.50.1',
   'gpg':              '2.5.21',
-  'opener':           'Darwin 25.6.0',
   'operating system': 'Darwin 25.6.0',
   'sandbox':          'Darwin 25.6.0',
   'setup tools':      'bun 1.3.0, git 2.50.1',

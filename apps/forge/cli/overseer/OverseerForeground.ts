@@ -12,7 +12,6 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 
-import { createProgressPageStubWriter }                   from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
 import { OperationRefusalWordingUtil }                    from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { writeOwnerOnlyFileAtomically }                   from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
@@ -212,7 +211,6 @@ export async function closeTheStoppedOverseer(
   if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
   const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
   await registerOverseer(request, { overseer: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
-  createProgressPageStubWriter(workspace.htmlFilePath).write(null);
   Presence.writeEnding(files, generation, { kind: 'stopped' }, stoppedAt);
   Baton.release(files.overseerDirectory, generation);
 }
@@ -878,7 +876,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       current = serving;
       lifetimeBeingStarted = null;
       publishState();
-      // The identity, the registry, the page stub and the print give out the URL only once the synchronous start is done: a recursive
+      // The identity, the registry and the print give out the URL only once the synchronous start is done: a recursive
       // watch can block the event loop for many seconds on a loaded macOS, and a client that had the URL earlier waited that long.
       started = true;
       await registerOverseer(request, {
@@ -889,7 +887,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           state: 'serving', generation, at: servingStartedAt, process: ownIdentity
         },
       });
-      createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
       printedTheUrl = true;
       await installWatch.learnVersionsOnDisk();

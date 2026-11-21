@@ -83,7 +83,7 @@ async function runIn(
 }
 
 describeWhenGitIsRecorded('initialising a repository', () => {
-  test('creates the tracker tree, ignores it and the worktrees folder, writes the session instructions and no CLAUDE.md, and renders a page', async () => {
+  test('creates the tracker tree, ignores it and the worktrees folder, writes the session instructions and no CLAUDE.md, and writes no page', async () => {
     const repositoryDirectory = scratchRepository();
 
     const { exitCode, context } = await runIn(repositoryDirectory, ['init', '--project', 'Example Agency'], INIT_IN_A_NEW_REPOSITORY);
@@ -91,8 +91,7 @@ describeWhenGitIsRecorded('initialising a repository', () => {
 
     expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'))).toBe(true);
     expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets'))).toBe(true);
-    // A3: with no Overseer running, the stub says so.
-    expect(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html'), 'utf8')).toContain('Overseer down');
+    expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html')), 'init writes no page pointer').toBe(false);
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8')).toContain(`${PRODUCT_NAMES.DATA_FOLDER}/`);
 
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8')).toContain(`${PRODUCT_NAMES.WORKTREES_FOLDER}/`);
@@ -103,8 +102,8 @@ describeWhenGitIsRecorded('initialising a repository', () => {
     expect(existsSync(installedFilePathsIn(repositoryDirectory).assistantDefault)).toBe(true);
     expect(existsSync(installedFilePathsIn(repositoryDirectory).reference)).toBe(true);
     expect(context.outputText()).toContain('.gitignore:');
-    expect(context.outputText()).toContain('progress.html');
-    expect(context.outputText(), 'a fresh init ends with what to run next').toContain(`Run \`${PRODUCT_NAMES.PROGRAM} open\`. It starts the Overseer`);
+    expect(context.outputText()).not.toContain('progress.html');
+    expect(context.outputText(), 'a fresh init ends with what to run next').toContain(`Run \`${PRODUCT_NAMES.PROGRAM} start\`. It starts the Overseer`);
     expect(context.errorText()).toBe('');
   });
 
@@ -128,7 +127,7 @@ describeWhenGitIsRecorded('initialising a repository', () => {
     expect(placesNaming(textByPlace, OTHER_PRODUCT_NAME_TEXTS)).toEqual([]);
 
     const plantedSkillPath = join('.claude', 'skills', OTHER_PRODUCT_NAMES.PRODUCT_OWNER_SKILL, 'SKILL.md');
-    const plantedPlaces = new Map([[plantedSkillPath, ''], ['standard output', `Run \`${OTHER_PRODUCT_NAMES.PROGRAM} open\`.`]]);
+    const plantedPlaces = new Map([[plantedSkillPath, ''], ['standard output', `Run \`${OTHER_PRODUCT_NAMES.PROGRAM} start\`.`]]);
     expect(placesNaming(plantedPlaces, OTHER_PRODUCT_NAME_TEXTS)).toContain(`${plantedSkillPath} names ${OTHER_PRODUCT_NAMES.PRODUCT_OWNER_SKILL}`);
     expect(placesNaming(plantedPlaces, OTHER_PRODUCT_NAME_TEXTS)).toContain(`standard output names ${OTHER_PRODUCT_NAMES.PROGRAM}`);
   });
@@ -246,6 +245,20 @@ describeWhenGitIsRecorded('initialising a repository', () => {
 });
 
 describeWhenGitIsRecorded('a second init', () => {
+  test('a progress.html an older version left is removed by a fresh init and by an init on the existing tracker', async () => {
+    const repositoryDirectory = scratchRepository();
+    const retiredPagePath     = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html');
+    mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
+    writeFileSync(retiredPagePath, '<!doctype html><title>A page from an older version</title>\n');
+
+    expect((await runIn(repositoryDirectory, ['init'], INIT_IN_A_NEW_REPOSITORY)).exitCode).toBe(0);
+    expect(existsSync(retiredPagePath)).toBe(false);
+
+    writeFileSync(retiredPagePath, '<!doctype html><title>A page from an older version</title>\n');
+    expect((await runIn(repositoryDirectory, ['init'], INIT_ON_AN_EXISTING_TRACKER)).exitCode).toBe(0);
+    expect(existsSync(retiredPagePath)).toBe(false);
+  });
+
   test('at the same root refreshes the briefs, leaves a CLAUDE.md alone, keeps the tracker and exits 0', async () => {
     const repositoryDirectory = scratchRepository();
     await runIn(repositoryDirectory, ['init'], INIT_IN_A_NEW_REPOSITORY);
@@ -265,7 +278,6 @@ describeWhenGitIsRecorded('a second init', () => {
     expect(readFileSync(instructionFilePath, 'utf8'), 'init writes no instruction file of the agent').toBe('# Example instructions\n');
     expect(second.outputText()).not.toContain('  CLAUDE.md:');
     expect(readFileSync(briefFilePath, 'utf8'), 'the brief is shipped guidance, so a re-run restores the current wording').toStartWith('## Progress tracking');
-    // The tracker id is the page's localStorage key, so a re-run that reset it would reset every reader's stored range.
     expect(storedProgressOf(repositoryDirectory).trackerId).toBe(trackerIdBefore);
   });
 

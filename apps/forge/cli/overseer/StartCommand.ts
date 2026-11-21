@@ -1,7 +1,6 @@
 /**
- * `start [--started-by user|login-item] [--repository <path>] [--json]`: the board's Overseer, started detached as `open` starts it, with no
- * browser, after the start gate. With one live it starts nothing. It returns only once the Overseer's API answers, so a program that runs it
- * may use the API at once.
+ * `start [--started-by user|login-item] [--repository <path>] [--json]`: the board's Overseer, started detached after the start gate. With
+ * one live it starts nothing. It returns only once the Overseer's API answers, so a program that runs it may use the API at once.
  */
 import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                        from '../../src/services/overseer/OverseerFiles.ts';

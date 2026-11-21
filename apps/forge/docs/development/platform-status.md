@@ -105,7 +105,6 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `SetupPlatform` | #552 | setup.ps1 from real cmd and PowerShell. |
 | `Autostart` | #553 | systemctl and reg.exe on real hosts, a Watcher surviving a unit restart. |
 | Platforms section | #554 | a Watcher started inside a job object that kills on close, and `clear` from a Git Bash mintty. |
-| `Opener` | #554 | `rundll32.exe url.dll,FileProtocolHandler` opening a real browser. |
 | `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
 | `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and an Overseer stop ending its tree through taskkill. |
 | `ProcessSupervision` (boot start) | none | no read exists: the boot's start answers `null`, so a crash suspected before a reboot is never judged on Windows. |

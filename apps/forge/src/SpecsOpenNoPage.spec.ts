@@ -1,18 +1,15 @@
 /**
- * The Tests rule in the root `CLAUDE.md` that a spec never opens a page, a tab or a window: no spec or spec helper starts the default
- * browser opener (`open`, `xdg-open`, `cmd /c start`, the Windows protocol handler, or what `openerFor` gives). A start is a process start
- * or a shell tag whose arguments hold an opener program, or a name bound to an opener. A spec also reaches the opener through
- * `openInTheDefaultBrowser`, `openCommand` or a run of the `open` command line: in this process only a mock of `Bun.spawn` or of the opener
- * module keeps the page shut, and a spawned binary is not let run `open`; an exact allowlist names each unmocked run and why it opens no
- * page. The scan proves it saw the specs, the opener of the open command's specs and the reaches of the tree, and each form is planted to
- * prove the guard names it.
+ * The Tests rule in the root `CLAUDE.md` that a spec never opens a page, a tab or a window: no spec or spec helper starts a program that
+ * opens the default browser (`open`, `xdg-open`, `cmd /c start`, the Windows protocol handler). A start is a process start or a shell tag
+ * whose arguments hold such a program, or a name bound to one. The scan proves it saw the specs, and each form is planted to prove the
+ * guard names it.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
-import type { RepositorySource }                       from './testing/RepositorySources.ts';
-import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import type { RepositorySource }        from './testing/RepositorySources.ts';
+import { programTypeScriptSources }     from './testing/RepositorySources.ts';
 
 const PROCESS_STARTS = new Set([
   'Bun.spawn',
@@ -29,17 +26,6 @@ const SHELL_TAGS = new Set(['$', 'Bun.$']);
 const OPENER_PROGRAMS = new Set(['open', 'xdg-open', 'rundll32.exe', 'url.dll,FileProtocolHandler']);
 const WINDOWS_SHELLS = new Set(['cmd', 'cmd.exe']);
 const WINDOWS_START_COMMAND = 'start';
-const OPENER_FACTORY = 'openerFor';
-const IN_PROCESS_OPENER_REACHES = new Set(['openInTheDefaultBrowser', 'openCommand']);
-const IN_PROCESS_COMMAND_RUNNER = 'runCommandLine';
-const SPAWNED_COMMAND_RUNNERS = new Set(['runAgentProgress', 'runAgentProgressBesideRecordedGit', 'startAgentProgress']);
-const OPEN_COMMAND_VERB = 'open';
-const OPENER_MODULE_FILE = 'OpenInTheDefaultBrowser.ts';
-/** Each file that runs the `open` command line with no mock, and why no page opens. */
-const OPEN_RUNS_THAT_OPEN_NO_PAGE: Readonly<Record<string, string>> = {
-  'cli/Main.spec.ts':                      'open is refused no-tracker-found: the scratch folder holds no tracker',
-  'cli/tracking/open/OpenCommand.spec.ts': 'open is refused gate-confinement-unavailable before it starts an Overseer',
-};
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const MINIMUM_SCANNED_FILE_COUNT = 100;
 
@@ -76,8 +62,7 @@ function namesAnOpenerProgram(nodes: readonly ts.Node[]): boolean {
 }
 
 function reachesAnOpenerByName(nodes: readonly ts.Node[], openerNames: ReadonlySet<string>): boolean {
-  return nodes.some((node) => (ts.isCallExpression(node) && node.expression.getText() === OPENER_FACTORY)
-    || (ts.isIdentifier(node) && openerNames.has(node.text)));
+  return nodes.some((node) => ts.isIdentifier(node) && openerNames.has(node.text));
 }
 
 function holdsAnOpener(nodes: readonly ts.Node[], openerNames: ReadonlySet<string>): boolean {
@@ -89,7 +74,7 @@ function boundNamesOf(name: ts.BindingName): string[] {
   return name.elements.flatMap((element) => (ts.isOmittedExpression(element) ? [] : boundNamesOf(element.name)));
 }
 
-/** Every name bound to an opener, followed until no new name is found: `const argv = [...opener.argv, url]` binds one too. */
+/** Every name bound to an opener, followed until no new name is found: `const argv = [...command, url]` binds one too. */
 function openerNamesIn(nodesOfTheFile: readonly ts.Node[]): Set<string> {
   const declarations = nodesOfTheFile.filter(ts.isVariableDeclaration).flatMap(({ name, initializer }) => {
     if (initializer === undefined) return [];
@@ -124,90 +109,23 @@ function opensAPage(nodesOfTheFile: readonly ts.Node[]): boolean {
   });
 }
 
-/** Only a bare name: `ExampleWordingUtil.openCommand()` is another function. */
-function calleeNameOf(call: ts.CallExpression): string {
-  return ts.isIdentifier(call.expression) ? call.expression.text : '';
-}
-
-/** Any argument: `runAgentProgressBesideRecordedGit` takes its command line third. */
-function runsTheOpenCommand(call: ts.CallExpression): boolean {
-  return call.arguments.some((commandLine) => {
-    if (!ts.isArrayLiteralExpression(commandLine)) return false;
-    const [verb] = commandLine.elements;
-    return verb !== undefined && ts.isStringLiteralLike(verb) && verb.text === OPEN_COMMAND_VERB;
-  });
-}
-
-function reachesTheOpenerInThisProcess(call: ts.CallExpression): boolean {
-  const calleeName = calleeNameOf(call);
-  return IN_PROCESS_OPENER_REACHES.has(calleeName) || (calleeName === IN_PROCESS_COMMAND_RUNNER && runsTheOpenCommand(call));
-}
-
-function mocksTheOpener(calls: readonly ts.CallExpression[]): boolean {
-  return calls.some((call) => {
-    const [target, member] = call.arguments;
-    const callee = call.expression.getText();
-    if (callee === 'spyOn') return target?.getText() === 'Bun' && member !== undefined && ts.isStringLiteralLike(member) && member.text === 'spawn';
-    return callee === 'mock.module' && target !== undefined && ts.isStringLiteralLike(target) && target.text.endsWith(OPENER_MODULE_FILE);
-  });
-}
-
-interface OpenerReaches {
-  readonly opensAPage:                    boolean;
-  readonly reachesTheOpenerInThisProcess: boolean;
-  readonly reachesTheOpenerUnmocked:      boolean;
-}
-
-/** In this process a mock of `Bun.spawn` or of the opener module catches the opener; a spawned binary is out of its reach. */
-const openerReachesOf = memoisedPerSource((source): OpenerReaches => {
-  const nodesOfTheFile = subtreeOf(ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true));
-  const calls = nodesOfTheFile.filter(ts.isCallExpression);
-  const reachesInThisProcess = calls.some(reachesTheOpenerInThisProcess);
-  const runsTheOpenCommandInASpawnedBinary = calls.some((call) => SPAWNED_COMMAND_RUNNERS.has(calleeNameOf(call)) && runsTheOpenCommand(call));
-  return {
-    opensAPage:                    opensAPage(nodesOfTheFile),
-    reachesTheOpenerInThisProcess: reachesInThisProcess,
-    reachesTheOpenerUnmocked:      runsTheOpenCommandInASpawnedBinary || (reachesInThisProcess && !mocksTheOpener(calls)),
-  };
-});
-
-function pageOpeningViolationsOf(sources: readonly RepositorySource[], allowedOpenRuns: Readonly<Record<string, string>> = {}): string[] {
-  return sources.filter(({ path }) => isScanned(path)).flatMap((source) => {
-    const reaches = openerReachesOf(source);
-    if (reaches.opensAPage) return [`${source.path} starts the default browser opener`];
-    if (Object.hasOwn(allowedOpenRuns, source.path)) return [];
-    if (reaches.reachesTheOpenerUnmocked) return [`${source.path} reaches the default browser opener with no mock of Bun.spawn`];
-    return [];
-  });
+function pageOpeningViolationsOf(sources: readonly RepositorySource[]): string[] {
+  return sources
+    .filter(({ path, text }) => isScanned(path) && opensAPage(subtreeOf(ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true))))
+    .map(({ path }) => `${path} starts the default browser opener`);
 }
 
 const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 describe('the scan itself', () => {
-  test('it sees the specs and the opener that the open command\'s specs bind', () => {
+  test('it sees the specs and the spec helpers', () => {
     expect(SOURCES.filter(({ path }) => isScanned(path)).length).toBeGreaterThan(MINIMUM_SCANNED_FILE_COUNT);
-    const openerSpec = SOURCES.find(({ path }) => path === 'cli/OpenInTheDefaultBrowser.integration.spec.ts');
-    expect(openerSpec).toBeDefined();
-    const sourceFile = ts.createSourceFile(openerSpec?.path ?? '', openerSpec?.text ?? '', ts.ScriptTarget.Latest, true);
-    expect([...openerNamesIn(subtreeOf(sourceFile))]).toContain('opener');
-  });
-
-  test('it sees the specs that reach the opener in this process', () => {
-    const reachingSpecs = SOURCES.filter(({ path }) => isScanned(path)).filter((source) => openerReachesOf(source).reachesTheOpenerInThisProcess)
-      .map(({ path }) => path);
-    expect(reachingSpecs).toEqual(expect.arrayContaining(['cli/OpenInTheDefaultBrowser.spec.ts', 'cli/tracking/open/OpenCommand.spec.ts']));
   });
 });
 
 describe('the tree', () => {
   test('no spec or spec helper starts the default browser opener', () => {
-    expect(pageOpeningViolationsOf(SOURCES, OPEN_RUNS_THAT_OPEN_NO_PAGE)).toEqual([]);
-  });
-
-  test('every allowed open run is one the guard names without its allowance', () => {
-    const allowedPaths = Object.keys(OPEN_RUNS_THAT_OPEN_NO_PAGE);
-    const named = pageOpeningViolationsOf(SOURCES.filter(({ path }) => allowedPaths.includes(path)));
-    expect(named).toEqual(allowedPaths.map((path) => `${path} reaches the default browser opener with no mock of Bun.spawn`));
+    expect(pageOpeningViolationsOf(SOURCES)).toEqual([]);
   });
 });
 
@@ -222,29 +140,11 @@ describe('a planted spec is named', () => {
     ['`open` in the Bun shell', 'await Bun.$`open ${url}`;'],
     ['`xdg-open` in the imported Bun shell', 'await $`xdg-open ${url}`;'],
     ['`open` through `child_process`', 'spawn(\'open\', [url]);'],
-    ['`openerFor` in the argv', 'Bun.spawn([...openerFor(process.platform, systemFolder).argv, url]);'],
-    ['a name bound to `openerFor`', 'const opener = openerFor(process.platform, systemFolder);\nrealCommandAnswerOf([...opener.argv, url]);'],
-    [
-      'a name bound through another name',
-      'const { argv } = openerFor(\'darwin\', systemFolder);\nconst command = [...argv, url];\nBun.spawnSync(command);',
-    ],
+    ['a name bound through another name', 'const opener = [\'xdg-open\'];\nconst command = [...opener, url];\nBun.spawnSync(command);'],
+    ['a recorded real answer of `open`', 'const opener = [\'open\'];\nrealCommandAnswerOf([...opener, url]);'],
     ['an argv bound to `open`', 'const command = [\'open\', url];\nBun.spawn(command);'],
   ])('%s', (_form, text) => {
     expect(pageOpeningViolationsOf([{ path: 'cli/Example.spec.ts', text }])).toEqual(['cli/Example.spec.ts starts the default browser opener']);
-  });
-
-  test.each([
-    ['`openInTheDefaultBrowser` with no mock', 'openInTheDefaultBrowser(context, url);'],
-    ['`openCommand` with no mock', 'await openCommand(commandArguments, context);'],
-    ['the `open` command line run in this process with no mock', 'await runCommandLine([\'open\'], context);'],
-    ['a spy on another member of Bun', 'spyOn(Bun, \'spawnSync\');\nopenInTheDefaultBrowser(context, url);'],
-    ['a mock of another module', 'mock.module(\'./OpenerFor.ts\', () => ({}));\nopenInTheDefaultBrowser(context, url);'],
-    ['the `open` command line in a spawned binary, mocked here', 'spyOn(Bun, \'spawn\');\nawait runAgentProgress([\'open\'], options);'],
-    ['the `open` command line in a started binary', 'startAgentProgress([\'open\'], options);'],
-    ['the `open` command line third in a binary spawned beside recorded git', 'await runAgentProgressBesideRecordedGit(recordedGit, stage, [\'open\'], options);'],
-  ])('%s', (_form, text) => {
-    expect(pageOpeningViolationsOf([{ path: 'cli/Example.spec.ts', text }]))
-      .toEqual(['cli/Example.spec.ts reaches the default browser opener with no mock of Bun.spawn']);
   });
 
   test('a spec helper is scanned too', () => {
@@ -255,17 +155,11 @@ describe('a planted spec is named', () => {
 
 describe('what the guard leaves alone', () => {
   test.each([
-    [
-      'an opener argv that is only recorded',
-      'const opener = openerFor(process.platform, systemFolder);\nrecordCommandAnswer({ argv: [...opener.argv, url] }, placeholders, answer);',
-    ],
+    ['an opener argv that is only recorded', 'const opener = [\'open\'];\nrecordCommandAnswer({ argv: [...opener, url] }, placeholders, answer);'],
     ['a missing opener', 'realCommandAnswerOf([join(scratch, \'missing-opener\'), url]);'],
     ['a `start` that no Windows shell runs', 'Bun.spawn([\'agent-progress\', \'task\', \'start\', \'1\']);'],
     ['a sentence about opening', 'const note = \'the opener opens a page\';'],
     ['an opener on a mock', 'recorded.spawn([\'open\', url]);'],
-    ['`openInTheDefaultBrowser` under a spy on Bun.spawn', 'spyOn(Bun, \'spawn\').mockImplementation(fake);\nopenInTheDefaultBrowser(context, url);'],
-    ['the `open` command line under a mock of the opener module', 'mock.module(\'../../OpenInTheDefaultBrowser.ts\', () => ({}));\nawait runCommandLine([\'open\'], context);'],
-    ['a member of another object named `openCommand`', 'ExampleWordingUtil.openCommand();'],
     ['another command line run in this process', 'await runCommandLine([\'status\', \'--json\'], context);'],
     ['another command line in a spawned binary', 'await runAgentProgress([\'render\'], options);'],
   ])('%s', (_form, text) => {
@@ -273,7 +167,7 @@ describe('what the guard leaves alone', () => {
   });
 
   test('a shipping module is not scanned', () => {
-    const shippingModule = { path: 'cli/OpenInTheDefaultBrowser.ts', text: 'const opener = openerFor(platform, folder);\nBun.spawn([...opener.argv, url]);' };
+    const shippingModule = { path: 'cli/ExampleCommand.ts', text: 'Bun.spawn([\'open\', url]);' };
     expect(pageOpeningViolationsOf([shippingModule])).toEqual([]);
   });
 });

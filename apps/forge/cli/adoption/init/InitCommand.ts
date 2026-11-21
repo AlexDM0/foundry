@@ -29,7 +29,6 @@ import {
   reportLineOf,
   refreshTrackedRepository
 }                                                                             from '../TrackerRefresh.ts';
-import { writeProgressPageStub }                                       from '../WriteProgressPageStub.ts';
 import { chosenRootLineOf, initPlacementOf }                           from './InitPlacement.ts';
 import { initRootDirectoryOf, refuseAnOverrideNamingAnotherDirectory } from './InitRoot.ts';
 
@@ -44,11 +43,11 @@ function nextStepLinesOf(agentDisplayName: string): readonly string[] {
   return [
     '',
     'Next steps:',
-    `  1. Run \`${PROGRAM} open\`. It starts the Overseer in the background and opens the board in your browser.`,
+    `  1. Run \`${PROGRAM} start\`. It starts the Overseer in the background.`,
     '     The Overseer keeps running after the terminal closes; its agents run on even when it stops.',
     `  2. Ask an agent session (${agentDisplayName}) in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill,`,
     '     files the ticket as a draft and readies it on your yes.',
-    '  3. The board opens on Pipeline setup. Choose who pays, then let the pipeline agent read the repository.',
+    '  3. The board starts on Pipeline setup. Choose who pays, then let the pipeline agent read the repository.',
     `     Apply commits ${CONSTITUTION_FILE_PATH} to main; with Resume it starts the board.`,
     `  Stop the Overseer with \`${PROGRAM} oversee stop\`; \`${PROGRAM} help\` lists every command.`,
   ];
@@ -100,9 +99,8 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const reportTheRefreshOfAnExistingTracker = (installedFileTexts: InstalledFileTexts) => {
     const refresh = refreshTheRepository(installedFileTexts, { writesTheBriefFirst: false });
     output(`${PRODUCT_NAMES.PROGRAM} is already initialised in ${rootDirectory}.`);
-    for (const line of refreshReportLinesOf(refresh, workspace.htmlFilePath)) output(line);
+    for (const line of refreshReportLinesOf(refresh)) output(line);
     output(`  \`${PRODUCT_NAMES.PROGRAM} update\` is the command for this refresh; \`init\` only creates a tracker.`);
-    writeProgressPageStub(context.platformPorts, workspace);
     recordInstallVersion(workspace.rootDirectory);
     printAnswer('refreshed');
   };
@@ -161,7 +159,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const creation = await store.initialise({
     project,
     startedAt: LocalTimeUtil.formatLocalIso(context.now()),
-    // The page's localStorage key: `file://` is one origin in Chrome, so two trackers would otherwise share a saved range.
     trackerId,
     ...(branchNamespace === null ? {} : { branchNamespace }),
   });
@@ -171,7 +168,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   }
   // A ticket file left from a removed tracker is adopted as it stands, so one that will not parse is named.
   OutputUtil.reportIgnoredTicketFiles(context, store.reads.listTickets().unreadable);
-  writeProgressPageStub(context.platformPorts, workspace);
   await registerWrittenTracker(context, workspace);
 
   const refresh = refreshTheRepository(installedFileTexts, { writesTheBriefFirst: true });
@@ -180,7 +176,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   output(`  tracker:     ${workspace.trackerDirectory}`);
   if (branchNamespace !== null) output(`  branches:    ${branchNamesOf(branchNamespace).ticketBranchOf('<id>')}`);
   output(`  brief:       ${refresh.briefFilePath}`);
-  output(`  dashboard:   ${workspace.htmlFilePath}`);
   output(`  .gitignore:  ${IGNORE_OUTCOME_WORDS[ignoreOutcome]}`);
   for (const { reportLabel, line, marksTheInstall } of refresh.partLines) {
     if (!marksTheInstall) output(reportLineOf(reportLabel, line));

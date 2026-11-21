@@ -283,13 +283,9 @@ order they were readied in; a review or a fixer's rebuild never goes ahead of a 
 
 ## The time axis
 
-`{{program}} range` sets the tracker's stored default and every browser sees it. A relative bound
-is stored as you wrote it and resolved on each refresh, so `--from -2h --to now` always means the
-last two hours. The page itself carries a range menu with the presets **Fit · 1h · 4h · 12h · 24h ·
-7d**, and Custom… with From and To text inputs for an exact window and a tick-step selector; a
-viewer's choice is kept in their browser and survives the refresh, and **Fit** hands control back to
-the stored default, or without one fits the rows shown. Bars outside the window are clipped and
-marked, never dropped.
+`{{program}} range` sets the tracker's stored default window, which is served with the board. A
+relative bound is stored as you wrote it and resolved on each read, so `--from -2h --to now` always
+means the last two hours.
 
 ## Exit codes
 

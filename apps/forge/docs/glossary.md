@@ -92,7 +92,6 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` |
 | | no command | there is no `render` verb, and no command rebuilds a page |
 | **page** | the [Bridge](#bridge), served at `GET /` | `HTMLBundle`, the `page` field of `BoardState` |
-| | `<data>/progress.html`, a stub | `ProgressPageStubWriter`: it only says where the live board is |
 | **claim** | a report claim | the [builder](#builder) report's `gates`, the [reviewer](#reviewer) report's `claims`; never trusted |
 | | a `review-recorded` claim | `ReviewClaim` in the log; counted by `review-stats` |
 | | a retired ticket claim | the `ticket claim` verb is unknown; `Board.claimTickets` remains (as built) |

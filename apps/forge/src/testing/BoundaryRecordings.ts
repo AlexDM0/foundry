@@ -13,10 +13,10 @@ const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 /**
  * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. `claude`: the Claude
  * Code program, whose stream-json lines the fake agent plays. `agent-progress`: the on-disk program that answers `version --json`, stamped
- * with its install and answer versions. `opener`: the program that opens a URL in the default browser. `setup tools`: the programs that
- * setup runs, Bun, git and the autostart tool of the OS, each named with its version.
+ * with its install and answer versions. `setup tools`: the programs that setup runs, Bun, git and the autostart tool of the OS, each named
+ * with its version.
  */
-export type RecordedSystem = 'agent-progress' | 'bun' | 'claude' | 'eslint' | 'git' | 'gpg' | 'opener' | 'operating system' | 'sandbox' | 'setup tools';
+export type RecordedSystem = 'agent-progress' | 'bun' | 'claude' | 'eslint' | 'git' | 'gpg' | 'operating system' | 'sandbox' | 'setup tools';
 
 export interface RecordingStamp {
   readonly boundary: string;
@@ -46,7 +46,6 @@ const CLAUDE: RecordedSystem = 'claude';
 const AGENT_PROGRESS: RecordedSystem = 'agent-progress';
 const ESLINT: RecordedSystem = 'eslint';
 const GPG: RecordedSystem = 'gpg';
-const OPENER: RecordedSystem = 'opener';
 const SETUP_TOOLS: RecordedSystem = 'setup tools';
 const HASH_CHARACTERS = 16;
 
@@ -57,7 +56,6 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'bunfig.toml':                                 BUN,
   'cli/ApplyCommandOfVerb.ts':                   BUN,
   'cli/CommandTable.ts':                         BUN,
-  'cli/OpenInTheDefaultBrowser.ts':              OPENER,
   'cli/overseer/OverseerForeground.ts':          OPERATING_SYSTEM,
   'cli/overseer/OverseerRemote.ts':              OPERATING_SYSTEM,
   'cli/overseer/routes/':                        BUN,

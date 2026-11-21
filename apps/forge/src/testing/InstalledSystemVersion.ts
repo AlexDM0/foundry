@@ -65,12 +65,6 @@ function eslintVersion(): string {
   return (JSON.parse(readFileSync(manifestPath, 'utf8')) as { version: string }).version;
 }
 
-/** macOS `open` and the Windows protocol handler come with the OS and print no version. */
-function openerVersion(): string {
-  if (process.platform === 'darwin' || process.platform === 'win32') return operatingSystemVersion();
-  return lastWordOfFirstLine(printedVersionOf(['xdg-open', '--version'])) ?? NOT_INSTALLED;
-}
-
 /** The autostart tool of Linux is `systemctl`; macOS writes a LaunchAgent and runs no tool, and the Windows `reg` prints no version. */
 function setupToolsVersion(): string {
   const versions = [`bun ${Bun.version}`, `git ${gitVersion()}`];
@@ -83,7 +77,6 @@ export function installedVersionOf(system: RecordedSystem): string {
   if (system === 'agent-progress') return agentProgressInstallVersion();
   if (system === 'eslint') return eslintVersion();
   if (system === 'gpg') return lastWordOfFirstLine(printedVersionOf(['gpgconf', '--version'])) ?? NOT_INSTALLED;
-  if (system === 'opener') return openerVersion();
   if (system === 'setup tools') return setupToolsVersion();
   if (system === 'claude') return printedVersionOf(['claude', '--version'])?.replace(CLAUDE_VERSION_SUFFIX, '') ?? NOT_INSTALLED;
   if (system === 'git') return gitVersion();

@@ -15,7 +15,7 @@ Usage: ${PRODUCT_NAMES.PROGRAM} <command> [options]
 
 The tracker lives in \`${PRODUCT_NAMES.DATA_FOLDER}/\` at the repository root and is shared by every worktree of
 it. Every mutating command takes the lock and writes the progress file atomically; the live
-Overseer serves the board, and \`open\` opens it. \`<when>\` is an ISO 8601 timestamp, \`now\`,
+Overseer serves the board over its API. \`<when>\` is an ISO 8601 timestamp, \`now\`,
 or an offset from now: \`-5m\`, \`-2h\`, \`-1d\`, \`+30m\`. \`<n>\` on --tokens is a whole number or a
 decimal with a \`k\`/\`m\`/\`b\` suffix: \`12000\`, \`12k\`, \`12.3k\`, \`1.2m\`, \`1.20b\`.
 
@@ -23,7 +23,7 @@ decimal with a \`k\`/\`m\`/\`b\` suffix: \`12000\`, \`12k\`, \`12.3k\`, \`1.2m\`
 the command word; a \`-h\` further on is refused at exit 1, since it may be text (put text behind a
 bare \`--\`). An option taking a value, given twice, is refused at exit 1.
 ${ROOT_OVERRIDE_VARIABLE} names the repository to use instead of walking up from the current directory. --json, accepted by every
-command but open, hook and help, prints one JSON document on standard output
+command but hook and help, prints one JSON document on standard output
 in place of the human output. The answers of start, stop, init, update, version, machine
 and login-item carry \`answerVersion\` 2, and under --json their refusal is the document
 {answerVersion, refusal, text} at exit 1: the refusal's code and the sentence printed on
@@ -618,13 +618,6 @@ never carries it.
                               list follows the name. One log line. --json prints
                               {branchNamespace}, null for bare names.
 
-  open [--no-browser]         Open the live Overseer's URL in the default browser and print it. With
-                              no live Baton it first starts the Overseer detached, as
-                              \`oversee --detach\` does. --no-browser launches nothing and prints the
-                              link with its one-time session code instead, to open within 30 seconds.
-                              \`progress.html\` is only a stub naming that URL, or saying the Overseer
-                              is down, written by \`init\`, \`update\` and \`oversee\`.
-
   oversee [--started-by user|login-item] [--port <n>] [--detach] [--repository <path>] [--json]
                               Start the board's one Overseer on 127.0.0.1, logging to standard error
                               and \`overseer.log\`: it creates the Baton \`overseer/baton-<n>.json\`, writes
@@ -680,8 +673,8 @@ never carries it.
                               names them, and the Talos protocol version it starts. Read-only.
 
   start [--started-by user|login-item] [--repository <path>] [--port <n>] [--json]
-                              Start the board's Overseer detached, as \`open\` does, and open no
-                              browser; with one live, start nothing. It returns only once the
+                              Start the board's Overseer detached, as \`oversee --detach\` does;
+                              with one live, start nothing. It returns only once the
                               Overseer's API answers. --json prints {answerVersion, started, url,
                               generation, trackerId, codeVersion, installVersion, contracts}.
                               --repository starts the Overseer of that repository, and --port

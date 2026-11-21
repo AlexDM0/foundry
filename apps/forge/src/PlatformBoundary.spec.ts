@@ -71,7 +71,6 @@ const ADAPTER_FILE_PATTERN = /^src\/lib\/.+\/(?:(?:Darwin|Linux|Windows|Posix)[A
 
 /** A selector kept beside its only consumer, outside `src/lib/`. */
 const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
-  'cli/OpenerFor.ts',
   'cli/setup/SetupPlatformFor.ts',
   'cli/setup/PosixSetupPlatform.ts',
   'cli/setup/WindowsSetupPlatform.ts',
@@ -107,10 +106,6 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
   'cli/setup/login-item/LoginItemCommand.ts: platform-property: platform:          context.platform as NodeJS.Platform,':
     'Hands the context\'s platform to the setup host the Autostart selector reads, and decides nothing on it.',
-  'cli/OpenInTheDefaultBrowser.ts: platform-property: const opener = openerFor(context.platform, () => context.platformPorts.dataFolders.systemFolder());':
-    'Hands the context\'s platform straight to the selector and decides nothing on it.',
-  'cli/OpenInTheDefaultBrowser.ts: detached-spawn: detached:    opener.detach,':
-    'Takes the detach answer of the Opener port and decides nothing on it.',
   'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
@@ -220,7 +215,7 @@ describe('the scan saw the tree', () => {
   test('it recognises the adapters, and the forms it looks for really stand in them', () => {
     const adapters = SOURCES.filter((source) => isPlatformAdapter(source.path));
     expect(adapters.map((source) => source.path)).toEqual(expect.arrayContaining([
-      'cli/OpenerFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
+      'cli/setup/AutostartFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
     ]));
     const formsInAdapters = new Set(adapters.flatMap((source) => source.text.split('\n').flatMap(formsNamedBy)));
     expect([...formsInAdapters]).toEqual(expect.arrayContaining([
@@ -235,7 +230,6 @@ describe('the scan saw the tree', () => {
   test('the spawn scan finds every production spawn site, the port\'s and the plain windowsHide ones', () => {
     const spawnSites = SOURCES.filter((source) => isShippingCode(source.path) && spawnCallsIn(source.text).length > 0).map((source) => source.path);
     expect([...spawnSites].sort()).toEqual([
-      'cli/OpenInTheDefaultBrowser.ts',
       'cli/overseer/OverseerForeground.ts',
       'cli/overseer/OverseerRemote.ts',
       'cli/setup/ProcessSetupHost.ts',

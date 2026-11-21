@@ -53,7 +53,7 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
   ],
   [
     { kind: 'overseer-down', overseerDirectory: '/example/overseer' },
-    'No Overseer serves this board (/example/overseer holds no live Baton), so there is nothing to open. Open the board again to start one.',
+    'No Overseer serves this board (/example/overseer holds no live Baton). Start the board again to start one.',
   ],
   [
     { kind: 'overseer-did-not-start', exitCode: 1, logFilePath: '/example/overseer.log' },

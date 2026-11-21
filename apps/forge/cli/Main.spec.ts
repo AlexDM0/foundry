@@ -31,7 +31,7 @@ import { installedFilePathsIn }                           from './InstalledFiles
 import { runCommandLine }                                 from './Main.ts';
 import { INSTALL_VERSION }                                from './constants/InstallVersion.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
-import * as realOpenCommandModule                         from './tracking/open/OpenCommand.ts';
+import * as realNamespaceCommandModule                    from './tracking/namespace/NamespaceCommand.ts';
 
 let errorThrownByTheStubbedCommand: unknown = null;
 // Holds no tracker, so a route that does reach a command is refused there instead of writing into the repository's own.
@@ -274,24 +274,24 @@ describe('a tracker whose installed files are of another install version', () =>
 });
 
 describe('a command that throws', () => {
-  /** Stubbing `cli/tracking/open/OpenCommand.ts` reaches all three shapes with the real dispatch, catch and status-to-code mapping. */
-  let realOpenCommandExports: Record<string, unknown> = {};
+  /** Stubbing `cli/tracking/namespace/NamespaceCommand.ts` reaches all three shapes with the real dispatch, catch and status-to-code mapping. */
+  let realNamespaceCommandExports: Record<string, unknown> = {};
 
   // Bun keeps a module mock for the rest of the process and `mock.restore()` leaves it standing, so the real exports are copied before the stub
   // goes in and mocked back afterwards; the copy has to precede the stub, because Bun patches the live namespace in place.
   beforeAll(() => {
-    realOpenCommandExports = { ...realOpenCommandModule };
-    mock.module('./tracking/open/OpenCommand.ts', () => ({ openCommand: () => Promise.reject(errorThrownByTheStubbedCommand), }));
+    realNamespaceCommandExports = { ...realNamespaceCommandModule };
+    mock.module('./tracking/namespace/NamespaceCommand.ts', () => ({ namespaceCommand: () => Promise.reject(errorThrownByTheStubbedCommand), }));
   });
 
   afterAll(() => {
-    mock.module('./tracking/open/OpenCommand.ts', () => realOpenCommandExports);
+    mock.module('./tracking/namespace/NamespaceCommand.ts', () => realNamespaceCommandExports);
   });
 
   test('an unrepaired refusal exits 2 with its own message and no stack trace', async () => {
     errorThrownByTheStubbedCommand = new OperationRefusal('unrepaired', 'Another agent-progress command is holding the lock');
     const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
+    expect(await runCommandLine(['namespace'], context)).toBe(2);
     expect(context.errorText()).toContain('is holding the lock');
     expect(context.errorText()).not.toContain('at <anonymous>');
     expect(context.outputText()).toBe('');
@@ -300,34 +300,34 @@ describe('a command that throws', () => {
   test('a refusal the caller can act on exits 1, with the refusal\'s own message', async () => {
     errorThrownByTheStubbedCommand = new OperationRefusal('refused', 'agent-progress init: this repository already has a tracker');
     const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(1);
+    expect(await runCommandLine(['namespace'], context)).toBe(1);
     expect(context.errorText()).toContain('this repository already has a tracker');
   });
 
   test('an error that is not a refusal exits 2, because the tool cannot say the caller can fix it', async () => {
     errorThrownByTheStubbedCommand = new Error('EACCES: permission denied, open \'.agent-progress/progress.json\'');
     const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
+    expect(await runCommandLine(['namespace'], context)).toBe(2);
     expect(context.errorText()).toContain('EACCES: permission denied');
   });
 
   test('something thrown that is not an Error at all is still reported and still exits 2', async () => {
     errorThrownByTheStubbedCommand = 'a bare string, which a dependency is entitled to throw';
     const context = capturingContext();
-    expect(await runCommandLine(['open'], context)).toBe(2);
+    expect(await runCommandLine(['namespace'], context)).toBe(2);
     expect(context.errorText()).toContain('a bare string');
   });
 });
 
 describe('after the stubbed cases', () => {
-  /** Bun keeps a module mock for the rest of the process, so every later spec file that runs `open` would get the stub instead. */
-  test('the real open command is back, and refuses a folder with no tracker at exit 1', async () => {
-    const untrackedDirectory = createScratchDirectory('main-open');
+  /** Bun keeps a module mock for the rest of the process, so every later spec file that runs `namespace` would get the stub instead. */
+  test('the real namespace command is back, and refuses a folder with no tracker at exit 1', async () => {
+    const untrackedDirectory = createScratchDirectory('main-namespace');
     try {
-      const openingContext = createCapturedCommandContext({ currentDirectory: untrackedDirectory });
-      expect(await runCommandLine(['open'], openingContext), openingContext.errorText()).toBe(1);
-      expect(openingContext.errorText()).toContain(`No ${PRODUCT_NAMES.PROGRAM} tracker was found`);
-      expect(openingContext.outputText()).toBe('');
+      const namespaceContext = createCapturedCommandContext({ currentDirectory: untrackedDirectory });
+      expect(await runCommandLine(['namespace'], namespaceContext), namespaceContext.errorText()).toBe(1);
+      expect(namespaceContext.errorText()).toContain(`No ${PRODUCT_NAMES.PROGRAM} tracker was found`);
+      expect(namespaceContext.outputText()).toBe('');
     } finally {
       removeScratchDirectory(untrackedDirectory);
     }

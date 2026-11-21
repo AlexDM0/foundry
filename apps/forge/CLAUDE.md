@@ -140,12 +140,12 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Machine setup runs before a command context exists. `setup.sh` and `setup.ps1` only make sure that Bun exists, then
   start `setup.ts`. `setup.ts` gives `process.platform` to the `SetupPlatform` port in `cli/setup/`, and
   `cli/setup/BootstrapScripts.spec.ts` holds that no setup step is in a bootstrap script.
-- Four selectors sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
+- Three selectors sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
   have no context, and keeps its moves on a platform with no adapter, since every tracker write rests on them;
-  `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`; `openerFor` stays
-  in `cli/`, beside its only consumer. `src/services/overseer/HeldSlotCreateFor.ts` reads `process.platform` at call
-  time. The gate slots have no context, and they create through the `FileReplace` port. What lib may not read for
-  itself reaches the record as `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
+  `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`.
+  `src/services/overseer/HeldSlotCreateFor.ts` reads `process.platform` at call time. The gate slots have no context,
+  and they create through the `FileReplace` port. What lib may not read for itself reaches the record as
+  `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
 - `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
 - `src/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter (`src/lib/claude-code/` and
@@ -266,7 +266,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   through `releaseTrappedProgramForThisSpecFile` (`src/testing/ProgramTraps.ts`, held by its spec).
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
   answer without this action, write the answer from the documentation of that system and name the source in a
-  comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts the default browser opener.
+  comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts a program that opens the default
+  browser (`open`, `xdg-open`, the Windows handler).
 - `src/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since forge has
   no page and runs no DOM spec, and that no spec or test helper creates the real process context.
 
@@ -379,8 +380,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   writes in `docs/cli.md`'s order, one lock hold; nothing renders), and `cli/RegisterWrittenTracker.ts` registers the
   tracker with the monitor after every write and at the Overseer's start. A verb that changes the board and is never
   relayed applies a by-hand kind, which the command endpoint refuses. `init` creates a tracker;
-  `update`, and `init` on an existing one, never touch its files but the `progress.html` stub. `status` takes no
-  lock.
+  `update`, and `init` on an existing one, never touch its files; each removes a `progress.html` an older version
+  left. `status` takes no lock.
 
 ### Tickets
 

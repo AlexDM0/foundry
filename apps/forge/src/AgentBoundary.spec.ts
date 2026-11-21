@@ -146,7 +146,7 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
   ]:
     'Permanent: records, stamps or traps the real program.',
   [
-  'src/testing/BoundaryRecordings.ts: vendor-name: export type RecordedSystem = \'agent-progress\' | \'bun\' | \'claude\' | \'eslint\' | \'git\' | \'gpg\' | \'opener\' | '
+  'src/testing/BoundaryRecordings.ts: vendor-name: export type RecordedSystem = \'agent-progress\' | \'bun\' | \'claude\' | \'eslint\' | \'git\' | \'gpg\' | '
     + '\'operating system\' | \'sandbox\' | \'setup tools\';'
   ]:
     'Permanent: records, stamps or traps the real program.',

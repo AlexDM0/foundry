@@ -82,15 +82,6 @@ describe('OverseerRemote over the recorded API', () => {
     expect(await OverseerRemote.stateOf(batonRecordWithToken(null))).toBeNull();
   });
 
-  test('a session code is asked for with the Baton\'s token and buys the session once', async () => {
-    const code = await OverseerRemote.sessionCodeOf(batonRecordWithToken('example-token'));
-    expect(code).toMatch(/^[0-9a-f]+$/);
-    expect(await OverseerRemote.sessionCodeOf(batonRecordWithToken('another-token'))).toBeNull();
-    const exchange = () => overseer.fetch('/api/session', { method: 'POST', body: JSON.stringify({ code }) });
-    expect((await exchange()).status).toBe(200);
-    expect((await exchange()).status).toBe(401);
-  });
-
   test('a detached start whose child lost the Baton to a rival started at the same time answers the rival\'s URL', async () => {
     const rival = processTable.bornProcess();
     const platformPorts: PlatformPorts = {

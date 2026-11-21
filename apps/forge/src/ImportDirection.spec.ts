@@ -127,8 +127,6 @@ interface ExactReach {
  */
 const COMMAND_SET_REACHES: readonly ExactReach[] = [
   { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/overseer/OverseerRemote.ts' },
-  { importer: 'cli/tracking/open/OpenCommand.ts',                  target: 'cli/overseer/DetachedOverseerStart.ts' },
-  { importer: 'cli/tracking/open/OpenCommand.ts',                  target: 'cli/overseer/OverseerRemote.ts' },
   { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/overseer/OverseerRemote.ts' },
 ];
 
@@ -860,13 +858,13 @@ describe('the guard still names each violation, planted in memory', () => {
   test('an allowlist entry or a declared lib dependency nothing uses any more, and a testing folder without an entry', () => {
     const plantedAllowlists: Allowlists = {
       testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'src/'], 'src/retired/testing/': ['src/'] },
-      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
+      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/adoption/update/UpdateCommand.ts', target: 'cli/overseer/Retired.ts' }],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
     const plantedGraph = SCANNER.graphWithPlantedFiles({ [mainModulePath]: plantedHeader, 'src/shared/testing/PlantedFixture.ts': 'export const planted = 1;\n' });
     expect(unusedAllowancesOf(plantedGraph, plantedAllowlists)).toEqual([
-      'COMMAND_SET_REACHES lets cli/tracking/open/OpenCommand.ts import cli/overseer/Retired.ts, and it does not',
+      'COMMAND_SET_REACHES lets cli/adoption/update/UpdateCommand.ts import cli/overseer/Retired.ts, and it does not',
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',

@@ -120,6 +120,18 @@ describeWhenGitIsRecorded('updating a tracked repository', () => {
     expect(context.errorText()).toBe('');
   });
 
+  test('a progress.html an older version left is removed, and the report names no page', async () => {
+    const repositoryDirectory = await trackedRepositoryWithStaleFiles();
+    const retiredPagePath     = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html');
+    writeFileSync(retiredPagePath, '<!doctype html><title>A page from an older version</title>\n');
+
+    const { exitCode, context } = await update(repositoryDirectory);
+    expect(exitCode).toBe(0);
+
+    expect(existsSync(retiredPagePath)).toBe(false);
+    expect(context.outputText()).not.toContain('dashboard');
+  });
+
   test('briefs that are already the shipped ones are reported unchanged, and missing ones count as updated', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     await update(repositoryDirectory);

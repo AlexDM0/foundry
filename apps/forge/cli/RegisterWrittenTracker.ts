@@ -27,7 +27,6 @@ function progressRegistrationReadingOf(reads: StoreReadFace): ProgressRegistrati
 export function monitorRegistrationRequestOf(context: CommandContext, workspace: Workspace): MonitorRegistrationRequest {
   return {
     rootDirectory:        workspace.rootDirectory,
-    htmlFilePath:         workspace.htmlFilePath,
     progress:             progressRegistrationReadingOf(boardStoreIn(context, workspace).reads),
     monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
     temporaryDirectories: context.temporaryDirectories,

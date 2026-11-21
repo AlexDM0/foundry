@@ -91,7 +91,6 @@ testWhenGitIsRecorded('the board\'s place is derived from one root and lands ins
   expect(workspacePathsFor('/example/repository')).toEqual({
     rootDirectory:    '/example/repository',
     trackerDirectory: `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}`,
-    htmlFilePath:     `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/progress.html`,
   });
 });
 

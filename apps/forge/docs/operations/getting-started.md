@@ -396,7 +396,6 @@ Anything else is in the [Runbook](runbook.md), which also has
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | The port | `src/services/overseer/OverseerPort.ts` | `OverseerPort` | `src/services/overseer/OverseerServer.integration.spec.ts` |
-| The stub | `src/adapters/progress-page/ProgressPageStubWriter.ts` | `progressPageStubTextOf` | `src/adapters/progress-page/ProgressPageStubWriter.spec.ts` |
 | A new board is paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
 | What paused holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |

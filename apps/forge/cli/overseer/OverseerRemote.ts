@@ -19,8 +19,7 @@ import {
   OVERSEER_READY_TRIES,
   OVERSEER_REQUEST_TIMEOUT_MILLISECONDS,
   OVERSEER_STOP_INTERVAL_MILLISECONDS,
-  OVERSEER_STOP_TRIES,
-  SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS
+  OVERSEER_STOP_TRIES
 } from '../../src/shared/constants/OverseerLimits.ts';
 import type { CommandContext }    from '../CommandContext.ts';
 import { overseerPollScheduleOf } from './OverseerPollSchedule.ts';
@@ -211,24 +210,6 @@ async function stateOf(record: BatonRecord): Promise<unknown> {
   }
 }
 
-/** A one-time code the Bridge exchanges for its session cookie, asked for with the Baton's token; `null` when none was given. */
-async function sessionCodeOf(record: BatonRecord): Promise<string | null> {
-  const token = tokenIn(record);
-  if (token === null) return null;
-  try {
-    const response = await fetch(new URL('api/session-codes', record.url), {
-      method:  'POST',
-      headers: { authorization: `Bearer ${token}` },
-      signal:  AbortSignal.timeout(SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS),
-    });
-    if (!response.ok) return null;
-    const { code } = await response.json() as { code?: unknown };
-    return typeof code === 'string' ? code : null;
-  } catch {
-    return null;
-  }
-}
-
 /** `not-taken`: no Overseer is live, or its API did not answer the command; `done` and `nothing-to-do` are the live Overseer's outcome. */
 export type TalosRestartRequestOutcome = 'done' | 'nothing-to-do' | 'not-taken';
 
@@ -253,5 +234,5 @@ async function restartTheTalosOf(ports: PlatformPorts, files: OverseerFiles): Pr
 }
 
 export const OverseerRemote = Object.freeze({
-  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, identityOnceItAnswers, stateOf, sessionCodeOf, restartTheTalosOf
+  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, identityOnceItAnswers, stateOf, restartTheTalosOf
 });

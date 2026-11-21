@@ -264,13 +264,11 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     expect(batonFileNames()).toEqual(['baton-1.json', 'baton-2.json']);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('an Overseer whose data folder watch fails to start gives its URL to no page stub and no output', async () => {
+  test('an Overseer whose data folder watch fails to start gives its URL to no output', async () => {
     const worktreesFolder = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
     rmSync(worktreesFolder, { recursive: true, force: true });
     // A file where the watch creates its Hatch root makes the watch start throw, after the bind and the logged URL.
     writeFileSync(worktreesFolder, 'not a folder\n');
-    const { htmlFilePath } = workspacePathsFor(repositoryDirectory);
-    const pageBefore = existsSync(htmlFilePath) ? readFileSync(htmlFilePath, 'utf8') : null;
 
     const finished = await (await startOverseer()).finished;
 
@@ -278,7 +276,6 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     const servedUrl = /Overseer serving (http:\/\/127\.0\.0\.1:\d+\/)/.exec(overseerLogText())?.[1] ?? null;
     expect(servedUrl, overseerLogText()).not.toBeNull();
     expect(finished.standardOutput).toBe('');
-    expect(existsSync(htmlFilePath) ? readFileSync(htmlFilePath, 'utf8') : null).toBe(pageBefore);
     expect(batonFileNames()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

@@ -14,24 +14,17 @@ import { PRODUCT_NAMES }             from '../../shared/constants/ProductNames.t
 import { boardIsStoredAt }           from './LocalStoreLayout.ts';
 import { projectLocationOf }         from './ProjectLocation.ts';
 
-const PROGRESS_PAGE_FILE_NAME = 'progress.html';
-
 /** The board's place, all absolute: a relative path would resolve against a subagent's working directory. Where each record is kept is the store's. */
 export interface Workspace {
   rootDirectory:    string;
   trackerDirectory: string;
-  htmlFilePath:     string;
 }
 
 /** The place a tracker would have whether or not it exists; touches no filesystem, because `init` needs the place of one it is creating. */
 export function workspacePathsFor(rootDirectory: string): Workspace {
   const absoluteRoot = resolve(rootDirectory);
   const trackerDirectory = join(absoluteRoot, PRODUCT_NAMES.DATA_FOLDER);
-  return {
-    rootDirectory: absoluteRoot,
-    trackerDirectory,
-    htmlFilePath:  join(trackerDirectory, PROGRESS_PAGE_FILE_NAME),
-  };
+  return { rootDirectory: absoluteRoot, trackerDirectory };
 }
 
 /**

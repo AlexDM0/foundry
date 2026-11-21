@@ -1,6 +1,6 @@
 /**
- * Records a tracker whose page this call wrote in the machine-wide registry `~/.agent-progress-monitor/projects.json`, which a monitor
- * reads to find every project's root and page. It never fails the command: every way it does not register comes back as a verdict.
+ * Records a tracker this call wrote in the machine-wide registry `~/.agent-progress-monitor/projects.json`, which a monitor
+ * reads to find every project's root. It never fails the command: every way it does not register comes back as a verdict.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import {
@@ -30,14 +30,12 @@ export type ProgressRegistrationReading =
 export interface MonitorRegistrationRequest {
   /** The repository folder the board governs. */
   rootDirectory:        string;
-  /** The board's page, which a monitor opens. */
-  htmlFilePath:         string;
   progress:             ProgressRegistrationReading;
   /** The registry's folder, as the platform's `DataFolders.monitorFolderOf` answers it for the home folder. */
   monitorFolder:        string;
   /** Every temp folder of the machine: a tracker under any of them is a scratch one nobody monitors. */
   temporaryDirectories: readonly string[];
-  /** The verb that wrote the page, such as `ticket hold`. */
+  /** The verb that wrote the board, such as `ticket hold`. */
   command:              string;
   /** The absolute path of the program that writes the entry, which a monitor starts this board's Overseer with. */
   program:              string;
@@ -165,7 +163,7 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    rootDirectory, htmlFilePath, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockTaker
+    rootDirectory, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockTaker
   } = request;
   if (trackerLiesInATemporaryFolder(rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   if (progress.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
@@ -176,10 +174,9 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
     registryFilePath,
     trackerId:      progress.trackerId,
     locationFields: {
-      project:      progress.project,
-      root:         rootDirectory,
-      progressHtml: htmlFilePath,
-      gitOrigin:    gitOriginOf(rootDirectory),
+      project:   progress.project,
+      root:      rootDirectory,
+      gitOrigin: gitOriginOf(rootDirectory),
       program,
     },
     changedAt: LocalTimeUtil.formatLocalIso(now()),

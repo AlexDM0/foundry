@@ -82,7 +82,6 @@ const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
 interface RegistryEntry {
   project:       string;
   root:          string;
-  progressHtml:  string;
   gitOrigin:     string | null;
   program:       string;
   registeredAt:  string;
@@ -175,14 +174,13 @@ testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carr
   expect(entry).toEqual({
     project:       'Example Agency',
     root:          paths.rootDirectory,
-    progressHtml:  paths.htmlFilePath,
     gitOrigin:     EXAMPLE_ORIGIN,
     program:       '/example/bin/forge',
     registeredAt:  LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastChangedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastCommand:   'init',
   });
-  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
 });
 
 testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
@@ -256,15 +254,12 @@ testWhenGitIsRecorded('A2: update registers nothing, since it never writes the t
   expect(existsSync(registryFilePath())).toBe(false);
 });
 
-testWhenGitIsRecorded('A6: a store write that renders nothing still registers, leaving progress.html as it was', async () => {
+testWhenGitIsRecorded('A6: a store write that renders nothing still registers, and writes no progress.html', async () => {
   const repositoryDirectory = await initializedRepository();
-  const workspace           = workspacePathsFor(repositoryDirectory);
-  const pageBefore          = readFileSync(workspace.htmlFilePath, 'utf8');
   await requireExitZero(['log', 'Example milestone'], await registeringContext(repositoryDirectory, SECOND_NOW));
-  expect(readFileSync(workspace.htmlFilePath, 'utf8')).toBe(pageBefore);
+  expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html'))).toBe(false);
   const entry = registry().projects[trackerIdOf(repositoryDirectory)];
   expect(entry?.lastCommand).toBe('log');
-  expect(entry?.progressHtml).toBe(workspacePathsFor(entry?.root ?? '').htmlFilePath);
 });
 
 testWhenGitIsRecorded('A6: registering a written tracker needs no render outcome', async () => {
@@ -309,7 +304,6 @@ testWhenGitIsRecorded('a board whose progress record the store reads as absent o
   const rootDirectory = join(homeDirectory, 'example-repository');
   const request = {
     rootDirectory,
-    htmlFilePath:         workspacePathsFor(rootDirectory).htmlFilePath,
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories: [folderOutsideEveryRepository],
@@ -358,7 +352,6 @@ testWhenGitIsRecorded('A3: a moved tracker updates its one entry\'s paths', asyn
   expect(Object.keys(entries)).toEqual([trackerIdOf(secondPlace)]);
   const entry = Object.values(entries)[0];
   expect(realpathSync(entry?.root ?? '')).toBe(realpathSync(secondPlace));
-  expect(entry?.progressHtml).toBe(workspacePathsFor(entry?.root ?? '').htmlFilePath);
   expect(entry?.registeredAt).toBe(LocalTimeUtil.formatLocalIso(FIRST_NOW));
 });
 
@@ -393,7 +386,7 @@ testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive
   expect(Object.keys(entries)).toEqual(['other', trackerId]);
   expect(entries['other']).toEqual({ project: 'Other Example', pinned: true } as unknown as RegistryEntry);
   expect(Object.keys(entries[trackerId] ?? {})).toEqual([
-    'pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
+    'pinned', 'project', 'registeredAt', 'root', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
   ]);
   expect(entries[trackerId]).toMatchObject({ project: 'Example Agency', registeredAt: '2026-01-02T03:04:05+01:00' });
 });

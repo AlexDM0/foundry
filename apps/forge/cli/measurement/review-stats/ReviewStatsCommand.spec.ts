@@ -420,14 +420,14 @@ describeWhenGitIsRecorded('review-stats', () => {
     expect(output.split('\n').at(-1)).toBe('5 tickets have no recorded review and are left out.');
   });
 
-  test('it takes no lock and leaves every tracker file, progress.json, log.jsonl and progress.html among them, byte-identical', async () => {
+  test('it takes no lock and leaves every tracker file, progress.json and log.jsonl among them, byte-identical', async () => {
     await fileTheBoard();
     const before = trackerFolderSnapshot();
 
     await expectSucceeds(['review-stats']);
     await expectSucceeds(['review-stats', '--json']);
 
-    expect(Object.keys(before)).toEqual(expect.arrayContaining(['progress.json', 'log.jsonl', 'progress.html']));
+    expect(Object.keys(before)).toEqual(expect.arrayContaining(['progress.json', 'log.jsonl']));
     expect(trackerFolderSnapshot()).toEqual(before);
   });
 });

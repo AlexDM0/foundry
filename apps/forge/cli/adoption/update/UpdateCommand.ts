@@ -23,7 +23,6 @@ import {
   refreshReportLinesOf,
   refreshTrackedRepository
 }                                                                             from '../TrackerRefresh.ts';
-import { writeProgressPageStub } from '../WriteProgressPageStub.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} update [--no-hooks] [--json]`;
 
@@ -64,8 +63,7 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   });
 
   output(`Refreshed what ${PRODUCT_NAMES.PROGRAM} manages in ${workspace.rootDirectory}; the tracker itself was not touched.`);
-  for (const line of refreshReportLinesOf(report, workspace.htmlFilePath)) output(line);
-  writeProgressPageStub(context.platformPorts, workspace);
+  for (const line of refreshReportLinesOf(report)) output(line);
   recordInstallVersion(workspace.rootDirectory);
   const batonPassOutcome = await handTheLiveOverseerToTheCodeOnDisk(context, workspace.trackerDirectory, output);
   if (answersInJson) {

@@ -172,8 +172,7 @@ describeWhenGitIsRecorded('a whole session through the binary', () => {
         'Ticket #001 delivered',
       ]);
 
-      const stub = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html'), 'utf8');
-      expect(stub).toContain('Overseer down');
+      expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.html'))).toBe(false);
     } finally {
       removeScratchDirectory(repositoryDirectory);
     }

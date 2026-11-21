@@ -1,6 +1,6 @@
 /**
- * What `oversee`, `start` and `open` share to start the board's Overseer: the repository it starts in, the checks before any start, and the
- * detached start itself.
+ * What `oversee` and `start` share to start the board's Overseer: the repository it starts in, the checks before any start, and the detached
+ * start itself.
  */
 import { resolve } from 'node:path';
 

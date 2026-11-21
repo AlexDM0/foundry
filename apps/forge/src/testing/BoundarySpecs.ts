@@ -114,7 +114,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/services/overseer/OverseerServer.ts', specs: [OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
-  { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'cli/OpenInTheDefaultBrowser.integration.spec.ts'] },
   { boundary: 'cli/ApplyCommandOfVerb.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
   { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_API_SPEC, OVERSEER_COMMAND_SPEC] },
   { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },

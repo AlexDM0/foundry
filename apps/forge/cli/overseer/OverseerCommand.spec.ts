@@ -21,7 +21,6 @@ import {
 } from 'bun:test';
 
 
-import { createProgressPageStubWriter, progressPageStubTextOf }                 from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
 import type { PlatformPorts }                                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessStopStage }                                                from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { Baton }                                                                from '../../src/services/overseer/Baton.ts';
@@ -179,7 +178,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
   });
 
   /** A live Overseer whose API never answers, played by one process-table entry that a stop ends only after further reads of it. */
-  function plantWedgedOverseer(fallbackStopIsForced: boolean, whenStopLands: (overseerDirectory: string, htmlFilePath: string) => void = () => undefined) {
+  function plantWedgedOverseer(fallbackStopIsForced: boolean, whenStopLands: (overseerDirectory: string) => void = () => undefined) {
     const workspace = requireWorkspace(repositoryDirectory);
     const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
     const identity  = { processId: WEDGED_PROCESS_ID, startStamp: '2', bootIdentity: 'example-boot' };
@@ -203,7 +202,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         stopProcess: (_processId, stage) => {
           stopStages.push(stage);
           readsLeftOnceStopped = READS_WHILE_THE_STOP_LANDS;
-          whenStopLands(overseerDirectory, workspace.htmlFilePath);
+          whenStopLands(overseerDirectory);
           return { verdict: 'signalled' };
         },
       },
@@ -220,7 +219,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
       talosProtocolVersion: 1,
     });
     expect(acquisition.verdict).toBe('acquired');
-    createProgressPageStubWriter(workspace.htmlFilePath).write(UNANSWERING_URL);
     const stopContext = () => createCapturedCommandContext({
       currentDirectory: repositoryDirectory, homeDirectory, temporaryDirectories: [], platformPorts
     });
@@ -277,13 +275,22 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(overseerStoppedRecordsIn(wedged.logKindsWhileLive.at(-1) ?? [])).toBe(0);
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredOverseersIn(wedged.homeDirectory)).toEqual([]);
-    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(null));
     expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('none');
 
     const again = wedged.stopContext();
     expect(await runCommandLine(['oversee', 'stop'], again), again.errorText()).toBe(0);
     expect(again.outputText().trim()).toBe('No Overseer is live; nothing to stop.');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+  });
+
+  test('the registry entry of a board names no page and no progress file: it holds exactly these keys', async () => {
+    const wedged = plantWedgedOverseer(true);
+    await registerWedgedOverseer(wedged);
+    const registryFilePath = join(wedged.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+    const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, Record<string, unknown>>>;
+    const entries  = Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {});
+    expect(entries).toHaveLength(1);
+    expect(Object.keys(entries[0] ?? {})).toEqual(['project', 'root', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand', 'overseer']);
   });
 
   test('the registry writes the presence key in each state, keeps it through a call without one, and a stop writes it stopped', async () => {
@@ -324,8 +331,8 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(registeredPresenceIn(wedged.homeDirectory)).toEqual({ state: 'stopped', generation: 1, at: expect.any(String) as unknown });
   });
 
-  test('a forced end overtaken by a newer Overseer still says so and records the stop, and leaves that Overseer its registry entry, page and Baton', async () => {
-    const successorStarts = (overseerDirectory: string, htmlFilePath: string): void => {
+  test('a forced end overtaken by a newer Overseer still says so and records the stop, and leaves that Overseer its registry entry and Baton', async () => {
+    const successorStarts = (overseerDirectory: string): void => {
       const successorRecord = {
         processId:            WEDGED_PROCESS_ID + 1,
         processStartStamp:    '3',
@@ -338,7 +345,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         talosProtocolVersion: 1,
       };
       expect(Baton.acquireAbove(overseerDirectory, successorRecord, 1).verdict).toBe('acquired');
-      createProgressPageStubWriter(htmlFilePath).write(SUCCESSOR_URL);
     };
     const wedged = plantWedgedOverseer(true, successorStarts);
     await registerWedgedOverseer(wedged);
@@ -349,7 +355,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(JSON.parse(stopped.outputText())).toEqual({ outcome: 'done', ending: 'forced' });
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
-    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(SUCCESSOR_URL));
     expect(Baton.batonGenerationsIn(wedged.overseerDirectory)).toEqual([2]);
   });
 
@@ -387,7 +392,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(outcome).toEqual({ settled: 'fulfilled', value: 2 });
     expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('dead');
     expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
-    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(UNANSWERING_URL));
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(0);
 
     const repaired = wedged.stopContext();
@@ -396,7 +400,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(JSON.parse(repaired.outputText())).toEqual({ outcome: 'done', ending: 'unfinished' });
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredOverseersIn(wedged.homeDirectory)).toEqual([]);
-    expect(readFileSync(wedged.workspace.htmlFilePath, 'utf8')).toBe(progressPageStubTextOf(null));
     expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('none');
   });
 

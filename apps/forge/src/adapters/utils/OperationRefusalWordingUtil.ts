@@ -832,8 +832,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `An Overseer already serves this board at ${detail.url} (${detail.batonFilePath}). `
         + `Stop it first${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} oversee stop\``, '')}.`;
     case 'overseer-down':
-      return `No Overseer serves this board (${detail.overseerDirectory} holds no live Baton), so there is nothing to open. `
-        + `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} open\``, 'Open the board')} again to start one.`;
+      return `No Overseer serves this board (${detail.overseerDirectory} holds no live Baton). `
+        + `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} start\``, 'Start the board')} again to start one.`;
     case 'overseer-contended':
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':

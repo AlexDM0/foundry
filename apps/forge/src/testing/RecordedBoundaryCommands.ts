@@ -20,13 +20,6 @@ export const VERSION_CHECK_RECORDING = {
   MISSING_SITUATION:    MISSING_PROGRAM_SITUATION,
 } as const;
 
-export const OPENER_RECORDING = {
-  BOUNDARY:            'cli/OpenInTheDefaultBrowser.ts',
-  URL_PLACEHOLDER:     '<url>',
-  SCRATCH_PLACEHOLDER: '<scratch>',
-  MISSING_SITUATION:   MISSING_PROGRAM_SITUATION,
-} as const;
-
 export const SETUP_RECORDING = {
   BOUNDARY:             'cli/setup/',
   BUN_PLACEHOLDER:      '<bun>',

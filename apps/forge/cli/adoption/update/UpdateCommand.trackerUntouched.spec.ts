@@ -26,7 +26,6 @@ const REFRESH_LINE_PATTERNS = [
   new RegExp(`^ {2}brief: {7}unchanged \\(\\S+/${RegExp.escape(PRODUCT_NAMES.DATA_FOLDER)}/session-instructions\\.md\\)$`, 'm'),
   /^ {2}hooks: {7}\S+\/\.claude\/settings\.local\.json \(unchanged\)$/m,
   new RegExp(`^ {2}worktrees: {3}${RegExp.escape(PRODUCT_NAMES.WORKTREES_FOLDER)} already ignored, so nothing was added$`, 'm'),
-  new RegExp(`^ {2}dashboard: {3}\\S+/${RegExp.escape(PRODUCT_NAMES.DATA_FOLDER)}/progress\\.html$`, 'm'),
 ];
 
 let repositoryDirectory = '';

@@ -1,5 +1,6 @@
 /**
  * The Workflow dispatcher, its hook verbs and the by-hand lifecycle verbs are retired: the Overseer makes those moves now (owner answer Q41).
+ * `open` is retired too: no command opens a page.
  * What matters is that each is refused at exit 1 as unknown, writing nothing, on a tracked repository where the verb would otherwise have
  * had a ticket to act on; `ticket deliver --by-hand`, the one record-only lifecycle verb kept, still delivers.
  */
@@ -32,6 +33,8 @@ const RETIRED_COMMAND_LINES: readonly (readonly string[])[] = [
   ['release', '1', '--branch', 'ticket-001'],
   ['review', 'record', '1', '--worktree', '.', '--since', 'HEAD', '--findings-file', '-'],
   ['rework', '--since', 'HEAD'],
+  ['open'],
+  ['open', '--no-browser'],
 ];
 
 const RETIRED_TICKET_LINES: readonly (readonly string[])[] = [
@@ -73,7 +76,7 @@ afterAll(() => {
 });
 
 describeWhenGitIsRecorded('the retired verbs', () => {
-  test('dispatcher, release, review record and rework are unknown commands, refused at exit 1 with nothing written', async () => {
+  test('dispatcher, release, review record, rework and open are unknown commands, refused at exit 1 with nothing written', async () => {
     const before = storedTrackerText();
     for (const commandLine of RETIRED_COMMAND_LINES) {
       const { exitCode, errorText } = await runHere(commandLine);

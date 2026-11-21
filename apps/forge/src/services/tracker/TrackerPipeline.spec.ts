@@ -91,7 +91,7 @@ describe('writeTracker', () => {
     expect(written.result).toMatchObject({ holder: { processId: process.pid }, state: 'held' });
   });
 
-  test('the returned Board carries the mutation, and nothing is rendered: no progress.html is written', async () => {
+  test('the returned Board carries the mutation', async () => {
     writeReadableTracker(workspace);
 
     const written = await writeTracker({
@@ -104,7 +104,6 @@ describe('writeTracker', () => {
 
     expect(written.board.tasks().map((task) => task.name)).toEqual(['Example rendered row']);
     expect(written.unreadableRecords).toEqual({ tickets: [], epics: [], drafts: [] });
-    expect(existsSync(workspace.htmlFilePath)).toBe(false);
   });
 
   test('a Board refusal arrives as a refused OperationRefusal carrying its detail, and every file stays byte for byte', async () => {
@@ -149,7 +148,6 @@ describe('writeTracker', () => {
 
     expect(failure).toBe(thrownFailure);
     expect(storedFileContentsOf(workspace)).toEqual(filesBefore);
-    expect(existsSync(workspace.htmlFilePath)).toBe(false);
   });
 
   test('an OperationRefusal thrown by the mutation arrives as it was thrown, with its own status', async () => {

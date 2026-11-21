@@ -58,11 +58,10 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
 ];
 
 /**
- * `open` writes no tracker file but launches a browser and registers the dashboard, so a session under a job may not run it; `await` is
- * the wait of User's own session around the Overseer, which runs under no job; `login-item status` reads the login item and `crash-log`
- * a crash log, and neither writes anything.
+ * `await` is the wait of User's own session around the Overseer, which runs under no job; `login-item status` reads the login item and
+ * `crash-log` a crash log, and neither writes anything.
  */
-const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'open', 'await', 'login-item status', 'crash-log'];
+const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'login-item status', 'crash-log'];
 
 /** Verbs design section 9.2 retires, which no command replaces; T26 retired `ticket claim` and the measurement hook events, T26b `render`. */
 const RETIRING_VERBS = ['hook'];

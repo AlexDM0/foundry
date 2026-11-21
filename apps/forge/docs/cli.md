@@ -24,7 +24,7 @@ Look a command up by its first word, or a stored file by its name.
 | `pipeline` | [Pipeline setup](#pipeline-setup) |
 | `review-stats` | [Review statistics](#review-statistics) |
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
-| `oversee`, `start`, `stop`, `open`, `version`, `login-item`, `crash-log` | [The Overseer](#the-overseer) |
+| `oversee`, `start`, `stop`, `version`, `login-item`, `crash-log` | [The Overseer](#the-overseer) |
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
@@ -91,7 +91,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<decision>` | A [decision](glossary.md#decision) id, such as `E7`. |
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
 | `-` | As the path of `--body-file`, `--request-file` or `--file`, reads standard input to its end. In a terminal, with nothing piped in, it is refused at exit 1 with nothing written, since it would read as empty text; an empty file or an empty pipe supplies empty text. |
-| `--json` | Accepted by every command but `open`, `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
+| `--json` | Accepted by every command but `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
 
@@ -152,11 +152,11 @@ journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge
 | `merge`, `worktree repair` | `merges` |
 | `decide`, `incident` | `decisions`, `incidents`, `await` |
 | `job message`, `job fresh`, `job wind-down`, `job stop`, `resume`, `intake`, `advise` | `jobs`, `job show`, `job attach` |
-| `oversee pause\|resume` | `oversee status`, `open`, `version` |
+| `oversee pause\|resume` | `oversee status`, `version` |
 
 Each file a lockless command reads is written atomically, so it is whole, but one such read can meet `progress.json`
 ahead of the tickets and the log while a hold writes. `update`, and `init` on an existing tracker, never touch the
-tracker's own files but the `progress.html` stub.
+tracker's own files; each removes a `progress.html` an older version left in `<data>/`, which no version writes now.
 
 ### Help and options
 
@@ -240,7 +240,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 
 | # | what | path | written by | opt-out |
 |---|---|---|---|---|
-| [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |
+| [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, and the `.lock` directory | `<data>/` | `init` only | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
 | [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the eight instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The agent's session-start entry running `forge hook session-start`, written by the agent adapter; for Claude Code a `SessionStart` hook, kept current in `.claude/settings.json` when that file already holds it | for Claude Code `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
@@ -282,9 +282,10 @@ start stays off and is refused `forge-off-after-crash` (see [The start gate](#th
 
 The session instructions' `updated` adds "re-read it before your next brief", so a session that read them at its start
 learns its copy is stale. A first `init` prints the session instructions' path instead, and ends with three next steps:
-run `forge open`, which starts the Overseer and opens the board; ask an agent session (Claude Code) in this repository
-to file a ticket; and set the pipeline up, as the board opens on Pipeline setup: choose who pays, let the pipeline agent
-read the repository, and Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the board.
+run `forge start`, which starts the Overseer in the background; ask an agent session (Claude Code) in this repository
+to file a ticket; and set the pipeline up, as the board starts on Pipeline setup: choose who pays, let the pipeline
+agent read the repository, and Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the
+board.
 
 ### The six items
 
@@ -1361,7 +1362,7 @@ than the API's own, and every preflight. Behind those guards, `POST /api/command
 `POST /api/session-codes` need the bearer token from the file the Baton names. The nine data routes
 (`GET /api/session-token`, `/api/state`, `/api/events`, `/api/monitor`, `/api/monitor/events`, `/api/jobs/<J>/stream`,
 `/api/jobs/<J>/files/<name>`, `/api/pictures/<id>`, `/api/profiles/<P>/stream`) need that token or the HttpOnly,
-SameSite=Strict session cookie that one code from `open` buys once at `POST /api/session`, and answer 401 otherwise; no
+SameSite=Strict session cookie that one session code buys once at `POST /api/session`, and answer 401 otherwise; no
 request header a local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay
 open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word, and the sentence a client shows.
 
@@ -1375,15 +1376,14 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, the warning of a failed Baton pass, and the forge's presence: down, whether it is off after a crash and its crash log; live, its last start, heartbeat, supervision and abandoned passes. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
 | `crash-log [<number>] [--json]` | Print the crash log `<data>/overseer/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Baton generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `overseer.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
-| `open [--no-browser]` | Open the live Overseer's URL in the default browser (`open` on macOS, `%SystemRoot%\System32\rundll32.exe url.dll,FileProtocolHandler` by absolute path on Windows, `xdg-open` on Linux and elsewhere, each detached) and print it, when the newest Baton in `<data>/overseer/` names a live process. With none live, it first starts the Overseer detached, as `oversee --detach` does, with the same checks and refusals, and says so on standard error; the Overseer keeps running after `open` ends. A started Overseer gone again before `open` reads its Baton is refused `overseer-down` at exit 1. The URL carries a one-time session code in its fragment, `#session=<code>`, asked for with the token; the Bridge exchanges it once for the session cookie every data route needs ([Browser sessions](reference/overseer-api.md#browser-sessions)). The opener gets only the path of an owner-only redirect file beside the token, and `open` stays until the code's life ends, or a stop signal comes, to remove it; it prints the plain URL, since the code is the launched browser's. `--no-browser` launches nothing, writes no redirect file and prints the URL with its code, which works once within the code's life (30 seconds), then exits. Each step (the Overseer found or started, the browser launched, the wait and its end) is reported on standard error; standard output holds only the URL. An Overseer that gives no code within 10 seconds is reported on standard error and the plain URL opened. It takes no lock and writes nothing in the board itself; an Overseer it starts writes what `oversee` writes. |
 | `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, talosProtocolVersion, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Overseer API contracts this program serves as `GET /api/identity` names them, the protocol version of the Talos this program starts, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
-| `start [--started-by user\|login-item] [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `open` does, with the same checks and refusals, and open no browser. `--started-by` names who started it, `user` when absent, and is passed to the detached Overseer; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
+| `start [--started-by user\|login-item] [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `oversee --detach` does, with the same checks and refusals. `--started-by` names who started it, `user` when absent, and is passed to the detached Overseer; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
 | `stop [--now] [--json]` | `oversee stop` under the short name, with the same behaviour; `--json` prints `{ answerVersion, outcome }`, with `ending` as `oversee stop` adds it. |
 | `login-item add\|remove\|status [--repository <path>] [--json]` | The item that starts this board's Overseer when the user logs in, as `setup --login-overseer` writes it (a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows), under the label `com.forge.overseer.<trackerId>`, so every board has its own. `add` writes it, `remove` removes it, `status` reads it. `--json` prints `{ answerVersion, outcome, state, label, location, repository }`: `state` `present` or `absent` after the step, `outcome` `done`, `nothing-to-do`, or `null` for `status`. Refused `login-item-unavailable` where no item could run, and `login-item-not-changed` where the system refused the change, at exit 1. It writes no repository file. |
 
 #### The start gate
 
-Every start of the forge (`start`, `oversee`, `open`, the login item and a successor) classifies itself before it
+Every start of the forge (`start`, `oversee`, the login item and a successor) classifies itself before it
 takes a Baton, from what the generation before it left: `<data>/overseer/presence.json`,
 `<data>/overseer/heartbeat.json`, the newest Baton and Talos's newest record, and the current boot. The kinds are
 `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` (with `crashSuspected` when the last beat was older
@@ -2220,7 +2220,6 @@ describes what the code does, proved over fakes on that Mac, never on the OS its
 | Talos endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
 | Owner-only files | mode 0700 and 0600 | mode 0700 and 0600 | the profile's inherited ACL, read back with `icacls.exe` |
 | Temp folders a tracker may not live in | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()` |
-| `open` | `open` | `xdg-open` | `rundll32.exe url.dll,FileProtocolHandler` |
 | Login item | a LaunchAgent | a systemd user unit | a `Run` registry value |
 
 Talos outlives its Overseer only where nothing kills the Overseer's whole process group, cgroup or job:
@@ -2268,9 +2267,8 @@ measured.
 
 ## The dashboard
 
-The dashboard is the Bridge, which the live Overseer serves at its URL. Open it with `forge open`, which first
-starts the Overseer when none serves the board. `<data>/progress.html` is only a stub naming the URL. Tabs,
-controls, pills and routines are in [Running a board](operations/running-a-board.md).
+No forge command opens a page, and forge writes no pointer to one. The live Overseer serves the board over its API
+([the Overseer's API](reference/overseer-api.md)), and a client shows it.
 
 ## Files on disk
 
@@ -3123,7 +3121,6 @@ A file recording another version, holding anything else or unreadable is a misma
     "5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37": {
       "project": "Example Agency",
       "root": "/Users/alex.example/development/example-agency",
-      "progressHtml": "/Users/alex.example/development/example-agency/.forge/progress.html",
       "gitOrigin": "git@example.invalid:example/example-agency.git",
       "program": "/Users/alex.example/.bun/bin/forge",
       "registeredAt": "2026-10-21T10:00:00+02:00",
@@ -3141,12 +3138,12 @@ A file recording another version, holding anything else or unreadable is a misma
 ```
 
 The machine-wide registry of every project this machine's program wrote a tracker for, in the home folder, for a monitor
-to find each project's stub; a board's records are reached through its forge, never by path. A folder, so the monitor
+to find each project; a board's records are reached through its forge, never by path. A folder, so the monitor
 can keep its own files beside it.
 
 A project registers, its entry added or updated, exactly when the call wrote its tracker: every mutating command,
 `init`, and the Overseer at its start. `update` never writes the tracker, so it never registers; neither does a
-read-only call or `open`.
+read-only call.
 
 A tracker whose root lies under a temp folder is never registered: the system temp folder (`os.tmpdir()`, on macOS
 `$TMPDIR` under `/var/folders`), and on macOS and Linux also `/tmp` and `/var/tmp`, each compared after resolving
@@ -3154,7 +3151,7 @@ symlinks (`/tmp` to `/private/tmp` on macOS). On Windows the system temp folder 
 the registry stays.
 
 An entry is keyed by the tracker's `trackerId`, so a moved or renamed folder updates its one entry. It holds the board's
-`project` name, the `root` folder, the absolute path of `progressHtml`, `gitOrigin` (the `origin`
+`project` name, the `root` folder, `gitOrigin` (the `origin`
 remote's URL, or `null`), `program` (the absolute path of the program that last wrote the entry: the compiled launcher
 when one started it, else the entry point), `registeredAt` (the first registration, kept), `lastChangedAt` (this write)
 and `lastCommand` (the verb that wrote, the command word and its subcommand), and, while an Overseer serves the board,

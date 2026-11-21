@@ -41,9 +41,8 @@ describe('localStoreLayoutOf', () => {
     }
   });
 
-  test('every path is distinct, and none is the board page', () => {
+  test('every path is distinct', () => {
     expect(new Set(recordPaths).size).toBe(recordPaths.length);
-    expect(recordPaths).not.toContain(workspace.htmlFilePath);
   });
 
   test('the records keep the names a tracker has always stored them under', () => {

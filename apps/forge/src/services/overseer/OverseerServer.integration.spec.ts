@@ -149,7 +149,7 @@ async function streamTextUntil(response: Response, isComplete: (text: string) =>
   return text;
 }
 
-async function sessionCodeOf(serverUrl: string): Promise<string> {
+async function issuedSessionCodeOf(serverUrl: string): Promise<string> {
   const answer = await fetch(new URL('api/session-codes', serverUrl), { method: 'POST', headers: TOKEN_HEADERS });
   const { code } = await answer.json() as { code: string };
   return code;
@@ -269,7 +269,7 @@ describe('OverseerServer guards', () => {
   test('A2: a code from POST /api/session-codes, which needs the token, buys one HttpOnly SameSite=Strict cookie once; a second exchange is 401', async () => {
     const { server } = startExampleServer();
     expect((await fetch(new URL('api/session-codes', server.url), { method: 'POST' })).status).toBe(401);
-    const code = await sessionCodeOf(server.url);
+    const code = await issuedSessionCodeOf(server.url);
     const exchanged = await exchangeCode(server.url, code);
     expect(exchanged.status).toBe(200);
     const cookie = exchanged.headers.get('set-cookie') ?? '';
@@ -287,7 +287,7 @@ describe('OverseerServer guards', () => {
   test('a code exchanged past SESSION_CODE_LIFETIME_SECONDS is 401 and sets no cookie', async () => {
     let epochMilliseconds = Date.parse('2026-10-29T20:00:00Z');
     const { server } = startExampleServer({}, () => new Date(epochMilliseconds));
-    const code = await sessionCodeOf(server.url);
+    const code = await issuedSessionCodeOf(server.url);
     epochMilliseconds += (SESSION_CODE_LIFETIME_SECONDS + 1) * 1000;
     const exchanged = await exchangeCode(server.url, code);
     expect(exchanged.status).toBe(401);
@@ -296,7 +296,7 @@ describe('OverseerServer guards', () => {
 
   test('the session cookie opens every data route, the session token included; a forged cookie opens none', async () => {
     const { server } = startExampleServer();
-    const sessionCookie = (await exchangeCode(server.url, await sessionCodeOf(server.url))).headers.get('set-cookie')?.split(';')[0] ?? '';
+    const sessionCookie = (await exchangeCode(server.url, await issuedSessionCodeOf(server.url))).headers.get('set-cookie')?.split(';')[0] ?? '';
     const tokenAnswer = await fetch(new URL('api/session-token', server.url), { headers: { cookie: sessionCookie } });
     expect(await tokenAnswer.json()).toEqual({ token: TOKEN });
     expect(hasNoCorsHeader(tokenAnswer)).toBe(true);
@@ -313,7 +313,7 @@ describe('OverseerServer guards', () => {
 
   test('A5: the exchange reads the code only from its JSON body: a code in the query string is refused and stays unspent', async () => {
     const { server } = startExampleServer();
-    const code = await sessionCodeOf(server.url);
+    const code = await issuedSessionCodeOf(server.url);
     expect((await fetch(new URL(`api/session?code=${code}`, server.url), { method: 'POST' })).status).toBe(401);
     expect((await exchangeCode(server.url, code)).status).toBe(200);
   });

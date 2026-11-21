@@ -1,10 +1,9 @@
 /**
  * Creating a tracker on real files: a fresh workspace gets its tickets directory, a version 2 progress file holding what the caller handed
- * in and an empty log.jsonl, and no page, since `init` writes the stub; an existing progress file is never replaced, and then nothing else
+ * in and an empty log.jsonl; an existing progress file is never replaced, and then nothing else
  * is written.
  */
 import {
-  existsSync,
   mkdirSync,
   readFileSync,
   statSync,
@@ -52,7 +51,6 @@ test('a fresh workspace gets its tickets directory, a version 2 progress file an
   expect(statSync(localStoreLayoutOf(workspace).ticketRecordsFolder).isDirectory()).toBe(true);
   expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ version: 2, ...NEW_TRACKER, tasks: [] });
   expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe('');
-  expect(existsSync(workspace.htmlFilePath)).toBe(false);
 });
 
 test('a log.jsonl left from a removed tracker is emptied, never adopted', async () => {
@@ -72,5 +70,4 @@ test('an existing progress file answers already-exists, leaves progress.json and
   expect(await createTracker(workspace, NEW_TRACKER, now, LIVE_HOLDERS_LOCK_TAKER)).toEqual({ verdict: 'already-exists' });
   expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(EXISTING_PROGRESS_TEXT);
   expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(EXISTING_LOG_TEXT);
-  expect(existsSync(workspace.htmlFilePath)).toBe(false);
 });

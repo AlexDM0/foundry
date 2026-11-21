@@ -147,14 +147,8 @@ export const SSE_HEARTBEAT_SECONDS = 5;
 /** How often a gate profile's output stream reads the run's output file for appended lines; a schedule only, never a decision. */
 export const PROFILE_OUTPUT_FOLLOW_MILLISECONDS = 250;
 
-/** How long a Bridge session code `open` issues may still buy a session, and how long its owner-only redirect file stays. */
+/** How long a session code may still buy a session. */
 export const SESSION_CODE_LIFETIME_SECONDS = 30;
-
-/**
- * How long `open` waits for the Overseer to issue a session code: a new Overseer on a loaded machine can take longer than one request
- * timeout, and without a code the Bridge cannot read the board.
- */
-export const SESSION_CODE_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
 
 /** The files of a job folder the API serves, as plain text under a sandbox CSP; every other file of the job folder is not served. */
 export const SERVED_JOB_FILE_NAMES: readonly string[] = ['report.json', 'gate.log'];
