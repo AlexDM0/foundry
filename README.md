@@ -16,7 +16,7 @@
 <table>
   <tr>
     <td align="center"><sub>APPS</sub><br><b>2</b><br><sub>forge · Gaia</sub></td>
-    <td align="center"><sub>SHARED PACKAGES</sub><br><b>5</b><br><sub>Flint among them</sub></td>
+    <td align="center"><sub>SHARED PACKAGES</sub><br><b>2</b><br><sub>contracts · versions</sub></td>
     <td align="center"><sub>RUNTIME</sub><br><b>Bun 1.4.2</b><br><sub>+ TypeScript, React 19</sub></td>
     <td align="center"><sub>BUILD</sub><br><b>Turborepo</b><br><sub>one cache</sub></td>
     <td align="center"><sub>BUILT BY</sub><br><b>forge</b><br><sub>one board per app</sub></td>
@@ -27,7 +27,7 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/suite-hero.png" width="100%" alt="Your agents' factory floor: Gaia's Attention view, what waits on you across four running forges, behind the Bridge of the Example Storefront forge on its Kanban view, with three builders and a reviewer at work">
+  <img src="docs/images/suite-hero.png" width="100%" alt="Your agents' factory floor: Gaia's Attention view, what waits on you across four running forges, behind a second Gaia window with the Example Storefront forge's board in place on its Kanban view, three builders and a reviewer at work">
 </p>
 
 ## Apps
@@ -37,7 +37,7 @@
     <td width="50%" valign="top">
       <img src="apps/forge/docs/images/icon.png" width="64" height="64" align="left" alt="forge icon">
       <b><a href="apps/forge/">forge</a></b><br>
-      <sub>Developer tools · CLI and live Bridge</sub><br>
+      <sub>Developer tools · CLI and local API</sub><br>
       Agents report and code decides. A ticket is done when the Airlock has merged it, not when an agent says so.
     </td>
     <td width="50%" valign="top">
@@ -52,16 +52,16 @@
 ## forge
 
 <p align="center">
-  <img src="docs/images/forge-kanban.png" width="100%" alt="Agents build. Code decides. The Bridge's Kanban view of the Example Storefront board: Ready with two draft tickets, three Building, three In review, one in the Merge queue and one Done, under the live header and the activity strip of three builders and a reviewer">
+  <img src="docs/images/forge-kanban.png" width="100%" alt="Agents build. Code decides. The Kanban view of the Example Storefront board, in place under Gaia's bar: Ready with two draft tickets, three Building, two In review, one in the Merge queue and three Done, under the forge's header and the strip of three builders and a reviewer at work, Flint beside them">
 </p>
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/forge-questions.png" width="100%" alt="Only what code can't answer: the Questions view, a builder's question on #008 about how long a password reset link stays valid, its options as cards with what each touches and trades off">
+      <img src="docs/images/forge-questions.png" width="100%" alt="Only what code can't answer: the Questions view, a builder's question on #014 about how long a password reset link stays valid, open beside the board with its options, what each touches and trades off, and the ticket it holds up">
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/forge-progress.png" width="100%" alt="Done means merged: the Progress view, a Gantt row per ticket grouped by epic, each with its state and a red now line">
+      <img src="docs/images/forge-progress.png" width="100%" alt="Done means merged: the Progress view, a Gantt row per ticket grouped by epic, each with its state, its build and review bars and an orange now line">
     </td>
   </tr>
 </table>
@@ -81,12 +81,16 @@ Hephaestus, and on macOS every gate and session runs confined.
 **You answer only what code cannot.** A builder's question, a proposed gate or an escalated incident reaches the Questions view as a
 decision, with what each option touches. Everything else, Hephaestus drives.
 
-[forge's README](apps/forge/README.md) shows every view, what `forge init` adds to a repository, and the quickstart.
+**No page of its own.** Hephaestus serves the whole board through an API on `127.0.0.1`. Gaia is the client that shows it, and
+takes your moves.
+
+[forge's README](apps/forge/README.md) shows one ticket from start to merge, what `forge init` adds to a repository, and the
+quickstart.
 
 ## Gaia
 
 <p align="center">
-  <img src="docs/images/gaia-attention.png" width="100%" alt="Every forge. One window. Gaia's Attention view: five decisions waiting on you across Invoice Service, Example Storefront and Research Wiki, oldest first with an escalation on top; Example Mobile App holding its launches until it is updated and Design System dormant; on the right the running forges with their agents, and what just happened">
+  <img src="docs/images/gaia-attention.png" width="100%" alt="Every forge. One window. Gaia's Attention view: five entries waiting on you across Invoice Service, Example Storefront and Research Wiki, oldest first with an escalation on top, under the fleet's figures; Example Mobile App holding its launches until it is updated; on the right the running forges with their agents">
 </p>
 
 <table>
@@ -109,9 +113,10 @@ decision, with what each option touches. Everything else, Hephaestus drives.
 </table>
 
 **What waits on you, across every board.** Questions, escalations and tickets to accept from every forge, oldest first and escalations on
-top, each one click from its own forge's Bridge, opened at that entry.
+top, each one click from its place on its own forge's board.
 
-**Each forge in place.** A forge's own Bridge opens under Gaia's bar, so its views are one click from the fleet.
+**Each board in place.** A forge's board opens under Gaia's bar as Gaia's own views, so its Kanban, its Questions and its Progress
+are one click from the fleet.
 
 **Shows, never drives.** Gaia reads what each forge reports and sends its commands through that forge. Flint's brain is each forge's own;
 Gaia shows it and makes no model call.
@@ -122,14 +127,14 @@ Gaia shows it and makes no model call.
 
 | Folder | What it is |
 | --- | --- |
-| [`apps/forge/`](apps/forge/) | forge: the tracker, Hephaestus, the Bridge and the CLI |
-| [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine |
+| [`apps/forge/`](apps/forge/) | forge: the tracker, Hephaestus and its API, Talos and the CLI |
+| [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine, and the views of each forge's board |
 | [`apps/gaia/page/lib/design-system/`](apps/gaia/page/lib/design-system/) | a library of Gaia's page: React components with their own light and dark theme |
 | [`apps/gaia/page/lib/flint/`](apps/gaia/page/lib/flint/) | a library of Gaia's page: Flint, the orange diamond that acts out what the agents do, drawn over its host page |
 | [`apps/gaia/page/lib/brand/`](apps/gaia/page/lib/brand/) | a library of Gaia's page: forge's mark as a React component, with its colour tokens |
 | [`packages/forge-contracts/`](packages/forge-contracts/) | what a forge serves and reads, as TypeScript types, with its system versions |
 | [`packages/system-versions/`](packages/system-versions/) | the version model a server and its clients share, and its compatibility logic |
-| [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and the migration checklist |
+| [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and its migration checklist, and the designs of Hephaestus and Talos, the context pipeline and the move to one forge with entities |
 | [`scripts/`](scripts/) | the root's own scripts (`gate:<app>`, `cache:audit`), a workspace member so turbo checks them |
 
 Each app is built on its own forge board, one tracker in `apps/forge/` and one in `apps/gaia/`. Each app's `CLAUDE.md` holds its rules,
@@ -150,11 +155,10 @@ Then, in the repository to adopt:
 forge init --project "Example Storefront"
 forge start
 forge unpause
-forge open
 ```
 
-A new board starts paused; `unpause` lets it build. [Getting started](apps/forge/docs/operations/getting-started.md) runs a first
-board end to end.
+A new board starts paused; `unpause` lets it build. No forge command opens the board: Gaia shows it.
+[Getting started](apps/forge/docs/operations/getting-started.md) runs a first board end to end.
 
 ### Open Gaia
 
@@ -194,7 +198,7 @@ workspace's test preload applies only in its own folder.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><b>On your machine</b><br><sub>forge keeps its state in plain files in the repository and serves its Bridge on <code>127.0.0.1</code>. Gaia reads the forges on this machine.</sub></td>
+    <td width="33%" valign="top"><b>On your machine</b><br><sub>forge keeps its state in plain files in the repository and serves its API on <code>127.0.0.1</code>. Gaia reads the forges on this machine and serves its page on <code>127.0.0.1</code> too.</sub></td>
     <td width="33%" valign="top"><b>No telemetry</b><br><sub>Neither app reports anywhere, and every root script runs Turborepo with its telemetry off.</sub></td>
     <td width="33%" valign="top"><b>Your own agents</b><br><sub>The agents are your own Claude Code sessions. What leaves the machine is what they send to Anthropic and the network domains a ticket or gate allows.</sub></td>
   </tr>
@@ -218,7 +222,7 @@ workspace's test preload applies only in its own folder.
   </tr>
   <tr>
     <td width="190"><b>Languages</b></td>
-    <td>TypeScript on Bun; React 19 for the Bridge, Gaia's page and the shared packages</td>
+    <td>TypeScript on Bun; React 19 for Gaia's page and its libraries</td>
   </tr>
   <tr>
     <td width="190"><b>Versions</b></td>
