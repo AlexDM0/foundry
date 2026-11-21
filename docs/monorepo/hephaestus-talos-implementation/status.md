@@ -6,20 +6,21 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 ## Where the run stands
 
 **Gate G7 decided on 2026-11-21: the owner had local `main` fast-forwarded to `hephaestus-talos`. Every stage, 0 to 9,
-is built, checked and landed; stage 9 is `bec16dce`.** Nothing was pushed, and the installed clone and the live
-trackers are untouched. At the tip `bun run verify`
+is built, checked and landed; stage 9 is `bec16dce`.** On the owner's word ("push just this once and setup the clone") `main` was pushed once to `origin` at `264892a7`, the
+installed clone `~/.forge-program` was fast-forwarded to it, and `setup` ran there: the installed `forge` answers
+`code 1d0b22f82bfc, install version 45`. No live tracker and no login item was touched. This paragraph's commit is on
+`hephaestus-talos` only, one commit ahead of `main`, and is not pushed. At the tip `bun run verify`
 is 18 of 18 tasks green, forge's `bun run verify:integration` is 872 pass, 1 skip (the outage session of gate G1), 0
 fail, and no real `claude` session was started anywhere in the run.
 
 What the owner does now, in this order:
 
-1. **Gate G6, second half.** Pull stage 9 into the installed clone, run `setup`, set each board up anew with `init`
+1. **Gate G6, second half, what is left.** The clone is pulled and `setup` has run. Set each board up anew with `init`
    (its pipeline's `reach` names no `/packages/design-system`, `/packages/flint` or `/packages/brand`, which are gone),
    and add the login items again. The program's verbs are top-level now (`start`, `stop`, `restart`, `pause`,
    `unpause`, `status`, `crash-log`); `oversee` is gone, `setup`'s flag is `--login-item`, and the login item's label
    is `com.forge.hephaestus`. Forge and Gaia are system version 3.0.
-2. **Push `main`** when the installed clone should be able to pull it; the fast-forward is local only.
-3. Work through "For tomorrow, with real sessions" below, then "Assumptions to confirm" and "Worth a look".
+2. Work through "For tomorrow, with real sessions" below, then "Assumptions to confirm" and "Worth a look".
 
 Noticed and left alone: the main checkout is on branch `context-pipeline`, not `main` (not this run's doing), and pid
 55155, a spec Overseer of the old worktree `entities-b7` started on 17 Nov, is still running.
