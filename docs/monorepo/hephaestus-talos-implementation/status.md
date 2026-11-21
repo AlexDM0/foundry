@@ -122,6 +122,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
   the handshake and an empty history. Optionally re-record `overseer-fetch-supported-forge`, `-flint-brain` and
   `-versions` from today's forge (stamped code fbc3c0ad0259, not stale at 1.22).
 
+- WP6.24: test transcript entries against a real session's job stream (the recording has only the intake entry).
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -236,6 +238,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.4: a board reduced-motion stop counts only with the same selector or `*` (`reducedMotionGapSentencesOf`), simpler
   than the Bridge's specificity rule. Confirm once WP6.6 onward move the real board stylesheets.
 
+- WP6.24: every board stream event is a change signal and a `board` event means read `/api/v1/board` again
+  (`BoardEventIngestion.BOARD_EVENT_OF_EVENT_NAME`), because forge's stream carries its internal `BoardState`. Rests on
+  EventBroker sending `board` last in every pass. Confirm by watching a live stream.
+
 ### Blocked
 
 (none)
@@ -332,6 +338,12 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.17: still saying no move returns a ticket to draft: `docs/concepts/ticket-lifecycle.md:36`,
   `apps/forge/CLAUDE.md:413-415`, the docblock of `TicketMoveLegality.spec.ts:2`. The unready refusal's advice for a
   delivered or abandoned ticket says "An agent has picked it up", as the package words it.
+
+- WP6.24: forge's board stream sends its internal `BoardState`, so Gaia reads part events as bare signals and loses
+  which job, decision or incident changed and the pipeline slice the Bridge animates from (WP6.20). A versioned board
+  stream carrying board-document parts would be a forge change (stage 4's side). forge-contracts declares no type for
+  transcript entries or command answers (V10). `AgentModel` names the vendor's model tiers, and Gaia repeats them.
+  `appliedBy` is named passed-over, but the Bridge's live pipeline shows it.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -454,8 +466,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-X | WP4.10b | landed | be1c314f | Fix package from WP6.2's check, first round. `BoardStateReader` built its board with `readingBoardOf`, which never gets the setup, gate-profile or constitution-source readings, so `applyRefusalOf` was always null. New `src/services/tracker/BoardOfContents.ts` (`boardOfContents`, `readingBoardOfContents`) opens the board on every stored reading; `TrackerPipeline.openBoard` and `readBoardState` share it, so the served refusal is the same verdict `requestApply` uses. Spec `BoardStateReader.applyRefusal.spec.ts` (fails on the old code). `readingBoardOf` stays for PresenceReader, MergesCommand, StatusCommand and others, which read no setup fact |
 | 6-B | WP6.4 | landed | 5b19778a | Second round (first: the board's reduced-motion guard flagged no-preference animations, hover rules used Gaia's feedback list, the import guard missed relative imports outside the tsconfig list). `PageContractVersions.ts` holds the page keys (later board keys go there); the page reads forge's control and embed versions from `page/shared/constants/KnownForgeContractVersions.ts`, held equal to `CONTRACT_VERSIONS` by a spec. Board style guards: themed tokens read from the board tokens file, `BOARD_SAME_IN_BOTH_THEMES_TOKENS` must name literal colours (34 on the Bridge's tokens.css). Gaia's `test:dom`/`RunDomSpecs` do not exist yet |
 | 6-B | WP7.2 | landed | 8bc867c6 | Second round (first: `forge help` and the glossary still said two skills). `skills/agent-pipeline/SKILL.md`, `PIPELINE_SETUP_SKILL` (`forge-pipeline`); the pipeline agent's profile now `skills: true` and its first line is the adapter's `instructionBundleLineOf`; `INSTALL_VERSION` 43; the `InstallChangeWatch` recording reads 43 throughout |
-| 6-C | WP6.24 | running | | |
-| 6-D | WP6.25 | waiting | | |
+| 6-C | WP6.24 | landed | e68591ff | First round. Gaia's board model in `apps/gaia/src/shared/@types/board/`, four ingestions in `src/adapters/forge-api/`, `BoardMapUtil`, `PipelineMapUtil`, `VocabularyMapUtil`, `testing/BoardDocuments.ts` from the recording; every shape `satisfies ShapeOf<contract type>` (16 keys named `passed-over`). `BoardTarget` is `{subject, id}` (step 4 and N2, not the interface block's `{tab, item}`). `BoardEventIngestion.eventOf(eventName)` reads no data: every stream event is a change signal (`board-changed` or `part-changed` with the part's name), a `board` event means read `/api/v1/board` again (`BOARD_EVENT_OF_EVENT_NAME`). Local `ForgeStreamDocuments.ts` types transcript entries, profile lines and command answers that forge-contracts lacks (V10 in forge-requirements.md). No contract key added |
+| 6-D | WP6.25 | running | | |
 | 6-E | WP6.3 | waiting | | |
 | 6-F | WP6.5 | waiting | | |
 | 6-G | WP6.6 | waiting | | |
