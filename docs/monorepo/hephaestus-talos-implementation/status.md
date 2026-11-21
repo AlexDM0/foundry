@@ -130,6 +130,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.5: run a real board stream through Gaia; check it reconnects with `Last-Event-ID` and that `no-session` shows
   after Gaia restarts.
 
+- WP6.6: in Gaia, look at the moved chips, the conversation and a sandboxed frame with real agent HTML (background,
+  code, tables, auto-height) against the Bridge.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -252,6 +255,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   connection and a timeout into one verdict); a non-200 picture read answers `not-found` (`BoardPictureRoutes.ts`); a
   forge refusal answers 409 whatever forge's status (`BoardRelayAnswers.ts`). Confirm by stopping a forge mid-command
   and asking for a missing picture.
+
+- WP6.6: a default's cause sentence is the `causeText` of the served `incident-defaulted` notice with the same
+  `facts.incidentId`; with no notice the raw cause code shows (`IncidentTrailUtil.defaultCauseTextOf`).
 
 ### Blocked
 
@@ -481,8 +487,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-D | WP6.25 | landed | 197ac3e6 | First round. The page board contract in `apps/gaia/page/@types/board/` (every document carries `boardVersion`, commands `boardCommandVersion`; events are change signals); `BoardDocumentMapUtil`, `PipelineDocumentMapUtil` (src/adapters/page-api); `BoardCommand`, `BoardCommandIngestion`, `forge-api/utils/BoardCommandMapUtil` (a typed table: 43 kinds, all in `FORGE_CONTROL_COMMAND_KINDS`, no by-hand kind; `job-stop-all` and `machine-agent-limit-set` not sent). A forge refusal reaches the page as `{refusedBy:'forge', code, fields, text}` with the sentence unchanged. `DocumentShapeUtil` moved to `src/lib/json-value/`. `PAGE_CONTRACT_VERSIONS` gains `gaiaBoard`, `gaiaBoardCommand`, `gaiaBoardStream`, `gaiaBoardCommandAnswer`, `gaiaPictureUploadAnswer`. `pipeline-assistant-set` and `talos-restart` wait for WP6.27 and WP6.22 |
 | 6-E | WP6.3 | landed | eb72c66f | Second round (first: the stream cache keyed a mapped event without its data, so a resumed conversation stream got another stream's `history`; now keyed with a sha256 of the data). `ForgeAccess.ts` (also used by the frame session route), seven `forge*` routes at v1, `BoardStreams.ts` (heartbeat, each event mapped once per forge, closed at stop), `BoundedBody`; Bun's body limit 4 MiB; Gaia 1.2; `REFUSAL_SENTENCES` removed so forge refusals read in forge's words. Board reads shared per forge with an in-flight read plus one pending read, no timer. `frameSessionSources` is `forgeAccessSources`. The frame session now answers `unreachable`/`not-supported` before asking for a code |
 | 6-F | WP6.5 | landed | c3b07eda | First round. `page/board/api/` relay clients (event stream, commands, pictures, transcript, profile, and a new `BoardReadClient`: events are change signals, so the page reads the board again), `RelayRequest`, `RelayStreamSource`; `shell/ControlCommandSender`, `CommandButton`, `ControlAvailability`, `BoardStateUpdate` (`readIsDueAfter`, `boardAfterRead`), `BoardClock`; `preferences/PreferenceStore` (keys `gaia:board:<trackerId>:<choice>`). Gaia's `test:dom` (`page/testing/RunDomSpecs.ts`, `HappyDom.ts`) now runs inside verify (30 tasks). `BoardServices` gains `readBoard` and leaves out `questionNotifier` (WP6.10) and the Flint members (WP6.7); `TranscriptFollower` and `ProfileLogFollower` are declared in `BoardServices.ts`, which WP6.6 and WP6.19 import. A wrong-version stream closes for good as `down` |
-| 6-G | WP6.6 | running | | |
-| 6-H | WP6.7 | waiting | | |
+| 6-G | WP6.6 | landed | 08f41c82 | Second round (first: the sandboxed frame's own document styles, board.css:2084-2102, were not moved; the text pairs went into Gaia's list, not `BOARD_TEXT_PAIRS`; `BoardRouteLinks` wrote `#forge//` links without a provider, now it throws). Utils, chips, sandboxed HTML and conversation parts moved; moved early for imports: `shell/DetailRoute`, `ItemPresence`, a partial `BoardRouter` (WP6.8's), `flint/FlintSlotCues`, `UseCueOnChange` (WP6.7's). New `shell/BoardRouteLinks.ts` (`BoardTrackerContext`, `useBoardHrefOf`). `JobStateUtil` keyed by `BoardJobState`, `offersFreshAgent` gone (served `offers.takesFresh`). `StyleRuleReader` not moved (WP6.4's `stylesheetRulesOf`). The transplant's `src/` grep now looks only for reaches into forge (Gaia's own `src/shared` imports are allowed) |
+| 6-H | WP6.7 | running | | |
 | 6-I | WP6.8 | waiting | | |
 | 6-J | WP6.9 | waiting | | |
 | 6-K | WP6.10 | waiting | | |
