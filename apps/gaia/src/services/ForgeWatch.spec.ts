@@ -23,12 +23,14 @@ import { RegistryFile }                       from '../adapters/forge-registry/R
 import { forgeClientOf }                      from '../lib/forge-client/ForgeClient.ts';
 import type { OverseerAnswer, OverseerFetch } from '../lib/forge-client/OverseerFetch.ts';
 import { SUPPORTED_FORGE_VERSION }            from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import type { ForgeRegistryPresence }         from '../shared/@types/ForgePresence.ts';
 import type { ForgeReading }                  from '../shared/@types/ForgeReading.ts';
 import { ForgeVersionsUtil }                  from '../shared/utils/ForgeVersionsUtil.ts';
 import { manualTimers, type ManualTimers }    from '../testing/ManualTimers.ts';
 import {
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
+  recordedPresenceAnswersOf,
   recordedVersionsAnswersOf,
   type OverseerSituation,
   type RecordedOverseerAnswer,
@@ -650,5 +652,59 @@ describe('a forge\'s system version', () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(recordedVersionsAnswersOf('versions-absent'));
     expect([reading.fidelity, reading.condition, reading.versions]).toEqual(['older-contract', 'unreadable', ForgeVersionsUtil.NO_VERSIONS_SERVED]);
     expect(callShapes()).toEqual(['GET /api/versions']);
+  });
+});
+
+describe('a live forge\'s presence', () => {
+  const PRESENCE_CALL_SHAPE = 'GET /api/v1/presence with bearer';
+  const SERVED_PRESENCE = recordedPresenceAnswersOf('started-after-a-crash').filter((answer) => answer.callShape === PRESENCE_CALL_SHAPE);
+
+  test('is read at a change of its monitor snapshot, never on a timer, and its crash logs reach the reading', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch([...answersOf('serving-every-contract'), ...SERVED_PRESENCE]);
+    const { watch, timers, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+    const reading = onlyReadingOf(await untilReadings((readings) => readings[0]?.presenceReport !== null && readings[0]?.presenceReport !== undefined));
+    expect(reading.presenceReport).toEqual({
+      supervision:     'supervising',
+      interruptedWork: [],
+      crashLogs:       [{
+        number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: '2026-11-21T06:34:41+01:00',
+      }],
+    });
+    const presenceReads = overseerFetch.callShapes().filter((callShape) => callShape === PRESENCE_CALL_SHAPE).length;
+    expect(presenceReads).toBeGreaterThanOrEqual(1);
+    expect(timers.pendingDelays()).toEqual([INTERVALS.registryCheckIntervalMilliseconds]);
+  });
+
+  test('is the one read a board read asks for: asks while a read is on its way share the one after it, and an unfollowed forge reads none', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch([...answersOf('serving-every-contract'), ...SERVED_PRESENCE]);
+    const { watch, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+    await untilReadings((readings) => readings[0]?.presenceReport !== null && readings[0]?.presenceReport !== undefined);
+    const presenceReadCount = (): number => overseerFetch.callShapes().filter((callShape) => callShape === PRESENCE_CALL_SHAPE).length;
+    const readsBefore = presenceReadCount();
+    const asked = await Promise.all([1, 2, 3].map(() => watch.presenceReadingAfterNow(STOREFRONT_TRACKER_ID)));
+    expect(asked.map((reading) => reading?.report?.crashLogs.length)).toEqual([1, 1, 1]);
+    const readsForTheAsks = presenceReadCount() - readsBefore;
+    expect(readsForTheAsks >= 1 && readsForTheAsks <= 2).toBe(true);
+    expect(await watch.presenceReadingAfterNow('example-not-watched')).toBeNull();
+  });
+
+  test('takes the presence the registry names, and holds no served presence of a forge it does not read in full', async () => {
+    const crashedPresence: ForgeRegistryPresence = {
+      state:      'crashed',
+      generation: 3,
+      at:         '2026-11-12T09:30:00.000Z',
+      crash:      {
+        component: 'talos', suspected: true, errorName: null, errorMessage: null
+      },
+    };
+    writeFileSync(registryPath, JSON.stringify({ version: 1, projects: { [STOREFRONT_TRACKER_ID]: { ...registryEntryOf(), presence: crashedPresence } } }));
+    const { watch, untilReadings } = watchOver(stagedOverseerFetch(answersOf('not-answering')));
+    watch.start();
+    const reading = onlyReadingOf(await untilReadings(onlyReadingIs('unreachable', 'unreachable')));
+    expect([reading.presenceReport, reading.registryPresence]).toEqual([null, crashedPresence]);
   });
 });

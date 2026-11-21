@@ -4,7 +4,7 @@
  * that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's
  * plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count shows in the
  * panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge, and once that left a restart pending, Restart and
- * its dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Resume first; a hidden forge folds away with Show
+ * its dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Unpause first; a hidden forge folds away with Show
  * again. Flint's brain (R4.6): a running brain's mark sits after its forge's name, the diamond, "BRAIN" and the time left, read aloud as one sentence;
  * no other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command states
  * come from the real sender over Gaia's server stood in for by authored answers. Versions (U2): a forge at another version opens its pair under
@@ -363,10 +363,10 @@ describe('an update that left a restart pending', () => {
 });
 
 describe('a paused row and the hidden forges', () => {
-  test('a paused forge says what still finishes and offers Resume as its primary button', () => {
+  test('a paused forge says what still finishes and offers Unpause as its primary button', () => {
     const row = rowOf(layoutOf(FLEET_AT_LIMIT).unfolded, TRACKER_IDS.researchWiki);
     expect(tree.textOf([tree.onlyWithClass([row], 'gaia-forges-condition')])).toBe('Paused1 agent finishing · starts no new job');
-    expect(PackageButtons.emphasisOf(controlNamed([row], 'Resume'))).toBe('primary');
+    expect(PackageButtons.emphasisOf(controlNamed([row], 'Unpause'))).toBe('primary');
   });
 
   test('a hidden forge sits in the folded group under its count, and Show again sends forge-unhide', () => {

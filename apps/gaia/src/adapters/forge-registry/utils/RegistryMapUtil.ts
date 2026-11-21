@@ -4,8 +4,9 @@
  */
 import { isAbsolute } from 'node:path';
 
-import { JsonValueUtil, type JsonObject }           from '../../../lib/json-value/JsonValueUtil.ts';
-import type { RegisteredForge, RegisteredOverseer } from '../@types/RegisteredForge.ts';
+import { JsonValueUtil, type JsonObject }                                            from '../../../lib/json-value/JsonValueUtil.ts';
+import type { ForgeCrashSummary, ForgeRegistryPresence, ForgeRegistryPresenceState } from '../../../shared/@types/ForgePresence.ts';
+import type { RegisteredForge, RegisteredOverseer }                                  from '../@types/RegisteredForge.ts';
 
 type TextRule = 'text' | 'absolute-path' | 'http-address';
 
@@ -45,6 +46,51 @@ function overseerOf(entry: JsonObject): RegisteredOverseer | null {
   };
 }
 
+const PRESENCE_STATES: ReadonlySet<unknown> = new Set<ForgeRegistryPresenceState>(['serving', 'stopped', 'handed-over', 'crashed']);
+const CRASHED_COMPONENTS: ReadonlySet<unknown> = new Set<ForgeCrashSummary['component']>(['overseer', 'talos']);
+
+function isPresenceState(value: unknown): value is ForgeRegistryPresenceState {
+  return PRESENCE_STATES.has(value);
+}
+
+function isCrashedComponent(value: unknown): value is ForgeCrashSummary['component'] {
+  return CRASHED_COMPONENTS.has(value);
+}
+
+function generationOf(record: JsonObject): number | null {
+  const value = JsonValueUtil.ownValueOf(record, 'generation');
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+/** A summary without its component or whether it is suspected is no summary; an error's name or message may be missing. */
+function crashSummaryOf(presence: JsonObject): ForgeCrashSummary | null {
+  const crash = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(presence, 'crash'));
+  if (crash === null) return null;
+  const component = JsonValueUtil.ownValueOf(crash, 'component');
+  const suspected = JsonValueUtil.ownValueOf(crash, 'suspected');
+  if (!isCrashedComponent(component) || typeof suspected !== 'boolean') return null;
+  return {
+    component,
+    suspected,
+    errorName:    textOf(crash, 'errorName', 'text'),
+    errorMessage: textOf(crash, 'errorMessage', 'text'),
+  };
+}
+
+/** A presence of a state Gaia does not know reads as none; a crashed one keeps its state when its summary is not whole. */
+function presenceOf(entry: JsonObject): ForgeRegistryPresence | null {
+  const presence = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(entry, 'presence'));
+  if (presence === null) return null;
+  const state = JsonValueUtil.ownValueOf(presence, 'state');
+  if (!isPresenceState(state)) return null;
+  return {
+    state,
+    generation: generationOf(presence),
+    at:         textOf(presence, 'at', 'text'),
+    crash:      state === 'crashed' ? crashSummaryOf(presence) : null,
+  };
+}
+
 function registeredForgeOf(trackerId: string, entryValue: unknown): RegisteredForge | null {
   const entry = JsonValueUtil.jsonObjectOf(entryValue);
   if (entry === null || trackerId === '') return null;
@@ -59,6 +105,7 @@ function registeredForgeOf(trackerId: string, entryValue: unknown): RegisteredFo
     overseer:      overseerOf(entry),
     lastCommand:   textOf(entry, 'lastCommand', 'text'),
     lastChangedAt: textOf(entry, 'lastChangedAt', 'text'),
+    presence:      presenceOf(entry),
   };
 }
 

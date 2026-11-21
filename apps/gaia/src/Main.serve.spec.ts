@@ -118,7 +118,7 @@ describe('gaia serve', () => {
       },
     });
 
-    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }) });
+    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 3, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
@@ -141,9 +141,10 @@ describe('gaia serve', () => {
       pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
       carryCommand:       () => Promise.resolve({ verdict: 'not-supported' }),
       forgeAccessSources: {
-        readRegistry: () => Promise.resolve({ verdict: 'absent' }),
-        readings:     () => [],
-        forgeClient:  forgeClientOf({ overseerFetch: recordedOverseerFetch([]) }),
+        readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
+        readings:                () => [],
+        presenceReadingAfterNow: () => Promise.resolve(null),
+        forgeClient:             forgeClientOf({ overseerFetch: recordedOverseerFetch([]) }),
       },
       logBoardRelay: () => undefined,
       timers:        manualTimers(),

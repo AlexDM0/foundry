@@ -1,7 +1,7 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-versions.ts` shows: what the page mapper is held against. */
 import type { AgentRow }                    from '../../../shared/@types/AgentRow.ts';
 import type { AttentionItem }               from '../../../shared/@types/AttentionItem.ts';
-import type { FleetSnapshot }               from '../../../shared/@types/FleetSnapshot.ts';
+import type { FleetForge, FleetSnapshot }   from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading, ForgeVersions } from '../../../shared/@types/ForgeReading.ts';
 
 import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS, FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS } from './fleet-snapshot-five-forges.ts';
@@ -73,19 +73,19 @@ const WIKI_J21: AgentRow = {
 };
 
 /** Its brain is off, so the entry of the brain's start is not in its log. */
-const EXAMPLE_STOREFRONT: ForgeReading = {
+const EXAMPLE_STOREFRONT: FleetForge = {
   ...READINGS.exampleStorefront,
   activity: READINGS.exampleStorefront.activity.filter((entry) => entry.kind !== 'flint-brain'),
   brain:    READINGS.researchWiki.brain,
   versions: VERSIONS.ahead,
 };
 
-const INVOICE_SERVICE: ForgeReading = {
+const INVOICE_SERVICE: FleetForge = {
   ...READINGS.invoiceService,
   versions: VERSIONS.current,
 };
 
-const RESEARCH_WIKI: ForgeReading = {
+const RESEARCH_WIKI: FleetForge = {
   ...READINGS.researchWiki,
   attention: [WIKI_QUESTION_E7],
   agents:    [WIKI_J21],
@@ -97,7 +97,7 @@ const RESEARCH_WIKI: ForgeReading = {
 function readFromTheRegistryAlone(
   facts: Pick<ForgeReading, 'trackerId' | 'project' | 'root' | 'url' | 'processId' | 'lastChangedAt'>,
   versions: ForgeVersions,
-): ForgeReading {
+): FleetForge {
   return {
     ...facts,
     fidelity:  versions.verdict === 'newer' ? 'newer-contract' : 'older-contract',
@@ -126,6 +126,12 @@ function readFromTheRegistryAlone(
     usage:             null,
     brain:             'not-reported',
     versions,
+    registryPresence:  null,
+    presenceReport:    null,
+    presence:          { state: versions.verdict === 'newer' ? 'serving' : 'unknown', generation: null, at: null },
+    crashSummary:      null,
+    crashLogs:         [],
+    waitingWork:       [],
   };
 }
 

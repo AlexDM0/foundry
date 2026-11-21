@@ -15,18 +15,19 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import type { CommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                from '../../@types/FleetDocument.ts';
-import { CommandSender, useCommandSender }   from '../../api/CommandSender.ts';
-import { Board, type BoardServicesOf }       from '../../board/Board.tsx';
-import type { BoardRoute }                   from '../../board/shell/BoardRouter.ts';
-import type { BoardTabViewTable }            from '../../board/shell/BoardTabViews.tsx';
-import type { ClockReading }                 from '../../shared/@types/ClockReading.ts';
-import type { ThemeChoice }                  from '../../shared/@types/ThemeChoice.ts';
-import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
-import { HashRouter }                        from '../../shared/HashRouter.ts';
-import { ForgeContractUtil }                 from '../../shared/utils/ForgeContractUtil.ts';
-import type { EmbedChannelSurroundings }     from './EmbedChannel.ts';
+import type { CommandBody, ForgeStopAgents }      from '../../@types/CommandDocument.ts';
+import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import { CommandSender, useCommandSender }        from '../../api/CommandSender.ts';
+import { Board, type BoardServicesOf }            from '../../board/Board.tsx';
+import type { BoardRoute }                        from '../../board/shell/BoardRouter.ts';
+import type { BoardTabViewTable }                 from '../../board/shell/BoardTabViews.tsx';
+import type { ClockReading }                      from '../../shared/@types/ClockReading.ts';
+import type { ThemeChoice }                       from '../../shared/@types/ThemeChoice.ts';
+import type { ViewParts }                         from '../../shared/@types/ViewParts.ts';
+import { HashRouter }                             from '../../shared/HashRouter.ts';
+import { ForgeContractUtil }                      from '../../shared/utils/ForgeContractUtil.ts';
+import type { CrashLogResult }                    from './CrashLogRequest.ts';
+import type { EmbedChannelSurroundings }          from './EmbedChannel.ts';
 import {
   BarRefusalLine,
   ForgeBarControls,
@@ -41,12 +42,16 @@ import {
   type ForgeFrameContent,
   ForgeFrameModel,
 } from './ForgeFrameModel.ts';
-import { ForgeFrameSession, type ForgeFrameState } from './ForgeFrameSession.ts';
-import type { FrameSessionResult }                 from './FrameSessionRequest.ts';
+import { ForgeFrameSession, type ForgeFrameState }   from './ForgeFrameSession.ts';
+import { type CrashLogOpening, ForgePresenceLayout } from './ForgePresenceLayout.tsx';
+import { ForgePresenceModel }                        from './ForgePresenceModel.ts';
+import type { FrameSessionResult }                   from './FrameSessionRequest.ts';
 
 /** What the page around a forge's board hands it: the server's frame sessions, the page's messages, its address and its theme, the board. */
 export interface ForgeViewSurroundings {
   readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
+  /** One crash log of a forge that serves again, read through Gaia's server when User opens it. */
+  readonly requestCrashLog:     (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
   readonly embed:               EmbedChannelSurroundings;
   readonly replaceFragment:     (fragment: string) => void;
   readonly goTo:                (fragment: string) => void;
@@ -136,6 +141,42 @@ function ForgeBarWithControls({ bar, onOpenInNewTab }: ForgeBarWithControlsProps
           onOpenInNewTab={onOpenInNewTab}
         />
       )}
+    />
+  );
+}
+
+interface ForgePresenceAreaProps {
+  readonly forge:           FleetDocumentForge;
+  readonly clock:           ClockReading;
+  readonly requestCrashLog: ForgeViewSurroundings['requestCrashLog'];
+}
+
+/**
+ * The forge's presence under its bar. A crash log is read once, when User opens it, and kept for as long as the same Overseer serves; its
+ * key in the parent is the forge and its Overseer's start, so a new start reads again.
+ */
+function ForgePresenceArea({ forge, clock, requestCrashLog }: ForgePresenceAreaProps) {
+  const { send, states } = useCommandSender();
+  const [openedCrashLogs, setOpenedCrashLogs] = useState<ReadonlyMap<number, CrashLogOpening>>(new Map());
+  const content = ForgePresenceModel.presenceContentOf(forge, clock);
+  if (ForgePresenceModel.presenceIsQuiet(content)) return null;
+  const setOpening = (crashLogNumber: number, opening: CrashLogOpening): void => {
+    setOpenedCrashLogs((opened) => new Map(opened).set(crashLogNumber, opening));
+  };
+  const openCrashLog = (crashLogNumber: number): void => {
+    setOpening(crashLogNumber, { phase: 'reading' });
+    void requestCrashLog(forge.trackerId, crashLogNumber).then((result) => {
+      setOpening(crashLogNumber, result.verdict === 'read' ? { phase: 'read', shown: ForgePresenceModel.crashLogShownOf(result.crashLog) } : { phase: 'not-read' });
+    });
+  };
+  return (
+    <ForgePresenceLayout
+      project={forge.project}
+      content={content}
+      openedCrashLogs={openedCrashLogs}
+      commandIsOnItsWay={CommandSender.stateOf(states, { trackerId: forge.trackerId }).onItsWay !== null}
+      onCommand={(command) => void send(command)}
+      onOpenCrashLog={openCrashLog}
     />
   );
 }
@@ -278,6 +319,9 @@ export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocu
         {bar === null
           ? <ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} />
           : <ForgeBarWithControls key={bar.trackerId} bar={bar} onOpenInNewTab={openRouteInNewTab} />}
+        {forge === undefined ? null : (
+          <ForgePresenceArea key={`${forge.trackerId} ${forge.overseerStartedAt ?? ''}`} forge={forge} clock={clock} requestCrashLog={surroundings.requestCrashLog} />
+        )}
         <ForgeContentView content={content} boardCanBeRead={boardCanBeRead} route={route} surroundings={surroundings} />
       </div>
     ),

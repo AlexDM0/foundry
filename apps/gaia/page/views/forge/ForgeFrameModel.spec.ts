@@ -3,7 +3,7 @@
  * bar names the forge's condition by its word beside the dot and shows one line of agents and what waits with its figures apart, artboard
  * B1's line, so the bar keeps to one line (D2), with the whole reading of a usage limit hit and since for its tooltip; a value the forge
  * did not report is absent, not zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly
- * its controls, and a forge whose control contract Gaia does not know cannot be paused, resumed or stopped from Gaia; the Stop question
+ * its controls, and a forge whose control contract Gaia does not know cannot be paused, unpaused or stopped from Gaia; the Stop question
  * offers its two choices only while agents run; the frame area is the Bridge only for a forge read in full with the embed channel Gaia
  * knows, B3's callout for one that stopped answering, and otherwise why it cannot be shown; a new address or start of the Overseer is a new
  * frame session; `leave` goes back to the view Gaia came from; a refusal is worded with the forge's own sentence.
@@ -129,23 +129,23 @@ describe('the bar', () => {
 describe('the bar\'s controls for each condition', () => {
   const controlsOf = (condition: FleetDocumentCondition) => {
     const bar = barOf({ ...READINGS.exampleStorefront, condition });
-    return { pauseOrResume: bar.pauseOrResume?.label ?? null, emphasis: bar.pauseOrResume?.emphasis ?? null, stop: bar.stop !== null };
+    return { pauseOrUnpause: bar.pauseOrUnpause?.label ?? null, emphasis: bar.pauseOrUnpause?.emphasis ?? null, stop: bar.stop !== null };
   };
 
-  test('live pauses and stops, paused resumes first and stops, held and unreachable only stop, the others neither', () => {
-    expect(controlsOf('live')).toEqual({ pauseOrResume: 'Pause', emphasis: 'quiet', stop: true });
-    expect(controlsOf('paused')).toEqual({ pauseOrResume: 'Resume', emphasis: 'primary', stop: true });
-    expect(controlsOf('held')).toEqual({ pauseOrResume: null, emphasis: null, stop: true });
-    expect(controlsOf('unreachable')).toEqual({ pauseOrResume: null, emphasis: null, stop: true });
+  test('live pauses and stops, paused unpauses first and stops, held and unreachable only stop, the others neither', () => {
+    expect(controlsOf('live')).toEqual({ pauseOrUnpause: 'Pause', emphasis: 'quiet', stop: true });
+    expect(controlsOf('paused')).toEqual({ pauseOrUnpause: 'Unpause', emphasis: 'primary', stop: true });
+    expect(controlsOf('held')).toEqual({ pauseOrUnpause: null, emphasis: null, stop: true });
+    expect(controlsOf('unreachable')).toEqual({ pauseOrUnpause: null, emphasis: null, stop: true });
     for (const condition of ['passing-baton', 'starting', 'dormant', 'unreadable', 'missing'] as const) {
-      expect(controlsOf(condition)).toEqual({ pauseOrResume: null, emphasis: null, stop: false });
+      expect(controlsOf(condition)).toEqual({ pauseOrUnpause: null, emphasis: null, stop: false });
     }
   });
 
-  test('pause and resume carry the forge, and a forge whose control contract Gaia does not know is marked so', () => {
-    expect(barOf(READINGS.exampleStorefront).pauseOrResume?.command).toEqual({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
-    expect(barOf({ ...READINGS.exampleStorefront, condition: 'paused' }).pauseOrResume?.command)
-      .toEqual({ kind: 'forge-resume', trackerId: TRACKER_IDS.exampleStorefront });
+  test('pause and unpause carry the forge, and a forge whose control contract Gaia does not know is marked so', () => {
+    expect(barOf(READINGS.exampleStorefront).pauseOrUnpause?.command).toEqual({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
+    expect(barOf({ ...READINGS.exampleStorefront, condition: 'paused' }).pauseOrUnpause?.command)
+      .toEqual({ kind: 'forge-unpause', trackerId: TRACKER_IDS.exampleStorefront });
     const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 3 } };
     expect(barOf(newerControl).controlContractIsKnown).toBe(false);
   });
@@ -282,7 +282,7 @@ describe('a refusal under the bar', () => {
     });
   });
 
-  test('sends pause, resume and Open in new tab again as they were', () => {
+  test('sends pause, unpause and Open in new tab again as they were', () => {
     const pauseRefusal = ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-pause', result: { verdict: 'server-unreachable' } });
     expect(pauseRefusal).toEqual({
       refusedBy:    'gaia',

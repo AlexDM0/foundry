@@ -64,8 +64,8 @@ describe('the commands behind its buttons', () => {
     expect(await AddRepositoryCommands.chosenFolderOf(sender.send)).toBe('/Users/alexexample/development/example-storefront');
     expect(await AddRepositoryCommands.chosenFolderOf(sender.send)).toBeNull();
     expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'folder', commandVersion: 2 },
-      { kind: 'path-choose', what: 'folder', commandVersion: 2 },
+      { kind: 'path-choose', what: 'folder', commandVersion: 3 },
+      { kind: 'path-choose', what: 'folder', commandVersion: 3 },
     ]);
   });
 
@@ -79,11 +79,11 @@ describe('the commands behind its buttons', () => {
     await AddRepositoryCommands.chooseAndKeepForgeProgram(sender.send, sender.send);
     await AddRepositoryCommands.chooseAndKeepForgeProgram(sender.send, sender.send);
     expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'file', commandVersion: 2 },
+      { kind: 'path-choose', what: 'file', commandVersion: 3 },
       {
-        kind: 'settings-set', key: 'forgeProgramPath', value: '/Users/alexexample/.bun/bin/forge', commandVersion: 2
+        kind: 'settings-set', key: 'forgeProgramPath', value: '/Users/alexexample/.bun/bin/forge', commandVersion: 3
       },
-      { kind: 'path-choose', what: 'file', commandVersion: 2 },
+      { kind: 'path-choose', what: 'file', commandVersion: 3 },
     ]);
   });
 
@@ -99,7 +99,7 @@ describe('the commands behind its buttons', () => {
     expect(await AddRepositoryCommands.addAndStart(sender.send, form)).toBe(false);
     expect(await AddRepositoryCommands.addAndStart(sender.send, form)).toBe(true);
     expect(bodiesOf(sent)[0]).toEqual({
-      kind: 'forge-add', root: '~/development/example-storefront/', project: 'example-storefront', commandVersion: 2
+      kind: 'forge-add', root: '~/development/example-storefront/', project: 'example-storefront', commandVersion: 3
     });
   });
 

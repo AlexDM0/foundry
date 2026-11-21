@@ -1,11 +1,15 @@
 import type { BoardRoute } from './board/BoardRoute.ts';
 
-/** One entry of what waits on User in one forge, as that forge orders and words it. */
-export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
+/** What waits on User about a forge itself, raised by Gaia from the forge's served presence, never by the forge's own attention list. */
+export type ForgeAlertKind = 'forge-crashed' | 'forge-down' | 'forge-hung';
 
-export type AttentionStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed';
+/** One entry of what waits on User in one forge, as that forge orders and words it, or a forge alert Gaia raises from its presence. */
+export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept' | ForgeAlertKind;
 
-export type AttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
+export type AttentionStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed' | 'crashed' | 'last reported';
+
+/** `Start` sends the forge's start; a forge alert without it opens the forge's route. */
+export type AttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept' | 'Start' | 'Open';
 
 export interface AttentionItem {
   /** Unique within its forge, such as `decision:E3`; the notification key is built from it. */

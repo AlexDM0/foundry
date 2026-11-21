@@ -258,3 +258,22 @@ describe('activity', () => {
     expect(fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [forge])).activity.map((entry) => entry.logPosition)).toEqual([2, 1]);
   });
 });
+
+describe('a forge that crashed', () => {
+  test('leads what waits on User with its alert, which counts in waitingOnUser', () => {
+    const [first, ...others] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    if (first === undefined) throw new Error('the five-forges snapshot holds no forge');
+    const crashed = {
+      ...first,
+      fidelity:         'unreachable',
+      condition:        'unreachable',
+      registryPresence: {
+        state: 'crashed', generation: 1, at: '2026-11-21T06:32:52+01:00', crash: null
+      },
+    } as const;
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [crashed, ...others]));
+    expect(snapshot.attention[0]).toMatchObject({ trackerId: first.trackerId, kind: 'forge-crashed', actionLabel: 'Start' });
+    expect(snapshot.forges[0]?.presence.state).toBe('crashed');
+    expect(snapshot.figures.waitingOnUser).toBe(snapshot.attention.length);
+  });
+});

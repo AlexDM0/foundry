@@ -9,22 +9,29 @@ import { stat }       from 'node:fs/promises';
 
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
-import type { ForgeIdentity, ForgeRegistryFacts }                   from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
-import { BoardSummaryIngestion }                                    from '../adapters/forge-api/BoardSummaryIngestion.ts';
-import { IdentityIngestion }                                        from '../adapters/forge-api/IdentityIngestion.ts';
-import { MonitorSnapshotIngestion }                                 from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
-import { OverseerTokenFile }                                        from '../adapters/forge-api/OverseerTokenFile.ts';
-import { ForgeReadingMapUtil }                                      from '../adapters/forge-api/utils/ForgeReadingMapUtil.ts';
-import type { RegisteredForge }                                     from '../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }                                     from '../adapters/forge-registry/RegistryFile.ts';
-import type { ForgeDocumentAnswer, MonitorFollow, OverseerAddress } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeClient }                                         from '../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }                                  from '../lib/forge-client/constants/SupportedForgeVersions.ts';
-import type { ForgeReading, ForgeVersions }                         from '../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }                                        from '../shared/utils/ForgeVersionsUtil.ts';
-import { SystemVersionUtil }                                        from '../shared/utils/SystemVersionUtil.ts';
-import type { ClockTimer, ClockTimers }                             from './Clock.ts';
-import { WatchReadingUtil }                                         from './utils/WatchReadingUtil.ts';
+import type { ForgeIdentity, ForgeRegistryFacts }        from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
+import { BoardSummaryIngestion }                         from '../adapters/forge-api/BoardSummaryIngestion.ts';
+import { IdentityIngestion }                             from '../adapters/forge-api/IdentityIngestion.ts';
+import { MonitorSnapshotIngestion }                      from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
+import { OverseerTokenFile }                             from '../adapters/forge-api/OverseerTokenFile.ts';
+import { PresenceIngestion, type PresenceReportReading } from '../adapters/forge-api/PresenceIngestion.ts';
+import { ForgeReadingMapUtil }                           from '../adapters/forge-api/utils/ForgeReadingMapUtil.ts';
+import type { RegisteredForge }                          from '../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { RegistryReading }                          from '../adapters/forge-registry/RegistryFile.ts';
+import type {
+  ForgeDocumentAnswer,
+  MonitorFollow,
+  OverseerAccess,
+  OverseerAddress,
+} from '../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeClient }                 from '../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }          from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import type { ForgePresenceReport }         from '../shared/@types/ForgePresence.ts';
+import type { ForgeReading, ForgeVersions } from '../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil }                from '../shared/utils/ForgeVersionsUtil.ts';
+import { SystemVersionUtil }                from '../shared/utils/SystemVersionUtil.ts';
+import type { ClockTimer, ClockTimers }     from './Clock.ts';
+import { WatchReadingUtil }                 from './utils/WatchReadingUtil.ts';
 
 export interface ForgeWatchIntervals {
   readonly registryCheckIntervalMilliseconds:   number;
@@ -49,15 +56,20 @@ export interface ForgeWatchOptions {
 
 export interface ForgeWatch {
   /** Reads the registry at once, then on its interval. */
-  readonly start:             () => void;
+  readonly start:                   () => void;
   /** Every forge Gaia has a reading of, in registry order; a forge still being identified for the first time is left out. */
-  readonly readings:          () => readonly ForgeReading[];
+  readonly readings:                () => readonly ForgeReading[];
   /** Every forge the registry names and the settings do not hide, a forge still being identified for the first time included. */
-  readonly watchedForgeCount: () => number;
+  readonly watchedForgeCount:       () => number;
   /** A registry read and an identity round at once, for every forge not following a live stream; done when the registry is read. */
-  readonly lookAgain:         () => Promise<void>;
+  readonly lookAgain:               () => Promise<void>;
+  /**
+   * The forge's presence read after now, through the one reader the watch reads it with at each change of its monitor snapshot: a call
+   * while a read is on its way shares the next one. `null` when the watch follows no monitor of the forge or the presence did not answer.
+   */
+  readonly presenceReadingAfterNow: (trackerId: string) => Promise<PresenceReportReading | null>;
   /** Cancels every timer and closes every stream; an answer that arrives later changes nothing. */
-  readonly stop:              () => void;
+  readonly stop:                    () => void;
 }
 
 const REGISTRY_CHECK_INTERVAL_MILLISECONDS = 2_000;
@@ -99,8 +111,11 @@ function contentHashOf(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
-/** The part of an entry a watch follows the forge by; the last command and its stamp change with every forge command and ask nothing again. */
-function followedPartOf(entry: RegisteredForge): Omit<RegisteredForge, 'lastCommand' | 'lastChangedAt'> {
+/**
+ * The part of an entry a watch follows the forge by; the last command and its stamp change with every forge command, and the presence with
+ * every start, stop and crash, and ask nothing again.
+ */
+function followedPartOf(entry: RegisteredForge): Omit<RegisteredForge, 'lastCommand' | 'lastChangedAt' | 'presence'> {
   return {
     trackerId: entry.trackerId,
     project:   entry.project,
@@ -110,14 +125,17 @@ function followedPartOf(entry: RegisteredForge): Omit<RegisteredForge, 'lastComm
   };
 }
 
+type PresenceReadAfterNow = () => Promise<PresenceReportReading | null>;
+
 interface WatchedForge {
-  readonly reading:   () => ForgeReading | null;
-  readonly entry:     () => RegisteredForge;
-  readonly follow:    (entry: RegisteredForge) => void;
+  readonly reading:                 () => ForgeReading | null;
+  readonly presenceReadingAfterNow: PresenceReadAfterNow;
+  readonly entry:                   () => RegisteredForge;
+  readonly follow:                  (entry: RegisteredForge) => void;
   /** Takes an entry whose followed part is unchanged: its last command reaches the reading without asking the forge again. */
-  readonly keepEntry: (entry: RegisteredForge) => void;
-  readonly lookAgain: () => void;
-  readonly stop:      () => void;
+  readonly keepEntry:               (entry: RegisteredForge) => void;
+  readonly lookAgain:               () => void;
+  readonly stop:                    () => void;
 }
 
 interface WatchRound {
@@ -135,6 +153,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
   const intervals = { ...DEFAULT_INTERVALS, ...options.intervals };
   const { forgeClient, timers } = options;
   const supportedForgeVersion = options.supportedForgeVersion ?? SUPPORTED_FORGE_VERSION;
+  const presenceIngestion = new PresenceIngestion();
   const watchedForges = new Map<string, WatchedForge>();
   let trackerIdsInRegistryOrder: readonly string[] = [];
   let lastRegistryHash: string | null = null;
@@ -150,10 +169,21 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     let generation = 0;
     let roundTimer: ClockTimer | null = null;
     let monitorFollow: MonitorFollow | null = null;
+    let presenceReport: ForgePresenceReport | null = null;
+    let presenceReadAfterNow: PresenceReadAfterNow | null = null;
 
-    /** The last command is always the one the entry names now, whatever round the reading was taken in. */
+    /**
+     * The last command and the registry's presence are always the ones the entry names now, whatever round the reading was taken in; the
+     * presence a forge serves holds only while it is read in full.
+     */
     function setReading(nextReading: ForgeReading): void {
-      const readingWithLastCommand = { ...nextReading, lastCommand: entry.lastCommand, lastChangedAt: entry.lastChangedAt };
+      const readingWithLastCommand = {
+        ...nextReading,
+        lastCommand:      entry.lastCommand,
+        lastChangedAt:    entry.lastChangedAt,
+        registryPresence: entry.presence,
+        presenceReport:   nextReading.fidelity === 'full' ? presenceReport : null,
+      };
       if (reading !== null && contentHashOf(reading) === contentHashOf(readingWithLastCommand)) return;
       reading = readingWithLastCommand;
       options.onReadingsChanged();
@@ -173,6 +203,8 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       roundTimer = null;
       monitorFollow?.stop();
       monitorFollow = null;
+      presenceReport = null;
+      presenceReadAfterNow = null;
       return { isCurrent: () => !isStopped && roundGeneration === generation };
     }
 
@@ -233,14 +265,18 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       if (!round.isCurrent()) return;
       if (bearerToken === null) return failedTry();
       const ingestion = new MonitorSnapshotIngestion(registryFacts, identity);
+      const access: OverseerAccess = { ...address, bearerToken };
+      const readPresence = presenceReaderOf(round, access);
+      presenceReadAfterNow = readPresence;
       let wholeSnapshotsRead = 0;
       let snapshotWasUnreadable = false;
-      const follow = forgeClient.followMonitor({ ...address, bearerToken }, (document) => {
+      const follow = forgeClient.followMonitor(access, (document) => {
         if (!round.isCurrent()) return;
         const snapshotReading = ingestion.readingOf(document, options.now());
         if (snapshotReading.verdict === 'readable') {
           wholeSnapshotsRead += 1;
           keepWholeReading({ ...snapshotReading.reading, versions });
+          void readPresence();
         } else if (snapshotReading.verdict === 'newer-contract') {
           // Gaia reads nothing of a newer contract; the forge is identified again when its registry entry changes.
           setReading({ ...snapshotReading.reading, versions });
@@ -261,6 +297,46 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       // A stream that gave a whole snapshot ended as a Baton pass or a lost connection does; one that gave none is a failed try.
       if (wholeSnapshotsRead === 0) return failedTry();
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
+    }
+
+    /**
+     * Reads the forge's presence once per change of its monitor snapshot, never on a timer, and for a board read that asks: a call while a
+     * read is on its way shares the one after it, so a burst of changes and asks costs at most two. A presence that cannot be read keeps the
+     * last one read in this round.
+     */
+    function presenceReaderOf(round: WatchRound, access: OverseerAccess): PresenceReadAfterNow {
+      let readOnItsWay: Promise<PresenceReportReading | null> | null = null;
+      let readAfterIt: Promise<PresenceReportReading | null> | null = null;
+
+      async function readOnce(): Promise<PresenceReportReading | null> {
+        const answer = await forgeClient.presenceOf(access);
+        if (!round.isCurrent() || answer.verdict !== 'answered') return null;
+        const presenceReading = presenceIngestion.presenceReportOf(answer.document);
+        if (presenceReading.report !== null) {
+          presenceReport = presenceReading.report;
+          if (reading !== null) setReading(reading);
+        }
+        return presenceReading;
+      }
+
+      function beginRead(): Promise<PresenceReportReading | null> {
+        // A presence read that throws is a lost read, never a failed try of the round.
+        const read = readOnce().catch(() => null);
+        readOnItsWay = read;
+        void read.then(() => {
+          if (readOnItsWay === read) readOnItsWay = null;
+        });
+        return read;
+      }
+
+      return () => {
+        if (readOnItsWay === null) return beginRead();
+        readAfterIt ??= readOnItsWay.then(() => {
+          readAfterIt = null;
+          return round.isCurrent() ? beginRead() : null;
+        });
+        return readAfterIt;
+      };
     }
 
     /** A forge Gaia cannot talk to is read from the registry alone, and asked nothing more until its entry changes or User looks again. */
@@ -315,12 +391,13 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     }
 
     return {
-      reading: () => reading,
-      entry:   () => entry,
+      reading:                 () => reading,
+      presenceReadingAfterNow: () => presenceReadAfterNow?.() ?? Promise.resolve(null),
+      entry:                   () => entry,
       follow,
       keepEntry,
       lookAgain,
-      stop:    () => {
+      stop:                    () => {
         beginRound();
       },
     };
@@ -419,11 +496,16 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     for (const watchedForge of watchedForges.values()) watchedForge.stop();
   }
 
+  function presenceReadingAfterNow(trackerId: string): Promise<PresenceReportReading | null> {
+    return watchedForges.get(trackerId)?.presenceReadingAfterNow() ?? Promise.resolve(null);
+  }
+
   return {
     start,
     readings,
     watchedForgeCount: () => trackerIdsInRegistryOrder.length,
     lookAgain,
+    presenceReadingAfterNow,
     stop,
   };
 }

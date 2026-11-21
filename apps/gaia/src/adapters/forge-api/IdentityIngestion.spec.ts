@@ -7,9 +7,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
-import { FLEET_SNAPSHOT_DEGRADED }             from '../page-api/testing/fleet-snapshot-degraded.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
+import { CONTRACT_VERSIONS }                                   from '../../shared/constants/ContractVersions.ts';
+import { FLEET_SNAPSHOT_DEGRADED }                             from '../page-api/testing/fleet-snapshot-degraded.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS, forgeReadingOf } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
 import type { ForgeRegistryFacts }             from './@types/ForgeDocumentReading.ts';
 import { IdentityIngestion }                   from './IdentityIngestion.ts';
@@ -107,7 +107,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
       contract: 'monitor',
       version:  CONTRACT_VERSIONS.forgeMonitor + 1,
       // The watch, not the ingestion, adds the versions the forge answered.
-      reading:  { ...ANALYTICS_SANDBOX, versions: null },
+      reading:  { ...forgeReadingOf(ANALYTICS_SANDBOX), versions: null },
     });
   });
 

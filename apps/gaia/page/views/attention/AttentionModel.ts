@@ -60,6 +60,8 @@ export interface AttentionRow {
   readonly metaText:      string;
   readonly actionLabel:   string;
   readonly href:          string;
+  /** The command the row's button sends in place of opening `href`: a crashed or down forge's start. */
+  readonly command:       CommandBody | null;
   readonly isStale:       boolean;
   readonly isPrimary:     boolean;
 }
@@ -224,6 +226,21 @@ const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'filing-draft':       'Draft',
   'review':             'Review',
   'merge-accept':       'Accept',
+  'forge-crashed':      'Crashed',
+  'forge-down':         'Down',
+  'forge-hung':         'Not supervised',
+};
+
+/** The alerts Gaia raises about a forge itself, from its served presence; the forge words none of them. */
+const FORGE_ALERT_KINDS: ReadonlySet<FleetDocumentAttentionKind> = new Set<FleetDocumentAttentionKind>(['forge-crashed', 'forge-down', 'forge-hung']);
+
+const SUSPECTED_CRASH_SUBJECT = 'Suspected crash before a reboot';
+
+/** Each alert's subject; a crash names its error after it, when the registry holds one. */
+const FORGE_ALERT_SUBJECTS: Readonly<Record<'forge-crashed' | 'forge-down' | 'forge-hung', string>> = {
+  'forge-crashed': 'Forge crashed. It stays off until it is started.',
+  'forge-down':    'Forge is down: its Overseer is gone or hung.',
+  'forge-hung':    'The forge stopped supervising its agents. They wait for a resume.',
 };
 
 const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
@@ -291,13 +308,36 @@ function metaTextOf(item: FleetDocumentFleetAttentionItem, forge: FleetDocumentF
   return [lead, ageText].filter((part) => part !== null).join(META_SEPARATOR);
 }
 
+function forgeAlertSubjectOf(kind: 'forge-crashed' | 'forge-down' | 'forge-hung', forge: FleetDocumentForge): string {
+  const { crashSummary } = forge;
+  if (kind !== 'forge-crashed' || crashSummary === null) return FORGE_ALERT_SUBJECTS[kind];
+  const lead = crashSummary.suspected ? `${SUSPECTED_CRASH_SUBJECT}.` : FORGE_ALERT_SUBJECTS[kind];
+  return crashSummary.errorName === null ? lead : `${lead} ${crashSummary.errorName}`;
+}
+
+function isForgeAlert(kind: FleetDocumentAttentionKind): kind is 'forge-crashed' | 'forge-down' | 'forge-hung' {
+  return FORGE_ALERT_KINDS.has(kind);
+}
+
+/** A forge alert is about the forge as it is now, so it is never stale; its Start sends the forge's start, the user's own. */
+function forgeAlertRowOf(item: FleetDocumentFleetAttentionItem, kind: 'forge-crashed' | 'forge-down' | 'forge-hung', forge: FleetDocumentForge, clock: ClockReading) {
+  return {
+    subject:  forgeAlertSubjectOf(kind, forge),
+    metaText: metaTextOf(item, forge, false, clock),
+    command:  item.actionLabel === 'Start' ? { kind: 'forge-start', trackerId: item.trackerId } as const : null,
+    isStale:  false,
+  };
+}
+
 /** The fleet's own order, which the server sorts; only the first row whose button can act is primary. */
 function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): AttentionRow[] {
   let primaryIsGiven = false;
   return fleetDocument.attention.flatMap((item) => {
     const forge = forgesById.get(item.trackerId);
     if (forge === undefined) return [];
-    const isStale = forge.fidelity === 'unreachable';
+    const { kind } = item;
+    const alert = isForgeAlert(kind) ? forgeAlertRowOf(item, kind, forge, clock) : null;
+    const isStale = alert?.isStale ?? forge.fidelity === 'unreachable';
     const isPrimary = !isStale && !primaryIsGiven;
     if (isPrimary) primaryIsGiven = true;
     return [{
@@ -309,10 +349,11 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       kindText:      KIND_TEXTS[item.kind],
       kindTone:      item.kind === 'merge-accept' ? 'pass' : 'warn',
       idText:        item.idText,
-      subject:       item.subject,
-      metaText:      metaTextOf(item, forge, isStale, clock),
+      subject:       alert?.subject ?? item.subject,
+      metaText:      alert?.metaText ?? metaTextOf(item, forge, isStale, clock),
       actionLabel:   item.actionLabel,
       href:          forgeInPlaceHrefOf(item.trackerId, item.boardRoute),
+      command:       alert?.command ?? null,
       isStale,
       isPrimary,
     }];

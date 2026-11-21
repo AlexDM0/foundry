@@ -211,7 +211,7 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
 }
 
 /**
- * Pause or Resume, Stop with its question, Flint's brain, and Open in new tab; a forge whose control contract Gaia does not know takes only
+ * Pause or Unpause, Stop with its question, Flint's brain, and Open in new tab; a forge whose control contract Gaia does not know takes only
  * the last, and a forge Gaia cannot talk to its own controls.
  */
 export function ForgeBarControls(props: ForgeBarControlsProps) {
@@ -221,11 +221,11 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
   if (bar.cannotTalk !== null) return <CannotTalkControls {...props} cannotTalk={bar.cannotTalk} />;
   const brainChip = brainChipPropsOf(props);
   const controlsMayAct = bar.controlContractIsKnown && !commandIsOnItsWay;
-  const { pauseOrResume, stop } = bar;
+  const { pauseOrUnpause, stop } = bar;
   return (
     <>
-      {pauseOrResume === null ? null : (
-        <Button label={pauseOrResume.label} emphasis={pauseOrResume.emphasis} compact disabled={!controlsMayAct} onPress={() => onCommand(pauseOrResume.command)} />
+      {pauseOrUnpause === null ? null : (
+        <Button label={pauseOrUnpause.label} emphasis={pauseOrUnpause.emphasis} compact disabled={!controlsMayAct} onPress={() => onCommand(pauseOrUnpause.command)} />
       )}
       {stop === null ? null : (
         <span className="gaia-forge-frame-stop" ref={stopAnchorRef}>

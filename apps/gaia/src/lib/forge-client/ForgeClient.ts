@@ -54,6 +54,8 @@ export interface ForgeClient {
   readonly sessionCodeOf:   (access: OverseerAccess) => Promise<ForgeSessionCodeAnswer>;
   readonly boardOf:         (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
   readonly presenceOf:      (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
+  /** One crash log by its number; a number with no log is the forge's refusal `no-crash-log`. */
+  readonly crashLogOf:      (access: OverseerAccess, crashLogNumber: number) => Promise<ForgeDocumentAnswer>;
   /** The board's events, each whole one handed to `onEvent` as it arrives; `lastEventId` replays what came after that event. */
   readonly followEvents:    (access: OverseerAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow;
   /** A job's conversation from the cursor `after`, or from its start when `null`. */
@@ -83,6 +85,7 @@ const OVERSEER_ENDPOINTS = {
   sessionCodes:  'session-codes',
   board:         'board',
   presence:      'presence',
+  crashLog:      'crash-log',
   events:        'events',
   jobStream:     'jobs/{jobId}/stream',
   profileStream: 'profiles/{profileRunId}/stream',
@@ -233,6 +236,11 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', forgeEndpointPathOf('presence'), access.bearerToken, null)));
   }
 
+  async function crashLogOf(access: OverseerAccess, crashLogNumber: number): Promise<ForgeDocumentAnswer> {
+    const crashLogPath = `${forgeEndpointPathOf('crashLog')}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
+    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', crashLogPath, access.bearerToken, null)));
+  }
+
   async function sendBoardCommand(access: OverseerAccess, body: JsonObject): Promise<ForgeBoardCommandAnswer> {
     const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
     return boardCommandAnswerOf(await overseerFetch.request(commandRequest));
@@ -332,6 +340,7 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     sessionCodeOf,
     boardOf,
     presenceOf,
+    crashLogOf,
     followEvents,
     followJobStream,
     followProfileStream,

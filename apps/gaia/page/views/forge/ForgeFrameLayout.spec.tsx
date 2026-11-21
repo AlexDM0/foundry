@@ -1,5 +1,5 @@
 /**
- * A forge in place laid out from its model. What matters (SCREENS B1 and B2): the bar shows Pause or Resume, Stop and Open in new tab as
+ * A forge in place laid out from its model. What matters (SCREENS B1 and B2): the bar shows Pause or Unpause, Stop and Open in new tab as
  * the forge's condition allows; Stop opens its question under the button and sends `forge-stop` with `agents: 'keep'` for "Stop the
  * Overseer only" and `stop-first` for the other choice; while a command to the forge is on its way every control of the bar is disabled;
  * a forge whose control contract Gaia does not know keeps only Open in new tab; a refusal shows the forge's code and sentence with Try
@@ -98,9 +98,9 @@ describe('the bar\'s controls', () => {
     ]);
   });
 
-  test('a paused forge shows Resume as the primary button, and Pause sends the forge\'s pause', () => {
+  test('a paused forge shows Unpause as the primary button, and Pause sends the forge\'s pause', () => {
     const paused = controlsOf({ bar: barOf({ ...STOREFRONT, condition: 'paused' }) });
-    expect(PackageButtons.emphasisOf(buttonNamed(paused.unfolded, 'Resume'))).toBe('primary');
+    expect(PackageButtons.emphasisOf(buttonNamed(paused.unfolded, 'Unpause'))).toBe('primary');
     const live = controlsOf();
     PackageButtons.press(buttonNamed(live.unfolded, 'Pause'));
     expect(live.sent).toEqual([{ kind: 'forge-pause', trackerId: STOREFRONT.trackerId }]);

@@ -85,6 +85,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     },
     lastCommand:   null,
     lastChangedAt: null,
+    presence:      null,
   };
   const dormantReading = WatchReadingUtil.dormantReadingOf(entry, null);
   if (fidelity === 'dormant') return { entry, reading: dormantReading };
@@ -102,9 +103,10 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
 function sourcesOver(forge: ExampleForge, overseerFetch: RecordedOverseerFetch, registry?: RegistryReading): FrameSessionSources {
   const registryReading: RegistryReading = registry ?? { verdict: 'readable', forges: [forge.entry] };
   return {
-    readRegistry: async () => registryReading,
-    readings:     () => [forge.reading],
-    forgeClient:  forgeClientOf({ overseerFetch }),
+    readRegistry:            async () => registryReading,
+    readings:                () => [forge.reading],
+    presenceReadingAfterNow: () => Promise.resolve(null),
+    forgeClient:             forgeClientOf({ overseerFetch }),
   };
 }
 

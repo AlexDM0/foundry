@@ -2,8 +2,8 @@
  * The board route over Example Storefront's recorded board. What matters: the board answers as the page's `BoardDocument`, mapped from
  * the forge's document as Gaia's model reads it, never stored; reads of one forge are shared, so a burst of requests while a read is on
  * its way costs one more read, never one each, and a request after it reads afresh; each way the forge cannot be read is its own refusal,
- * a document that does not ingest logged with its keys; a board with waiting work takes each job's wait from the forge's presence, and one
- * without reads no presence; and the token is in no answer and no log line.
+ * a document that does not ingest logged with its keys; a board with waiting work takes each job's wait from the presence the forge watch
+ * reads, never a read of its own, and one without asks for none; and the token is in no answer and no log line.
  */
 import {
   afterEach,
@@ -17,6 +17,7 @@ import {
 import type { ForgePresenceDocument } from 'forge-contracts/ForgePresenceDocument';
 
 import { BoardStateIngestion }                                                       from '../../../adapters/forge-api/BoardStateIngestion.ts';
+import { PresenceIngestion, type PresenceReportReading }                             from '../../../adapters/forge-api/PresenceIngestion.ts';
 import { recordedBoardDocumentOf }                                                   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
 import { BoardDocumentMapUtil }                                                      from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
 import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
@@ -51,8 +52,11 @@ afterEach(() => {
   removeScratchPath(scratchFolder);
 });
 
-function routeOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}): BoardStateRoute {
-  return createBoardStateRoute(relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch), (entry) => {
+type PresenceReadAfterNow = (trackerId: string) => Promise<PresenceReportReading | null>;
+
+function routeOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}, presenceReadingAfterNow?: PresenceReadAfterNow): BoardStateRoute {
+  const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch, undefined, presenceReadingAfterNow);
+  return createBoardStateRoute(sources, (entry) => {
     logEntries.push(entry);
   });
 }
@@ -143,7 +147,15 @@ describe('a forge whose board cannot be read', () => {
 });
 
 describe('a board that holds waiting work', () => {
-  const PRESENCE_CALL_SHAPE = 'GET /api/v1/presence with bearer';
+  /** The forge watch's presence reader, served the document given: what it is asked for is counted by tracker id. */
+  function watchPresenceServing(document: unknown): { readonly read: PresenceReadAfterNow; readonly askedFor: string[] } {
+    const askedFor: string[] = [];
+    const read: PresenceReadAfterNow = (trackerId) => {
+      askedFor.push(trackerId);
+      return Promise.resolve(new PresenceIngestion().presenceReportOf(document));
+    };
+    return { read, askedFor };
+  }
 
   function boardAnswerWith(changeDocument: (document: Record<string, unknown> & { jobs: Record<string, unknown>[] }) => unknown) {
     const recorded = recordedBoardAnswersOf('board-at-work').find(({ callShape }) => callShape === BOARD_CALL_SHAPE)?.answer;
@@ -178,33 +190,38 @@ describe('a board that holds waiting work', () => {
     };
   }
 
-  test('takes what each waiting job follows from the forge\'s presence, and a board without waiting work reads no presence', async () => {
+  test('takes what each waiting job follows from the presence the forge watch reads, and a board without waiting work asks for none', async () => {
     const { recorded, bodyText } = boardAnswerWith((document) => interruptedEveryJob(document, 'network-outage'));
     const jobIds = (JSON.parse(bodyText) as { jobs: { id: string }[] }).jobs.map((job) => job.id);
     const [firstJobId] = jobIds;
     if (firstJobId === undefined) throw new Error('The recorded board holds a job.');
-    const overseerFetch = recordedOverseerFetch([
-      { callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } },
-      { callShape: PRESENCE_CALL_SHAPE, answer: { ...recorded, bodyText: JSON.stringify(presenceListing(firstJobId)) } },
-    ]);
-    const answer = await routeOver(overseerFetch).answerFor(STOREFRONT_TRACKER_ID);
+    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const watchPresence = watchPresenceServing(presenceListing(firstJobId));
+    const answer = await routeOver(overseerFetch, {}, watchPresence.read).answerFor(STOREFRONT_TRACKER_ID);
     const { jobs } = await answer.json() as { jobs: { id: string; waitsFor: string | null }[] };
     expect(jobs.map((job) => job.waitsFor)).toEqual(jobIds.map((jobId) => (jobId === firstJobId ? 'instruction' : null)));
+    expect([overseerFetch.callsAnswered().map((call) => call.callShape), watchPresence.askedFor]).toEqual([[BOARD_CALL_SHAPE], [STOREFRONT_TRACKER_ID]]);
     const atWork = boardAnswering('board-at-work');
-    await routeOver(atWork).answerFor(STOREFRONT_TRACKER_ID);
-    expect(atWork.callsAnswered().map((call) => call.callShape)).toEqual([BOARD_CALL_SHAPE]);
+    const presenceOfBoardAtWork = watchPresenceServing(presenceListing(firstJobId));
+    await routeOver(atWork, {}, presenceOfBoardAtWork.read).answerFor(STOREFRONT_TRACKER_ID);
+    expect([atWork.callsAnswered().map((call) => call.callShape), presenceOfBoardAtWork.askedFor]).toEqual([[BOARD_CALL_SHAPE], []]);
   });
 
   test('leaves every wait unknown when the presence does not ingest, logged with the key it lacks', async () => {
     const { recorded, bodyText } = boardAnswerWith((document) => interruptedEveryJob(document, 'lease-ended'));
     const { interruptedWork: _interruptedWork, ...withoutWork } = presenceListing('J1');
-    const overseerFetch = recordedOverseerFetch([
-      { callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } },
-      { callShape: PRESENCE_CALL_SHAPE, answer: { ...recorded, bodyText: JSON.stringify(withoutWork) } },
-    ]);
-    const { jobs } = await (await routeOver(overseerFetch).answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
+    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const route = routeOver(overseerFetch, {}, watchPresenceServing(withoutWork).read);
+    const { jobs } = await (await route.answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
     expect(jobs.every((job) => job.waitsFor === null)).toBe(true);
     expect(logEntries).toEqual([{ kind: 'presence-unreadable', trackerId: STOREFRONT_TRACKER_ID, invalidKeys: ['interruptedWork'] }]);
+  });
+
+  test('leaves every wait unknown when the forge watch follows no monitor of the forge', async () => {
+    const { recorded, bodyText } = boardAnswerWith((document) => interruptedEveryJob(document, 'lease-ended'));
+    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const { jobs } = await (await routeOver(overseerFetch).answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
+    expect([jobs.every((job) => job.waitsFor === null), logEntries]).toEqual([true, []]);
   });
 });
 

@@ -13,6 +13,7 @@ import { GAIA_ENDPOINT_VERSIONS } from './GaiaSystemVersions.ts';
 const BEFORE_SYSTEM_VERSIONS: SystemVersion = { major: 0, minor: 0 };
 const FIRST_VERSIONED_GAIA: SystemVersion = { major: 1, minor: 0 };
 const BOARD_RELAY_ADDED_IN: SystemVersion = { major: 1, minor: 2 };
+const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {
@@ -30,6 +31,7 @@ export const GAIA_ENDPOINTS = {
   forgePictureUpload: 'forges/<trackerId>/pictures',
   forgePicture:       'forges/<trackerId>/pictures/<pictureId>',
   forgeCommands:      'forges/<trackerId>/commands',
+  forgeCrashLog:      'forges/<trackerId>/crash-logs/<number>',
 } as const satisfies Readonly<Record<keyof typeof GAIA_ENDPOINT_VERSIONS, string>>;
 
 function currentEndpointOf(endpointName: keyof typeof GAIA_ENDPOINT_VERSIONS, introducedIn: SystemVersion = FIRST_VERSIONED_GAIA): CompatibilityEntry {
@@ -57,6 +59,7 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('forgePictureUpload', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgePicture', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeCommands', BOARD_RELAY_ADDED_IN),
+  currentEndpointOf('forgeCrashLog', CRASH_LOG_ADDED_IN),
   {
     kind:         'compatibility-path',
     name:         'the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>, for a page or a launcher from before system versions',

@@ -88,6 +88,14 @@ export const BOARD_SITUATIONS = [
 
 export type BoardSituation = typeof BOARD_SITUATIONS[number];
 
+/** Example Storefront's presence: serving with no work waiting, a crash log it does not have, and after User started it again after a crash. */
+export const PRESENCE_SITUATIONS = [
+  'presence-serving',
+  'started-after-a-crash',
+] as const;
+
+export type PresenceSituation = typeof PRESENCE_SITUATIONS[number];
+
 /**
  * Forges at another system version than the one Gaia supports: one ahead of it that still serves it, called at its versioned paths; one
  * too new to talk to; one older; and one that serves no `/api/versions`, as every forge before 1.0, which is older too.
@@ -147,6 +155,7 @@ export const OVERSEER_RECORDING_NAMES = [
   'overseer-fetch-supported-forge',
   'overseer-fetch-flint-brain',
   'overseer-fetch-board',
+  'overseer-fetch-presence',
   'overseer-fetch-other-programs',
 ] as const;
 
@@ -173,7 +182,7 @@ export function streamCallShapeOf(request: Pick<OverseerStreamRequest, 'path' | 
   return `${STREAM_CALL_SHAPE_PREFIX}${request.path}${bearer}${request.lastEventId === null ? '' : LAST_EVENT_ID_SUFFIX}`;
 }
 
-export type RecordedSituation = OverseerSituation | FlintBrainSituation | VersionsSituation | BoardSituation;
+export type RecordedSituation = OverseerSituation | FlintBrainSituation | VersionsSituation | BoardSituation | PresenceSituation;
 
 export function situationCallShapeOf(situation: RecordedSituation, callShape: string): string {
   return `${situation}${SITUATION_SEPARATOR}${callShape}`;
@@ -267,6 +276,11 @@ export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, oper
 
 /** The answers of one situation of Example Storefront's board, each call shape without its situation. */
 export function recordedBoardAnswersOf(situation: BoardSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
+}
+
+/** The answers of one situation of Example Storefront's presence, each call shape without its situation. */
+export function recordedPresenceAnswersOf(situation: PresenceSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }
 

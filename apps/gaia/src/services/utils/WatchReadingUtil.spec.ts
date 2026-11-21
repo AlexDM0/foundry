@@ -6,10 +6,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { RegisteredForge }                from '../../adapters/forge-registry/@types/RegisteredForge.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
-import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
-import { WatchReadingUtil }                    from './WatchReadingUtil.ts';
+import type { RegisteredForge }                                from '../../adapters/forge-registry/@types/RegisteredForge.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS, forgeReadingOf } from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
+import type { ForgeReading }                                   from '../../shared/@types/ForgeReading.ts';
+import { WatchReadingUtil }                                    from './WatchReadingUtil.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
@@ -22,6 +22,7 @@ function entryOf(reading: ForgeReading, overseer: RegisteredForge['overseer']): 
     overseer,
     lastCommand:   reading.lastCommand,
     lastChangedAt: reading.lastChangedAt,
+    presence:      null,
   };
 }
 
@@ -103,7 +104,7 @@ describe('a dormant forge', () => {
 describe('a forge whose repository is gone', () => {
   test('reads missing with nothing but its place in the registry', () => {
     const legacyEntry = entryOf(READINGS.legacyImporter, null);
-    expect(WatchReadingUtil.repositoryMissingReadingOf(legacyEntry)).toEqual(READINGS.legacyImporter);
+    expect(WatchReadingUtil.repositoryMissingReadingOf(legacyEntry)).toEqual(forgeReadingOf(READINGS.legacyImporter));
   });
 });
 

@@ -62,7 +62,7 @@ export interface ForgesSurroundings {
 }
 
 /** The buttons a row may show, by its condition. */
-export type RowButtonKind = 'pause' | 'resume' | 'stop' | 'start' | 'open' | 'open-in-new-tab' | 'look-again' | 'hide';
+export type RowButtonKind = 'pause' | 'unpause' | 'stop' | 'start' | 'open' | 'open-in-new-tab' | 'look-again' | 'hide';
 
 export type ForgeButtonKind = RowButtonKind | 'update' | 'restart' | 'show-again';
 
@@ -275,7 +275,7 @@ const OVERSEER_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set
 /** SCREENS A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
   'live':          ['pause', 'stop', 'open', 'open-in-new-tab'],
-  'paused':        ['resume', 'stop', 'open', 'open-in-new-tab'],
+  'paused':        ['unpause', 'stop', 'open', 'open-in-new-tab'],
   'held':          ['stop', 'open', 'open-in-new-tab'],
   'passing-baton': [],
   'starting':      [],
@@ -355,7 +355,7 @@ function forgeProgramIsMissingFor(forge: FleetDocumentForge, { gaiaHasNoForgePro
 
 /** The Stop dialog stays only under a row that still offers a Stop that reaches its forge; a forge stopped meanwhile drops it. */
 function stopDialogIsOpenOn(forge: FleetDocumentForge, stopDialog: StopDialogState | null): boolean {
-  return stopDialog?.trackerId === forge.trackerId && BUTTONS_BY_CONDITION[forge.condition].includes('stop') && stopReaches(forge);
+  return stopDialog?.trackerId === forge.trackerId && rowButtonKindsOf(forge).includes('stop') && stopReaches(forge);
 }
 
 function forgeIsBusy(forge: FleetDocumentForge, { surroundings }: RowSurroundings): boolean {
@@ -380,8 +380,8 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
   switch (button) {
     case 'pause':
       return commandButton(button, 'Pause', { kind: 'forge-pause', trackerId }, isBusy || !apiCarriesCommandsTo(forge));
-    case 'resume':
-      return commandButton(button, 'Resume', { kind: 'forge-resume', trackerId }, isBusy || !apiCarriesCommandsTo(forge), 'primary');
+    case 'unpause':
+      return commandButton(button, 'Unpause', { kind: 'forge-unpause', trackerId }, isBusy || !apiCarriesCommandsTo(forge), 'primary');
     case 'stop':
       return {
         kind: 'stop', button, label: 'Stop', disabled: isBusy || !stopReaches(forge)
@@ -434,10 +434,23 @@ function buttonsOfAForgeGaiaCannotTalkTo(forge: FleetDocumentForge & { readonly 
   return [withTitle(commandButton('pause', 'Pause', { kind: 'forge-pause', trackerId: forge.trackerId }, true), title), stop, openInNewTab];
 }
 
+/**
+ * A forge that crashed or is down offers its start, as one that never answered would. A down forge keeps the Stop of an unreachable one,
+ * since its Overseer may be alive but not answering; a crashed one's Overseer is gone.
+ */
+const BUTTONS_BY_PRESENCE_OFF: Readonly<Partial<Record<FleetDocumentForge['presence']['state'], readonly RowButtonKind[]>>> = {
+  crashed: ['start', 'look-again'],
+  down:    ['start', 'look-again', 'stop'],
+};
+
+function rowButtonKindsOf(forge: FleetDocumentForge): readonly RowButtonKind[] {
+  return BUTTONS_BY_PRESENCE_OFF[forge.presence.state] ?? BUTTONS_BY_CONDITION[forge.condition];
+}
+
 function buttonsOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton[] {
   if (shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting') return [{ kind: 'waiting', label: 'Starting' }];
   if (cannotTalkTo(forge)) return buttonsOfAForgeGaiaCannotTalkTo(forge, rowSurroundings);
-  return BUTTONS_BY_CONDITION[forge.condition].flatMap((button) => {
+  return rowButtonKindsOf(forge).flatMap((button) => {
     const shown = buttonOf(button, forge, rowSurroundings);
     return shown === null ? [] : [shown];
   });
@@ -478,6 +491,17 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition,
       return 'the repository folder is gone';
     case 'outdated':
       return 'older than this Gaia';
+    case 'crashed': {
+      const { crashSummary } = forge;
+      const crashWords = crashSummary?.suspected === true ? 'suspected crash before a reboot' : 'stays off until started';
+      return [crashWords, crashSummary?.errorName ?? null].filter((part) => part !== null).join(DETAIL_SEPARATOR);
+    }
+    case 'down': {
+      const lastReported = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
+      return lastReported === null ? 'gone or hung' : `gone or hung${DETAIL_SEPARATOR}last reported ${lastReported}`;
+    }
+    case 'hung':
+      return 'its agents wait for a resume';
   }
 }
 
@@ -530,7 +554,7 @@ function retryCommandOf(kind: CommandKind, trackerId: string, lastSent: ForgeCom
   switch (kind) {
     case 'forge-start':
     case 'forge-pause':
-    case 'forge-resume':
+    case 'forge-unpause':
     case 'forge-restart':
     case 'forge-update':
     case 'forge-open-in-browser':

@@ -2,6 +2,8 @@
 import type {
   FleetActivityEntry,
   FleetAgentRow,
+  FleetAttentionItem,
+  FleetForge,
   FleetSnapshot,
   GaiaFacts,
 } from '../../shared/@types/FleetSnapshot.ts';
@@ -13,6 +15,7 @@ import { LIMITS }            from '../../shared/constants/Limits.ts';
 import { AttentionOrderUtil } from './utils/AttentionOrderUtil.ts';
 import { FigureUtil }         from './utils/FigureUtil.ts';
 import { ForgeLookUtil }      from './utils/ForgeLookUtil.ts';
+import { ForgePresenceUtil }  from './utils/ForgePresenceUtil.ts';
 
 export interface FleetAssemblyInput {
   /** In registry order, which is the order every forge list keeps. */
@@ -106,9 +109,18 @@ function visibleReadingsOf(readings: readonly ForgeReading[], settings: GaiaSett
   return readings.filter((reading) => !hiddenTrackerIds.has(reading.trackerId));
 }
 
+/** A forge that crashed, is down or hung leads what waits on User: nothing else of it moves until User acts on it. */
+function fleetAttentionWithForgeAlertsOf(forges: readonly FleetForge[]): FleetAttentionItem[] {
+  const forgeAlerts = forges.flatMap((forge) => {
+    const alert = ForgePresenceUtil.forgeAlertOf(forge);
+    return alert === null ? [] : [alert];
+  });
+  return [...forgeAlerts, ...AttentionOrderUtil.fleetAttentionOf(forges)];
+}
+
 export function fleetSnapshotOf(input: FleetAssemblyInput): FleetSnapshot {
-  const forges    = visibleReadingsOf(input.readings, input.settings);
-  const attention = AttentionOrderUtil.fleetAttentionOf(forges);
+  const forges    = visibleReadingsOf(input.readings, input.settings).map(ForgePresenceUtil.fleetForgeOf);
+  const attention = fleetAttentionWithForgeAlertsOf(forges);
   return {
     forges,
     attention,

@@ -1,7 +1,7 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-degraded.ts` shows: what the page mapper is held against. */
-import type { AgentRow }                 from '../../../shared/@types/AgentRow.ts';
-import type { FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeReading, ForgeUsage } from '../../../shared/@types/ForgeReading.ts';
+import type { AgentRow }                  from '../../../shared/@types/AgentRow.ts';
+import type { FleetForge, FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgeUsage }                from '../../../shared/@types/ForgeReading.ts';
 
 import {
   CURRENT_FORGE_VERSIONS,
@@ -22,11 +22,12 @@ const USAGE_OF_A_SUMMARY: ForgeUsage = {
   currentWindowResetsAt: null,
 };
 
-const INVOICE_SERVICE: ForgeReading = {
+const INVOICE_SERVICE: FleetForge = {
   ...READINGS.invoiceService,
   fidelity:       'unreachable',
   condition:      'unreachable',
   lastReportedAt: '2026-11-12T13:14:05.000Z',
+  presence:       { state: 'unknown', generation: null, at: null },
 };
 
 /** A job read through `summaryVersion: 1`: what the summary does not hold is `null`, never zero. */
@@ -55,7 +56,7 @@ const WIKI_COUNTS_ONLY_J2: AgentRow = {
   boardRoute:          null,
 };
 
-const RESEARCH_WIKI: ForgeReading = {
+const RESEARCH_WIKI: FleetForge = {
   trackerId: TRACKER_IDS.researchWiki,
   project:   'Research Wiki',
   root:      '/Users/alexexample/development/research-wiki',
@@ -88,9 +89,15 @@ const RESEARCH_WIKI: ForgeReading = {
   usage:             USAGE_OF_A_SUMMARY,
   brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
+  registryPresence:  null,
+  presenceReport:    null,
+  presence:          { state: 'serving', generation: null, at: null },
+  crashSummary:      null,
+  crashLogs:         [],
+  waitingWork:       [],
 };
 
-const ANALYTICS_SANDBOX: ForgeReading = {
+const ANALYTICS_SANDBOX: FleetForge = {
   trackerId: TRACKER_IDS.analyticsSandbox,
   project:   'Analytics Sandbox',
   root:      '/Users/alexexample/development/analytics-sandbox',
@@ -123,6 +130,12 @@ const ANALYTICS_SANDBOX: ForgeReading = {
   usage:             null,
   brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
+  registryPresence:  null,
+  presenceReport:    null,
+  presence:          { state: 'serving', generation: null, at: null },
+  crashSummary:      null,
+  crashLogs:         [],
+  waitingWork:       [],
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

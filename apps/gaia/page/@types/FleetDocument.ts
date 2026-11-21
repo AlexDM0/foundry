@@ -73,11 +73,22 @@ export interface FleetDocumentBoardRoute {
   item: string | null;
 }
 
-export type FleetDocumentAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
+/** A forge alert (`forge-crashed`, `forge-down`, `forge-hung`) is Gaia's, raised from the forge's served presence; the rest are the forge's. */
+export type FleetDocumentAttentionKind =
+  | 'escalated-question'
+  | 'question'
+  | 'draft-ticket'
+  | 'filing-draft'
+  | 'review'
+  | 'merge-accept'
+  | 'forge-crashed'
+  | 'forge-down'
+  | 'forge-hung';
 
-export type FleetDocumentStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed';
+export type FleetDocumentStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed' | 'crashed' | 'last reported';
 
-export type FleetDocumentActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
+/** `Start` sends the forge's start; every other label opens the entry's place on the forge's board. */
+export type FleetDocumentActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept' | 'Start' | 'Open';
 
 export interface FleetDocumentAttentionItem {
   key:                     string;
@@ -172,6 +183,65 @@ export interface FleetDocumentBrain {
   refusal:     FleetDocumentBrainRefusal | null;
 }
 
+/**
+ * How a forge is present, told from what it serves: `crashed` the registry says so; `stopped` and `handed-over` the registry says so and no
+ * Overseer answers; `down` the registry says serving and no Overseer answers, gone or hung; `hung` its API answers and Talos stopped
+ * supervising its agents; `unknown` the registry holds no presence of a forge that does not answer.
+ */
+export type FleetDocumentPresenceState = 'serving' | 'hung' | 'stopped' | 'handed-over' | 'crashed' | 'down' | 'unknown';
+
+export interface FleetDocumentPresence {
+  state:      FleetDocumentPresenceState;
+  generation: number | null;
+  /** Shown only. */
+  at:         string | null;
+}
+
+/** The registry's summary of a crash; `suspected` for a crash suspected before a reboot. */
+export interface FleetDocumentCrashSummary {
+  component:    'overseer' | 'talos';
+  suspected:    boolean;
+  errorName:    string | null;
+  errorMessage: string | null;
+}
+
+export interface FleetDocumentCrashLogEntry {
+  /** The crash log's own number, the key of its route. */
+  number:     number;
+  /** The Baton generation that crashed, shown only. */
+  generation: number | null;
+  component:  'hephaestus' | 'talos' | 'unknown';
+  suspected:  boolean;
+  /** Shown only. */
+  recordedAt: string;
+}
+
+export type FleetDocumentInterruptionCause =
+  | 'child-lost'
+  | 'agent-crashed'
+  | 'reboot'
+  | 'answer-delivery'
+  | 'usage-limit'
+  | 'handoff-red'
+  | 'forced-stop-refused'
+  | 'authentication-failed'
+  | 'talos-paused'
+  | 'lease-ended'
+  | 'network-outage'
+  | 'forge-stopped'
+  | 'forge-crashed';
+
+/** `nothing`: it resumes by itself at the forge's next pass; `never`: no resume restarts it. */
+export type FleetDocumentResumeWait = 'instruction' | 'answer' | 'decision' | 'nothing' | 'never';
+
+export interface FleetDocumentWaitingJob {
+  jobId:     string;
+  kind:      string;
+  ticketIds: string[];
+  cause:     FleetDocumentInterruptionCause;
+  waitsFor:  FleetDocumentResumeWait;
+}
+
 export interface FleetDocumentForge {
   trackerId:         string;
   project:           string;
@@ -203,6 +273,13 @@ export interface FleetDocumentForge {
   brain:             FleetDocumentBrain | 'not-reported';
   /** `null` for a forge read without its versions, such as a dormant or an unreachable one. */
   versions:          FleetDocumentForgeVersions | null;
+  presence:          FleetDocumentPresence;
+  /** The registry's, only for a crashed forge. */
+  crashSummary:      FleetDocumentCrashSummary | null;
+  /** Listed by the presence of a live forge; each log is read on request at `/api/v1/forges/<trackerId>/crash-logs/<number>`. */
+  crashLogs:         FleetDocumentCrashLogEntry[];
+  /** Empty for a forge not answering. */
+  waitingWork:       FleetDocumentWaitingJob[];
 }
 
 export interface FleetDocumentFleetAttentionItem extends FleetDocumentAttentionItem {

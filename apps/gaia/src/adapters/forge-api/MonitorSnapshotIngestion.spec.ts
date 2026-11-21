@@ -232,7 +232,9 @@ const RECORDED_READING: ForgeReading = {
     sentence:    null,
     refusal:     null,
   },
-  versions: null,
+  versions:         null,
+  registryPresence: null,
+  presenceReport:   null,
 };
 
 
@@ -451,6 +453,8 @@ describe('a snapshot at a version this Gaia does not know', () => {
       usage:             null,
       brain:             'not-reported',
       versions:          null,
+      registryPresence:  null,
+      presenceReport:    null,
     });
   });
 

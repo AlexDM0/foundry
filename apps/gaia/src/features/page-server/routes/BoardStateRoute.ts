@@ -5,9 +5,7 @@
  */
 import type { ResumeWaitsOfJobs }                         from '../../../adapters/forge-api/@types/ResumeWaitsOfJobs.ts';
 import { BoardStateIngestion }                            from '../../../adapters/forge-api/BoardStateIngestion.ts';
-import { PresenceIngestion }                              from '../../../adapters/forge-api/PresenceIngestion.ts';
 import { BoardDocumentMapUtil }                           from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
-import type { OverseerAccess }                            from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { BoardRelayRefusal }                         from '../../../shared/@types/board/BoardRelayVerdict.ts';
 import type { ForgeBoard }                                from '../../../shared/@types/board/ForgeBoard.ts';
 import type { BoardRelayLog }                             from '../@types/BoardRelayLogEntry.ts';
@@ -37,7 +35,6 @@ function boardHoldsWaitingWork(board: ForgeBoard): boolean {
 export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog): BoardStateRoute {
   const readsByTrackerId = new Map<string, ForgeBoardReads>();
   const ingestion = new BoardStateIngestion();
-  const presenceIngestion = new PresenceIngestion();
 
   async function boardReadAfresh(trackerId: string): Promise<BoardRead> {
     const accessVerdict = await forgeAccessVerdictFor(trackerId, sources);
@@ -60,17 +57,19 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
       return { verdict: 'refused', refusal: 'forge-document-unreadable' };
     }
     const board = boardHoldsWaitingWork(reading.board)
-      ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId, accessVerdict.access)).board ?? reading.board
+      ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId)).board ?? reading.board
       : reading.board;
     return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(board)) };
   }
 
-  /** What each waiting job follows is served in the forge's presence; a presence that cannot be read leaves every job's wait unknown. */
-  async function resumeWaitsOf(trackerId: string, access: OverseerAccess): Promise<ResumeWaitsOfJobs> {
-    const answer = await sources.forgeClient.presenceOf(access);
-    if (answer.verdict !== 'answered') return NO_RESUME_WAITS;
-    const reading = presenceIngestion.resumeWaitsOf(answer.document);
-    if (reading.resumeWaits !== null) return reading.resumeWaits;
+  /**
+   * What each waiting job follows is served in the forge's presence, read through the forge watch's reader after the board was; a presence
+   * that cannot be read leaves every job's wait unknown.
+   */
+  async function resumeWaitsOf(trackerId: string): Promise<ResumeWaitsOfJobs> {
+    const reading = await sources.presenceReadingAfterNow(trackerId);
+    if (reading === null) return NO_RESUME_WAITS;
+    if (reading.report !== null) return new Map(reading.report.interruptedWork.map((work) => [work.jobId, work.waitsFor]));
     log({ kind: 'presence-unreadable', trackerId, invalidKeys: reading.reason.invalidKeys });
     return NO_RESUME_WAITS;
   }

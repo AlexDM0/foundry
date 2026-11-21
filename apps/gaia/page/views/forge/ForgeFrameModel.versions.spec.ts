@@ -68,7 +68,7 @@ describe('the bar at each verdict', () => {
     expect(bar.status.line.filter((segment) => segment.look === 'version').map((segment) => segment.text)).toEqual(['4.1', '3.1']);
     expect(bar.status.text).toBe('Analytics Sandbox is forge 4.1 and serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1, so they cannot talk.');
     expect(bar.brain).toBeNull();
-    expect(bar.pauseOrResume).toBeNull();
+    expect(bar.pauseOrUnpause).toBeNull();
     expect(bar.stop).toBeNull();
     expect(bar.cannotTalk).toEqual({
       verdict:            'newer',
@@ -101,7 +101,7 @@ describe('the bar at each verdict', () => {
     expect(lineTextOf(TRACKER_IDS.exampleStorefront)).toBe('4 / 5 agents · 2 wait on you · forge 3.4, its newest parts only in its Bridge');
     expect(bar.status.text).toStartWith('Example Storefront is forge 3.4; this Gaia is built for 3.1.');
     expect(bar.cannotTalk).toBeNull();
-    expect(bar.pauseOrResume?.label).toBe('Pause');
+    expect(bar.pauseOrUnpause?.label).toBe('Pause');
     expect(bar.stop).not.toBeNull();
     expect(bar.brain).not.toBeNull();
   });

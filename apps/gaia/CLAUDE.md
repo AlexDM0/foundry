@@ -158,7 +158,8 @@ for the OS as not finished. One recording is stamped `authored`, and verify list
 `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
 (1.1): `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of Flint's
-brain (`brain-refused` while its Overseer is paused, `no-flint` through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`); and
+brain (`brain-refused` while its Overseer is paused, `no-flint` through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`);
+`overseer-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
 `overseer-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
 system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are
 stamped with the Darwin release. The forge's version is read only by running it:

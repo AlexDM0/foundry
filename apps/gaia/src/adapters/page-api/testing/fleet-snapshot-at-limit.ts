@@ -1,6 +1,5 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-at-limit.ts` shows: what the page mapper is held against. */
-import type { FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeReading }  from '../../../shared/@types/ForgeReading.ts';
+import type { FleetForge, FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
 
 import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS, FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS } from './fleet-snapshot-five-forges.ts';
 
@@ -8,7 +7,7 @@ const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
 const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 
-const EXAMPLE_STOREFRONT: ForgeReading = {
+const EXAMPLE_STOREFRONT: FleetForge = {
   ...READINGS.exampleStorefront,
   concurrency: {
     limit:                        5,
@@ -19,7 +18,7 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
   },
 };
 
-const INVOICE_SERVICE: ForgeReading = {
+const INVOICE_SERVICE: FleetForge = {
   ...READINGS.invoiceService,
   concurrency: {
     limit:                        5,
@@ -30,7 +29,7 @@ const INVOICE_SERVICE: ForgeReading = {
   },
 };
 
-const RESEARCH_WIKI: ForgeReading = {
+const RESEARCH_WIKI: FleetForge = {
   ...READINGS.researchWiki,
   condition:   'paused',
   concurrency: {
@@ -42,7 +41,7 @@ const RESEARCH_WIKI: ForgeReading = {
   },
 };
 
-const EXAMPLE_MOBILE_APP: ForgeReading = {
+const EXAMPLE_MOBILE_APP: FleetForge = {
   ...READINGS.exampleMobileApp,
   concurrency: {
     limit:                        2,
@@ -54,7 +53,7 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
 };
 
 /** `forge start` is on its way: the forge is still dormant to Gaia, and its condition says what is happening. */
-const DESIGN_SYSTEM: ForgeReading = { ...READINGS.designSystem, condition: 'starting' };
+const DESIGN_SYSTEM: FleetForge = { ...READINGS.designSystem, condition: 'starting', presence: { state: 'serving', generation: null, at: null } };
 
 export const FLEET_SNAPSHOT_AT_LIMIT: FleetSnapshot = {
   ...FLEET_SNAPSHOT_FIVE_FORGES,

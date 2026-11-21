@@ -1,10 +1,11 @@
 /** One forge as Gaia last read it, at the fidelity its contracts allow. Internal only, so it carries no version of its own. */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
-import type { ActivityEntry }     from './ActivityEntry.ts';
-import type { AgentRow }          from './AgentRow.ts';
-import type { AttentionItem }     from './AttentionItem.ts';
-import type { ForgeBrainReading } from './ForgeBrain.ts';
+import type { ActivityEntry }                              from './ActivityEntry.ts';
+import type { AgentRow }                                   from './AgentRow.ts';
+import type { AttentionItem }                              from './AttentionItem.ts';
+import type { ForgeBrainReading }                          from './ForgeBrain.ts';
+import type { ForgePresenceReport, ForgeRegistryPresence } from './ForgePresence.ts';
 
 /** `older-contract`: the forge's system version is older than the one Gaia supports, so Gaia reads nothing of it until it is updated. */
 export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
@@ -95,4 +96,8 @@ export interface ForgeReading {
   brain:             ForgeBrainReading;
   /** `null` for a reading taken without the forge's `/api/versions`, such as a dormant or an unreachable forge's. */
   versions:          ForgeVersions | null;
+  /** What the registry says the forge last wrote of its presence, as the entry names it now. */
+  registryPresence:  ForgeRegistryPresence | null;
+  /** The presence a live forge serves, read at each change of its monitor snapshot; `null` for a forge not read in full. */
+  presenceReport:    ForgePresenceReport | null;
 }

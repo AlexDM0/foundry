@@ -34,6 +34,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
   fidelity:       'unreachable',
   condition:      'unreachable',
   lastReportedAt: '2026-11-12T13:14:05.000Z',
+  presence:       { state: 'unknown', generation: null, at: null },
 };
 
 /** A job read through `summaryVersion: 1`: what the summary does not hold is `null`, never zero. */
@@ -94,6 +95,10 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   usage:             USAGE_OF_A_SUMMARY,
   brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
+  presence:          { state: 'serving', generation: null, at: null },
+  crashSummary:      null,
+  crashLogs:         [],
+  waitingWork:       [],
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -129,6 +134,10 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   usage:             null,
   brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
+  presence:          { state: 'serving', generation: null, at: null },
+  crashSummary:      null,
+  crashLogs:         [],
+  waitingWork:       [],
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

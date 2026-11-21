@@ -6,13 +6,14 @@
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
 
-import { RECORDED_TRACKER_ID }     from '../../../adapters/forge-api/testing/BoardDocuments.ts';
-import type { RegisteredForge }    from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }    from '../../../adapters/forge-registry/RegistryFile.ts';
-import { forgeClientOf }           from '../../../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION } from '../../../lib/forge-client/constants/SupportedForgeVersions.ts';
-import { WatchReadingUtil }        from '../../../services/utils/WatchReadingUtil.ts';
-import type { ForgeReading }       from '../../../shared/@types/ForgeReading.ts';
+import type { PresenceReportReading } from '../../../adapters/forge-api/PresenceIngestion.ts';
+import { RECORDED_TRACKER_ID }        from '../../../adapters/forge-api/testing/BoardDocuments.ts';
+import type { RegisteredForge }       from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { RegistryReading }       from '../../../adapters/forge-registry/RegistryFile.ts';
+import { forgeClientOf }              from '../../../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }    from '../../../lib/forge-client/constants/SupportedForgeVersions.ts';
+import { WatchReadingUtil }           from '../../../services/utils/WatchReadingUtil.ts';
+import type { ForgeReading }          from '../../../shared/@types/ForgeReading.ts';
 import {
   recordedBoardAnswersOf,
   recordedOverseerAnswersOf,
@@ -56,6 +57,7 @@ export function exampleRelayForgeOf(scratchFolder: string, tokenPath: string | n
     },
     lastCommand:   null,
     lastChangedAt: null,
+    presence:      null,
   };
   const reading: ForgeReading = {
     ...WatchReadingUtil.dormantReadingOf(entry, null),
@@ -67,11 +69,18 @@ export function exampleRelayForgeOf(scratchFolder: string, tokenPath: string | n
   return { entry, reading };
 }
 
-export function relaySourcesOver(forge: ExampleRelayForge, overseerFetch: RecordedOverseerFetch, registry?: RegistryReading): ForgeAccessSources {
+/** `presenceReadingAfterNow` stands for the forge watch's presence reader; when not given, the watch follows no monitor of the forge. */
+export function relaySourcesOver(
+  forge: ExampleRelayForge,
+  overseerFetch: RecordedOverseerFetch,
+  registry?: RegistryReading,
+  presenceReadingAfterNow: (trackerId: string) => Promise<PresenceReportReading | null> = () => Promise.resolve(null),
+): ForgeAccessSources {
   const registryReading: RegistryReading = registry ?? { verdict: 'readable', forges: [forge.entry] };
   return {
     readRegistry: () => Promise.resolve(registryReading),
     readings:     () => [forge.reading],
+    presenceReadingAfterNow,
     forgeClient:  forgeClientOf({ overseerFetch }),
   };
 }

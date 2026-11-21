@@ -1204,6 +1204,21 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-bar-controls { display: inline-flex; flex: 1 0 auto; justify-content: flex-end; align-items: center; gap: var(--space-10); }
 .gaia-forge-frame { display: flex; flex: 1; flex-direction: column; box-sizing: border-box; min-height: 0; }
 .gaia-forge-frame-refusal { flex: none; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); }
+/* How the forge is present, under its bar: its alert, its crash logs and the work that waits, each read in the window's own scroll. */
+.gaia-forge-presence { display: flex; flex: none; flex-direction: column; gap: var(--sp-2); max-height: 45%; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); overflow-y: auto; }
+.gaia-forge-presence-list > ul { margin: 0; padding: 0; list-style: none; }
+.gaia-forge-presence-list-head { display: flex; align-items: center; gap: var(--space-10); }
+.gaia-forge-presence-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-10); padding: var(--space-7) 0; border-top: 1px solid var(--line); }
+.gaia-forge-presence-line-text { display: inline-flex; flex: 1 1 auto; align-items: baseline; gap: var(--space-7); min-width: 0; }
+.gaia-forge-presence-crash-log-body { flex: 1 0 100%; }
+.gaia-forge-presence-machine {
+  margin: var(--space-2) 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: var(--line-height-small);
+  white-space: pre;
+}
 /* The Bridge sits in a framed box inset from the window's edges, under the bar. */
 .gaia-forge-frame-area {
   position: relative;

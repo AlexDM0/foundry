@@ -1,8 +1,9 @@
 /**
  * The real-system spec of the forges' registry, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-registry` with the
- * program of a forge that writes F4 and F9. It brings five scratch boards under one scratch home into the states Gaia shows: three with a
- * live Overseer, one stopped and one never started, then reads the registry the forge wrote and records it, with the paths, tracker ids,
- * ports and process ids this run drew replaced by examples. The forge's install version stamps the recording.
+ * program of a forge that writes F4 and F9. It brings five scratch boards under one scratch home into the states Gaia shows, each with the
+ * presence the forge writes: two serving, one crashed (its Overseer killed, then a login item's start that stays off after the crash), one
+ * stopped and one never started, then reads the registry the forge wrote and records it, with the paths, tracker ids, ports and process ids
+ * this run drew replaced by examples. The forge's install version stamps the recording.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -25,9 +26,12 @@ import { REGISTRY_RECORDING, type RegistryBoardName } from './testing/RecordedRe
 
 const SETUP_TIMEOUT_MILLISECONDS = 180_000;
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
+/** The exit of a start the forge's start gate keeps off after a crash (`forge-off-after-crash`). */
+const STAYED_OFF_EXIT_CODE = 1;
 
 let scratchForge: ScratchForge;
 const repositoryOf = new Map<RegistryBoardName, string>();
+const drawnTrackerIdOf = new Map<RegistryBoardName, string>();
 
 async function boardIn(board: RegistryBoardName): Promise<string> {
   const { project, root, trackerId } = REGISTRY_RECORDING.boards[board];
@@ -35,8 +39,19 @@ async function boardIn(board: RegistryBoardName): Promise<string> {
   repositoryOf.set(board, repository);
   scratchForge.exampleValueFor({ drawn: repository, example: root });
   const initialised = await scratchForge.runForDocument(repository, ['init', '--project', project, '--no-hooks', '--json']);
+  drawnTrackerIdOf.set(board, String(initialised['trackerId']));
   scratchForge.exampleValueFor({ drawn: String(initialised['trackerId']), example: trackerId });
   return repository;
+}
+
+/** Kills the board's Overseer from outside, which writes nothing, then starts it as a login item does: the start gate keeps it off. */
+async function crashedBoard(board: RegistryBoardName): Promise<void> {
+  const repository = repositoryOf.get(board) ?? '';
+  const overseer = scratchForge.registryEntryOf(drawnTrackerIdOf.get(board) ?? '')?.['overseer'] as { processId: number } | undefined;
+  if (overseer === undefined) throw new Error(`The registry names no Overseer for ${board} to crash.`);
+  process.kill(overseer.processId, 'SIGKILL');
+  const stayedOff = await scratchForge.run(repository, ['start', '--started-by', 'login-item', '--json']);
+  expect(stayedOff.exitCode).toBe(STAYED_OFF_EXIT_CODE);
 }
 
 async function startedBoard(board: RegistryBoardName, overseerNumber: number): Promise<void> {
@@ -59,6 +74,7 @@ beforeAll(async () => {
   expect(gitRemote).toMatchObject({ verdict: 'finished', exitCode: 0 });
   await startedBoard('example-agency', 0);
   await startedBoard('example-bookshop', 1);
+  await crashedBoard('example-bookshop');
   await startedBoard('example-clinic', 2);
   await scratchForge.runForDocument(repositoryOf.get('example-clinic') ?? '', ['stop', '--json']);
   await boardIn('example-dairy');
@@ -72,7 +88,7 @@ afterAll(async () => {
 }, SETUP_TIMEOUT_MILLISECONDS);
 
 describe('the registry a forge writes', () => {
-  test('names five boards in the order they were registered, a live Overseer with its token file, and the program of each', async () => {
+  test('names five boards in the order they were registered, the Overseer last written with its token file, and the program of each', async () => {
     const registryPath = registryFilePathIn(scratchForge.home());
     const reading = await new RegistryFile(registryPath).read();
     expect(reading).toMatchObject({ verdict: 'readable' });
@@ -83,6 +99,7 @@ describe('the registry a forge writes', () => {
       ['Example Dairy', false],
       ['Example Estate', true],
     ]);
+    expect(reading.verdict === 'readable' ? reading.forges.map(({ presence }) => presence?.state ?? null) : []).toEqual(['serving', 'crashed', 'stopped', null, 'serving']);
     const registryText = scratchForge.exampleTextOf(readFileSync(registryPath, 'utf8'));
     expect(registryText).not.toContain(scratchRoot());
     expect(registryText).not.toContain(join('.claude', 'worktrees'));

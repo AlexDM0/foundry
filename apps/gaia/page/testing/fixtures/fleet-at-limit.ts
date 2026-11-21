@@ -56,7 +56,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
 };
 
 /** `forge start` is on its way: the forge is still dormant to Gaia, and its condition says what is happening. */
-const DESIGN_SYSTEM: FleetDocumentForge = { ...READINGS.designSystem, condition: 'starting' };
+const DESIGN_SYSTEM: FleetDocumentForge = { ...READINGS.designSystem, condition: 'starting', presence: { state: 'serving', generation: null, at: null } };
 
 export const FLEET_AT_LIMIT: FleetDocument = {
   ...FLEET_FIVE_FORGES,

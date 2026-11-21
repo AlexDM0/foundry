@@ -24,7 +24,7 @@ export interface StopQuestion {
 const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> = {
   'forge-start':           'Start',
   'forge-pause':           'Pause',
-  'forge-resume':          'Resume',
+  'forge-unpause':         'Unpause',
   'forge-restart':         'Restart',
   'forge-update':          'Update forge',
   'forge-open-in-browser': 'Open in new tab',
@@ -34,6 +34,8 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-concurrency-set': 'the agent limit',
   'forge-brain-start':     'Wake Flint\'s brain',
   'forge-brain-stop':      'Stop Flint\'s brain',
+
+  'forge-interrupted-work-resume': 'Resume',
 };
 
 /** An update was done and the forge's Overseer did not take the new code: Restart sends `forge-restart`. */

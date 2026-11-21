@@ -22,6 +22,8 @@ function lineOf(entry: BoardRelayLogEntry): string {
       return `Gaia could not read ${entry.trackerId}'s board: ${entry.invalidKeys.join(', ')}.\n`;
     case 'presence-unreadable':
       return `Gaia could not read what ${entry.trackerId}'s waiting work waits for: ${entry.invalidKeys.join(', ')}.\n`;
+    case 'crash-log-unreadable':
+      return `Gaia could not read a crash log of ${entry.trackerId}: ${entry.invalidKeys.join(', ')}.\n`;
   }
 }
 

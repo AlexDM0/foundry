@@ -131,6 +131,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     } : null,
     lastCommand:   null,
     lastChangedAt: null,
+    presence:      null,
   };
   const dormantReading = WatchReadingUtil.dormantReadingOf(entry, null);
   if (state === 'dormant') return { entry, reading: dormantReading };
@@ -373,16 +374,38 @@ describe('forge-stop, carried by the API while the Overseer answers, else by the
   });
 });
 
-describe('forge-pause, forge-resume and forge-restart, carried by the API', () => {
+describe('forge-interrupted-work-resume, carried by the API', () => {
+  test('sends `interrupted-work-resume` with the job, the ticket or every job it names', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const control = controlOver({ overseerFetch });
+    for (const target of [{ jobId: 'J4' }, { ticketReference: '004' }, 'all'] as const) {
+      expect(await control.carry({ kind: 'forge-interrupted-work-resume', trackerId: STOREFRONT_TRACKER_ID, target })).toEqual({ verdict: 'done' });
+    }
+    expect(sentBodiesOf(overseerFetch)).toEqual([
+      { kind: 'interrupted-work-resume', target: { jobId: 'J4' } },
+      { kind: 'interrupted-work-resume', target: { ticketReference: '004' } },
+      { kind: 'interrupted-work-resume', target: 'all' },
+    ]);
+  });
+
+  test('reaches no forge whose Overseer is not answering, and runs nothing in its place', async () => {
+    const command = { kind: 'forge-interrupted-work-resume', trackerId: STOREFRONT_TRACKER_ID, target: 'all' } as const;
+    for (const state of ['unreachable', 'dormant'] as const) {
+      expect(await controlOver({ forges: [exampleForgeOf({ state })] }).carry(command)).toEqual({ verdict: 'unreachable' });
+    }
+  });
+});
+
+describe('forge-pause, forge-unpause and forge-restart, carried by the API', () => {
   test('pause sends `overseer-pause`', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     expect(await controlOver({ overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-pause' }]);
   });
 
-  test('resume sends `overseer-resume`', async () => {
+  test('unpause sends the forge\'s undo of a pause, `overseer-resume`', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-resume', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-resume' }]);
   });
 
@@ -391,7 +414,7 @@ describe('forge-pause, forge-resume and forge-restart, carried by the API', () =
     const forge = liveForgeAtControl(1);
     const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
     const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
-    expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-resume', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
     expect([overseerFetch.callsAnswered().map((call) => call.callShape), sentBodiesOf(overseerFetch)]).toEqual([[COMMANDS_CALL_SHAPE], [{ kind: 'overseer-resume' }]]);
   });
 
@@ -595,7 +618,7 @@ describe('one command per forge on its way', () => {
 
     letThrough();
     expect(await firstPause).toEqual({ verdict: 'done' });
-    expect(await control.carry({ kind: 'forge-resume', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(await control.carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
   });
 
   test('frees the forge after a command that was refused', async () => {

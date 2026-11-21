@@ -571,3 +571,49 @@ describe('no forge yet (B4)', () => {
     expect(noForgeContentOf({ ...found, settings: chosen.settings }).forgeProgramText).toBe('~/.bun/bin/forge');
   });
 });
+
+describe('a forge alert', () => {
+  const STOREFRONT = FLEET_FIVE_FORGES.forges[0];
+
+  function alertRowOf(kind: 'forge-crashed' | 'forge-down' | 'forge-hung', actionLabel: 'Start' | 'Open', forgeChanges: Partial<FleetDocument['forges'][number]>) {
+    if (STOREFRONT === undefined) throw new Error('the five-forges document holds no forge');
+    const forge = { ...STOREFRONT, ...forgeChanges };
+    const alert: FleetDocument['attention'][number] = {
+      trackerId:               forge.trackerId,
+      key:                     `forge-alert:${kind}`,
+      kind,
+      idText:                  '',
+      ticketIds:               [],
+      subject:                 '',
+      jobId:                   null,
+      askedBy:                 null,
+      decisionKind:            null,
+      escalatedFromIncidentId: null,
+      metaText:                null,
+      stamp:                   FLEET_FIXTURES_READ_AT,
+      stampWord:               'crashed',
+      actionLabel,
+      boardRoute:              null,
+    };
+    const content = fleetContentOf({ ...FLEET_FIVE_FORGES, forges: [forge], attention: [alert] });
+    return content.rows[0];
+  }
+
+  test('of a crashed forge names a suspected crash before a reboot and its error, and its Start sends the forge\'s start even unanswered', () => {
+    const row = alertRowOf('forge-crashed', 'Start', {
+      fidelity:     'unreachable',
+      condition:    'unreachable',
+      presence:     { state: 'crashed', generation: 1, at: FLEET_FIXTURES_READ_AT },
+      crashSummary: {
+        component: 'overseer', suspected: true, errorName: 'Error', errorMessage: null,
+      },
+    });
+    expect([row?.kindText, row?.subject, row?.conditionWord, row?.isStale]).toEqual(['Crashed', 'Suspected crash before a reboot. Error', 'crashed', false]);
+    expect(row?.command).toEqual({ kind: 'forge-start', trackerId: STOREFRONT?.trackerId ?? '' });
+  });
+
+  test('of a hung forge opens its route, where its waiting work is', () => {
+    const row = alertRowOf('forge-hung', 'Open', { presence: { state: 'hung', generation: 1, at: null } });
+    expect([row?.kindText, row?.actionLabel, row?.command, row?.href]).toEqual(['Not supervised', 'Open', null, `#forge/${STOREFRONT?.trackerId ?? ''}`]);
+  });
+});

@@ -220,7 +220,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   test('each condition shows exactly its buttons', () => {
     const labelsIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows.flatMap((row) => row.buttons.map(labelOf));
     expect(labelsIn('live')).toEqual(['Pause', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
-    expect(labelsIn('paused')).toEqual(['Resume', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
+    expect(labelsIn('paused')).toEqual(['Unpause', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
     expect(labelsIn('held')).toEqual(['Stop', 'Open', OPEN_IN_NEW_TAB]);
     expect(labelsIn('passing-baton')).toEqual([]);
     expect(labelsIn('starting')).toEqual(['Starting']);
@@ -232,10 +232,10 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     expect(missing.notFound.map((entry) => labelOf(entry.button))).toEqual(['Hide in Gaia']);
   });
 
-  test('Resume and Start are the primary buttons of their rows; the others are plain, and Open in new tab shows only its arrow', () => {
+  test('Unpause and Start are the primary buttons of their rows; the others are plain, and Open in new tab shows only its arrow', () => {
     const emphasisIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows
       .flatMap((row) => row.buttons.map((button) => (button.kind === 'command' ? [button.label, button.emphasis, button.iconOnly] : [button.label, button.kind])));
-    expect(emphasisIn('paused')).toEqual([['Resume', 'primary', false], ['Stop', 'stop'], ['Open', 'link'], [OPEN_IN_NEW_TAB, 'quiet', true]]);
+    expect(emphasisIn('paused')).toEqual([['Unpause', 'primary', false], ['Stop', 'stop'], ['Open', 'link'], [OPEN_IN_NEW_TAB, 'quiet', true]]);
     expect(emphasisIn('dormant')).toEqual([['Start', 'primary', false]]);
   });
 
@@ -251,7 +251,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     expect(contentOf(readThroughItsSummary).rows.flatMap((row) => row.buttons.filter((button) => button.kind === 'link'))).toEqual([]);
   });
 
-  test('a forge whose control contract Gaia does not know has Pause, Resume, Stop and its limit off', () => {
+  test('a forge whose control contract Gaia does not know has Pause, Unpause, Stop and its limit off', () => {
     const unknown = { ...READINGS.exampleStorefront.contracts, control: 3 };
     const [live] = contentOf(fleetWithOneForgeIn('live', { contracts: unknown })).rows;
     expect(live?.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled])).toEqual([
@@ -266,6 +266,13 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     const [dormant] = contentOf(withoutGaiasForgeProgram(fleetWithOneForgeIn('dormant', { program: null }))).rows;
     expect(dormant?.buttons).toMatchObject([{ label: 'Start', disabled: true }]);
     expect(dormant?.detailText).toBe('the forge program was not found');
+  });
+
+  test('a crashed forge offers Start and Look again; a down one keeps Stop too, as its Overseer may be alive but not answering', () => {
+    const labelsAt = (state: 'crashed' | 'down') => contentOf(fleetWithOneForgeIn('unreachable', { presence: { state, generation: 2, at: FLEET_FIXTURES_READ_AT } }))
+      .rows.flatMap((row) => row.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled]));
+    expect(labelsAt('crashed')).toEqual([['Start', false], ['Look again', false]]);
+    expect(labelsAt('down')).toEqual([['Start', false], ['Look again', false], ['Stop', false]]);
   });
 
   test('a dormant forge whose registry entry names its program can be started while Gaia\'s settings name none', () => {

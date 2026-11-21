@@ -12,13 +12,16 @@ export type PathChoiceTarget = 'folder' | 'file';
 /** One settings key and its value, the pair kept together so a value never travels under another key. */
 export type SettingsChange = { [Key in keyof FleetDocumentSettings]: { key: Key; value: FleetDocumentSettings[Key] } }[keyof FleetDocumentSettings];
 
-/** A command about one forge, named by its `trackerId`. */
+/** What a resume of a forge's interrupted work names: one job, one ticket as it is written, or every job that waits for an instruction. */
+export type InterruptedWorkTarget = { jobId: string } | { ticketReference: string } | 'all';
+
+/** A command about one forge, named by its `trackerId`. `forge-unpause` undoes a pause; a resume restarts interrupted work. */
 export type ForgeCommandBody =
   | {
     kind:
       | 'forge-start'
       | 'forge-pause'
-      | 'forge-resume'
+      | 'forge-unpause'
       | 'forge-restart'
       | 'forge-update'
       | 'forge-open-in-browser'
@@ -29,7 +32,8 @@ export type ForgeCommandBody =
     trackerId: string;
   }
   | { kind: 'forge-stop'; trackerId: string; agents: ForgeStopAgents }
-  | { kind: 'forge-concurrency-set'; trackerId: string; limit: number };
+  | { kind: 'forge-concurrency-set'; trackerId: string; limit: number }
+  | { kind: 'forge-interrupted-work-resume'; trackerId: string; target: InterruptedWorkTarget };
 
 /** A command about the fleet, the machine or Gaia itself, named by no forge. */
 export type FleetCommandBody =

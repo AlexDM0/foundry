@@ -300,13 +300,15 @@ async function startGaia(): Promise<RunningGaia> {
     lookAgain:    watch.lookAgain,
   });
   const startVerdict = await startPageServer({
-    port:                          0,
-    homeDirectory:                 home,
+    port:               0,
+    homeDirectory:      home,
     fleetStore,
-    forgeCounts:                   () => ({ forgesRegistered: watch.watchedForgeCount(), forgesAnswered: watch.readings().length }),
-    pageFiles:                     () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
-    carryCommand:                  forgeControl.carry,
-    forgeAccessSources:            { readRegistry, readings: watch.readings, forgeClient },
+    forgeCounts:        () => ({ forgesRegistered: watch.watchedForgeCount(), forgesAnswered: watch.readings().length }),
+    pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
+    carryCommand:       forgeControl.carry,
+    forgeAccessSources: {
+      readRegistry, readings: watch.readings, presenceReadingAfterNow: watch.presenceReadingAfterNow, forgeClient
+    },
     logBoardRelay:                 () => undefined,
     timers,
     now:                           () => READ_AT,
@@ -372,7 +374,7 @@ async function followFleet(server: PageServer, cookie: string): Promise<FleetFol
 }
 
 async function sendCommand(server: PageServer, cookie: string, command: Record<string, unknown>): Promise<unknown> {
-  const answer = await fetch(new URL('/api/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 2, ...command }) });
+  const answer = await fetch(new URL('/api/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 3, ...command }) });
   return answer.json();
 }
 

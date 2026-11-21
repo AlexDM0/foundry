@@ -4,8 +4,25 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
 import type { ActivityEntry } from './ActivityEntry.ts';
 import type { AgentRow }      from './AgentRow.ts';
 import type { AttentionItem } from './AttentionItem.ts';
-import type { ForgeReading }  from './ForgeReading.ts';
-import type { GaiaSettings }  from './GaiaSettings.ts';
+import type {
+  ForgeCrashLogEntry,
+  ForgeCrashSummary,
+  ForgePresence,
+  ForgeWaitingJob,
+} from './ForgePresence.ts';
+import type { ForgeReading } from './ForgeReading.ts';
+import type { GaiaSettings } from './GaiaSettings.ts';
+
+/** A forge's reading with what the fleet tells from its served presence: how it is present, its crash, its crash logs and its waiting work. */
+export interface FleetForge extends ForgeReading {
+  presence:     ForgePresence;
+  /** The registry's summary, only for a crashed forge. */
+  crashSummary: ForgeCrashSummary | null;
+  /** Listed by the presence of a live forge. */
+  crashLogs:    ForgeCrashLogEntry[];
+  /** Empty for a forge not answering. */
+  waitingWork:  ForgeWaitingJob[];
+}
 
 export interface FleetAttentionItem extends AttentionItem {
   trackerId: string;
@@ -89,7 +106,7 @@ export interface GaiaFacts {
 }
 
 export interface FleetSnapshot {
-  forges:     ForgeReading[];
+  forges:     FleetForge[];
   attention:  FleetAttentionItem[];
   needsALook: ForgeLook[];
   agents:     FleetAgentRow[];

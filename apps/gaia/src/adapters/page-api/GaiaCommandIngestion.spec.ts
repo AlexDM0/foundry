@@ -21,7 +21,7 @@ describe('a body this Gaia carries out', () => {
   const SINGLE_FORGE_KINDS = [
     'forge-start',
     'forge-pause',
-    'forge-resume',
+    'forge-unpause',
     'forge-restart',
     'forge-update',
     'forge-open-in-browser',
@@ -33,46 +33,46 @@ describe('a body this Gaia carries out', () => {
 
   for (const kind of SINGLE_FORGE_KINDS) {
     test(`maps ${kind} to its command with its tracker id`, () => {
-      const document: CommandDocument = { commandVersion: 2, kind, trackerId: TRACKER_ID };
+      const document: CommandDocument = { commandVersion: 3, kind, trackerId: TRACKER_ID };
       expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind, trackerId: TRACKER_ID } });
     });
   }
 
   test('maps forge-stop with the choice of what happens to the agents', () => {
     const document: CommandDocument = {
-      commandVersion: 2, kind: 'forge-stop', trackerId: TRACKER_ID, agents: 'stop-first',
+      commandVersion: 3, kind: 'forge-stop', trackerId: TRACKER_ID, agents: 'stop-first',
     };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-stop', trackerId: TRACKER_ID, agents: 'stop-first' } });
   });
 
   test('maps fleet-look-again, which names no forge', () => {
-    const document: CommandDocument = { commandVersion: 2, kind: 'fleet-look-again' };
+    const document: CommandDocument = { commandVersion: 3, kind: 'fleet-look-again' };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
   });
 
   test('maps forge-concurrency-set with its limit', () => {
     const document: CommandDocument = {
-      commandVersion: 2, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3,
+      commandVersion: 3, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3,
     };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3 } });
   });
 
   test('maps machine-agent-limit-set, which names no forge', () => {
-    const document: CommandDocument = { commandVersion: 2, kind: 'machine-agent-limit-set', limit: 6 };
+    const document: CommandDocument = { commandVersion: 3, kind: 'machine-agent-limit-set', limit: 6 };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'machine-agent-limit-set', limit: 6 } });
   });
 
   test('maps forge-add with the repository root and the project name', () => {
     const root = '/Users/example/Development/example-storefront';
     const document: CommandDocument = {
-      commandVersion: 2, kind: 'forge-add', root, project: 'Example Storefront',
+      commandVersion: 3, kind: 'forge-add', root, project: 'Example Storefront',
     };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-add', root, project: 'Example Storefront' } });
   });
 
   test('maps path-choose for a folder and for a file', () => {
     for (const what of ['folder', 'file'] as const) {
-      const document: CommandDocument = { commandVersion: 2, kind: 'path-choose', what };
+      const document: CommandDocument = { commandVersion: 3, kind: 'path-choose', what };
       expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'path-choose', what } });
     }
   });
@@ -87,14 +87,14 @@ describe('a body this Gaia carries out', () => {
       { key: 'startForgesAtLogin', value: true },
     ];
     for (const change of changes) {
-      const document: CommandDocument = { commandVersion: 2, kind: 'settings-set', ...change };
+      const document: CommandDocument = { commandVersion: 3, kind: 'settings-set', ...change };
       expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'settings-set', change } });
     }
   });
 
   test('leaves a key the kind does not name out of the command', () => {
     expect(readingOf({
-      commandVersion: 2, kind: 'forge-pause', trackerId: TRACKER_ID, agents: 'keep',
+      commandVersion: 3, kind: 'forge-pause', trackerId: TRACKER_ID, agents: 'keep',
     })).toEqual({ verdict: 'readable', command: { kind: 'forge-pause', trackerId: TRACKER_ID } });
   });
 });
@@ -105,11 +105,11 @@ describe('a body that maps nothing', () => {
   });
 
   test('answers not-a-json-object for a JSON array', () => {
-    expect(readingOf([{ commandVersion: 2, kind: 'fleet-look-again' }])).toEqual({ verdict: 'not-a-json-object' });
+    expect(readingOf([{ commandVersion: 3, kind: 'fleet-look-again' }])).toEqual({ verdict: 'not-a-json-object' });
   });
 
   test('answers other-version for a body of a newer page, naming its version', () => {
-    expect(readingOf({ commandVersion: 3, kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: 3 });
+    expect(readingOf({ commandVersion: 4, kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: 4 });
   });
 
   test('answers other-version for a body of an older page, naming its version', () => {
@@ -117,7 +117,7 @@ describe('a body that maps nothing', () => {
   });
 
   test('reads a body passing over a key this Gaia does not know', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'fleet-look-again', exampleAddedKey: true })).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
+    expect(readingOf({ commandVersion: 3, kind: 'fleet-look-again', exampleAddedKey: true })).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
   });
 
   test('answers other-version for a body with no commandVersion', () => {
@@ -130,49 +130,49 @@ describe('a body that maps nothing', () => {
   });
 
   test('answers unknown-kind for a kind this Gaia does not carry out', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'forge-explode', trackerId: TRACKER_ID })).toEqual({ verdict: 'unknown-kind', kind: 'forge-explode' });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-explode', trackerId: TRACKER_ID })).toEqual({ verdict: 'unknown-kind', kind: 'forge-explode' });
   });
 
   test('answers unknown-kind with no kind for a body that names none', () => {
-    expect(readingOf({ commandVersion: 2, trackerId: TRACKER_ID })).toEqual({ verdict: 'unknown-kind', kind: null });
+    expect(readingOf({ commandVersion: 3, trackerId: TRACKER_ID })).toEqual({ verdict: 'unknown-kind', kind: null });
   });
 
   test('names a missing or empty tracker id as malformed', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'forge-start' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId'] });
-    expect(readingOf({ commandVersion: 2, kind: 'forge-start', trackerId: '' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId'] });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-start' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId'] });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-start', trackerId: '' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId'] });
   });
 
   test('names every invalid key of a stop', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'forge-stop', agents: 'all' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'agents'] });
-    expect(readingOf({ commandVersion: 2, kind: 'forge-stop', trackerId: TRACKER_ID })).toEqual({ verdict: 'malformed', invalidKeys: ['agents'] });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-stop', agents: 'all' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'agents'] });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-stop', trackerId: TRACKER_ID })).toEqual({ verdict: 'malformed', invalidKeys: ['agents'] });
   });
 });
 
 describe('the keys of the limits, adding, settings and the chooser', () => {
   test('names a limit that is no whole number of at least one as malformed', () => {
     for (const limit of [0, -1, 2.5, '3', null]) {
-      expect(readingOf({ commandVersion: 2, kind: 'machine-agent-limit-set', limit })).toEqual({ verdict: 'malformed', invalidKeys: ['limit'] });
+      expect(readingOf({ commandVersion: 3, kind: 'machine-agent-limit-set', limit })).toEqual({ verdict: 'malformed', invalidKeys: ['limit'] });
     }
   });
 
   test('names every invalid key of a concurrency change', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'forge-concurrency-set' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'limit'] });
+    expect(readingOf({ commandVersion: 3, kind: 'forge-concurrency-set' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'limit'] });
     expect(readingOf({
-      commandVersion: 2, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 0,
+      commandVersion: 3, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 0,
     })).toEqual({ verdict: 'malformed', invalidKeys: ['limit'] });
   });
 
   test('names a root that is not absolute and an empty project name as malformed', () => {
     expect(readingOf({
-      commandVersion: 2, kind: 'forge-add', root: 'example-storefront', project: '',
+      commandVersion: 3, kind: 'forge-add', root: 'example-storefront', project: '',
     })).toEqual({ verdict: 'malformed', invalidKeys: ['root', 'project'] });
   });
 
   test('names a settings key the settings do not have as malformed, and one carried only inside a __proto__ key as missing', () => {
     expect(readingOf({
-      commandVersion: 2, kind: 'settings-set', key: 'version', value: 2,
+      commandVersion: 3, kind: 'settings-set', key: 'version', value: 2,
     })).toEqual({ verdict: 'malformed', invalidKeys: ['key'] });
-    expect(new GaiaCommandIngestion('{"commandVersion": 2, "kind": "settings-set", "__proto__": {"key": "theme"}, "value": "dark"}').read())
+    expect(new GaiaCommandIngestion('{"commandVersion": 3, "kind": "settings-set", "__proto__": {"key": "theme"}, "value": "dark"}').read())
       .toEqual({ verdict: 'malformed', invalidKeys: ['key'] });
   });
 
@@ -185,11 +185,34 @@ describe('the keys of the limits, adding, settings and the chooser', () => {
       { key: 'startForgesAtLogin', value: 'yes' },
     ];
     for (const change of invalidChanges) {
-      expect(readingOf({ commandVersion: 2, kind: 'settings-set', ...change })).toEqual({ verdict: 'malformed', invalidKeys: ['value'] });
+      expect(readingOf({ commandVersion: 3, kind: 'settings-set', ...change })).toEqual({ verdict: 'malformed', invalidKeys: ['value'] });
     }
   });
 
   test('names a chooser target that is neither a folder nor a file as malformed', () => {
-    expect(readingOf({ commandVersion: 2, kind: 'path-choose', what: 'application' })).toEqual({ verdict: 'malformed', invalidKeys: ['what'] });
+    expect(readingOf({ commandVersion: 3, kind: 'path-choose', what: 'application' })).toEqual({ verdict: 'malformed', invalidKeys: ['what'] });
+  });
+});
+
+describe('the resume of interrupted work and the undo of a pause', () => {
+  test('maps forge-interrupted-work-resume with a job, a ticket or every waiting job as its target', () => {
+    for (const target of [{ jobId: 'J4' }, { ticketReference: '004' }, 'all'] as const) {
+      const document: CommandDocument = {
+        commandVersion: 3, kind: 'forge-interrupted-work-resume', trackerId: TRACKER_ID, target,
+      };
+      expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-interrupted-work-resume', trackerId: TRACKER_ID, target } });
+    }
+  });
+
+  test('names a target that names no job, no ticket, both, or something else as malformed', () => {
+    for (const target of [{}, { jobId: '' }, { jobId: 'J4', ticketReference: '004' }, 'network-outage', null]) {
+      expect(readingOf({
+        commandVersion: 3, kind: 'forge-interrupted-work-resume', trackerId: TRACKER_ID, target,
+      })).toEqual({ verdict: 'malformed', invalidKeys: ['target'] });
+    }
+  });
+
+  test('refuses forge-resume as a kind this Gaia does not carry out, now that the undo of a pause is forge-unpause', () => {
+    expect(readingOf({ commandVersion: 3, kind: 'forge-resume', trackerId: TRACKER_ID })).toEqual({ verdict: 'unknown-kind', kind: 'forge-resume' });
   });
 });

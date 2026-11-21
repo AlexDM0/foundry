@@ -1,4 +1,5 @@
 /** One forge as the machine's registry `projects.json` names it, mapped in. */
+import type { ForgeRegistryPresence } from '../../../shared/@types/ForgePresence.ts';
 
 /** The live Overseer the registry names; the forge removes the key at its stop. */
 export interface RegisteredOverseer {
@@ -20,4 +21,6 @@ export interface RegisteredForge {
   readonly lastCommand:   string | null;
   /** When the forge last wrote the entry, as the forge stamped it: shown, never compared. */
   readonly lastChangedAt: string | null;
+  /** Whether the forge last wrote itself serving, stopped, handed over or crashed; `null` when the entry holds no presence Gaia reads. */
+  readonly presence:      ForgeRegistryPresence | null;
 }

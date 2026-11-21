@@ -19,15 +19,15 @@ import type { FleetSnapshot }                                from '../../shared/
 import type { ForgeBrain }                                   from '../../shared/@types/ForgeBrain.ts';
 import { PAGE_CONTRACT_VERSIONS }                            from '../../shared/constants/PageContractVersions.ts';
 
-import type { ForgeIdentity }                                                  from '../forge-api/@types/ForgeDocumentReading.ts';
-import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf }             from '../forge-api/testing/ExampleForgeDocuments.ts';
-import { ForgeReadingMapUtil }                                                 from '../forge-api/utils/ForgeReadingMapUtil.ts';
-import { FleetDocumentMapUtil }                                                from './FleetDocumentMapUtil.ts';
-import { FLEET_SNAPSHOT_AT_LIMIT }                                             from './testing/fleet-snapshot-at-limit.ts';
-import { FLEET_SNAPSHOT_DEGRADED }                                             from './testing/fleet-snapshot-degraded.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                                from './testing/fleet-snapshot-empty.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS }     from './testing/fleet-snapshot-five-forges.ts';
-import { FLEET_SNAPSHOT_VERSIONS, FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION } from './testing/fleet-snapshot-versions.ts';
+import type { ForgeIdentity }                                                                   from '../forge-api/@types/ForgeDocumentReading.ts';
+import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf }                              from '../forge-api/testing/ExampleForgeDocuments.ts';
+import { ForgeReadingMapUtil }                                                                  from '../forge-api/utils/ForgeReadingMapUtil.ts';
+import { FleetDocumentMapUtil }                                                                 from './FleetDocumentMapUtil.ts';
+import { FLEET_SNAPSHOT_AT_LIMIT }                                                              from './testing/fleet-snapshot-at-limit.ts';
+import { FLEET_SNAPSHOT_DEGRADED }                                                              from './testing/fleet-snapshot-degraded.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                                                 from './testing/fleet-snapshot-empty.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS, servingFleetForgeOf } from './testing/fleet-snapshot-five-forges.ts';
+import { FLEET_SNAPSHOT_VERSIONS, FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION }                  from './testing/fleet-snapshot-versions.ts';
 
 describe('the fleet document mapper', () => {
   test('maps the five-forges model to the fleet-five-forges document', () => {
@@ -52,21 +52,21 @@ describe('the fleet document mapper', () => {
     if (item === undefined) throw new Error('the five-forges snapshot shows Example Storefront with nothing waiting');
     const { boardRoute: _boardRoute, ...entryFields } = item;
     const monitorEntries: MonitorAttentionEntryDocument[] = [
-      { ...entryFields, route: '#kanban/ticket/001' },
-      { ...entryFields, key: 'decision:E2', route: '#questions/E2' },
+      { ...entryFields, route: '#kanban/ticket/001' } as MonitorAttentionEntryDocument,
+      { ...entryFields, key: 'decision:E2', route: '#questions/E2' } as MonitorAttentionEntryDocument,
     ];
     const recordedSnapshot = await recordedDocumentOf('serving-every-contract', 'monitor', storefrontFacts.overseerUrl) as MonitorSnapshotDocument;
     const storefrontIdentity: ForgeIdentity = {
       trackerId: storefront.trackerId, project: storefront.project, codeVersion: 'example-code', installVersion: 42, processId: storefrontFacts.overseerProcessId, contracts: null,
     };
     const reading = ForgeReadingMapUtil.fullReadingOf({ ...recordedSnapshot, attention: monitorEntries }, storefrontFacts, storefrontIdentity, EXAMPLE_READ_STAMP);
-    const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [reading] });
+    const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [servingFleetForgeOf(reading)] });
     expect(fleetDocument.forges[0]?.attention.map(({ boardRoute }) => boardRoute)).toEqual([{ tab: 'kanban', item: 'ticket/001' }, { tab: 'questions', item: 'E2' }]);
   });
 
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(5);
+    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(6);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {

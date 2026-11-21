@@ -88,3 +88,23 @@ describe('the callout of an Overseer that stopped answering', () => {
     expect(ForgeTextUtil.unreachableCalloutTextOf({ ...forge, url: null, processId: null }, null).machineLine).toBeNull();
   });
 });
+
+describe('a forge that crashed, is down or hung', () => {
+  const STOREFRONT = FLEET_FIVE_FORGES_READINGS.exampleStorefront;
+
+  test('shows how it is present in place of its condition, in words, beside the dot of a forge that does not answer', () => {
+    const shown = (['crashed', 'down', 'hung'] as const).map((state) => ForgeTextUtil.shownConditionOf({ ...STOREFRONT, presence: { state, generation: 1, at: null } }));
+    expect(shown).toEqual(['crashed', 'down', 'hung']);
+    expect(shown.map((condition) => [ForgeTextUtil.conditionWordOf(condition), ForgeTextUtil.dotConditionOf(condition)])).toEqual([
+      ['crashed', 'unreachable'],
+      ['down', 'unreachable'],
+      ['stopped supervising', 'unreachable'],
+    ]);
+  });
+
+  test('shows its own condition while it serves, stopped or handed over', () => {
+    for (const state of ['serving', 'stopped', 'handed-over', 'unknown'] as const) {
+      expect(ForgeTextUtil.shownConditionOf({ ...STOREFRONT, presence: { state, generation: 1, at: null } })).toBe(STOREFRONT.condition);
+    }
+  });
+});

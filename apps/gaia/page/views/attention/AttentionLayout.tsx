@@ -128,7 +128,17 @@ function KindPill({ text, tone }: { readonly text: string; readonly tone: Attent
   return tone === 'pass' ? <Tag text={text} tone="state" stateTone="success" /> : <Tag text={text} tone="warn" />;
 }
 
-function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
+/** A row's button opens its place on the forge's board, or sends the command a forge alert offers. */
+function AttentionRowAction({ row, commandStates, onCommand }: { readonly row: AttentionRow } & Pick<CommandHandlers, 'commandStates' | 'onCommand'>) {
+  const emphasis = row.isPrimary ? 'primary' : 'quiet';
+  const { command } = row;
+  if (command !== null) {
+    return <Button label={row.actionLabel} compact emphasis={emphasis} disabled={commandIsOnItsWay(commandStates, command)} onPress={() => onCommand(command)} />;
+  }
+  return <Button label={row.actionLabel} compact disabled={row.isStale} emphasis={emphasis} {...(row.isStale ? {} : { href: row.href })} />;
+}
+
+function AttentionRowCells({ row, ...handlers }: { readonly row: AttentionRow } & Pick<CommandHandlers, 'commandStates' | 'onCommand'>) {
   return (
     <div className="gaia-attention-row" data-stale={row.isStale ? '' : undefined} data-primary={row.isPrimary ? '' : undefined}>
       <span className="gaia-attention-row-forge">
@@ -139,12 +149,12 @@ function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
         </span>
       </span>
       <span className="gaia-attention-row-kind"><KindPill text={row.kindText} tone={row.kindTone} /></span>
-      <span className="gaia-attention-row-id"><MonoId text={row.idText} tone="muted" /></span>
+      <span className="gaia-attention-row-id">{row.idText === '' ? null : <MonoId text={row.idText} tone="muted" />}</span>
       <span className="gaia-attention-row-text">
         <span className="gaia-attention-row-subject">{row.subject}</span>
         <span className="gaia-attention-row-meta">{row.metaText}</span>
       </span>
-      <Button label={row.actionLabel} compact disabled={row.isStale} emphasis={row.isPrimary ? 'primary' : 'quiet'} {...(row.isStale ? {} : { href: row.href })} />
+      <AttentionRowAction row={row} {...handlers} />
     </div>
   );
 }
@@ -371,7 +381,7 @@ function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly 
 }
 
 /** What waits on User in one card: its serif head with the count in an orange pill and the order at the end, then the rows or the place empty. */
-function WaitingCard({ content }: { readonly content: AttentionContent }) {
+function WaitingCard({ content, ...handlers }: { readonly content: AttentionContent } & Pick<CommandHandlers, 'commandStates' | 'onCommand'>) {
   return (
     <section className="gaia-attention-waiting" aria-label={content.waitingHead}>
       <Card padding="none" clipped>
@@ -387,7 +397,7 @@ function WaitingCard({ content }: { readonly content: AttentionContent }) {
         </div>
         {content.rows.length === 0
           ? <EmptyState text={content.nothingText} />
-          : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} /> }))} />}
+          : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} {...handlers} /> }))} />}
       </Card>
     </section>
   );
@@ -429,7 +439,7 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
       <div className="gaia-attention-body">
         <div className="gaia-attention-main">
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}
-          <WaitingCard content={content} />
+          <WaitingCard content={content} commandStates={handlers.commandStates} onCommand={handlers.onCommand} />
           {content.looks.length === 0 ? null : (
             <section className="gaia-attention-looks" aria-label={content.looksHead}>
               <SectionHead title={content.looksHead} compact />

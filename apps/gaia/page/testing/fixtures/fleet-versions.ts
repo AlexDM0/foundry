@@ -138,6 +138,10 @@ function readFromTheRegistryAlone(
     usage:             null,
     brain:             'not-reported',
     versions,
+    presence:          { state: versions.verdict === 'newer' ? 'serving' : 'unknown', generation: null, at: null },
+    crashSummary:      null,
+    crashLogs:         [],
+    waitingWork:       [],
   };
 }
 

@@ -270,8 +270,10 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
       currentWindow:         usage.currentWindow,
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
-    brain:    brainOf(snapshot.flintBrain),
-    versions: null,
+    brain:            brainOf(snapshot.flintBrain),
+    versions:         null,
+    registryPresence: null,
+    presenceReport:   null,
   };
 }
 
@@ -311,8 +313,10 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
       currentWindow:         null,
       currentWindowResetsAt: null,
     },
-    brain:    'not-reported',
-    versions: null,
+    brain:            'not-reported',
+    versions:         null,
+    registryPresence: null,
+    presenceReport:   null,
   };
 }
 
@@ -363,6 +367,8 @@ function unreadReadingOf(
     usage:             null,
     brain:             'not-reported',
     versions:          null,
+    registryPresence:  null,
+    presenceReport:    null,
   };
 }
 

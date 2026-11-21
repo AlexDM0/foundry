@@ -59,6 +59,8 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
     usage:             null,
     brain:             'not-reported',
     versions:          null,
+    registryPresence:  forge.presence,
+    presenceReport:    null,
   };
 }
 

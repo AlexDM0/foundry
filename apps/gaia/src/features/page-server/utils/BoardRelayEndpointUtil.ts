@@ -1,8 +1,8 @@
 /**
  * The endpoints of Gaia's relay of a forge's board, below `/api/` and its version: each names the forge by its tracker id, percent-decoded
- * once, and some an item of it, a job, a profile run or a picture, whose id must be one the forge's path template takes.
+ * once, and some an item of it, a job, a profile run, a picture or a crash log, whose id must be one the forge's path template takes.
  */
-export type BoardRelayEndpointName = 'board' | 'boardEvents' | 'jobStream' | 'profileStream' | 'pictures' | 'picture' | 'commands';
+export type BoardRelayEndpointName = 'board' | 'boardEvents' | 'jobStream' | 'profileStream' | 'pictures' | 'picture' | 'commands' | 'crashLog';
 
 export interface BoardRelayEndpointValues {
   readonly trackerId: string;
@@ -18,6 +18,7 @@ const BOARD_RELAY_ENDPOINT_PATTERNS: Readonly<Record<BoardRelayEndpointName, Reg
   pictures:      /^forges\/([^/]+)\/pictures$/,
   picture:       /^forges\/([^/]+)\/pictures\/([^/]+)$/,
   commands:      /^forges\/([^/]+)\/commands$/,
+  crashLog:      /^forges\/([^/]+)\/crash-logs\/([^/]+)$/,
 };
 
 /** A segment a forge's path template takes, and never `.` or `..`, which would move the forge's path up a folder. */

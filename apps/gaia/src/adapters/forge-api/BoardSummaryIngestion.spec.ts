@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { FLEET_SNAPSHOT_DEGRADED } from '../page-api/testing/fleet-snapshot-degraded.ts';
+import { forgeReadingOf }          from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
 import type { ForgeIdentity, ForgeRegistryFacts }                  from './@types/ForgeDocumentReading.ts';
 import { BoardSummaryIngestion }                                   from './BoardSummaryIngestion.ts';
@@ -75,7 +76,7 @@ describe('a summary at the known version', () => {
     };
     const ingestion = new BoardSummaryIngestion(registryFactsOf(RESEARCH_WIKI), identity);
     // The watch, not the ingestion, adds the versions the forge answered.
-    expect(ingestion.readingOf(RESEARCH_WIKI_SUMMARY, '2026-11-12T13:19:15.000Z')).toEqual({ verdict: 'readable', reading: { ...RESEARCH_WIKI, versions: null } });
+    expect(ingestion.readingOf(RESEARCH_WIKI_SUMMARY, '2026-11-12T13:19:15.000Z')).toEqual({ verdict: 'readable', reading: { ...forgeReadingOf(RESEARCH_WIKI), versions: null } });
   });
 
   test('maps the recorded summary of a paused forge, its one job known only by the keys a summary holds', async () => {
@@ -140,8 +141,10 @@ describe('a summary at the known version', () => {
           currentWindow:         null,
           currentWindowResetsAt: null,
         },
-        brain:    'not-reported',
-        versions: null,
+        brain:            'not-reported',
+        versions:         null,
+        registryPresence: null,
+        presenceReport:   null,
       },
     });
   });

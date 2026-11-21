@@ -1,9 +1,9 @@
 /**
- * The registry's ingestion, over the registry a forge wrote for five boards (recorded) and variants of it written to the scratch root: the
- * recording maps to five forges in its order, an entry from a forge before F4 or F9 maps its token file or program as unknown, a newer
- * version maps nothing, an entry without its root is left out while the rest map, an entry with a broken overseer keeps its forge with no
- * live Overseer, every file that is no registry at version 1 answers a verdict, never a throw, and a registry Gaia cannot read names no
- * forge but the reason.
+ * The registry's ingestion, over the registry a forge wrote for five boards, each in a presence the forge writes (recorded), and
+ * variants of it written to the scratch root: the recording maps to five forges in its order, an entry from a forge before F4 or F9 maps
+ * its token file or program as unknown, a newer version maps nothing, an entry without its root is left out while the rest map, an entry
+ * with a broken overseer keeps its forge with no live Overseer, every file that is no registry at version 1 answers a verdict, never a
+ * throw, and a registry Gaia cannot read names no forge but the reason.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -37,11 +37,14 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
-      startedAt: '2026-11-13T09:58:06+01:00',
-      tokenPath: `/Users/example/.forge-monitor/watchers/${AGENCY_TRACKER_ID}/token`,
+      startedAt: '2026-11-21T06:32:50+01:00',
+      tokenPath: `/Users/example/.forge-monitor/private/${AGENCY_TRACKER_ID}/token`,
     },
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-13T09:58:06+01:00',
+    lastChangedAt: '2026-11-21T06:32:50+01:00',
+    presence:      {
+      state: 'serving', generation: 1, at: '2026-11-21T06:32:50+01:00', crash: null,
+    },
   },
   {
     trackerId: BOOKSHOP_TRACKER_ID,
@@ -51,11 +54,19 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4988/',
       processId: 5151,
-      startedAt: '2026-11-13T09:58:06+01:00',
-      tokenPath: `/Users/example/.forge-monitor/watchers/${BOOKSHOP_TRACKER_ID}/token`,
+      startedAt: '2026-11-21T06:32:51+01:00',
+      tokenPath: `/Users/example/.forge-monitor/private/${BOOKSHOP_TRACKER_ID}/token`,
     },
-    lastCommand:   'oversee',
-    lastChangedAt: '2026-11-13T09:58:06+01:00',
+    lastCommand:   'start',
+    lastChangedAt: '2026-11-21T06:32:52+01:00',
+    presence:      {
+      state:      'crashed',
+      generation: 1,
+      at:         '2026-11-21T06:32:52+01:00',
+      crash:      {
+        component: 'overseer', suspected: false, errorName: null, errorMessage: null,
+      },
+    },
   },
   {
     trackerId:     BOARDS['example-clinic'].trackerId,
@@ -64,7 +75,10 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     program:       EXAMPLE_PROGRAM,
     overseer:      null,
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-13T09:58:08+01:00',
+    lastChangedAt: '2026-11-21T06:32:53+01:00',
+    presence:      {
+      state: 'stopped', generation: 1, at: '2026-11-21T06:32:53+01:00', crash: null,
+    },
   },
   {
     trackerId:     DAIRY_TRACKER_ID,
@@ -73,7 +87,8 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     program:       EXAMPLE_PROGRAM,
     overseer:      null,
     lastCommand:   'init',
-    lastChangedAt: '2026-11-13T09:58:08+01:00',
+    lastChangedAt: '2026-11-21T06:32:53+01:00',
+    presence:      null,
   },
   {
     trackerId: ESTATE_TRACKER_ID,
@@ -83,11 +98,14 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4989/',
       processId: 6060,
-      startedAt: '2026-11-13T09:58:09+01:00',
-      tokenPath: `/Users/example/.forge-monitor/watchers/${ESTATE_TRACKER_ID}/token`,
+      startedAt: '2026-11-21T06:32:54+01:00',
+      tokenPath: `/Users/example/.forge-monitor/private/${ESTATE_TRACKER_ID}/token`,
     },
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-13T09:58:09+01:00',
+    lastChangedAt: '2026-11-21T06:32:54+01:00',
+    presence:      {
+      state: 'serving', generation: 1, at: '2026-11-21T06:32:54+01:00', crash: null,
+    },
   },
 ];
 

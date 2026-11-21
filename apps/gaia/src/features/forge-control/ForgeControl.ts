@@ -298,8 +298,11 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
         return stop(forge, reading, command.agents);
       case 'forge-pause':
         return carryOverApi(forge, reading, { kind: 'overseer-pause' });
-      case 'forge-resume':
+      case 'forge-unpause':
+        // The forge's own kind for the undo of a pause keeps its old name until the forge renames it.
         return carryOverApi(forge, reading, { kind: 'overseer-resume' });
+      case 'forge-interrupted-work-resume':
+        return carryOverApi(forge, reading, { kind: 'interrupted-work-resume', target: command.target });
       case 'forge-restart':
         return carryOverApi(forge, reading, { kind: 'overseer-restart', now: false });
       case 'forge-concurrency-set':

@@ -1,9 +1,9 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-five-forges.ts` shows: what the page mapper is held against. */
-import type { AgentRow }                                from '../../../shared/@types/AgentRow.ts';
-import type { AttentionItem }                           from '../../../shared/@types/AttentionItem.ts';
-import type { FleetAgentRow, FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrain }                              from '../../../shared/@types/ForgeBrain.ts';
-import type { ForgeReading, ForgeUsage, ForgeVersions } from '../../../shared/@types/ForgeReading.ts';
+import type { AgentRow }                                 from '../../../shared/@types/AgentRow.ts';
+import type { AttentionItem }                            from '../../../shared/@types/AttentionItem.ts';
+import type { FleetAgentRow, FleetForge, FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrain }                               from '../../../shared/@types/ForgeBrain.ts';
+import type { ForgeReading, ForgeUsage, ForgeVersions }  from '../../../shared/@types/ForgeReading.ts';
 
 export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -410,7 +410,7 @@ const MOBILE_AGENTS: AgentRow[] = [
   },
 ];
 
-const EXAMPLE_STOREFRONT: ForgeReading = {
+const EXAMPLE_STOREFRONT: FleetForge = {
   trackerId:         TRACKER_IDS.exampleStorefront,
   project:           'Example Storefront',
   root:              '/Users/alexexample/development/example-storefront',
@@ -504,13 +504,19 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
       tokens:      null,
     },
   ],
-  today:    { deliveredTickets: 3, tokens: 512_000 },
-  usage:    USAGE_UNDER_THE_LIMIT,
-  brain:    STOREFRONT_BRAIN_RUNNING,
-  versions: CURRENT_FORGE_VERSIONS,
+  today:            { deliveredTickets: 3, tokens: 512_000 },
+  usage:            USAGE_UNDER_THE_LIMIT,
+  brain:            STOREFRONT_BRAIN_RUNNING,
+  versions:         CURRENT_FORGE_VERSIONS,
+  registryPresence: null,
+  presenceReport:   null,
+  presence:         { state: 'serving', generation: null, at: null },
+  crashSummary:     null,
+  crashLogs:        [],
+  waitingWork:      [],
 };
 
-const INVOICE_SERVICE: ForgeReading = {
+const INVOICE_SERVICE: FleetForge = {
   trackerId:         TRACKER_IDS.invoiceService,
   project:           'Invoice Service',
   root:              '/Users/alexexample/development/invoice-service',
@@ -595,13 +601,19 @@ const INVOICE_SERVICE: ForgeReading = {
       tokens:      null,
     },
   ],
-  today:    { deliveredTickets: 2, tokens: 418_000 },
-  usage:    USAGE_UNDER_THE_LIMIT,
-  brain:    BRAIN_OFF,
-  versions: CURRENT_FORGE_VERSIONS,
+  today:            { deliveredTickets: 2, tokens: 418_000 },
+  usage:            USAGE_UNDER_THE_LIMIT,
+  brain:            BRAIN_OFF,
+  versions:         CURRENT_FORGE_VERSIONS,
+  registryPresence: null,
+  presenceReport:   null,
+  presence:         { state: 'serving', generation: null, at: null },
+  crashSummary:     null,
+  crashLogs:        [],
+  waitingWork:      [],
 };
 
-const RESEARCH_WIKI: ForgeReading = {
+const RESEARCH_WIKI: FleetForge = {
   trackerId:         TRACKER_IDS.researchWiki,
   project:           'Research Wiki',
   root:              '/Users/alexexample/development/research-wiki',
@@ -650,13 +662,19 @@ const RESEARCH_WIKI: ForgeReading = {
       tokens:      null,
     },
   ],
-  today:    { deliveredTickets: 1, tokens: 164_000 },
-  usage:    USAGE_UNDER_THE_LIMIT,
-  brain:    BRAIN_OFF,
-  versions: CURRENT_FORGE_VERSIONS,
+  today:            { deliveredTickets: 1, tokens: 164_000 },
+  usage:            USAGE_UNDER_THE_LIMIT,
+  brain:            BRAIN_OFF,
+  versions:         CURRENT_FORGE_VERSIONS,
+  registryPresence: null,
+  presenceReport:   null,
+  presence:         { state: 'serving', generation: null, at: null },
+  crashSummary:     null,
+  crashLogs:        [],
+  waitingWork:      [],
 };
 
-const EXAMPLE_MOBILE_APP: ForgeReading = {
+const EXAMPLE_MOBILE_APP: FleetForge = {
   trackerId:         TRACKER_IDS.exampleMobileApp,
   project:           'Example Mobile App',
   root:              '/Users/alexexample/development/example-mobile-app',
@@ -706,14 +724,20 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
       tokens:      null,
     },
   ],
-  today:    { deliveredTickets: 0, tokens: 146_000 },
-  usage:    USAGE_UNDER_THE_LIMIT,
-  brain:    BRAIN_OFF,
-  versions: CURRENT_FORGE_VERSIONS,
+  today:            { deliveredTickets: 0, tokens: 146_000 },
+  usage:            USAGE_UNDER_THE_LIMIT,
+  brain:            BRAIN_OFF,
+  versions:         CURRENT_FORGE_VERSIONS,
+  registryPresence: null,
+  presenceReport:   null,
+  presence:         { state: 'serving', generation: null, at: null },
+  crashSummary:     null,
+  crashLogs:        [],
+  waitingWork:      [],
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
-const DESIGN_SYSTEM: ForgeReading = {
+const DESIGN_SYSTEM: FleetForge = {
   trackerId:         TRACKER_IDS.designSystem,
   project:           'Design System',
   root:              '/Users/alexexample/development/design-system',
@@ -751,13 +775,19 @@ const DESIGN_SYSTEM: ForgeReading = {
     kind:        null,
     tokens:      null,
   }],
-  today:    null,
-  usage:    null,
-  brain:    'not-reported',
-  versions: CURRENT_FORGE_VERSIONS,
+  today:            null,
+  usage:            null,
+  brain:            'not-reported',
+  versions:         CURRENT_FORGE_VERSIONS,
+  registryPresence: null,
+  presenceReport:   null,
+  presence:         { state: 'unknown', generation: null, at: null },
+  crashSummary:     null,
+  crashLogs:        [],
+  waitingWork:      [],
 };
 
-const LEGACY_IMPORTER: ForgeReading = {
+const LEGACY_IMPORTER: FleetForge = {
   trackerId: TRACKER_IDS.legacyImporter,
   project:   'Legacy Importer',
   root:      '/Users/alexexample/development/legacy-importer',
@@ -790,9 +820,30 @@ const LEGACY_IMPORTER: ForgeReading = {
   usage:             null,
   brain:             'not-reported',
   versions:          null,
+  registryPresence:  null,
+  presenceReport:    null,
+  presence:          { state: 'unknown', generation: null, at: null },
+  crashSummary:      null,
+  crashLogs:         [],
+  waitingWork:       [],
 };
 
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
+/** A fixture forge as the watch reads it, before the fleet tells how it is present. */
+export function forgeReadingOf(forge: FleetForge): ForgeReading {
+  const {
+    presence: _presence, crashSummary: _crashSummary, crashLogs: _crashLogs, waitingWork: _waitingWork, ...reading
+  } = forge;
+  return reading;
+}
+
+/** A reading as the fleet holds a forge that serves with nothing waiting, no crash and no presence read. */
+export function servingFleetForgeOf(reading: ForgeReading): FleetForge {
+  return {
+    ...reading, presence: { state: 'serving', generation: null, at: null }, crashSummary: null, crashLogs: [], waitingWork: [],
+  };
+}
+
 export const FLEET_SNAPSHOT_FIVE_FORGES_READINGS = {
   exampleStorefront: EXAMPLE_STOREFRONT,
   invoiceService:    INVOICE_SERVICE,

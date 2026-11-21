@@ -185,11 +185,13 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     forgeCounts:        () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
     pageFiles:          builtPageFilesOf(pageIndexFilePath()),
     carryCommand:       forgeControl.carry,
-    forgeAccessSources: { readRegistry, readings: forgeWatch.readings, forgeClient },
-    logBoardRelay:      (entry) => output.writeStandardError(BoardRelayLogUtil.lineOf(entry)),
-    timers:             realClockTimers(),
-    now:                stampOfNow,
-    processId:          process.pid,
+    forgeAccessSources: {
+      readRegistry, readings: forgeWatch.readings, presenceReadingAfterNow: forgeWatch.presenceReadingAfterNow, forgeClient
+    },
+    logBoardRelay: (entry) => output.writeStandardError(BoardRelayLogUtil.lineOf(entry)),
+    timers:        realClockTimers(),
+    now:           stampOfNow,
+    processId:     process.pid,
   });
   if (startVerdict.verdict !== 'serving') throw refusalOfStart(startVerdict);
   const { pageServer } = startVerdict;

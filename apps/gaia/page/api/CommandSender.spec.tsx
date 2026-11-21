@@ -48,16 +48,16 @@ const HTTP_CONFLICT = 409;
 const HTTP_UNAUTHORIZED = 401;
 
 describe('sending one command', () => {
-  test('the command goes as one JSON body to /api/v3/commands, at the known commandVersion, with the page\'s own cookie', async () => {
+  test('the command goes as one JSON body to /api/v4/commands, at the known commandVersion, with the page\'s own cookie', async () => {
     const sent: SentRequest[] = [];
     await senderOver([() => Promise.resolve(answerResponse(DONE))], sent).send(STOP_EXAMPLE_MOBILE_APP);
     expect(sent).toHaveLength(1);
     const [request] = sent;
-    expect(request?.path).toBe('/api/v3/commands');
+    expect(request?.path).toBe('/api/v4/commands');
     expect([request?.requestOptions.method, request?.requestOptions.credentials]).toEqual(['POST', 'same-origin']);
     expect(request?.requestOptions.headers).toEqual({ 'content-type': 'application/json' });
     expect(JSON.parse(String(request?.requestOptions.body))).toEqual({
-      commandVersion: 2,
+      commandVersion: 3,
       kind:           'forge-stop',
       trackerId:      TRACKER_IDS.exampleMobileApp,
       agents:         'keep',
@@ -170,7 +170,7 @@ describe('a command on its way', () => {
 
     const stopping = sender.send(STOP_EXAMPLE_MOBILE_APP);
     expect(CommandSender.stateOf(sender.states(), { trackerId: TRACKER_IDS.exampleMobileApp }).onItsWay).toBe('forge-stop');
-    expect(await sender.send({ kind: 'forge-resume', trackerId: TRACKER_IDS.exampleMobileApp })).toEqual({ verdict: 'not-sent', reason: 'already-on-its-way' });
+    expect(await sender.send({ kind: 'forge-unpause', trackerId: TRACKER_IDS.exampleMobileApp })).toEqual({ verdict: 'not-sent', reason: 'already-on-its-way' });
     expect(await sender.send(PAUSE_INVOICE_SERVICE)).toEqual({ verdict: 'answered', answer: DONE });
     expect(CommandSender.stateOf(sender.states(), { trackerId: TRACKER_IDS.invoiceService }).onItsWay).toBeNull();
 

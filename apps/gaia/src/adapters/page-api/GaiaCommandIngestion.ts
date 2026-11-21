@@ -11,6 +11,7 @@ import type {
   ForgeCommand,
   ForgeStopAgents,
   GaiaCommand,
+  InterruptedWorkTarget,
   PathChoiceTarget,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
@@ -36,7 +37,7 @@ export type GaiaCommandReading =
   | { readonly verdict: 'unknown-kind'; readonly kind: string | null }
   | { readonly verdict: 'malformed'; readonly invalidKeys: readonly string[] };
 
-type SingleForgeKind = Exclude<ForgeCommand['kind'], 'forge-stop' | 'forge-concurrency-set'>;
+type SingleForgeKind = Exclude<ForgeCommand['kind'], 'forge-stop' | 'forge-concurrency-set' | 'forge-interrupted-work-resume'>;
 
 const VERSION_KEYS = { majorKey: 'commandVersion' } as const;
 const KIND_KEY = 'kind';
@@ -48,11 +49,13 @@ const PROJECT_KEY = 'project';
 const SETTINGS_KEY_KEY = 'key';
 const SETTINGS_VALUE_KEY = 'value';
 const PATH_CHOICE_TARGET_KEY = 'what';
+const TARGET_KEY = 'target';
+const EVERY_WAITING_JOB = 'all';
 
 const SINGLE_FORGE_KINDS: ReadonlySet<string> = new Set<SingleForgeKind>([
   'forge-start',
   'forge-pause',
-  'forge-resume',
+  'forge-unpause',
   'forge-restart',
   'forge-update',
   'forge-open-in-browser',
@@ -162,6 +165,24 @@ function forgeConcurrencySetReadingOf(body: JsonObject): GaiaCommandReading {
   return { verdict: 'readable', command: { kind: 'forge-concurrency-set', trackerId, limit } };
 }
 
+/** A target names exactly one job or one ticket, by a non-empty id, or every job that waits for an instruction. */
+function interruptedWorkTargetOf(value: unknown): InterruptedWorkTarget | null {
+  if (value === EVERY_WAITING_JOB) return EVERY_WAITING_JOB;
+  const target = JsonValueUtil.jsonObjectOf(value);
+  if (target === null || Object.keys(target).length !== 1) return null;
+  const jobId           = nonEmptyTextOf(target, 'jobId');
+  const ticketReference = nonEmptyTextOf(target, 'ticketReference');
+  if (jobId !== null) return { jobId };
+  return ticketReference === null ? null : { ticketReference };
+}
+
+function forgeInterruptedWorkResumeReadingOf(body: JsonObject): GaiaCommandReading {
+  const trackerId = trackerIdOf(body);
+  const target    = interruptedWorkTargetOf(JsonValueUtil.ownValueOf(body, TARGET_KEY));
+  if (trackerId === null || target === null) return malformedReadingOf([[TRACKER_ID_KEY, trackerId !== null], [TARGET_KEY, target !== null]]);
+  return { verdict: 'readable', command: { kind: 'forge-interrupted-work-resume', trackerId, target } };
+}
+
 function forgeAddReadingOf(body: JsonObject): GaiaCommandReading {
   const root    = absolutePathOf(body, ROOT_KEY);
   const project = nonEmptyTextOf(body, PROJECT_KEY);
@@ -201,6 +222,8 @@ function commandReadingOf(body: JsonObject, kind: string): GaiaCommandReading {
       return forgeStopReadingOf(body);
     case 'forge-concurrency-set':
       return forgeConcurrencySetReadingOf(body);
+    case 'forge-interrupted-work-resume':
+      return forgeInterruptedWorkResumeReadingOf(body);
     case 'forge-add':
       return forgeAddReadingOf(body);
     case 'machine-agent-limit-set':

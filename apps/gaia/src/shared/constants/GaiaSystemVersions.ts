@@ -9,7 +9,7 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
  * Raised in its minor when a route, the fleet stream or a message to the Bridge only adds, so every page and launcher of this major keeps
  * working; in its major when one changes in a way a client built for the older major cannot read.
  */
-export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 2 };
+export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 3 };
 
 /**
  * The oldest Gaia a page or a launcher may have been built for and still be served; 0.0 stands for every Gaia before system versions.
@@ -19,16 +19,17 @@ export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 0, minor: 
 
 /**
  * Each route's version: v1, except where the route already had a breaking change. The fleet document and its stream: monitor contract 2's
- * warning kinds (2), Flint's brain (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5). The commands:
- * Gaia's sentences for forge refusals (2), and the brain's commands (3).
+ * warning kinds (2), Flint's brain (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5), a forge's
+ * presence, crash and waiting work (6). The commands: Gaia's sentences for forge refusals (2), the brain's commands (3), and Unpause in
+ * place of Resume beside the resume of interrupted work (4).
  */
 export const GAIA_ENDPOINT_VERSIONS = {
   health:             1,
   sessionCodes:       1,
   session:            1,
-  fleet:              5,
-  events:             5,
-  commands:           3,
+  fleet:              6,
+  events:             6,
+  commands:           4,
   frameSession:       1,
   forgeBoard:         1,
   forgeBoardEvents:   1,
@@ -37,4 +38,5 @@ export const GAIA_ENDPOINT_VERSIONS = {
   forgePictureUpload: 1,
   forgePicture:       1,
   forgeCommands:      1,
+  forgeCrashLog:      1,
 } as const;

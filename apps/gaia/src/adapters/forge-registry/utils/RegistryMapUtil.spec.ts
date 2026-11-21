@@ -1,7 +1,8 @@
 /**
  * The registry entry mapper against its own contract: an entry without a whole project and root is left out, every optional key (the F4
  * and F9 keys, the overseer, the last command and its stamp) reads as `null` when it is absent or breaks its rule and never leaves a forge
- * out, and keys are read as the entry's own, never through a prototype.
+ * out, and keys are read as the entry's own, never through a prototype. A presence maps in each state the forge writes, a crash with its
+ * summary; a state Gaia does not know is no presence, and a crash whose summary is not whole stays a crash.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -44,6 +45,7 @@ describe('registeredForgesOf', () => {
       },
       lastCommand:   'oversee',
       lastChangedAt: '2026-10-21T10:05:01+02:00',
+      presence:      null,
     }]);
   });
 
@@ -126,5 +128,53 @@ describe('registeredForgesOf', () => {
   test('maps a tracker id that names a prototype key like any other', () => {
     const entries = JSON.parse(`{"__proto__": ${JSON.stringify(wholeEntry())}}`) as Record<string, unknown>;
     expect(RegistryMapUtil.registeredForgesOf(entries).map((forge) => forge.trackerId)).toEqual(['__proto__']);
+  });
+});
+
+describe('the presence the forge last wrote', () => {
+  function presenceOf(presence: unknown): unknown {
+    return RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: { ...wholeEntry(), presence } })[0]?.presence;
+  }
+
+  test('maps serving, stopped and handed-over with their generation and stamp, and no crash', () => {
+    for (const state of ['serving', 'stopped', 'handed-over'] as const) {
+      expect(presenceOf({
+        state, generation: 4, at: '2026-11-21T06:32:50+01:00', process: { processId: 4242 }
+      }))
+        .toEqual({
+          state, generation: 4, at: '2026-11-21T06:32:50+01:00', crash: null
+        });
+    }
+  });
+
+  test('maps a crash with its component, whether it is suspected before a reboot, and its error', () => {
+    const crash = {
+      component: 'talos', suspected: true, errorName: 'Error', errorMessage: 'Example failure.', crashLogPath: '/Users/alex.example/crash-1.json',
+    };
+    expect(presenceOf({
+      state: 'crashed', generation: null, at: '2026-11-21T06:32:52+01:00', crash
+    })).toEqual({
+      state:      'crashed',
+      generation: null,
+      at:         '2026-11-21T06:32:52+01:00',
+      crash:      {
+        component: 'talos', suspected: true, errorName: 'Error', errorMessage: 'Example failure.',
+      },
+    });
+  });
+
+  test('keeps a crash whose summary is not whole a crash with no summary', () => {
+    expect(presenceOf({
+      state: 'crashed', generation: 2, at: '2026-11-21T06:32:52+01:00', crash: { component: 'hephaestus', suspected: false }
+    }))
+      .toEqual({
+        state: 'crashed', generation: 2, at: '2026-11-21T06:32:52+01:00', crash: null
+      });
+  });
+
+  test('reads an absent presence, one that is no object, and a state Gaia does not know as no presence, and keeps the forge', () => {
+    for (const presence of [undefined, null, 'serving', { state: 'resting', generation: 1 }]) {
+      expect(presenceOf(JSON.parse(JSON.stringify({ presence })).presence as unknown)).toBeNull();
+    }
   });
 });

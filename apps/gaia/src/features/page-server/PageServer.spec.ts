@@ -109,9 +109,10 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
       return Promise.resolve(nextCommandVerdict);
     },
     forgeAccessSources: {
-      readRegistry: () => Promise.resolve({ verdict: 'absent' }),
-      readings:     () => [],
-      forgeClient:  forgeClientOf({ overseerFetch }),
+      readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
+      readings:                () => [],
+      presenceReadingAfterNow: () => Promise.resolve(null),
+      forgeClient:             forgeClientOf({ overseerFetch }),
     },
     logBoardRelay: (entry) => {
       relayLogEntries.push(entry);
@@ -320,7 +321,7 @@ describe('a command', () => {
   test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 3, kind: 'fleet-look-again' }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null
@@ -334,7 +335,7 @@ describe('a command', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
     };
     const stopCommand = {
-      commandVersion: 2, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+      commandVersion: 3, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
     };
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
     expect(response.status).toBe(409);
@@ -359,7 +360,7 @@ describe('a command', () => {
     const statuses: number[] = [];
     for (const verdict of verdicts) {
       nextCommandVerdict = verdict;
-      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }))).status);
+      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 3, kind: 'fleet-look-again' }))).status);
     }
     expect(statuses).toEqual([200, 409, 502, 501]);
   });
@@ -376,7 +377,7 @@ describe('a command', () => {
 
   test('is refused without a session, and nothing is carried', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }) });
+    const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 3, kind: 'fleet-look-again' }) });
     expect(response.status).toBe(401);
     expect(carriedCommands).toEqual([]);
   });
@@ -438,7 +439,7 @@ describe('the relay of a forge\'s board', () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
     const oversized = { method: 'POST', headers: { cookie }, body: new Uint8Array(OVER_ROUTE_BOUND_BYTES) };
-    expect((await answerOf(pageServer, '/api/v3/commands', oversized)).status).toBe(413);
+    expect((await answerOf(pageServer, '/api/v4/commands', oversized)).status).toBe(413);
     expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/commands', oversized)).status).toBe(413);
     const picture = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/pictures', oversized);
     expect([picture.status, ((await picture.json()) as { readonly refusal: { readonly code: string } }).refusal.code]).toEqual([404, 'forge-not-registered']);
@@ -514,7 +515,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 2 });
+    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 3 });
   });
 
   test('serve /api/versions at no versioned path', async () => {
@@ -531,12 +532,12 @@ describe('the versioned paths', () => {
     expect(exchange.status).toBe(204);
     const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v5/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v6/fleet', { headers: { cookie } });
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const { events } = await openEvents(pageServer, cookie, '/api/v5/events');
+    const { events } = await openEvents(pageServer, cookie, '/api/v6/events');
     expect((await events.nextEvent()).eventName).toBe('handshake');
     expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const command = await answerOf(pageServer, '/api/v3/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    const command = await answerOf(pageServer, '/api/v4/commands', commandRequest(cookie, { commandVersion: 3, kind: 'fleet-look-again' }));
     expect([command.status, carriedCommands]).toEqual([200, [{ kind: 'fleet-look-again' }]]);
     const frameSession = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST', headers: { cookie } });
     expect(frameSession.status).not.toBe(404);
@@ -558,15 +559,15 @@ describe('the versioned paths', () => {
       expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
     }
     const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
-    expect((await answerOf(pageServer, '/api/v5/fleet', preflight)).status).toBe(403);
+    expect((await answerOf(pageServer, '/api/v6/fleet', preflight)).status).toBe(403);
   });
 
   test('keep the token and session guards on the versioned paths', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v5/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v5/events')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v3/commands', { method: 'POST', body: '{}' })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v6/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v6/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v4/commands', { method: 'POST', body: '{}' })).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST' })).status).toBe(401);
     expect(carriedCommands).toEqual([]);
   });

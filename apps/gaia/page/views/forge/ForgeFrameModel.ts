@@ -100,13 +100,13 @@ export interface ForgeBar {
   readonly trackerId:              string;
   readonly project:                string;
   readonly status:                 ForgeBarStatus;
-  readonly pauseOrResume:          BarCommand | null;
+  readonly pauseOrUnpause:         BarCommand | null;
   readonly stop:                   StopQuestion | null;
-  /** Pause, Resume and Stop are sent to the forge's control contract. */
+  /** Pause, Unpause and Stop are sent to the forge's control contract. */
   readonly controlContractIsKnown: boolean;
   /** `null` for a forge that reports no brain: its monitor is older than contract 3, or it has no Flint. */
   readonly brain:                  BarBrain | null;
-  /** `null` for a forge Gaia talks to; then Pause, Resume, Stop and the brain follow the forge's condition. */
+  /** `null` for a forge Gaia talks to; then Pause, Unpause, Stop and the brain follow the forge's condition. */
   readonly cannotTalk:             BarCannotTalk | null;
 }
 
@@ -157,9 +157,9 @@ export interface LeaveTarget {
 const LINE_SEPARATOR = ' · ';
 
 /** The bar's commands that carry nothing but the forge, so Try again can send them as they were; Stop asks its question again instead. */
-type KindSentAgainAsItWas = 'forge-pause' | 'forge-resume' | 'forge-open-in-browser' | 'forge-brain-stop';
+type KindSentAgainAsItWas = 'forge-pause' | 'forge-unpause' | 'forge-open-in-browser' | 'forge-brain-stop';
 
-const SENT_AGAIN_AS_THEY_WERE: ReadonlySet<CommandKind> = new Set<KindSentAgainAsItWas>(['forge-pause', 'forge-resume', 'forge-open-in-browser', 'forge-brain-stop']);
+const SENT_AGAIN_AS_THEY_WERE: ReadonlySet<CommandKind> = new Set<KindSentAgainAsItWas>(['forge-pause', 'forge-unpause', 'forge-open-in-browser', 'forge-brain-stop']);
 
 /** A refused wake shows in the brain's group, where it was asked, beside Wake; not under the bar as well. */
 const SHOWN_IN_THE_BRAIN_GROUP: ReadonlySet<CommandKind> = new Set<CommandKind>(['forge-brain-start']);
@@ -287,10 +287,10 @@ function statusLineOf(forge: FleetDocumentForge, clock: ClockReading): readonly 
   return parts.flatMap((part, i) => (i === 0 ? part : [wordsOf(LINE_SEPARATOR), ...part]));
 }
 
-function pauseOrResumeOf(forge: FleetDocumentForge): BarCommand | null {
+function pauseOrUnpauseOf(forge: FleetDocumentForge): BarCommand | null {
   const { trackerId } = forge;
   if (PAUSABLE.has(forge.condition)) return { label: 'Pause', emphasis: 'quiet', command: { kind: 'forge-pause', trackerId } };
-  if (RESUMABLE.has(forge.condition)) return { label: 'Resume', emphasis: 'primary', command: { kind: 'forge-resume', trackerId } };
+  if (RESUMABLE.has(forge.condition)) return { label: 'Unpause', emphasis: 'primary', command: { kind: 'forge-unpause', trackerId } };
   return null;
 }
 
@@ -392,7 +392,7 @@ function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: Clo
     trackerId:              forge.trackerId,
     project:                forge.project,
     status:                 barStatusOf(forge, gaiaVersions, clock),
-    pauseOrResume:          talks ? pauseOrResumeOf(forge) : null,
+    pauseOrUnpause:         talks ? pauseOrUnpauseOf(forge) : null,
     stop:                   talks ? stopQuestionOf(forge) : null,
     controlContractIsKnown: ForgeContractUtil.controlContractIsKnown(forge),
     brain:                  talks ? barBrainOf(forge, clock) : null,

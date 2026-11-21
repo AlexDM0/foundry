@@ -6,6 +6,7 @@
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import { OverseerTokenFile }                        from '../../adapters/forge-api/OverseerTokenFile.ts';
+import type { PresenceReportReading }               from '../../adapters/forge-api/PresenceIngestion.ts';
 import type { RegisteredOverseer }                  from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import { registeredForgesOf, type RegistryReading } from '../../adapters/forge-registry/RegistryFile.ts';
 import type { OverseerAccess }                      from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
@@ -17,10 +18,12 @@ import { ForgeVersionsUtil }                        from '../../shared/utils/For
 
 export interface ForgeAccessSources {
   /** Read at each request, so the Overseer's address and token file are the ones the registry names now. */
-  readonly readRegistry: () => Promise<RegistryReading>;
+  readonly readRegistry:            () => Promise<RegistryReading>;
   /** The forge watch's latest readings: whether an Overseer answers, at which address, and at which system version. */
-  readonly readings:     () => readonly ForgeReading[];
-  readonly forgeClient:  ForgeClient;
+  readonly readings:                () => readonly ForgeReading[];
+  /** The forge's presence read after now through the forge watch's one presence reader, so a route never reads presence beside it. */
+  readonly presenceReadingAfterNow: (trackerId: string) => Promise<PresenceReportReading | null>;
+  readonly forgeClient:             ForgeClient;
 }
 
 /**

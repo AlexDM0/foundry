@@ -29,6 +29,7 @@ import { FigureLookUtil }                                                from '.
 import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
 import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
 import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
+import { type CrashLogResult, CrashLogRequest }                          from '../views/forge/CrashLogRequest.ts';
 import { EmbedChannel, type EmbedChannelSurroundings }                   from '../views/forge/EmbedChannel.ts';
 import { ForgeFrameModel }                                               from '../views/forge/ForgeFrameModel.ts';
 import { type ForgeViewSurroundings, forgeViewPartsOf }                  from '../views/forge/ForgeView.tsx';
@@ -69,6 +70,7 @@ export interface ShellSurroundings {
 
 export interface ShellForgeFrameSurroundings {
   readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
+  readonly requestCrashLog:     (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
   readonly embed:               EmbedChannelSurroundings;
   readonly boardServicesOf:     BoardServicesOf;
   readonly boardTabViews:       BoardTabViewTable;
@@ -240,6 +242,7 @@ export function browserShellSurroundings({ sessionWasLost }: ShellSessionSurroun
     clock:           PageClock.create(PageClock.browserSurroundings()),
     forgeFrame:      {
       requestFrameSession: (trackerId) => FrameSessionRequest.requestFrameSession((path, requestOptions) => fetch(path, requestOptions), trackerId),
+      requestCrashLog:     (trackerId, crashLogNumber) => CrashLogRequest.requestCrashLog((path, requestOptions) => fetch(path, requestOptions), trackerId, crashLogNumber),
       embed:               EmbedChannel.browserSurroundings(),
       boardServicesOf:     (trackerId) => browserBoardServicesOf(trackerId, { goTo: hash.goTo, sessionWasLost }),
       boardTabViews:       BOARD_TAB_VIEWS,

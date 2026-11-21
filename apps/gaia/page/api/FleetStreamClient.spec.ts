@@ -139,10 +139,10 @@ const NEWER_FLEET_VERSION_MARK = String(NEWER_FLEET_VERSION);
 const NEWER_FLEET_DOCUMENT_TEXT = JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: NEWER_FLEET_VERSION });
 
 describe('following the event stream', () => {
-  test('it opens /api/v5/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
+  test('it opens /api/v6/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
     const stage = streamStage();
     stage.client.follow();
-    expect(stage.opened.map((source) => source.path)).toEqual(['/api/v5/events']);
+    expect(stage.opened.map((source) => source.path)).toEqual(['/api/v6/events']);
     expect(stage.client.state()).toBe('connecting');
     stage.latest().emit('open');
     expect(stage.client.state()).toBe('live');
@@ -354,7 +354,7 @@ describe('another fleetVersion', () => {
 
   test('a document of each older fleetVersion, version 1 and the one before this page\'s, is refused as version 1 is: one reload and nothing published', () => {
     const olderVersions = Array.from({ length: FLEET_FIVE_FORGES.fleetVersion - 1 }, (_unused, i) => i + 1);
-    expect(olderVersions).toEqual([1, 2, 3, 4]);
+    expect(olderVersions).toEqual([1, 2, 3, 4, 5]);
     for (const olderVersion of olderVersions) {
       const stage = followedAndLive(streamStage());
       stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: olderVersion }));

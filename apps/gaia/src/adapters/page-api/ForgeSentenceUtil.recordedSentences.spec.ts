@@ -27,6 +27,7 @@ import { FleetDocumentMapUtil }                   from './FleetDocumentMapUtil.t
 import { ForgeSentenceUtil }                      from './ForgeSentenceUtil.ts';
 import { PageAnswerMapUtil }                      from './PageAnswerMapUtil.ts';
 import { FLEET_SNAPSHOT_EMPTY }                   from './testing/fleet-snapshot-empty.ts';
+import { servingFleetForgeOf }                    from './testing/fleet-snapshot-five-forges.ts';
 
 const FORGE_PROGRAM_RECORDINGS = ['forge-program', 'forge-program-done', 'forge-program-refused'] as const;
 
@@ -35,7 +36,7 @@ const EVENT_DATA_PREFIX = 'data: ';
 const EXAMPLE_READ_STAMP = '2026-11-13T07:00:00.000Z';
 
 /** Taken from the recordings: the refusal codes whose recorded sentence names a command. */
-const REFUSALS_RECORDED_NAMING_A_COMMAND = ['arguments-refused'];
+const REFUSALS_RECORDED_NAMING_A_COMMAND = ['arguments-refused', 'no-crash-log'];
 
 interface RecordedRefusal {
   readonly refusal: string | null;
@@ -148,7 +149,7 @@ function recordedForgeDocuments(): FleetDocumentForge[] {
     const { facts, identity } = factsOf(snapshot);
     const reading = new MonitorSnapshotIngestion(facts, identity).readingOf(snapshot, EXAMPLE_READ_STAMP);
     if (reading.verdict !== 'readable') return [];
-    return FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_EMPTY, forges: [reading.reading] }).forges;
+    return FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_EMPTY, forges: [servingFleetForgeOf(reading.reading)] }).forges;
   });
 }
 

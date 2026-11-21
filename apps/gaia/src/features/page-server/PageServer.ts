@@ -28,6 +28,7 @@ import { pictureAnswerFor, pictureUploadAnswerFor }                             
 import { createBoardStateRoute, type BoardStateRoute }                                             from './routes/BoardStateRoute.ts';
 import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }                        from './routes/BoardStreamRoutes.ts';
 import { commandAnswerFor, type CommandCarrier }                                                   from './routes/CommandsRoute.ts';
+import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                                       from './routes/ForgeCrashLogRoute.ts';
 import { FRAME_SESSION_METHOD, frameSessionAnswerFor, trackerIdOfFrameSessionEndpoint }            from './routes/FrameSessionRoute.ts';
 import { healthAnswerOf }                                                                          from './routes/HealthRoute.ts';
 import { pageFileAnswerFor, type PageFilesSource }                                                 from './routes/PageFilesRoute.ts';
@@ -117,6 +118,7 @@ interface RouteContext {
   readonly broker:          FleetBroker;
   readonly boardStreams:    BoardStreams;
   readonly boardStateRoute: BoardStateRoute;
+  readonly crashLogRoute:   ForgeCrashLogRoute;
   readonly sessionCodes:    SessionCodes;
   readonly token:           string;
   readonly options:         PageServerOptions;
@@ -148,7 +150,9 @@ function relayValuesOf(endpointName: BoardRelayEndpointName, endpoint: string): 
 }
 
 function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
-  const { boardStreams, boardStateRoute, options } = context;
+  const {
+    boardStreams, boardStateRoute, crashLogRoute, options
+  } = context;
   const forgeAccess = options.forgeAccessSources;
   const streamSources = { forgeAccess, boardStreams };
   const relayRoute = (
@@ -188,6 +192,10 @@ function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
     }),
     relayRoute('POST', 'commands', GAIA_ENDPOINT_VERSIONS.forgeCommands, (request, endpoint, maximumBodyBytes) => {
       return boardCommandAnswerFor(request, relayValuesOf('commands', endpoint).trackerId, forgeAccess, maximumBodyBytes);
+    }),
+    relayRoute('GET', 'crashLog', GAIA_ENDPOINT_VERSIONS.forgeCrashLog, (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('crashLog', endpoint);
+      return crashLogRoute.answerFor(trackerId, itemId);
     }),
   ];
 }
@@ -363,6 +371,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
     broker,
     boardStreams,
     boardStateRoute: createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay),
+    crashLogRoute:   createForgeCrashLogRoute(options.forgeAccessSources, options.logBoardRelay),
     sessionCodes:    createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
     token:           tokenWrite.token,
     options,

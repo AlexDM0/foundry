@@ -6,11 +6,17 @@
 import type { BoardServices }         from '../board/@types/BoardServices.ts';
 import type { ShellSurroundings }     from '../shell/GaiaApp.tsx';
 import type { PageClock }             from '../shell/PageClock.ts';
+import type { CrashLogResult }        from '../views/forge/CrashLogRequest.ts';
 import type { ForgeViewSurroundings } from '../views/forge/ForgeView.tsx';
 import { FLEET_FIXTURES_READ_AT }     from './fixtures/fleet-five-forges.ts';
 
 function noFrameSession(): never {
   throw new Error('These surroundings answer no frame session: a spec that opens one hands its own answers.');
+}
+
+/** A spec that drives no crash log reads none: every log stays unread. */
+function noCrashLog(): Promise<CrashLogResult> {
+  return Promise.resolve({ verdict: 'not-read', status: null });
 }
 
 /** The board's services of a forge Gaia's relay never answers: nothing reads, streams or sends, so a board drawn here waits for its first. */
@@ -61,6 +67,7 @@ export function shellSurroundingsAt(fragment: string, storedThemeChoice: string 
     clock:           fixedPageClockAt(FLEET_FIXTURES_READ_AT),
     forgeFrame:      {
       requestFrameSession: noFrameSession,
+      requestCrashLog:     noCrashLog,
       embed:               { followMessages: () => () => undefined },
       boardServicesOf:     silentBoardServicesOf,
       boardTabViews:       {},
@@ -73,6 +80,7 @@ export function shellSurroundingsAt(fragment: string, storedThemeChoice: string 
 export function forgeFrameSurroundingsAt(leaveFragment = '#attention'): ForgeViewSurroundings {
   return {
     requestFrameSession: noFrameSession,
+    requestCrashLog:     noCrashLog,
     embed:               { followMessages: () => () => undefined },
     replaceFragment:     () => undefined,
     goTo:                () => undefined,
