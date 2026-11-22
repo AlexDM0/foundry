@@ -1,5 +1,5 @@
 /**
- * The ingestion of a forge's board document (`GET /api/v3/board`) into Gaia's `ForgeBoard`. The document carries no version key: its version
+ * The ingestion of a forge's board document (`GET /api/v4/board`) into Gaia's `ForgeBoard`. The document carries no version key: its version
  * is the `board` endpoint's, which Gaia derives from the forge's registry at the forge version it supports. Check the keys Gaia reads, then
  * map; a malformed document maps to nothing and names its keys, and a key Gaia does not read is passed over.
  */

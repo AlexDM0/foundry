@@ -1,6 +1,6 @@
 /**
  * Hephaestus's process facts `status` prints above the board, over the recorded process table: a forge down after a crash names the crashed
- * Baton and its crash log's path above the board, `--json` carries the facts under `hephaestus` with the presence block, and a board no forge
+ * Hephaestus lock and its crash log's path above the board, `--json` carries the facts under `hephaestus` with the presence block, and a board no forge
  * ran on is down with no crash line.
  */
 import {
@@ -61,12 +61,12 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'status after
       error:             {
         origin: 'pass', name: 'ExampleError', message: 'an example crash', stack: null
       },
-      presence:      null,
-      batonHolder:   crashed,
-      heartbeat:     null,
-      activeJobs:    [],
-      talosChildren: null,
-      logTail:       [],
+      presence:             null,
+      hephaestusLockHolder: crashed,
+      heartbeat:            null,
+      activeJobs:           [],
+      talosChildren:        null,
+      logTail:              [],
     }));
     Presence.writeStartedPresence(files, {
       generation:          CRASHED_GENERATION,
@@ -85,13 +85,13 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'status after
     return createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts: processTable.ports });
   }
 
-  test('prints that the forge is off after a crash of its Baton, with the crash log\'s number and path, and how to start and resume', async () => {
+  test('prints that the forge is off after a crash of its Hephaestus lock, with the crash log\'s number and path, and how to start and resume', async () => {
     const { crashLogPath } = plantACrash();
     const context = statusContext();
 
     expect(await runCommandLine(['status'], context), context.errorText()).toBe(0);
 
-    expect(context.outputText()).toContain(`${PRODUCT_NAMES.PROGRAM}: off after a crash of Baton ${CRASHED_GENERATION} (crash log 1, ${crashLogPath})`);
+    expect(context.outputText()).toContain(`${PRODUCT_NAMES.PROGRAM}: off after a crash of Hephaestus lock ${CRASHED_GENERATION} (crash log 1, ${crashLogPath})`);
     expect(context.outputText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} start\`, then resume the interrupted work with \`${PRODUCT_NAMES.PROGRAM} resume --all\``);
     const output = context.outputText();
     expect(output.indexOf('off after a crash')).toBe(output.indexOf(':') + ': '.length);

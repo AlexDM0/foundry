@@ -3,7 +3,8 @@
  * `gaia.css` reads for everything else. Light under :root, dark under :root[data-theme="dark"], which the shell sets before the first paint.
  */
 :root {
-  /* The package's press scale, which its README leaves to the host: a press on Gaia's page changes no size (SCREENS). */
+  /* The package's press scale, which its README leaves to the host: a press on Gaia's page changes no size
+     (`docs/design/screens.md`, the rules for every screen). */
   --press-scale: 1;
   --sp-half: 2px;
 

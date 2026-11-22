@@ -1575,7 +1575,7 @@ interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'comma
 }
 
 /**
- * A red gate or Customs check never ends the job: the Baton pass is written in its folder and the job interrupted `handoff-red`, which the
+ * A red gate or Customs check never ends the job: the restart is written in its folder and the job interrupted `handoff-red`, which the
  * lifecycle resumes in the same session while its cycle has resumes left and parks after.
  */
 function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: RedHandoffCause): void {
@@ -1587,7 +1587,7 @@ function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: Red
   RedHandoff.writeRedHandoff(jobFolder, {
     ...named,
     commit:              GitProcess.resolvedCommitOf(worktreeOf(hold.context.workspace, job), 'HEAD', GitWorktrees.ceilingOf(worktreeOf(hold.context.workspace, job))) ?? '',
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     resume:              (earlier?.resume ?? 0) + 1,
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
@@ -2105,7 +2105,7 @@ function returnToBuilder(hold: HoldContext, job: Readonly<Job>, cause: string): 
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-progress', { checksLegality: true }, at).logged);
 }
 
-/** The red gate on the merged tree, written as the Baton pass of a red handoff in the review's job folder, which the resumed builder reads. */
+/** The red gate on the merged tree, written as the restart of a red handoff in the review's job folder, which the resumed builder reads. */
 function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<GateProgress, { verdict: 'judged' }>): void {
   const jobFolder = jobFolderOf(hold.context.workspace, job);
   const pipelineGate = gate.manifest?.gates.find((candidate) => candidate.name === gate.step);
@@ -2117,7 +2117,7 @@ function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extrac
     fixCommand:          pipelineGate?.fix ?? null,
     commit:              MergeRun.headOf(worktreeOf(hold.context.workspace, job)) ?? '',
     exitCode:            gate.exitCode ?? null,
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         join(jobFolder, GATE_LOG_FILE),
     resume:              0,
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -2819,7 +2819,7 @@ async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonl
   if (job.state === 'stopping') await stopOnce(request, job, markerOf(JOB_FILES.stopSent));
 }
 
-/** After the hold and the Baton check: what each build job's new state asks of git and Talos. */
+/** After the hold and the Hephaestus lock check: what each build job's new state asks of git and Talos. */
 async function runBuildJobEffects(context: JobLaunchContext, board: Board, observations: readonly BuildJobObservation[]): Promise<void> {
   const pipeline = board.pipeline();
   const frameRequest: BuildJobFrameRequest = {

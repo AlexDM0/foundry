@@ -1,5 +1,5 @@
 /**
- * How the page words a command to one forge. What matters (SCREENS B2): a refusal names the refused command by its own button, and a
+ * How the page words a command to one forge. What matters (`docs/design/screens.md` B2): a refusal names the refused command by its own button, and a
  * command that names no forge has no such name here; the Stop question names the forge and its running agents, offers Hephaestus only
  * first and the agents first second, each with its consequence in the singular for one agent, has nothing to choose with no agent running,
  * and says what keeps waiting on User only when something does.

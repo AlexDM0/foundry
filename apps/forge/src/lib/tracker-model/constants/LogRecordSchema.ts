@@ -328,9 +328,9 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
   // The old Hephaestus keeps driving, or took the board back; `step` names where the successor failed, `error` what it said.
-  'baton-pass-failed': { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
+  'restart-failed': { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
   // A job's state lives in progress.json; only its launch, its interruptions, its resumes and its end are logged.
-  'job-launched':      {
+  'job-launched':   {
     subject: 'job',
     fields:  {
       kind:             'job-kind',

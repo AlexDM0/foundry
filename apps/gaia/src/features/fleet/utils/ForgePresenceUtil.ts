@@ -14,8 +14,8 @@ import { OutageEndingUtil } from './OutageEndingUtil.ts';
 /** A forge older than Gaia supports answered its versions, so its Hephaestus answers though Gaia reads nothing more of it. */
 const PRESENCE_ANSWERED_FIDELITIES: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>([...HEPHAESTUS_ANSWERED_FIDELITIES, 'older-contract']);
 
-/** A Hephaestus that says it is starting or passing the baton answers, though nothing of it can be read yet. */
-const ANSWERING_CONDITIONS: ReadonlySet<ForgeCondition> = new Set<ForgeCondition>(['starting', 'passing-baton']);
+/** A Hephaestus that says it is starting or restarting answers, though nothing of it can be read yet. */
+const ANSWERING_CONDITIONS: ReadonlySet<ForgeCondition> = new Set<ForgeCondition>(['starting', 'restarting']);
 
 /** The registry's state of a forge whose Hephaestus does not answer, by the state the forge last wrote. */
 const STATE_WITHOUT_AN_ANSWER = {

@@ -1,5 +1,5 @@
 /**
- * The hash router. What matters: every route of SCREENS "The shell" reads to its view and back to the same fragment; a forge's board is
+ * The hash router. What matters: every route of `docs/design/screens.md`, the shell reads to its view and back to the same fragment; a forge's board is
  * read and written in one form, `#forge/<trackerId>[/<tab>[/<item segments>]]`, and the form with `#` before the tab reads as the forge
  * with no tab; a malformed escape reads as no segment; anything unknown or malformed is Attention, never a throw.
  */
@@ -8,7 +8,7 @@ import { describe, expect, test } from 'bun:test';
 import { DEFAULT_ROUTE, type GaiaRoute, HashRouter } from './HashRouter.ts';
 
 describe('reading a fragment', () => {
-  test('every route SCREENS names reads to its view', () => {
+  test('every route the design reference names reads to its view', () => {
     expect([
       '#attention',
       '#agents',

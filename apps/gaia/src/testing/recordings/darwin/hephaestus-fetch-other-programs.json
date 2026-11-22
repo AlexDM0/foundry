@@ -20,7 +20,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: GET /api/v2/summary",
+      "callShape": "port-held-by-another-program: GET /api/v3/summary",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -30,7 +30,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: GET /api/v4/monitor with bearer",
+      "callShape": "port-held-by-another-program: GET /api/v5/monitor with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -60,7 +60,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: STREAM /api/v4/monitor/events with bearer",
+      "callShape": "port-held-by-another-program: STREAM /api/v5/monitor/events with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -70,7 +70,7 @@
       }
     },
     {
-      "callShape": "snapshot-unreadable: STREAM /api/v4/monitor/events with bearer",
+      "callShape": "snapshot-unreadable: STREAM /api/v5/monitor/events with bearer",
       "answer": {
         "verdict": "streaming",
         "chunks": [
@@ -80,7 +80,7 @@
       }
     },
     {
-      "callShape": "stream-cut-inside-event: STREAM /api/v4/monitor/events with bearer",
+      "callShape": "stream-cut-inside-event: STREAM /api/v5/monitor/events with bearer",
       "answer": {
         "verdict": "streaming",
         "chunks": [

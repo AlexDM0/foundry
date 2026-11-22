@@ -9,7 +9,6 @@ export interface ProductNames {
   WORKTREES_FOLDER:      string;
   MONITOR_FOLDER:        string;
   PRODUCT_OWNER_SKILL:   string;
-  ORCHESTRATE_SKILL:     string;
   PIPELINE_SETUP_SKILL:  string;
   STORAGE_PREFIX:        string;
   ENVIRONMENT_PREFIX:    string;
@@ -23,7 +22,6 @@ export const ORIGINAL_PRODUCT_NAMES: Readonly<ProductNames> = {
   WORKTREES_FOLDER:      '.agent-progress-worktrees',
   MONITOR_FOLDER:        '.agent-progress-monitor',
   PRODUCT_OWNER_SKILL:   'agent-po',
-  ORCHESTRATE_SKILL:     'agent-progress-orchestrate',
   PIPELINE_SETUP_SKILL:  'agent-pipeline',
   STORAGE_PREFIX:        'agent-progress',
   ENVIRONMENT_PREFIX:    'AGENT_PROGRESS_',
@@ -37,7 +35,6 @@ export const SIDE_BY_SIDE_PRODUCT_NAMES: Readonly<ProductNames> = {
   WORKTREES_FOLDER:      '.forge-worktrees',
   MONITOR_FOLDER:        '.forge-monitor',
   PRODUCT_OWNER_SKILL:   'forge-po',
-  ORCHESTRATE_SKILL:     'forge-orchestrate',
   PIPELINE_SETUP_SKILL:  'forge-pipeline',
   STORAGE_PREFIX:        'forge',
   ENVIRONMENT_PREFIX:    'FORGE_',

@@ -14,11 +14,14 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * Forge 3.0 names its serving process Hephaestus. Against forge 2: the summary, the monitor and the board document carry the process's facts
  * under the key `hephaestus` (the board's own switch is `hephaestusState`, its log kind hephaestus-set), and the four lifecycle commands are
  * hephaestus-pause, hephaestus-unpause, hephaestus-stop and hephaestus-restart. The registry dates the endpoints this changed at 3.0.
- * The minimum supported is the current major's first version: no client built for forge 2 is served. The current version is raised with
+ * Forge 4.0 restarts Hephaestus after a preflight of the code on disk, with no handshake through a file. Against forge 3: the process's state
+ * while it restarts is `restarting` in the summary, the monitor and the board document, the warning kind of a failed restart is
+ * restart-failed, and the board document carries that failure as `restartWarning`. The registry dates the endpoints this changed at 4.0.
+ * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 3, minor: 0 },
-  minimumSupported: { major: 3, minor: 0 },
+  current:          { major: 4, minor: 0 },
+  minimumSupported: { major: 4, minor: 0 },
 };

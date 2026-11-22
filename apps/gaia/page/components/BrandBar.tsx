@@ -1,8 +1,8 @@
 /**
- * The 52 px bar across Gaia's window (COMPONENT_LIBRARY 3.4): the mark and the wordmark as a link to Attention, a divider, the fleet's
- * status pill and its sentence, and at the far end the theme button, which a forge in place leaves out (SCREENS D2). The pill is orange with
- * a pulsing dot while a forge runs, and neutral with a dormant ring while none does; before Gaia knows the fleet, the bar shows neither.
- * The theme button's name says the current choice and the next, as "Theme: auto. Switch to light".
+ * The 52 px bar across Gaia's window (`docs/design/components.md` 3.4): the mark and the wordmark as a link to Attention, a divider, the fleet's status
+ * pill and its sentence, and at the far end the theme button, which a forge in place leaves out (`docs/design/screens.md`, the brand bar). The pill is
+ * orange with a pulsing dot while a forge runs, and neutral with a dormant ring while none does; before Gaia knows the fleet, the bar shows neither. The
+ * theme button's name says the current choice and the next, as "Theme: auto. Switch to light".
  */
 import {
   StateBadge,

@@ -9,8 +9,8 @@ import {
   test
 } from 'bun:test';
 
-import { Baton }                                          from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                              from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                 from '../../src/services/hephaestus/HephaestusLock.ts';
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
@@ -53,7 +53,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the options 
   test('--successor-of takes a whole number and nothing else', async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
     expect(await runCommandLine(['start', '--successor-of', 'two', '--port', '0'], context)).toBe(1);
-    expect(context.errorText()).toContain('"two" is not a Baton generation. Write a whole number.');
+    expect(context.errorText()).toContain('"two" is not a Hephaestus lock generation. Write a whole number.');
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} start --successor-of <generation> [--port <n>]`);
   });
 
@@ -69,14 +69,14 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the options 
 
     expect(context.errorText()).toContain(option);
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} start`);
-    expect(Baton.batonGenerationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([]);
+    expect(HephaestusLock.generationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([]);
   });
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the confinement preflight', () => {
   const STARTS = [[['start', '--foreground', '--port', '0']], [['start', '--port', '0']]];
 
-  test.each(STARTS)('%j on an adapter reporting missing tools refuses once at exit 1, naming them, with no Baton', async (commandLine) => {
+  test.each(STARTS)('%j on an adapter reporting missing tools refuses once at exit 1, naming them, with no Hephaestus lock', async (commandLine) => {
     const context = createCapturedCommandContext({
       currentDirectory: repositoryDirectory,
       platformPorts:    { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement('unavailable') },
@@ -87,6 +87,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the confinem
     expect(context.errorText().trim()).toBe(`Gates and install lines cannot run confined here, so Hephaestus did not start: ${FAKE_MISSING_TOOLS_REASON}.`);
     expect(context.errorText()).toContain('bubblewrap, socat and ripgrep');
     expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
-    expect(Baton.newestBatonOf(nativePlatformPorts(), hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory).verdict).not.toBe('live');
+    expect(HephaestusLock.newestOf(nativePlatformPorts(), hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory).verdict).not.toBe('live');
   });
 });

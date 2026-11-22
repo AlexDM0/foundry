@@ -37,7 +37,7 @@ const IDENTITY: ForgeIdentity = {
 
 function summaryAt(state: SummaryHephaestusState, paused: boolean): BoardSummaryDocument {
   return {
-    summaryVersion: 2,
+    summaryVersion: 3,
     project:        'Example Agency',
     hephaestus:     { state, paused, url: null },
     readyTicketIds: [],
@@ -54,16 +54,16 @@ describe('the condition of a forge', () => {
       ['serving', false],
       ['serving', true],
       ['held-by-install-change', true],
-      ['passing-baton', false],
+      ['restarting', false],
       ['down', false],
     ] as const).map(([state, paused]) => ForgeReadingMapUtil.countsOnlyReadingOf(summaryAt(state, paused), REGISTRY_FACTS, IDENTITY, 'stamp').condition);
-    expect(conditions).toEqual(['live', 'paused', 'held', 'passing-baton', 'dormant']);
+    expect(conditions).toEqual(['live', 'paused', 'held', 'restarting', 'dormant']);
   });
 });
 
 function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapshotDocument {
   return {
-    monitorVersion: 5,
+    monitorVersion: 6,
     trackerId:      REGISTRY_FACTS.trackerId,
     project:        'Example Agency',
     root:           REGISTRY_FACTS.root,
@@ -104,9 +104,9 @@ describe('the warnings and notices of a snapshot read in full', () => {
   test('read a warning that an Assistant cannot come up as a notice, after the forge\'s own, and keep every other warning with its kind', () => {
     const newCode = { kind: 'new-code', text: 'new code is on disk: restart Hephaestus to run it' };
     const assistantDown = { kind: FORGE_NOTICE_KINDS.assistantDown, text: 'no Assistant can come up: open incidents take their defaults' };
-    const batonPassFailed = { kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' };
-    const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ notices: [newCode], warnings: [assistantDown, batonPassFailed] }), REGISTRY_FACTS, IDENTITY, 'stamp');
-    expect([reading.notices, reading.warnings]).toEqual([[newCode, assistantDown], [batonPassFailed]]);
+    const restartFailed = { kind: 'restart-failed', text: 'the restart to code example-code failed at preflight: Example error; this Hephaestus keeps driving' };
+    const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ notices: [newCode], warnings: [assistantDown, restartFailed] }), REGISTRY_FACTS, IDENTITY, 'stamp');
+    expect([reading.notices, reading.warnings]).toEqual([[newCode, assistantDown], [restartFailed]]);
   });
 
   test('carry the current usage window beside the limit hit', () => {
@@ -204,8 +204,8 @@ describe('identityOf', () => {
       installVersion:  27,
       processId:       4242,
     } as const;
-    expect(ForgeReadingMapUtil.identityOf({ ...document, contracts: { summary: 2, monitor: 1 } }).contracts).toEqual({
-      summary: 2,
+    expect(ForgeReadingMapUtil.identityOf({ ...document, contracts: { summary: 3, monitor: 1 } }).contracts).toEqual({
+      summary: 3,
       monitor: 1,
       control: null,
     });
@@ -217,18 +217,18 @@ describe('contractsWith', () => {
     const identity = {
       ...IDENTITY,
       contracts: {
-        summary: 2,
+        summary: 3,
         monitor: 1,
         control: 1,
       },
     };
     expect(ForgeReadingMapUtil.contractsWith(identity, { monitor: 3 })).toEqual({
-      summary: 2,
+      summary: 3,
       monitor: 3,
       control: 1,
     });
-    expect(ForgeReadingMapUtil.contractsWith(null, { summary: 2 })).toEqual({
-      summary: 2,
+    expect(ForgeReadingMapUtil.contractsWith(null, { summary: 3 })).toEqual({
+      summary: 3,
       monitor: null,
       control: null,
     });

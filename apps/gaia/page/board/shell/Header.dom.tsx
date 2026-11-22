@@ -179,9 +179,9 @@ describe('the forge\'s controls and the status details', () => {
     expect(document.querySelector('.board-status-notice')?.textContent).toBe('Example: new code is on disk');
   });
 
-  test('during a Baton pass the status reads Handing over', () => {
-    renderedHeader(servingBoard({ hephaestus: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }));
-    expect(screen.getByText('Handing over')).toBeDefined();
+  test('during a restart the status reads Restarting', () => {
+    renderedHeader(servingBoard({ hephaestus: { state: 'restarting', paused: false, codeVersion: 'code-1' } }));
+    expect(screen.getByText('Restarting')).toBeDefined();
   });
 
   test('shows the usage windows the facts carry as one line with one separator', () => {

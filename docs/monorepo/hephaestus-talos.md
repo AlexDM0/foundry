@@ -2,6 +2,11 @@
 
 Nothing here is built. Statements about today's code come from forge at `ddeb7707`.
 
+**As built since.** The Baton of this design is the Hephaestus lock, and the Baton pass is a restart with a preflight:
+the code on disk proves itself while the old Hephaestus still drives, then the old one ends `handed-over` and its
+successor starts from what the board holds. Nothing takes the board back, and the 150 second margin of section 3.2 is
+gone. `apps/forge/docs/glossary.md` (Hephaestus lock, restart) and `apps/forge/docs/cli.md` (`restart`) describe both.
+
 ## 1. The shape
 
 Today one process, the Overseer, does two jobs: it runs the pipeline, and it serves the interface (the Bridge page, its

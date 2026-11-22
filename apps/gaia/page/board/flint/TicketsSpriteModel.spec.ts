@@ -1,8 +1,8 @@
 /**
- * What the tickets habitat answers between two payloads (Flint's board wiring design, "New habitats", `tickets`). What matters: each row of
- * the table is answered from its change, once, and not from a fact that only stays; a new ticket shows one thing, a plain one filed, one a
- * review found jarred, and a bug naming the ticket that let it out chased from that ticket; a priority change is a change of the
- * resolved priority the forge serves; a lifted hold is no change; and several changes come in the order of the table.
+ * What the tickets habitat answers between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `tickets`). What matters: each row
+ * of the table is answered from its change, once, and not from a fact that only stays; a new ticket shows one thing, a plain one filed, one a review found
+ * jarred, and a bug naming the ticket that let it out chased from that ticket; a priority change is a change of the resolved priority the forge serves; a
+ * lifted hold is no change; and several changes come in the order of the table.
  */
 import { describe, expect, test } from 'bun:test';
 

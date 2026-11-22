@@ -67,7 +67,7 @@ the tickets as they were. Taking the lock still writes its own files under
 | Case | What stands | Why |
 | --- | --- | --- |
 | A relayed command is refused | One `hatch-applied` log record, always. Anything the command changed before it refused stays too. | [Hephaestus](../glossary.md#hephaestus) commits the whole [lock hold](../glossary.md#lock-hold), even when one request in it was refused. |
-| `baton-pass-failed` from `update` or `restart` | Hephaestus's `baton-pass-failed` log record, a second one if it loses its port, plus everything `update` installed. | The install finished, and Hephaestus records the failed [Baton pass](../glossary.md#baton-pass) before anything reads it. |
+| `restart-failed` from `update` or `restart` | Everything `update` installed, and, for a failed preflight, Hephaestus's `restart-failed` log record. | The install finished before the [restart](../glossary.md#restart), and the old Hephaestus records a failed preflight before it answers. A successor that could not serve writes the presence `crashed` to the registry and one line to the Hephaestus log. |
 | `lock-taken-over` | Whatever the [hold journal](../glossary.md#hold-journal) had committed. | The next command finishes it. |
 | `worktree-repair-failed`, `worktree-has-uncommitted-work` | The tracker is unchanged, though the sentence reads "Nothing was written". A `recreate` may have saved its patch, and git may have done part of the step. | The git step runs inside the [lock hold](../glossary.md#lock-hold), before the board is written. |
 | `malformed-hatch-reply` | Unknown. | The reply that would say is unreadable. |
@@ -94,7 +94,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 - [Gates and pipeline](#gates-and-pipeline) (7)
 - [Pipeline setup](#pipeline-setup) (40)
 - [Airlocks and landing](#airlocks-and-landing) (12)
-- [Hephaestus and Baton](#hephaestus-and-baton) (17)
+- [Hephaestus and Hephaestus lock](#hephaestus-and-hephaestus-lock) (17)
 - [Hatch and roles](#hatch-and-roles) (11)
 - [Install and version](#install-and-version) (6)
 - [Tracker, lock and journal](#tracker-lock-and-journal) (11)
@@ -405,10 +405,10 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 
 </details>
 
-### Hephaestus and Baton
+### Hephaestus and Hephaestus lock
 
-Words here: [Hephaestus](../glossary.md#hephaestus), [Baton](../glossary.md#baton),
-[Baton pass](../glossary.md#baton-pass), [Talos](../glossary.md#talos). Recipe:
+Words here: [Hephaestus](../glossary.md#hephaestus), [Hephaestus lock](../glossary.md#hephaestus-lock),
+[restart](../glossary.md#restart), [Talos](../glossary.md#talos). Recipe:
 [Starting Hephaestus is refused](../operations/runbook.md#starting-hephaestus-is-refused).
 
 <details open>
@@ -421,22 +421,22 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [Baton](../glossary.md#bato
 | `must be two versions, the current and the minimum supported` | `malformed-versions-answer` | The test setting `FORGE_VERSIONS_ANSWER` holds another value. | Unset it or correct it. | [cli.md](../cli.md) |
 | `Gates and install lines cannot run confined here, so Hephaestus did not start` | `gate-confinement-unavailable` | `start` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
 | `needs git <version> or newer` | `git-below-floor` | `init` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
-| `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
-| `A Hephaestus already serves this board` | `hephaestus-already-running` | A live Baton names another Hephaestus. | Use it, or run `stop`. | |
-| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Baton. | Run `start` again, or read `hephaestus.log`. | |
-| `at the same moment and holds the newer Baton` | `hephaestus-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
-| `took this board over from the Baton` | `baton-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Hephaestus drives. | |
+| `cannot be created whole` | `hephaestus-lock-not-created-whole` | The Hephaestus lock claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
+| `A Hephaestus already serves this board` | `hephaestus-already-running` | A live Hephaestus lock names another Hephaestus. | Use it, or run `stop`. | |
+| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Hephaestus lock. | Run `start` again, or read `hephaestus.log`. | |
+| `at the same moment and holds the newer Hephaestus lock` | `hephaestus-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
+| `took this board over from the Hephaestus lock` | `hephaestus-lock-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Hephaestus drives. | |
 | `is in use, so Hephaestus did not start` | `hephaestus-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |
-| `so it cannot hold a Hephaestus Baton` | `hephaestus-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in forge: file a bug with the printed line. | |
+| `so it cannot hold a Hephaestus` | `hephaestus-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in forge: file a bug with the printed line. | |
 | `before it answered` | `hephaestus-did-not-start` | The detached child exited or never answered. The log may not hold why. | Read the log it names, or run `start --foreground`. | |
-| `is still live after being asked to stop` | `hephaestus-still-live` | The Baton stayed live through `HEPHAESTUS_STOP_TRIES` tries. | Run `status`, then stop it again. | |
-| `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. Hephaestus prints it too if it loses its port. The old Hephaestus keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `status` and read the Hephaestus log. If nobody drives, run `start`. What `update` installed stands. | |
+| `is still live after being asked to stop` | `hephaestus-still-live` | The Hephaestus lock stayed live through `HEPHAESTUS_STOP_TRIES` tries. | Run `status`, then stop it again. | |
+| `The restart to code <code version> failed at <step>` | `restart-failed` | `update` or `restart` sent a restart whose preflight failed: at one of its steps (`read-board`, `read-jobs`, `read-child-records`, `install-version`), at `spawn` when it could not be started, or at `preflight` when it left no report within `RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS`. The old Hephaestus keeps driving (`keeps driving at <url>`). At step `serve` of code `unknown` either the old Hephaestus had let go and no successor served (`no Hephaestus is on the board`), or it never let go (`still holds the board at <url>`). | Run `status` and read the Hephaestus log; fix the step and run `restart` again. If no Hephaestus is on the board, run `start`. What `update` installed stands. | [cli.md](../cli.md#restart) |
 | `is sent to the live Hephaestus, never applied to the board` | `hephaestus-control-is-runtime-only` | Never printed: the API route, `stop` and the Bouncer each stop `hephaestus-stop` and `hephaestus-restart` earlier, and the API route and the command line `talos-restart`. | Nothing to do. | |
 | `so only it delivers tickets` | `hephaestus-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Hephaestus. | Send `ticket-deliver-by-hand` through the API, as a client's control does, or run `stop` first. | [cli.md](../cli.md) |
 | `speaks protocol version <answered>, and this Hephaestus speaks <required>` | `talos-protocol-differs` | The Talos Hephaestus started from the program on disk answered another protocol version, so no Talos starts again while this Hephaestus lives. **Exit 2.** | Update the program checkout, then start Hephaestus again. | |
 | `so Hephaestus did not start and no agent runs` | `talos-unavailable` | The Talos Hephaestus started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start Hephaestus again. | |
-| `and stays off; its crash log` | `forge-crashed` | The serving Hephaestus crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
-| `is off after a crash of` | `forge-off-after-crash` | A successor whose predecessor died during the Baton pass found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#hephaestus) |
+| `and stays off; its crash log` | `forge-crashed` | The serving Hephaestus crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Hephaestus lock and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
+| `is off after a crash of` | `forge-off-after-crash` | A successor found a crash of the generation before it (`of a Hephaestus lock nothing names` when its presence record is unreadable and no Hephaestus lock is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Hephaestus lock, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#hephaestus) |
 | `This board has no crash log` | `no-crash-log` | `crash-log` found no crash log on the board, or none of the number it was given (` <n>; ` and the advice to ask for the newest). It wrote nothing. | Run `crash-log` with no number for the newest, or `status` to see whether the forge is off after a crash. | [cli.md](../cli.md#after-a-crash) |
 
 </details>
@@ -582,9 +582,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 | `tokens-without-a-row`, `lowering-a-ticket-that-is-not-committed` | A low ticket has no row until it is started. | `ticket ready` gives a row at any priority. |
 | `worktree-repair-failed`, `worktree-has-uncommitted-work` | Nothing was written at all. | Only the tracker is untouched. See [When something was written](#when-something-was-written). |
 | `job-finished` from `intake close` or `job message` | The job has ended. | It is `stopping`: it is ending, and takes no close or message. |
-| `baton-pass-failed` from `update` or `restart` after the old Hephaestus let go | The old Hephaestus keeps driving. | Both commands print before the old Hephaestus has taken its port back. If that fails, it exits and nobody drives. Only `status` shows the end state. |
-| `baton-pass-failed` with `could not be bound again`, at step `bind-port`, printed by Hephaestus as it exits | The old Hephaestus keeps driving. | Nobody drives. Run `start`. A successor's own `bind-port` failure, without these words, is taken back. |
-| `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | The Baton pass failed. | No outcome was read in time. The pass may still end either way, or Hephaestus may have exited. |
+| `restart-failed` at step `serve` of code `unknown` | No Hephaestus is on the board. | No successor served within the wait of `update` or `restart`; a slow one may still serve. `status` shows which. |
 | `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the API | A relay through Hephaestus. | The same rule ran directly in this command, and no Hephaestus was involved. |
 | `hatch-identity-mismatch` on an Assistant's `job message` or `job fresh` | The session forged an identity. | The Assistant used a move its incident allows; the format check refuses any `jobId`. |
 

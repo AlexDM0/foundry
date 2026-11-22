@@ -152,7 +152,13 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   if (isRuntimeKind(kind)) {
     const runtimeCommand = runtimeCommandOf(kind, body);
     if (runtimeCommand === null) return MALFORMED;
-    return appliedAnswerOf({ outcome: await request.onRuntimeCommand(runtimeCommand), result: { kind } });
+    try {
+      return appliedAnswerOf({ outcome: await request.onRuntimeCommand(runtimeCommand), result: { kind } });
+    } catch (thrown) {
+      // A restart whose preflight failed is refused, with the serving Hephaestus still driving.
+      if (thrown instanceof OperationRefusal) return refusedAnswerOf(thrown);
+      throw thrown;
+    }
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
   if (!fieldsAreWellTyped(kind, body)) return MALFORMED;

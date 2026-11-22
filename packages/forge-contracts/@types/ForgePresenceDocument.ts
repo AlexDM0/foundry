@@ -39,7 +39,7 @@ export interface ForgeInterruptedWork {
 
 export interface ForgeCrashLogEntry {
   readonly number:     number;
-  /** The Baton generation that crashed, `null` when nothing names it. */
+  /** The Hephaestus lock generation that crashed, `null` when nothing names it. */
   readonly generation: number | null;
   readonly component:  ForgeCrashedComponent;
   readonly recordedAt: string;

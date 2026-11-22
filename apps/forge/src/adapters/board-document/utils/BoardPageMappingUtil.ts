@@ -246,10 +246,10 @@ function concurrencyOf(concurrency: PageConcurrency): BoardConcurrencyDocument {
 
 function hephaestusOf(hephaestus: HephaestusFacts): BoardHephaestusDocument {
   return {
-    state:            hephaestus.state,
-    paused:           hephaestus.paused,
-    codeVersion:      hephaestus.codeVersion,
-    batonPassWarning: NoticeWordingUtil.batonPassWarningIn(hephaestus.batonPassWarning),
+    state:          hephaestus.state,
+    paused:         hephaestus.paused,
+    codeVersion:    hephaestus.codeVersion,
+    restartWarning: NoticeWordingUtil.restartWarningIn(hephaestus.restartWarning),
   };
 }
 

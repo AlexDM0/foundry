@@ -203,12 +203,12 @@ export interface JobEnding {
   deniedPermissions?: readonly string[];
 }
 
-export type HephaestusStopReason = 'stopped' | 'baton-passed';
+export type HephaestusStopReason = 'stopped' | 'handed-over';
 
-/** What the forge's start found before it: no earlier start, a Baton pass, a stop on purpose, a machine that went down, or a crash. */
+/** What the forge's start found before it: no earlier start, a restart, a stop on purpose, a machine that went down, or a crash. */
 export type StartKind = 'first-start' | 'handover' | 'stopped-on-purpose' | 'machine-went-down' | 'crashed';
 
-/** Who started the forge: User, or a predecessor handing the Baton over. */
+/** Who started the forge: User, or a predecessor handing the Hephaestus lock over. */
 export type StartOrigin = 'user' | 'successor';
 
 /** How a merge reached its target: `landed` fast-forwarded the main line, `integrated` a group branch. */

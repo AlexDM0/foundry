@@ -27,21 +27,21 @@ import type {
 import type { BoardAttentionEntryDocument, BoardNoticeDocument, BoardTodayDocument } from './BoardReadingDocuments.ts';
 
 
-export type HephaestusRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
+export type HephaestusRuntimeState = 'serving' | 'held-by-install-change' | 'restarting' | 'down';
 
-/** The last Baton pass that failed while this forge kept driving. */
-export interface BoardBatonPassWarningDocument {
+/** The last restart that failed while this forge kept driving. */
+export interface BoardRestartWarningDocument {
   readonly successorCodeVersion: string;
   readonly step:                 string;
   readonly error:                string;
 }
 
 export interface BoardHephaestusDocument {
-  readonly state:            HephaestusRuntimeState;
-  readonly paused:           boolean;
-  readonly codeVersion:      string;
-  /** `null` when no Baton pass failed. */
-  readonly batonPassWarning: BoardBatonPassWarningDocument | null;
+  readonly state:          HephaestusRuntimeState;
+  readonly paused:         boolean;
+  readonly codeVersion:    string;
+  /** `null` when no restart failed. */
+  readonly restartWarning: BoardRestartWarningDocument | null;
 }
 
 export interface BoardConcurrencyDocument {

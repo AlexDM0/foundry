@@ -1,5 +1,5 @@
 /**
- * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Notify me while Gaia is open", a switch that sends
+ * What the Forges view's Gaia panel shows of a fleet document (`docs/design/screens.md` A4): "Notify me while Gaia is open", a switch that sends
  * `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is built for and its address;
  * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
  * refusal shows in the place whose switch sent the change, and only for that send.
@@ -75,7 +75,7 @@ const NOTIFICATION_KINDS: readonly { readonly kind: FleetDocumentNotificationKin
   {
     kind:        'forges-held-or-unreachable',
     label:       'A forge holds its launches or stops answering',
-    explanation: 'Install version changed, a failed Baton pass, or an unreachable Hephaestus.',
+    explanation: 'Install version changed, a failed restart, or an unreachable Hephaestus.',
   },
   { kind: 'quiet-agents', label: 'A quiet agent', explanation: 'An agent whose log stood still for the forge\'s own number of sweeps.' },
   { kind: 'machine-at-agent-limit', label: 'The machine is at its agent limit', explanation: 'Ready tickets wait for a machine slot.' },

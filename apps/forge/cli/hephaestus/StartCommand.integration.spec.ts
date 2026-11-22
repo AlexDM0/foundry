@@ -1,8 +1,8 @@
 /**
- * Hephaestus's start, Baton and stop, end to end through real child processes, since a Hephaestus holds its process until it is stopped.
- * What matters: two starters at once leave exactly one Hephaestus serving; a Baton naming a dead process is taken over as after a crash; a
+ * Hephaestus's start, Hephaestus lock and stop, end to end through real child processes, since a Hephaestus holds its process until it is stopped.
+ * What matters: two starters at once leave exactly one Hephaestus serving; a Hephaestus lock naming a dead process is taken over as after a crash; a
  * Hephaestus whose generation was overtaken stops at exit 2 touching nothing; `start`, `status`, `restart` and `stop`
- * agree with the Baton; a started Hephaestus has its board's Talos serving under a lease it renewed, and `talos-restart` has it
+ * agree with the Hephaestus lock; a started Hephaestus has its board's Talos serving under a lease it renewed, and `talos-restart` has it
  * quit that Talos cleanly and follow the next, as no crash;
  * `stop --now` stops a live line of Talos, which a plain stop leaves running; `pause` and `unpause` write the
  * drain flag with no Hephaestus up, which the served board state and `status` read alike, held in-process by
@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 } from 'bun:test';
@@ -61,6 +62,7 @@ import {
   idleHephaestusAnswersIn,
   REFRESH_OF_AN_IGNORING_REPOSITORY
 } from '../testing/RecordedGitStages.ts';
+import { preflightFailureOf } from './HephaestusForeground.ts';
 
 const ports = nativePlatformPorts();
 const recordedGit = useRecordedGit();
@@ -77,11 +79,11 @@ function hephaestusDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'hephaestus');
 }
 
-function batonFileNames(): string[] {
-  return existsSync(hephaestusDirectory()) ? readdirSync(hephaestusDirectory()).filter((fileName) => /^baton-\d+\.json$/.test(fileName)).sort() : [];
+function hephaestusLockFileNames(): string[] {
+  return existsSync(hephaestusDirectory()) ? readdirSync(hephaestusDirectory()).filter((fileName) => /^lock-\d+\.json$/.test(fileName)).sort() : [];
 }
 
-function batonOf(fileName: string): Record<string, unknown> {
+function hephaestusLockOf(fileName: string): Record<string, unknown> {
   return JSON.parse(readFileSync(join(hephaestusDirectory(), fileName), 'utf8')) as Record<string, unknown>;
 }
 
@@ -95,10 +97,10 @@ function storedLogKindsOf(repository: string): string[] {
     .map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
-/** This process's pid with a start no process ever had: a Baton that reads as dead without depending on a pid being free. */
-function plantDeadBaton(generation: number): void {
+/** This process's pid with a start no process ever had: a Hephaestus lock that reads as dead without depending on a pid being free. */
+function plantDeadLock(generation: number): void {
   mkdirSync(hephaestusDirectory(), { recursive: true });
-  writeFileSync(join(hephaestusDirectory(), `baton-${generation}.json`), JSON.stringify({
+  writeFileSync(join(hephaestusDirectory(), `lock-${generation}.json`), JSON.stringify({
     processId:            process.pid,
     processStartStamp:    '1',
     bootIdentity:         'example-boot',
@@ -201,7 +203,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await runAgentProgress(['stop'], { currentDirectory: repositoryDirectory, homeDirectory });
-  // A case its deadline cut short during a Baton pass leaves a successor no Baton names yet, which `stop` cannot reach.
+  // A case its deadline cut short during a restart leaves a successor no Hephaestus lock names yet, which `stop` cannot reach.
   await stopProcessesReachingInto(repositoryDirectory);
   const answers = sharedAnswersOfThisCase();
   sharedAnswers = null;
@@ -224,7 +226,7 @@ describeWhenGitIsRecorded('run in the foreground', () => {
 
     expect(finished.exitCode, `${finished.standardError}\n${hephaestusLogText()}`).toBe(0);
     expect(storedLogKindsOf(repositoryDirectory)).toContain('hephaestus-stopped');
-    expect(batonFileNames()).toEqual([]);
+    expect(hephaestusLockFileNames()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('two starters at once leave exactly one Hephaestus serving; the other refuses already-running or contended at exit 1', async () => {
@@ -237,39 +239,39 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     expect(refused.standardError).toMatch(/A Hephaestus already serves this board at http:\/\/127\.0\.0\.1:\d+\/|Another Hephaestus started/);
 
     const url = firstLines[servingIndex] ?? '';
-    expect(batonFileNames()).toEqual(['baton-1.json']);
-    const baton = batonOf('baton-1.json');
-    expect(baton).toMatchObject({ processId: starters[servingIndex]?.processId, url, codeVersion: CodeVersion.onDisk() });
-    expect(Object.keys(baton)).toEqual([
+    expect(hephaestusLockFileNames()).toEqual(['lock-1.json']);
+    const hephaestusLock = hephaestusLockOf('lock-1.json');
+    expect(hephaestusLock).toMatchObject({ processId: starters[servingIndex]?.processId, url, codeVersion: CodeVersion.onDisk() });
+    expect(Object.keys(hephaestusLock)).toEqual([
       'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'talosProtocolVersion',
     ]);
     expect(existsSync(join(hephaestusDirectory(), 'token'))).toBe(false);
-    expect(statSync(baton['tokenFile'] as string).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
+    expect(statSync(hephaestusLock['tokenFile'] as string).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
     const identity = await (await fetch(new URL('api/identity', url))).json() as Record<string, unknown>;
-    expect(identity).toMatchObject({ application: PRODUCT_NAMES.PROGRAM, project: 'Example Agency', processId: baton['processId'] });
+    expect(identity).toMatchObject({ application: PRODUCT_NAMES.PROGRAM, project: 'Example Agency', processId: hephaestusLock['processId'] });
 
     await stopHephaestus();
     expect((await starters[servingIndex]?.finished)?.exitCode).toBe(0);
-    expect(batonFileNames()).toEqual([]);
+    expect(hephaestusLockFileNames()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a Baton naming a dead process is replaced by the next generation, which removes the older one', async () => {
-    plantDeadBaton(3);
+  test('a Hephaestus lock naming a dead process is replaced by the next generation, which removes the older one', async () => {
+    plantDeadLock(3);
     const hephaestus = await startHephaestus();
     expect(await hephaestus.firstOutputLine).toStartWith('http://127.0.0.1:');
-    expect(batonFileNames()).toEqual(['baton-4.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-4.json']);
     await stopHephaestus();
     expect((await hephaestus.finished).exitCode).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a Hephaestus whose generation a newer Baton overtook stops baton-taken at exit 2 and unlinks nothing', async () => {
+  test('a Hephaestus whose generation a newer Hephaestus lock overtook stops hephaestus-lock-taken at exit 2 and unlinks nothing', async () => {
     const hephaestus = await startHephaestus();
     expect(await hephaestus.firstOutputLine).toStartWith('http://127.0.0.1:');
-    plantDeadBaton(2);
+    plantDeadLock(2);
     const finished = await hephaestus.finished;
     expect(finished.exitCode).toBe(2);
     expect(finished.standardError).toContain('A newer Hephaestus took this board over');
-    expect(batonFileNames()).toEqual(['baton-1.json', 'baton-2.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-1.json', 'lock-2.json']);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a Hephaestus whose data folder watch fails to start gives its URL to no output', async () => {
@@ -284,7 +286,7 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     const servedUrl = /Hephaestus serving (http:\/\/127\.0\.0\.1:\d+\/)/.exec(hephaestusLogText())?.[1] ?? null;
     expect(servedUrl, hephaestusLogText()).not.toBeNull();
     expect(finished.standardOutput).toBe('');
-    expect(batonFileNames()).toEqual([]);
+    expect(hephaestusLockFileNames()).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
@@ -318,8 +320,8 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     const detached = await runAgentProgress(startArguments, { currentDirectory: homeDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
-    expect(batonFileNames()).toEqual(['baton-1.json']);
-    expect(batonOf('baton-1.json')['url']).toBe(url);
+    expect(hephaestusLockFileNames()).toEqual(['lock-1.json']);
+    expect(hephaestusLockOf('lock-1.json')['url']).toBe(url);
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -328,21 +330,21 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     expect(first.exitCode, first.standardError).toBe(0);
     const firstAnswer = JSON.parse(first.standardOutput) as Record<string, unknown>;
     expect(firstAnswer).toEqual({
-      answerVersion:  2,
+      answerVersion:  3,
       started:        true,
       url:            expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+\/$/),
       generation:     1,
       trackerId:      expect.any(String),
       codeVersion:    CodeVersion.onDisk(),
       installVersion: expect.any(Number),
-      contracts:      { summary: 2, monitor: 5, control: 3 },
+      contracts:      { summary: 3, monitor: 6, control: 3 },
     });
     const second = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(second.exitCode, second.standardError).toBe(0);
     expect(JSON.parse(second.standardOutput)).toEqual({ ...firstAnswer, started: false });
-    expect(batonFileNames()).toEqual(['baton-1.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-1.json']);
     const stopped = await runAgentProgress(['stop', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 2, outcome: 'done' });
+    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 3, outcome: 'done' });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a detached Hephaestus prints its URL once it answers; status reports it serving; restart keeps its port under a new process', async () => {
@@ -357,73 +359,64 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
       },
     });
 
-    const processBefore = batonOf(batonFileNames()[0] ?? '')['processId'];
+    const processBefore = hephaestusLockOf(hephaestusLockFileNames()[0] ?? '')['processId'];
     const restarted = await runAgentProgress(['restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(restarted.exitCode, `${restarted.standardError}\n${hephaestusLogText()}`).toBe(0);
     expect(JSON.parse(restarted.standardOutput)).toEqual({ outcome: 'done', url, codeVersion: CodeVersion.onDisk() });
-    expect(batonFileNames()).toEqual(['baton-2.json']);
-    expect(batonOf(batonFileNames()[0] ?? '')['processId']).not.toBe(processBefore);
+    expect(hephaestusLockFileNames()).toEqual(['lock-2.json']);
+    expect(hephaestusLockOf(hephaestusLockFileNames()[0] ?? '')['processId']).not.toBe(processBefore);
     expect(storedLogKindsOf(repositoryDirectory).filter((kind) => kind.startsWith('hephaestus-'))).toEqual(['hephaestus-started', 'hephaestus-stopped', 'hephaestus-started']);
 
     const stopped = await runAgentProgress(['stop', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 2, outcome: 'done' });
-    expect(batonFileNames()).toEqual([]);
+    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 3, outcome: 'done' });
+    expect(hephaestusLockFileNames()).toEqual([]);
     const statusAfter = await runAgentProgress(['status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(JSON.parse(statusAfter.standardOutput)).toMatchObject({ hephaestus: { state: 'down', url: null } });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a second restart while a Baton pass runs leaves the successor\'s ready report standing, and the first Baton pass completes', async () => {
+  test('a second restart command while a restart runs starts no second restart, and the first completes', async () => {
     const detached = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
-    const batonPassFilePath = join(hephaestusDirectory(), 'baton-pass-1.json');
-    const batonPassState = (): string | null => {
-      try {
-        return (JSON.parse(readFileSync(batonPassFilePath, 'utf8')) as { state: string }).state;
-      } catch {
-        return null;
-      }
-    };
-
-    const restarting = runAgentProgress(['restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    // The old Hephaestus looks for `ready` only every interval, so a second command sent the moment it appears arrives before that look.
-    await waitUntil(() => batonPassState() === 'ready', 'the successor reporting ready', 1);
-    const token = readFileSync(batonOf('baton-1.json')['tokenFile'] as string, 'utf8').trim();
+    const token = readFileSync(hephaestusLockOf('lock-1.json')['tokenFile'] as string, 'utf8').trim();
     const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
     const body    = JSON.stringify({ kind: 'hephaestus-restart', now: false });
+
+    const restarting = runAgentProgress(['restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    // Whichever command arrives second finds the restart running; the listener may be closed by then, which answers nothing.
     await fetch(new URL('api/commands', url), { method: 'POST', headers, body }).catch(() => null);
-    expect(batonPassState()).not.toBe('requested');
 
     const restarted = await restarting;
     expect(restarted.exitCode, `${restarted.standardError}\n${hephaestusLogText()}`).toBe(0);
-    expect(batonFileNames()).toEqual(['baton-2.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-2.json']);
+    expect(storedLogKindsOf(repositoryDirectory).filter((kind) => kind === 'hephaestus-started')).toHaveLength(1 + 1);
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a successor that fails a step exits; restart exits 1 baton-pass-failed and the old Hephaestus keeps driving, logging it and warning', async () => {
+  test('a preflight that fails a step: restart exits 1 restart-failed and the old Hephaestus keeps driving, logging it and warning', async () => {
     await turnTheAssistantOn();
     const detached = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
-    const batonBefore = batonOf('baton-1.json');
-    // The successor reads every launched child's event log before it reports ready: a malformed line in the listed job's fails that step.
+    const hephaestusLockBefore = hephaestusLockOf('lock-1.json');
+    // The preflight reads every launched child's event log: a malformed line in the listed job's fails that step.
     appendFileSync(await plantedEventLogPathOfTheListedJob(), 'not an event\n');
 
     const restarted = await runAgentProgress(['restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(restarted.exitCode, `${restarted.standardError}\n${hephaestusLogText()}`).toBe(1);
     expect(`${restarted.standardOutput}${restarted.standardError}`).toContain('failed at read-child-records');
-    expect(batonFileNames()).toEqual(['baton-1.json']);
-    expect(batonOf('baton-1.json')).toEqual(batonBefore);
-    expect(storedLogKindsOf(repositoryDirectory)).toContain('baton-pass-failed');
+    expect(hephaestusLockFileNames()).toEqual(['lock-1.json']);
+    expect(hephaestusLockOf('lock-1.json')).toEqual(hephaestusLockBefore);
+    expect(storedLogKindsOf(repositoryDirectory)).toContain('restart-failed');
 
     const status = await runAgentProgress(['status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(status.standardOutput)).toMatchObject({ hephaestus: { url, batonPassWarning: { step: 'read-child-records' } } });
+    expect(JSON.parse(status.standardOutput)).toMatchObject({ hephaestus: { url, restartWarning: { step: 'read-child-records' } } });
     expect((await runAgentProgress(['status'], { currentDirectory: repositoryDirectory, homeDirectory })).standardOutput)
-      .toContain('warning: the Baton pass to code');
+      .toContain('warning: the restart to code');
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('update ends by handing a live Hephaestus on other code to the code on disk; a failed Baton pass exits 1, its install writes standing', async () => {
+  test('update ends by handing a live Hephaestus on other code to the code on disk; a failed restart exits 1, its install writes standing', async () => {
     const withNoHephaestus = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(withNoHephaestus.exitCode, withNoHephaestus.standardError).toBe(0);
     expect(withNoHephaestus.standardOutput).not.toContain('Handing Hephaestus');
@@ -434,14 +427,14 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     const onTheSameCode = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(onTheSameCode.standardOutput).not.toContain('Handing Hephaestus');
 
-    // The live Hephaestus's Baton says it runs older code, as after a pull into the checkout the binary links to.
-    writeFileSync(join(hephaestusDirectory(), 'baton-1.json'), `${JSON.stringify({ ...batonOf('baton-1.json'), codeVersion: 'code-older' })}\n`);
+    // The live Hephaestus's Hephaestus lock says it runs older code, as after a pull into the checkout the binary links to.
+    writeFileSync(join(hephaestusDirectory(), 'lock-1.json'), `${JSON.stringify({ ...hephaestusLockOf('lock-1.json'), codeVersion: 'code-older' })}\n`);
     const updated = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(updated.exitCode, `${updated.standardError}\n${hephaestusLogText()}`).toBe(0);
     expect(updated.standardOutput).toContain(`Hephaestus handed over to code ${CodeVersion.onDisk()}`);
-    expect(batonFileNames()).toEqual(['baton-2.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-2.json']);
 
-    writeFileSync(join(hephaestusDirectory(), 'baton-2.json'), `${JSON.stringify({ ...batonOf('baton-2.json'), codeVersion: 'code-older' })}\n`);
+    writeFileSync(join(hephaestusDirectory(), 'lock-2.json'), `${JSON.stringify({ ...hephaestusLockOf('lock-2.json'), codeVersion: 'code-older' })}\n`);
     appendFileSync(await plantedEventLogPathOfTheListedJob(), 'not an event\n');
     const manifestPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json');
     rmSync(manifestPath);
@@ -449,7 +442,7 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     expect(failed.exitCode, failed.standardError).toBe(1);
     expect(failed.standardError).toContain('failed at read-child-records');
     expect(existsSync(manifestPath)).toBe(true);
-    expect(batonFileNames()).toEqual(['baton-2.json']);
+    expect(hephaestusLockFileNames()).toEqual(['lock-2.json']);
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -518,7 +511,7 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     const talosLine = lines.findIndex((line) => line.includes('Started Talos 1'));
     const servingLine = lines.findIndex((line) => line.includes('Hephaestus serving'));
     expect(servingLine, hephaestusLogText()).toBeGreaterThan(-1);
-    // Talos starts once the Baton is taken and the start recorded, so a start refused earlier leaves no Talos behind.
+    // Talos starts once the Hephaestus lock is taken and the start recorded, so a start refused earlier leaves no Talos behind.
     expect(talosLine, hephaestusLogText()).toBeGreaterThan(servingLine);
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -539,7 +532,41 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     expect(talosRecordAt(2)?.state).toBe('serving');
     expect(existsSync(join(hephaestusDirectory(), 'crash-logs')), hephaestusLogText()).toBe(false);
     const status = await runAgentProgress(['status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(status.standardOutput)).toMatchObject({ hephaestus: { state: 'serving', baton: { generation: 1 } } });
+    expect(JSON.parse(status.standardOutput)).toMatchObject({ hephaestus: { state: 'serving', hephaestusLock: { generation: 1 } } });
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('the preflight as the serving Hephaestus runs it', () => {
+  const failureOfProgram = (programCommand: string[], boundMilliseconds?: number) => preflightFailureOf(
+    { programCommand },
+    { rootDirectory: repositoryDirectory },
+    { logFilePath: join(repositoryDirectory, 'example-hephaestus.log') },
+    boundMilliseconds,
+  );
+  const scriptOf = (script: string): string[] => [process.execPath, '-e', script];
+
+  test('no program command, or one that cannot be run, fails at spawn', async () => {
+    expect(await failureOfProgram([])).toMatchObject({ step: 'spawn' });
+    expect(await failureOfProgram([join(repositoryDirectory, 'no-such-program')])).toMatchObject({ step: 'spawn' });
+  });
+
+  test('a preflight that exits with no report fails at preflight, naming its exit code', async () => {
+    expect(await failureOfProgram(scriptOf('process.exit(3)'))).toMatchObject({ step: 'preflight', error: 'the preflight exited 3 with no report' });
+  });
+
+  test('a preflight that hangs is ended at the bound and fails at preflight', async () => {
+    const boundMilliseconds = 200;
+    const failure = await failureOfProgram(scriptOf('setInterval(() => undefined, 1000)'), boundMilliseconds);
+    expect(failure).toMatchObject({ step: 'preflight', error: `the preflight left no report within ${boundMilliseconds} ms` });
+  });
+
+  test('a fit report on the last line is no failure, and an unfit one fails at its step', async () => {
+    const reportScriptOf = (report: object): string[] => scriptOf(`console.log('example line'); console.log(${JSON.stringify(JSON.stringify(report))})`);
+    expect(await failureOfProgram(reportScriptOf({ verdict: 'fit', codeVersion: 'code-example' }))).toBeNull();
+    const unfit = {
+      verdict: 'unfit', codeVersion: 'code-example', step: 'read-jobs', error: 'Example error'
+    };
+    expect(await failureOfProgram(reportScriptOf(unfit))).toEqual({ successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' });
+  });
 });

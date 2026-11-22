@@ -3,9 +3,9 @@
  * `init` — a verb that reads as destructive — to pick up newer instructions. It creates
  * no tracker, so it takes neither `--project` nor `--root`, and never touches the tracker's own files.
  */
-import { Baton }                                          from '../../../src/services/hephaestus/Baton.ts';
 import { CodeVersion }                                    from '../../../src/services/hephaestus/CodeVersion.ts';
 import { hephaestusFilesIn }                              from '../../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                 from '../../../src/services/hephaestus/HephaestusLock.ts';
 import { requireWorkspace }                               from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
 import { JsonTextUtil }                                   from '../../../src/shared/utils/JsonTextUtil.ts';
@@ -29,15 +29,15 @@ const USAGE = `${PRODUCT_NAMES.PROGRAM} update [--no-hooks] [--json]`;
 const KNOWN_OPTION_NAMES = ['no-hooks', 'json'];
 
 /**
- * How `update`'s last step went. A Baton pass the live Hephaestus did not take is `failed` at the step `restart-not-taken`, at exit 0, with the
- * old Hephaestus still driving; one that failed after it was taken is the refusal `baton-pass-failed` instead.
+ * How `update`'s last step went. A restart the live Hephaestus did not take is `failed` at the step `restart-not-taken`, at exit 0, with the
+ * old Hephaestus still driving; one that failed after it was taken is the refusal `restart-failed` instead.
  */
-interface BatonPassOutcome {
-  batonPass:     'done' | 'not-needed' | 'failed';
-  batonPassStep: 'restart-not-taken' | null;
+interface RestartOutcome {
+  restart:     'done' | 'not-needed' | 'failed';
+  restartStep: 'restart-not-taken' | null;
 }
 
-const BATON_PASS_NOT_NEEDED: BatonPassOutcome = { batonPass: 'not-needed', batonPassStep: null };
+const RESTART_NOT_NEEDED: RestartOutcome = { restart: 'not-needed', restartStep: null };
 
 export const updateCommand: CommandHandler = async (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
@@ -65,30 +65,30 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   output(`Refreshed what ${PRODUCT_NAMES.PROGRAM} manages in ${workspace.rootDirectory}; the tracker itself was not touched.`);
   for (const line of refreshReportLinesOf(report)) output(line);
   recordInstallVersion(workspace.rootDirectory);
-  const batonPassOutcome = await handTheLiveHephaestusToTheCodeOnDisk(context, workspace.trackerDirectory, output);
+  const restartOutcome = await handTheLiveHephaestusToTheCodeOnDisk(context, workspace.trackerDirectory, output);
   if (answersInJson) {
-    context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({ outcome: 'done', installVersion: INSTALL_VERSION, ...batonPassOutcome })));
+    context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({ outcome: 'done', installVersion: INSTALL_VERSION, ...restartOutcome })));
   }
 };
 
 /**
  * The last step of `update`: a live Hephaestus on other code or another install version is handed to the code on disk through the checked
- * Baton pass. A failed one exits 1 `baton-pass-failed` with the old Hephaestus still driving, and what `update` installed stands.
+ * restart. A failed one exits 1 `restart-failed` with the old Hephaestus still driving, and what `update` installed stands.
  */
-async function handTheLiveHephaestusToTheCodeOnDisk(context: CommandContext, trackerDirectory: string, output: (line: string) => void): Promise<BatonPassOutcome> {
+async function handTheLiveHephaestusToTheCodeOnDisk(context: CommandContext, trackerDirectory: string, output: (line: string) => void): Promise<RestartOutcome> {
   const files  = hephaestusFilesIn(trackerDirectory);
-  const newest = Baton.newestBatonOf(context.platformPorts, files.hephaestusDirectory);
-  if (newest.verdict !== 'live') return BATON_PASS_NOT_NEEDED;
-  if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return BATON_PASS_NOT_NEEDED;
+  const newest = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory);
+  if (newest.verdict !== 'live') return RESTART_NOT_NEEDED;
+  if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return RESTART_NOT_NEEDED;
   output(`Handing Hephaestus at ${newest.record.url} over to the code on disk…`);
-  const batonPass = await HephaestusRemote.handOverTheLiveHephaestus(context.platformPorts, files, false);
-  if (batonPass.verdict === 'baton-passed') {
-    output(`Hephaestus handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}.`);
-    return { batonPass: 'done', batonPassStep: null };
+  const restart = await HephaestusRemote.restartTheLiveHephaestus(context.platformPorts, files, false);
+  if (restart.verdict === 'restarted') {
+    output(`Hephaestus handed over to code ${restart.successorCodeVersion} at ${restart.url}.`);
+    return { restart: 'done', restartStep: null };
   }
-  if (batonPass.verdict === 'not-taken') {
-    output(`Hephaestus at ${batonPass.record.url} did not take the Baton pass; run \`${PRODUCT_NAMES.PROGRAM} restart\`.`);
-    return { batonPass: 'failed', batonPassStep: 'restart-not-taken' };
+  if (restart.verdict === 'not-taken') {
+    output(`Hephaestus at ${restart.record.url} did not take the restart; run \`${PRODUCT_NAMES.PROGRAM} restart\`.`);
+    return { restart: 'failed', restartStep: 'restart-not-taken' };
   }
-  return BATON_PASS_NOT_NEEDED;
+  return RESTART_NOT_NEEDED;
 }

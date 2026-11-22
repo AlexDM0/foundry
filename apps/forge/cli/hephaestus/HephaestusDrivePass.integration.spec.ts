@@ -4,7 +4,7 @@
  * readied ticket gets a child of Talos running the fake agent; a builder file the pipeline names waits until it is committed, and a launch records
  * its hash; an Airlock agent the merge sweep launches gets its child in the same wake and, ended in a merge-slot hold, its tokens credited
  * in that hold; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live
- * Baton over HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/hephaestus/HephaestusDrivePass.spec.ts` holds the same
+ * Hephaestus lock over HTTP, and `ticket deliver --by-hand` is refused while it is live. `cli/hephaestus/HephaestusDrivePass.spec.ts` holds the same
  * code behind the recorded Talos stages.
  */
 import { createHash } from 'node:crypto';
@@ -26,12 +26,12 @@ import {
 import { UsageMarkerFile }                                                        from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import type { AgentAdapter }                                                      from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { Board }                                                             from '../../src/lib/tracker-model/Board.ts';
-import { Baton }                                                                  from '../../src/services/hephaestus/Baton.ts';
 import type { BoardChildren }                                                     from '../../src/services/hephaestus/BoardChildren.ts';
 import { type DrivePass }                                                         from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                                             from '../../src/services/hephaestus/HatchInbox.ts';
 import { hephaestusFilesIn }                                                      from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { jobFolderIn }                                                            from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                                         from '../../src/services/hephaestus/HephaestusLock.ts';
 import { writeTracker }                                                           from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
@@ -370,13 +370,13 @@ async function runRefused(commandLineArguments: readonly string[]): Promise<stri
   return `${context.outputText()}\n${context.errorText()}`;
 }
 
-/** A Baton naming this very process, so it reads as live, its URL the given one. */
-function acquireLiveBaton(url: string): { hephaestusDirectory: string; generation: number } {
+/** A Hephaestus lock naming this very process, so it reads as live, its URL the given one. */
+function acquireLiveHephaestusLock(url: string): { hephaestusDirectory: string; generation: number } {
   const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
   mkdirSync(hephaestusDirectory, { recursive: true });
   const identity = identityOf(process.pid);
   if (identity === null) throw new Error('this process has no readable identity');
-  const acquisition = Baton.acquire(ports, hephaestusDirectory, {
+  const acquisition = HephaestusLock.acquire(ports, hephaestusDirectory, {
     processId:            identity.processId,
     processStartStamp:    identity.startStamp,
     bootIdentity:         identity.bootIdentity,
@@ -387,7 +387,7 @@ function acquireLiveBaton(url: string): { hephaestusDirectory: string; generatio
     installVersion:       1,
     talosProtocolVersion: 1,
   });
-  if (acquisition.verdict !== 'acquired') throw new Error('the live Baton was not acquired');
+  if (acquisition.verdict !== 'acquired') throw new Error('the live Hephaestus lock was not acquired');
   return { hephaestusDirectory, generation: acquisition.generation };
 }
 
@@ -447,7 +447,7 @@ describe('usage limits', () => {
 });
 
 describe('the verbs beside a Hephaestus', () => {
-  test('a written verb nudges the live baton\'s URL body-less once its write is stored, and stays silent when nobody answers', async () => {
+  test('a written verb nudges the live hephaestusLock\'s URL body-less once its write is stored, and stays silent when nobody answers', async () => {
     const nudges: { method: string; path: string; body: string; writeWasStored: boolean }[] = [];
     const fakeHephaestus = Bun.serve({
       port:  0,
@@ -460,7 +460,7 @@ describe('the verbs beside a Hephaestus', () => {
       },
     });
     try {
-      acquireLiveBaton(fakeHephaestus.url.href);
+      acquireLiveHephaestusLock(fakeHephaestus.url.href);
       await run(['log', 'Example milestone']);
       expect(nudges).toEqual([{
         method: 'POST', path: '/api/nudge', body: '', writeWasStored: true
@@ -472,12 +472,12 @@ describe('the verbs beside a Hephaestus', () => {
     expect(unanswered.errorText()).toBe('');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('ticket deliver --by-hand is refused hephaestus-owns-the-lifecycle while a Baton is live, and records byHand once none is', async () => {
-    const baton = acquireLiveBaton('http://127.0.0.1:1/');
+  test('ticket deliver --by-hand is refused hephaestus-owns-the-lifecycle while a Hephaestus lock is live, and records byHand once none is', async () => {
+    const hephaestusLock = acquireLiveHephaestusLock('http://127.0.0.1:1/');
     expect(await runRefused(['ticket', 'deliver', '001', '--by-hand'])).toContain('A Hephaestus drives this board at http://127.0.0.1:1/');
     expect(deliveredRecordsOf('001')).toEqual([]);
 
-    Baton.release(baton.hephaestusDirectory, baton.generation);
+    HephaestusLock.release(hephaestusLock.hephaestusDirectory, hephaestusLock.generation);
     await run(['ticket', 'deliver', '001', '--by-hand']);
     expect(deliveredRecordsOf('001')).toEqual([{ byHand: true }]);
     expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);

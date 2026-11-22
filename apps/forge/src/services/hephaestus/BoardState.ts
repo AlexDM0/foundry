@@ -1,7 +1,7 @@
 /**
  * Hephaestus's `BoardState` document, `GET /api/state` and the `board` event: the `status --json` document plus the page's islands,
  * every job with its live facts, the notices, the merge queue, Hephaestus and usage, all from one reading Board. The open summary,
- * `summaryVersion: 2`, is derived from it.
+ * `summaryVersion: 3`, is derived from it.
  */
 import type { BoardSummaryDocument } from 'forge-contracts/BoardSummaryDocument';
 

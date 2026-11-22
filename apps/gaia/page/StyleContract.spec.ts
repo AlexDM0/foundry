@@ -1,7 +1,7 @@
 /**
- * Gaia's style contract, read from the stylesheets and the components themselves. What matters: every text pair of COMPONENT_LIBRARY
+ * Gaia's style contract, read from the stylesheets and the components themselves. What matters: every text pair of `docs/design/components.md`
  * section 4, in the design-system package's token names, holds 4.5:1 in both themes as a WCAG 2 text pair, a translucent token composited
- * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 (PLAN V9); every colour token of
+ * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 as the owner accepts; every colour token of
  * Gaia's own `tokens.css` has a light and a dark value, and every token of it is read somewhere; `gaia.css` holds no colour value and
  * reads only tokens that the package's or Gaia's `tokens.css` defines; a hover or press rule changes no size or place; every class a
  * shipping component emits is styled, and every styled class emitted; and one rule hides a label read only by a screen reader. Motion, in
@@ -60,7 +60,7 @@ function textPair(text: string, ...grounds: string[]): TextPair {
 }
 
 /**
- * COMPONENT_LIBRARY section 4 in the package's names: `--bg` for its ground, `--lane-bg` for its lane, `--ink-muted` for its ink 72%,
+ * `docs/design/components.md` section 4 in the package's names: `--bg` for its ground, `--lane-bg` for its lane, `--ink-muted` for its ink 72%,
  * `--ink-4` for its ink 68%, `--link` and `--link-tint` for its orange text and tint, the info and success badges for its teal and pass
  * pairs, `--err-*` for its fail pairs. The last text pair is the primary button `gaia.css` still draws itself, ground text on ink.
  */
@@ -1154,11 +1154,11 @@ describe('the scan itself', () => {
 });
 
 describe('the tokens', () => {
-  test('every text pair of COMPONENT_LIBRARY section 4 holds 4.5:1 in the light and the dark theme, the primary button 3:1', () => {
+  test('every text pair of docs/design/components.md section 4 holds 4.5:1 in the light and the dark theme, the primary button 3:1', () => {
     expect(contrastSentencesOf(LINKED_TOKENS_TEXT, TEXT_PAIRS)).toEqual([]);
   });
 
-  test('the primary button is the one pair under 4.5:1, as PLAN V9 accepts', () => {
+  test('the primary button is the one pair under 4.5:1, as the owner accepts', () => {
     const pairsAtTheTextRatio = TEXT_PAIRS.map((pair) => ({ ...pair, smallestRatio: SMALLEST_TEXT_CONTRAST_RATIO }));
     expect(contrastSentencesOf(LINKED_TOKENS_TEXT, pairsAtTheTextRatio).map((sentence) => sentence.replace(/ is .*/, ''))).toEqual([
       'light: --accent-ink-on on --button',

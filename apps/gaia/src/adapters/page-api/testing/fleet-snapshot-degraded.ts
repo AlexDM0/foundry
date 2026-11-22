@@ -30,7 +30,7 @@ const INVOICE_SERVICE: FleetForge = {
   presence:       { state: 'unknown', generation: null, at: null },
 };
 
-/** A job read through `summaryVersion: 2`: what the summary does not hold is `null`, never zero. */
+/** A job read through `summaryVersion: 3`: what the summary does not hold is `null`, never zero. */
 const WIKI_COUNTS_ONLY_J2: AgentRow = {
   jobId:               'J2',
   kind:                'build',
@@ -65,7 +65,7 @@ const RESEARCH_WIKI: FleetForge = {
   url:       'http://127.0.0.1:4962',
   processId: 48_390,
   contracts: {
-    summary: 2,
+    summary: 3,
     monitor: null,
     control: null,
   },
@@ -107,8 +107,8 @@ const ANALYTICS_SANDBOX: FleetForge = {
   url:       'http://127.0.0.1:4983',
   processId: 49_012,
   contracts: {
-    summary: 2,
-    monitor: 6,
+    summary: 3,
+    monitor: 7,
     control: 4,
   },
   codeVersion:         '9c04e5b',

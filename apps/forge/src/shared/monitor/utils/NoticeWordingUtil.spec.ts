@@ -1,7 +1,7 @@
 /**
  * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
- * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
+ * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed restart and an
  * Assistant that cannot come up, each by its own kind, and nothing else; passes abandoned in a row name their count and their reason. A notice
  * that asks for an action names a neutral action, never a command line, since User runs no command.
  */
@@ -84,12 +84,12 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
 });
 
 describe('NoticeWordingUtil.warningsOf', () => {
-  test('names a failed Baton pass and an Assistant that cannot come up, each by its own kind', () => {
+  test('names a failed restart and an Assistant that cannot come up, each by its own kind', () => {
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I3', move: 'job-fresh', cause: 'no-assistant'
     }];
-    expect(NoticeWordingUtil.warningsOf(notices, { successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error' })).toEqual([
-      { kind: 'baton-pass-failed', text: 'the Baton pass to code code-example failed at take-baton: Example error' },
+    expect(NoticeWordingUtil.warningsOf(notices, { successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' })).toEqual([
+      { kind: 'restart-failed', text: 'the restart to code code-example failed at read-jobs: Example error' },
       { kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' },
     ]);
   });

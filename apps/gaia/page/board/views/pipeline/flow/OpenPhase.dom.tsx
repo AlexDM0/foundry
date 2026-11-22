@@ -1,5 +1,5 @@
 /**
- * The open phase in a happy-dom document, over the designed fixtures. What matters: its header says when the phase leaves, and Merge ends
+ * The open phase in a happy-dom document, over the pipeline fixtures. What matters: its header says when the phase leaves, and Merge ends
  * on main; the Ticket phase says what makes a draft ready; the smallest pipeline draws an add card only where the facts name a missing
  * step, whose choices send their edit or ask for the Gate dialog; the merge before review is an Automatic step that opens nothing and
  * keeps its derived meter focusable; a double-click or Enter asks for what a step opens (Ticket creation its agent dialog) and never sends

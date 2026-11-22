@@ -102,7 +102,7 @@ export const CRASH_INTERRUPTION_CAUSES = ['talos-lost', 'agent-crashed'] as cons
 
 export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'committing', 'landing'] as const satisfies readonly AirlockPhase[];
 
-export const HEPHAESTUS_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly HephaestusStopReason[];
+export const HEPHAESTUS_STOP_REASONS = ['stopped', 'handed-over'] as const satisfies readonly HephaestusStopReason[];
 
 export const START_KINDS = ['first-start', 'handover', 'stopped-on-purpose', 'machine-went-down', 'crashed'] as const satisfies readonly StartKind[];
 

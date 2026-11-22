@@ -29,7 +29,7 @@ function exampleState(changes: ExampleChanges = {}): BoardState {
     notices:    [],
     mergeQueue: { queuedTicketIds: [], slots: [] },
     hephaestus: {
-      state: 'serving', paused: changes.paused ?? false, url: null, generation: 3, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
+      state: 'serving', paused: changes.paused ?? false, url: null, generation: 3, codeVersion: 'code-example', installVersion: 17, restartWarning: null
     },
     usage:         { resetsAt: changes.resetsAt ?? null, window: null },
     pipeline:      { readingVerdict: 'absent' },

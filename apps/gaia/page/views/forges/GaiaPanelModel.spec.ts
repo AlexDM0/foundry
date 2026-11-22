@@ -1,5 +1,5 @@
 /**
- * The Gaia panel's content and its "What notifies" list. What matters (SCREENS A4 and C2): each checkbox shows the setting and sends
+ * The Gaia panel's content and its "What notifies" list. What matters (`docs/design/screens.md` A4 and C2): each checkbox shows the setting and sends
  * `settings-set` with that one setting turned over, the kinds' checkbox only its own kind; the facts read the document's paths from `~`,
  * and this Gaia's system version, the one forge version it is built for and its address, never a package version or the contracts it
  * reads, and say in words when no forge program is known; a settings change on its way

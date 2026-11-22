@@ -1,5 +1,5 @@
 /**
- * The Baton pass a red handoff leaves in its job's folder. What matters: it names every field the resumed session needs instead of
+ * The gate failure note a red handoff leaves in its job's folder. What matters: it names every field the resumed session needs instead of
  * rerunning the gate (gate, command, fix command, commit, exit code, the full log's path); a long output shows only its first and last
  * 40 lines and never more than 8 KB; a gate that changed a file shows the diff in the output's place; a conflicted merge of the target
  * names the tip it merged and lists the conflicted files; and the facts read back as written.
@@ -13,8 +13,8 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { BATON_PASS_OUTPUT_LIMITS, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
+import { GATE_FAILURE_NOTE_OUTPUT_LIMITS, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
 
 const folders: string[] = [];
 
@@ -30,7 +30,7 @@ function factsIn(jobFolder: string): RedHandoffFacts {
     fixCommand:          'bun run format',
     commit:              '0123456789abcdef0123456789abcdef01234567',
     exitCode:            1,
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         join(jobFolder, 'gate.log'),
     resume:              1,
     resumesAllowed:      2,
@@ -43,13 +43,13 @@ function longOutput(lineCount: number, lineText = 'example output line'): string
   return Array.from({ length: lineCount }, (_unused, i) => `${lineText} ${i + 1}`).join('\n');
 }
 
-describe('the red handoff baton-pass', () => {
+describe('the gate failure note of a red handoff', () => {
   test('names the gate, its command and fix command, the commit, the exit code and the full log\'s path', () => {
     const jobFolder = createScratchDirectory('red-handoff');
     folders.push(jobFolder);
     const facts = factsIn(jobFolder);
     RedHandoff.writeRedHandoff(jobFolder, facts, 'expected 2, received 3');
-    const batonPass = readFileSync(join(jobFolder, 'gate-failure.md'), 'utf8');
+    const gateFailureNote = readFileSync(join(jobFolder, 'gate-failure.md'), 'utf8');
 
     const fields = [
       'Gate: tests',
@@ -60,7 +60,7 @@ describe('the red handoff baton-pass', () => {
       `Full log: ${String(facts.fullLogPath)}`,
       'expected 2, received 3',
     ];
-    for (const field of fields) expect(batonPass).toContain(field);
+    for (const field of fields) expect(gateFailureNote).toContain(field);
     expect(RedHandoff.redHandoffFactsOf(jobFolder)).toEqual(facts);
   });
 
@@ -68,16 +68,16 @@ describe('the red handoff baton-pass', () => {
     const excerpt = RedHandoff.outputExcerptOf(longOutput(500));
     const lines = excerpt.split('\n');
 
-    expect(lines.slice(0, BATON_PASS_OUTPUT_LIMITS.HEAD_LINES)).toEqual(longOutput(40).split('\n'));
-    expect(lines[BATON_PASS_OUTPUT_LIMITS.HEAD_LINES]).toBe('[… 420 lines omitted …]');
-    expect(lines.slice(-BATON_PASS_OUTPUT_LIMITS.TAIL_LINES)).toEqual(longOutput(500).split('\n').slice(-40));
+    expect(lines.slice(0, GATE_FAILURE_NOTE_OUTPUT_LIMITS.HEAD_LINES)).toEqual(longOutput(40).split('\n'));
+    expect(lines[GATE_FAILURE_NOTE_OUTPUT_LIMITS.HEAD_LINES]).toBe('[… 420 lines omitted …]');
+    expect(lines.slice(-GATE_FAILURE_NOTE_OUTPUT_LIMITS.TAIL_LINES)).toEqual(longOutput(500).split('\n').slice(-40));
     expect(lines).toHaveLength(81);
   });
 
   test('cuts an output of long lines to at most 8 KB, keeping its start and its end', () => {
     const excerpt = RedHandoff.outputExcerptOf(longOutput(500, 'x'.repeat(400)));
 
-    expect(Buffer.byteLength(excerpt, 'utf8')).toBeLessThanOrEqual(BATON_PASS_OUTPUT_LIMITS.BYTES);
+    expect(Buffer.byteLength(excerpt, 'utf8')).toBeLessThanOrEqual(GATE_FAILURE_NOTE_OUTPUT_LIMITS.BYTES);
     expect(excerpt.startsWith(`${'x'.repeat(400)} 1\n`)).toBe(true);
     expect(excerpt.endsWith(`${'x'.repeat(400)} 500`)).toBe(true);
   });
@@ -88,28 +88,28 @@ describe('the red handoff baton-pass', () => {
 
   test('shows the diff in the output\'s place for a gate that changed a file', () => {
     const diff = 'diff --git a/example.ts b/example.ts\n-const example = 1\n+const example = 1;';
-    expect(RedHandoff.batonPassTextOf(factsIn('/example/job'), diff)).toContain(diff);
+    expect(RedHandoff.gateFailureNoteTextOf(factsIn('/example/job'), diff)).toContain(diff);
   });
 
   test('names the Customs check for a refused Customs check, with no gate', () => {
     const facts: RedHandoffFacts = {
       ...factsIn('/example/job'), kind: 'customs', name: 'V4', command: null, fixCommand: null, exitCode: null, fullLogPath: null
     };
-    const batonPass = RedHandoff.batonPassTextOf(facts, 'the worktree has uncommitted changes');
+    const gateFailureNote = RedHandoff.gateFailureNoteTextOf(facts, 'the worktree has uncommitted changes');
 
-    expect(batonPass).toContain('Customs check: V4');
-    expect(batonPass).toContain('Gate: -');
+    expect(gateFailureNote).toContain('Customs check: V4');
+    expect(gateFailureNote).toContain('Gate: -');
   });
 
   test('names the target, the tip it merged and the branch tip for a conflicted merge, and lists each conflicted file', () => {
     const facts: RedHandoffFacts = {
       ...factsIn('/example/job'), kind: 'merge-conflict', name: 'main', command: null, fixCommand: null, exitCode: null, fullLogPath: null, mergedTip: 'f'.repeat(40)
     };
-    const batonPass = RedHandoff.batonPassTextOf(facts, 'basket.ts\ncheckout.ts\n');
+    const gateFailureNote = RedHandoff.gateFailureNoteTextOf(facts, 'basket.ts\ncheckout.ts\n');
 
-    expect(batonPass).toContain('# The merge of `main` conflicts');
-    expect(batonPass).toContain(`- Merged tip: ${'f'.repeat(40)}`);
-    expect(batonPass).toContain(`- Branch tip: ${facts.commit}`);
-    expect(batonPass).toContain('- basket.ts\n- checkout.ts\n');
+    expect(gateFailureNote).toContain('# The merge of `main` conflicts');
+    expect(gateFailureNote).toContain(`- Merged tip: ${'f'.repeat(40)}`);
+    expect(gateFailureNote).toContain(`- Branch tip: ${facts.commit}`);
+    expect(gateFailureNote).toContain('- basket.ts\n- checkout.ts\n');
   });
 });

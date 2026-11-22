@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phases and hooks: a pipeline a board can extend</title>
+<style>
+  :root {
+    --ground: #f6f6f6; --card: #fefefe; --sunken: #ededed; --ink: #181818; --ink-soft: #555555; --ink-faint: #6e6e6e;
+    --line: #dedede; --line-strong: #c2c2c2;
+    --orange: #fa5f01; --orange-light: #fb9d59; --accent: #c43300; --tint: #ffece2; --tint-line: #ff814c; --button: #f55a00;
+    --teal: #2196a7; --teal-ink: #17707d; --teal-tint: #e2f3f5;
+    --green: #19a24e; --green-ink: #266f20; --green-tint: #e3f6e9;
+    --crimson: #b7014d; --crimson-tint: #f8eaf0;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #131313; --card: #1c1c1c; --sunken: #262626; --ink: #ededed; --ink-soft: #b2b2b2; --ink-faint: #9a9a9a;
+      --line: #303030; --line-strong: #474747;
+      --orange: #fa5f01; --orange-light: #feb073; --accent: #ff9a66; --tint: #36200f; --tint-line: #a8491c; --button: #e15306;
+      --teal: #4fb8c8; --teal-ink: #7fd0dc; --teal-tint: #12313a;
+      --green: #3fc473; --green-ink: #86dd98; --green-tint: #143021;
+      --crimson: #f2669f; --crimson-tint: #3a1526;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #131313; --card: #1c1c1c; --sunken: #262626; --ink: #ededed; --ink-soft: #b2b2b2; --ink-faint: #9a9a9a;
+    --line: #303030; --line-strong: #474747;
+    --orange: #fa5f01; --orange-light: #feb073; --accent: #ff9a66; --tint: #36200f; --tint-line: #a8491c; --button: #e15306;
+    --teal: #4fb8c8; --teal-ink: #7fd0dc; --teal-tint: #12313a;
+    --green: #3fc473; --green-ink: #86dd98; --green-tint: #143021;
+    --crimson: #f2669f; --crimson-tint: #3a1526;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+  .layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); max-width: 1260px; margin: 0 auto; }
+
+  nav.sidebar { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 30px 14px 24px 22px; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 9px; font: 600 13px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+  .brand .mark { width: 11px; height: 11px; background: var(--orange); transform: rotate(45deg); border-radius: 2px; flex: none; }
+  .brand-subtitle { color: var(--ink-faint); font-size: 12.5px; margin: 6px 0 22px; line-height: 1.4; }
+  nav.sidebar a { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; margin: 1px 0; border-radius: 6px; color: var(--ink-soft); text-decoration: none; font-size: 14px; border: 1px solid transparent; }
+  nav.sidebar a .number { font: 11px var(--mono); color: var(--ink-faint); min-width: 16px; }
+  nav.sidebar a:hover { background: var(--sunken); color: var(--ink); }
+  nav.sidebar a.current { background: var(--tint); border-color: var(--tint-line); color: var(--accent); font-weight: 600; }
+  nav.sidebar a.current .number { color: var(--accent); }
+  .theme-toggle { margin-top: auto; align-self: flex-start; font: 12.5px var(--sans); color: var(--ink-soft); background: var(--card); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 11px; cursor: pointer; }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  main { padding: 40px 44px 96px; min-width: 0; }
+  .eyebrow { font: 600 11.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: 38px; line-height: 1.12; letter-spacing: -.022em; margin: 0 0 16px; max-width: 20ch; font-weight: 680; }
+  h2 { font-size: 25px; letter-spacing: -.014em; margin: 72px 0 6px; padding-top: 6px; font-weight: 660; }
+  h2 .number { font: 600 12px var(--mono); color: var(--accent); letter-spacing: .08em; display: block; margin-bottom: 8px; }
+  h3 { font-size: 16.5px; margin: 30px 0 8px; letter-spacing: -.005em; }
+  p { margin: 0 0 14px; max-width: 74ch; }
+  .lede { font-size: 18.5px; line-height: 1.5; color: var(--ink-soft); max-width: 66ch; }
+  .section-lede { color: var(--ink-soft); max-width: 70ch; margin-bottom: 20px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; max-width: 74ch; }
+  li { margin: 5px 0; }
+  a { color: var(--accent); }
+  code { font: 13px/1.4 var(--mono); background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre { font: 13px/1.6 var(--mono); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 0 0 16px; max-width: 80ch; }
+  pre .key { color: var(--accent); }
+  pre .open { color: var(--crimson); }
+  sup { line-height: 0; }
+  sup a { font: 10.5px var(--mono); text-decoration: none; padding: 0 1px; }
+  sup a:hover { text-decoration: underline; }
+
+  .verdict-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 28px 0 8px; overflow: hidden; }
+  .verdict-strip > div { padding: 18px 20px; border-right: 1px solid var(--line); }
+  .verdict-strip > div:last-child { border-right: none; }
+  .verdict-strip .label { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+  .verdict-strip p { margin: 0; font-size: 14.5px; line-height: 1.5; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .pill { display: inline-block; font: 600 11.5px var(--sans); padding: 2px 9px; border-radius: 10px; white-space: nowrap; border: 1px solid transparent; }
+  .pill.orange { background: var(--tint); color: var(--accent); }
+  .pill.green { background: var(--green-tint); color: var(--green-ink); }
+  .pill.teal { background: var(--teal-tint); color: var(--teal-ink); }
+  .pill.crimson { background: var(--crimson-tint); color: var(--crimson); }
+  .pill.neutral { background: var(--sunken); color: var(--ink-soft); }
+
+  /* The anatomy of a step */
+  .anatomy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 0; margin: 22px 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+  .anatomy .slot { padding: 16px 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .anatomy .slot:nth-child(3n) { border-right: none; }
+  .anatomy .slot.wide { grid-column: span 3; border-right: none; border-bottom: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
+  .anatomy .slot.wide > div { padding: 16px 18px; background: var(--tint); }
+  .anatomy .slot.wide > div:first-child { border-right: 1px solid var(--tint-line); }
+  .slot-name { font: 600 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .slot.wide .slot-name { color: var(--accent); }
+  .slot p { font-size: 14px; margin: 0; color: var(--ink-soft); line-height: 1.5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: 12px var(--mono); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); white-space: nowrap; }
+  .caption { font-size: 13.5px; color: var(--ink-faint); margin: 8px 0 20px; max-width: 78ch; }
+
+  .table-wrap { overflow-x: auto; margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+  th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); background: var(--ground); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.term { font-weight: 600; white-space: nowrap; }
+  td .small { display: block; font-size: 13.5px; color: var(--ink-soft); margin-top: 3px; }
+
+  /* The explorer */
+  .explorer { margin: 20px 0 10px; }
+  .segmented { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: var(--card); margin-bottom: 14px; flex-wrap: wrap; }
+  .segmented button { font: 600 13.5px var(--sans); padding: 8px 15px; border: none; background: transparent; color: var(--ink-soft); cursor: pointer; border-right: 1px solid var(--line-strong); }
+  .segmented button:last-child { border-right: none; }
+  .segmented button[aria-pressed="true"] { background: var(--button); color: #ffffff; }
+  .track { display: flex; gap: 0; overflow-x: auto; padding: 4px 2px 14px; align-items: stretch; }
+  .step-node { flex: 1 0 128px; min-width: 128px; max-width: 190px; position: relative; padding-right: 22px; }
+  .step-node:last-child { padding-right: 0; }
+  .step-node:not(:last-child)::after { content: ""; position: absolute; right: 3px; top: 31px; width: 16px; height: 1px; background: var(--line-strong); }
+  .step-node:not(:last-child)::before { content: ""; position: absolute; right: 3px; top: 28px; width: 6px; height: 6px; border-top: 1px solid var(--line-strong); border-right: 1px solid var(--line-strong); transform: rotate(45deg); }
+  .step-button { width: 100%; height: 100%; text-align: left; background: var(--card); border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 12px 11px; cursor: pointer; color: var(--ink); font: inherit; display: flex; flex-direction: column; gap: 5px; }
+  .step-button:hover { border-color: var(--ink-faint); }
+  .step-button[aria-pressed="true"] { border-color: var(--tint-line); background: var(--tint); box-shadow: 0 0 0 1px var(--tint-line); }
+  .step-button .index { font: 10.5px var(--mono); color: var(--ink-faint); letter-spacing: .06em; }
+  .step-button .name { font-weight: 640; font-size: 14.5px; line-height: 1.25; }
+  .step-button .mode { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dot.trigger { background: var(--ink-faint); }
+  .dot.chat { background: var(--orange-light); }
+  .dot.agent { background: var(--orange); }
+  .dot.person { background: var(--teal); }
+  .dot.code { background: var(--green); }
+  .step-button .origin { font: 10.5px var(--mono); color: var(--ink-faint); }
+  .step-button[aria-pressed="true"] .index, .step-button[aria-pressed="true"] .origin { color: var(--accent); }
+  .detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  .detail-head { padding: 16px 20px 14px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .detail-head h3 { margin: 0; font-size: 18px; }
+  .detail-note { padding: 0 20px 16px; color: var(--ink-soft); font-size: 14.5px; max-width: 86ch; }
+  .detail .cell { padding: 14px 20px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .detail .cell:nth-child(2n) { border-right: none; }
+  .detail .cell.full { grid-column: 1 / -1; border-right: none; }
+  .detail .cell.added { background: var(--tint); }
+  .detail .cell .slot-name { margin-bottom: 6px; }
+  .detail .cell.added .slot-name { color: var(--accent); }
+  .detail .cell p { font-size: 14.5px; margin: 0; max-width: none; }
+  .detail .cell .unstated { color: var(--crimson); font-weight: 600; }
+  .ledger { padding: 16px 20px 18px; border-top: 1px solid var(--line); }
+  .ledger-title { font: 600 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+  .ledger-group { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: start; margin-top: 10px; }
+  .ledger-group .group-name { font-size: 13px; color: var(--ink-soft); padding-top: 3px; }
+  .chip.absent { border-style: dashed; color: var(--ink-faint); background: transparent; border-color: var(--line); }
+  .chip.present { background: var(--sunken); border-color: var(--line); }
+  .chip.read { background: var(--tint); border-color: var(--tint-line); color: var(--accent); font-weight: 600; }
+  .chip.emitted { background: var(--green-tint); border-color: var(--green); color: var(--green-ink); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12.5px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Filters and expandable lists */
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 12px; align-items: center; }
+  .filters .filter-label { font-size: 13px; color: var(--ink-faint); margin-right: 2px; }
+  .filter { font: 600 12.5px var(--sans); padding: 5px 11px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink-soft); cursor: pointer; }
+  .filter[aria-pressed="true"] { background: var(--tint); border-color: var(--tint-line); color: var(--accent); }
+  .filter .count { font: 11px var(--mono); margin-left: 5px; opacity: .75; }
+  .text-button { font: 13px var(--sans); color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px 6px; margin-left: auto; }
+  .difficulty { border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 8px 0; overflow: hidden; }
+  .difficulty summary { list-style: none; cursor: pointer; padding: 14px 18px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto 18px; gap: 12px; align-items: baseline; }
+  .difficulty summary::-webkit-details-marker { display: none; }
+  .difficulty summary .index { font: 12px var(--mono); color: var(--ink-faint); }
+  .difficulty summary .title { font-weight: 640; font-size: 15.5px; }
+  .difficulty summary .line { display: block; font-weight: 400; font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
+  .difficulty summary .caret { color: var(--ink-faint); font: 14px var(--mono); transition: transform .15s; }
+  .difficulty[open] summary .caret { transform: rotate(90deg); }
+  .difficulty[open] summary { border-bottom: 1px solid var(--line); }
+  .difficulty .body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .difficulty .body > div { padding: 14px 18px 16px; border-right: 1px solid var(--line); font-size: 14.5px; }
+  .difficulty .body > div:last-child { border-right: none; }
+  .difficulty .body p { margin: 0; max-width: none; }
+  .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+  .argument { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 14px; }
+  .argument h4 { margin: 0 0 6px; font-size: 15.5px; display: flex; gap: 10px; align-items: baseline; }
+  .argument h4 .index { font: 600 11.5px var(--mono); color: var(--accent); }
+  .argument p { font-size: 14.5px; margin: 0 0 8px; max-width: none; color: var(--ink-soft); }
+  .argument p:last-child { margin-bottom: 0; }
+  .argument .holds { font-size: 13.5px; color: var(--ink); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+  .callout { border: 1px solid var(--tint-line); background: var(--tint); border-radius: 10px; padding: 16px 20px; margin: 18px 0; max-width: 84ch; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout.plain { border-color: var(--line); background: var(--card); }
+  .layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); margin: 16px 0; }
+  .layers > div { padding: 16px 18px; border-right: 1px solid var(--line); }
+  .layers > div:last-child { border-right: none; }
+  .layers h4 { margin: 0 0 2px; font-size: 15.5px; }
+  .layers .kind { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .layers ul { padding-left: 18px; margin: 8px 0 0; font-size: 14.5px; color: var(--ink-soft); }
+  .question { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .question:last-child { border-bottom: none; }
+  .question .index { font: 12px var(--mono); color: var(--accent); padding-top: 3px; }
+  .question p { margin: 0; max-width: 80ch; }
+  .question .why { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
+  ol.sources { font-size: 14px; color: var(--ink-soft); padding-left: 26px; }
+  ol.sources li { margin: 6px 0; }
+  ol.sources code { font-size: 12.5px; }
+  ol.sources li:target { background: var(--tint); outline: 6px solid var(--tint); border-radius: 4px; color: var(--ink); }
+
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    nav.sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 16px 16px 10px; display: block; }
+    nav.sidebar .links { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
+    nav.sidebar a { white-space: nowrap; }
+    .brand-subtitle { margin-bottom: 10px; }
+    .theme-toggle { margin-top: 8px; }
+    main { padding: 26px 16px 72px; }
+    h1 { font-size: 30px; }
+    .verdict-strip, .layers, .columns, .detail, .difficulty .body { grid-template-columns: minmax(0, 1fr); }
+    .verdict-strip > div, .layers > div, .difficulty .body > div { border-right: none; border-bottom: 1px solid var(--line); }
+    .verdict-strip > div:last-child, .layers > div:last-child, .difficulty .body > div:last-child { border-bottom: none; }
+    .detail .cell { border-right: none; }
+    .anatomy { grid-template-columns: minmax(0, 1fr); }
+    .anatomy .slot { border-right: none; }
+    .anatomy .slot.wide { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
+    .anatomy .slot.wide > div:first-child { border-right: none; border-bottom: 1px solid var(--tint-line); }
+    .ledger-group { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .difficulty summary { grid-template-columns: 24px minmax(0, 1fr) 14px; }
+    .difficulty summary .pill { grid-column: 2; justify-self: start; }
+  }
+
+  .step-node.handover { flex: 0 0 112px; min-width: 112px; }
+  .step-node.handover .step-button { border-style: dashed; background: var(--ground); }
+  .step-node.handover .step-button[aria-pressed="true"] { border-style: solid; background: var(--tint); }
+  .hook-list { padding: 0 20px 16px; }
+  .hook-list .table-wrap { margin: 0; }
+  .hook-list table { font-size: 14px; }
+  .hook-list td.term { white-space: normal; }
+  .empty-handover { padding: 0 20px 18px; color: var(--ink-soft); font-size: 14.5px; }
+  .argument ul { font-size: 14.5px; color: var(--ink-soft); padding-left: 18px; margin: 0; max-width: none; }
+  .argument ul li { margin: 6px 0; }
+  .anatomy.hook { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .anatomy.hook .slot:nth-child(3n) { border-right: 1px solid var(--line); }
+  .anatomy.hook .slot:nth-child(2n) { border-right: none; }
+  .anatomy.hook .slot.wide { grid-column: span 2; }
+  @media (max-width: 920px) {
+    .anatomy.hook { grid-template-columns: minmax(0, 1fr); }
+    .anatomy.hook .slot, .anatomy.hook .slot:nth-child(3n) { border-right: none; }
+    .anatomy.hook .slot.wide { grid-column: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar" aria-label="Sections">
+    <div class="brand"><span class="mark"></span>forge</div>
+    <div class="brand-subtitle">Phases and hooks<br>Pipeline design · 21 Nov 2026</div>
+    <div class="links">
+      <a href="#concept"><span class="number">1</span>The concept</a>
+      <a href="#explorer"><span class="number">2</span>A board, step by step</a>
+      <a href="#baseline"><span class="number">3</span>The baseline</a>
+      <a href="#rules"><span class="number">4</span>The rules</a>
+      <a href="#difficulties"><span class="number">5</span>Difficulties</a>
+      <a href="#impact"><span class="number">6</span>Impact</a>
+      <a href="#steelman"><span class="number">7</span>Steelman</a>
+      <a href="#strawman"><span class="number">8</span>Strawman</a>
+      <a href="#sources"><span class="number">9</span>Sources</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" type="button">Switch theme</button>
+  </nav>
+
+  <main>
+    <div class="eyebrow">Pipeline design · nothing here is built</div>
+    <h1>A fixed pipeline a board can extend</h1>
+    <p class="lede">Forge's phases stay forge's. A board switches on a plan, and fills the hook points between the
+    phases with hooks: a command, an agent or a person, each doing whatever that board needs at that point.</p>
+
+    <div class="verdict-strip">
+      <div><div class="label">Phases are fixed</div><p>Intake, plan, build, review, merge, in that order. Each delivers an artifact. Only build and review change code.</p></div>
+      <div><div class="label">Hooks are the board's</div><p>At six hook points, an ordered list. Forge knows three things about a hook: what it reads, whether it can stop the flow, what it produces.</p></div>
+      <div><div class="label">A board that adds nothing</div><p>behaves as forge does today. Gates, ticket review and merge approval are untouched.</p></div>
+    </div>
+
+    <h2 id="concept"><span class="number">01</span>The concept</h2>
+    <p class="section-lede">Six words carry the design.<sup><a href="#source-18">[18]</a></sup></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Word</th><th>Meaning</th><th>In forge today</th></tr></thead>
+        <tbody>
+          <tr><td class="term">Phase</td><td>A stretch of work that delivers an artifact. Forge ships the phases and their order.</td><td>Intake, build, review and the merge exist. Plan is new.</td></tr>
+          <tr><td class="term">Artifact</td><td>A named document that forge keeps, with versions and the approvals given on it.</td><td>The ticket; the Handoff and each Review, which code writes from verified reports.<sup><a href="#source-2">[2]</a></sup></td></tr>
+          <tr><td class="term">Hook point</td><td>The place after a phase where a board's hooks run, before the next phase may start.</td><td>Does not exist: passed gates start the review in the same transaction.<sup><a href="#source-2">[2]</a></sup></td></tr>
+          <tr><td class="term">Hook</td><td>One entry in a hook point's list. Run by a command, an agent or a person.</td><td>Nothing a board can add.</td></tr>
+          <tr><td class="term">Gate</td><td>A command that judges the tree, inside a phase. Unchanged.</td><td>Gates in the phases build, review and merge.<sup><a href="#source-5">[5]</a></sup></td></tr>
+          <tr><td class="term">Context</td><td>What a phase or a hook is given: the artifacts it names, and nothing else.</td><td>The ticket's body, put into an agent's first message.<sup><a href="#source-19">[19]</a></sup></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The anatomy of a hook</h3>
+    <div class="anatomy hook" role="img" aria-label="A hook declares who runs it, what it reads, whether it blocks and what a no does, and what it produces.">
+      <div class="slot"><div class="slot-name">Runs by</div><p>A command, an agent with a brief and a model, or a person with a role.</p></div>
+      <div class="slot"><div class="slot-name">Reads</div><div class="chips"><span class="chip">ticket</span><span class="chip">plan</span><span class="chip">an earlier hook's artifact</span><span class="chip">a snapshot of the code</span></div></div>
+      <div class="slot"><div class="slot-name">Blocks</div><p>Whether its "no" stops the flow. If it does, the hook says what the no does: return the work to the phase before it, or halt for a person.</p></div>
+      <div class="slot"><div class="slot-name">Produces</div><p>Named artifacts, each with the headings it must have. A later phase or hook names them to get them.</p></div>
+      <div class="slot wide">
+        <div><div class="slot-name">A hook never</div><p>works in the ticket's worktree. One that reads code gets a snapshot of the commit handed over, to use and throw away.</p></div>
+        <div><div class="slot-name">A hook never</div><p>is a phase's conversation. A person's hook is a halt that ends on accept.</p></div>
+      </div>
+    </div>
+    <p class="caption">Everything else about a hook is its own business: a check, an analysis, a report to another system,
+    a statistics run.</p>
+
+    <h3>What forge does with a hook</h3>
+    <p>Forge waits for every hook, in the order the board lists them. A hook ends in a yes, a no, or it could not run.
+    The declarations decide what each does.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Blocks</th><th>Produces</th><th>A "no"</th><th>Could not run</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>No</td><td>Nothing</td><td>Has no meaning</td><td>Recorded and shown; the flow continues</td><td>A notifier, a statistics tracker</td></tr>
+          <tr><td>No</td><td>Artifacts</td><td>Has no meaning</td><td>The ticket waits for a person</td><td>Test criteria that the reviewer reads</td></tr>
+          <tr><td>Yes</td><td>Nothing</td><td>Returns the work, or halts for a person</td><td>The ticket waits for a person</td><td>A check on the plan</td></tr>
+          <tr><td>Yes</td><td>Artifacts</td><td>The same, with the artifacts as findings</td><td>The ticket waits for a person</td><td>An architecture verification with its report</td></tr>
+          <tr><td>A person</td><td>Nothing</td><td>None: it halts until accept</td><td>Does not apply</td><td>An approval</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A command says no through its exit status, as a gate does. An agent says no through a verdict in its report, as a
+    reviewer does.<sup><a href="#source-11">[11]</a></sup> A person never says no: the hook halts until accept, and what
+    the person does before that (reads, edits the artifact, sends findings to the builder, nothing) is outside the flow
+    and on record.</p>
+
+    <h3>How context reaches an agent</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What</th><th>How it arrives</th><th>In forge today</th></tr></thead>
+        <tbody>
+          <tr><td class="term">Instructions</td><td>From the main line, whatever it holds when the session starts. Nothing a ticket or a branch contains can change them.</td><td>The constitution and every tracked instruction file are read from the main line at each launch and each resume, never from the ticket's branch.<sup><a href="#source-7">[7]</a></sup></td></tr>
+          <tr><td class="term">Artifacts</td><td>As labelled data in the first message, at one exact version. Never as an instruction.</td><td>A committed ticket is kept by content hash, and agents build from that.<sup><a href="#source-4">[4]</a></sup></td></tr>
+          <tr><td class="term">Code</td><td>A phase stands in the ticket's worktree. A hook gets a snapshot of one commit.</td><td>A worktree on the ticket's branch, cut from the target's tip; the pipeline agent already works on a snapshot.<sup><a href="#source-2">[2]</a><a href="#source-20">[20]</a></sup></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>What a board could say</h3>
+    <pre><span class="key">plan</span>  on, made by a planner alone
+
+<span class="key">after the ticket</span>
+  ticket-check       <span class="key">agent</span>     reads ticket                   on red: back to draft
+
+<span class="key">after the plan</span>
+  test-criteria      <span class="key">agent</span>     reads ticket, plan, code       produces test-criteria
+  approve-criteria   <span class="key">person</span>    role B, reads test-criteria    halts until accept
+
+<span class="key">after the build</span>
+  architecture       <span class="key">agent</span>     reads plan, code               on red: halt for role C
+                                                              produces architecture-report
+<span class="key">after the review</span>
+  security-read      <span class="key">agent</span>     reads code                     on red: return the work
+
+<span class="key">after the human review</span>
+  release-note       <span class="key">agent</span>     reads ticket, Review           produces release-note
+
+<span class="key">after the merge</span>
+  notify             <span class="key">command</span>   reads ticket, release-note     never blocks
+
+<span class="key">review</span>  also gets test-criteria</pre>
+    <p class="caption">A sketch to make the words concrete. It is not a file format.</p>
+
+    <h2 id="explorer"><span class="number">02</span>A board, step by step</h2>
+    <p class="section-lede">Two boards on the same fixed phases: one as every board starts, one with a plan, merge approval
+    and the hooks of the sketch above. Pick a phase or a hook point to see what it reads and what the context holds once
+    it ends.</p>
+
+    <div class="explorer">
+      <div class="segmented" id="pipeline-switch" role="group" aria-label="Board"></div>
+      <div class="panel">
+        <div class="track" id="track" style="padding: 16px 18px 14px;"></div>
+        <div id="step-detail"></div>
+        <div class="ledger" id="ledger"></div>
+      </div>
+      <p class="caption" id="explorer-caption"></p>
+    </div>
+
+    <h2 id="baseline"><span class="number">03</span>The baseline: what happens to forge as it is</h2>
+    <p class="section-lede">Everything forge does after its rework, and where it goes in this design. Hephaestus drives
+    the pipeline, Talos runs every child process and Gaia shows the board.<sup><a href="#source-4">[4]</a></sup></p>
+
+    <div class="filters" id="baseline-filters"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>In forge today</th><th>In this design</th><th>Change</th></tr></thead>
+        <tbody id="baseline-rows"></tbody>
+      </table>
+    </div>
+
+    <h2 id="rules"><span class="number">04</span>The rules</h2>
+    <p class="section-lede">The whole design as rules, grouped by what they govern.<sup><a href="#source-18">[18]</a></sup></p>
+    <div class="columns" id="rule-groups"></div>
+
+    <h3>Left out on purpose</h3>
+    <ul>
+      <li>A phase that a board defines, and any other order of phases.</li>
+      <li>A hook that is a conversation, and a hook that changes code. So a hook cannot commit a design record or a changelog, and a separate agent cannot write tests before the build.</li>
+      <li>A hook on the merged tree. Only the merge gates see it.</li>
+      <li>A hook that runs once for a release instead of once for a ticket.</li>
+      <li>Two hooks of one hook point at the same time.</li>
+      <li>A short lane that lets a small ticket skip a phase or a hook.</li>
+      <li>A trigger outside forge. A hook after the merge can already report to another system.</li>
+      <li>Identity, permissions and roles that are enforced.</li>
+    </ul>
+
+    <h2 id="difficulties"><span class="number">05</span>Difficulties</h2>
+    <p class="section-lede">Ordered by how much each one can hurt. Each opens to what forge does today, why it bites,
+    and what the design does about it.</p>
+
+    <div class="filters" id="difficulty-filters"></div>
+    <div id="difficulty-list"></div>
+
+    <h2 id="impact"><span class="number">06</span>Impact</h2>
+    <p class="section-lede">What changes, part by part. Sizes are estimates, on the scale the rework plan
+    uses.<sup><a href="#source-4">[4]</a></sup></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Part</th><th>Today</th><th>With phases and hooks</th><th>Size</th></tr></thead>
+        <tbody id="impact-rows"></tbody>
+      </table>
+    </div>
+
+    <h3>The order of building</h3>
+    <p>Each stage ends with a forge that works end to end, and brings its own part of Gaia.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stage</th><th>What it delivers</th><th>What a person notices</th></tr></thead>
+        <tbody id="stage-rows"></tbody>
+      </table>
+    </div>
+
+    <h3>What it makes possible</h3>
+    <ul>
+      <li><strong>Thinking before building.</strong> A plan, checked and approved if the board wants that, before a builder spends a token. Today the only document before the build is the ticket.<sup><a href="#source-2">[2]</a></sup></li>
+      <li><strong>Checks forge never designed:</strong> an architecture verification, a test evaluation, a security read, each a hook with its own brief.</li>
+      <li><strong>Deliverables of a board's own.</strong> A hook produces an artifact, a person approves it, a later phase reads it.</li>
+      <li><strong>Soft gates.</strong> A check that continues when green and asks a person when red.</li>
+      <li><strong>Forge reporting outward:</strong> a notifier at any hook point, a release note after the merge.</li>
+      <li><strong>Replay and pricing.</strong> Every phase and hook has declared inputs at known versions, which is the record the compounding research asks for.<sup><a href="#source-14">[14]</a></sup></li>
+    </ul>
+
+    <h2 id="steelman"><span class="number">07</span>Steelman</h2>
+    <p class="section-lede">The design in its strongest form, argued as well as it can be.</p>
+    <div class="columns" id="steelman-list"></div>
+
+    <h2 id="strawman"><span class="number">08</span>Strawman</h2>
+    <p class="section-lede">Two things under one name. First the version of this design that is easy to build and
+    fails. Then the easy objections, each with a ruling on whether it survives.</p>
+
+    <h3>The version that fails: hooks as a plugin system</h3>
+    <p>A hook may do anything, anywhere, at any time: write code, hold a conversation, run beside the flow, stand in for
+    a gate. It demos well in a week.</p>
+    <div class="columns" id="strawman-build"></div>
+
+    <h3>The easy objections</h3>
+    <div class="columns" id="strawman-objections"></div>
+
+    <h2 id="sources"><span class="number">09</span>Sources</h2>
+    <p class="section-lede">Paths are from the root of the forge repository. Code and documents were read on the main line
+    at <code>e9b5d057</code>; the rework branch is <code>hephaestus-talos</code>.</p>
+    <ol class="sources" id="source-list"></ol>
+  </main>
+</div>
+
+<script>
+const SOURCES = [
+  '`apps/forge/docs/concepts/overview.md`: the six ideas, the cast, trouble three ways.',
+  '`apps/forge/docs/concepts/ticket-lifecycle.md`: one ticket from draft to merged, the ways back, the variants.',
+  '`apps/forge/docs/cli.md`: the command and file-format reference, `pipeline.json` and merge approval among it.',
+  '`docs/monorepo/hephaestus-talos.md`: the rework and its decisions, 1 to 34 on the main line and 35 to 52 on the rework branch.',
+  '`apps/forge/src/lib/tracker-model/@types/Pipeline.ts`: the pipeline\'s keys, gates, roles, instruction lists and entities.',
+  '`apps/forge/src/lib/tracker-model/constants/PipelineDefaults.ts`: the default instruction list of each role.',
+  '`apps/forge/src/services/overseer/InstructionFiles.ts`: where a launch reads its instruction files, and their hashes.',
+  '`apps/forge/src/lib/tracker-model/constants/Statuses.ts`, on the main line and on the rework branch.',
+  '`apps/forge/src/lib/tracker-model/constants/TicketStages.ts` and `docs/monorepo/research/monorepo-entities/strategy.md`: entities and the stages of a crossing ticket.',
+  '`apps/forge/src/shared/constants/LifecycleLimits.ts` and `apps/forge/src/lib/tracker-model/Playbook.ts`: the bounds that park a ticket, and what they count.',
+  '`apps/forge/src/adapters/reports/ReportSchemas.ts`: the report a builder and a reviewer must leave.',
+  '`apps/forge/src/lib/tracker-model/@types/Decision.ts`: the kinds of decision that wait for User.',
+  '`apps/forge/docs/research/remote-state/findings.md`: remote state, login and cloud workers.',
+  '`apps/forge/docs/research/compounding/data-and-improvements.md`: what forge must record to price a period and replay a delivered feature.',
+  '`apps/forge/CLAUDE.md`: forge\'s rule book.',
+  '`apps/forge/src/lib/agent-launch/AgentLaunchRequest.ts`: the environment a child process gets.',
+  '`apps/forge/src/lib/tracker-model/constants/PipelineSetupVocabulary.ts`: the steps of a pipeline setup.',
+  '`docs/monorepo/context-pipeline.md`: this design, with its numbered decisions and its stages.',
+  '`apps/forge/resources/prompts/BuildPrompt.md`: the builder\'s first message and what is put into it.',
+  '`apps/forge/src/services/overseer/PipelineAgentSessions.ts`: the snapshot a pipeline agent works on.',
+  '`apps/forge/src/lib/gate-confinement/DarwinSeatbelt.ts`: what a confined gate line may write and reach.',
+];
+
+const MODE_LABELS = {
+  chat: 'A person with an agent',
+  agent: 'Agent works alone',
+  person: 'A person decides',
+  code: 'Code, no agent',
+};
+
+const RUNNER_LABELS = { command: 'A command', agent: 'An agent', person: 'A person' };
+
+const ITEMS = {
+  'constitution': { label: 'CONSTITUTION.md', standing: true },
+  'briefs': { label: 'the briefs of each role', standing: true },
+  'repo-target': { label: 'repo@target', standing: true },
+  'repo-ticket': { label: 'repo@ticket-<id>' },
+  'ticket': { label: 'ticket' },
+  'ticket-review': { label: 'approval: ticket review' },
+  'plan': { label: 'plan' },
+  'test-criteria': { label: 'test-criteria' },
+  'approve-criteria': { label: 'approval: test criteria' },
+  'handoff': { label: 'Handoff' },
+  'architecture-report': { label: 'architecture-report' },
+  'review': { label: 'Review' },
+  'merge-accept': { label: 'approval: merge' },
+  'release-note': { label: 'release-note' },
+};
+
+const PHASES = {
+  intake: {
+    kind: 'phase', name: 'Intake', mode: 'chat', reads: ['briefs'], emits: ['ticket'],
+    note: 'The product owner turns what User reports into a ticket an agent can build without asking. Unchanged.',
+    madeBy: 'User with the product owner, in a conversation that User closes. A ticket can also be filed directly, or by a builder or reviewer as a finding.',
+    worksIn: 'A session folder of its own.',
+    checkedBy: 'A shape check: a numbered Acceptance and a Brief with a non-blank line.',
+    wayBack: 'An incomplete draft stays a draft.',
+    sources: [2, 3],
+  },
+  ticketReview: {
+    kind: 'phase', name: 'Ticket review', mode: 'person', reads: ['ticket'], emits: ['ticket-review'],
+    note: 'Forge\'s own, on by default, and no hook. Only User readies a ticket; no agent may relay that move. From here the ticket is committed and its content is fixed.',
+    madeBy: 'User.',
+    worksIn: 'Nowhere.',
+    checkedBy: 'User\'s own move, after the board\'s hooks have passed.',
+    wayBack: 'The ticket stays in review, or User abandons it.',
+    sources: [3, 4],
+  },
+  plan: {
+    kind: 'phase', name: 'Plan', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'repo-target'], emits: ['plan'],
+    note: 'New. A board switches it on and chooses how the plan is made: by a planner alone, or by a person with the planner in a conversation.',
+    madeBy: 'A planner that works alone, on this board.',
+    worksIn: 'A snapshot of the target. The plan is a record of forge, not a file in the repo, and names the commit it was made against.',
+    checkedBy: 'The plan exists and has the headings the board requires. A phase that ends without one is a failed pass.',
+    wayBack: 'A hook after the plan that returns the work resumes the planner with the findings.',
+    sources: [18],
+  },
+  buildPlain: {
+    kind: 'phase', name: 'Build', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'repo-target'], emits: ['repo-ticket', 'handoff'],
+    note: 'The builder commits on the ticket\'s branch and ends with a report. Code writes the Handoff from the verified report. Unchanged.',
+    madeBy: 'A builder that works alone.',
+    worksIn: 'A worktree on the ticket\'s branch, cut from the target\'s tip.',
+    checkedBy: 'The commit checks against git, then the build gates, run by Hephaestus itself.',
+    wayBack: 'A red gate resumes the same session, twice, then the ticket is parked.',
+    sources: [2, 10],
+  },
+  buildPlanned: {
+    kind: 'phase', name: 'Build', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'plan', 'repo-target'], emits: ['repo-ticket', 'handoff'],
+    note: 'As today, and the builder now gets the plan beside the ticket, as labelled data in its first message.',
+    madeBy: 'A builder that works alone.',
+    worksIn: 'A worktree on the ticket\'s branch, cut from the target\'s tip.',
+    checkedBy: 'The commit checks against git, then the build gates, run by Hephaestus itself.',
+    wayBack: 'A red gate resumes the same session, twice, then the ticket is parked. Work that a hook returns has a count of its own.',
+    sources: [2, 10, 18],
+  },
+  reviewPlain: {
+    kind: 'phase', name: 'Review', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'handoff', 'repo-ticket'], emits: ['repo-ticket', 'review'],
+    note: 'The reviewer judges each Acceptance item and may commit fixes. Code writes the Review from its report. Unchanged.',
+    madeBy: 'A reviewer that works alone.',
+    worksIn: 'The same worktree, at the builder\'s gated commit.',
+    checkedBy: 'The commit checks, and the review gates when the reviewer changed the tree.',
+    wayBack: 'An unmet Acceptance item resumes the builder with the findings, on the count it shares with red gates.',
+    sources: [2],
+  },
+  reviewPlanned: {
+    kind: 'phase', name: 'Review', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'plan', 'test-criteria', 'handoff', 'repo-ticket'], emits: ['repo-ticket', 'review'],
+    note: 'As today. This board\'s reviewer also names the plan and the approved test criteria, so it gets both.',
+    madeBy: 'A reviewer that works alone.',
+    worksIn: 'The same worktree, at the builder\'s gated commit.',
+    checkedBy: 'The commit checks, and the review gates when the reviewer changed the tree.',
+    wayBack: 'An unmet Acceptance item resumes the builder with the findings, on the count it shares with red gates.',
+    sources: [2, 18],
+  },
+  humanReview: {
+    kind: 'phase', name: 'Human review', mode: 'person', reads: ['handoff', 'review', 'repo-ticket'], emits: ['merge-accept'],
+    note: 'Merge approval, switched on on this board. Forge\'s own, and no hook: the ticket waits in the merge queue until User accepts.',
+    madeBy: 'User.',
+    worksIn: 'Nowhere.',
+    checkedBy: 'An accept counts only while git predicts a clean merge into the target\'s tip.',
+    wayBack: 'The ticket waits. The order of accepting is the order of merging.',
+    sources: [3],
+  },
+  merge: {
+    kind: 'phase', name: 'Merge', mode: 'code', reads: ['repo-ticket', 'repo-target'], emits: ['repo-target'],
+    note: 'One Airlock per target merges the target in, gates the merged tree and fast-forwards only if the target has not moved. Unchanged.',
+    madeBy: 'Code. A conflict brings back the ticket\'s last worker.',
+    worksIn: 'The ticket\'s branch, then the target.',
+    checkedBy: 'The merge gates on the merged tree, and the target\'s tip still being the one that was merged.',
+    wayBack: 'A moved target merges again; two moves in a row park the ticket.',
+    sources: [1, 2],
+  },
+};
+
+const BOARDS = {
+  fresh: {
+    label: 'A new board',
+    caption: 'How every board starts: plan off, ticket review on, merge approval off, no hook. It behaves as forge does today.',
+    nodes: [
+      PHASES.intake,
+      { kind: 'handover', name: 'After the ticket', note: 'Runs when a ticket is submitted, whoever filed it, and before ticket review.', hooks: [] },
+      PHASES.ticketReview,
+      PHASES.buildPlain,
+      { kind: 'handover', name: 'After the build', note: 'Runs after the commit checks and the build gates have passed.', hooks: [] },
+      PHASES.reviewPlain,
+      { kind: 'handover', name: 'After the review', note: 'Runs after the review\'s own checks, before the merge queue.', hooks: [] },
+      PHASES.merge,
+      { kind: 'handover', name: 'After the merge', note: 'Runs when the ticket is delivered. Nothing here can block.', hooks: [] },
+    ],
+  },
+  extended: {
+    label: 'An extended board',
+    caption: 'The same phases with a plan and merge approval switched on, and eight hooks. Three hooks produce artifacts that later phases or hooks read. One always waits for a person, and one waits only when its check is red.',
+    nodes: [
+      PHASES.intake,
+      {
+        kind: 'handover', name: 'After the ticket', note: 'Runs when a ticket is submitted, whoever filed it, and before ticket review. A no returns the ticket to draft, for User.',
+        hooks: [
+          { name: 'ticket-check', runner: 'agent', reads: ['ticket'], blocks: 'On red, returns the ticket to draft', produces: [], emits: [] },
+        ],
+      },
+      PHASES.ticketReview,
+      PHASES.plan,
+      {
+        kind: 'handover', name: 'After the plan', note: 'An agent derives test criteria from the plan and the test patterns in the code. A person approves them, and may edit them first; the edit pins the artifact.',
+        hooks: [
+          { name: 'test-criteria', runner: 'agent', reads: ['ticket', 'plan', 'repo-target'], blocks: 'Never', produces: ['test-criteria'], emits: ['test-criteria'] },
+          { name: 'approve-criteria', runner: 'person', reads: ['test-criteria'], blocks: 'Halts until role B accepts', produces: [], emits: ['approve-criteria'] },
+        ],
+      },
+      PHASES.buildPlanned,
+      {
+        kind: 'handover', name: 'After the build', note: 'A soft gate: green continues by itself, red shows a person the report and waits. An accept on a red needs a reason and is recorded.',
+        hooks: [
+          { name: 'architecture', runner: 'agent', reads: ['plan', 'repo-ticket'], blocks: 'On red, halts for role C', produces: ['architecture-report'], emits: ['architecture-report'] },
+        ],
+      },
+      PHASES.reviewPlanned,
+      {
+        kind: 'handover', name: 'After the review', note: 'Runs before the merge queue. Work that this hook returns goes to the builder, and the review runs again.',
+        hooks: [
+          { name: 'security-read', runner: 'agent', reads: ['repo-ticket'], blocks: 'On red, returns the work', produces: [], emits: [] },
+        ],
+      },
+      PHASES.humanReview,
+      {
+        kind: 'handover', name: 'After the human review', note: 'Runs after User\'s accept and before an Airlock takes the ticket.',
+        hooks: [
+          { name: 'release-note', runner: 'agent', reads: ['ticket', 'review'], blocks: 'Never', produces: ['release-note'], emits: ['release-note'] },
+        ],
+      },
+      PHASES.merge,
+      {
+        kind: 'handover', name: 'After the merge', note: 'Nothing here can block: the change is on the main line. Both hooks are script calls, bounded at one minute.',
+        hooks: [
+          { name: 'notify', runner: 'command', reads: ['ticket', 'release-note'], blocks: 'Never', produces: [], emits: [] },
+          { name: 'cycle-statistics', runner: 'command', reads: ['ticket', 'review'], blocks: 'Never', produces: [], emits: [] },
+        ],
+      },
+    ],
+  },
+};
+
+const LEDGER_GROUPS = [
+  { name: 'Standing', itemIds: ['constitution', 'briefs'] },
+  { name: 'Repo', itemIds: ['repo-target', 'repo-ticket'] },
+  { name: 'Artifacts', itemIds: ['ticket', 'ticket-review', 'plan', 'test-criteria', 'approve-criteria', 'handoff', 'architecture-report', 'review', 'merge-accept', 'release-note'] },
+];
+
+const FIT_LABELS = {
+  same: { label: 'Unchanged', pill: 'neutral' },
+  grows: { label: 'Grows', pill: 'teal' },
+  added: { label: 'New', pill: 'green' },
+};
+
+const BASELINE = [
+  { today: 'Ticket review: only User readies a ticket, and no agent may relay that move. On by default.', model: 'Untouched. A board\'s hooks after the ticket run before it.', fit: 'same', sources: [3] },
+  { today: 'Merge approval, shown as human code review. Off by default. The ticket waits in the merge queue, and the order of accepting is the order of merging.', model: 'Untouched: a merge is approved by User or by the Airlock. One hook point sits before the merge queue, one after User\'s accept.', fit: 'same', sources: [3] },
+  { today: 'Gates: commands in the phases build, review and merge, with an optional `fix` line.', model: 'Untouched. A blocking hook is an addition at a hook point and replaces no gate.', fit: 'same', sources: [5] },
+  { today: 'Intake with the product owner, the filing draft, and the ways a ticket starts.', model: 'Untouched. A ticket that a builder, a reviewer or forge itself files passes the hooks after the ticket too.', fit: 'grows', sources: [2, 3] },
+  { today: 'Build: commits, a report, the commit checks, a Handoff written by code.', model: 'Untouched, and the builder also gets the plan and any artifact the board names for it.', fit: 'grows', sources: [2, 11] },
+  { today: 'Review: a verdict per Acceptance item, rounds, waivers, a Review written by code.', model: 'Untouched, and the reviewer also gets the plan and any artifact the board names for it.', fit: 'grows', sources: [2, 11] },
+  { today: 'The ticket\'s body is put into an agent\'s first message. Instructions (the constitution, a brief, a file) come from the main line.', model: 'An artifact arrives as the ticket does, as labelled data. Instructions still come from the main line only.', fit: 'grows', sources: [6, 7, 19] },
+  { today: 'The transaction that records passed gates also starts the review or queues the merge.', model: 'A ticket at a hook point is in a state of its own, which every path that starts a phase or queues a merge checks.', fit: 'grows', sources: [2] },
+  { today: 'A red gate resumes the same session twice, then the ticket is parked. The count reads red-gate resumes and failed reviews from the log.', model: 'Untouched. Each hook point has a count of its own for work its hooks return, read from the log too.', fit: 'grows', sources: [2, 10] },
+  { today: 'The Airlock: merge the target in, gate the merged tree, land by compare-and-swap.', model: 'Untouched. A hook point follows the merge.', fit: 'same', sources: [1] },
+  { today: 'Eight ticket statuses.', model: 'One more, for a ticket in the plan phase.', fit: 'grows', sources: [8] },
+  { today: 'The ticket file, with sections that code writes: Handoff, Review 1, Review 2.', model: 'The ticket, the plan, the Handoff, each Review and what hooks produce are records with versions and approvals.', fit: 'grows', sources: [2] },
+  { today: 'The log, from which every count is read.', model: 'Also the audit trail: each hook run, approval, edit, reopening and move by hand, with the version it concerns.', fit: 'grows', sources: [1] },
+  { today: 'Decisions that wait for User, 24 kinds, answered from anywhere.', model: 'Untouched. A halted hook is one more thing that waits for a person.', fit: 'same', sources: [12] },
+  { today: 'A child process gets an allowlisted environment and inherits nothing else.', model: 'A command hook that reads no code may also get the secrets a board names. An agent hook never gets one.', fit: 'grows', sources: [16] },
+  { today: 'The pipeline agent works on a snapshot of the main line and may write only its own request folder.', model: 'Every hook that reads code gets a snapshot of the commit handed over, never the ticket\'s worktree.', fit: 'grows', sources: [20] },
+  { today: 'Entities: each with its own constitution, gates, agents and review.', model: 'Each also has its own hooks and its own plan setting.', fit: 'grows', sources: [5, 9] },
+  { today: 'A crossing ticket: five fixed stages across entities.', model: 'The stages stay. A package that a ticket crosses runs its own hooks after its build and after its review.', fit: 'grows', sources: [9] },
+  { today: 'Pipeline setup: six steps walked with the pipeline agent.', model: 'The agent also proposes a plan phase and hooks, and User edits the lists.', fit: 'grows', sources: [17] },
+  { today: 'One User, with no login and no roles.', model: 'A hook names a role as a label. One person may hold every role.', fit: 'grows', sources: [13] },
+  { today: 'Talos starts each child from the launch plan it is given.', model: 'Untouched. A hook reaches it as a launch plan, as a gate line does.', fit: 'same', sources: [4] },
+  { today: 'Groups, release tickets, dependencies and epics; incidents; launch slots and budgets.', model: 'Untouched. For a ticket of a group, the hooks after the merge run when its release lands.', fit: 'same', sources: [1, 3] },
+  { today: 'No plan: the only document before the build is the ticket.', model: 'A plan phase that a board switches on.', fit: 'added', sources: [18] },
+  { today: 'No place between phases that a board can reach.', model: 'Six hook points: after the ticket, the plan, the build, the review, the human review and the merge.', fit: 'added', sources: [18] },
+];
+
+const RULE_GROUPS = [
+  { title: 'Phases', rules: [
+    'The phases and their order are forge\'s: intake, plan, build, review, merge.',
+    'A board switches plan on and chooses how it is made: a planner alone, or a person with the planner.',
+    'Gates, ticket review and merge approval stay as they are. A merge is approved by User or by the Airlock.',
+    'One thing happens to a ticket at a time. A phase\'s agent may start subagents; forge sees one session and records their tokens and time.',
+    'No ticket skips a phase or a hook.',
+  ] },
+  { title: 'Hook points', rules: [
+    'There are six: after the ticket, the plan, the build, the review, the human review and the merge.',
+    'Forge waits for every hook. The hooks of a hook point run in the order the board lists them.',
+    'A ticket at a hook point is in a state of its own. Nothing starts the next phase or queues a merge past it.',
+    'Nothing blocks after the merge.',
+    'A hook point whose phase is off is dormant, and its hooks are kept.',
+  ] },
+  { title: 'Hooks', rules: [
+    'A hook is run by a command, an agent or a person, and declares what it reads, whether it blocks, and what it produces.',
+    'A hook never works in the ticket\'s worktree. One that reads code gets a snapshot of the commit handed over.',
+    'A hook is never a phase\'s conversation.',
+    'A command hook\'s program comes from the main line or the machine, never from the ticket\'s branch.',
+    'A hook that gets a secret reads artifacts only. An agent hook never gets a secret.',
+    'A hook runs once for each version of what it reads.',
+  ] },
+  { title: 'Outcomes', rules: [
+    'A hook ends in a yes, a no, or it could not run: no verdict, stopped by its bound, or an artifact missing or without its headings.',
+    'Could not run never sends work back, and nothing runs the hook again by itself. For a hook that neither blocks nor produces, the flow continues; otherwise the ticket waits for a person.',
+    'A blocking hook says what its no does. Return the work: it goes to the phase before that hook point and passes everything after it again. Or halt for a person.',
+    'Each hook point counts the work its hooks returned: two unless the board sets another number, then the ticket is parked.',
+    'A command or agent hook has the bound of a gate line, and one minute if it neither blocks nor produces. A person\'s hook has none.',
+  ] },
+  { title: 'People', rules: [
+    'A person\'s hook halts the ticket until accept. What the person does in the meantime is outside the flow, and on record.',
+    'While halted on a document, the person may edit it, alone or with an agent\'s help. While halted on code, the person may send findings to the builder.',
+    'An accept on a red hook continues the flow, needs a reason, and is recorded.',
+    'A person is asked again only when what they approved has changed.',
+    'No agent passes a person\'s hook. A person can push a ticket past a hook by hand, on record.',
+    'A role is a label. A ticket that waits for a person holds no agent slot.',
+  ] },
+  { title: 'Artifacts and change', rules: [
+    'Forge keeps every artifact as a record with versions. Where they are stored stays replaceable.',
+    'An artifact reaches an agent as labelled data, never as an instruction. A phase or a hook gets what it names and nothing else.',
+    'A person\'s edit pins an artifact: the hook that produced it does not overwrite it.',
+    'An accepted artifact can be reopened until its ticket enters the merge queue. Later phases update in order; they never restart.',
+    'A build that is running stops at the end of its turn, and User chooses: resume with the change, or start fresh.',
+    'A board with plan off and no hook behaves exactly as forge does today.',
+  ] },
+];
+
+const SEVERITY_LABELS = {
+  hard: { label: 'Can hurt badly', pill: 'crimson' },
+  moderate: { label: 'Real work', pill: 'orange' },
+  cheap: { label: 'Cheap once named', pill: 'green' },
+};
+
+const DIFFICULTIES = [
+  {
+    severity: 'hard',
+    title: 'Nothing holds a ticket between phases today',
+    line: 'The moment a hook point needs does not exist in the code.',
+    today: 'When a build\'s gates pass, the same transaction ends the job and moves the ticket on, and the Playbook picks the review in that same hold. With no review phase, the ticket is queued for merge there. A regated stale green and a granted waiver queue a ticket too.',
+    bites: 'Each of those paths would carry a ticket straight past a hook list. A hook point is not one new place in the code: it is a state that every path which starts a phase or queues a merge has to respect.',
+    needs: 'A named state for a ticket at a hook point, checked on every such path, and built first with empty lists so that nothing changes. It is the largest single change.',
+    sources: [2, 10],
+  },
+  {
+    severity: 'hard',
+    title: 'What a hook produces is read by the next agent',
+    line: 'An agent writes test criteria, and a reviewer judges the code against them.',
+    today: 'Nothing an agent says is taken as true: commit checks compare a report with git, and code writes the Handoff and each Review. Instructions come from the main line only, so a ticket cannot rewrite the instructions of its own agents.',
+    bites: 'A hook\'s artifact has nothing to be verified against. And it can carry text from a ticket or a code comment that was written to steer an agent. Placed among the instructions, that text would speak with the authority of the constitution.',
+    needs: 'An artifact reaches an agent as labelled data in its message, as the ticket\'s body does, never as an instruction. Forge checks that it exists and has its headings. An approval hook behind an artifact that matters is the board\'s choice.',
+    sources: [1, 7],
+  },
+  {
+    severity: 'hard',
+    title: 'A hook runs beside code an agent wrote',
+    line: 'A check that reads the branch also executes what is on it.',
+    today: 'A confined gate line may write the whole worktree; there is no read-only mode. Its network is on or off as a whole. A file a gate leaves behind makes the worktree dirty, which the next job\'s commit check refuses.',
+    bites: 'A hook in the ticket\'s worktree could change code after review, or leave files that get a builder blamed. A hook with a token that runs the branch\'s scripts hands that token to whoever shaped the branch.',
+    needs: 'A hook gets a snapshot of one commit and never the worktree. A command hook\'s program comes from the main line or the machine. A hook that gets a secret reads artifacts only.',
+    sources: [16, 21],
+  },
+  {
+    severity: 'hard',
+    title: 'Hooks and gates can be confused',
+    line: 'A command hook that blocks after the build looks exactly like a build gate.',
+    today: 'A gate belongs to a phase. Its green stays current while the gates of that phase hash the same, and the merge gates run again on the merged tree in the Airlock.',
+    bites: 'A check of the tree that a board lists as a hook runs once per version at a hook point, and never on the merged tree. It can be green on the branch and wrong on the main line.',
+    needs: 'One sentence a board can follow: gates judge the tree, hooks judge what is handed over. Setup warns when a command hook reads only code.',
+    sources: [1, 3],
+  },
+  {
+    severity: 'hard',
+    title: 'Versions ripple',
+    line: 'A plan is approved, then the ticket it was made from is reopened.',
+    today: 'A committed ticket is fixed and kept by content hash. Code still adds to a started ticket: the Handoff, each Review, a waived item.',
+    bites: 'One reopening touches the plan, what hooks produced from it, and each approval. If code-written sections counted as a new version of the ticket, every hook that reads the ticket would run again near the merge.',
+    needs: 'A ticket\'s version covers what a person wrote. A hook runs again, and a person is asked again, only where what they read changed. A person\'s edit pins an artifact against the hook that produced it. Reopening ends when the ticket enters the merge queue.',
+    sources: [4, 18],
+  },
+  {
+    severity: 'moderate',
+    title: 'An accept on red lets refused work through',
+    line: 'A soft gate is only as strict as the person it asks.',
+    today: 'The nearest thing is a waiver: a reviewer proposes dropping an Acceptance item, User grants or refuses, and a grant is written into the ticket.',
+    bites: 'Nothing bounds how often a board accepts a red. A check that is red most of the time trains people to press accept, and then it checks nothing.',
+    needs: 'An accept on a red needs a reason and is recorded with who accepted which red. The board sees how often each hook is overruled.',
+    sources: [2],
+  },
+  {
+    severity: 'moderate',
+    title: 'A judging agent is still an agent',
+    line: 'Several judging hooks are several opinions that can each send work back.',
+    today: 'One reviewer judges, in bounded rounds. Its findings resume the builder on a count of two that it shares with red gates.',
+    bites: 'Four judges that are each wrong one time in ten send about a third of all tickets back for nothing. And a judge that reads the Handoff reads text the builder wrote for it.',
+    needs: 'Returned work has a count per hook point, apart from the gates\' count. A noisy judge belongs on "halt for a person", where a red costs a look and not a rework round. A judge\'s brief points it at the code and the plan.',
+    sources: [2, 10],
+  },
+  {
+    severity: 'moderate',
+    title: 'Agent hooks cost what a review costs',
+    line: 'And they run once per version, one after the other.',
+    today: 'A ticket pays for one build and one review per round.',
+    bites: 'Three agent hooks that read code and two rework rounds are nine more sessions for one ticket, in series. The stretch from build to merge gets longer with every hook.',
+    needs: 'Once per version keeps unchanged inputs free. Forge shows the tokens and time of each hook beside those of the phases, so a board sees what a hook costs before it adds a second.',
+    sources: [2, 14],
+  },
+  {
+    severity: 'moderate',
+    title: 'A person is asked often',
+    line: 'Every approval hook is one more request per ticket.',
+    today: 'Two approvals exist, each asked once per ticket, and one of them is off by default.',
+    bites: 'Fifteen tickets under way and three approval hooks are forty-five requests before any rework. People who are asked often stop reading.',
+    needs: 'An approval shows what changed since the version that person accepted, what it was made from, why a hook was red and how long the ticket has waited. A soft gate takes the person out of every green.',
+    sources: [3],
+  },
+  {
+    severity: 'moderate',
+    title: 'A halted ticket ages',
+    line: 'While a person is away, the main line moves on.',
+    today: 'Between a committed ticket and a merged one, nobody has to act on the normal path. The Airlock merges the target in and gates the merged tree at the end.',
+    bites: 'A ticket halted after the plan or after the build holds no agent slot, but its plan and its branch grow stale. The conflict shows up at the merge, long after the person approved.',
+    needs: 'One view of what waits on which role, and for how long. The plan names the commit it was made against. Nothing else: the Airlock already protects the main line.',
+    sources: [1, 2],
+  },
+  {
+    severity: 'moderate',
+    title: 'Tickets that nobody typed',
+    line: 'A builder files a finding; an entity\'s build declares a need.',
+    today: 'A finding, a declared need and a fix ticket are submitted by code, in the transaction that files them. User\'s own readying of a draft skips the review queue.',
+    bites: 'A hook after the ticket that says no has nobody to hand such a ticket back to. A need that sits in draft blocks the ticket that declared it.',
+    needs: 'The hooks after the ticket run for every ticket, whoever filed it. A no returns it to draft for User, and the board shows which ticket waits on it.',
+    sources: [3],
+  },
+  {
+    severity: 'moderate',
+    title: 'A token and the code never meet',
+    line: 'The rule that protects a secret also rules out a real use.',
+    today: 'The environment of every child is an allowlist. Nothing else is passed on.',
+    bites: 'A check that needs both, such as trying a migration against a staging system, cannot be a hook: it would run the branch\'s code with the staging credential.',
+    needs: 'Nothing in this design. Such a check stays outside forge, or waits for confinement that can hold a process to named hosts.',
+    sources: [16],
+  },
+  {
+    severity: 'moderate',
+    title: 'Roles without identity',
+    line: '"Role B approves" cannot be enforced on a board with one User.',
+    today: 'A board has one person, with no login and no name. The rework leaves identity and permissions out on purpose.',
+    bites: 'An approval by someone other than the author is the point of most sign-offs. Here the same person can hold every role and accept their own work.',
+    needs: 'Roles as labels that route and filter, which already helps one person with several hats. Enforcement arrives with identity, which is a project of its own.',
+    sources: [4, 13],
+  },
+  {
+    severity: 'cheap',
+    title: 'Waiting for a notifier',
+    line: 'A notifier is a script call, and done in seconds.',
+    today: 'A gate line is stopped after 15 minutes.',
+    bites: 'Only when the service it calls hangs: the ticket then waits for the hook\'s bound.',
+    needs: 'A bound of one minute for a hook that neither blocks nor produces. Its failure is recorded and shown, and never sends work back. Each run has an identity, so a hook that is run again can report once.',
+    sources: [4],
+  },
+  {
+    severity: 'cheap',
+    title: 'Nothing can block after the merge',
+    line: 'The change is on the main line; a hook there can only report.',
+    today: 'A merge moves the ticket to delivered in the same transaction as the fast-forward. A ticket of a group is delivered when its release lands.',
+    bites: 'Only if a board expects otherwise: a release note that fails leaves a delivered ticket with a missing note.',
+    needs: 'Forge refuses a blocking hook at this hook point, and shows a failed one on the ticket.',
+    sources: [2],
+  },
+];
+
+const IMPACT = [
+  { part: 'The stored pipeline', today: 'Gates, three phases, a review switch, seven roles, two approvals.', after: 'A plan setting, and a list of hooks per hook point with its count.', size: 'M', sources: [5] },
+  { part: 'The Playbook and the lifecycle', today: 'Passed gates start the next thing in the same transaction.', after: 'A state for a ticket at a hook point, checked by every path that starts a phase or queues a merge; returned work and its counts, read from the log.', size: 'XL', sources: [10] },
+  { part: 'The plan phase', today: 'None.', after: 'A job kind, a role, its rights and checks, a forecast step, a status, and the plan in the messages that start and resume a builder and a reviewer.', size: 'L', sources: [18] },
+  { part: 'Running a hook', today: 'Gate lines, confined on macOS and Linux, and bounded.', after: 'Commands and agents under Talos, each on a snapshot, with a bound, a run identity, a verdict and produced artifacts.', size: 'L', sources: [4, 15] },
+  { part: 'Artifacts', today: 'One ticket file with sections that code writes.', after: 'The ticket, the plan, the Handoff, each Review and what hooks produce, as records with versions, pins and approvals.', size: 'L', sources: [2] },
+  { part: 'Commands', today: 'Ready a ticket, accept a merge.', after: 'Accept, accept a red with a reason, edit an artifact, send findings, run a hook again, reopen, choose resume or fresh.', size: 'M', sources: [3] },
+  { part: 'The edit session', today: 'Intake is the one hosted conversation about a document.', after: 'A hosted session in which a person edits an artifact with an agent\'s help.', size: 'M', sources: [4] },
+  { part: 'Pipeline setup', today: 'Six steps; the agent proposes edits to a closed list of fields.', after: 'The agent also proposes the plan phase and hooks; forge refuses an unsound list; User edits the lists.', size: 'M', sources: [17] },
+  { part: 'Gaia', today: 'Board views on fixed statuses.', after: 'A plan lane, the hooks of each hook point with their outcome, what an approver has to see, what waits on which role.', size: 'L', sources: [4] },
+  { part: 'Entities', today: 'Gates, agents and review per entity.', after: 'Hooks and the plan setting per entity; a crossed package\'s hooks in its stages.', size: 'M', sources: [9] },
+  { part: 'Gates, ticket review, merge approval, the Airlock, Talos', today: 'As they are.', after: 'Unchanged.', size: 'None', sources: [8] },
+];
+
+const STAGES = [
+  { stage: '1. Artifacts', delivers: 'The ticket, the Handoff and each Review as versioned records; the audit trail\'s new records.', notices: 'Nothing.' },
+  { stage: '2. Hook points', delivers: 'The state of a ticket at a hook point, on every path, with empty lists.', notices: 'Nothing, and that is the test.' },
+  { stage: '3. Hooks by command and agent', delivers: 'Snapshots, blocking and producing hooks, once per version, the counts, the bounds, could not run.', notices: 'A board can add a check or a notifier.' },
+  { stage: '4. Hooks by a person', delivers: 'Approval hooks, red that asks a person, the edit session, what an approver sees.', notices: 'A board can add an approval at any hook point.' },
+  { stage: '5. The plan', delivers: 'The plan phase, alone and as a conversation; the plan in the builder\'s and the reviewer\'s messages.', notices: 'A board can switch a plan on.' },
+  { stage: '6. Reopening', delivers: 'Reopen, the update that runs through, pins, the halted build and its choice.', notices: 'An accepted plan can change without starting over.' },
+  { stage: '7. Setup', delivers: 'The pipeline agent proposes hooks and a plan; the lists in Gaia.', notices: 'A board is extended without editing a file.' },
+  { stage: '8. Entities', delivers: 'Hooks and plan per entity, and in a crossing.', notices: 'Each app and package has its own.' },
+];
+
+const STEELMAN = [
+  { title: 'Forge already has every kind of hook', text: 'A gate is a command that can stop the flow. A reviewer is an agent whose verdict sends work back. Ticket review is a person the flow waits for. The design lets a board add those three at each hook point; it invents no fourth thing.', sources: [2, 3] },
+  { title: 'The guarantees are not in reach of a hook', text: 'Only build and review change code, and a hook never stands in the ticket\'s worktree. The commit checks, the gates and the Airlock still see everything that can reach the main line, so a board can add a bad hook and not break what forge promises.', sources: [1] },
+  { title: 'A team adds a step without forge designing it', text: 'A test evaluation, an architecture verification, a threat model and a notifier need no feature of their own. Each is a brief or a command plus three declarations.', sources: [18] },
+  { title: 'The baseline is free', text: 'A board with plan off and empty lists is today\'s forge. Gates, ticket review, merge approval and the order of phases are untouched, so the test of the whole design is that nothing changes when nothing is added.', sources: [8] },
+  { title: 'The thinking moves in front of the spending', text: 'Today the first judgement of the work comes after it is built. A plan, with a check and an approval where a board wants them, catches the wrong work while it costs a planner\'s session and not a build, a review and a rework round.', sources: [2] },
+  { title: 'A soft gate fits judgement checks', text: 'An agent that judges architecture is right often and wrong sometimes. Sending every red back to the builder turns its mistakes into rework; asking a person on red costs a look.', sources: [18] },
+  { title: 'Approvals need no redesign', text: 'The rework already calls the user a step in the workflow. A board adds an approval as one line at any hook point, and the two approvals forge has stay exactly as they are.', sources: [4] },
+  { title: 'Declared context can be priced and replayed', text: 'The compounding research asks what forge must record to say where tokens went and to replay a feature under another configuration. A phase or hook with declared inputs at known versions is that record.', sources: [14] },
+];
+
+const STRAWMAN_BUILD = [
+  { title: 'A hook that writes code', text: 'An auto-fixer after the review puts commits on the main line that no reviewer saw and no gate judged. Every hook then needs a write scope and commit checks of its own, and is a phase in all but name.' },
+  { title: 'A hook in the ticket\'s worktree', text: 'It leaves a file behind, the next job\'s commit check refuses the dirty tree, and the builder is sent back for something it did not do.' },
+  { title: 'An artifact as an instruction', text: 'A hook\'s output joins the agent\'s instructions. A sentence planted in a ticket now reaches the builder with the authority of the constitution.' },
+  { title: 'A token beside the branch\'s code', text: 'A deploy hook runs the branch\'s scripts with a staging credential. Whoever shaped the branch has the credential.' },
+  { title: 'A hook that talks', text: 'A conversation at every hook point makes each one a meeting. The flow has five phases on paper and fifteen in practice.' },
+  { title: 'Hooks that run beside the flow', text: 'A producer that has not finished when the next phase starts hands it half a context. Order is the one thing that makes a list of hooks understandable.' },
+  { title: 'Hooks instead of gates', text: 'Tree checks moved into hooks lose the hash that keeps a green current and the run on the merged tree. The branch is green and the main line is not.' },
+  { title: 'A verdict from anything', text: 'If a hook that crashed counts as a no, a broken script sends work back to an agent that did nothing wrong, and spends its tries.' },
+];
+
+const STRAWMAN_OBJECTIONS = [
+  { title: '"A board should define its own phases"', text: 'A design phase, a QA phase, a different order per team.', ruling: 'Half holds. A producing hook with an approval behind it gives a board its own deliverable at any hook point. It does not give a board anything that must change code or hold a conversation: tests written first by another agent, a committed design record. Plan is the one such phase forge adds.' },
+  { title: '"A hook is just a gate"', text: 'Forge has gates. This is the same thing with a new name.', ruling: 'Half holds. A blocking command hook is close to a gate. An agent hook, a person\'s hook, a producer and a notifier are not, and a gate has no place before the build.' },
+  { title: '"An accept on red makes the check meaningless"', text: 'If a person can wave it through, why run it.', ruling: 'Holds only for a check nobody believes. A soft gate removes the person from every green, which is most of them, and puts each red on record with a reason.' },
+  { title: '"Agent judges are unreliable"', text: 'An agent\'s opinion should not stop a build.', ruling: 'Forge already lets one do exactly that: the reviewer. The design adds the choice forge lacks today, of sending a red to a person instead of to the builder.' },
+  { title: '"Waiting for a notifier is silly"', text: 'A message to a chat should not hold up a merge.', ruling: 'Does not hold. A notifier is a script call that ends in seconds and is bounded at a minute, and in exchange a hook point has one simple rule: each hook finishes before the next thing starts.' },
+  { title: '"Roles without identity are theatre"', text: 'On one machine every role is the same person.', ruling: 'Holds for enforcement, not for routing. A label that says who is expected to act helps one person with several hats, and it is the seam a team needs later.' },
+];
+
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
+const richText = (text) => escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+const citationMarks = (sourceNumbers) => (sourceNumbers || [])
+  .map((sourceNumber) => `<sup><a href="#source-${sourceNumber}">[${sourceNumber}]</a></sup>`)
+  .join('');
+const elementById = (identifier) => document.getElementById(identifier);
+const uniqueOf = (values) => Array.from(new Set(values));
+const readsOf = (node) => node.kind === 'phase' ? node.reads : uniqueOf(node.hooks.flatMap((hook) => hook.reads));
+const emitsOf = (node) => node.kind === 'phase' ? node.emits : uniqueOf(node.hooks.flatMap((hook) => hook.emits));
+const chipsHtml = (itemIds) => itemIds.length === 0
+  ? '<p>Nothing.</p>'
+  : `<div class="chips">${itemIds.map((itemId) => `<span class="chip">${escapeHtml(ITEMS[itemId].label)}</span>`).join('')}</div>`;
+
+const explorerState = { boardKey: 'extended', nodeIndex: 4 };
+
+function renderBoardSwitch() {
+  elementById('pipeline-switch').innerHTML = Object.keys(BOARDS).map((boardKey) => `
+    <button type="button" data-board="${boardKey}" aria-pressed="${boardKey === explorerState.boardKey}">${escapeHtml(BOARDS[boardKey].label)}</button>
+  `).join('');
+}
+
+function nodeSummaryOf(node) {
+  if (node.kind === 'phase') return `<span class="mode"><span class="dot ${node.mode}"></span>${escapeHtml(MODE_LABELS[node.mode])}</span>`;
+  const hookCount = node.hooks.length;
+  return `<span class="mode">${hookCount === 0 ? 'No hooks' : hookCount === 1 ? '1 hook' : hookCount + ' hooks'}</span>`;
+}
+
+function renderTrack() {
+  const board = BOARDS[explorerState.boardKey];
+  elementById('track').innerHTML = board.nodes.map((node, i) => `
+    <div class="step-node ${node.kind}">
+      <button type="button" class="step-button" data-node="${i}" aria-pressed="${i === explorerState.nodeIndex}">
+        <span class="index">${node.kind === 'phase' ? (node.mode === 'person' ? 'APPROVAL' : 'PHASE') : 'HOOK POINT'}</span>
+        <span class="name">${escapeHtml(node.name)}</span>
+        ${nodeSummaryOf(node)}
+      </button>
+    </div>
+  `).join('');
+}
+
+function slotCell(slotName, text, isHighlighted) {
+  return `<div class="cell${isHighlighted ? ' added' : ''}"><div class="slot-name">${escapeHtml(slotName)}</div><p>${richText(text)}</p></div>`;
+}
+
+function phaseDetailHtml(phase) {
+  return `
+    <div class="detail-head"><h3>${escapeHtml(phase.name)}</h3><span class="pill neutral">${escapeHtml(MODE_LABELS[phase.mode])}</span></div>
+    <div class="detail-note">${richText(phase.note)}${citationMarks(phase.sources)}</div>
+    <div class="detail">
+      <div class="cell"><div class="slot-name">Reads</div>${chipsHtml(phase.reads)}</div>
+      <div class="cell"><div class="slot-name">Delivers</div>${chipsHtml(phase.emits)}</div>
+      ${slotCell('Made by', phase.madeBy, false)}
+      ${slotCell('Works in', phase.worksIn, false)}
+      ${slotCell('Checked by', phase.checkedBy, true)}
+      ${slotCell('Way back', phase.wayBack, true)}
+    </div>
+  `;
+}
+
+function handoverDetailHtml(handover) {
+  const head = `
+    <div class="detail-head"><h3>${escapeHtml(handover.name)}</h3><span class="pill neutral">Hook point</span></div>
+    <div class="detail-note">${richText(handover.note)}<sup><a href="#source-18">[18]</a></sup></div>
+  `;
+  if (handover.hooks.length === 0) return `${head}<div class="empty-handover">This board lists no hook here, so the flow moves on at once.</div>`;
+  const rows = handover.hooks.map((hook) => `
+    <tr>
+      <td class="term">${escapeHtml(hook.name)}</td>
+      <td>${escapeHtml(RUNNER_LABELS[hook.runner])}</td>
+      <td>${hook.reads.map((itemId) => escapeHtml(ITEMS[itemId].label)).join(', ')}</td>
+      <td>${escapeHtml(hook.blocks)}</td>
+      <td>${hook.produces.length === 0 ? 'Nothing' : hook.produces.map((itemId) => `<code>${escapeHtml(ITEMS[itemId].label)}</code>`).join(', ')}</td>
+    </tr>
+  `).join('');
+  return `${head}
+    <div class="hook-list"><div class="table-wrap"><table>
+      <thead><tr><th>Hook</th><th>Runs by</th><th>Reads</th><th>Blocks</th><th>Produces</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+
+function renderNodeDetail() {
+  const node = BOARDS[explorerState.boardKey].nodes[explorerState.nodeIndex];
+  elementById('step-detail').innerHTML = node.kind === 'phase' ? phaseDetailHtml(node) : handoverDetailHtml(node);
+}
+
+function renderLedger() {
+  const board = BOARDS[explorerState.boardKey];
+  const node = board.nodes[explorerState.nodeIndex];
+  const everEmitted = new Set(board.nodes.flatMap(emitsOf));
+  const emittedBefore = new Set(board.nodes.slice(0, explorerState.nodeIndex).flatMap(emitsOf));
+  const emittedNow = emitsOf(node);
+  const readNow = readsOf(node);
+  const chipStateOf = (itemId) => {
+    if (emittedNow.includes(itemId)) return 'emitted';
+    if (readNow.includes(itemId)) return 'read';
+    if (ITEMS[itemId].standing || emittedBefore.has(itemId)) return 'present';
+    return 'absent';
+  };
+  const groupsHtml = LEDGER_GROUPS.map((group) => {
+    const visibleItemIds = group.itemIds.filter((itemId) => ITEMS[itemId].standing || everEmitted.has(itemId));
+    return `
+      <div class="ledger-group">
+        <div class="group-name">${escapeHtml(group.name)}</div>
+        <div class="chips">${visibleItemIds.map((itemId) => `<span class="chip ${chipStateOf(itemId)}">${escapeHtml(ITEMS[itemId].label)}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
+  elementById('ledger').innerHTML = `
+    <div class="ledger-title">The context once this ends</div>
+    ${groupsHtml}
+    <div class="legend">
+      <span><span class="chip read">read</span> here</span>
+      <span><span class="chip emitted">delivered</span> or moved here</span>
+      <span><span class="chip present">present</span> from before</span>
+      <span><span class="chip absent">not yet</span></span>
+    </div>
+  `;
+  elementById('explorer-caption').textContent = board.caption;
+}
+
+function renderExplorer() {
+  renderBoardSwitch();
+  renderTrack();
+  renderNodeDetail();
+  renderLedger();
+}
+
+function filterButtonsHtml(labels, counts, activeKey) {
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const allButton = `<button type="button" class="filter" data-filter="all" aria-pressed="${activeKey === 'all'}">All<span class="count">${total}</span></button>`;
+  const keyedButtons = Object.keys(labels).filter((key) => counts[key] > 0).map((key) => `
+    <button type="button" class="filter" data-filter="${key}" aria-pressed="${activeKey === key}">${escapeHtml(labels[key].label)}<span class="count">${counts[key]}</span></button>
+  `).join('');
+  return `<span class="filter-label">Show</span>${allButton}${keyedButtons}`;
+}
+
+const countBy = (records, keyName) => records.reduce((counts, record) => {
+  counts[record[keyName]] = (counts[record[keyName]] || 0) + 1;
+  return counts;
+}, {});
+
+const baselineState = { fit: 'all' };
+
+function renderBaseline() {
+  elementById('baseline-filters').innerHTML = filterButtonsHtml(FIT_LABELS, countBy(BASELINE, 'fit'), baselineState.fit);
+  elementById('baseline-rows').innerHTML = BASELINE
+    .filter((row) => baselineState.fit === 'all' || row.fit === baselineState.fit)
+    .map((row) => `
+      <tr>
+        <td>${richText(row.today)}${citationMarks(row.sources)}</td>
+        <td>${richText(row.model)}</td>
+        <td><span class="pill ${FIT_LABELS[row.fit].pill}">${escapeHtml(FIT_LABELS[row.fit].label)}</span></td>
+      </tr>
+    `).join('');
+}
+
+function renderRules() {
+  elementById('rule-groups').innerHTML = RULE_GROUPS.map((group) => `
+    <div class="argument">
+      <h4>${escapeHtml(group.title)}</h4>
+      <ul>${group.rules.map((rule) => `<li>${richText(rule)}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+
+const difficultyState = { severity: 'all', allOpen: false };
+
+function renderDifficulties() {
+  elementById('difficulty-filters').innerHTML = filterButtonsHtml(SEVERITY_LABELS, countBy(DIFFICULTIES, 'severity'), difficultyState.severity)
+    + `<button type="button" class="text-button" id="difficulty-toggle-all">${difficultyState.allOpen ? 'Close all' : 'Open all'}</button>`;
+  elementById('difficulty-list').innerHTML = DIFFICULTIES
+    .map((difficulty, i) => ({ difficulty, number: i + 1 }))
+    .filter((entry) => difficultyState.severity === 'all' || entry.difficulty.severity === difficultyState.severity)
+    .map((entry) => `
+      <details class="difficulty"${difficultyState.allOpen ? ' open' : ''}>
+        <summary>
+          <span class="index">${String(entry.number).padStart(2, '0')}</span>
+          <span class="title">${escapeHtml(entry.difficulty.title)}<span class="line">${escapeHtml(entry.difficulty.line)}</span></span>
+          <span class="pill ${SEVERITY_LABELS[entry.difficulty.severity].pill}">${escapeHtml(SEVERITY_LABELS[entry.difficulty.severity].label)}</span>
+          <span class="caret">&rsaquo;</span>
+        </summary>
+        <div class="body">
+          <div><div class="slot-name">Forge today</div><p>${richText(entry.difficulty.today)}${citationMarks(entry.difficulty.sources)}</p></div>
+          <div><div class="slot-name">Why it bites</div><p>${richText(entry.difficulty.bites)}</p></div>
+          <div><div class="slot-name">What the design does</div><p>${richText(entry.difficulty.needs)}</p></div>
+        </div>
+      </details>
+    `).join('');
+}
+
+function renderImpact() {
+  elementById('impact-rows').innerHTML = IMPACT.map((row) => `
+    <tr>
+      <td class="term">${escapeHtml(row.part)}</td>
+      <td>${richText(row.today)}${citationMarks(row.sources)}</td>
+      <td>${richText(row.after)}</td>
+      <td><span class="pill ${row.size === 'None' ? 'green' : row.size === 'XL' ? 'crimson' : 'neutral'}">${escapeHtml(row.size)}</span></td>
+    </tr>
+  `).join('');
+  elementById('stage-rows').innerHTML = STAGES.map((row) => `
+    <tr><td class="term">${escapeHtml(row.stage)}</td><td>${richText(row.delivers)}</td><td>${richText(row.notices)}</td></tr>
+  `).join('');
+}
+
+function argumentCardsHtml(records) {
+  return records.map((record, i) => `
+    <div class="argument">
+      <h4><span class="index">${String(i + 1).padStart(2, '0')}</span>${escapeHtml(record.title)}</h4>
+      <p>${richText(record.text)}${citationMarks(record.sources)}</p>
+      ${record.ruling ? `<p class="holds"><strong>Ruling.</strong> ${richText(record.ruling)}</p>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderArguments() {
+  elementById('steelman-list').innerHTML = argumentCardsHtml(STEELMAN);
+  elementById('strawman-build').innerHTML = argumentCardsHtml(STRAWMAN_BUILD);
+  elementById('strawman-objections').innerHTML = argumentCardsHtml(STRAWMAN_OBJECTIONS);
+}
+
+function renderSources() {
+  elementById('source-list').innerHTML = SOURCES.map((source, i) => `<li id="source-${i + 1}">${richText(source)}</li>`).join('');
+}
+
+function closestWithData(target, attributeName) {
+  return target instanceof Element ? target.closest(`[${attributeName}]`) : null;
+}
+
+elementById('pipeline-switch').addEventListener('click', (event) => {
+  const button = closestWithData(event.target, 'data-board');
+  if (!button) return;
+  explorerState.boardKey = button.getAttribute('data-board');
+  explorerState.nodeIndex = 1;
+  renderExplorer();
+});
+
+elementById('track').addEventListener('click', (event) => {
+  const button = closestWithData(event.target, 'data-node');
+  if (!button) return;
+  explorerState.nodeIndex = Number(button.getAttribute('data-node'));
+  renderTrack();
+  renderNodeDetail();
+  renderLedger();
+});
+
+elementById('baseline-filters').addEventListener('click', (event) => {
+  const button = closestWithData(event.target, 'data-filter');
+  if (!button) return;
+  baselineState.fit = button.getAttribute('data-filter');
+  renderBaseline();
+});
+
+elementById('difficulty-filters').addEventListener('click', (event) => {
+  if (event.target instanceof Element && event.target.id === 'difficulty-toggle-all') {
+    difficultyState.allOpen = !difficultyState.allOpen;
+    renderDifficulties();
+    return;
+  }
+  const button = closestWithData(event.target, 'data-filter');
+  if (!button) return;
+  difficultyState.severity = button.getAttribute('data-filter');
+  renderDifficulties();
+});
+
+elementById('theme-toggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const currentTheme = root.getAttribute('data-theme') || (systemIsDark ? 'dark' : 'light');
+  root.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+});
+
+function watchCurrentSection() {
+  const links = Array.from(document.querySelectorAll('nav.sidebar a'));
+  const headings = links.map((link) => document.querySelector(link.getAttribute('href')));
+  const markCurrent = () => {
+    const offset = window.scrollY + 120;
+    let currentIndex = 0;
+    headings.forEach((heading, i) => { if (heading && heading.offsetTop <= offset) currentIndex = i; });
+    links.forEach((link, i) => link.classList.toggle('current', i === currentIndex));
+  };
+  window.addEventListener('scroll', markCurrent, { passive: true });
+  markCurrent();
+}
+
+renderExplorer();
+renderBaseline();
+renderRules();
+renderDifficulties();
+renderImpact();
+renderArguments();
+renderSources();
+watchCurrentSection();
+</script>
+</body>
+</html>

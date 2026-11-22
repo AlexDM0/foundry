@@ -295,7 +295,7 @@
     }
   ],
   "warnings": [
-    "the Baton pass to code code-newer failed at take-baton: Example error",
+    "the restart to code code-newer failed at read-jobs: Example error",
     "no Assistant can come up: open incidents take their defaults"
   ],
   "today": {

@@ -100,7 +100,7 @@ function writeStaleGreenFacts(jobId: string): void {
     fixCommand:          null,
     commit:              'example-commit',
     exitCode:            null,
-    batonPassPath:       RedHandoff.batonPassPathOf(folder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(folder),
     fullLogPath:         null,
     resume:              1,
     resumesAllowed:      2,

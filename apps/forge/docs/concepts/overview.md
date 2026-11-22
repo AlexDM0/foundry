@@ -118,12 +118,12 @@ event log fills. The stored cursor stands still in the gap and catches up in the
 Hephaestus is a single point of progress, never of state. Talos appends every event of a child to its
 [event log](../glossary.md#event-log) in the job folder. While Hephaestus is down, a report or a question waits there.
 Each job on the board stores a [cursor](../glossary.md#cursor), the last event Hephaestus applied, and the lock hold
-that applies an event also moves the cursor, so each event applies once. The [Baton](../glossary.md#baton) keeps one
-Hephaestus per board, and each starting Hephaestus runs [Regrouping](../glossary.md#regrouping) once, before its first
+that applies an event also moves the cursor, so each event applies once. The
+[Hephaestus lock](../glossary.md#hephaestus-lock) keeps one Hephaestus per board, and each starting Hephaestus runs [Regrouping](../glossary.md#regrouping) once, before its first
 Pass.
 
-An update follows the same logic. A [Baton pass](../glossary.md#baton-pass) replaces Hephaestus's code and touches
-no child: the successor connects to the same Talos.
+An update follows the same logic. A [restart](../glossary.md#restart) first proves the code on disk in a preflight,
+then replaces Hephaestus's code and touches no child: the successor connects to the same Talos.
 
 ## An Airlock gates the merged tree
 
@@ -167,8 +167,8 @@ Twelve names, each with one purpose. Each row links its home. The next paragraph
 
 Hephaestus is one process, and the Pass, Playbook, Customs, Airlock, Bouncer and Regrouping are code inside it. A
 Talos is a process of its own, and the Assistant is an agent session under it. The API's client is a program of its own,
-the Baton a numbered record and the Hatch a request folder. Hephaestus and Talos are the only long-running processes
-of this project; the Assistant is a session Talos runs as its child.
+the Hephaestus lock a numbered record and the Hatch a request folder. Hephaestus and Talos are the only long-running
+processes of this project; the Assistant is a session Talos runs as its child.
 
 | Name | What it is |
 | --- | --- |
@@ -180,7 +180,7 @@ of this project; the Assistant is a session Talos runs as its child.
 | Customs | Checks what a session left against git, the ticket and the report |
 | Airlock | One merge at a time per target: merge, gate, land |
 | Assistant | The session that takes incidents; it writes no code |
-| Baton | The numbered record saying which Hephaestus owns the board |
+| Hephaestus lock | The numbered record saying which Hephaestus owns the board |
 | Regrouping | What a starting Hephaestus does before its first Pass |
 | Bouncer | The role table judging every Hatch request |
 
@@ -189,7 +189,7 @@ of this project; the Assistant is a session Talos runs as its child.
 | It is not | What is true instead | Evidence |
 | --- | --- | --- |
 | Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts`, where the store's local adapter opens every write |
-| Self-restarting | Hephaestus never restarts itself; an install change stops launches until `forge restart` or `forge update` runs a Baton pass | `src/services/hephaestus/InstallChangeWatch.ts` |
+| Self-restarting | Hephaestus never restarts itself; an install change stops launches until `forge restart` or `forge update` restarts it on the code on disk | `src/services/hephaestus/InstallChangeWatch.ts` |
 | A machine-wide service | One Hephaestus per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/hephaestus/GateRunSlots.ts`, `setup.ts` |
 
 ## The naming trap

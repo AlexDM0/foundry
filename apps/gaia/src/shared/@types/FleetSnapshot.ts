@@ -58,7 +58,7 @@ export type ForgeLookKind =
   | 'unreachable'
   | 'newer-contract'
   | 'older-contract'
-  | 'baton-pass-failed'
+  | 'restart-failed'
   | 'launches-held'
   | 'new-code'
   | 'counts-only'

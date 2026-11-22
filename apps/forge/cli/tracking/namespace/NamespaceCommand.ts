@@ -4,8 +4,8 @@
  * another tracker of the repository lists is refused, and the board's own entry in that list follows the name it takes.
  */
 import { readingBoardOf }                                           from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { Baton }                                                    from '../../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                                        from '../../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                           from '../../../src/services/hephaestus/HephaestusLock.ts';
 import { lockTakerOf }                                              from '../../../src/services/tracker/LockHolders.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
@@ -44,10 +44,10 @@ function printCurrentNamespace(commandArguments: ArgumentParser, context: Comman
 
 function refuseWhileAnHephaestusServes(context: CommandContext): void {
   const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
-  const newest = Baton.newestBatonOf(context.platformPorts, hephaestusDirectory);
+  const newest = HephaestusLock.newestOf(context.platformPorts, hephaestusDirectory);
   if (newest.verdict !== 'live') return;
-  const batonFilePath = Baton.batonFilePathFor(hephaestusDirectory, newest.generation);
-  throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: newest.record.url, batonFilePath });
+  const hephaestusLockFilePath = HephaestusLock.filePathFor(hephaestusDirectory, newest.generation);
+  throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: newest.record.url, hephaestusLockFilePath });
 }
 
 function refuseANamespaceAnotherTrackerLists(context: CommandContext, wantedNamespace: string): void {

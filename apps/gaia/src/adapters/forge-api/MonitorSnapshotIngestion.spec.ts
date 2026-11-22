@@ -25,7 +25,7 @@ const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('hephaestus-fetch-supported-forge');
 const RECORDED_CODE_VERSION = RECORDED_FORGE_VERSIONS.codeVersion;
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
-const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
+const RESTART_SENTENCE = 'the restart to code example-code failed at preflight: Example error; this Hephaestus keeps driving';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
 
 function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
@@ -36,8 +36,8 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     installVersion: RECORDED_FORGE_VERSIONS.installVersion,
     processId:      48_107,
     contracts:      {
-      summary: 2,
-      monitor: 5,
+      summary: 3,
+      monitor: 6,
       control: 3,
     },
   };
@@ -145,8 +145,8 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
     url:       'http://127.0.0.1:4951/',
     processId: 48_107,
     contracts: {
-      summary: 2,
-      monitor: 5,
+      summary: 3,
+      monitor: 6,
       control: 3,
     },
     codeVersion:         RECORDED_CODE_VERSION,
@@ -255,12 +255,12 @@ describe('the snapshot of Example Storefront at work', () => {
     expect(ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: recordedReadingOf(recorded) });
   });
 
-  test('keeps a failed Baton pass as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {
+  test('keeps a failed restart as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {
     const snapshot = await storefrontSnapshot();
-    const warnings = [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }, { kind: FORGE_NOTICE_KINDS.assistantDown, text: ASSISTANT_DOWN_SENTENCE }];
+    const warnings = [{ kind: 'restart-failed', text: RESTART_SENTENCE }, { kind: FORGE_NOTICE_KINDS.assistantDown, text: ASSISTANT_DOWN_SENTENCE }];
     const reading = ingestion().readingOf({ ...snapshot, notices: [], warnings }, EXAMPLE_READ_STAMP);
     expect(reading.verdict === 'readable' ? [reading.reading.warnings, reading.reading.notices] : null).toEqual([
-      [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }],
+      [{ kind: 'restart-failed', text: RESTART_SENTENCE }],
       [{ kind: FORGE_NOTICE_KINDS.assistantDown, text: ASSISTANT_DOWN_SENTENCE }],
     ]);
   });
@@ -269,7 +269,7 @@ describe('the snapshot of Example Storefront at work', () => {
     const snapshot = await storefrontSnapshot();
     const unknownKind = ingestion().readingOf({ ...snapshot, warnings: [{ kind: 'example-new-warning', text: 'Example warning' }] }, EXAMPLE_READ_STAMP);
     expect(unknownKind.verdict === 'readable' ? unknownKind.reading.warnings : null).toEqual([{ kind: 'example-new-warning', text: 'Example warning' }]);
-    expect(ingestion().readingOf({ ...snapshot, warnings: [BATON_PASS_SENTENCE] }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['warnings[0]'] });
+    expect(ingestion().readingOf({ ...snapshot, warnings: [RESTART_SENTENCE] }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['warnings[0]'] });
   });
 
   test('reads the current usage window and its reset beside the limit hit', async () => {
@@ -365,7 +365,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       url:       STOREFRONT.url,
       processId: 48_107,
       contracts: {
-        summary: 2,
+        summary: 3,
         monitor: NEWER_MONITOR_VERSION,
         control: CONTRACT_VERSIONS.forgeControl,
       },

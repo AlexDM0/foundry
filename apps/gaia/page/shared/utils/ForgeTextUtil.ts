@@ -26,19 +26,19 @@ export interface UnreachableCalloutText {
 export type ShownCondition = FleetDocumentCondition | 'outdated' | 'crashed' | 'down' | 'hung';
 
 const CONDITION_WORDS: Readonly<Record<ShownCondition, string>> = {
-  'live':          'live',
-  'paused':        'paused',
-  'held':          'launches held',
-  'passing-baton': 'passing the baton',
-  'starting':      'starting',
-  'dormant':       'dormant',
-  'unreachable':   'unreachable',
-  'unreadable':    'not readable',
-  'missing':       'repository missing',
-  'outdated':      'needs update',
-  'crashed':       'crashed',
-  'down':          'down',
-  'hung':          'stopped supervising',
+  'live':        'live',
+  'paused':      'paused',
+  'held':        'launches held',
+  'restarting':  'restarting',
+  'starting':    'starting',
+  'dormant':     'dormant',
+  'unreachable': 'unreachable',
+  'unreadable':  'not readable',
+  'missing':     'repository missing',
+  'outdated':    'needs update',
+  'crashed':     'crashed',
+  'down':        'down',
+  'hung':        'stopped supervising',
 };
 
 const SHOWN_PRESENCE_STATES: Readonly<Partial<Record<FleetDocumentPresenceState, ShownCondition>>> = {
@@ -69,12 +69,12 @@ function conditionWordInSentenceCaseOf(condition: ShownCondition): string {
 }
 
 /**
- * A forge passing the baton draws the ring of one on its way, as a starting forge does; one that crashed, is down or hung draws the failure
+ * A restarting forge draws the ring of one on its way, as a starting forge does; one that crashed, is down or hung draws the failure
  * of one that does not answer. The word tells each apart.
  */
 function dotConditionOf(condition: ShownCondition): DotCondition {
   switch (condition) {
-    case 'passing-baton':
+    case 'restarting':
       return 'starting';
     case 'crashed':
     case 'down':

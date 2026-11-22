@@ -103,7 +103,7 @@ function evidenceIsWellFormed(value: unknown): boolean {
     && (previousEnding === null || isOneOf(previousEnding, PREVIOUS_ENDINGS))
     && isTextOrNull(field('previousBootIdentity'))
     && typeof field('currentBootIdentity') === 'string'
-    && typeof field('newerBatonThanPresence') === 'boolean'
+    && typeof field('newerHephaestusLockThanPresence') === 'boolean'
     && isOneOf(field('talos'), TALOS_EVIDENCE)
     && isTextOrNull(field('lastHeartbeatAt'))
     && isTextOrNull(field('bootStartedAt'));
@@ -237,7 +237,7 @@ function readHeartbeat(files: HephaestusFiles): PresenceFileReading<HeartbeatRec
   };
 }
 
-/** Generations start again at 1 once a stop released the last Baton, so only a stored beat whose generation's record is current is newer. */
+/** Generations start again at 1 once a stop released the last Hephaestus lock, so only a stored beat whose generation's record is current is newer. */
 function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation: number, files: HephaestusFiles): storedGeneration is number {
   if (storedGeneration === null || storedGeneration <= generation) return false;
   const presence = readPresence(files);
@@ -245,7 +245,7 @@ function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation
 }
 
 /**
- * During a Baton pass the predecessor and the successor both beat: a process beats only while the stored beat is not of a newer generation
+ * During a restart the predecessor and the successor both beat: a process beats only while the stored beat is not of a newer generation
  * whose record is current, so the old generation's last beat never hides the new one's, and an ended run's beat never silences a new run.
  */
 function writeHeartbeat(files: HephaestusFiles, generation: number, at: string): HeartbeatWrite {

@@ -1,10 +1,10 @@
 /**
- * The flow's step model over the designed fixtures. What matters: the node-to-dialog table of PLAN 9.1 (the merge before review opens
- * nothing); every merge step carries a derived meter whose tooltip follows where it is derived from; each step card names its kind, and a
- * Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their
- * state; an editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal
- * carries none; a gate pill carries the cache mark of its gate's newest run in the step's phase; each add choice sends its edit or
- * asks for the Gate dialog; the footer's removed steps are worded from the facts; and a node asks while a question it names is open.
+ * The flow's step model over the pipeline fixtures. What matters: the table of `docs/design/board.md`, "The pipeline flow: what a node opens" (the merge
+ * before review opens nothing); every merge step carries a derived meter whose tooltip follows where it is derived from; each step card names its kind,
+ * and a Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their state; an
+ * editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal carries none; a gate pill
+ * carries the cache mark of its gate's newest run in the step's phase; each add choice sends its edit or asks for the Gate dialog; the footer's removed
+ * steps are worded from the facts; and a node asks while a question it names is open.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -24,7 +24,7 @@ function flowOf(name: PipelineFixtureName): BoardPipelineFlowDocument {
   return flow;
 }
 
-/** The draft of a designed state, for an add card that keeps what the draft names. */
+/** The draft of a pipeline fixture's state, for an add card that keeps what the draft names. */
 function examplePipelineOf(name: PipelineFixtureName) {
   const draft = pipelineBoardStateOf(name).pipeline.setup?.record.draft ?? null;
   if (draft === null) throw new Error(`${name} has no draft`);

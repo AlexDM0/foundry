@@ -9,7 +9,7 @@ import { JsonTextUtil }                        from '../../src/shared/utils/Json
 import type { CommandContext }                 from '../CommandContext.ts';
 import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
 
-export const ANSWER_VERSION = 2;
+export const ANSWER_VERSION = 3;
 
 /** The verbs whose `--json` output is a versioned answer, a refusal included; `machine` with its subcommand. */
 export const VERBS_THAT_ANSWER_IN_VERSIONED_JSON: ReadonlySet<string> = new Set(['start', 'stop', 'init', 'update', 'version', 'machine']);
@@ -31,10 +31,10 @@ function printAnswer(commandArguments: ArgumentParser, context: CommandContext, 
 
 function refusalAnswerTextOf(refusal: OperationRefusal): string {
   const refusalCode = refusal.detail === null ? ARGUMENTS_REFUSED_CODE : reasonCodeOf(refusal.detail);
-  // `update`'s answer names how its Baton pass went, also when the pass failed and the refusal is the answer.
-  const batonPassFacts = refusal.detail?.kind === 'baton-pass-failed' ? { batonPass: 'failed', batonPassStep: refusal.detail.step } : {};
+  // `update`'s answer names how its restart went, also when it was refused and the refusal is the answer.
+  const restartFacts = refusal.detail?.kind === 'restart-failed' ? { restart: 'failed', restartStep: refusal.detail.step } : {};
   return JsonTextUtil.indentedTextOf({
-    answerVersion: ANSWER_VERSION, refusal: refusalCode, text: OperationRefusalWordingUtil.apiMessageOf(refusal), ...batonPassFacts
+    answerVersion: ANSWER_VERSION, refusal: refusalCode, text: OperationRefusalWordingUtil.apiMessageOf(refusal), ...restartFacts
   });
 }
 

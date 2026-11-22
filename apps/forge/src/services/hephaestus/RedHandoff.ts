@@ -1,5 +1,5 @@
 /**
- * A red handoff's Baton pass, written in the job's folder as the same session is resumed to fix it: `gate-failure.md` for the agent to read
+ * A red handoff's gate failure note, written in the job's folder as the same session is resumed to fix it: `gate-failure.md` for the agent to read
  * instead of rerunning the gate, and the facts its resume message is worded from, which a fresh session taking over reads again.
  */
 import { readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join }         from 'node:path';
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 
 export const RED_HANDOFF_FILES = {
-  batonPass:        'gate-failure.md',
+  gateFailureNote:  'gate-failure.md',
   facts:            'red-handoff.json',
   /**
    * The subfolder of an ended job's folder holding the red handoff of a stale green its ticket's gates turned red outside the Airlock, which
@@ -17,7 +17,7 @@ export const RED_HANDOFF_FILES = {
   staleGreenFolder: 'stale-green',
 } as const;
 
-export const BATON_PASS_OUTPUT_LIMITS = {
+export const GATE_FAILURE_NOTE_OUTPUT_LIMITS = {
   HEAD_LINES: 40,
   TAIL_LINES: 40,
   BYTES:      8192,
@@ -37,7 +37,7 @@ export interface RedHandoffFacts {
   fixCommand:          string | null;
   commit:              string;
   exitCode:            number | null;
-  batonPassPath:       string;
+  gateFailureNotePath: string;
   /** The gate's whole output; `null` for a Customs check. */
   fullLogPath:         string | null;
   resume:              number;
@@ -71,7 +71,7 @@ function lastBytesOf(text: string, byteCount: number): string {
 /** The output's first and last lines with a mark for what lies between, cut to at most the byte limit, head and tail alike. */
 function outputExcerptOf(output: string): string {
   const lines = output.replace(/\n$/, '').split('\n');
-  const { HEAD_LINES, TAIL_LINES, BYTES } = BATON_PASS_OUTPUT_LIMITS;
+  const { HEAD_LINES, TAIL_LINES, BYTES } = GATE_FAILURE_NOTE_OUTPUT_LIMITS;
   const omittedLines = lines.length - HEAD_LINES - TAIL_LINES;
   const head = omittedLines > 0 ? lines.slice(0, HEAD_LINES).join('\n') : lines.join('\n');
   const tail = omittedLines > 0 ? lines.slice(-TAIL_LINES).join('\n') : '';
@@ -82,17 +82,20 @@ function outputExcerptOf(output: string): string {
   return `${firstBytesOf(head, halfBytes)}\n[… cut to ${BYTES} bytes …]\n${lastBytesOf(cutTail, halfBytes)}`;
 }
 
-const BATON_PASS_HEADINGS: Readonly<Record<RedHandoffFacts['kind'], (name: string) => string>> = {
+const GATE_FAILURE_NOTE_HEADINGS: Readonly<Record<RedHandoffFacts['kind'], (name: string) => string>> = {
   'gate':           (name) => `Gate \`${name}\` is red`,
   'customs':        (name) => `Customs check ${name} is red`,
   'merge-conflict': (name) => `The merge of \`${name}\` conflicts`,
 };
 
+const OUTPUT_BOUNDS_TEXT = `first ${GATE_FAILURE_NOTE_OUTPUT_LIMITS.HEAD_LINES} and last ${GATE_FAILURE_NOTE_OUTPUT_LIMITS.TAIL_LINES} lines, `
+  + `at most ${GATE_FAILURE_NOTE_OUTPUT_LIMITS.BYTES} bytes`;
+
 /** A conflicted merge names the tip it took, and its output is the conflicted files. */
-function batonPassTextOf(facts: Readonly<RedHandoffFacts>, output: string): string {
+function gateFailureNoteTextOf(facts: Readonly<RedHandoffFacts>, output: string): string {
   if (facts.kind === 'merge-conflict') {
     return [
-      `# ${BATON_PASS_HEADINGS[facts.kind](facts.name)}`,
+      `# ${GATE_FAILURE_NOTE_HEADINGS[facts.kind](facts.name)}`,
       '',
       `- Merged tip: ${facts.mergedTip ?? '-'}`,
       `- Branch tip: ${facts.commit}`,
@@ -104,7 +107,7 @@ function batonPassTextOf(facts: Readonly<RedHandoffFacts>, output: string): stri
     ].join('\n');
   }
   return [
-    `# ${BATON_PASS_HEADINGS[facts.kind](facts.name)}`,
+    `# ${GATE_FAILURE_NOTE_HEADINGS[facts.kind](facts.name)}`,
     '',
     `- Gate: ${facts.kind === 'gate' ? facts.name : '-'}`,
     `- Customs check: ${facts.kind === 'customs' ? facts.name : '-'}`,
@@ -114,7 +117,7 @@ function batonPassTextOf(facts: Readonly<RedHandoffFacts>, output: string): stri
     `- Exit code: ${facts.exitCode === null ? '-' : String(facts.exitCode)}`,
     `- Full log: ${facts.fullLogPath ?? '-'}`,
     '',
-    `## Output (first ${BATON_PASS_OUTPUT_LIMITS.HEAD_LINES} and last ${BATON_PASS_OUTPUT_LIMITS.TAIL_LINES} lines, at most ${BATON_PASS_OUTPUT_LIMITS.BYTES} bytes)`,
+    `## Output (${OUTPUT_BOUNDS_TEXT})`,
     '',
     '```',
     outputExcerptOf(output),
@@ -123,13 +126,13 @@ function batonPassTextOf(facts: Readonly<RedHandoffFacts>, output: string): stri
   ].join('\n');
 }
 
-function batonPassPathOf(jobFolder: string): string {
-  return join(jobFolder, RED_HANDOFF_FILES.batonPass);
+function gateFailureNotePathOf(jobFolder: string): string {
+  return join(jobFolder, RED_HANDOFF_FILES.gateFailureNote);
 }
 
-/** Written before the job is interrupted, so the resume that reads the facts always finds the Baton pass beside them. */
+/** Written before the job is interrupted, so the resume that reads the facts always finds the note beside them. */
 function writeRedHandoff(jobFolder: string, facts: Readonly<RedHandoffFacts>, output: string): void {
-  writeFileAtomically(facts.batonPassPath, batonPassTextOf(facts, output));
+  writeFileAtomically(facts.gateFailureNotePath, gateFailureNoteTextOf(facts, output));
   writeFileAtomically(join(jobFolder, RED_HANDOFF_FILES.facts), `${JSON.stringify(facts, null, 2)}\n`);
 }
 
@@ -142,7 +145,7 @@ function adoptRedHandoff(jobFolder: string, facts: Readonly<RedHandoffFacts>): v
 function redHandoffFactsOf(jobFolder: string): RedHandoffFacts | null {
   try {
     const parsed: unknown = JSON.parse(readFileSync(join(jobFolder, RED_HANDOFF_FILES.facts), 'utf8'));
-    return typeof parsed === 'object' && parsed !== null && Object.hasOwn(parsed, 'batonPassPath') ? parsed as RedHandoffFacts : null;
+    return typeof parsed === 'object' && parsed !== null && Object.hasOwn(parsed, 'gateFailureNotePath') ? parsed as RedHandoffFacts : null;
   } catch {
     return null;
   }
@@ -150,8 +153,8 @@ function redHandoffFactsOf(jobFolder: string): RedHandoffFacts | null {
 
 export const RedHandoff = Object.freeze({
   outputExcerptOf,
-  batonPassTextOf,
-  batonPassPathOf,
+  gateFailureNoteTextOf,
+  gateFailureNotePathOf,
   writeRedHandoff,
   adoptRedHandoff,
   redHandoffFactsOf,

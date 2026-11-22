@@ -1,6 +1,6 @@
 /**
  * Hephaestus's API end to end against a spawned Hephaestus on a scratch board, the fake agent playing every session. What matters: the
- * Baton names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
+ * Hephaestus lock names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
  * and Hephaestus; `/api/summary` and `/api/monitor` have their fixtures' shapes, the monitor's only with the token and its stream starting
  * with the whole snapshot; `GET /` and every other path outside the API is a 404, and an answer lets no origin
@@ -48,8 +48,8 @@ import { fileReadyTicketThrough }                                               
 import { COMMON_FOLDER_OUTSIDE }                                                        from '../testing/RecordedGitStages.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'hephaestus', 'testing', 'fixtures', 'summary-v2.json');
-const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'hephaestus', 'testing', 'fixtures', 'monitor-v5.json');
+const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'hephaestus', 'testing', 'fixtures', 'summary-v3.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'hephaestus', 'testing', 'fixtures', 'monitor-v6.json');
 
 const recordedGit = useRecordedGit();
 
@@ -96,10 +96,10 @@ function hephaestusDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'hephaestus');
 }
 
-/** The newest Baton's token as a bearer header, which every data route needs. */
+/** The newest Hephaestus lock's token as a bearer header, which every data route needs. */
 function tokenHeaders(): Record<string, string> {
-  const batonFile = readdirSync(hephaestusDirectory()).filter((fileName) => /^baton-\d+\.json$/.test(fileName)).at(-1) ?? '';
-  const { tokenFile } = JSON.parse(readFileSync(join(hephaestusDirectory(), batonFile), 'utf8')) as { tokenFile: string };
+  const hephaestusLockFile = readdirSync(hephaestusDirectory()).filter((fileName) => /^lock-\d+\.json$/.test(fileName)).at(-1) ?? '';
+  const { tokenFile } = JSON.parse(readFileSync(join(hephaestusDirectory(), hephaestusLockFile), 'utf8')) as { tokenFile: string };
   return { authorization: `Bearer ${readFileSync(tokenFile, 'utf8').trim()}` };
 }
 
@@ -155,17 +155,17 @@ afterEach(async () => {
 });
 
 describe('the Hephaestus API on a scratch board', () => {
-  test('the Baton names the token file and holds no token; that token is what an Origin-less command needs, answered 200, 409 or 400', async () => {
+  test('the Hephaestus lock names the token file and holds no token; that token is what an Origin-less command needs, answered 200, 409 or 400', async () => {
     const hephaestus = await startHephaestus();
     const url = await hephaestus.firstOutputLine ?? '';
-    const batonFile = readdirSync(hephaestusDirectory()).find((fileName) => /^baton-\d+\.json$/.test(fileName)) ?? '';
-    const batonText = readFileSync(join(hephaestusDirectory(), batonFile), 'utf8');
-    const baton = JSON.parse(batonText) as { tokenFile: string };
-    expect(realpathSync(baton.tokenFile).startsWith(realpathSync(homeDirectory))).toBe(true);
-    const token = readFileSync(baton.tokenFile, 'utf8');
+    const hephaestusLockFile = readdirSync(hephaestusDirectory()).find((fileName) => /^lock-\d+\.json$/.test(fileName)) ?? '';
+    const hephaestusLockText = readFileSync(join(hephaestusDirectory(), hephaestusLockFile), 'utf8');
+    const hephaestusLock = JSON.parse(hephaestusLockText) as { tokenFile: string };
+    expect(realpathSync(hephaestusLock.tokenFile).startsWith(realpathSync(homeDirectory))).toBe(true);
+    const token = readFileSync(hephaestusLock.tokenFile, 'utf8');
     expect(token.length).toBeGreaterThan(0);
-    expect(batonText).not.toContain(token);
-    expect(Object.keys(baton)).not.toContain('token');
+    expect(hephaestusLockText).not.toContain(token);
+    expect(Object.keys(hephaestusLock)).not.toContain('token');
 
     const command = (body: string, authorization = `Bearer ${token}`) => fetch(new URL('api/commands', url), { method: 'POST', headers: { authorization }, body });
     expect((await command(JSON.stringify({ kind: 'hephaestus-unpause' }), 'Bearer not-the-token')).status).toBe(401);
@@ -195,7 +195,7 @@ describe('the Hephaestus API on a scratch board', () => {
     const summary = await (await fetch(new URL('api/summary', url))).json() as Record<string, unknown>;
     const fixture = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(summary)).toEqual(Object.keys(fixture));
-    expect(summary['summaryVersion']).toBe(2);
+    expect(summary['summaryVersion']).toBe(3);
 
     const monitorRefused = await fetch(new URL('api/monitor', url));
     const monitorRefusal = await monitorRefused.json() as Record<string, unknown>;
@@ -204,10 +204,10 @@ describe('the Hephaestus API on a scratch board', () => {
     const monitor = await (await fetch(new URL('api/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));
-    expect(monitor).toMatchObject({ monitorVersion: 5, project: 'Example Agency', hephaestus: { state: 'serving', url, paused: false } });
+    expect(monitor).toMatchObject({ monitorVersion: 6, project: 'Example Agency', hephaestus: { state: 'serving', url, paused: false } });
     const versions: unknown = await (await fetch(new URL('api/versions', url))).json();
     expect(versions).toEqual(FORGE_SYSTEM_VERSIONS);
-    const versionedMonitor = await (await fetch(new URL('api/v4/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
+    const versionedMonitor = await (await fetch(new URL('api/v5/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     expect(Object.keys(versionedMonitor)).toEqual(Object.keys(monitorFixture));
     const monitorStream = await fetch(new URL('api/monitor/events', url), { headers: tokenHeaders() });
     const streamReader = monitorStream.body?.getReader();
@@ -222,7 +222,7 @@ describe('the Hephaestus API on a scratch board', () => {
     expect(handshakeEvent).toBe(`event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}`);
     expect(/^event: (.+)$/m.exec(monitorEvent)?.[1]).toBe('monitor');
     const monitorEventData: unknown = JSON.parse(/^data: (.+)$/m.exec(monitorEvent)?.[1] ?? 'null');
-    expect(monitorEventData).toMatchObject({ monitorVersion: 5, project: 'Example Agency', systemVersion: FORGE_SYSTEM_VERSIONS.current });
+    expect(monitorEventData).toMatchObject({ monitorVersion: 6, project: 'Example Agency', systemVersion: FORGE_SYSTEM_VERSIONS.current });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {
@@ -357,7 +357,7 @@ describe('the Hephaestus API on a scratch board', () => {
     }
     const asked = await fetch(new URL('api/flint-brain/ask', url), { method: 'POST', headers, body: '{}' });
     expect([asked.status, await asked.json()]).toEqual([404, { refusal: 'not-found' }]);
-    const monitor = await (await fetch(new URL('api/v4/monitor', url), { headers })).json() as Record<string, unknown>;
+    const monitor = await (await fetch(new URL('api/v5/monitor', url), { headers })).json() as Record<string, unknown>;
     expect(Object.hasOwn(monitor, 'flintBrain')).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

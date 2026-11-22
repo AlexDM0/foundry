@@ -1,9 +1,12 @@
-/** The forge-level conditions of PLAN 7.2: derived from one reading, never stored, at most one per forge, the first that applies. */
+/**
+ * The forge-level conditions of `docs/design/screens.md` A1, "Forges that need a look": derived from one reading, never stored, at most one per forge, the
+ * first that applies.
+ */
 import type { ForgeLook, ForgeLookKind } from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading }             from '../../../shared/@types/ForgeReading.ts';
 
-/** The kind of the forge's warning that a Baton pass failed: PLAN 7.2's row 3. */
-export const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
+/** The kind of the forge's warning that a restart failed: row 3 of that table. */
+export const RESTART_FAILED_WARNING_KIND = 'restart-failed';
 
 /** Hephaestus's notice that the code on disk is newer than the code it runs. */
 export const NEW_CODE_NOTICE_KIND = 'new-code';
@@ -13,8 +16,8 @@ function forgeIsReadInFull(reading: ForgeReading): boolean {
   return reading.fidelity === 'full';
 }
 
-function batonPassFailed(reading: ForgeReading): boolean {
-  return forgeIsReadInFull(reading) && reading.warnings.some((warning) => warning.kind === BATON_PASS_FAILED_WARNING_KIND);
+function restartFailed(reading: ForgeReading): boolean {
+  return forgeIsReadInFull(reading) && reading.warnings.some((warning) => warning.kind === RESTART_FAILED_WARNING_KIND);
 }
 
 /** The monitor ingestion reads `hephaestus.state` `held-by-install-change` as the condition `held`. */
@@ -35,12 +38,12 @@ function ticketsWaitForAMachineSlot(reading: ForgeReading): boolean {
   return forgeIsReadInFull(reading) && (reading.concurrency?.ticketsWaitingForMachineSlot ?? 0) > 0;
 }
 
-/** PLAN 7.2's table, in its order. */
+/** The table of `docs/design/screens.md` A1, "Forges that need a look", in its order. */
 const LOOK_RULES: readonly { readonly kind: ForgeLookKind; readonly applies: (reading: ForgeReading) => boolean }[] = [
   { kind: 'unreachable', applies: (reading) => reading.fidelity === 'unreachable' },
   { kind: 'newer-contract', applies: (reading) => reading.fidelity === 'newer-contract' },
   { kind: 'older-contract', applies: (reading) => reading.fidelity === 'older-contract' },
-  { kind: 'baton-pass-failed', applies: batonPassFailed },
+  { kind: 'restart-failed', applies: restartFailed },
   { kind: 'launches-held', applies: launchesAreHeld },
   { kind: 'new-code', applies: newCodeWaits },
   { kind: 'counts-only', applies: (reading) => reading.fidelity === 'counts-only' },

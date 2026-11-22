@@ -18,7 +18,7 @@ const VERSION_KEYS = { majorKey: 'summaryVersion' } as const;
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 
 const HEPHAESTUS_SHAPE = {
-  state:  { oneOf: ['serving', 'held-by-install-change', 'passing-baton', 'down'] },
+  state:  { oneOf: ['serving', 'held-by-install-change', 'restarting', 'down'] },
   paused: 'boolean',
   url:    NULLABLE_TEXT,
 } as const satisfies ShapeOf<SummaryHephaestusDocument>;

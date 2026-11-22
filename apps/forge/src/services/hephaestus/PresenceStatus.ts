@@ -8,9 +8,9 @@ import type { TalosRecord }                                           from '../.
 import type { Workspace }                                             from '../tracker/Workspace.ts';
 import type { HeartbeatRecord, PresenceRecord }                       from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                            from './@types/StartClassification.ts';
-import { Baton }                                                      from './Baton.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import type { HephaestusFiles }                                       from './HephaestusFiles.ts';
+import { HephaestusLock }                                             from './HephaestusLock.ts';
 import { Presence }                                                   from './Presence.ts';
 import { StartClassification }                                        from './StartClassification.ts';
 import { StartGate }                                                  from './StartGate.ts';
@@ -48,7 +48,7 @@ export interface StatusPresenceReading {
   crash:    CrashReading | null;
 }
 
-/** The live Hephaestus `status` found, or `null` when the newest Baton names no live process. */
+/** The live Hephaestus `status` found, or `null` when the newest Hephaestus lock names no live process. */
 export interface LiveHephaestus {
   generation:     number;
   answersAlready: boolean;
@@ -135,9 +135,9 @@ function liveReadingOf(request: PresenceStatusRequest, live: LiveHephaestus): St
   };
 }
 
-/** A board where no forge ever ran, with no presence record and no Baton: `status` asks the process table nothing there. */
+/** A board where no forge ever ran, with no presence record and no Hephaestus lock: `status` asks the process table nothing there. */
 function noForgeEverRan({ ports, files }: PresenceStatusRequest): boolean {
-  return Baton.newestBatonOf(ports, files.hephaestusDirectory).verdict === 'none' && Presence.readPresence(files).verdict === 'absent';
+  return HephaestusLock.newestOf(ports, files.hephaestusDirectory).verdict === 'none' && Presence.readPresence(files).verdict === 'absent';
 }
 
 function downReadingOf(request: PresenceStatusRequest): StatusPresenceReading {

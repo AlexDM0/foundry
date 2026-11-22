@@ -38,10 +38,10 @@ function crashLogNumberToRead(files: HephaestusFiles, requestedNumber: number | 
 
 function headingOf(crashLogNumber: number, path: string, record: CrashLogRecord): string {
   const recorder = record.recordedBy.crashPath ? 'the crash path' : `a start by ${record.recordedBy.startOrigin ?? 'an unknown origin'}`;
-  const baton = record.crashedGeneration === null ? 'a Baton nothing names' : `Baton ${record.crashedGeneration}`;
+  const hephaestusLock = record.crashedGeneration === null ? 'a Hephaestus lock nothing names' : `Hephaestus lock ${record.crashedGeneration}`;
   const suspectedText = record.suspected ? ', suspected before the machine restarted' : '';
   return `crash log ${crashLogNumber} (${path}), recorded ${record.recordedAt} by ${recorder}\n`
-    + `component: ${record.component}, ${baton}${suspectedText}`;
+    + `component: ${record.component}, ${hephaestusLock}${suspectedText}`;
 }
 
 function classificationLinesOf(classification: StartClassificationVerdict | null): string[] {
@@ -49,7 +49,8 @@ function classificationLinesOf(classification: StartClassificationVerdict | null
   const { evidence } = classification;
   return [
     `classification: ${classification.kind}${classification.crashedComponent === null ? '' : ` (${classification.crashedComponent})`}`,
-    `${INDENT}presence ${evidence.presence}, previous ending ${evidence.previousEnding ?? 'none'}, newer Baton than presence ${evidence.newerBatonThanPresence ? 'yes' : 'no'}`,
+    `${INDENT}presence ${evidence.presence}, previous ending ${evidence.previousEnding ?? 'none'}, `
+      + `newer Hephaestus lock than presence ${evidence.newerHephaestusLockThanPresence ? 'yes' : 'no'}`,
     `${INDENT}previous boot ${evidence.previousBootIdentity ?? 'unknown'}, current boot ${evidence.currentBootIdentity}, boot started ${evidence.bootStartedAt ?? 'unknown'}`,
     `${INDENT}Talos ${evidence.talos}, last beat ${evidence.lastHeartbeatAt ?? 'none'}`,
   ];

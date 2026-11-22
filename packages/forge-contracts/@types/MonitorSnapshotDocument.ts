@@ -1,5 +1,5 @@
 /**
- * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 5`;
+ * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 6`;
  * and the stream's handshake and event, which carry the forge's system version.
  * Keys no reader checks, such as `ticketCountByStatus` and Hephaestus's `generation`, are left out. Every string union is the wire's own
  * spelling.
@@ -22,7 +22,7 @@ export type MonitorInterruptionCause = typeof MONITOR_INTERRUPTION_CAUSES[number
 
 export type MonitorActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
 
-export type MonitorHephaestusState = 'serving' | 'held-by-install-change' | 'passing-baton';
+export type MonitorHephaestusState = 'serving' | 'held-by-install-change' | 'restarting';
 
 export interface MonitorHephaestusDocument {
   readonly state:       MonitorHephaestusState;
@@ -130,7 +130,7 @@ export interface MonitorSnapshotDocument {
   readonly attention:      readonly MonitorAttentionEntryDocument[];
   readonly jobs:           readonly MonitorJobDocument[];
   readonly notices:        readonly MonitorNoticeDocument[];
-  /** The header's warnings: `baton-pass-failed` and `assistant-down`. */
+  /** The header's warnings: `restart-failed` and `assistant-down`. */
   readonly warnings:       readonly MonitorNoticeDocument[];
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
@@ -183,12 +183,12 @@ export interface MonitorSnapshotEntityKeys {
   readonly openTickets?: readonly MonitorOpenTicketDocument[];
 }
 
-/** The first event of `GET /api/v4/monitor/events`, `event: handshake`, sent before any `monitor` event. */
+/** The first event of `GET /api/v5/monitor/events`, `event: handshake`, sent before any `monitor` event. */
 export interface MonitorStreamHandshake {
   readonly systemVersion: SystemVersion;
 }
 
-/** Each `monitor` event of `GET /api/v4/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
+/** Each `monitor` event of `GET /api/v5/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
 export interface MonitorEventDocument extends MonitorSnapshotDocument {
   readonly systemVersion: SystemVersion;
 }

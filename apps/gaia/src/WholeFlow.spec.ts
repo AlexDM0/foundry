@@ -341,7 +341,7 @@ interface FleetFollow {
 /** The page's `GET /api/events`: every `fleet` event the page would hear, in order. */
 async function followFleet(server: PageServer, cookie: string): Promise<FleetFollow> {
   eventStreamAbort = new AbortController();
-  const response = await fetch(new URL('/api/v11/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
+  const response = await fetch(new URL('/api/v12/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error('The event stream has no body.');
   const decoder = new TextDecoder();
@@ -426,7 +426,7 @@ describe('Gaia from the registry to the page', () => {
       answerVersion: 3,
       outcome:       'refused',
       refusal:       'hephaestus-still-live',
-      text:          'Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
+      text:          'Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Hephaestus lock was left as it is.',
       forges:        [],
     });
 

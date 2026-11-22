@@ -57,9 +57,9 @@ describe('the forge state', () => {
     expect(model.notices).toEqual([]);
   });
 
-  test('during a Baton pass the state reads handing over', () => {
-    const model = headerModelOf(servingBoard({ hephaestus: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
-    expect([model.statusToken, model.statusLabel]).toEqual(['passing-baton', 'Handing over']);
+  test('during a restart the state reads Restarting', () => {
+    const model = headerModelOf(servingBoard({ hephaestus: { state: 'restarting', paused: false, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
+    expect([model.statusToken, model.statusLabel]).toEqual(['restarting', 'Restarting']);
   });
 
   test('before the first board the header reads connecting and shows no figure', () => {
@@ -150,10 +150,10 @@ describe('the header in setup', () => {
 describe('the warnings and notices', () => {
   test('the warnings are the forge\'s sentences as served; an incident default is no notice of the header', () => {
     const model = headerModelOf(servingBoard({
-      warnings: [noticeOf('baton-pass-failed', 'Example: the Baton pass failed'), noticeOf('assistant-down', 'Example: no Assistant can come up')],
+      warnings: [noticeOf('restart-failed', 'Example: the restart failed'), noticeOf('assistant-down', 'Example: no Assistant can come up')],
       notices:  [{ ...noticeOf('incident-defaulted', 'Example: incident I3 took its default'), causeText: 'Example cause' }],
     }), FIXTURE_NOW, 'live');
-    expect(model.warnings).toEqual(['Example: the Baton pass failed', 'Example: no Assistant can come up']);
+    expect(model.warnings).toEqual(['Example: the restart failed', 'Example: no Assistant can come up']);
     expect(model.notices).toEqual([]);
   });
 

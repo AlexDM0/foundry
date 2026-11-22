@@ -13,8 +13,8 @@ import {
   test
 } from 'bun:test';
 
-import { Baton }                                  from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                         from '../../src/services/hephaestus/HephaestusLock.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { HEPHAESTUS_READY_INTERVAL_MILLISECONDS } from '../../src/shared/constants/HephaestusLimits.ts';
 import { fakeGateConfinement }                    from '../../src/testing/FakeGateConfinement.ts';
@@ -101,11 +101,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start or
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'a start with a Hephaestus live', () => {
-  /** A live Hephaestus whose API never answers: a Baton that names a process of the recorded table. */
+  /** A live Hephaestus whose API never answers: a Hephaestus lock that names a process of the recorded table. */
   function plantALiveHephaestus(context: ReturnType<typeof startContext>): void {
     const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const liveHephaestus = processTable.bornProcess();
-    const acquisition = Baton.acquire(context.platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(context.platformPorts, hephaestusDirectory, {
       processId:            liveHephaestus.processId,
       processStartStamp:    liveHephaestus.startStamp,
       bootIdentity:         liveHephaestus.bootIdentity,
@@ -139,6 +139,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a start with
     expect(await runCommandLine(['start', '--foreground', '--port', '0'], context)).toBe(1);
 
     expect(context.errorText()).toContain(`A Hephaestus already serves this board at ${UNANSWERING_URL}`);
-    expect(Baton.batonGenerationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([1]);
+    expect(HephaestusLock.generationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([1]);
   });
 });

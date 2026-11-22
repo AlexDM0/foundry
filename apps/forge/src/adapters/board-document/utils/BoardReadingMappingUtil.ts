@@ -26,16 +26,16 @@ import {
   TICKET_STATUSES_THAT_CLOSE_A_TICKET,
   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY
 } from '../../../lib/tracker-model/constants/Statuses.ts';
-import { DEFAULT_TICKET_PRIORITY }                       from '../../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketDefaultsUtil }                            from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
-import type { PageTicket, PageTicketFacts }              from '../../../shared/@types/PagePayload.ts';
-import { DISPATCH_PROTOCOL }                             from '../../../shared/constants/DispatchProtocol.ts';
-import { WORKER_EFFORT, WORKER_MODEL }                   from '../../../shared/constants/HephaestusLimits.ts';
-import type { AttentionEntry }                           from '../../../shared/monitor/AttentionEntries.ts';
-import type { TodayFigures }                             from '../../../shared/monitor/TodayFigures.ts';
-import { NoticeWordingUtil, type BatonPassWarningFacts } from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
-import { RefusalDocumentUtil }                           from '../../utils/RefusalDocumentUtil.ts';
-import { BoardPipelineMappingUtil }                      from './BoardPipelineMappingUtil.ts';
+import { DEFAULT_TICKET_PRIORITY }                     from '../../../lib/tracker-model/constants/TicketFields.ts';
+import { TicketDefaultsUtil }                          from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+import type { PageTicket, PageTicketFacts }            from '../../../shared/@types/PagePayload.ts';
+import { DISPATCH_PROTOCOL }                           from '../../../shared/constants/DispatchProtocol.ts';
+import { WORKER_EFFORT, WORKER_MODEL }                 from '../../../shared/constants/HephaestusLimits.ts';
+import type { AttentionEntry }                         from '../../../shared/monitor/AttentionEntries.ts';
+import type { TodayFigures }                           from '../../../shared/monitor/TodayFigures.ts';
+import { NoticeWordingUtil, type RestartWarningFacts } from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { RefusalDocumentUtil }                         from '../../utils/RefusalDocumentUtil.ts';
+import { BoardPipelineMappingUtil }                    from './BoardPipelineMappingUtil.ts';
 
 /** The limits forge's rules apply, beside the page's figures in `limits`. */
 export type BoardRuleLimitsDocument = Pick<BoardLimitsDocument,
@@ -83,8 +83,8 @@ function noticesOf(notices: readonly unknown[]): BoardNoticeDocument[] {
 }
 
 /** The header's warnings as the monitor serves them, with the facts each sentence names. */
-function warningsOf(notices: readonly unknown[], batonPassWarning: BatonPassWarningFacts | null): BoardNoticeDocument[] {
-  return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), batonPassWarning)
+function warningsOf(notices: readonly unknown[], restartWarning: RestartWarningFacts | null): BoardNoticeDocument[] {
+  return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), restartWarning)
     .map((warning) => ({ kind: warning.kind, facts: { ...warning.facts }, sentence: warning.text }));
 }
 

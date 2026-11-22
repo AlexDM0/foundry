@@ -126,7 +126,7 @@ function writeEarlierRedHandoffs(jobFolder: string, run: StageRun): void {
     command:             null,
     fixCommand:          null,
     commit:              '',
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         null,
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     interruptedInstance: 1,

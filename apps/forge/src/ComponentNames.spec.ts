@@ -127,6 +127,9 @@ const RETIRED_NAMES = [
   'Oversee',
   'oversee',
   'OVERSEE',
+  'Baton',
+  'baton',
+  'BATON',
   'watcher-lost',
 ];
 
@@ -173,7 +176,7 @@ test('no repository file names a component by its retired name, beyond the exact
 
 test('the scan fails on a planted path, identifier and wire literal, and passes without them', () => {
   expect(retiredNamesIn('src/services/runner/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/services/runner/Example.ts: src/services/runner']);
-  expect(retiredNamesIn('src/Example.ts', 'import { RunnerLease } from "./Baton.ts";\n')).toEqual(['src/Example.ts: RunnerLease']);
+  expect(retiredNamesIn('src/Example.ts', 'import { RunnerLease } from "./HephaestusLock.ts";\n')).toEqual(['src/Example.ts: RunnerLease']);
   expect(retiredNamesIn('src/Example.ts', 'const cause = \'host-lost\';\n')).toEqual(['src/Example.ts: host-lost']);
   expect(retiredNamesIn('src/lib/watcher/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/lib/watcher/Example.ts: src/lib/watcher']);
   expect(retiredNamesIn('src/Example.ts', 'import { WatcherFleet } from "./Example.ts";\n')).toEqual(['src/Example.ts: WatcherFleet']);
@@ -186,6 +189,10 @@ test('the scan fails on a planted path, identifier and wire literal, and passes 
   expect(retiredNamesIn('src/Example.ts', 'const kind = \'overseer-stop\';\n')).toEqual(['src/Example.ts: oversee']);
   expect(retiredNamesIn('src/Example.ts', 'const OVERSEER_PORT_FIRST = 1;\n')).toEqual(['src/Example.ts: OVERSEE']);
   expect(retiredNamesIn('src/Example.ts', 'const commandLine = [\'oversee\', \'stop\'];\n')).toEqual(['src/Example.ts: oversee']);
+  expect(retiredNamesIn('src/services/hephaestus/Baton.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/services/hephaestus/Baton.ts: Baton']);
+  expect(retiredNamesIn('src/Example.ts', 'const kind = \'baton-taken\';\n')).toEqual(['src/Example.ts: baton']);
+  expect(retiredNamesIn('src/Example.ts', 'const BATON_FILE_PATTERN = 1;\n')).toEqual(['src/Example.ts: BATON']);
+  expect(retiredNamesIn('src/services/hephaestus/HephaestusLock.ts', 'const kind = \'hephaestus-lock-taken\';\n')).toEqual([]);
   expect(retiredNamesIn('src/services/hephaestus/Example.ts', 'import { HephaestusServer } from "./Example.ts";\nconst kind = \'hephaestus-stop\';\n')).toEqual([]);
   expect(retiredNamesIn('src/Example.ts', 'const HEPHAESTUS_PORT_FIRST = 1;\nconst commandLine = [\'stop\'];\nconst cause = \'talos-lost\';\n')).toEqual([]);
 });

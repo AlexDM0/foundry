@@ -4,7 +4,7 @@
  * forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each endpoint at the
  * versioned path Gaia calls: as Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running
  * forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board
- * file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. The values the
+ * file it cannot read, suspended so it accepts and never answers, a restart, killed under an open stream, and starting. The values the
  * run draws (paths, tracker ids, ports, process ids) are recorded as example values; the forge's install and code versions stamp the
  * recording. Test-only.
  */
@@ -322,7 +322,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
       expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : null).toMatchObject({
         identityVersion: 1,
-        contracts:       { summary: 2, monitor: monitorVersion, control: controlVersion }
+        contracts:       { summary: 3, monitor: monitorVersion, control: controlVersion }
       });
       stampWithTheForgeIn(answer);
       keep('serving-every-contract', requestCallShapeOf(identityRequest), answer);
@@ -422,12 +422,12 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       }
     });
 
-    test('ends an open stream at a Baton pass, and its successor serves', async () => {
+    test('ends an open stream at a restart, and its successor serves', async () => {
       const stream = await openedStream(bearerToken);
       const { chunks } = await chunksUntil(stream, 1);
       expect(await sendCommand({ kind: 'hephaestus-restart', now: false })).toMatchObject({ verdict: 'answered', status: 200 });
       const ending = await chunksUntilTheEnd(stream, chunks);
-      keep('baton-pass', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending });
+      keep('restart', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending });
       expect(snapshotsIn(chunks).length).toBeGreaterThanOrEqual(1);
       const restarted = await scratchForge.runForDocument(repository, ['start', '--json']);
       expect(restarted).toMatchObject({ started: false });

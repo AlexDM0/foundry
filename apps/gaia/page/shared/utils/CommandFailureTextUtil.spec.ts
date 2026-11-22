@@ -1,5 +1,5 @@
 /**
- * The words of a refusal. What matters (SCREENS, rules for every screen): a forge's refusal shows the forge's own code and sentence,
+ * The words of a refusal. What matters (`docs/design/screens.md`, the rules for every screen): a forge's refusal shows the forge's own code and sentence,
  * unedited; an outcome the forge did not word, and a send no server answered, are worded by Gaia and never left blank.
  */
 import { describe, expect, test } from 'bun:test';

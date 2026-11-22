@@ -46,7 +46,7 @@ export const INSTALLED_TEMPLATE_PATHS = [
   'cli/adoption/constants/AgentInstall.ts',
 ];
 
-const INSTALLED_SKILL_FOLDERS = ['skills/agent-po', 'skills/agent-progress-orchestrate', 'skills/agent-pipeline'];
+const INSTALLED_SKILL_FOLDERS = ['skills/agent-po', 'skills/agent-pipeline'];
 
 /** Flags of other tools' commands the installed files spell out; exact both ways, and none of them is the CLI's. Version 17's files spell out none. */
 export const FOREIGN_TOOL_FLAGS: readonly string[] = [];

@@ -1,6 +1,6 @@
 /**
  * The board summary ingestion over the summary recorded from a forge as it stands today, read through the forge client, and a summary of
- * the shape `summaryVersion: 2` gives for the Research Wiki of B3. What matters: a forge read through its summary maps to counts and jobs
+ * the shape `summaryVersion: 3` gives for the Research Wiki of B3. What matters: a forge read through its summary maps to counts and jobs
  * only, with every fact the summary does not hold `null`, never zero; a newer `summaryVersion` maps nothing of the summary.
  */
 import { describe, expect, test } from 'bun:test';
@@ -37,7 +37,7 @@ const RESEARCH_WIKI = FLEET_SNAPSHOT_DEGRADED.forges.find((reading) => reading.f
 
 /** What a forge before F1 answers for the Research Wiki of B3: one open question, one builder, two ready tickets. */
 const RESEARCH_WIKI_SUMMARY = {
-  summaryVersion:      2,
+  summaryVersion:      3,
   project:             'Research Wiki',
   hephaestus:          { state: 'serving', paused: false, url: 'http://127.0.0.1:4962' },
   ticketCountByStatus: { 'draft': 0, 'pending': 2, 'in-progress': 1 },
@@ -91,7 +91,7 @@ describe('a summary at the known version', () => {
         url:       'http://127.0.0.1:54795/',
         processId: 21_008,
         contracts: {
-          summary: 2,
+          summary: 3,
           monitor: null,
           control: null,
         },
@@ -157,10 +157,10 @@ describe('a summary at the known version', () => {
 
 describe('a summary at a version this Gaia does not know', () => {
   test('maps nothing of a summary at a newer summaryVersion', async () => {
-    const reading = recordedForgeIngestion().readingOf({ ...await recordedSummary(), summaryVersion: 3 }, EXAMPLE_READ_STAMP);
+    const reading = recordedForgeIngestion().readingOf({ ...await recordedSummary(), summaryVersion: 4 }, EXAMPLE_READ_STAMP);
     expect(reading.verdict).toBe('newer-contract');
     if (reading.verdict !== 'newer-contract') return;
-    expect([reading.contract, reading.version, reading.reading.fidelity, reading.reading.contracts.summary]).toEqual(['summary', 3, 'newer-contract', 3]);
+    expect([reading.contract, reading.version, reading.reading.fidelity, reading.reading.contracts.summary]).toEqual(['summary', 4, 'newer-contract', 4]);
     expect([reading.reading.agents, reading.reading.attentionCount, reading.reading.readyTicketCount, reading.reading.lastReportedAt]).toEqual([[], null, null, null]);
   });
 

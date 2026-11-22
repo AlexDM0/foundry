@@ -1,7 +1,7 @@
 /**
- * The look of each display state. What matters: every state takes the tone and the shape flags of the design handoff's state table, so
- * the board draws each state as that table does; an absent state has no tone; a dot, a pill and a tag take their parts of the look; a job
- * state looks like its nearest display state; and a ready ticket is the plain accent tone.
+ * The look of each display state. What matters: every state takes the tone and the shape flags of the table in `docs/design/board.md`, "Display states:
+ * tone and shape", so the board draws each state as that table does; an absent state has no tone; a dot, a pill and a tag take their parts of the look; a
+ * job state looks like its nearest display state; and a ready ticket is the plain accent tone.
  */
 import { describe, expect, test } from 'bun:test';
 

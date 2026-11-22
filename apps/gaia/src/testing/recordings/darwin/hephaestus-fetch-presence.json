@@ -35,7 +35,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-21T17:41:25+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[{\"jobId\":\"J1\",\"kind\":\"assistant\",\"ticketIds\":[],\"state\":\"running\",\"interruption\":null,\"airlockPhase\":null}],\"logTail\":[\"2026-11-21T17:41:24+01:00 Hephaestus serving http://127.0.0.1:4951/ under Baton 1 (code 5c7c0f3669b1, install version 45, agents fake-agent).\",\"2026-11-21T17:41:24+01:00 Started Talos 1 (the one before none, 0 orphans swept).\",\"2026-11-21T17:41:24+01:00 Launched child instance 1 of job J1 (assistant) under Talos.\"]}",
+        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-21T17:41:25+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[{\"jobId\":\"J1\",\"kind\":\"assistant\",\"ticketIds\":[],\"state\":\"running\",\"interruption\":null,\"airlockPhase\":null}],\"logTail\":[\"2026-11-21T17:41:24+01:00 Hephaestus serving http://127.0.0.1:4951/ under Hephaestus lock 1 (code 5c7c0f3669b1, install version 45, agents fake-agent).\",\"2026-11-21T17:41:24+01:00 Started Talos 1 (the one before none, 0 orphans swept).\",\"2026-11-21T17:41:24+01:00 Launched child instance 1 of job J1 (assistant) under Talos.\"]}",
         "bodyBytes": null
       }
     },

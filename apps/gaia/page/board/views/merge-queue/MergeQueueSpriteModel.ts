@@ -1,8 +1,7 @@
 /**
- * What the merge-queue habitat cues between two payloads (`09-board-wiring.md`, "New habitats", `merge-queue`), each row once, in the
- * order of the table, from the targets the view shows: a target whose Airlock was free or that was not shown gets a holder; a candidate the
- * previous payload predicted otherwise against the same target, in its order or waiting for merge, is now conflicting; a ticket joins a
- * target's order.
+ * What the merge-queue habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `merge-queue`), each row once, in
+ * the order of the table, from the targets the view shows: a target whose Airlock was free or that was not shown gets a holder; a candidate the previous
+ * payload predicted otherwise against the same target, in its order or waiting for merge, is now conflicting; a ticket joins a target's order.
  */
 import type { SpriteCue }        from '../../../lib/flint/FlintInterface.ts';
 import type { MergeQueueTarget } from './MergeQueueModel.ts';

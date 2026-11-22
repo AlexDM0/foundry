@@ -258,7 +258,7 @@ describe('boardOf, on keys Gaia does not read', () => {
     const recorded = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
     const document = await boardAtWorkDocument();
     delete document['confinement'];
-    recordAt(document, ['hephaestus'])['batonPassWarning'] = 'example';
+    recordAt(document, ['hephaestus'])['restartWarning'] = 'example';
     expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, document))).toEqual(recorded);
   });
 });

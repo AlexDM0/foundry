@@ -1,5 +1,5 @@
 /**
- * Test-only: the shared parts of the Versions boards on one sheet, as U4 (`VersionsStates.dc.html`) draws them in its sections 3 and 6: the
+ * Test-only: the shared parts of the Versions boards on one sheet, U4, as `docs/design/versions.md` lists them under "States and exact copy": the
  * versions pair at each verdict, the verdicts' marks and words, the condition words with their dots, and a callout's versions line. A
  * browser opens it at one column of U4's width, in either theme, for the by-eye pass against U4's render.
  */

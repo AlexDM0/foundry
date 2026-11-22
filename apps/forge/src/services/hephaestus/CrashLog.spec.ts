@@ -1,7 +1,7 @@
 /**
  * The crash logs in a scratch board folder. What matters: an assembled log keeps every input, and an input that could not be read stays `null`
  * rather than reading as empty; a crash log is never rewritten, so a second writer of the same crash leaves the first byte for byte; a crash
- * of a Baton generation that came round again gets a number of its own, one above the highest on disk; the log tail keeps only the last
+ * of a Hephaestus lock generation that came round again gets a number of its own, one above the highest on disk; the log tail keeps only the last
  * lines of a long log; listing ignores every other file; a read is a verdict, never a throw.
  */
 import {
@@ -64,19 +64,19 @@ const JOB = {
 
 function inputsOf(overrides: Partial<CrashLogInputs> = {}): CrashLogInputs {
   return {
-    crashedGeneration: 4,
-    component:         'hephaestus',
-    suspected:         false,
-    classification:    null,
-    recordedAt:        '2026-11-19T09:03:10.000+01:00',
-    recordedBy:        { generation: 4, startOrigin: 'successor', crashPath: true },
-    error:             CrashLog.errorOf('uncaught-exception', new TypeError('example failure')),
-    presence:          PRESENCE,
-    batonHolder:       null,
-    heartbeat:         HEARTBEAT,
-    activeJobs:        [CrashLog.activeJobOf(JOB)],
-    talosChildren:     [{ state: 'running', instance: 2 }],
-    logTail:           ['first line', 'last line'],
+    crashedGeneration:    4,
+    component:            'hephaestus',
+    suspected:            false,
+    classification:       null,
+    recordedAt:           '2026-11-19T09:03:10.000+01:00',
+    recordedBy:           { generation: 4, startOrigin: 'successor', crashPath: true },
+    error:                CrashLog.errorOf('uncaught-exception', new TypeError('example failure')),
+    presence:             PRESENCE,
+    hephaestusLockHolder: null,
+    heartbeat:            HEARTBEAT,
+    activeJobs:           [CrashLog.activeJobOf(JOB)],
+    talosChildren:        [{ state: 'running', instance: 2 }],
+    logTail:              ['first line', 'last line'],
     ...overrides,
   };
 }
@@ -181,9 +181,9 @@ describe('writing a crash log once', () => {
     expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 1 });
   });
 
-  test('with no presence record, the dead Baton\'s holder names the crashed process', () => {
-    const batonHolder = { processId: 5151, startStamp: '1700000100', bootIdentity: 'example-boot' };
-    expect(CrashLog.assemble(inputsOf({ presence: null, batonHolder })).crashedProcess).toEqual(batonHolder);
+  test('with no presence record, the dead Hephaestus lock\'s holder names the crashed process', () => {
+    const hephaestusLockHolder = { processId: 5151, startStamp: '1700000100', bootIdentity: 'example-boot' };
+    expect(CrashLog.assemble(inputsOf({ presence: null, hephaestusLockHolder })).crashedProcess).toEqual(hephaestusLockHolder);
   });
 
   test('a written log reads back as itself', () => {

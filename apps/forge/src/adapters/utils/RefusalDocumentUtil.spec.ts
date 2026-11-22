@@ -51,7 +51,7 @@ describe('refusalDocumentOf', () => {
   });
 
   test('the sentence is the command line\'s, not the API channel\'s, for a refusal whose two channels differ', () => {
-    const refusal = new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: 'http://127.0.0.1:4242', batonFilePath: '/example/baton-1.json' });
+    const refusal = new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: 'http://127.0.0.1:4242', hephaestusLockFilePath: '/example/lock-1.json' });
     const commandLineSentence = OperationRefusalWordingUtil.messageOf(refusal);
     expect(commandLineSentence).not.toBe(OperationRefusalWordingUtil.apiMessageOf(refusal));
     expect(RefusalDocumentUtil.refusalDocumentOf(refusal).sentence).toBe(commandLineSentence);

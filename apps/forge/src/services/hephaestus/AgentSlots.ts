@@ -132,7 +132,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
   }
 
   /**
-   * A job's own slot stays its slot while the Hephaestus it names runs. One that names a gone Hephaestus, as after a restart or a Baton pass
+   * A job's own slot stays its slot while the Hephaestus it names runs. One that names a gone Hephaestus, as after a restart or a restart
    * while the job ran on, is taken over for this Hephaestus, so other Hephaestus processes count it again.
    */
   function jobKeepsItsSlot(slotPath: string, trackerId: string, jobId: string): boolean {

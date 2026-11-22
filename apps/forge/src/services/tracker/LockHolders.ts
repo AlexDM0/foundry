@@ -1,5 +1,5 @@
 /**
- * A lock's holder judged by process identity, as stage 3 judges a Baton's: a process id with its start stamp and boot, so a reused id
+ * A lock's holder judged by process identity, as stage 3 judges a Hephaestus lock's: a process id with its start stamp and boot, so a reused id
  * or a reboot never reads as the holder. Where the platform cannot tell, the holder reads as alive: a lock is never taken from a
  * process that may still run.
  */

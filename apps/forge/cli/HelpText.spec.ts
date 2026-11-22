@@ -17,7 +17,6 @@ const HELP_TEXT = helpText('posix-shell');
 
 const FILING_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-po', 'SKILL.md'), 'utf8');
 const REFERENCE_TEXT    = readFileSync(join(import.meta.dir, '..', 'resources', 'templates', 'Reference.md'), 'utf8');
-const ORCHESTRATE_TEXT  = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-progress-orchestrate', 'SKILL.md'), 'utf8');
 const PIPELINE_SETUP_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-pipeline', 'SKILL.md'), 'utf8');
 
 /**
@@ -125,7 +124,6 @@ function ticketSubcommandsDocumented(): string[] {
 const BUNDLED_SKILL_FILES = [
   { path: 'skills/agent-po/SKILL.md',                    text: FILING_SKILL_TEXT },
   { path: 'resources/templates/Reference.md',            text: REFERENCE_TEXT },
-  { path: 'skills/agent-progress-orchestrate/SKILL.md',  text: ORCHESTRATE_TEXT },
   { path: 'skills/agent-pipeline/SKILL.md',              text: PIPELINE_SETUP_SKILL_TEXT }
 ] as const;
 
@@ -136,7 +134,6 @@ describe('the bundled skills leave the command reference to the tool', () => {
       expect(text.length, `characters read from \`${path}\``).toBeGreaterThan(2_000);
     }
     expect(FILING_SKILL_TEXT).toContain('name: {{skillName}}');
-    expect(ORCHESTRATE_TEXT).toContain('name: {{skillName}}');
     expect(PIPELINE_SETUP_SKILL_TEXT).toContain('name: {{skillName}}');
     expect(ticketSubcommandsDocumented().length, 'ticket subcommands found in the help').toBeGreaterThanOrEqual(8);
   });
@@ -152,7 +149,7 @@ describe('the bundled skills leave the command reference to the tool', () => {
   });
 
   test('every skill sends its reader to the help for a flag and to the installed reference for the formats', () => {
-    for (const { path, text } of [BUNDLED_SKILL_FILES[0], BUNDLED_SKILL_FILES[2], BUNDLED_SKILL_FILES[3]]) {
+    for (const { path, text } of [BUNDLED_SKILL_FILES[0], BUNDLED_SKILL_FILES[2]]) {
       expect(text, `${path}: an agent that is not told to run it will guess the flag instead`).toContain('`{{program}} help` prints every command and flag');
       expect(text, `${path}: a reference nothing mentions is a file no agent opens`).toContain('`{{dataFolder}}/reference.md`');
     }
@@ -174,25 +171,15 @@ describe('the two skills stay split by audience', () => {
       .toBeLessThanOrEqual(FILING_SKILL_LIMIT_CHARACTERS);
   });
 
-  /** A sentence of the filing procedure found in the orchestrator skill is a second copy that drifts from the first. */
-  test('the orchestrator skill loads the filing one rather than restating it, and loads the retired one nowhere', () => {
-    expect(ORCHESTRATE_TEXT).toContain('the `{{productOwnerSkill}}` skill says');
-    for (const filingSentence of ['Split a large request by mechanism', 'Read the Acceptance back against itself', 'File into an epic']) {
-      expect(FILING_SKILL_TEXT, filingSentence).toContain(filingSentence);
-      expect(ORCHESTRATE_TEXT, filingSentence).not.toContain(filingSentence);
-    }
-    expect(ORCHESTRATE_TEXT).not.toContain('`agent-progress` skill');
-  });
-
   test('the filing skill files and stops: it loads no other skill and dispatches nothing', () => {
-    expect(FILING_SKILL_TEXT).toContain('you never load `{{orchestrateSkill}}`');
+    expect(FILING_SKILL_TEXT).toContain('you load no other skill');
     expect(FILING_SKILL_TEXT).not.toContain('`agent-progress` skill');
     expect(FILING_SKILL_TEXT).not.toContain('dispatcher running');
   });
 
   /** Hephaestus credits every job's tokens and the brief carrying the Orchestrator checklist is no longer installed. */
   test('neither skill tells its reader to record what an agent cost or reads the retired agent brief', () => {
-    for (const text of [FILING_SKILL_TEXT, ORCHESTRATE_TEXT]) {
+    for (const text of [FILING_SKILL_TEXT, PIPELINE_SETUP_SKILL_TEXT]) {
       expect(text).not.toContain('--tokens');
       expect(text).not.toContain('agent-brief.md');
     }
@@ -207,15 +194,6 @@ describe('the two skills stay split by audience', () => {
     expect(FILING_SKILL_TEXT).toContain('Every ticket carries a numbered Acceptance and a non-empty `## Brief`');
     expect(FILING_SKILL_TEXT).toContain('never a chain built to order them');
     for (const retired of ['--hold', 'build-when-filed', 'starts now or is queued']) expect(FILING_SKILL_TEXT, retired).not.toContain(retired);
-  });
-
-  test('the orchestrator skill wraps a running Hephaestus: it reads its state, starts it on the go and never drives it', () => {
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} status --json`');
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} status --json`');
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} start`');
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} await --json`');
-    expect(ORCHESTRATE_TEXT).toContain('You never drive the lifecycle yourself and never handle an incident');
-    for (const retired of ['dispatcher', 'Workflow', '`ask`', 'Watcher mechanics']) expect(ORCHESTRATE_TEXT, retired).not.toContain(retired);
   });
 });
 

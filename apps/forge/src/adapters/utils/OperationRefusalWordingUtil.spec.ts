@@ -30,10 +30,10 @@ test('a malformed Hephaestus poll interval names the variable, the value and wha
   );
 });
 
-test('a Baton that cannot be created whole names the file, the failure and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath: '/example/hephaestus/baton-1.json', reason: 'Error: EPERM' });
+test('a Hephaestus lock that cannot be created whole names the file, the failure and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: '/example/hephaestus/lock-1.json', reason: 'Error: EPERM' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    'The Baton /example/hephaestus/baton-1.json cannot be created whole (Error: EPERM), so Hephaestus did not start. Its claim needs a hard link: '
+    'The Hephaestus lock /example/hephaestus/lock-1.json cannot be created whole (Error: EPERM), so Hephaestus did not start. Its claim needs a hard link: '
     + 'move the data folder to a filesystem that allows one.'
   );
 });
@@ -126,10 +126,10 @@ test('a journal that stayed is worded naming it, what kept it and that the next 
   );
 });
 
-test('a board no Hephaestus serves after start started one is worded naming the Baton folder and the command that starts one', () => {
+test('a board no Hephaestus serves after start started one is worded naming the Hephaestus lock folder and the command that starts one', () => {
   const refusal = new OperationRefusal('refused', { kind: 'hephaestus-down', hephaestusDirectory: '/example/repository/.agent-progress/hephaestus' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    'No Hephaestus serves this board (/example/repository/.agent-progress/hephaestus holds no live Baton). '
+    'No Hephaestus serves this board (/example/repository/.agent-progress/hephaestus holds no live Hephaestus lock). '
     + `Run \`${PRODUCT_NAMES.PROGRAM} start\` again to start one.`,
   );
 });

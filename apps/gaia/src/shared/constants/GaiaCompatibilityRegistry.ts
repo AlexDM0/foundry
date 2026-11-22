@@ -15,8 +15,8 @@ const BOARD_RELAY_ADDED_IN: SystemVersion = { major: 1, minor: 2 };
 const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
 /** Gaia 2.0 took Flint's brain out of the commands. */
 const COMMANDS_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
-/** Gaia 3.0 names a forge's serving process Hephaestus in the fleet document's keys. */
-const FLEET_NAMING_HEPHAESTUS_IN: SystemVersion = { major: 3, minor: 0 };
+/** Gaia 4.0 names a restarting forge's condition `restarting` and the look of a failed restart `restart-failed` in the fleet document. */
+const FLEET_NAMING_THE_RESTART_IN: SystemVersion = { major: 4, minor: 0 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {
@@ -50,8 +50,8 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('health'),
   currentEndpointOf('sessionCodes'),
   currentEndpointOf('session'),
-  currentEndpointOf('fleet', FLEET_NAMING_HEPHAESTUS_IN),
-  currentEndpointOf('events', FLEET_NAMING_HEPHAESTUS_IN),
+  currentEndpointOf('fleet', FLEET_NAMING_THE_RESTART_IN),
+  currentEndpointOf('events', FLEET_NAMING_THE_RESTART_IN),
   currentEndpointOf('commands', COMMANDS_WITHOUT_FLINT_BRAIN_IN),
   currentEndpointOf('forgeBoard', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeBoardEvents', BOARD_RELAY_ADDED_IN),

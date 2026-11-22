@@ -1,5 +1,5 @@
 {
-  "monitorVersion": 5,
+  "monitorVersion": 6,
   "trackerId": "tracker-example",
   "project": "Example Agency",
   "root": "/example/repository",
@@ -338,8 +338,8 @@
   ],
   "warnings": [
     {
-      "kind": "baton-pass-failed",
-      "text": "the Baton pass to code code-newer failed at take-baton: Example error"
+      "kind": "restart-failed",
+      "text": "the restart to code code-newer failed at read-jobs: Example error"
     },
     {
       "kind": "assistant-down",

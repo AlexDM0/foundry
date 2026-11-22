@@ -75,7 +75,6 @@ const UNTRACKED_PATH_PREFIXES = [
   '.claude/settings.local.json',
   '.claude/launch.json',
   '.idea/',
-  'design_handoff',
 ];
 const UNTRACKED_PATH_PARTS = [
   '.DS_Store',

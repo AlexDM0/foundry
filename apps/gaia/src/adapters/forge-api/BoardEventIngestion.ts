@@ -1,5 +1,5 @@
 /**
- * The ingestion of a forge's board event stream (`GET /api/v3/events`) into Gaia's `BoardEvent`. Every event of it carries the forge's
+ * The ingestion of a forge's board event stream (`GET /api/v4/events`) into Gaia's `BoardEvent`. Every event of it carries the forge's
  * internal board state, never a contract document, so Gaia reads only the event's name: `board` asks for the board document anew through
  * `ForgeClient.boardOf`, and each part event names the part that changed. An event name Gaia does not know, the handshake's included, maps
  * to nothing and is passed over.

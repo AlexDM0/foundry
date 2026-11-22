@@ -1,5 +1,5 @@
 /**
- * The form of "Add a repository". What matters (SCREENS A4 and B4): the project name follows the folder's name until User types one, and
+ * The form of "Add a repository". What matters (`docs/design/screens.md` A4 and B4): the project name follows the folder's name until User types one, and
  * follows it again once cleared; "Add and start" can be sent only with a folder, a name and a forge program, and not twice at once; the
  * command carries the trimmed folder and name; the forge program is missing only when neither the settings nor Gaia know one.
  */

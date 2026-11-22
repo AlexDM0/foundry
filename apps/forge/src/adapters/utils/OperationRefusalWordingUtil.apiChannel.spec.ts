@@ -17,7 +17,7 @@ const { PROGRAM } = PRODUCT_NAMES;
 const ROOT = '/example/repository';
 const MANIFEST = '/example/repository/.example/version.json';
 const URL = 'http://127.0.0.1:4242';
-const BATON = '/example/hephaestus/baton-1.json';
+const HEPHAESTUS_LOCK = '/example/hephaestus/lock-1.json';
 
 function boardRefusal(boardRefusalDetail: BoardRefusalDetail): OperationRefusalDetail {
   return { kind: 'board-refusal', boardRefusal: boardRefusalDetail };
@@ -48,12 +48,12 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
   [{ kind: 'no-tracker-at-override', overrideDirectory: ROOT }, `No ${PROGRAM} tracker was found in ${ROOT}, which ${ROOT_OVERRIDE_VARIABLE} names.`],
   [{ kind: 'no-readable-ticket', reference: '7' }, 'There is no readable ticket 7.'],
   [
-    { kind: 'hephaestus-already-running', url: URL, batonFilePath: BATON },
-    `A Hephaestus already serves this board at ${URL} (${BATON}). Stop it first.`,
+    { kind: 'hephaestus-already-running', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
+    `A Hephaestus already serves this board at ${URL} (${HEPHAESTUS_LOCK}). Stop it first.`,
   ],
   [
     { kind: 'hephaestus-down', hephaestusDirectory: '/example/hephaestus' },
-    'No Hephaestus serves this board (/example/hephaestus holds no live Baton). Start the board again to start one.',
+    'No Hephaestus serves this board (/example/hephaestus holds no live Hephaestus lock). Start the board again to start one.',
   ],
   [
     { kind: 'hephaestus-did-not-start', exitCode: 1, logFilePath: '/example/hephaestus.log' },
@@ -67,14 +67,14 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
   [{ kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4252 }, 'Every port from 4242 to 4252 on 127.0.0.1 is in use, so Hephaestus did not start.'],
   [
     {
-      kind: 'baton-pass-failed', successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error', url: URL
+      kind: 'restart-failed', successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error', url: URL
     },
-    `The Baton pass to code code-example failed at take-baton: Example error. The old Hephaestus keeps driving at ${URL} and shows this as a warning; `
+    `The restart to code code-example failed at read-jobs: Example error. The old Hephaestus keeps driving at ${URL} and shows this as a warning; `
     + 'see the Hephaestus log.',
   ],
   [
-    { kind: 'hephaestus-owns-the-lifecycle', url: URL, batonFilePath: BATON },
-    `A Hephaestus drives this board at ${URL} (${BATON}), so only it delivers tickets. Ask Hephaestus to record the ticket as delivered by hand. `
+    { kind: 'hephaestus-owns-the-lifecycle', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
+    `A Hephaestus drives this board at ${URL} (${HEPHAESTUS_LOCK}), so only it delivers tickets. Ask Hephaestus to record the ticket as delivered by hand. `
     + 'Nothing was written.',
   ],
   [

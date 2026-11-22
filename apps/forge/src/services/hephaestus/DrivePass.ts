@@ -2,7 +2,7 @@
  * Hephaestus's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (child
  * liveness under Talos, events past each job's stored cursor, then Hatch folders, target tips and ended children), applies relayed commands,
  * then the children's events with their cursors, then the Playbook in one transaction of the board's store, and runs its effects after the
- * Baton check.
+ * Hephaestus lock check.
  */
 import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
@@ -82,7 +82,6 @@ import { AnswerDelivery }                                                       
 import { type ApiBilling, ApiBillingStops, type StoppedSession }                 from './ApiBillingStops.ts';
 import { AssistantBoot, type AssistantFacts }                                    from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession }      from './AssistantSession.ts';
-import { Baton }                                                                 from './Baton.ts';
 import type { BoardChildren, ChildLiveness }                                     from './BoardChildren.ts';
 import { CrossingStages, type CrossingStageFacts }                               from './CrossingStages.ts';
 import type { DependentFixFacts, DependentFixWording }                           from './DependentFixTickets.ts';
@@ -94,6 +93,7 @@ import { GpgDirectories }                                                       
 import { GroupWorktrees }                                                        from './GroupWorktrees.ts';
 import { HatchInbox, type PendingHatchRequest }                                  from './HatchInbox.ts';
 import { jobFolderIn, hephaestusFilesIn }                                        from './HephaestusFiles.ts';
+import { HephaestusLock }                                                        from './HephaestusLock.ts';
 import { type DefaultedIncident, IncidentRouter }                                from './IncidentRouter.ts';
 import { InstructionFiles }                                                      from './InstructionFiles.ts';
 import { IntakeSessions, type IntakeFacts }                                      from './IntakeSessions.ts';
@@ -276,8 +276,8 @@ export interface DrivePassRequest {
   setupMessageWordingOf:         (message: SetupMessage) => string;
   homeDirectory:                 string;
   log:                           (line: string) => void;
-  /** The pass stops acting at once; the caller ends Hephaestus `baton-taken`. */
-  onBatonTakenOver:              (refusal: unknown) => void;
+  /** The pass stops acting at once; the caller ends Hephaestus `hephaestus-lock-taken`. */
+  onHephaestusLockTakenOver:     (refusal: unknown) => void;
   /** A pass threw what no abandoned pass names: the caller runs the crash path and ends Hephaestus `crashed`; no pass runs after it. */
   onPassCrashed:                 (thrown: unknown) => Promise<void>;
   /** Called for each job's Hatch folder as the launch makes it, so a relayed request wakes a pass where no recursive watch sees the folder. */
@@ -325,7 +325,7 @@ export type HephaestusNotice =
 
 type AbandonedPass = Extract<PassThrowReading, { verdict: 'abandoned' }>;
 
-/** What a pass knows of the runtime state; Hephaestus adds `passing-baton` around a Baton pass. */
+/** What a pass knows of the runtime state; Hephaestus adds `restarting` around a restart. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
 
 export interface HephaestusStateDocument {
@@ -1223,7 +1223,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const holdTracker: AirlockHoldRunner = async (mutate) => (await request.boardStore.transactions.transact({
     at:     request.formatStamp(request.now()),
     mutate: (change) => {
-      Baton.requireNewestGeneration(request.hephaestusDirectory, request.generation);
+      HephaestusLock.requireNewestGeneration(request.hephaestusDirectory, request.generation);
       // A copy: ending a job splices it out of the Board's live list.
       const jobsAtTheHoldStart = [...change.board.jobs()];
       const result = mutate({ board: change.board, at: change.at });
@@ -1525,10 +1525,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       },
     });
     try {
-      Baton.requireNewestGeneration(request.hephaestusDirectory, request.generation);
+      HephaestusLock.requireNewestGeneration(request.hephaestusDirectory, request.generation);
     } catch (refusal) {
       stopped = true;
-      request.onBatonTakenOver(refusal);
+      request.onHephaestusLockTakenOver(refusal);
       return;
     }
     for (const jobId of written.result.endedJobIdsExaminedThisPass) endedJobIdsExamined.add(jobId);

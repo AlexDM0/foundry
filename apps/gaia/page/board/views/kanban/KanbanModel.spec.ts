@@ -48,7 +48,7 @@ function laneIdsOf(state: BoardDocument, pressedChips: readonly string[] = []): 
 }
 
 describe('the lanes', () => {
-  test('the six lanes come in order, titled as the design names them, with no lane of the drafts\' own', () => {
+  test('the six lanes come in order, titled as docs/design/board.md names them, with no lane of the drafts\' own', () => {
     const model = modelOf(exampleBoard({ tickets: [] }), []);
     expect(model.lanes.map((lane) => lane.key)).toEqual([...KANBAN_LANES]);
     expect(model.lanes.map((lane) => lane.title)).toEqual(['Ready', 'Building', 'In review', 'Merge queue', 'Done', 'Abandoned']);

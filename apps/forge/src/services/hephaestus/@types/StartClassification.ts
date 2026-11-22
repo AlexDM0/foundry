@@ -9,20 +9,20 @@ export interface StartClassificationVerdict {
   /** Set only with `crashed`. */
   crashedComponent:   'hephaestus' | 'talos' | null;
   evidence: {
-    presence:               'absent' | 'unreadable' | 'read';
-    previousEnding:         'stopped' | 'handed-over' | 'crashed' | null;
-    previousBootIdentity:   string | null;
-    currentBootIdentity:    string;
-    newerBatonThanPresence: boolean;
-    talos:                  'none' | 'quit' | 'live' | 'lost-this-boot' | 'lost-other-boot';
-    lastHeartbeatAt:        string | null;
-    bootStartedAt:          string | null;
+    presence:                        'absent' | 'unreadable' | 'read';
+    previousEnding:                  'stopped' | 'handed-over' | 'crashed' | null;
+    previousBootIdentity:            string | null;
+    currentBootIdentity:             string;
+    newerHephaestusLockThanPresence: boolean;
+    talos:                           'none' | 'quit' | 'live' | 'lost-this-boot' | 'lost-other-boot';
+    lastHeartbeatAt:                 string | null;
+    bootStartedAt:                   string | null;
   };
 }
 
 /**
  * Whether a start may serve: it stays off after a crash, or a crash suspected before a reboot, unless the user started it. The crash log is
- * named by its own number; the crashed Baton generation is `null` when nothing names it.
+ * named by its own number; the crashed Hephaestus lock generation is `null` when nothing names it.
  */
 export type StartGateVerdict =
   | { verdict: 'serve'; classification: StartClassificationVerdict; crashLogNumber: number | null }

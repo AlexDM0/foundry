@@ -1,7 +1,7 @@
 /**
- * What the epics habitat cues between two payloads (Flint's board wiring design, "New habitats", `epics`). What matters: a ticket whose `epics`
- * gets a key is cued once, also when it had none; the same keys, a key that goes, a new order of the same keys and a new ticket filed into
- * an epic are no change.
+ * What the epics habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `epics`). What matters: a ticket whose
+ * `epics` gets a key is cued once, also when it had none; the same keys, a key that goes, a new order of the same keys and a new ticket filed into an epic
+ * are no change.
  */
 import { expect, test } from 'bun:test';
 

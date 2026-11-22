@@ -55,7 +55,7 @@ function lastDocument(): Record<string, unknown> {
 describe('a forge that answers F8, every verb done', () => {
   test('init creates the tracker and answers its tracker id, project and root', async () => {
     const verdict = await forgeProgram.init(forge, 'Example Project');
-    expect(lastDocument()).toMatchObject({ answerVersion: 2, outcome: 'created', project: 'Example Project' });
+    expect(lastDocument()).toMatchObject({ answerVersion: 3, outcome: 'created', project: 'Example Project' });
     scratchForge.exampleValueFor({ drawn: String(lastDocument()['trackerId']), example: EXAMPLE_TRACKER_ID });
     expect(verdict.verdict).toBe('done');
   });
@@ -63,7 +63,7 @@ describe('a forge that answers F8, every verb done', () => {
   test('version answers the code and install versions, the contracts and the monitor folder', async () => {
     expect(await forgeProgram.version(forge)).toMatchObject({
       verdict: 'done',
-      answer:  { contracts: { summary: 2, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
+      answer:  { contracts: { summary: 3, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
     });
     recordSystemVersion(RECORDING_NAME, `install version ${String(lastDocument()['installVersion'])}, code ${String(lastDocument()['codeVersion'])}`);
   });
@@ -78,8 +78,8 @@ describe('a forge that answers F8, every verb done', () => {
     scratchForge.exampleValueFor({ drawn: new URL(String(lastDocument()['url'])).host, example: EXAMPLE_HEPHAESTUS_ADDRESS });
   }, SETUP_TIMEOUT_MILLISECONDS);
 
-  test('update with Hephaestus live refreshes the install and needs no Baton pass on the same code', async () => {
-    expect(await forgeProgram.update(forge)).toMatchObject({ verdict: 'done', answer: { outcome: 'done', batonPass: { outcome: 'not-needed' } } });
+  test('update with Hephaestus live refreshes the install and needs no restart on the same code', async () => {
+    expect(await forgeProgram.update(forge)).toMatchObject({ verdict: 'done', answer: { outcome: 'done', restart: { outcome: 'not-needed' } } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 
   test('stop stops the live Hephaestus', async () => {

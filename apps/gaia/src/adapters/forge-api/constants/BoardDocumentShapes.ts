@@ -198,10 +198,10 @@ const NOTICE_SHAPE = {
 const TODAY_SHAPE = { calendarDate: 'text', deliveredTickets: 'whole-number', tokens: 'whole-number' } as const satisfies ShapeOf<BoardTodayDocument>;
 
 const HEPHAESTUS_SHAPE = {
-  state:            vocabularyRule('hephaestusState'),
-  paused:           'boolean',
-  codeVersion:      'text',
-  batonPassWarning: 'passed-over',
+  state:          vocabularyRule('hephaestusState'),
+  paused:         'boolean',
+  codeVersion:    'text',
+  restartWarning: 'passed-over',
 } as const satisfies ShapeOf<BoardHephaestusDocument>;
 
 const CONCURRENCY_SHAPE = { limit: 'whole-number', agentsInFlight: 'whole-number' } as const satisfies ShapeOf<BoardConcurrencyDocument>;

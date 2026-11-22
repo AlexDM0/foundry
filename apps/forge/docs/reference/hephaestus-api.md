@@ -92,14 +92,14 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | File CSP | On the answer | `sandbox` on a served job file and a served picture, which is also `nosniff` | None, it is a header | Agent text or a picture opened in a browser running as the API's origin |
 
 The loopback port is shared by every user of the machine, so the data routes ask who reads: a reader shows the bearer
-token from the file the Baton names, as `status` and a monitor's server do.
+token from the file the Hephaestus lock names, as `status` and a monitor's server do.
 `GET /api/versions`, `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open: the versions, identity and
 the summary carry no ticket text, a monitor's server reads them with no token, and a nudge carries no data and only
 schedules a Pass.
 
 No route hands out the token, and no answer is readable across origins, so the token never reaches a page. Every
-Hephaestus start writes a fresh token to the file the [Baton](../glossary.md#baton) names, so a client that reads 401
-reads the file again.
+Hephaestus start writes a fresh token to the file the [Hephaestus lock](../glossary.md#hephaestus-lock) names, so a
+client that reads 401 reads the file again.
 
 > **Careful.** A process of the same user can read the token file. A session cannot, because its profile denies the
 > file and limits its network.
@@ -128,7 +128,7 @@ The route reads a board command whole (see [Board commands](#board-commands)); f
 `malformed-setup-command`, naming the field. A pipeline agent's job may relay only its five verbs and
 `question options`; `gate-profile-start` and `pipeline-check` come only from User.
 
-![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/hephaestus-api/command-route.png)
+![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received; a restart whose preflight failed answers 409. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/hephaestus-api/command-route.png)
 
 *Notice that a runtime command answers 200 before anything has happened.*
 
@@ -138,7 +138,7 @@ The route reads a board command whole (see [Board commands](#board-commands)); f
 | 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a board command that does not read as its `ForgeBoardCommand`, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, fields, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; `fields` are the facts its detail names, without the field the code already says (a board refusal's `reason`, another detail's `kind`); from forge 1.21 the sentence is the one the command line prints (`OperationRefusalWordingUtil.messageOf`), which may name a command, and a client shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `hephaestus-stop`, `hephaestus-restart`, `talos-restart` and `machine-agent-limit-set` is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
+| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `hephaestus-stop`, `hephaestus-restart`, `talos-restart` and `machine-agent-limit-set` is refused, a job stop included. A restart lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
@@ -149,18 +149,21 @@ read should say that Hephaestus may have applied the command and that its answer
 be reached, and keep the text it sent, so User checks the board before sending it again.
 
 `hephaestus-stop` and `hephaestus-restart` are the two runtime commands, `{kind, now}`. `now` is the `--now` flag of
-`stop` and `restart`. They write nothing to the
-board and go to the running Hephaestus, so they are taken during the install hold, and they answer 200
-`{outcome: 'done', result: {kind}}` before the work happens. A 200 here means received. `stop` and
-`restart` then wait on the Baton files for the result.
+`stop` and `restart`. They write nothing to the board and go to the running Hephaestus, so they are taken during the
+install hold. `hephaestus-stop` answers 200 `{outcome: 'done', result: {kind}}` before the work happens: a 200 here
+means received, and `stop` then waits on the [Hephaestus lock](../glossary.md#hephaestus-lock) files for the result.
+`hephaestus-restart` answers once the code on disk reported its preflight ([restart](../glossary.md#restart)): 200
+when the preflight passed and the old Hephaestus is about to let go, or 409 `restart-failed`, with the fields
+`successorCodeVersion`, `step`, `error` and `url`, when it failed, the old Hephaestus still driving. `restart` and `update`
+then wait on the Hephaestus lock files for the successor to serve.
 
-> **As built.** The `now` of a restart goes nowhere, and a stop arriving during a Baton pass is answered and dropped.
+> **As built.** The `now` of a restart goes nowhere, and a stop arriving once a restart let go of the board is answered and dropped; one arriving during the preflight is taken.
 > The install hold refuses a job stop too.
 
 `talos-restart` `{kind}`, from forge 1.23, is the third runtime command: the clean restart of the board's
 [Talos](../glossary.md#talos), the command of `talos-restart`. The running Hephaestus sends Talos its quit frame
 with reason `restart`, and answers 200 `{outcome: 'done', result: {kind}}` once Talos took it, or `nothing-to-do` when
-no Talos took it: none is connected, it is quitting already, it did not answer, or a Baton pass runs. Talos then asks
+no Talos took it: none is connected, it is quitting already, it did not answer, or a restart runs. Talos then asks
 each agent to stop at the end of its turn, for at most 10 seconds, and quits; Hephaestus's next pass starts the right
 Talos, and each agent Talos recorded as paused resumes by itself under it, never counted as a crash. It writes nothing
 to the board, so it is taken during the install hold, and it is never relayed from a job.
@@ -245,8 +248,8 @@ Each state change becomes an ordered run of events, and `board` closes it. A cli
 
 *Notice the middle row: a decision that left the board has no event of its own.*
 
-The event broker, `EventBroker`, is created once Hephaestus holds the Baton and lives as long as that generation,
-so one process that takes the Baton back after a failed Baton pass gets a new broker. A publish happens after every
+The event broker, `EventBroker`, is created once Hephaestus holds the Hephaestus lock and lives as long as that
+generation, so a successor starts with a new broker. A publish happens after every
 Pass, at every [sweep](../glossary.md#sweep), and once at start. Each reads the board without a lock into a
 `BoardState` and hands it to `EventBroker.publishState`, which compares it with the last one.
 
@@ -297,7 +300,7 @@ runs other code than before.
 
 On reconnect the server replays the events after the `Last-Event-ID` when the id is of this generation and still
 buffered, and otherwise sends a fresh board. Independently, once the stream is live after being down, a client may read
-the identity to learn whether the code version moved. So a Baton pass on the same code gives a fresh board and the same
+the identity to learn whether the code version moved. So a restart on the same code gives a fresh board and the same
 code version.
 
 The server side is `EventBroker.replayAfter`. The replay buffer holds the last `REPLAY_BUFFER_EVENTS` (256) events and
@@ -313,7 +316,7 @@ lives as long as the broker, so a restart empties it. An answer is one of:
 Replay or snapshot and the subscription happen in one synchronous step, so no event falls between them.
 
 On the client side, a reconnect that sends `Last-Event-ID` gets the replay, and one without an id starts from a fresh
-`board`. A client may drop a malformed event, since the next `board` repairs it. The port survives a Baton pass, so the
+`board`. A client may drop a malformed event, since the next `board` repairs it. The port survives a restart, so the
 URL stays valid.
 
 The code signal is the identity's `codeVersion`: a client that reads `/api/identity` after a reconnect learns whether
@@ -346,7 +349,7 @@ names `state`. The contract's document is [the board document](#the-board-docume
 | `decisions`, `incidents` | The Board | The open ones. Replaces the status document's. An option of an `agent-question` decision carries `touches`, `tradeOff` and `acceptanceEffect` only where the asking agent noted them with `question options`. |
 | `notices` | The Pass's own state | The current [notices](../glossary.md#notice), held in memory |
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
-| `hephaestus` | `HephaestusForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `batonPassWarning`, and `paused` from the Board. |
+| `hephaestus` | `HephaestusForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `restartWarning`, and `paused` from the Board. |
 | `usage` | The [usage marker](../glossary.md#usage-marker) and `<monitor>/usage-windows.json` | `{resetsAt, window, windows}`: `resetsAt` and `window` both `null` when no limit was hit; `windows` the newest observation of each window seen (`{window, lengthHours, utilization, resetsAt}`, `utilization` a whole percent), empty before the first observation and under API billing |
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant), [product owner](../glossary.md#product-owner) or pipeline agent job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
@@ -594,7 +597,7 @@ session's last line from the board document.
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while Hephaestus starts too. This forge answers `3.0` and `3.0`.
+moment the server answers, while Hephaestus starts too. This forge answers `4.0` and `4.0`.
 
 Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no page, no browser
 session and no one-time code for one, no contract for a framed page and no record of framing origins; the monitor and
@@ -606,8 +609,12 @@ a pipeline has one format, whose gate key is `forgeOnly`.
 Forge 3.0 names its serving process Hephaestus. Against forge 2, the summary, the monitor and the board document carry
 the process's facts under the key `hephaestus`, the board's own switch is `hephaestusState` and its log kind
 `hephaestus-set`, and the four lifecycle commands are `hephaestus-pause`, `hephaestus-unpause`, `hephaestus-stop` and
-`hephaestus-restart`. The minimum is 3.0 too: no client built for forge 2 is served, and the registry keeps nothing for
-one.
+`hephaestus-restart`.
+
+Forge 4.0 restarts Hephaestus after a preflight of the code on disk, with no handshake through a file. Against forge 3,
+the process's state while it restarts is `restarting` in the summary, the monitor and the board document, the warning
+of a failed restart is `restart-failed`, and the board document carries that failure as `restartWarning`. The minimum is
+4.0 too: no client built for forge 3 is served, and the registry keeps nothing for one.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -637,22 +644,22 @@ id check are the same. An answer carries no endpoint version. A version or an en
 | Endpoint | Versioned path |
 | --- | --- |
 | identity | `GET /api/v1/identity` |
-| summary | `GET /api/v2/summary`, from 3.0 |
-| monitor | `GET /api/v4/monitor`, from 3.0 |
-| monitor events | `GET /api/v4/monitor/events`, from 3.0 |
+| summary | `GET /api/v3/summary`, from 4.0 |
+| monitor | `GET /api/v5/monitor`, from 4.0 |
+| monitor events | `GET /api/v5/monitor/events`, from 4.0 |
 | commands | `POST /api/v3/commands`, from 3.0 |
 | presence | `GET /api/v1/presence`, from 1.20 |
 | crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
-| board | `GET /api/v3/board`, from 3.0 |
-| events | `GET /api/v3/events`, from 3.0 |
+| board | `GET /api/v4/board`, from 4.0 |
+| events | `GET /api/v4/events`, from 4.0 |
 | jobs/{jobId}/stream | `GET /api/v1/jobs/<J>/stream?after=<cursor>`, from 1.22 |
 | profiles/{profileRunId}/stream | `GET /api/v1/profiles/<P>/stream?after=<line>`, from 1.22 |
 | pictures | `POST /api/v1/pictures`, from 1.22 |
 | pictures/{pictureId} | `GET /api/v1/pictures/<id>`, from 1.22 |
 
-Forge 3.0 serves the summary, the monitor, its stream, the commands, the board and the board's event stream, whose
-`board` event carries the board's state, at their next version and the older one no more: `/api/v1/summary`,
-`/api/v3/monitor`, `/api/v2/commands`, `/api/v2/board` and `/api/v2/events` are 404. The unversioned paths are no compatibility path: they are the routes
+Forge 4.0 serves the summary, the monitor, its stream, the board and the board's event stream, whose `board` event
+carries the board's state, at their next version and the older one no more: `/api/v2/summary`, `/api/v4/monitor`,
+`/api/v3/board` and `/api/v3/events` are 404. The unversioned paths are no compatibility path: they are the routes
 themselves, which a versioned path is turned into, and forge's own command line reaches its Hephaestus through them
 (`cli/hephaestus/HephaestusRemote.ts`, and the nudge after a write). `GET /api/state` is the command line's own reading and
 has no versioned path.
@@ -667,15 +674,15 @@ not know as unreadable.
 
 | Contract | Version | What it covers |
 | --- | --- | --- |
-| `summary` | 2 | `GET /api/summary`, the `BoardSummary` of [the summary contract](#the-summary-contract), which carries the same number as `summaryVersion` |
-| `monitor` | 5 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+| `summary` | 3 | `GET /api/summary`, the `BoardSummary` of [the summary contract](#the-summary-contract), which carries the same number as `summaryVersion` |
+| `monitor` | 6 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
 | `control` | 3 | `POST /api/commands` for the nine kinds of [the control contract](#control-contract-3) and the board's kinds, each answer carrying the same number as `controlVersion` |
 
 A change of shape in a contract raises its number in the same change, and the system version with it: a key added,
 removed or renamed, a value that changes type or meaning, or a union that gains or loses a value. The numbers are
 `HEPHAESTUS_CONTRACT_VERSIONS` in `packages/forge-contracts`, served through `SERVED_CONTRACT_VERSIONS` in
 `src/shared/constants/HephaestusApiContracts.ts`; `control` keeps its number while a minor adds commands under the system
-version. Forge 3.0 raised `summary` to 2, `monitor` to 5 and `control` to 3. Each document forge sends extends the
+version. Forge 4.0 raised `summary` to 3 and `monitor` to 6. Each document forge sends extends the
 package's type of it. A client reads a contract only at a number it knows.
 
 ## The monitor contract
@@ -690,17 +697,18 @@ Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind
 those of version 1. Version 3 gave each warning its kind and added the current usage window to `usage`. Version 4,
 forge 2.0's, names what an entry opens by a typed `target` where version 3 carried a page `route`, and has no
 key for a brain of Flint and no `kind` or `tokens` on an activity entry. Version 5, forge 3.0's, carries the process's
-facts under `hephaestus`. `src/services/hephaestus/testing/fixtures/monitor-v1.json`, `monitor-v2.json` and
-`monitor-v5.json` hold versions 1, 2 and 5, frozen.
+facts under `hephaestus`. Version 6, forge 4.0's, names the state of a restarting Hephaestus `restarting` and the
+warning of a failed restart `restart-failed`. `src/services/hephaestus/testing/fixtures/monitor-v1.json`, `monitor-v2.json` and
+`monitor-v6.json` hold versions 1, 2 and 6, frozen.
 
 <details>
 <summary><code>MonitorSnapshot</code> keys</summary>
 
 | Key | Holds |
 | --- | --- |
-| `monitorVersion` | 5 |
+| `monitorVersion` | 6 |
 | `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
-| `hephaestus` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
+| `hephaestus` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `restarting`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
 | `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three completed version 1 as `FORGE_REQUIREMENTS.md` F2 defined it. |
 | `ticketCountByStatus` | Every status counted |
 | `readyTicketIds` | The ready tickets' ids, in dispatch order |
@@ -708,7 +716,7 @@ facts under `hephaestus`. `src/services/hephaestus/testing/fixtures/monitor-v1.j
 | `attention[]` | What waits on User, the board document's Waiting on User list entry for entry: escalated questions first, then every other entry oldest first, a tie in key order. Each is `{key, kind, idText, ticketIds, subject, jobId, askedBy, decisionKind, escalatedFromIncidentId, metaText, stamp, stampWord, actionLabel, target}`; `kind` is `escalated-question`, `question`, `draft-ticket`, `filing-draft`, `review` or `merge-accept`; `stamp` is empty when the board does not hold it; `target` is the thing the entry opens, `{subject, id}` with the subject `decision`, `ticket`, `draft`, `job` or `incident`, such as `{subject: 'decision', id: 'E3'}`; a reader routes it to its own place for that subject. |
 | `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, target}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `interruption` is why an `interrupted` job stands interrupted, one of `MONITOR_INTERRUPTION_CAUSES` (`child-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused`, `authentication-failed`, `talos-paused`, `lease-ended`, `network-outage`, `forge-stopped`, `forge-crashed`; the stored `talos-lost` is served as `child-lost`), `null` otherwise, and absent from a forge before 1.19; `lease-ended`, `network-outage`, `forge-stopped` and `forge-crashed` wait for User's resume; `target` is `{subject: 'job', id: <J>}`. On a forge with entities, a job of an entity adds `entity`, the entity whose stage it runs, and, when it runs a stage, `stage`, the stage's name: `build`, `package-build`, `package-review`, `adapt` or `review`. |
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the board document carries for it, an incident default included |
-| `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the board document carries for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
+| `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the board document carries for it: `kind` is `restart-failed` for a failed restart, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on Hephaestus's local date, and the tokens of the rows running or ended on it |
 | `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit. The newest is the one whose `reportedAt` names the latest instant; a report with no stamp or an unreadable one counts as the oldest. Both are `null` when no job on the board reported one, so the window of a job that left the board is no longer shown. The reset is passed on as reported, also once it is past. |
 | `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, target}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the board document carries for the entry; `target` is the record's subject, the first of its decision, job, ticket, draft or incident, or `null` for the board's own. |
@@ -727,11 +735,11 @@ under `src/shared/monitor/`, so the snapshot and the board document agree.
 [System versions](#system-versions). Then it sends one `monitor` event with the whole newest `MonitorSnapshot`, then one
 more after each publish that changed the snapshot. A publish that changes no key sends nothing. Every `monitor` event
 carries the whole snapshot with its `monitorVersion`, and `systemVersion` beside its keys, so a client never needs the
-identity to read one, and learns the version of a Hephaestus that a Baton pass brought. The package types are
+identity to read one, and learns the version of a Hephaestus that a restart brought. The package types are
 `MonitorStreamHandshake` and `MonitorEventDocument`.
 
 The stream has no event ids and no replay: a client that reconnects starts from the next whole snapshot. Hephaestus's
-stop and a Baton pass close every open stream, and the successor's stream starts with a
+stop and a restart close every open stream, and the successor's stream starts with a
 whole snapshot of its own.
 
 ## The gate profile stream
@@ -771,10 +779,10 @@ the `handshake` of [the event stream](#the-event-stream), with no id, then a `li
 | `crashLogs[]` | `{number, generation, component, recordedAt, suspected}`, oldest first; a log that cannot be read is left out |
 | `talos` | From forge 1.23, `{protocolVersion, codeVersion, startNumber}` of the Talos that runs: its protocol version, the code version of the program it started from, and its start number; `null` with no live Talos |
 
-`GET /api/crash-log?number=<n>` answers one `ForgeCrashLogDocument`: `number`, the crashed Baton `generation` (`null`
-when nothing names it), `component` (`hephaestus`, `talos` or `unknown`), `suspected`, `recordedAt`, `startKind`
+`GET /api/crash-log?number=<n>` answers one `ForgeCrashLogDocument`: `number`, the crashed Hephaestus lock
+`generation` (`null` when nothing names it), `component` (`hephaestus`, `talos` or `unknown`), `suspected`, `recordedAt`, `startKind`
 (`null` when the crash path wrote the log), `error`, `activeJobs` and `logTail`, each of the last two `null` when it
-could not be read at the crash. A crash log's number is its own, never a Baton generation.
+could not be read at the crash. A crash log's number is its own, never a Hephaestus lock generation.
 
 ## The board document
 
@@ -814,7 +822,7 @@ readiness, a domain list) is judged only when it comes. A reader words state nam
 [`<monitor>`](../glossary.md#reading-names)`/projects.json` at start and removes that key at stop. The file's format is
 in the [CLI reference](../cli.md).
 
-**Reading.** `GET /api/summary` answers the JSON in the table below, with `summaryVersion` the literal 2 that versions
+**Reading.** `GET /api/summary` answers the JSON in the table below, with `summaryVersion` the literal 3 that versions
 the shape. A monitor's server calls it, since a page of another origin gets 403 like any other Origin.
 
 <details>
@@ -822,7 +830,7 @@ the shape. A monitor's server calls it, since a page of another origin gets 403 
 
 | Key | Holds |
 | --- | --- |
-| `summaryVersion` | 2 |
+| `summaryVersion` | 3 |
 | `project` | The project name |
 | `hephaestus` | `{state, paused, url}` |
 | `ticketCountByStatus` | Every status counted |

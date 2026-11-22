@@ -1,6 +1,6 @@
 /**
  * The start gate as every form of `start` runs it: a start that may serve goes on with its verdict, and one that stays off tells the registry
- * the forge crashed, logs one line and is refused `forge-off-after-crash`, before it takes a Baton, binds a port or contacts Talos.
+ * the forge crashed, logs one line and is refused `forge-off-after-crash`, before it takes a Hephaestus lock, binds a port or contacts Talos.
  */
 import { LocalTimeUtil }           from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { StartOrigin }        from '../../src/lib/tracker-model/@types/Job.ts';
@@ -77,8 +77,8 @@ export async function admitTheStart({
       state: 'crashed', generation: verdict.crashedGeneration, at: stampNow(), crash
     },
   });
-  const crashedBaton = verdict.crashedGeneration === null ? 'a Baton nothing names' : `Baton ${verdict.crashedGeneration}`;
-  log(`Staying off after a crash of ${crashedBaton}${crash.suspected ? ' suspected before the machine restarted' : ''}: `
+  const crashedHephaestusLock = verdict.crashedGeneration === null ? 'a Hephaestus lock nothing names' : `Hephaestus lock ${verdict.crashedGeneration}`;
+  log(`Staying off after a crash of ${crashedHephaestusLock}${crash.suspected ? ' suspected before the machine restarted' : ''}: `
     + `started by ${origin.startOrigin}, so only a start by the user serves; the crash log is ${verdict.crashLogPath}.`);
   throw new OperationRefusal('refused', {
     kind: 'forge-off-after-crash', crashedGeneration: verdict.crashedGeneration, crashLogPath: verdict.crashLogPath, suspected: crash.suspected

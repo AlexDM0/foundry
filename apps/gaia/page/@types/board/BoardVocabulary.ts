@@ -73,7 +73,7 @@ export type BoardAgentEffort = (typeof BOARD_AGENT_EFFORTS)[number];
 
 export type BoardAgentModel = 'haiku' | 'sonnet' | 'opus' | 'fable';
 
-export type BoardHephaestusState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
+export type BoardHephaestusState = 'serving' | 'held-by-install-change' | 'restarting' | 'down';
 
 /** Where the user left the board: `paused` starts no new job until the user's go. */
 export type BoardHephaestusSetting = 'running' | 'paused';

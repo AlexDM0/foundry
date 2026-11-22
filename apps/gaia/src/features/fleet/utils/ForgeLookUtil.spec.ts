@@ -1,13 +1,14 @@
 /**
- * PLAN 7.2's table, one case per row, then the rule that picks between rows. What matters: each condition raises its own kind, a forge shows
- * at most the first look that applies, and a dormant forge Gaia read nothing of in this run shows none, since Gaia never reads a board's files.
+ * The table of `docs/design/screens.md` A1, "Forges that need a look", one case per row, then the rule that picks between rows. What matters: each
+ * condition raises its own kind, a forge shows at most the first look that applies, and a dormant forge Gaia read nothing of in this run shows none, since
+ * Gaia never reads a board's files.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
 import type { ForgeReading }                   from '../../../shared/@types/ForgeReading.ts';
 
-import { BATON_PASS_FAILED_WARNING_KIND, ForgeLookUtil, NEW_CODE_NOTICE_KIND } from './ForgeLookUtil.ts';
+import { RESTART_FAILED_WARNING_KIND, ForgeLookUtil, NEW_CODE_NOTICE_KIND } from './ForgeLookUtil.ts';
 
 /** Example Storefront, read in full and live, with nothing to look at. */
 const QUIET_LIVE_FORGE = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
@@ -24,13 +25,13 @@ function liveForgeWith(changes: Partial<ForgeReading>): ForgeReading {
   return { ...QUIET_LIVE_FORGE, ...changes };
 }
 
-const BATON_PASS_FAILED = { kind: BATON_PASS_FAILED_WARNING_KIND, text: 'The Baton pass to the next Hephaestus failed.' };
+const RESTART_FAILED = { kind: RESTART_FAILED_WARNING_KIND, text: 'The restart to the next Hephaestus failed.' };
 
 const NEW_CODE = { kind: NEW_CODE_NOTICE_KIND, text: 'New code is on disk. Restart Hephaestus to run it.' };
 
 const MACHINE_AT_ITS_LIMIT = { ...QUIET_LIVE_CONCURRENCY, machineLimit: 10, ticketsWaitingForMachineSlot: 2 };
 
-describe('one look per row of PLAN 7.2', () => {
+describe('one look per row of the table of forges that need a look', () => {
   test('a forge read in full with nothing to look at needs no look', () => {
     expect(ForgeLookUtil.lookKindOf(QUIET_LIVE_FORGE)).toBeNull();
   });
@@ -47,8 +48,8 @@ describe('one look per row of PLAN 7.2', () => {
     expect(ForgeLookUtil.lookKindOf(liveForgeWith({ fidelity: 'older-contract', condition: 'unreadable' }))).toBe('older-contract');
   });
 
-  test('row 3: a warning of a failed Baton pass needs the look baton-pass-failed', () => {
-    expect(ForgeLookUtil.lookKindOf(liveForgeWith({ warnings: [BATON_PASS_FAILED] }))).toBe('baton-pass-failed');
+  test('row 3: a warning of a failed restart needs the look restart-failed', () => {
+    expect(ForgeLookUtil.lookKindOf(liveForgeWith({ warnings: [RESTART_FAILED] }))).toBe('restart-failed');
   });
 
   test('row 4: a Hephaestus held by an install change needs the look launches-held', () => {
@@ -76,11 +77,11 @@ describe('the look a forge shows', () => {
   test('is the first row that applies when several do', () => {
     const everyCondition = liveForgeWith({
       condition:   'held',
-      warnings:    [BATON_PASS_FAILED],
+      warnings:    [RESTART_FAILED],
       notices:     [NEW_CODE],
       concurrency: MACHINE_AT_ITS_LIMIT,
     });
-    expect(ForgeLookUtil.lookKindOf(everyCondition)).toBe('baton-pass-failed');
+    expect(ForgeLookUtil.lookKindOf(everyCondition)).toBe('restart-failed');
     expect(ForgeLookUtil.lookKindOf({ ...everyCondition, warnings: [] })).toBe('launches-held');
     expect(ForgeLookUtil.lookKindOf({ ...everyCondition, warnings: [], condition: 'live' })).toBe('new-code');
     expect(ForgeLookUtil.lookKindOf({ ...everyCondition, fidelity: 'unreachable' })).toBe('unreachable');
@@ -96,7 +97,7 @@ describe('the look a forge shows', () => {
       ...FLEET_SNAPSHOT_FIVE_FORGES_READINGS.designSystem, readyTicketCount: 0, notices: [NEW_CODE], concurrency: MACHINE_AT_ITS_LIMIT
     };
     expect(ForgeLookUtil.lookKindOf(stoppedWithOldFacts)).toBeNull();
-    expect(ForgeLookUtil.lookKindOf({ ...stoppedWithOldFacts, warnings: [BATON_PASS_FAILED] })).toBeNull();
+    expect(ForgeLookUtil.lookKindOf({ ...stoppedWithOldFacts, warnings: [RESTART_FAILED] })).toBeNull();
   });
 
   test('is none for a forge whose repository is gone', () => {

@@ -27,7 +27,6 @@ import { ROOT_ENTITY_KEY }                     from '../../src/lib/tracker-model
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
 import type { AssistantFacts }                 from '../../src/services/hephaestus/AssistantBoot.ts';
 import type { AssistantChatFacts }             from '../../src/services/hephaestus/AssistantSession.ts';
-import type { BatonPassFailure }               from '../../src/services/hephaestus/BatonPass.ts';
 import type {
   CrossedPackageResult,
   CrossingStageFacts,
@@ -45,6 +44,7 @@ import type {
 import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/hephaestus/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/hephaestus/NeedTickets.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/hephaestus/RedHandoff.ts';
+import type { RestartFailure }                                        from '../../src/services/hephaestus/Restart.ts';
 import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                                         from '../../src/shared/ResourceFilePath.ts';
@@ -1026,29 +1026,29 @@ function setupMessageWordingOf(message: SetupMessage, promptFills: PromptFills):
 }
 
 /**
- * The first line of a session resumed to fix its red gate or Customs check, which points it to the Baton pass; a merge of the target that
+ * The first line of a session resumed to fix its red gate or Customs check, which points it to the restart; a merge of the target that
  * conflicted before User's code review asks the session to merge that tip again itself.
  */
 function redHandoffMessageOf(facts: Readonly<RedHandoffFacts>): string {
   if (facts.kind === 'merge-conflict') {
     return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'MainMergeConflictMessage.md'), 'utf8'), {
-      mergedTip:      facts.mergedTip ?? '',
-      target:         facts.name,
-      commit:         facts.commit,
-      batonPassPath:  facts.batonPassPath,
-      resume:         String(facts.resume),
-      resumesAllowed: String(facts.resumesAllowed),
-      callBudget:     String(facts.callBudget),
+      mergedTip:           facts.mergedTip ?? '',
+      target:              facts.name,
+      commit:              facts.commit,
+      gateFailureNotePath: facts.gateFailureNotePath,
+      resume:              String(facts.resume),
+      resumesAllowed:      String(facts.resumesAllowed),
+      callBudget:          String(facts.callBudget),
     }).trim().replaceAll('\n', ' ');
   }
   return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'RedHandoffMessage.md'), 'utf8'), {
-    what:           facts.kind === 'gate' ? `the \`${facts.name}\` gate` : `Customs check ${facts.name}`,
-    commit:         facts.commit,
-    exitCode:       facts.exitCode === null ? '' : ` with exit code ${facts.exitCode}`,
-    batonPassPath:  facts.batonPassPath,
-    resume:         String(facts.resume),
-    resumesAllowed: String(facts.resumesAllowed),
-    callBudget:     String(facts.callBudget),
+    what:                facts.kind === 'gate' ? `the \`${facts.name}\` gate` : `Customs check ${facts.name}`,
+    commit:              facts.commit,
+    exitCode:            facts.exitCode === null ? '' : ` with exit code ${facts.exitCode}`,
+    gateFailureNotePath: facts.gateFailureNotePath,
+    resume:              String(facts.resume),
+    resumesAllowed:      String(facts.resumesAllowed),
+    callBudget:          String(facts.callBudget),
   }).trim().replaceAll('\n', ' ');
 }
 
@@ -1069,18 +1069,18 @@ function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: JobLaunch
 
 /** What `status` reads of the live Hephaestus's state document; anything it does not recognise reads as no document. */
 export interface HephaestusStateReading {
-  runtimeState:     string;
-  notices:          HephaestusNotice[];
-  batonPassWarning: BatonPassFailure | null;
+  runtimeState:   string;
+  notices:        HephaestusNotice[];
+  restartWarning: RestartFailure | null;
 }
 
 function hephaestusStateOf(document: unknown): HephaestusStateReading | null {
   if (typeof document !== 'object' || document === null) return null;
   const { hephaestus, notices } = document as { hephaestus?: unknown; notices?: unknown };
   if (typeof hephaestus !== 'object' || hephaestus === null || !Array.isArray(notices)) return null;
-  const { state: runtimeState, batonPassWarning } = hephaestus as { state?: unknown; batonPassWarning?: unknown };
+  const { state: runtimeState, restartWarning } = hephaestus as { state?: unknown; restartWarning?: unknown };
   if (typeof runtimeState !== 'string') return null;
-  return { runtimeState, notices: notices as HephaestusNotice[], batonPassWarning: (batonPassWarning ?? null) as BatonPassFailure | null };
+  return { runtimeState, notices: notices as HephaestusNotice[], restartWarning: (restartWarning ?? null) as RestartFailure | null };
 }
 
 const ABANDONED_PASS_REASON_TEXT: Readonly<Record<Extract<HephaestusNotice, { kind: 'passes-abandoned' }>['reason'], string>> = {
@@ -1118,8 +1118,8 @@ function noticeTextOf(notice: HephaestusNotice): string {
   }
 }
 
-function batonPassWarningTextOf(failure: BatonPassFailure): string {
-  return `the Baton pass to code ${failure.successorCodeVersion} failed at ${failure.step}: ${failure.error}; this Hephaestus keeps driving`;
+function restartWarningTextOf(failure: RestartFailure): string {
+  return `the restart to code ${failure.successorCodeVersion} failed at ${failure.step}: ${failure.error}; this Hephaestus keeps driving`;
 }
 
 /** The proposal of the crossing ticket as a fenced diff, which a diff's own backtick fences cannot close. */
@@ -1189,5 +1189,5 @@ export const HephaestusWording = Object.freeze({
   setupMessageWordingOf,
   hephaestusStateOf,
   noticeTextOf,
-  batonPassWarningTextOf,
+  restartWarningTextOf,
 });

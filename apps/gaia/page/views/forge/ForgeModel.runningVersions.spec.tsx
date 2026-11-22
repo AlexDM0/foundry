@@ -91,7 +91,7 @@ describe('the restarts', () => {
     return { buttons: PackageButtons.buttonsIn(unfolded), sent };
   }
 
-  test('Restart Hephaestus sends a Baton pass and Restart Talos the clean quit, each for this forge, while the forge answers', () => {
+  test('Restart Hephaestus sends the checked restart and Restart Talos the clean quit, each for this forge, while the forge answers', () => {
     const { buttons, sent } = lineOf(versionsOf(storefrontWith(RUNS_THE_INSTALLED_CODE)));
     expect(buttons.map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([['Restart Hephaestus', false], ['Restart Talos', false]]);
     for (const button of buttons) PackageButtons.press(button);

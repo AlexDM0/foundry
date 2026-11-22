@@ -32,7 +32,7 @@ export type OperationRefusalDetail =
   | { kind: 'role-command-refused'; reason: RoleCommandRefusalReason; commandKind: string }
   | { kind: 'verb-not-relayable'; verb: string; jobId: string }
   | { kind: 'malformed-hatch-reply'; replyFilePath: string }
-  | { kind: 'hephaestus-already-running'; url: string; batonFilePath: string }
+  | { kind: 'hephaestus-already-running'; url: string; hephaestusLockFilePath: string }
   | { kind: 'hephaestus-down'; hephaestusDirectory: string }
   | { kind: 'hephaestus-contended'; hephaestusDirectory: string }
   | { kind: 'gate-confinement-unavailable'; reason: string }
@@ -40,13 +40,13 @@ export type OperationRefusalDetail =
   | { kind: 'malformed-versions-answer'; variable: string; value: string }
   /** `foundVersion` is `null` when no git started or it printed no version. */
   | { kind: 'git-below-floor'; foundVersion: string | null; floorVersion: string }
-  | { kind: 'baton-taken'; batonFilePath: string }
-  | { kind: 'baton-not-created-whole'; batonFilePath: string; reason: string }
+  | { kind: 'hephaestus-lock-taken'; hephaestusLockFilePath: string }
+  | { kind: 'hephaestus-lock-not-created-whole'; hephaestusLockFilePath: string; reason: string }
   | { kind: 'hephaestus-port-in-use'; firstPort: number; lastPort: number }
   | { kind: 'hephaestus-identity-unreadable'; processId: number; identitySources: readonly string[] }
   | { kind: 'hephaestus-did-not-start'; exitCode: number | null; logFilePath: string }
   | { kind: 'hephaestus-still-live'; url: string; processId: number }
-  | { kind: 'baton-pass-failed'; successorCodeVersion: string; step: string; error: string; url: string | null }
+  | { kind: 'restart-failed'; successorCodeVersion: string; step: string; error: string; url: string | null }
   | { kind: 'hephaestus-control-is-runtime-only'; commandKind: string }
   | { kind: 'intake-close-without-job' }
   | { kind: 'intake-title-without-job' }
@@ -66,14 +66,14 @@ export type OperationRefusalDetail =
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }
   | { kind: 'picture-type-unsupported'; mediaTypes: readonly string[] }
-  | { kind: 'hephaestus-owns-the-lifecycle'; url: string; batonFilePath: string }
+  | { kind: 'hephaestus-owns-the-lifecycle'; url: string; hephaestusLockFilePath: string }
   /** The Talos this Hephaestus started answers another protocol version, so no Talos starts again while it lives. */
   | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }
   /** The Talos this Hephaestus started never served: its endpoint does not fit, it refused its start, or it stayed silent. */
   | { kind: 'talos-unavailable'; reason: 'endpoint-does-not-fit' | 'start-refused' | 'not-serving'; startNumber: number }
   /** The forge crashed while serving (Hephaestus, or its Talos lost), wrote its crash log (`null`: it could not) and stays off until started. */
   | { kind: 'forge-crashed'; component: 'hephaestus' | 'talos'; crashLogPath: string | null }
-  /** A start after a crash, or one suspected before a reboot, that the user did not make: it took no Baton and stays off. `null`: no Baton named it. */
+  /** A start after a crash, or one suspected before a reboot, that the user did not make: it took no lock and stays off. `null`: no lock named it. */
   | { kind: 'forge-off-after-crash'; crashedGeneration: number | null; crashLogPath: string; suspected: boolean }
   /** No crash log of that number, or none at all when `number` is `null`. */
   | { kind: 'no-crash-log'; number: number | null }

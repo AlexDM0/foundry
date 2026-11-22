@@ -12,7 +12,7 @@ const RECORDED_PROBE_ANSWER: ConfinementVerdict = 'unavailable';
 
 function recordedHephaestusAnswerOf(confinement: unknown): object {
   return {
-    hephaestus: { state: 'serving', batonPassWarning: null }, notices: [], confinement, confinementSource: 'hephaestus'
+    hephaestus: { state: 'serving', restartWarning: null }, notices: [], confinement, confinementSource: 'hephaestus'
   };
 }
 

@@ -70,7 +70,7 @@ export interface AirlockHold {
   at:    string;
 }
 
-/** One fenced `writeTracker` hold: the caller checks its Baton after it. */
+/** One fenced `writeTracker` hold: the caller checks its Hephaestus lock after it. */
 export type AirlockHoldRunner = <Result>(mutate: (hold: AirlockHold) => Result) => Promise<Result>;
 
 /** What the merge agent's session reported and how many top-level calls it made, read from its event log. */
@@ -635,7 +635,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       fixCommand:          pipelineGate?.fix ?? null,
       commit:              red.commit,
       exitCode:            null,
-      batonPassPath:       RedHandoff.batonPassPathOf(folder),
+      gateFailureNotePath: RedHandoff.gateFailureNotePathOf(folder),
       fullLogPath:         join(folder, STALE_GREEN_LOG_FILE),
       resume,
       resumesAllowed:      context.redHandoffResumes,
@@ -998,7 +998,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         fixCommand:          null,
         commit:              MergeRun.headOf(red.worktree) ?? '',
         exitCode:            null,
-        batonPassPath:       RedHandoff.batonPassPathOf(folder),
+        gateFailureNotePath: RedHandoff.gateFailureNotePathOf(folder),
         fullLogPath:         null,
         resume:              resumes + 1,
         resumesAllowed:      context.redHandoffResumes,

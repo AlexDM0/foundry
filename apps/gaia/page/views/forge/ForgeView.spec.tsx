@@ -1,5 +1,5 @@
 /**
- * A forge in place in the shell, fed by the fleet source. What matters (SCREENS B1): Answer on E2 in Attention links to
+ * A forge in place in the shell, fed by the fleet source. What matters (`docs/design/screens.md` B1): Answer on E2 in Attention links to
  * `#forge/<trackerId>/questions/E2`, and that address shows Example Storefront's bar as artboard B1 draws it: the forge's mark before its
  * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
  * with the arrow of "Open in new tab", and no theme button, over the board, which waits for its first read; an unreachable forge still

@@ -41,7 +41,7 @@ const RED: AirlockFacts = {
     fixCommand:          null,
     commit:              '3333333333333333333333333333333333333333',
     exitCode:            null,
-    batonPassPath:       '/example-agency/jobs/J8/baton-pass.md',
+    gateFailureNotePath: '/example-agency/jobs/J8/gate-failure.md',
     fullLogPath:         null,
     resume:              1,
     resumesAllowed:      2,
@@ -180,7 +180,7 @@ describe('a session resumed on a conflicted merge before User\'s code review', (
     fixCommand:          null,
     commit:              CONFLICT.branchTip,
     exitCode:            null,
-    batonPassPath:       '/example-agency/jobs/J8/gate-failure.md',
+    gateFailureNotePath: '/example-agency/jobs/J8/gate-failure.md',
     fullLogPath:         null,
     resume:              1,
     resumesAllowed:      2,
@@ -189,7 +189,7 @@ describe('a session resumed on a conflicted merge before User\'s code review', (
     mergedTip:           CONFLICT.targetTip,
   });
 
-  test('is told the tip to merge again, its branch tip, the Baton pass and its resume, on one line', () => {
+  test('is told the tip to merge again, its branch tip, the restart and its resume, on one line', () => {
     for (const fact of ['`main`', `Merge \`${CONFLICT.targetTip}\``, CONFLICT.branchTip, '/example-agency/jobs/J8/gate-failure.md', 'resume 1 of 2']) {
       expect(message).toContain(fact);
     }

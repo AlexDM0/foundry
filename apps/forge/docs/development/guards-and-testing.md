@@ -391,10 +391,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 73 | clock read against a tolerance | Redesigned: the start lies between the clock read either side of the spawn. |
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 81 | processes signalled | Kept: real process groups are the subject; each is awaited or waited on by state. |
 | `src/services/lifecycle/GateRun.integration.spec.ts` | 189 | process signalled | Kept: the gate signals itself, and its run is awaited. |
-| `src/services/hephaestus/BatonPass.integration.spec.ts` | 134 | timer killing a process while tries run out | Redesigned: the kill lands at the rebind's first wait, an injected event. |
-| `src/services/hephaestus/BatonPass.integration.spec.ts` | 120 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
-| `src/services/hephaestus/BatonPass.spec.ts` | 234 | fixed sleep before the event | Redesigned: the predecessor reads gone on its fourth liveness read. |
-| `src/services/hephaestus/BatonPass.spec.ts` | 37 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
 | `src/services/hephaestus/CrashMatrix.integration.spec.ts`, `src/services/hephaestus/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
 | `src/services/hephaestus/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
 | `src/services/hephaestus/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; the recursive watch plays the folder watch recording (`src/testing/RecordedFolderWatch.ts`), which `src/lib/quiet-watch/QuietWatch.integration.spec.ts` records. `platformWatch` is the injected seam in `src/services/hephaestus/DataFolderWatch.ts`. |
@@ -418,9 +414,9 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/SharedCaseDeadlinePreload.integration.spec.ts` | 10 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
-| `src/services/hephaestus/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
+| `src/services/hephaestus/HephaestusLock.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
 | `src/services/hephaestus/HephaestusServer.integration.spec.ts` | 74 | port served | Kept: port 0, assigned by the kernel. |
-| `src/lib/process-identity/ProcessIdentity.integration.spec.ts`, `src/services/hephaestus/Regrouping.integration.spec.ts`, `src/services/hephaestus/BatonPass.integration.spec.ts` | 47, 49, 113 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |
+| `src/lib/process-identity/ProcessIdentity.integration.spec.ts`, `src/services/hephaestus/Regrouping.integration.spec.ts` | 47, 49 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |
 | every other spawning spec | - | deadline | Redesigned: the shared deadline, by the preload. |
 
 ## Scratch isolation

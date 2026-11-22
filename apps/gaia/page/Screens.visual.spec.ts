@@ -6,7 +6,7 @@
  * compares nothing. C2 is its "What notifies" checklist, opened over Forges as the page opens it (the notifications wait for W5.6), and C3
  * is the launcher's own splash file, opened at both its steps and drawing the page's own mark. The restart an update left pending, which no
  * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
- * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
+ * warnings of monitor contract 2, a failed restart as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
  * state, the forge program found. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
  * fixture, one screen per board render, Example Billing's Update forge at each of its steps.
  *
@@ -38,7 +38,7 @@ import {
   ASSISTANT_DOWN_SENTENCE,
   type ArtboardScreen,
   B2_STOP_REFUSAL,
-  BATON_PASS_FAILED_SENTENCE,
+  RESTART_FAILED_SENTENCE,
   CRASHED_FORGE_SCREENS,
   FORGE_PROGRAM_FOUND_SCREENS,
   HIDDEN_FORGE_SCREENS,
@@ -483,17 +483,17 @@ describe('a crashed forge in place, which no artboard draws', () => {
 });
 
 describe('the warnings of monitor contract 2, over the artboard that shows each', () => {
-  test('A1: a failed Baton pass is Invoice Service\'s error look, in the forge\'s own sentence with Open, before the two looks A1 draws', () => {
+  test('A1: a failed restart is Invoice Service\'s error look, in the forge\'s own sentence with Open, before the two looks A1 draws', () => {
     const [attention] = MONITOR_WARNING_SCREENS;
     if (attention === undefined) throw new Error('A monitor warning screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     const looks = MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-attention-look'));
     expect(looks).toHaveLength(3);
-    const [batonLook = MarkupTree.parse('')] = looks;
-    expect(elementsLabelled(batonLook, 'Invoice Service: Baton pass failed.')).toHaveLength(1);
-    expect(MarkupTree.textOf(batonLook)).toContain(BATON_PASS_FAILED_SENTENCE);
-    expect(MarkupTree.elementsIn(batonLook, MarkupTree.withRole('link', 'Open'))).toHaveLength(1);
+    const [restartLook = MarkupTree.parse('')] = looks;
+    expect(elementsLabelled(restartLook, 'Invoice Service: Restart failed.')).toHaveLength(1);
+    expect(MarkupTree.textOf(restartLook)).toContain(RESTART_FAILED_SENTENCE);
+    expect(MarkupTree.elementsIn(restartLook, MarkupTree.withRole('link', 'Open'))).toHaveLength(1);
   });
 
   test('A4: an Assistant that cannot come up is a notice under Research Wiki\'s row, in Gaia\'s words', () => {

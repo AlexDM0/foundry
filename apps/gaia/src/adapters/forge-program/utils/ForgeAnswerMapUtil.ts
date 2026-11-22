@@ -10,7 +10,7 @@ import { CONTRACT_VERSIONS }                     from '../../../shared/constants
 import { ContractVersionUtil }                   from '../../../shared/utils/ContractVersionUtil.ts';
 import type {
   ForgeAnswerNotUnderstoodReason,
-  ForgeBatonPass,
+  ForgeRestart,
   ForgeInitAnswer,
   ForgeInitOutcome,
   ForgeMachineLimitAnswer,
@@ -113,21 +113,21 @@ function initAnswerOf(document: JsonObject): ForgeInitAnswer | null {
   };
 }
 
-/** `batonPass` is `done`, `not-needed`, or `failed` with the step that failed in `batonPassStep`, which is `null` otherwise. */
-function batonPassOf(document: JsonObject): ForgeBatonPass | null {
-  const batonPass = JsonValueUtil.ownValueOf(document, 'batonPass');
-  if (batonPass === 'done' || batonPass === 'not-needed') return { outcome: batonPass };
-  if (batonPass !== 'failed') return null;
-  const failedStep = textOf(document, 'batonPassStep');
+/** `restart` is `done`, `not-needed`, or `failed` with the step that failed in `restartStep`, which is `null` otherwise. */
+function restartOf(document: JsonObject): ForgeRestart | null {
+  const restart = JsonValueUtil.ownValueOf(document, 'restart');
+  if (restart === 'done' || restart === 'not-needed') return { outcome: restart };
+  if (restart !== 'failed') return null;
+  const failedStep = textOf(document, 'restartStep');
   return failedStep === null ? null : { outcome: 'failed', failedStep };
 }
 
 function updateAnswerOf(document: JsonObject): ForgeUpdateAnswer | null {
   const outcome        = outcomeOf(document);
   const installVersion = wholeNumberOf(document, 'installVersion');
-  const batonPass      = batonPassOf(document);
-  if (outcome === null || installVersion === null || batonPass === null) return null;
-  return { outcome, installVersion, batonPass };
+  const restart      = restartOf(document);
+  if (outcome === null || installVersion === null || restart === null) return null;
+  return { outcome, installVersion, restart };
 }
 
 function versionAnswerOf(document: JsonObject): ForgeVersionAnswer | null {

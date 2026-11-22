@@ -71,7 +71,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause', 
       boardChildren: talosChildReadingsWith(nativePlatformPorts(), workspace.trackerDirectory),
       notices:       () => [],
       hephaestus:    () => ({
-        state: 'serving', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, batonPassWarning: null
+        state: 'serving', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, restartWarning: null
       }),
     }).state;
     expect([boardState.hephaestus.paused, status.hephaestus.paused]).toEqual([true, true]);

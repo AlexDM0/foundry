@@ -65,24 +65,24 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   const presence = presenceReading?.verdict === 'read' && presenceReading.record.generation === generation ? presenceReading.record : null;
   const heartbeat = heartbeatReading?.verdict === 'read' && heartbeatReading.record.generation === generation ? heartbeatReading.record : null;
   const record = CrashLog.assemble({
-    crashedGeneration: generation,
-    component:         crash.component,
-    suspected:         false,
-    classification:    null,
+    crashedGeneration:    generation,
+    component:            crash.component,
+    suspected:            false,
+    classification:       null,
     recordedAt,
-    recordedBy:        { generation, startOrigin: presence?.startOrigin ?? null, crashPath: true },
-    error:             crash.error,
+    recordedBy:           { generation, startOrigin: presence?.startOrigin ?? null, crashPath: true },
+    error:                crash.error,
     presence,
-    batonHolder:       null,
+    hephaestusLockHolder: null,
     heartbeat,
-    activeJobs:        readingOrNull(context.activeJobs),
-    talosChildren:     readingOrNull(context.talosChildren),
-    logTail:           CrashLog.logTailOf(files.logFilePath),
+    activeJobs:           readingOrNull(context.activeJobs),
+    talosChildren:        readingOrNull(context.talosChildren),
+    logTail:              CrashLog.logTailOf(files.logFilePath),
   });
   try {
     return CrashLog.writeOnce(files, record);
   } catch (thrown) {
-    context.log(`The crash log of Baton ${generation} could not be written: ${describedFailureOf(thrown)}`);
+    context.log(`The crash log of Hephaestus lock ${generation} could not be written: ${describedFailureOf(thrown)}`);
     return 'not-written';
   }
 }
@@ -92,7 +92,7 @@ function writeTheCrashedEnding(context: CrashPathContext, crash: Crash, crashLog
     const ending = { kind: 'crashed', component: crash.component, crashLogNumber } as const;
     return Presence.writeEnding(context.files, context.generation, ending, at).verdict;
   } catch (thrown) {
-    context.log(`The crashed ending of Baton ${context.generation} could not be written: ${describedFailureOf(thrown)}`);
+    context.log(`The crashed ending of Hephaestus lock ${context.generation} could not be written: ${describedFailureOf(thrown)}`);
     return 'not-written';
   }
 }

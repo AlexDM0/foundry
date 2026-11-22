@@ -1,9 +1,9 @@
 /**
- * What the Forges view shows of a fleet document (SCREENS A4 and B2): the status line, one row per forge with the buttons of its condition,
- * the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
- * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
- * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at
- * another version than this Gaia is built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
+ * What the Forges view shows of a fleet document (`docs/design/screens.md` A4 and B2): the status line, one row per forge with the buttons of its
+ * condition, the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
+ * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update left pending
+ * shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at another version than this Gaia is
+ * built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
  */
 
 import type {
@@ -250,22 +250,25 @@ const SHORT_CODE_VERSION_CHARACTERS = 7;
 const NO_LIMIT_KNOWN = '—';
 
 /** The conditions under which a forge's Hephaestus runs. */
-const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
+const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'restarting']);
 
 /** The fidelities at which the forge's Hephaestus answered its last read, so a command it carries reaches it. */
 const HEPHAESTUS_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
 
-/** SCREENS A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
+/**
+ * `docs/design/screens.md` A4: which buttons each condition shows. Open is left out where the forge cannot open in place
+ * (`ForgeContractUtil.canOpenInPlace`).
+ */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
-  'live':          ['pause', 'stop', 'open'],
-  'paused':        ['unpause', 'stop', 'open'],
-  'held':          ['stop', 'open'],
-  'passing-baton': [],
-  'starting':      [],
-  'dormant':       ['start'],
-  'unreachable':   ['look-again', 'stop'],
-  'unreadable':    [],
-  'missing':       ['hide'],
+  'live':        ['pause', 'stop', 'open'],
+  'paused':      ['unpause', 'stop', 'open'],
+  'held':        ['stop', 'open'],
+  'restarting':  [],
+  'starting':    [],
+  'dormant':     ['start'],
+  'unreachable': ['look-again', 'stop'],
+  'unreadable':  [],
+  'missing':     ['hide'],
 };
 
 const NOTICE_KIND_OF_HELD_LAUNCHES = 'install-version-changed';
@@ -443,7 +446,7 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition,
   switch (shownCondition) {
     case 'live':
     case 'held':
-    case 'passing-baton': {
+    case 'restarting': {
       const startedClock = StampTextUtil.clockTextAtReadingOf(forge.hephaestusStartedAt, clock);
       return startedClock === null ? null : `since ${startedClock}`;
     }
@@ -602,7 +605,7 @@ function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroun
 }
 
 /** The conditions whose detail is only when Hephaestus started: the versions subline takes their place. */
-const CONDITIONS_DETAILED_BY_THEIR_START: ReadonlySet<ShownCondition> = new Set(['live', 'held', 'passing-baton']);
+const CONDITIONS_DETAILED_BY_THEIR_START: ReadonlySet<ShownCondition> = new Set(['live', 'held', 'restarting']);
 
 const VERSIONS_DISCLOSURE_LABEL_SUFFIX = ', its version beside this Gaia’s';
 

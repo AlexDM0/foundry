@@ -427,7 +427,7 @@ A forge never starts at login: after a login or a reboot the board stays stopped
 | `hephaestus-port-in-use` | The derived range or your `--port` is taken. | `forge start --port 0` |
 | `hephaestus-did-not-start` | The detached process exited. | Run `forge start --foreground` to see why; read `hephaestus.log`. |
 | `hephaestus-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
-| `baton-taken` | A newer Hephaestus took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
+| `hephaestus-lock-taken` | A newer Hephaestus took the board over from this one's [Hephaestus lock](../glossary.md#hephaestus-lock) while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |
 
 `stop` refused `hephaestus-still-live`: the process did not exit. Read its process id from `status` and
@@ -457,7 +457,7 @@ ls -t .forge/jobs/J7/child-*.log | head -n 1 | xargs tail -n 20   # the same, fo
 tail -n 20 "$(ls -t .forge/talos/talos-*.log | head -n 1)"    # Talos's own log; `talos failed:` says why it died
 jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .forge/log.jsonl | tail -n 1   # the newest Assistant job
 cat .forge/jobs/J7/gate.log                                   # red gate output
-ls -t .forge/hephaestus/baton-pass-*.json | head -n 1 | xargs jq .   # the newest Baton pass, as both sides wrote it
+grep -E 'restart|preflight|successor' .forge/hephaestus.log | tail -n 10   # how the last restart went
 ```
 
 `jobs` prints the child instance of a live job. Each resume starts the next instance, so `-1` then goes stale; the
@@ -566,20 +566,22 @@ git status --short CLAUDE.md .gitignore   # commit what update changed here
 `update` refreshes installed files and leaves the [tracker](../glossary.md#tracker) alone. Its last step hands a live
 Hephaestus to the code on disk: it prints `Handing Hephaestus at ...`, then `Hephaestus handed over to code ...`. The
 URL stays and Talos is not touched. With no live Hephaestus the step is skipped. If `update` prints
-`did not take the Baton pass`, run `forge restart`, which stops and restarts that Hephaestus. A `.gitignore` change from
+`did not take the restart`, run `forge restart`, which stops and restarts that Hephaestus. A `.gitignore` change from
 `update` needs a commit too.
 
 > **As built.** A stop sent through the API is refused while held: run `update`, then `job stop`.
-> A stop sent during a [Baton pass](../glossary.md#baton-pass) is dropped.
+> A stop sent during a [restart](../glossary.md#restart) is taken while the preflight runs, and dropped once the old
+> Hephaestus lets go of the board.
 
-**A failed Baton pass:** `update` or `restart` exits 1 with `baton-pass-failed`.
-What `update` installed stands, and the old Hephaestus keeps driving with a `warning:` line in `status`. Read the
-step in that line and `hephaestus.log`, fix it, and run `forge restart`. If the install version moved,
-the old Hephaestus stays held until a Baton pass succeeds.
+**A failed preflight:** `update` or `restart` exits 1 with `restart-failed`, and the sentence says the old Hephaestus
+keeps driving. What `update` installed stands, and the old Hephaestus keeps driving with a `warning:` line in
+`status`. Read the step in that line and `hephaestus.log`, fix it, and run `forge restart`. If the install version
+moved, the old Hephaestus stays held until a restart succeeds.
 
-**The undriven exit:** if the incoming Hephaestus fails after the old one gave up its port, and the old one cannot bind
-that port again, the old one exits and no Hephaestus drives the board. `hephaestus.log` ends
-`This Hephaestus exits with no Hephaestus on the board.` Talos runs on, until its lease ends. Start one:
+**No successor:** nothing takes the board back. If the successor fails after the old Hephaestus let go, for example
+refused by its install check or its start gate, `update` or `restart` exits 1 with `restart-failed` at step `serve`,
+and no Hephaestus drives the board. The successor's refusal is in `hephaestus.log`. Talos runs on, until its lease
+ends. Start one:
 
 ```bash
 forge start
@@ -620,7 +622,6 @@ git branch -d ticket-003
 | --- | --- | --- |
 | `<data>/jobs/<J>/` | Its ticket is delivered or abandoned and the job has left `jobs`. Costs its transcript and `gate.log`. | `rm -rf` the folder |
 | `<worktrees>/sessions/<J>/`, `<worktrees>/hatch/<J>/` | The job has left `jobs` | `rm -rf` the folder |
-| `<data>/hephaestus/baton-pass-<n>.json` | No Baton pass runs | `rm` the file |
 | `<data>/hephaestus.log` | Any time Hephaestus is stopped | `: > .forge/hephaestus.log` |
 
 Keep `git branch -d`, never `-D`: its refusal tells you the branch holds work the main line lacks. Finish with
@@ -667,7 +668,7 @@ its lease ends; [Changing the code](../development/contributing.md) has the full
 | Edit `progress.json` by hand on a healthy board | Commands own it, and a command mid-write overwrites your edit. | Use a verb; `forge ticket status` covers moves the named verbs refuse. Damage is [the exception](#stored-file-damage). |
 | Kill Talos or an agent | A lost child counts as a crash toward the bounds. | `forge job stop J7` or `forge job fresh J7` |
 | Delete a live job's folder | Hephaestus reads the job through it: its child record and event log are there. | Wait until the job has left `jobs`. |
-| Delete a Baton or Baton pass file of a live Hephaestus | The Baton is how everything finds Hephaestus and proves there is one. | `forge stop` |
+| Delete the Hephaestus lock file of a live Hephaestus | The Hephaestus lock is how everything finds Hephaestus and proves there is one. | `forge stop` |
 | Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart. It does not check for a live Hephaestus. | `forge ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
 | Run `ticket deliver --by-hand` to force a landing | It marks the ticket delivered and logs it, but merges and lands nothing, and it is refused while a Hephaestus is live. | Fix the merge. It is for work landed outside Hephaestus. |
 | Commit directly to the main line while tickets land | Each landing is a compare-and-swap, and a moved target requeues, then parks. | File a ticket. |
@@ -686,4 +687,4 @@ its lease ends; [Changing the code](../development/contributing.md) has the full
 | Held landing targets | `src/services/hephaestus/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/hephaestus/Airlocks.spec.ts` |
 | Notices | `src/services/hephaestus/DrivePass.ts` | `HephaestusNotice`, `noticesOf` | `cli/hephaestus/HephaestusDrivePass.spec.ts` |
 | Refusal wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf` | `src/adapters/utils/OperationRefusalWordingUtil.boardRefusal.spec.ts` |
-| Hand-over from `update` | `cli/adoption/update/UpdateCommand.ts` | `handTheLiveHephaestusToTheCodeOnDisk` | `src/services/hephaestus/BatonPass.spec.ts` |
+| Restart from `update` | `cli/adoption/update/UpdateCommand.ts` | `handTheLiveHephaestusToTheCodeOnDisk` | `src/services/hephaestus/Restart.spec.ts` |

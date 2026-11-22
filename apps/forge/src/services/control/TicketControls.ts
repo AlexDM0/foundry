@@ -150,7 +150,7 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: BoardTransa
 function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: BoardTransaction, context: ControlContext) {
   const liveHephaestus = context.liveHephaestusOf(change.workspace.trackerDirectory);
   if (liveHephaestus !== null) {
-    throw new OperationRefusal('refused', { kind: 'hephaestus-owns-the-lifecycle', url: liveHephaestus.url, batonFilePath: liveHephaestus.batonFilePath });
+    throw new OperationRefusal('refused', { kind: 'hephaestus-owns-the-lifecycle', url: liveHephaestus.url, hephaestusLockFilePath: liveHephaestus.hephaestusLockFilePath });
   }
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const liveJob  = change.board.liveJobOfTicket(ticketId);

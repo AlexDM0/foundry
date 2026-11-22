@@ -547,8 +547,8 @@ export class Board {
     return this.instructResumeOfEach(this.interruptedJobs().filter((job) => job.interruption === 'network-outage'), at);
   }
 
-  recordBatonPassFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
-    return this.jobRules.recordBatonPassFailed(failure, at);
+  recordRestartFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
+    return this.jobRules.recordRestartFailed(failure, at);
   }
 
   recordUsageLimitHit(jobId: string, limit: { window: string; resetsAt: string }, at: string): Logged {

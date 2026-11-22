@@ -1,5 +1,5 @@
 /**
- * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process, the board's children through Talos's adapter over the
+ * The one way a spec makes a DrivePass on a scratch tracker: a Hephaestus lock of this process, the board's children through Talos's adapter over the
  * connection the spec hands, and the example wording, every other request field the spec's to set. A default spec hands the connection of
  * `src/testing/RecordedTalosStages.ts` and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`; a real-system spec
  * starts a scratch Talos with `startScratchBoardTalos`.
@@ -14,9 +14,9 @@ import type { PlatformPorts }                                     from '../lib/p
 import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
 import type { ChildLaunch }                                       from '../lib/talos/ChildLaunch.ts';
 import { TALOS_PROTOCOL_VERSION }                                 from '../lib/talos/constants/TalosProtocol.ts';
-import { Baton }                                                  from '../services/hephaestus/Baton.ts';
 import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/hephaestus/DrivePass.ts';
 import { hephaestusFilesIn }                                      from '../services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                         from '../services/hephaestus/HephaestusLock.ts';
 import { createTalosChildren }                                    from '../services/hephaestus/TalosChildren.ts';
 import { type TalosConnection, connectToTalos }                   from '../services/hephaestus/TalosConnection.ts';
 import { createLineRunner }                                       from '../services/hephaestus/TalosLines.ts';
@@ -39,16 +39,16 @@ import { lockTakerJudgingHoldersBy }  from './LockTakers.ts';
 import { firstValueOf }               from './WaitUntil.ts';
 
 interface ScratchDrivePassRequired {
-  platformPorts:    PlatformPorts;
-  workspace:        Workspace;
-  agentAdapter:     AgentAdapter;
-  monitorFolder:    string;
-  mainLine:         string;
+  platformPorts:             PlatformPorts;
+  workspace:                 Workspace;
+  agentAdapter:              AgentAdapter;
+  monitorFolder:             string;
+  mainLine:                  string;
   /** The connection to the board's Talos, read at each act: the recorded stages' in a default spec, a scratch Talos's in a real-system one. */
-  talosConnection:  () => TalosConnection | null;
-  log:              (line: string) => void;
-  /** The start stamp the Baton names, one no process had: `1` when absent. Starts a spec crashes at one generation differ by it. */
-  batonStartStamp?: string;
+  talosConnection:           () => TalosConnection | null;
+  log:                       (line: string) => void;
+  /** The start stamp the Hephaestus lock names, one no process had: `1` when absent. Starts a spec crashes at one generation differ by it. */
+  hephaestusLockStartStamp?: string;
 }
 
 export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePassRequest>;
@@ -57,11 +57,11 @@ export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePa
 export function createScratchDrivePass(request: ScratchDrivePassRequest): DrivePass {
   const { hephaestusDirectory } = hephaestusFilesIn(request.workspace.trackerDirectory);
   mkdirSync(hephaestusDirectory, { recursive: true });
-  // Only the start stamp differs from this process's identity, so the Baton reads as dead to a successor, a recorded answer of the process table.
+  // Only the start stamp differs from this process's identity, so the lock reads as dead to a successor, a recorded answer of the process table.
   const ownBootIdentity = request.platformPorts.processSupervision.identityOf(process.pid)?.bootIdentity ?? 'example-boot';
-  const acquisition = Baton.acquire(request.platformPorts, hephaestusDirectory, {
+  const acquisition = HephaestusLock.acquire(request.platformPorts, hephaestusDirectory, {
     processId:            process.pid,
-    processStartStamp:    request.batonStartStamp ?? '1',
+    processStartStamp:    request.hephaestusLockStartStamp ?? '1',
     bootIdentity:         ownBootIdentity,
     port:                 1,
     url:                  'http://127.0.0.1:1/',
@@ -70,38 +70,38 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     installVersion:       1,
     talosProtocolVersion: TALOS_PROTOCOL_VERSION,
   });
-  if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
+  if (acquisition.verdict !== 'acquired') throw new Error('the scratch Hephaestus lock was not acquired');
   const codeVersion = request.codeVersion ?? 'code-example';
   const boardChildren = createTalosChildren({ boardFolder: request.workspace.trackerDirectory, platformPorts: request.platformPorts, connection: request.talosConnection });
   const now = request.now ?? (() => new Date('2026-09-18T20:11:03Z'));
   const holderIsGoneByProcessId = (holder: LockHolder): boolean => request.platformPorts.processSupervision.processIsGone(holder.processId);
   const defaults: Omit<DrivePassRequest, keyof ScratchDrivePassRequired> = {
-    boardStore:            createLocalFilesBoardStore({ workspace: request.workspace, now, lockTaker: lockTakerJudgingHoldersBy(holderIsGoneByProcessId) }),
+    boardStore:                createLocalFilesBoardStore({ workspace: request.workspace, now, lockTaker: lockTakerJudgingHoldersBy(holderIsGoneByProcessId) }),
     now,
-    formatStamp:           () => '2026-09-18T22:11:03+02:00',
+    formatStamp:               () => '2026-09-18T22:11:03+02:00',
     hephaestusDirectory,
-    generation:            acquisition.generation,
+    generation:                acquisition.generation,
     boardChildren,
-    lineRunner:            createLineRunner(boardChildren, request.talosConnection),
+    lineRunner:                createLineRunner(boardChildren, request.talosConnection),
     codeVersion,
-    programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
-    inheritedEnvironment:  {},
-    installVersionChanged: () => false,
-    apiBillingKeyIsSet:    () => false,
-    decisionWordingOf:     () => ({ questions: [], context: '' }),
-    packageNeedWordingOf:  () => ({ title: 'Example need', body: '' }),
-    dependentFixWordingOf: () => ({ title: 'Example fix', body: '' }),
-    launchTextOf:          () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
-    assistantChatTextOf:   (facts) => `Example chat ${facts.sequence}`,
-    windDownMessage:       'Example wind-down message',
-    resumeMessage:         'Example resume message',
-    redHandoffMessageOf:   () => 'Example red handoff message',
-    answerMessageOf:       (answer) => `Example answers ${JSON.stringify(answer)}`,
-    setupMessageWordingOf: (message) => JSON.stringify(message),
-    homeDirectory:         request.monitorFolder,
-    branchNames:           branchNamesOf(null),
-    onBatonTakenOver:      () => request.log('taken over'),
-    onPassCrashed:         () => {
+    programCommand:            [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
+    inheritedEnvironment:      {},
+    installVersionChanged:     () => false,
+    apiBillingKeyIsSet:        () => false,
+    decisionWordingOf:         () => ({ questions: [], context: '' }),
+    packageNeedWordingOf:      () => ({ title: 'Example need', body: '' }),
+    dependentFixWordingOf:     () => ({ title: 'Example fix', body: '' }),
+    launchTextOf:              () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
+    assistantChatTextOf:       (facts) => `Example chat ${facts.sequence}`,
+    windDownMessage:           'Example wind-down message',
+    resumeMessage:             'Example resume message',
+    redHandoffMessageOf:       () => 'Example red handoff message',
+    answerMessageOf:           (answer) => `Example answers ${JSON.stringify(answer)}`,
+    setupMessageWordingOf:     (message) => JSON.stringify(message),
+    homeDirectory:             request.monitorFolder,
+    branchNames:               branchNamesOf(null),
+    onHephaestusLockTakenOver: () => request.log('taken over'),
+    onPassCrashed:             () => {
       request.log('crashed');
       return Promise.resolve();
     },

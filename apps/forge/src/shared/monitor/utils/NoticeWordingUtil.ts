@@ -1,5 +1,5 @@
 /**
- * The sentences of Hephaestus's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
+ * The sentences of Hephaestus's open notices and of the header's warnings (owner answer Q34): a failed restart with its step and error,
  * and an Assistant that cannot come up. The board document and the monitor snapshot carry them, so both read the same words, which
  * name a neutral action and never a command line: User runs no command.
  */
@@ -11,8 +11,8 @@ export interface NoticeFacts {
   readonly [fact: string]: unknown;
 }
 
-/** The last Baton pass that failed while this Hephaestus kept driving. */
-export interface BatonPassWarningFacts {
+/** The last restart that failed while this Hephaestus kept driving. */
+export interface RestartWarningFacts {
   readonly successorCodeVersion: string;
   readonly step:                 string;
   readonly error:                string;
@@ -105,21 +105,21 @@ export interface WordedWarning {
 }
 
 /** Derived from the notices and Hephaestus's facts, never stored. */
-function wordedWarningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): WordedWarning[] {
+function wordedWarningsOf(notices: readonly NoticeFacts[], restartWarning: RestartWarningFacts | null): WordedWarning[] {
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
-  const batonPassFailed: WordedWarning[] = batonPassWarning === null ? [] : [{
-    kind:  'baton-pass-failed',
-    facts: { successorCodeVersion: batonPassWarning.successorCodeVersion, step: batonPassWarning.step, error: batonPassWarning.error },
-    text:  `the Baton pass to code ${batonPassWarning.successorCodeVersion} failed at ${batonPassWarning.step}: ${batonPassWarning.error}`,
+  const restartFailed: WordedWarning[] = restartWarning === null ? [] : [{
+    kind:  'restart-failed',
+    facts: { successorCodeVersion: restartWarning.successorCodeVersion, step: restartWarning.step, error: restartWarning.error },
+    text:  `the restart to code ${restartWarning.successorCodeVersion} failed at ${restartWarning.step}: ${restartWarning.error}`,
   }];
   const assistantDown: WordedWarning[] = defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE)
     ? [{ kind: 'assistant-down', facts: {}, text: 'no Assistant can come up: open incidents take their defaults' }]
     : [];
-  return [...batonPassFailed, ...assistantDown];
+  return [...restartFailed, ...assistantDown];
 }
 
-function warningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): MonitorWarning[] {
-  return wordedWarningsOf(notices, batonPassWarning).map(({ kind, text }) => ({ kind, text }));
+function warningsOf(notices: readonly NoticeFacts[], restartWarning: RestartWarningFacts | null): MonitorWarning[] {
+  return wordedWarningsOf(notices, restartWarning).map(({ kind, text }) => ({ kind, text }));
 }
 
 /** The state carries the notices as the pass derived them; one that names no kind is no notice. */
@@ -128,9 +128,9 @@ function noticeFactsIn(notices: readonly unknown[]): NoticeFacts[] {
 }
 
 /** Hephaestus keeps the warning as it was written; one that does not read as a warning is none. */
-function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
+function restartWarningIn(warning: unknown): RestartWarningFacts | null {
   if (typeof warning !== 'object' || warning === null) return null;
-  const { successorCodeVersion, step, error } = warning as Partial<Record<keyof BatonPassWarningFacts, unknown>>;
+  const { successorCodeVersion, step, error } = warning as Partial<Record<keyof RestartWarningFacts, unknown>>;
   return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
 }
 
@@ -140,5 +140,5 @@ function causeSentenceOf(notice: NoticeFacts): string | null {
 }
 
 export const NoticeWordingUtil = Object.freeze({
-  noticeFactsIn, batonPassWarningIn, noticeTextOf, noticeSentenceOf, warningsOf, wordedWarningsOf, defaultCauseTextOf, causeSentenceOf
+  noticeFactsIn, restartWarningIn, noticeTextOf, noticeSentenceOf, warningsOf, wordedWarningsOf, defaultCauseTextOf, causeSentenceOf
 });

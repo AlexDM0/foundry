@@ -5,10 +5,10 @@
  */
 import type { ServedContractName } from '../@types/IdentityDocument.ts';
 
-/** Forge 3.0 raised the summary and the monitor (the key `hephaestus`) and control (the four lifecycle kinds named for Hephaestus). */
+/** Forge 4.0 raised the summary and the monitor (the state `restarting`, the warning kind restart-failed). */
 export const HEPHAESTUS_CONTRACT_VERSIONS = {
   identity: 1,
-  summary:  2,
-  monitor:  5,
+  summary:  3,
+  monitor:  6,
   control:  3,
 } as const satisfies Readonly<Record<'identity' | ServedContractName, number>>;

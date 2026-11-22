@@ -53,7 +53,7 @@ function redHandoffFactsIn(jobFolder: string): RedHandoffFacts {
     fixCommand:          null,
     commit:              'example-commit',
     exitCode:            1,
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         join(jobFolder, 'gate.log'),
     resume:              1,
     resumesAllowed:      2,

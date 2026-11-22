@@ -64,8 +64,8 @@ the root's.
     parts only (its mark, a fill the library keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
     library token but `--press-scale`, which the library leaves to its host (set to 1: a press changes no size).
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a library class), and lets a hover
-    or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
-    both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
+    or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of `docs/design/components.md` section 4 in
+    both themes, and 3:1 on the primary button, the one exception, which the owner accepts. A variant is a `data-*` attribute, never a class.
     `page/components/` holds only Gaia's own parts, the ones no library has (Gaia's mark, the brand bar, the callout and the like)
     and Gaia's words around a library part (the refusal around the failed action), composed from the libraries' components; they import
     no shell, view or board (`page/PageImportDirection.spec.ts`). A state reaches
@@ -105,7 +105,7 @@ the root's.
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
     no shadow at rest; mono for machine values. Gaia draws Flint only in the forge route, one per forge, and calls no model (a forge's own
     figure, such as its tokens today, is passed on as the forge reports it). `page/Screens.visual.spec.ts` paints every artboard from
-    `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the design's renders.
+    `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the artboards (`docs/design/README.md`).
 
 ## Map
 
@@ -117,7 +117,7 @@ imports no `forge-contracts` and reads its own contract versions from `src/share
 
 ```
 docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS and PAGE_CONTRACT_VERSIONS by a spec), what Gaia asks of forge, the backlog,
-                   the spikes' findings
+                   the spikes' findings, the design reference (docs/design/)
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
@@ -161,7 +161,7 @@ with the system's version. Verify fails on a stale stamp and on a forge recordin
 for the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person can answer.
 `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
-(3.0): `hephaestus-fetch-supported-forge`, the forge in each situation;
+(4.0): `hephaestus-fetch-supported-forge`, the forge in each situation;
 `hephaestus-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
 `hephaestus-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
 system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are

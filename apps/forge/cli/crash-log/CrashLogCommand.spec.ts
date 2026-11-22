@@ -29,14 +29,14 @@ const EXAMPLE_CLASSIFICATION: StartClassificationVerdict = {
   crashSuspected:     false,
   crashedComponent:   'talos',
   evidence:           {
-    presence:               'read',
-    previousEnding:         null,
-    previousBootIdentity:   'example-boot',
-    currentBootIdentity:    'example-boot',
-    newerBatonThanPresence: false,
-    talos:                  'lost-this-boot',
-    lastHeartbeatAt:        '2026-09-18T20:04:00+00:00',
-    bootStartedAt:          null,
+    presence:                        'read',
+    previousEnding:                  null,
+    previousBootIdentity:            'example-boot',
+    currentBootIdentity:             'example-boot',
+    newerHephaestusLockThanPresence: false,
+    talos:                           'lost-this-boot',
+    lastHeartbeatAt:                 '2026-09-18T20:04:00+00:00',
+    bootStartedAt:                   null,
   },
 };
 
@@ -68,10 +68,10 @@ function writeCrashLog(crashedGeneration: number, errorName: string, classificat
     error:      {
       origin: 'talos-lost', name: errorName, message: 'an example crash', stack: null
     },
-    presence:    null,
-    batonHolder: { processId: 4000 + crashedGeneration, startStamp: '1600000000', bootIdentity: 'example-boot' },
-    heartbeat:   null,
-    activeJobs:  [{
+    presence:             null,
+    hephaestusLockHolder: { processId: 4000 + crashedGeneration, startStamp: '1600000000', bootIdentity: 'example-boot' },
+    heartbeat:            null,
+    activeJobs:           [{
       jobId:         'J3',
       kind:          'build',
       role:          'builder',
@@ -103,7 +103,7 @@ describeWhenGitIsRecorded('crash-log', () => {
     expect(exitCode, context.errorText()).toBe(0);
     const text = context.outputText();
     expect(text).toContain(`crash log ${newestNumber} (${CrashLog.pathOf(filesOfTheBoard(), newestNumber)})`);
-    expect(text).toContain('component: talos, Baton 5');
+    expect(text).toContain('component: talos, Hephaestus lock 5');
     expect(text).toContain('classification: crashed (talos)');
     expect(text).toContain('Talos lost-this-boot, last beat 2026-09-18T20:04:00+00:00');
     expect(text).toContain('error (talos-lost): NewestError: an example crash');

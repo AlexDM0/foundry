@@ -1,7 +1,7 @@
 /**
- * The rail's model, on the four fleet fixtures. What matters (SCREENS "The shell", acceptance 1): each count is the fleet document's own
+ * The rail's model, on the four fleet fixtures. What matters (`docs/design/screens.md`, the shell, acceptance 1): each count is the fleet document's own
  * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the
- * agent rows (shell acceptance 2: 10); Forges and the forge rows count and list the forges
+ * agent rows (the shell, acceptance 5: 10); Forges and the forge rows count and list the forges
  * not hidden, in registry order. A count the document does not hold is absent, never 0.
  * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
  * this machine's slots and lines at, under and without a limit, and the agents an unreachable forge last
@@ -196,11 +196,11 @@ describe('the current row', () => {
     expect(inPlace.forges.filter((row) => row.isCurrent).map((row) => row.project)).toEqual(['Invoice Service']);
   });
 
-  test('a forge passing the baton shows the ring of a forge on its way', () => {
+  test('a restarting forge shows the ring of a forge on its way', () => {
     const [storefront] = FLEET_FIVE_FORGES.forges;
     if (storefront === undefined) throw new Error('The fixture holds no forge.');
-    const passing: FleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, condition: 'passing-baton' }] };
-    expect(RailModel.railContentOf(passing, DEFAULT_ROUTE).forges.map((row) => row.condition)).toEqual(['starting']);
+    const restarting: FleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, condition: 'restarting' }] };
+    expect(RailModel.railContentOf(restarting, DEFAULT_ROUTE).forges.map((row) => row.condition)).toEqual(['starting']);
   });
 
   test('a forge older than this Gaia shows the dashed orange dot of one needing an update, and a newer one the faded dot of one not readable', () => {

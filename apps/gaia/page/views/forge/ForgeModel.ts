@@ -1,8 +1,8 @@
 /**
- * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the board, with the forge's name, its condition, one short
- * line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the
- * board of a Hephaestus that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
- * whose board Gaia cannot read. Also the steps of an older forge's Update forge.
+ * What a forge in place shows of a fleet document (`docs/design/screens.md` B1): Gaia's bar over the board, with the forge's name, its condition, one
+ * short line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the board of a
+ * Hephaestus that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge whose board Gaia cannot
+ * read. Also the steps of an older forge's Update forge.
  */
 
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
@@ -48,7 +48,7 @@ export interface BarLineSegment {
 
 /**
  * The bar's status: the condition's dot and its word, so the dot is never the only sign; the line it shows, agents and what waits, kept
- * short so the bar stays on one line (D2); and `text`, the whole reading with usage and since, for its tooltip.
+ * short so the bar stays short; and `text`, the whole reading with usage and since, for its tooltip.
  */
 export interface ForgeBarStatus {
   readonly condition: DotCondition;
@@ -84,8 +84,9 @@ export interface BarVersionPair {
 }
 
 /**
- * The running and the newest Hephaestus and Talos, and a clean restart of each: Restart Hephaestus is a Baton pass, Restart Talos its clean
- * quit. `pairs` is empty for a forge not answering, whose versions are not known; the restarts act only while the forge answers.
+ * The running and the newest Hephaestus and Talos, and a clean restart of each: Restart Hephaestus is the checked restart to the code on
+ * disk, Restart Talos its clean quit. `pairs` is empty for a forge not answering, whose versions are not known; the restarts act only
+ * while the forge answers.
  */
 export interface BarVersions {
   readonly pairs:             readonly BarVersionPair[];

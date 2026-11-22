@@ -7,7 +7,7 @@
  * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
  * served refuses it `talos-unavailable`; `cli/hephaestus/StartCommand.integration.spec.ts` holds that a started Hephaestus's Talos serves
  * under a lease it renewed. The start hold logs `start-classified` right after `hephaestus-started`, and a successor's start after a crash is
- * refused by the start gate before it takes a Baton or binds a port, telling the registry the forge crashed.
+ * refused by the start gate before it takes a Hephaestus lock or binds a port, telling the registry the forge crashed.
  */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -23,9 +23,9 @@ import {
 import type { DoneFrame } from '../../src/lib/talos/@types/TalosFrame.ts';
 
 import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
-import { Baton }                                                 from '../../src/services/hephaestus/Baton.ts';
 import { CrashLog }                                              from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                                     from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                        from '../../src/services/hephaestus/HephaestusLock.ts';
 import { startLeaseRenewal }                                     from '../../src/services/hephaestus/LeaseRenewal.ts';
 import { Presence }                                              from '../../src/services/hephaestus/Presence.ts';
 import type { TalosConnection }                                  from '../../src/services/hephaestus/TalosConnection.ts';
@@ -118,7 +118,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
     expect(presence.verdict === 'read' ? presence.record : null).toMatchObject({ startOrigin: 'user', startClassification: { kind: 'first-start' } });
   });
 
-  test('a successor\'s start after a crash of its predecessor is refused forge-off-after-crash and leaves no Baton generation and no port bound', async () => {
+  test('a successor\'s start after a crash of its predecessor is refused forge-off-after-crash and leaves no Hephaestus lock generation and no port bound', async () => {
     const files = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const crashedGeneration = 2;
     Presence.writeStartedPresence(files, {
@@ -141,10 +141,10 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
 
     expect(await runCommandLine(['start', '--successor-of', String(crashedGeneration), '--port', '0'], context), context.errorText()).toBe(1);
 
-    expect(context.errorText()).toContain(`is off after a crash of Baton ${crashedGeneration}`);
-    expect(Baton.batonGenerationsIn(files.hephaestusDirectory)).toEqual([]);
+    expect(context.errorText()).toContain(`is off after a crash of Hephaestus lock ${crashedGeneration}`);
+    expect(HephaestusLock.generationsIn(files.hephaestusDirectory)).toEqual([]);
     const hephaestusLog = readFileSync(files.logFilePath, 'utf8');
-    expect(hephaestusLog).toContain('Staying off after a crash of Baton 2');
+    expect(hephaestusLog).toContain('Staying off after a crash of Hephaestus lock 2');
     expect(hephaestusLog).not.toContain('Hephaestus serving');
     const [entry] = registryEntriesIn(platformPorts.dataFolders.monitorFolderOf(homeDirectory));
     expect(Object.keys(entry ?? {})).not.toContain('hephaestus');

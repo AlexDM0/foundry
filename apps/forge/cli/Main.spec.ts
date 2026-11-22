@@ -202,10 +202,10 @@ describe('a tracker whose installed files are of another install version', () =>
     const context = trackedContext();
     expect(await runCommandLine(['version', '--json'], context), context.errorText()).toBe(0);
     expect(JSON.parse(context.outputText())).toEqual({
-      answerVersion:        2,
+      answerVersion:        3,
       codeVersion:          expect.stringMatching(/^[0-9a-f]{12}$/),
       installVersion:       INSTALL_VERSION,
-      contracts:            { summary: 2, monitor: 5, control: 3 },
+      contracts:            { summary: 3, monitor: 6, control: 3 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.stringMatching(/monitor$/),
     });
@@ -215,7 +215,7 @@ describe('a tracker whose installed files are of another install version', () =>
     const context = trackedContext();
     expect(await runCommandLine(['status', '--json'], context), context.errorText()).toBe(0);
     expect((JSON.parse(context.outputText()) as { hephaestus: unknown }).hephaestus).toMatchObject({
-      state: 'down', paused: true, url: null, baton: null, codeVersionInMemory: null
+      state: 'down', paused: true, url: null, hephaestusLock: null, codeVersionInMemory: null
     });
   });
 

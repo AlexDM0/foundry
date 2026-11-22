@@ -25,7 +25,7 @@ bare \`--\`). An option taking a value, given twice, is refused at exit 1.
 ${ROOT_OVERRIDE_VARIABLE} names the repository to use instead of walking up from the current directory. --json, accepted by every
 command but hook and help, prints one JSON document on standard output
 in place of the human output. The answers of start, stop, init, update, version and
-machine carry \`answerVersion\` 2, and under --json their refusal is the document
+machine carry \`answerVersion\` 3, and under --json their refusal is the document
 {answerVersion, refusal, text} at exit 1: the refusal's code and the sentence printed on
 standard error.
 
@@ -44,13 +44,11 @@ never carries it.
       [--no-hooks] [--json]   the install), \`reference.md\` (the ticket format, the moves and the exit
                               codes) and \`assistant-brief.md\`, the role prompt Hephaestus fills for
                               its Assistant; \`hook session-start\` goes into the agent's
-                              session-start entry, in the settings the agent adapter writes, and three
+                              session-start entry, in the settings the agent adapter writes, and two
                               skills into the folder the agent loads instruction bundles from:
-                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a
-                              ticket loads, ${PRODUCT_NAMES.ORCHESTRATE_SKILL}, for the session
-                              running the board, which loads ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for
-                              intake, and ${PRODUCT_NAMES.PIPELINE_SETUP_SKILL}, which the pipeline agent runs as its first
-                              line. It never writes the agent's instruction file. Refused when an
+                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a ticket loads, and
+                              ${PRODUCT_NAMES.PIPELINE_SETUP_SKILL}, which the pipeline agent runs as its first line. It
+                              never writes the agent's instruction file. Refused when an
                               ancestor already holds a tracker, when a tracker the repository's
                               tracker list names sits above or below the directory, when --root is not
                               an existing directory, and inside a bare repository, which has no
@@ -71,7 +69,7 @@ never carries it.
   update [--no-hooks] [--json]
                               Refresh what the tool wrote into a repository it already tracks: the
                               three files beside the tracker, guidance shipped with the tool rather
-                              than files a project edits, the session-start entry, the three skills and
+                              than files a project edits, the session-start entry, the two skills and
                               the worktrees folder's \`.gitignore\` entry. The tracker itself is left
                               alone: a tracker an earlier ${PRODUCT_NAMES.PROGRAM} wrote in a format this one no
                               longer reads is refused at exit 2 by every command that reads it,
@@ -80,10 +78,11 @@ never carries it.
                               with exit 1 where there is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
                               Each line says whether that file changed, so a session that read the
                               instructions at its start learns that its copy is now stale.
-                              --json prints {answerVersion, outcome, installVersion, batonPass,
-                              batonPassStep}, batonPass \`done\`, \`not-needed\` or \`not-taken\`; a
-                              failed Baton pass is the refusal baton-pass-failed, whose answer
-                              adds batonPass \`failed\` and batonPassStep.
+                              --json prints {answerVersion, outcome, installVersion, restart,
+                              restartStep}, restart \`done\`, \`not-needed\`, or \`failed\` with
+                              restartStep restart-not-taken when the live Hephaestus did not take
+                              the restart; a refused restart is the refusal restart-failed, whose
+                              answer adds restart \`failed\` and its restartStep.
                               Every command but init, update, help, status, version, stop,
                               talos-restart and machine refuses, with exit 1, while the
                               files installed here are of another install version than this
@@ -91,7 +90,7 @@ never carries it.
                               update rewrites them, and it and \`init\` refuse files a newer
                               ${PRODUCT_NAMES.PROGRAM} installed.
 
-  status [--json] [--full]    First Hephaestus: the Baton, the URL, the runtime state, paused or
+  status [--json] [--full]    First Hephaestus: the Hephaestus lock, the URL, the runtime state, paused or
                               not, and the code version on disk against the live Hephaestus's, with
                               presence: down, it says when it stays down after a crash and names
                               the crash log; live, the last start's kind, the heartbeat, the
@@ -405,7 +404,7 @@ never carries it.
                               Record as delivered a ticket finished and landed outside
                               Hephaestus, from any status but draft, in one hold: it merges, lands
                               and spawns nothing, and logs \`ticket-delivered\` with byHand true.
-                              Refused at exit 1 while a Hephaestus's Baton is live
+                              Refused at exit 1 while a Hephaestus's Hephaestus lock is live
                               (hephaestus-owns-the-lifecycle) and while a job of the ticket is live
                               (ticket-has-live-job).
 
@@ -646,8 +645,8 @@ never carries it.
                               nothing. It returns only once Hephaestus's API answers. --json
                               prints {answerVersion, started, url, generation, trackerId,
                               codeVersion, installVersion, contracts}. Hephaestus serves on
-                              127.0.0.1 and logs to \`hephaestus.log\`: it creates the Baton
-                              \`hephaestus/baton-<n>.json\` and writes the API token to the owner-only
+                              127.0.0.1 and logs to \`hephaestus.log\`: it creates the Hephaestus lock
+                              \`hephaestus/lock-<n>.json\` and writes the API token to the owner-only
                               folder under the monitor folder in the user's home. The port derives
                               from the tracker id, moving upward past one in use; --port binds the
                               one given, 0 any free one. --repository starts Hephaestus of that
@@ -659,23 +658,26 @@ never carries it.
                               to standard error too, prints its URL and serves until stopped. A
                               live Hephaestus refuses it (hephaestus-already-running, with its URL)
                               at exit 1, as does a starter that lost the race
-                              (hephaestus-contended); a Hephaestus whose Baton a newer one overtook
-                              stops baton-taken at exit 2.
+                              (hephaestus-contended); a Hephaestus whose Hephaestus lock a newer one
+                              overtook stops hephaestus-lock-taken at exit 2.
   start --successor-of <generation> [--port <n>]
-                              The successor's side of \`restart\`'s Baton pass, which only the
-                              live Hephaestus starts.
+                              The start a restarting Hephaestus makes once it let go of the
+                              board; nobody else runs it.
+  start --preflight           The code on disk proving itself to a Hephaestus about to restart:
+                              it reads what a start reads, prints its report and serves nothing.
 
   stop [--now] [--json]       Stop the live Hephaestus through its API, else end the process its
-                              Baton names, by force where the platform cannot ask, and record the
+                              Hephaestus lock names, by force where the platform cannot ask, and record the
                               stop after a forced end; Talos and its children are never touched.
                               --now also stops line children, through the API only. --json prints
                               {answerVersion, outcome}, with \`ending\` when Hephaestus ended
                               before it finished its stop.
 
-  restart [--now] [--json]    Hand the board to the code on disk: a successor proves it, then takes
-                              over and regroups around Talos; no agent is touched. A failed
-                              Baton pass leaves the old Hephaestus driving with a warning and exits 1
-                              (baton-pass-failed).
+  restart [--now] [--json]    Hand the board to the code on disk: that code proves itself in a
+                              preflight, then the old Hephaestus lets go and its successor starts
+                              and regroups around Talos; no agent is touched. A failed preflight
+                              leaves the old Hephaestus driving with a warning and exits 1
+                              (restart-failed).
 
   talos-restart [--json]      Ask the live Hephaestus to restart Talos cleanly: each agent stops at
                               the end of its turn, the right Talos starts, and the paused agents

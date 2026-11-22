@@ -1,5 +1,5 @@
 /**
- * A lock passes only from a holder whose process is gone, judged by the same identity stage 3 judges a Baton by: a process id is not a
+ * A lock passes only from a holder whose process is gone, judged by the same identity stage 3 judges a Hephaestus lock by: a process id is not a
  * process, so a live id whose start stamp or boot differs from the record's names another process, and the holder is gone. Where the
  * platform cannot tell, from an identity it cannot read or a record that carries none, the holder reads as alive, never as gone.
  */

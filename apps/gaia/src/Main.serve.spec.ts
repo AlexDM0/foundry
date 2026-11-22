@@ -99,7 +99,7 @@ describe('gaia serve', () => {
     const { code } = await codeAnswer.json() as { readonly code: string };
     const session = await answerOf(address, '/api/v1/session', { method: 'POST', body: JSON.stringify({ code }) });
     const cookie = (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    const fleet = await answerOf(address, '/api/v11/fleet', { headers: { cookie } });
+    const fleet = await answerOf(address, '/api/v12/fleet', { headers: { cookie } });
     expect(await fleet.json()).toMatchObject({
       fleetVersion: PAGE_CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       [],

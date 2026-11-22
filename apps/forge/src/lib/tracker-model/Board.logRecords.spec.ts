@@ -143,7 +143,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hephaestus-stopped","fields":{"reason":"stopped"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"flint-brain-ended","fields":{"startedBy":"bridge","startedAt":"2026-09-26T08:13:00.000Z",'
     + '"endedAt":"2026-09-26T08:15:00.000Z","endedReason":"time","tokens":4200,"calls":3}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"baton-pass-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"read-child-records",'
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"restart-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"read-child-records",'
     + '"error":"Example record error"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hatch-applied","jobId":"J1","fields":{"requestId":"request-5","commandKind":"ticket-add","outcome":"done","ticketIds":["001"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"need-declared","ticketId":"002","fields":{"entity":"api","title":"Example cart total endpoint","byJob":"J1"}}',

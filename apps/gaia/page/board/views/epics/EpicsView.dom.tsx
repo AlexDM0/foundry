@@ -65,7 +65,7 @@ afterEach(() => {
 });
 
 describe('the description sandbox', () => {
-  test('the summary is text, and the description becomes the srcdoc of a frame sandboxed exactly as the design says once opened', () => {
+  test('the summary is text, and the description becomes the srcdoc of a frame sandboxed exactly as docs/design/board.md says once opened', () => {
     renderedEpics();
     expect(cardNamed('Example checkout').querySelector('.board-epic-summary')?.textContent).toBe('Example summary');
     expect(document.querySelectorAll('iframe')).toHaveLength(0);

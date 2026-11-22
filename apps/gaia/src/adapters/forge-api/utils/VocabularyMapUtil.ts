@@ -199,7 +199,7 @@ const AGENT_MODEL = {
 const HEPHAESTUS_STATE = {
   'serving':                'serving',
   'held-by-install-change': 'held-by-install-change',
-  'passing-baton':          'passing-baton',
+  'restarting':             'restarting',
   'down':                   'down',
 } as const satisfies Record<HephaestusRuntimeState, Gaia.BoardHephaestusState>;
 

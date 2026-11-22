@@ -1,5 +1,5 @@
 /**
- * What the brand bar says of a fleet document (SCREENS "The shell"): the forges whose Hephaestus runs counted in the pill, and the other
+ * What the brand bar says of a fleet document (`docs/design/screens.md`, the shell): the forges whose Hephaestus runs counted in the pill, and the other
  * conditions counted in the sentence after it, over the forges not hidden. Before the first document the bar says nothing of the fleet.
  */
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';
@@ -10,7 +10,7 @@ import { ForgeTextUtil, type ShownCondition }         from '../shared/utils/Forg
 const SENTENCE_SEPARATOR = ' · ';
 
 /** The conditions under which a forge's Hephaestus runs. */
-const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
+const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'restarting']);
 
 /** A forge at a version Gaia cannot talk to answered its versions, so its Hephaestus runs, whatever Gaia reads of it. */
 function hephaestusRuns(forge: FleetDocument['forges'][number]): boolean {
@@ -40,7 +40,7 @@ function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null 
   const clauses = [
     clauseOf(countOf('paused'), 'paused'),
     clauseOf(countOf('held'), 'holds its launches', 'hold their launches'),
-    clauseOf(countOf('passing-baton'), 'passing the baton'),
+    clauseOf(countOf('restarting'), 'restarting'),
     clauseOf(countOf('starting'), 'starting'),
     clauseOf(countOf('dormant'), 'dormant'),
     clauseOf(countOf('unreachable'), 'unreachable'),

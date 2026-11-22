@@ -55,7 +55,7 @@ const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
   attention:           READINGS.exampleStorefront.attention,
   agents:              READINGS.exampleStorefront.agents,
   notices:             [{ kind: 'new-code', text: 'New code is on disk.' }],
-  warnings:            [{ kind: 'baton-pass-failed', text: 'The Baton pass failed.' }],
+  warnings:            [{ kind: 'restart-failed', text: 'The restart failed.' }],
   today:               { deliveredTickets: 2, tokens: 88_000 },
   usage:               {
     resetsAt:              '2026-11-12T17:00:00.000Z',

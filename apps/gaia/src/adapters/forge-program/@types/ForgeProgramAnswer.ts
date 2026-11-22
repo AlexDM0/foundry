@@ -29,10 +29,10 @@ export interface ForgeInitAnswer {
 }
 
 /**
- * A failed pass names its step: `restart-not-taken` when the live Hephaestus did not take the pass and the old one still drives, at exit 0;
- * a pass that failed after it was taken is the refusal `baton-pass-failed`.
+ * A failed restart names its step: `restart-not-taken` when the live Hephaestus did not take the restart and the old one still drives, at
+ * exit 0; a restart whose preflight failed is the refusal `restart-failed`.
  */
-export type ForgeBatonPass =
+export type ForgeRestart =
   | { readonly outcome: 'done' }
   | { readonly outcome: 'not-needed' }
   | { readonly outcome: 'failed'; readonly failedStep: string };
@@ -40,7 +40,7 @@ export type ForgeBatonPass =
 export interface ForgeUpdateAnswer {
   readonly outcome:        ForgeProgramOutcome;
   readonly installVersion: number;
-  readonly batonPass:      ForgeBatonPass;
+  readonly restart:        ForgeRestart;
 }
 
 /** The installed program's versions: its code, its install version, its contracts and the protocol version of the Talos it starts. */

@@ -34,8 +34,8 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
 const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('hephaestus-fetch-supported-forge');
 
 const CURRENT_CONTRACTS = {
-  summary: 2,
-  monitor: 5,
+  summary: 3,
+  monitor: 6,
   control: 3,
 };
 
@@ -77,7 +77,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
     const ingestion = new IdentityIngestion(STOREFRONT_FACTS);
     expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { ...CURRENT_CONTRACTS, monitor: 2 } }))
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: 2 });
-    expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { summary: 2, control: 1 } }))
+    expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { summary: 3, control: 1 } }))
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: null });
   });
 
@@ -97,7 +97,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
       codeVersion: '9c04e5b',
       processId:   49_012,
       contracts:   {
-        summary: 2,
+        summary: 3,
         monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
         control: ANALYTICS_SANDBOX.contracts.control,
       },

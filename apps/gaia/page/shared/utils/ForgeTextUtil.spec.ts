@@ -1,7 +1,7 @@
 /**
- * How the page words a forge's state. What matters: every condition has its word and a dot, a forge passing the baton drawing the ring of
- * one on its way; a forge older than this Gaia shows `outdated`, apart from a newer one the server reads as unreadable alike; the usage
- * line is worded as the Bridge words it; and the unreachable callout's machine line names only what the document holds, so a value the
+ * How the page words a forge's state. What matters: every condition has its word and a dot, a restarting forge drawing the ring of one on
+ * its way; a forge older than this Gaia shows `outdated`, apart from a newer one the server reads as unreadable alike; the usage line is
+ * worded as the Bridge words it; and the unreachable callout's machine line names only what the document holds, so a value the
  * forge never reported is absent, not blank.
  */
 import { describe, expect, test } from 'bun:test';
@@ -14,7 +14,7 @@ const EVERY_CONDITION: readonly ShownCondition[] = [
   'live',
   'paused',
   'held',
-  'passing-baton',
+  'restarting',
   'starting',
   'dormant',
   'unreachable',
@@ -26,17 +26,17 @@ const EVERY_CONDITION: readonly ShownCondition[] = [
 describe('a forge\'s condition', () => {
   test('has a word for every condition', () => {
     expect(EVERY_CONDITION.map((condition) => ForgeTextUtil.conditionWordOf(condition))).toEqual([
-      'live', 'paused', 'launches held', 'passing the baton', 'starting', 'dormant', 'unreachable', 'not readable', 'repository missing', 'needs update',
+      'live', 'paused', 'launches held', 'restarting', 'starting', 'dormant', 'unreachable', 'not readable', 'repository missing', 'needs update',
     ]);
   });
 
   test('leads a line or heads a cell in sentence case', () => {
     expect(EVERY_CONDITION.map((condition) => ForgeTextUtil.conditionWordInSentenceCaseOf(condition))).toEqual([
-      'Live', 'Paused', 'Launches held', 'Passing the baton', 'Starting', 'Dormant', 'Unreachable', 'Not readable', 'Repository missing', 'Needs update',
+      'Live', 'Paused', 'Launches held', 'Restarting', 'Starting', 'Dormant', 'Unreachable', 'Not readable', 'Repository missing', 'Needs update',
     ]);
   });
 
-  test('draws the dot of its own condition, and passing the baton draws the starting ring', () => {
+  test('draws the dot of its own condition, and restarting draws the starting ring', () => {
     expect(EVERY_CONDITION.map((condition) => ForgeTextUtil.dotConditionOf(condition))).toEqual([
       'live', 'paused', 'held', 'starting', 'starting', 'dormant', 'unreachable', 'unreadable', 'missing', 'outdated',
     ]);

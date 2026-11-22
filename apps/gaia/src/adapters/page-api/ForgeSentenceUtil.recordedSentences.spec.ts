@@ -134,7 +134,7 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
       codeVersion:    'example-code',
       installVersion: 27,
       processId:      48_107,
-      contracts:      { summary: 2, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, },
+      contracts:      { summary: 3, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, },
     },
   };
 }

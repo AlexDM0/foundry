@@ -31,7 +31,7 @@ The promise, in three lines:
   lives under the board's detached [Talos](docs/glossary.md#talos), not under Hephaestus.
   [Two lifetimes](docs/concepts/overview.md#two-lifetimes) shows it over time.
 
-![One Hephaestus drives the board. User reaches it through a client of its API, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. Hephaestus reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive Hephaestus.](docs/images/architecture.png)
+![One Hephaestus drives the board. User reaches it through a client of its API, and terminal verbs, typed by User or run by a session, record a fact in the data folder. Hephaestus reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive Hephaestus.](docs/images/architecture.png)
 
 *Notice that nothing inside the dashed box is a child of Hephaestus, and that agents touch neither the board nor
 main.*
@@ -60,7 +60,7 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 | The [tracker](docs/glossary.md#tracker): state, log, tickets and installed guidance, shared by every worktree | `.forge/` | ignored |
 | Ignore entries for the folders in this table | `.gitignore` | commit it |
 | A `SessionStart` hook that tells each session how the board works | `.claude/settings.local.json` | untracked: do not commit |
-| The three skills, for this repository only | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/`, `.claude/skills/forge-pipeline/` | ignored |
+| The two skills, for this repository only | `.claude/skills/forge-po/`, `.claude/skills/forge-pipeline/` | ignored |
 | One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.forge-worktrees/` | ignored |
 
 > **As built.** A landed ticket's worktree stays in that folder. See

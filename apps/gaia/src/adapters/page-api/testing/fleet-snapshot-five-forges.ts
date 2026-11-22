@@ -16,8 +16,8 @@ export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
 const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 
 const EVERY_CURRENT_CONTRACT = {
-  summary: 2,
-  monitor: 5,
+  summary: 3,
+  monitor: 6,
   control: 3,
 };
 
@@ -876,8 +876,8 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     forgeProgramInUse: '/Users/alexexample/.bun/bin/forge',
     settingsFile:      'read',
     knownContracts:    {
-      summary: 2,
-      monitor: 5,
+      summary: 3,
+      monitor: 6,
       control: 3,
     },
     versions: {

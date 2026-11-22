@@ -298,7 +298,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
       startedBy: 'bridge', startedAt: '2026-09-26T08:13:00.000Z', endedAt: '2026-09-26T08:15:00.000Z', endedReason: 'time', tokens: 4_200, calls: 3
     },
   });
-  board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'read-child-records', error: 'Example record error' }, at);
+  board.recordRestartFailed({ successorCodeVersion: 'd4e5f6a', step: 'read-child-records', error: 'Example record error' }, at);
   board.recordHatchApplied('J1', {
     requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done', ticketIds: ['001']
   }, at);

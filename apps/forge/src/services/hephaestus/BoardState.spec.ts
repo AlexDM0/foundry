@@ -1,6 +1,6 @@
 /**
- * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 2` in exactly the shape
- * `testing/fixtures/summary-v2.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
+ * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 3` in exactly the shape
+ * `testing/fixtures/summary-v3.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
  * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
  * forecasting and `null` without one; the launch slots, as many as the concurrency counts; each job's newest launch stamp, `null`
  * when the log lost it; and the picture limits, `null` when the agent takes no pictures. It carries the pipeline facts beside them, and a
@@ -43,7 +43,7 @@ const recordedGit = useRecordedGit();
 /** The assembly spreads the status document untouched, and no case here reads a field of it. */
 const UNREAD_STATUS_DOCUMENT = {} as FullStatusDocument;
 
-const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v2.json');
+const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v3.json');
 
 const EXAMPLE_STATE = {
   ticketCountByStatus: { committed: 1, 'in-progress': 1 },
@@ -56,7 +56,7 @@ const EXAMPLE_STATE = {
   notices:    [{ kind: 'new-code' }],
   mergeQueue: { queuedTicketIds: [], slots: [] },
   hephaestus: {
-    state: 'serving', paused: false, url: 'http://127.0.0.1:4100/', generation: 2, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
+    state: 'serving', paused: false, url: 'http://127.0.0.1:4100/', generation: 2, codeVersion: 'code-example', installVersion: 17, restartWarning: null
   },
   usage: { resetsAt: null, window: null, windows: [] },
 } as unknown as BoardState;
@@ -161,7 +161,7 @@ describe('BoardStateAssembly.endedJobsOf', () => {
 });
 
 describe('BoardStateAssembly.summaryOf', () => {
-  test('answers summaryVersion 2 exactly as the fixture holds it', () => {
+  test('answers summaryVersion 3 exactly as the fixture holds it', () => {
     const fixture: unknown = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8'));
     expect(BoardStateAssembly.summaryOf(EXAMPLE_STATE, 'Example Agency', ['002'])).toEqual(fixture as ReturnType<typeof BoardStateAssembly.summaryOf>);
   });

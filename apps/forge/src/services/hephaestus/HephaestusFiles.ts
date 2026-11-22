@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { privateFolderOf } from '../../lib/talos/TalosFiles.ts';
 
 export interface HephaestusFiles {
-  /** `<data>/hephaestus/`: it holds the Batons, and no secret. */
+  /** `<data>/hephaestus/`: it holds the Hephaestus locks, and no secret. */
   hephaestusDirectory: string;
   /** `<data>/hephaestus.log`, appended in place. */
   logFilePath:         string;
@@ -31,7 +31,7 @@ export function jobFolderIn(trackerDirectory: string, jobId: string): string {
   return join(trackerDirectory, 'jobs', jobId);
 }
 
-/** The API token, in the board's owner-only folder; every reader takes the path from the Baton's `tokenFile`. */
+/** The API token, in the board's owner-only folder; every reader takes the path from the Hephaestus lock's `tokenFile`. */
 export function hephaestusTokenPathOf(monitorFolder: string, trackerId: string): string {
   return join(privateFolderOf(monitorFolder, trackerId), 'token');
 }

@@ -192,7 +192,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
     if (streamOpenedAt === '') streamOpenedAt = new Date().toISOString();
     log(`SSE client connected to ${url}api/events`);
     void (async () => {
-      const tokenFile = newestBaton()?.tokenFile;
+      const tokenFile = newestLock()?.tokenFile;
       const authorization = `Bearer ${tokenFile === undefined ? '' : readFileSync(tokenFile, 'utf8').trim()}`;
       const response = await fetch(new URL('api/events', url), { headers: { authorization }, signal: controller.signal });
       const reader = response.body?.getReader();
@@ -221,11 +221,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
   const storedLogRecords = (): SmokeLogRecord[] => readFileSync(join(trackerDirectory, 'log.jsonl'), 'utf8').split('\n')
     .filter((line) => line.trim() !== '').map((line) => JSON.parse(line) as SmokeLogRecord);
 
-  const newestBaton = (): { processId: number; tokenFile: string } | null => {
+  const newestLock = (): { processId: number; tokenFile: string } | null => {
     const hephaestusFolder = join(trackerDirectory, 'hephaestus');
-    const batonFiles = readdirSync(hephaestusFolder).filter((fileName) => /^baton-\d+\.json$/.test(fileName))
+    const hephaestusLockFiles = readdirSync(hephaestusFolder).filter((fileName) => /^lock-\d+\.json$/.test(fileName))
       .sort((a, b) => Number(/\d+/.exec(a)?.[0]) - Number(/\d+/.exec(b)?.[0]));
-    const newest = batonFiles.at(-1);
+    const newest = hephaestusLockFiles.at(-1);
     return newest === undefined ? null : JSON.parse(readFileSync(join(hephaestusFolder, newest), 'utf8')) as { processId: number; tokenFile: string };
   };
 
@@ -302,12 +302,12 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
         childProcessId = childProcessIdOf(job.id, job.childInstance);
       }
       const buildLaunchesBefore = buildLaunchesOf(ticketId);
-      const baton = newestBaton();
-      if (baton === null || childProcessId === null) throw new Error('no Baton or child record to regroup around');
-      log(`kill -9 of Hephaestus (process ${baton.processId}) while job ${job.id} (#${ticketId}) runs on child instance ${job.childInstance}, process ${childProcessId}`);
+      const hephaestusLock = newestLock();
+      if (hephaestusLock === null || childProcessId === null) throw new Error('no Hephaestus lock or child record to regroup around');
+      log(`kill -9 of Hephaestus (process ${hephaestusLock.processId}) while job ${job.id} (#${ticketId}) runs on child instance ${job.childInstance}, process ${childProcessId}`);
       const killedAt = new Date().toISOString();
-      process.kill(baton.processId, 'SIGKILL');
-      while (processIsAlive(baton.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);
+      process.kill(hephaestusLock.processId, 'SIGKILL');
+      while (processIsAlive(hephaestusLock.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);
       const regrouped = await programJson<{ url: string }>(['start', '--port', '0']);
       openStream(regrouped.url);
       streamGaps.push({ from: killedAt, to: new Date().toISOString() });

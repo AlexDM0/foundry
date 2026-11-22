@@ -8,21 +8,21 @@
  * boot, and a Hephaestus restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned agent group is
  * killed before the resume, a clean restart of Talos pauses an agent that resumes by itself, never counted, only the crash causes count
  * toward the bound, a reboot and a spent bound wait for User's resume, which gives the bound back, a resume is by id in the same folder,
- * and a finished session never continues, save a closed product owner User messages, which resumes by id. A Baton pass row hands a running
+ * and a finished session never continues, save a closed product owner User messages, which resumes by id. A restart row hands a running
  * session's board to a successor and holds that Talos is sent nothing. The Assistant rows hold that it continues across a Hephaestus
  * restart, is replaced and never resumed when down, and boots past two failed boots only on a sweep while every incident defaults. A child
  * lost while the forge stays up keeps its crash cause and resumes by itself; one found gone at a crash start waits, as a reboot does, and
  * an answer to its question is its instruction.
  *
- * The start rows start the forge as its foreground entry does, in its order: the start gate over the real ports, then the Baton, the presence
+ * The start rows start the forge as its foreground entry does, in its order: the start gate over the real ports, then the Hephaestus lock, the presence
  * record and a drive pass reconciling by the gate's verdict; a kill writes nothing, a stop writes its ending, and the crash path is
  * `CrashPath`'s. What matters there: a crash keeps a successor's start off with one crash log under a number of its own, which a user start
  * keeps; a stop, a handover and a reboot with a fresh heartbeat serve, a stale one stays off as a suspected crash; and work a start finds
  * interrupted, or that Talos's lease ended, waits for `resume`. The foreground's own share (the registry write and the refusal of a start
- * that stays off, its exit code) is held by `cli/hephaestus/StartCommand.spec.ts` and `cli/hephaestus/HephaestusForeground.spec.ts`. The rows
- * "the old Hephaestus dies during a baton-pass" and "a Baton pass's successor fails" are held by `src/services/hephaestus/BatonPass.spec.ts`. The
- * usage-limit row is held by `src/services/hephaestus/UsageLimits.spec.ts` and `cli/hephaestus/HephaestusDrivePass.spec.ts`, the body-edit row by V6
- * in `src/services/lifecycle/Customs.spec.ts`, and the kill of a silent successor by `src/services/hephaestus/BatonPass.integration.spec.ts`.
+ * that stays off, its exit code) is held by `cli/hephaestus/StartCommand.spec.ts` and `cli/hephaestus/HephaestusForeground.spec.ts`. A
+ * restart whose preflight fails is held by `src/services/hephaestus/Restart.spec.ts`. The usage-limit row is held by
+ * `src/services/hephaestus/UsageLimits.spec.ts` and `cli/hephaestus/HephaestusDrivePass.spec.ts`, and the body-edit row by V6 in
+ * `src/services/lifecycle/Customs.spec.ts`.
  */
 import {
   existsSync,
@@ -97,8 +97,6 @@ import { workspacePathsFor, type Workspace }                        from '../tra
 import { MONITOR_REGISTRY_FILES }                                   from '../tracker/constants/MonitorRegistryFiles.ts';
 import type { CrashedComponent, CrashLogError }                     from './@types/CrashLogRecord.ts';
 import type { StartGateVerdict }                                    from './@types/StartClassification.ts';
-import { Baton }                                                    from './Baton.ts';
-import { BatonPass }                                                from './BatonPass.ts';
 import type { BoardChildren }                                       from './BoardChildren.ts';
 import { CrashLog }                                                 from './CrashLog.ts';
 import { CrashPath, type CrashPathContext }                         from './CrashPath.ts';
@@ -106,6 +104,7 @@ import { type DrivePass, type JobLaunchFacts }                      from './Driv
 import { HatchInbox }                                               from './HatchInbox.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                  from './HephaestusFiles.ts';
 import { jobFolderIn }                                              from './HephaestusFiles.ts';
+import { HephaestusLock }                                           from './HephaestusLock.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }      from './InstructionFiles.ts';
 import { type LeaseRenewal, startLeaseRenewal }                     from './LeaseRenewal.ts';
 import { Presence }                                                 from './Presence.ts';
@@ -146,7 +145,6 @@ const ASSISTANT_CHAT_PREFIX  = 'Example chat';
 const EARLIER_SESSION_NOTE   = 'Example earlier-session note.';
 const ANSWER_MESSAGE_PREFIX  = 'Example answers';
 const FOREIGN_BOOT           = 'example-foreign-boot';
-const BATON_PASS_SCHEDULE    = { readyTries: 300, releaseTries: 300, intervalMilliseconds: 50 };
 
 const STARTED: FakeAgentStep = { kind: 'print', line: fakeStartedLine('fake-session') };
 const WAITING_STEPS: readonly FakeAgentStep[] = [STARTED, { kind: 'await-line' }];
@@ -231,12 +229,12 @@ function withoutLiveAnswers(adapter: AgentAdapter): AgentAdapter {
   return { ...adapter, capabilities: { ...adapter.capabilities, takesLiveAnswers: false } };
 }
 
-/** A Hephaestus start: a newer Baton generation and a fresh DrivePass, which the spec regroups. */
+/** A Hephaestus start: a newer Hephaestus lock generation and a fresh DrivePass, which the spec regroups. */
 async function startedHephaestus(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
   onUsageMarkerRead?: () => void,
-  startFields: Pick<ScratchDrivePassRequest, 'startClassification' | 'onPassCrashed' | 'batonStartStamp'> = {},
+  startFields: Pick<ScratchDrivePassRequest, 'startClassification' | 'onPassCrashed' | 'hephaestusLockStartStamp'> = {},
 ): Promise<DrivePass> {
   // A Hephaestus's start ensures its Talos, so a Talos lost while it was down is followed by the next before the regroup.
   const talos = await boardTalosOfTheCase();
@@ -445,7 +443,7 @@ interface ForgeServing {
 
 interface ForgeStart {
   readonly verdict: StartGateVerdict;
-  /** `null` when the start stays off: it took no Baton and wrote no presence. */
+  /** `null` when the start stays off: it took no Hephaestus lock and wrote no presence. */
   readonly serving: ForgeServing | null;
 }
 
@@ -527,7 +525,7 @@ function sessionBoardReads(): StoreReadFace {
 }
 
 /**
- * A start in the foreground entry's order: the start gate before any Baton, then the Baton, the presence record of the new generation and a
+ * A start in the foreground entry's order: the start gate before any Hephaestus lock, then the lock, the presence record of the new generation and a
  * drive pass reconciling by the gate's classification. A start that stays off takes nothing; its registry write and its refusal are the
  * foreground's (`cli/hephaestus/StartCommand.spec.ts`, `cli/hephaestus/HephaestusForeground.spec.ts`).
  */
@@ -545,9 +543,9 @@ async function forgeStart(origin: StartOriginReading, adapter: AgentAdapter, opt
   const holder: ProcessIdentity = { processId: process.pid, startStamp: String(forgeStartsSoFar), bootIdentity: identityOf(process.pid)?.bootIdentity ?? 'example-boot' };
   let crashableServing: ForgeServing | null = null;
   const drivePass = await startedHephaestus(adapter, options.afterHoldPhase, undefined, {
-    startClassification: verdict.classification,
-    batonStartStamp:     holder.startStamp,
-    onPassCrashed:       async (thrown) => {
+    startClassification:      verdict.classification,
+    hephaestusLockStartStamp: holder.startStamp,
+    onPassCrashed:            async (thrown) => {
       // The drive pass itself runs no pass after this hook; a stop here would wait on the pass that runs it.
       if (crashableServing !== null) await recordTheCrash(crashableServing, 'hephaestus', CrashLog.errorOf('pass', thrown));
     },
@@ -579,16 +577,16 @@ async function stopTheForge(serving: ForgeServing): Promise<void> {
   await serving.drivePass.stop();
   serving.renewal?.stop();
   Presence.writeEnding(forgeFiles(), serving.generation, { kind: 'stopped' }, SESSION_STAMP);
-  Baton.release(forgeFiles().hephaestusDirectory, serving.generation);
+  HephaestusLock.release(forgeFiles().hephaestusDirectory, serving.generation);
 }
 
-/** A kill from outside: no pass and no renewal after it, and nothing written, so the Baton and the presence record stay as they were. */
+/** A kill from outside: no pass and no renewal after it, and nothing written, so the Hephaestus lock and the presence record stay as they were. */
 async function killTheForge(serving: ForgeServing): Promise<void> {
   serving.renewal?.stop();
   await serving.drivePass.stop();
 }
 
-/** The machine going down under a serving forge: what `reboot` leaves, with the presence record and the Baton also of the boot that went. */
+/** The machine going down under a serving forge: what `reboot` leaves, with the presence record and the Hephaestus lock also of the boot that went. */
 async function rebootTheForge(serving: ForgeServing, job: Readonly<Job>, lastBeatBeforeBootMilliseconds: number): Promise<void> {
   const bootStartedAtEpochSeconds = ports.processSupervision.bootStartedAtEpochSeconds();
   if (bootStartedAtEpochSeconds === null) throw new Error('this machine names no boot start time');
@@ -597,8 +595,8 @@ async function rebootTheForge(serving: ForgeServing, job: Readonly<Job>, lastBea
   const files = forgeFiles();
   const presence = JSON.parse(readFileSync(files.presenceFilePath, 'utf8')) as { process: ProcessIdentity };
   writeFileSync(files.presenceFilePath, JSON.stringify({ ...presence, process: { ...presence.process, bootIdentity: FOREIGN_BOOT } }));
-  const batonPath = Baton.batonFilePathFor(files.hephaestusDirectory, serving.generation);
-  writeFileSync(batonPath, JSON.stringify({ ...JSON.parse(readFileSync(batonPath, 'utf8')) as object, bootIdentity: FOREIGN_BOOT }));
+  const hephaestusLockPath = HephaestusLock.filePathFor(files.hephaestusDirectory, serving.generation);
+  writeFileSync(hephaestusLockPath, JSON.stringify({ ...JSON.parse(readFileSync(hephaestusLockPath, 'utf8')) as object, bootIdentity: FOREIGN_BOOT }));
   const lastBeatAt = new Date(bootStartedAtEpochSeconds * MILLISECONDS_PER_SECOND - lastBeatBeforeBootMilliseconds);
   Presence.writeHeartbeat(files, serving.generation, LocalTimeUtil.formatLocalIso(lastBeatAt));
 }
@@ -1345,42 +1343,18 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     expect(decisions.map((decision) => basename(decision.context))).toEqual(['ticket-999']);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('run restart mid-session or mid-gate: the Baton pass sends Talos nothing, and the successor reads the session on from the stored cursor', async () => {
+  test('a restart mid-session or mid-gate sends Talos nothing, and the successor reads the session on from the stored cursor', async () => {
     const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const oldHephaestus = await startedHephaestus(adapter);
     const job       = await runningBuildSession(oldHephaestus);
     const child     = requireRecord(job.id, 1).childProcess;
-    const { hephaestusDirectory } = hephaestusFilesIn(sessionWorkspace.trackerDirectory);
-    const batonPassFilePath = BatonPass.batonPassFilePathOf(hephaestusDirectory, oldHephaestus.state().generation);
-    BatonPass.writeBatonPass(batonPassFilePath, { state: 'requested' });
-    const self = identityOf(process.pid);
-    const successorReports: Awaited<ReturnType<DrivePass['regroup']>>[] = [];
 
-    const [outcome] = await Promise.all([
-      BatonPass.handOver({
-        ports,
-        batonPassFilePath,
-        successor:            self,
-        successorCodeVersion: 'code-example',
-        release:              () => oldHephaestus.stop(),
-        recordFailure:        () => Promise.resolve(),
-        schedule:             BATON_PASS_SCHEDULE,
-      }),
-      (async () => {
-        const request  = {
-          batonPassFilePath, codeVersion: 'code-example', predecessorIsLive: () => true, schedule: BATON_PASS_SCHEDULE
-        };
-        const readChildRecords = { step: 'read-child-records' as const, run: () => { if (childRecordOf(job.id, 1) === null) throw new Error('no child record'); } };
-        expect(await BatonPass.prepareAndAwaitRelease(request, [readChildRecords])).toBe('released');
-        const successor = await startedHephaestus(adapter);
-        successorReports.push(await successor.regroup());
-        BatonPass.reportServing(request, successor.state().generation, 'http://127.0.0.1:1/');
-      })(),
-    ]);
+    await oldHephaestus.stop();
+    const successor = await startedHephaestus(adapter);
+    const successorReport = await successor.regroup();
 
-    expect(outcome.verdict).toBe('baton-passed');
     expect(processIsAlive(child)).toBe(true);
-    expect(successorReports[0]?.lost).toEqual([]);
+    expect(successorReport.lost).toEqual([]);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
     expect(launches.filter((launch) => launch.jobId === job.id)).toHaveLength(1);
@@ -1425,12 +1399,12 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(launches.map((launch) => [launch.jobId, launch.resume])).toEqual([[job.id, false], [job.id, true]]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('Hephaestus killed, then a successor\'s start: it stays off, writes one crash log, takes no Baton, and Talos\'s lease stops the agents, '
+    test('Hephaestus killed, then a successor\'s start: it stays off, writes one crash log, takes no Hephaestus lock, and Talos\'s lease stops the agents, '
       + 'which then read lease-ended', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const { first, job } = await killedForgeWithItsAgentStoppedByTheLease(adapter);
       const { hephaestusDirectory } = forgeFiles();
-      const batonsBefore = Baton.batonGenerationsIn(hephaestusDirectory);
+      const hephaestusLocksBefore = HephaestusLock.generationsIn(hephaestusDirectory);
 
       const successorStart = await forgeStart(successorStartAfter(first.generation), adapter);
 
@@ -1453,7 +1427,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
           crashedProcess:    first.holder,
         },
       });
-      expect(Baton.batonGenerationsIn(hephaestusDirectory)).toEqual(batonsBefore);
+      expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual(hephaestusLocksBefore);
       expect(Presence.readPresence(forgeFiles())).toMatchObject({ verdict: 'read', record: { generation: first.generation, ending: null } });
       expect(childEndReasonOf(job.id, 1)).toBe('lease-ended');
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -1482,8 +1456,8 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'lease-ended', instructed: true }]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a crash of Baton 1, a user start and a stop, then a start that takes Baton 1 again and is killed: the next successor\'s start writes a crash log '
-      + 'under the next number, keeps the older log of Baton 1 as it was, and its verdict, which the registry and the refusal take, names the new log', async () => {
+    test('a crash of Hephaestus lock 1, a user start and a stop, then a start that takes Hephaestus lock 1 again and is killed: the next successor\'s start writes a crash log '
+      + 'under the next number, keeps the older log of Hephaestus lock 1 as it was, and its verdict, which the registry and the refusal take, names the new log', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const crashedFirst = requireServing(await forgeStart(USER_START, adapter));
       expect(crashedFirst.generation).toBe(1);
@@ -1493,9 +1467,9 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
 
       const servedAfterTheCrash = requireServing(await forgeStart(USER_START, adapter));
       await stopTheForge(servedAfterTheCrash);
-      const takesBatonOneAgain = await forgeStart(USER_START, adapter);
-      const crashedAgain = requireServing(takesBatonOneAgain);
-      expect(takesBatonOneAgain.verdict.classification.kind).toBe('stopped-on-purpose');
+      const takesHephaestusLockOneAgain = await forgeStart(USER_START, adapter);
+      const crashedAgain = requireServing(takesHephaestusLockOneAgain);
+      expect(takesHephaestusLockOneAgain.verdict.classification.kind).toBe('stopped-on-purpose');
       expect(crashedAgain.generation).toBe(1);
       await killTheForge(crashedAgain);
 
@@ -1588,50 +1562,25 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(Presence.readPresence(forgeFiles())).toMatchObject({ verdict: 'read', record: { ending: { kind: 'crashed', crashLogNumber: 1 } } });
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a Baton pass leaves a completed handover on record, and the successor\'s start interrupts nothing', async () => {
+    test('a restart leaves a completed handover on record, and the successor\'s start interrupts nothing', async () => {
       const adapter     = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const predecessor = requireServing(await forgeStart(USER_START, adapter));
       const job         = await runningBuildSession(predecessor.drivePass);
       const child       = requireRecord(job.id, 1).childProcess;
       const { hephaestusDirectory } = forgeFiles();
-      const batonPassFilePath = BatonPass.batonPassFilePathOf(hephaestusDirectory, predecessor.generation);
-      BatonPass.writeBatonPass(batonPassFilePath, { state: 'requested' });
-      const successorStarts: ForgeStart[] = [];
-      const successorReports: Awaited<ReturnType<DrivePass['regroup']>>[] = [];
 
-      const [outcome] = await Promise.all([
-        BatonPass.handOver({
-          ports,
-          batonPassFilePath,
-          successor:            identityOf(process.pid),
-          successorCodeVersion: 'code-example',
-          release:              async () => {
-            await predecessor.drivePass.stop();
-            Presence.writeEnding(forgeFiles(), predecessor.generation, { kind: 'handed-over' }, SESSION_STAMP);
-            Baton.release(hephaestusDirectory, predecessor.generation);
-          },
-          recordFailure: () => Promise.resolve(),
-          schedule:      BATON_PASS_SCHEDULE,
-        }),
-        (async () => {
-          const request = {
-            batonPassFilePath, codeVersion: 'code-example', predecessorIsLive: () => true, schedule: BATON_PASS_SCHEDULE
-          };
-          expect(await BatonPass.prepareAndAwaitRelease(request, [])).toBe('released');
-          const successorStart = await forgeStart({ startOrigin: 'successor', predecessorGeneration: predecessor.generation }, adapter);
-          successorStarts.push(successorStart);
-          const successor = requireServing(successorStart);
-          successorReports.push(await successor.drivePass.regroup());
-          await passOnce(successor.drivePass);
-          BatonPass.reportServing(request, successor.generation, 'http://127.0.0.1:1/');
-        })(),
-      ]);
+      await predecessor.drivePass.stop();
+      Presence.writeEnding(forgeFiles(), predecessor.generation, { kind: 'handed-over' }, SESSION_STAMP);
+      HephaestusLock.release(hephaestusDirectory, predecessor.generation);
+      const successorStart = await forgeStart({ startOrigin: 'successor', predecessorGeneration: predecessor.generation }, adapter);
+      const successor = requireServing(successorStart);
+      const successorReport = await successor.drivePass.regroup();
+      await passOnce(successor.drivePass);
 
-      expect(outcome.verdict).toBe('baton-passed');
       const handover = { kind: 'handover', previousGeneration: predecessor.generation };
-      expect(successorStarts[0]?.verdict).toMatchObject({ verdict: 'serve', classification: handover, crashLogNumber: null });
+      expect(successorStart.verdict).toMatchObject({ verdict: 'serve', classification: handover, crashLogNumber: null });
       expect(processIsAlive(child)).toBe(true);
-      expect(successorReports[0]?.lost).toEqual([]);
+      expect(successorReport.lost).toEqual([]);
       expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
       expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
       expect(CrashLog.list(forgeFiles())).toEqual([]);
