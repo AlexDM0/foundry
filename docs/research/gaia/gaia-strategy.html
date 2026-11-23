@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaia Concept</title>
+<style>
+/* Layout: a reading column for the argument, full-width "windows" for the mockups, drawn in the forge Bridge's own tokens. */
+:root {
+  --bg: oklch(0.9875 0.002 265); --lane: oklch(0.975 0.004 265); --surface: oklch(1 0 0); --surface-2: oklch(0.955 0.01 240);
+  --ink: oklch(0.24 0.02 265); --muted: oklch(0.52 0.02 265); --line: oklch(0.90 0.012 240); --line-strong: oklch(0.81 0.018 240);
+  --link: oklch(0.48 0.13 255); --link-tint: oklch(0.48 0.13 255 / 0.10); --selected: oklch(0.93 0.008 262);
+  --live: oklch(0.62 0.17 150); --now: oklch(0.54 0.19 25);
+  --warn-tint: oklch(0.955 0.035 15); --warn-edge: oklch(0.78 0.11 15); --warn-ink: oklch(0.47 0.15 15);
+  --shadow: oklch(0 0 0 / 0.10);
+  --amber-fill: oklch(0.77 0.15 69); --amber-tint: oklch(0.9625 0.0465 73.5); --amber-ink: oklch(0.46 0.1125 62.5); --amber-edge: oklch(0.83 0.105 70);
+  --cyan-fill: oklch(0.72 0.135 210); --cyan-tint: oklch(0.958 0.035 210); --cyan-ink: oklch(0.44 0.105 210); --cyan-edge: oklch(0.81 0.085 210);
+  --blue-fill: oklch(0.66 0.145 255); --blue-tint: oklch(0.957 0.028 255); --blue-ink: oklch(0.44 0.135 255); --blue-edge: oklch(0.80 0.085 255);
+  --green-fill: oklch(0.7225 0.1545 151); --green-tint: oklch(0.96 0.04 151); --green-ink: oklch(0.448 0.1175 151); --green-edge: oklch(0.8125 0.097 151);
+  --purple-fill: oklch(0.65 0.145 300); --purple-tint: oklch(0.957 0.030 300); --purple-ink: oklch(0.44 0.125 300); --purple-edge: oklch(0.80 0.075 300);
+  --rose-fill: oklch(0.70 0.10 15); --rose-tint: oklch(0.96 0.02 15); --rose-ink: oklch(0.47 0.11 15); --rose-edge: oklch(0.78 0.08 15);
+  --grey-fill: oklch(0.7225 0.0095 265); --grey-tint: oklch(0.965 0.005 265); --grey-ink: oklch(0.47 0.015 265); --grey-edge: oklch(0.885 0.008 265);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-micro: 11px; --fs-small: 12px; --fs-body: 13px; --fs-title: 15px; --fs-page: 20px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
+  --bg: oklch(0.185 0.012 265); --lane: oklch(0.205 0.012 265); --surface: oklch(0.232 0.014 265); --surface-2: oklch(0.275 0.014 265);
+  --ink: oklch(0.94 0.008 265); --muted: oklch(0.70 0.015 265); --line: oklch(0.33 0.014 265); --line-strong: oklch(0.42 0.016 265);
+  --link: oklch(0.78 0.10 255); --link-tint: oklch(0.78 0.10 255 / 0.14); --selected: oklch(0.27 0.022 262);
+  --live: oklch(0.76 0.18 150); --now: oklch(0.70 0.17 25);
+  --warn-tint: oklch(0.31 0.055 80); --warn-edge: oklch(0.50 0.09 80); --warn-ink: oklch(0.92 0.06 85);
+  --shadow: oklch(0 0 0 / 0.4);
+  --amber-fill: oklch(0.76 0.145 80); --amber-tint: oklch(0.33 0.065 80); --amber-ink: oklch(0.91 0.075 85); --amber-edge: oklch(0.52 0.10 80);
+  --cyan-fill: oklch(0.72 0.115 205); --cyan-tint: oklch(0.32 0.050 205); --cyan-ink: oklch(0.89 0.055 205); --cyan-edge: oklch(0.50 0.075 205);
+  --blue-fill: oklch(0.66 0.150 255); --blue-tint: oklch(0.32 0.060 255); --blue-ink: oklch(0.88 0.065 255); --blue-edge: oklch(0.50 0.10 255);
+  --green-fill: oklch(0.72 0.135 155); --green-tint: oklch(0.32 0.055 155); --green-ink: oklch(0.89 0.060 155); --green-edge: oklch(0.50 0.080 155);
+  --purple-fill: oklch(0.68 0.145 300); --purple-tint: oklch(0.32 0.060 300); --purple-ink: oklch(0.89 0.060 300); --purple-edge: oklch(0.51 0.095 300);
+  --rose-fill: oklch(0.70 0.10 15); --rose-tint: oklch(0.31 0.04 15); --rose-ink: oklch(0.88 0.06 15); --rose-edge: oklch(0.55 0.08 15);
+  --grey-fill: oklch(0.80 0.012 265); --grey-tint: oklch(0.29 0.010 265); --grey-ink: oklch(0.80 0.012 265); --grey-edge: oklch(0.40 0.012 265); } }
+:root[data-theme="dark"] { color-scheme: dark;
+  --bg: oklch(0.185 0.012 265); --lane: oklch(0.205 0.012 265); --surface: oklch(0.232 0.014 265); --surface-2: oklch(0.275 0.014 265);
+  --ink: oklch(0.94 0.008 265); --muted: oklch(0.70 0.015 265); --line: oklch(0.33 0.014 265); --line-strong: oklch(0.42 0.016 265);
+  --link: oklch(0.78 0.10 255); --link-tint: oklch(0.78 0.10 255 / 0.14); --selected: oklch(0.27 0.022 262);
+  --live: oklch(0.76 0.18 150); --now: oklch(0.70 0.17 25);
+  --warn-tint: oklch(0.31 0.055 80); --warn-edge: oklch(0.50 0.09 80); --warn-ink: oklch(0.92 0.06 85);
+  --shadow: oklch(0 0 0 / 0.4);
+  --amber-fill: oklch(0.76 0.145 80); --amber-tint: oklch(0.33 0.065 80); --amber-ink: oklch(0.91 0.075 85); --amber-edge: oklch(0.52 0.10 80);
+  --cyan-fill: oklch(0.72 0.115 205); --cyan-tint: oklch(0.32 0.050 205); --cyan-ink: oklch(0.89 0.055 205); --cyan-edge: oklch(0.50 0.075 205);
+  --blue-fill: oklch(0.66 0.150 255); --blue-tint: oklch(0.32 0.060 255); --blue-ink: oklch(0.88 0.065 255); --blue-edge: oklch(0.50 0.10 255);
+  --green-fill: oklch(0.72 0.135 155); --green-tint: oklch(0.32 0.055 155); --green-ink: oklch(0.89 0.060 155); --green-edge: oklch(0.50 0.080 155);
+  --purple-fill: oklch(0.68 0.145 300); --purple-tint: oklch(0.32 0.060 300); --purple-ink: oklch(0.89 0.060 300); --purple-edge: oklch(0.51 0.095 300);
+  --rose-fill: oklch(0.70 0.10 15); --rose-tint: oklch(0.31 0.04 15); --rose-ink: oklch(0.88 0.06 15); --rose-edge: oklch(0.55 0.08 15);
+  --grey-fill: oklch(0.80 0.012 265); --grey-tint: oklch(0.29 0.010 265); --grey-ink: oklch(0.80 0.012 265); --grey-edge: oklch(0.40 0.012 265); }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 40px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 64px; }
+section { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.prose { max-width: 70ch; display: flex; flex-direction: column; gap: 12px; }
+h1 { font-size: 44px; line-height: 1.05; letter-spacing: -0.02em; margin: 0; text-wrap: balance; font-weight: 700; }
+h2 { font-size: 24px; line-height: 1.2; letter-spacing: -0.01em; margin: 0; text-wrap: balance; font-weight: 650; }
+h3 { font-size: 16px; margin: 0; font-weight: 650; }
+p { margin: 0; }
+a { color: var(--link); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.9em; }
+code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.caps { font-family: var(--font-mono); font-size: var(--fs-micro); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { font-size: 19px; line-height: 1.5; color: var(--ink); max-width: 62ch; }
+.muted { color: var(--muted); }
+.statusline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--live); display: inline-block; flex: none; }
+.dot.off { background: var(--grey-fill); } .dot.warn { background: var(--rose-fill); } .dot.amber { background: var(--amber-fill); }
+.live-word { letter-spacing: 0.14em; font-weight: 700; color: var(--ink); }
+
+.contents { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; padding: 12px 0; border-block: 1px solid var(--line); }
+
+.claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; border-top: 1px solid var(--line-strong); }
+.claim { padding: 16px 20px 18px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.claim b { font-size: 16px; }
+.claim span { color: var(--muted); font-size: 14px; }
+
+.twocol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@media (max-width: 760px) { .twocol { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+
+/* state families: every pill, chip and bar reads --s-* as in the Bridge */
+.s-amber { --s-fill: var(--amber-fill); --s-tint: var(--amber-tint); --s-ink: var(--amber-ink); --s-edge: var(--amber-edge); }
+.s-cyan { --s-fill: var(--cyan-fill); --s-tint: var(--cyan-tint); --s-ink: var(--cyan-ink); --s-edge: var(--cyan-edge); }
+.s-blue { --s-fill: var(--blue-fill); --s-tint: var(--blue-tint); --s-ink: var(--blue-ink); --s-edge: var(--blue-edge); }
+.s-green { --s-fill: var(--green-fill); --s-tint: var(--green-tint); --s-ink: var(--green-ink); --s-edge: var(--green-edge); }
+.s-purple { --s-fill: var(--purple-fill); --s-tint: var(--purple-tint); --s-ink: var(--purple-ink); --s-edge: var(--purple-edge); }
+.s-rose { --s-fill: var(--rose-fill); --s-tint: var(--rose-tint); --s-ink: var(--rose-ink); --s-edge: var(--rose-edge); }
+.s-grey { --s-fill: var(--grey-fill); --s-tint: var(--grey-tint); --s-ink: var(--grey-ink); --s-edge: var(--grey-edge); }
+.pill { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--s-edge); background: var(--s-tint); color: var(--s-ink); border-radius: 999px; padding: 0 8px; font-size: var(--fs-small); line-height: 19px; white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--s-edge); background: var(--s-tint); color: var(--s-ink); border-radius: 4px; padding: 0 7px; font-size: var(--fs-small); line-height: 20px; white-space: nowrap; font-family: var(--font-mono); }
+.tag { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 7px; font-size: var(--fs-small); line-height: 20px; white-space: nowrap; }
+.sq { width: 8px; height: 8px; border-radius: 2px; background: var(--s-fill); display: inline-block; flex: none; }
+.btn { font: inherit; font-size: var(--fs-small); line-height: 22px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); white-space: nowrap; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* mock windows */
+.mock-scroll { overflow-x: auto; padding: 4px 2px 14px; }
+.mock { min-width: 1100px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg); box-shadow: 0 12px 32px var(--shadow); overflow: hidden; font-size: var(--fs-body); line-height: 1.4; }
+.mock.narrow { min-width: 0; max-width: 420px; }
+.mock-bar { height: 34px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 7px; padding: 0 12px; }
+.mock-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line-strong); display: block; }
+.mock-bar span { margin: 0 auto; font-size: var(--fs-small); color: var(--muted); padding-right: 47px; }
+.mock-body { display: grid; grid-template-columns: 212px minmax(0, 1fr); min-height: 520px; }
+.rail { border-right: 1px solid var(--line); background: var(--lane); padding: 14px 10px; display: flex; flex-direction: column; gap: 16px; }
+.rail-brand { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-weight: 700; font-size: var(--fs-title); }
+.rail-group { display: flex; flex-direction: column; gap: 2px; }
+.rail-group > .caps { padding: 0 8px 4px; }
+.rail-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; font-size: var(--fs-body); }
+.rail-item.on { background: var(--selected); font-weight: 600; }
+.rail-item .count { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--muted); }
+.rail-item .count.hot { color: var(--warn-ink); background: var(--warn-tint); border: 1px solid var(--warn-edge); border-radius: 999px; padding: 0 6px; }
+.rail-item.dim { color: var(--muted); }
+.rail-foot { margin-top: auto; padding: 8px; font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--muted); border-top: 1px solid var(--line); }
+.main { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.head { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
+.head-title { display: flex; flex-direction: column; gap: 2px; }
+.head-title strong { font-size: var(--fs-page); letter-spacing: -0.01em; }
+.figs { display: flex; gap: 6px 16px; flex-wrap: wrap; color: var(--muted); font-size: var(--fs-small); padding-bottom: 3px; border-left: 1px solid var(--line-strong); padding-left: 18px; }
+.figs b { font-family: var(--font-mono); font-size: var(--fs-title); color: var(--ink); font-weight: 500; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.waiting { margin-left: auto; border: 1px solid var(--warn-edge); background: var(--warn-tint); color: var(--warn-ink); border-radius: 999px; padding: 3px 12px; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; }
+.listhead { display: flex; align-items: center; gap: 10px; }
+.listhead::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.rows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.row { display: grid; grid-template-columns: 150px 118px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row.escalated { box-shadow: inset 3px 0 0 var(--now); }
+.row .subject { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .subject .mono { color: var(--link); margin-right: 6px; }
+.row .meta { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--muted); white-space: nowrap; }
+.forge-name { display: flex; align-items: center; gap: 7px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.card-top { display: flex; align-items: center; gap: 8px; }
+.card-top .mono { margin-left: auto; font-size: var(--fs-micro); color: var(--muted); }
+.meter { display: flex; gap: 3px; align-items: center; }
+.meter i { width: 16px; height: 8px; border-radius: 2px; background: var(--amber-fill); display: block; }
+.meter i.free { background: transparent; border: 1px solid var(--line-strong); }
+.meter span { font-family: var(--font-mono); font-size: var(--fs-small); margin-left: 6px; color: var(--muted); }
+.bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; gap: 2px; }
+.bar i { display: block; background: var(--s-fill); border-radius: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+table.agents { width: 100%; border-collapse: collapse; background: var(--surface); font-size: var(--fs-small); }
+.tablebox { border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+table.agents th { text-align: left; font-family: var(--font-mono); font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 9px; border-bottom: 1px solid var(--line); }
+table.agents td { padding: 7px 9px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+table.agents tr.group td { background: var(--surface-2); font-weight: 600; }
+table.agents tr.group td span.rest { font-weight: 400; color: var(--muted); margin-left: 10px; }
+table.agents tr.asking td { background: var(--link-tint); }
+table.agents td.num { font-family: var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.role { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--s-edge); background: var(--s-tint); color: var(--s-ink); font-family: var(--font-mono); font-size: var(--fs-micro); font-weight: 700; margin-right: 8px; }
+.jobid { font-family: var(--font-mono); color: var(--link); font-weight: 600; margin-right: 6px; }
+.budget { display: inline-block; width: 48px; height: 4px; border-radius: 2px; background: var(--surface-2); vertical-align: middle; margin-right: 10px; position: relative; overflow: hidden; }
+.budget i { position: absolute; inset: 0 auto 0 0; background: var(--amber-fill); border-radius: 2px; }
+.ask { display: flex; align-items: center; gap: 10px; border: 1px solid var(--blue-edge); background: var(--surface); border-radius: 8px; padding: 6px 10px; }
+.ask .caps { color: var(--blue-ink); }
+.ask .meta { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--muted); }
+
+.tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--line); font-size: var(--fs-title); color: var(--muted); }
+.tabs span { padding: 6px 0 8px; }
+.tabs span.on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--ink); }
+.seam { border: 1.5px dashed var(--blue-edge); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.seam-label { position: absolute; top: -10px; left: 14px; background: var(--bg); padding: 0 8px; font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--blue-ink); }
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.lane { background: var(--lane); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.lane-head { font-family: var(--font-mono); font-size: var(--fs-micro); letter-spacing: 0.12em; font-weight: 700; color: var(--s-ink); box-shadow: inset 3px 0 0 var(--s-fill); padding-left: 8px; }
+.ticket { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; box-shadow: inset 3px 0 0 var(--s-fill); }
+.ticket .mono { color: var(--muted); font-size: var(--fs-micro); }
+
+.menubar { background: var(--surface-2); border-bottom: 1px solid var(--line); height: 26px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 12px; font-size: var(--fs-small); color: var(--muted); }
+.menubar .gaia-item { color: var(--ink); font-weight: 700; display: inline-flex; align-items: center; gap: 5px; background: var(--selected); border-radius: 4px; padding: 0 7px; line-height: 20px; }
+.popover { margin: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px var(--shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.pop-row { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-top: 1px solid var(--line); }
+.pop-row:first-of-type { border-top: 0; }
+.pop-row small { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--muted); }
+.toast { margin: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px var(--shadow); padding: 10px 12px; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.toast .icon { width: 30px; height: 30px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 800; }
+.smallmocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+figcaption { font-size: 14px; color: var(--muted); max-width: 80ch; }
+figcaption b { color: var(--ink); }
+
+.diagram-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.diagram-scroll svg { display: block; min-width: 980px; width: 100%; height: auto; font-family: var(--font-ui); }
+svg .box { fill: var(--lane); stroke: var(--line-strong); }
+svg .inner { fill: var(--surface); stroke: var(--line); }
+svg .t { fill: var(--ink); font-size: 13px; }
+svg .tb { fill: var(--ink); font-size: 14px; font-weight: 650; }
+svg .tm { fill: var(--muted); font-size: 11.5px; }
+svg .tl { fill: var(--muted); font-size: 11.5px; font-family: var(--font-mono); }
+svg .tn { fill: var(--blue-ink); font-size: 11.5px; font-family: var(--font-mono); font-weight: 700; }
+svg .has { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+svg .needs { stroke: var(--blue-fill); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+svg .head-has { fill: var(--ink); } svg .head-needs { fill: var(--blue-fill); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { display: inline-block; width: 30px; height: 0; border-top: 1.6px solid var(--ink); }
+.legend i.n { border-top: 1.8px dashed var(--blue-fill); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table.doc { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+table.doc th { text-align: left; font-family: var(--font-mono); font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+table.doc td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+table.doc tr.pick td { background: var(--link-tint); }
+table.doc td.id { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; counter-reset: step -1; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; counter-increment: step; }
+.step::before { content: "STEP " counter(step); font-family: var(--font-mono); font-size: var(--fs-micro); letter-spacing: 0.12em; color: var(--muted); font-weight: 600; }
+.qlist { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; max-width: 78ch; }
+.qlist li b { display: block; }
+.note { border-left: 3px solid var(--line-strong); padding: 2px 0 2px 14px; color: var(--muted); font-size: 14px; max-width: 78ch; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 560px) { h1 { font-size: 34px; } .lede { font-size: 17px; } .wrap { gap: 48px; } }
+</style>
+</head>
+<body style="margin:0">
+
+<div class="wrap">
+
+<section id="top">
+  <div class="statusline"><span class="dot amber"></span><span class="live-word">CONCEPT</span><span>phase 1 of 3 · for review · 2026-11-12</span></div>
+  <h1>Gaia: one window over every forge on this machine</h1>
+  <p class="lede">Each forge already runs itself: one Overseer per board, its own Bridge, its own agents. Gaia sits on top of the forges that happen to be running and answers the one thing none of them can: across all of them, where am I needed right now?</p>
+  <nav class="contents" aria-label="Contents">
+    <a href="#pitch">Pitch</a><a href="#mockups">Mockups</a><a href="#how">How it works</a><a href="#usecases">Use cases</a><a href="#options">Options weighed</a><a href="#requirements">Forge requirements</a><a href="#steps">Build order</a><a href="#questions">Open questions</a>
+  </nav>
+</section>
+
+<section id="pitch">
+  <span class="caps">The pitch</span>
+  <h2>What Gaia does</h2>
+  <div class="claims">
+    <div class="claim"><b>Tells you where you are needed</b><span>Every question, review, merge accept and draft that waits on you, from every forge, in one list. Oldest first, escalations on top. It also flags a forge that needs a look: an Overseer that stopped with work ready, held launches, a usage limit.</span></div>
+    <div class="claim"><b>Shows every agent on the machine</b><span>One table of all builders, reviewers, intakes and Assistants, grouped by forge, with state, calls against budget, last tool and tokens. The same facts the Bridge's Agents view shows, for all forges at once.</span></div>
+    <div class="claim"><b>Is one window, not a frame around others</b><span>Pick a forge in the rail and its Kanban, Questions or Intake open in the same window, in the same design language, with no second header and no second tab bar.</span></div>
+    <div class="claim"><b>Lives in the Dock and the menu bar</b><span>A macOS app with a badge that counts what waits on you, and a notification when a forge asks. You stop checking tabs.</span></div>
+    <div class="claim"><b>Adds nothing to trust</b><span>Gaia runs no agents and writes no tracker file. It reads what forges publish and sends your clicks to the forge that owns them. Quit Gaia and every forge keeps working.</span></div>
+  </div>
+
+  <div class="twocol">
+    <div class="panel">
+      <span class="caps">Today, with four forges</span>
+      <ul>
+        <li>Four browser tabs, one <code>forge open</code> per repository to get each.</li>
+        <li>Each Bridge has its own <b>Waiting on User</b> pill. You learn that a forge needs you by visiting it.</li>
+        <li>An Overseer restart drops the Bridge's session, so the tab reads nothing until you run <code>forge open</code> again.</li>
+        <li>A stopped Overseer is silent. Ready tickets wait and nothing says so.</li>
+        <li>No view answers "how many agents are running on this machine and what are they costing me today".</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="caps">With Gaia</span>
+      <ul>
+        <li>One window. Forges are found on their own, running or not.</li>
+        <li>One attention list across forges, mirrored in the Dock badge, the menu bar and notifications.</li>
+        <li>Gaia holds each forge's access itself, so a restarted Overseer reconnects without a terminal.</li>
+        <li>A stopped forge with ready work shows up as something to act on, with a Start button.</li>
+        <li>Machine totals: agents working, done today, tokens today, queue, the shared usage limit.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="mockups">
+  <span class="caps">Mockups</span>
+  <h2>What it looks like</h2>
+  <div class="prose muted"><p>These are concept sketches, drawn with the Bridge's tokens from <code>bridge/styles/tokens.css</code> so the family resemblance is real. All data is synthetic. Artboards come in the design phase.</p></div>
+
+  <figure>
+    <div class="mock-scroll"><div class="mock" role="img" aria-label="Mockup of the Gaia Attention view: a rail of forges on the left, machine totals in the header, a list of five items waiting on the user across three forges, two forges that need a look, and a card per running forge.">
+      <div class="mock-bar"><i></i><i></i><i></i><span>Gaia</span></div>
+      <div class="mock-body">
+        <div class="rail">
+          <div class="rail-brand">Gaia</div>
+          <div class="rail-group">
+            <div class="rail-item on">Attention <span class="count hot">5</span></div>
+            <div class="rail-item">Agents <span class="count">10</span></div>
+            <div class="rail-item">Activity</div>
+          </div>
+          <div class="rail-group">
+            <span class="caps">Forges</span>
+            <div class="rail-item"><span class="dot"></span>Example Storefront <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Invoice Service <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Research Wiki <span class="count hot">1</span></div>
+            <div class="rail-item"><span class="dot warn"></span>Example Mobile App</div>
+            <div class="rail-item dim"><span class="dot off"></span>Design System</div>
+          </div>
+          <div class="rail-foot">usage under its limit<br>4 of 5 forges running</div>
+        </div>
+        <div class="main">
+          <div class="head">
+            <div class="head-title">
+              <div class="statusline"><span class="dot"></span><span class="live-word">LIVE</span><span>4 forges running, 1 holds its launches · 1 stopped</span></div>
+              <strong>This machine</strong>
+            </div>
+            <div class="figs"><span><b>10 / 16</b>agents working</span><span><b>6</b>done today</span><span><b>1.24M</b>tokens today</span><span><b>11</b>waiting in queue</span><span><b>0</b>open incidents</span></div>
+            <span class="waiting">Waiting on User · 5</span>
+          </div>
+
+          <div class="listhead"><span class="caps">Waiting on you · 5</span></div>
+          <div class="rows">
+            <div class="row escalated"><span class="forge-name"><span class="dot"></span>Invoice Service</span><span><span class="pill s-rose">escalated</span></span><span class="subject"><span class="mono">E4</span>The VAT gate cannot run in the sandbox. Allow network for it?</span><span class="meta">from incident I2 · 21m</span><button class="btn primary" type="button">Answer</button></div>
+            <div class="row"><span class="forge-name"><span class="dot"></span>Example Storefront</span><span><span class="pill s-blue">question</span></span><span class="subject"><span class="mono">E2</span>How long should a password reset link stay valid?</span><span class="meta">blocks J3 · 4m</span><button class="btn primary" type="button">Answer</button></div>
+            <div class="row"><span class="forge-name"><span class="dot"></span>Research Wiki</span><span><span class="pill s-blue">question</span></span><span class="subject"><span class="mono">E1</span>The onboarder proposes two gates for this repository</span><span class="meta">pipeline-proposal · 26m</span><button class="btn primary" type="button">Answer</button></div>
+            <div class="row"><span class="forge-name"><span class="dot"></span>Invoice Service</span><span><span class="pill s-green">merge accept</span></span><span class="subject"><span class="mono">#031</span>Round VAT per line, not per invoice</span><span class="meta">reviewed 12m</span><button class="btn" type="button">Accept</button></div>
+            <div class="row"><span class="forge-name"><span class="dot"></span>Example Storefront</span><span><span class="pill s-rose">draft ticket</span></span><span class="subject"><span class="mono">#015</span>Search suggestions</span><span class="meta">filed 2h</span><button class="btn" type="button">Ready</button></div>
+          </div>
+
+          <div class="listhead"><span class="caps">Forges that need a look · 2</span></div>
+          <div class="rows">
+            <div class="row"><span class="forge-name"><span class="dot warn"></span>Example Mobile App</span><span><span class="pill s-amber">launches held</span></span><span class="subject">The install version changed. Nothing launches until this forge is updated.</span><span class="meta">2 agents still running</span><button class="btn" type="button">Update</button></div>
+            <div class="row"><span class="forge-name"><span class="dot off"></span>Design System</span><span><span class="pill s-grey">stopped</span></span><span class="subject">No Overseer is running. 3 tickets are ready and nothing drives them.</span><span class="meta">last command: ticket ready</span><button class="btn" type="button">Start Overseer</button></div>
+          </div>
+
+          <div class="listhead"><span class="caps">Running</span></div>
+          <div class="cards">
+            <div class="card">
+              <div class="card-top"><span class="dot"></span><b>Example Storefront</b><span class="mono">2 wait on you</span></div>
+              <div class="meter"><i></i><i></i><i></i><i></i><i class="free"></i><span>4 / 5</span></div>
+              <div class="bar"><i class="s-grey" style="flex:7"></i><i class="s-amber" style="flex:3"></i><i class="s-cyan" style="flex:3"></i><i class="s-green" style="flex:1"></i><i class="s-purple" style="flex:1"></i></div>
+              <div class="chips"><span class="chip s-amber">J2 builder</span><span class="chip s-blue">J3 builder</span><span class="chip s-amber">J4 builder</span><span class="chip s-cyan">J6 reviewer</span></div>
+            </div>
+            <div class="card">
+              <div class="card-top"><span class="dot"></span><b>Invoice Service</b><span class="mono">2 wait on you</span></div>
+              <div class="meter"><i></i><i></i><i></i><i class="free"></i><i class="free"></i><span>3 / 5</span></div>
+              <div class="bar"><i class="s-grey" style="flex:3"></i><i class="s-amber" style="flex:2"></i><i class="s-cyan" style="flex:1"></i><i class="s-green" style="flex:2"></i><i class="s-purple" style="flex:4"></i></div>
+              <div class="chips"><span class="chip s-amber">J11 builder</span><span class="chip s-amber">J12 builder</span><span class="chip s-cyan">J14 reviewer</span></div>
+            </div>
+            <div class="card">
+              <div class="card-top"><span class="dot"></span><b>Research Wiki</b><span class="mono">1 waits on you</span></div>
+              <div class="meter"><i></i><i class="free"></i><i class="free"></i><span>1 / 3</span></div>
+              <div class="bar"><i class="s-grey" style="flex:2"></i><i class="s-amber" style="flex:1"></i><i class="s-purple" style="flex:1"></i></div>
+              <div class="chips"><span class="chip s-amber">J2 builder</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>Attention, the home view.</b> The list is the union of what each Bridge already calls Waiting on User, plus forge-level conditions no single Bridge can raise about itself. Each row names its forge, so one click lands on the right question in the right forge.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="mock-scroll"><div class="mock" role="img" aria-label="Mockup of the Gaia Agents view: one table of ten jobs grouped under four forges, with state, calls against budget, last tool and tokens. One builder asks the user a question inline.">
+      <div class="mock-bar"><i></i><i></i><i></i><span>Gaia</span></div>
+      <div class="mock-body" style="min-height:0">
+        <div class="rail">
+          <div class="rail-brand">Gaia</div>
+          <div class="rail-group">
+            <div class="rail-item">Attention <span class="count hot">5</span></div>
+            <div class="rail-item on">Agents <span class="count">10</span></div>
+            <div class="rail-item">Activity</div>
+          </div>
+          <div class="rail-group">
+            <span class="caps">Forges</span>
+            <div class="rail-item"><span class="dot"></span>Example Storefront <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Invoice Service <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Research Wiki <span class="count hot">1</span></div>
+            <div class="rail-item"><span class="dot warn"></span>Example Mobile App</div>
+            <div class="rail-item dim"><span class="dot off"></span>Design System</div>
+          </div>
+        </div>
+        <div class="main">
+          <div class="head">
+            <div class="head-title"><span class="caps">Agents</span><strong>10 working across 4 forges</strong></div>
+            <div class="figs"><span><b>1</b>asks you</span><span><b>2</b>quiet</span><span><b>821,300</b>tokens in flight</span></div>
+          </div>
+          <div class="tablebox">
+          <table class="agents">
+            <thead><tr><th>Job</th><th>Ticket</th><th>State</th><th>Calls / budget</th><th>Last tool</th><th style="text-align:right">Tokens</th></tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="6">Example Storefront <span class="rest">4 / 5 workers</span></td></tr>
+              <tr class="asking"><td><span class="role s-amber">B</span><span class="jobid">J3</span>builder</td><td><span class="tag">#008 Rate-limit resets</span></td><td><span class="pill s-grey">waiting-for-answer</span></td><td><span class="budget"><i style="width:3%"></i></span><span class="mono">4 / 150</span></td><td>Agent <span class="muted mono">1m 20s</span></td><td class="num">139,320</td></tr>
+              <tr class="asking"><td colspan="6"><div class="ask"><span class="caps">Asks User</span><span class="mono muted">E2</span><span>How long should a password reset link stay valid?</span><span class="meta">blocks J3 · 4m</span><button class="btn primary" type="button">Answer</button></div></td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J2</span>builder</td><td><span class="tag">#001 Gift card ignored</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:21%"></i></span><span class="mono">31 / 150</span></td><td>Bash <span class="muted mono">running 12s</span></td><td class="num">185,760</td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J4</span>builder</td><td><span class="tag">#004 Account dark mode</span></td><td><span class="pill s-amber">running</span> <span class="pill s-rose">quiet 2 sweeps</span></td><td><span class="budget"><i style="width:45%"></i></span><span class="mono">67 / 150</span></td><td>Agent <span class="muted mono">running 6m</span></td><td class="num">162,540</td></tr>
+              <tr><td><span class="role s-cyan">R</span><span class="jobid">J6</span>reviewer</td><td><span class="tag">#007 Gift-card field</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:28%"></i></span><span class="mono">21 / 75</span></td><td>Read <span class="muted mono">running 2s</span></td><td class="num">46,440</td></tr>
+              <tr class="group"><td colspan="6">Invoice Service <span class="rest">3 / 5 workers</span></td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J11</span>builder</td><td><span class="tag">#033 Credit notes</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:60%"></i></span><span class="mono">90 / 150</span></td><td>Edit <span class="muted mono">running 1s</span></td><td class="num">98,210</td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J12</span>builder</td><td><span class="tag">#034 PDF footer</span></td><td><span class="pill s-cyan">gating</span></td><td><span class="budget"><i style="width:74%"></i></span><span class="mono">111 / 150</span></td><td>gate: verify <span class="muted mono">running 48s</span></td><td class="num">71,030</td></tr>
+              <tr><td><span class="role s-cyan">R</span><span class="jobid">J14</span>reviewer</td><td><span class="tag">#029 Late-fee rounding</span></td><td><span class="pill s-amber">running</span> <span class="pill s-rose">quiet 3 sweeps</span></td><td><span class="budget"><i style="width:12%"></i></span><span class="mono">9 / 75</span></td><td>Bash <span class="muted mono">running 9m</span></td><td class="num">22,400</td></tr>
+              <tr class="group"><td colspan="6">Research Wiki <span class="rest">1 / 3 workers</span></td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J2</span>builder</td><td><span class="tag">#003 Citation footnotes</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:9%"></i></span><span class="mono">14 / 150</span></td><td>Grep <span class="muted mono">running 3s</span></td><td class="num">9,700</td></tr>
+              <tr class="group"><td colspan="6">Example Mobile App <span class="rest">2 / 3 workers · launches held</span></td></tr>
+              <tr><td><span class="role s-amber">B</span><span class="jobid">J7</span>builder</td><td><span class="tag">#019 Offline basket</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:36%"></i></span><span class="mono">54 / 150</span></td><td>Edit <span class="muted mono">running 4s</span></td><td class="num">54,100</td></tr>
+              <tr><td><span class="role s-cyan">R</span><span class="jobid">J8</span>reviewer</td><td><span class="tag">#017 Push opt-in copy</span></td><td><span class="pill s-amber">running</span></td><td><span class="budget"><i style="width:40%"></i></span><span class="mono">30 / 75</span></td><td>Bash <span class="muted mono">running 20s</span></td><td class="num">31,800</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>Agents, every job on the machine.</b> Same columns as the Bridge's Agents view, grouped by forge. A quiet job or a job that asks you stands out without opening its forge.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="mock-scroll"><div class="mock" role="img" aria-label="Mockup of a forge opened inside Gaia: the Gaia rail stays, and the content area holds the Example Storefront board with its header, tabs and Kanban lanes. A dashed outline marks the part that is the forge's own Bridge.">
+      <div class="mock-bar"><i></i><i></i><i></i><span>Gaia · Example Storefront</span></div>
+      <div class="mock-body" style="min-height:0">
+        <div class="rail">
+          <div class="rail-brand">Gaia</div>
+          <div class="rail-group">
+            <div class="rail-item">Attention <span class="count hot">5</span></div>
+            <div class="rail-item">Agents <span class="count">10</span></div>
+            <div class="rail-item">Activity</div>
+          </div>
+          <div class="rail-group">
+            <span class="caps">Forges</span>
+            <div class="rail-item on"><span class="dot"></span>Example Storefront <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Invoice Service <span class="count hot">2</span></div>
+            <div class="rail-item"><span class="dot"></span>Research Wiki <span class="count hot">1</span></div>
+            <div class="rail-item"><span class="dot warn"></span>Example Mobile App</div>
+            <div class="rail-item dim"><span class="dot off"></span>Design System</div>
+          </div>
+        </div>
+        <div class="main">
+          <div class="head">
+            <div class="head-title">
+              <div class="statusline"><span class="dot"></span><span class="live-word">LIVE</span><span>usage under its limit · confinement confined</span></div>
+              <strong>Example Storefront</strong>
+            </div>
+            <div class="figs"><span><b>4 / 5</b>agents working</span><span><b>0</b>done today</span><span><b>348.3k</b>tokens today</span><span><b>5</b>waiting in queue</span></div>
+            <span style="margin-left:auto;display:flex;gap:6px"><button class="btn" type="button">Pause</button><button class="btn" type="button">Stop Overseer</button></span>
+          </div>
+          <div class="tabs"><span class="on">Kanban</span><span>Waves</span><span>Progress</span><span>Epics</span><span>Tickets</span><span>Agents</span><span>Questions</span><span>Assistant</span><span>Intake</span></div>
+          <div class="seam">
+            <span class="seam-label">Example Storefront's own Bridge, served by its Overseer, shown without its header</span>
+            <div class="lanes">
+              <div class="lane s-grey"><span class="lane-head">READY 7</span>
+                <div class="ticket s-rose"><span class="mono">#015 draft</span>Search suggestions</div>
+                <div class="ticket s-grey"><span class="mono">#005</span>Delivery ETA</div>
+                <div class="ticket s-grey"><span class="mono">#011</span>Saved payment methods</div>
+              </div>
+              <div class="lane s-amber"><span class="lane-head">BUILDING 3</span>
+                <div class="ticket s-amber"><span class="mono">#001 BUG · J2</span>Gift card ignored</div>
+                <div class="ticket s-amber"><span class="mono">#008 · J3</span>Rate-limit resets <span><span class="pill s-rose">asks E2</span></span></div>
+                <div class="ticket s-amber"><span class="mono">#004 · J4</span>Account pages dark mode</div>
+              </div>
+              <div class="lane s-cyan"><span class="lane-head">IN REVIEW 3</span>
+                <div class="ticket s-cyan"><span class="mono">#007 BUG · J6</span>Gift-card field accepts spaces</div>
+                <div class="ticket s-cyan"><span class="mono">#010 BUG</span>Stale basket badge</div>
+              </div>
+              <div class="lane s-green"><span class="lane-head">MERGE QUEUE 1</span>
+                <div class="ticket s-green"><span class="mono">#002</span>Orders CSV export</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>A forge, opened in place.</b> Gaia draws the rail, the header and the tabs. The dashed area is that forge's own Bridge, loaded from its Overseer at whatever code version it runs, so its views can never disagree with its rules. The dashed line is here to show the seam. In the app you would not see one.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="smallmocks">
+      <div class="mock narrow" role="img" aria-label="Mockup of the Gaia menu bar item showing the count five, with a popover listing the three oldest items that wait on the user.">
+        <div class="menubar"><span>Wi-Fi</span><span class="gaia-item">G <span style="color:var(--warn-ink)">5</span></span><span>Thu 20:07</span></div>
+        <div class="popover">
+          <span class="caps">Waiting on you · 5</span>
+          <div class="pop-row"><span>The VAT gate cannot run in the sandbox. Allow network for it?</span><small>Invoice Service · escalated · 21m</small></div>
+          <div class="pop-row"><span>How long should a password reset link stay valid?</span><small>Example Storefront · J3 builder · 4m</small></div>
+          <div class="pop-row"><span>The onboarder proposes two gates for this repository</span><small>Research Wiki · 26m</small></div>
+          <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:8px"><small class="mono muted">10 agents · 4 forges</small><button class="btn" type="button">Open Gaia</button></div>
+        </div>
+      </div>
+      <div class="mock narrow" role="img" aria-label="Mockup of a macOS notification from Gaia: Example Storefront asks how long a password reset link should stay valid.">
+        <div class="toast"><span class="icon">G</span><div><b>Example Storefront asks</b><br>How long should a password reset link stay valid?<br><small class="mono muted">blocks J3 builder · #008 Rate-limit resets</small></div></div>
+        <div class="toast"><span class="icon">G</span><div><b>Design System has stopped</b><br>3 tickets are ready and no Overseer is running.</div></div>
+      </div>
+    </div>
+    <figcaption><b>Outside the window.</b> A menu bar item and notifications carry the same list. A notification fires once per new item, keyed on the item's id, never on a timer.</figcaption>
+  </figure>
+</section>
+
+<section id="how">
+  <span class="caps">How it works</span>
+  <h2>A reader and a relay, with no state of its own</h2>
+  <div class="prose">
+    <p>Gaia is one Bun server on <code>127.0.0.1</code> and one React page. The server finds the forges, reads each one, folds them into one model of the machine and streams that to the page. Your clicks go back the same way: the page tells the Gaia server, and the server sends the command to the forge that owns it. A macOS shell puts the page in a window.</p>
+    <p>The page never talks to a forge's API itself. It cannot: every Overseer refuses requests from another origin and answers no CORS preflight. That guard is the reason Gaia has a server at all, and it is a good reason, so the design keeps it.</p>
+  </div>
+
+  <figure>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1080 600" role="img" aria-label="Architecture diagram. The macOS app holds a window, a menu bar item and notifications. The window loads the Gaia page from the Gaia server over local HTTP. The Gaia server holds the page and its event stream, a fleet model, a forge finder, forge readers and a command relay. The finder watches the registry file in the shared monitor folder, where each Overseer registers its URL. The readers read each running Overseer's API and the relay posts commands to it with that forge's token, read from the monitor folder. For a forge with no Overseer, Gaia runs the forge command line. The window frames a running forge's own Bridge directly from its Overseer.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="head-has"></path></marker>
+          <marker id="an" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="head-needs"></path></marker>
+        </defs>
+
+        <!-- macOS app -->
+        <rect class="box" x="20" y="70" width="210" height="230" rx="10"></rect>
+        <text class="tb" x="36" y="96">macOS app</text>
+        <text class="tm" x="36" y="113">a thin shell, replaceable</text>
+        <rect class="inner" x="36" y="128" width="178" height="44" rx="6"></rect><text class="t" x="50" y="155">Window</text>
+        <rect class="inner" x="36" y="182" width="178" height="44" rx="6"></rect><text class="t" x="50" y="209">Menu bar item</text>
+        <rect class="inner" x="36" y="236" width="178" height="44" rx="6"></rect><text class="t" x="50" y="263">Notifications, Dock badge</text>
+
+        <!-- Gaia server -->
+        <rect class="box" x="320" y="70" width="290" height="330" rx="10"></rect>
+        <text class="tb" x="336" y="96">Gaia server</text>
+        <text class="tm" x="336" y="113">Bun, 127.0.0.1, one per machine</text>
+        <rect class="inner" x="336" y="128" width="258" height="40" rx="6"></rect><text class="t" x="350" y="153">Page and one event stream</text>
+        <rect class="inner" x="336" y="178" width="258" height="40" rx="6"></rect><text class="t" x="350" y="203">Fleet model, the one internal model</text>
+        <rect class="inner" x="336" y="228" width="258" height="40" rx="6"></rect><text class="t" x="350" y="253">Forge readers</text>
+        <rect class="inner" x="336" y="278" width="258" height="40" rx="6"></rect><text class="t" x="350" y="303">Command relay</text>
+        <rect class="inner" x="336" y="328" width="258" height="40" rx="6"></rect><text class="t" x="350" y="353">Forge finder</text>
+
+        <!-- Forges -->
+        <rect class="box" x="720" y="70" width="340" height="150" rx="10"></rect>
+        <text class="tb" x="736" y="96">Example Storefront</text>
+        <text class="tm" x="736" y="113">Overseer on port 4987</text>
+        <rect class="inner" x="736" y="128" width="96" height="40" rx="6"></rect><text class="t" x="750" y="153">API</text>
+        <rect class="inner" x="842" y="128" width="96" height="40" rx="6"></rect><text class="t" x="856" y="153">Bridge</text>
+        <rect class="inner" x="948" y="128" width="96" height="40" rx="6"></rect><text class="t" x="958" y="153">Watchers</text>
+        <text class="tm" x="736" y="196">agents run under Watchers, never under Gaia</text>
+
+        <rect class="box" x="720" y="238" width="340" height="70" rx="10"></rect>
+        <text class="tb" x="736" y="264">Invoice Service</text>
+        <text class="tm" x="736" y="282">Overseer on port 4951, read the same way</text>
+
+        <rect class="box" x="720" y="326" width="340" height="74" rx="10"></rect>
+        <text class="tb" x="736" y="352">Design System</text>
+        <text class="tm" x="736" y="370">no Overseer running: read through the forge CLI</text>
+
+        <!-- Monitor folder -->
+        <rect class="box" x="320" y="476" width="740" height="104" rx="10"></rect>
+        <rect class="inner" x="336" y="490" width="220" height="44" rx="6"></rect><text class="t" x="350" y="517">projects.json, the registry</text>
+        <rect class="inner" x="570" y="490" width="236" height="44" rx="6"></rect><text class="t" x="584" y="517">watchers/&lt;trackerId&gt;/token</text>
+        <rect class="inner" x="820" y="490" width="224" height="44" rx="6"></rect><text class="t" x="834" y="517">gaia/server.json</text>
+        <text class="tb" x="336" y="562">~/.forge-monitor/</text>
+        <text class="tm" x="476" y="562">shared files, no process behind them</text>
+
+        <!-- window <-> page -->
+        <path class="has" d="M232 150 L334 150" marker-end="url(#ah)" marker-start="url(#ah)"></path>
+        <text class="tl" x="246" y="142">local HTTP</text>
+        <!-- stream -> notifications -->
+        <path class="has" d="M318 258 L218 258" marker-end="url(#ah)"></path>
+        <text class="tl" x="250" y="250">events</text>
+
+        <!-- readers -> API -->
+        <path class="has" d="M596 240 C660 240 664 138 734 138" marker-end="url(#ah)"></path>
+        <text class="tl" x="624" y="170">reads</text>
+        <path class="needs" d="M596 252 C668 252 672 150 734 150" marker-end="url(#an)"></path>
+        <text class="tn" x="676" y="214">R1 R2</text>
+        <!-- relay -> API (commands) -->
+        <path class="has" d="M596 298 C690 298 684 162 734 162" marker-end="url(#ah)"></path>
+        <text class="tl" x="622" y="318">commands</text>
+        <!-- finder -> stopped forge via CLI -->
+        <path class="has" d="M596 352 L718 362" marker-end="url(#ah)"></path>
+        <text class="tl" x="622" y="382">runs forge</text>
+
+        <!-- finder -> registry -->
+        <path class="has" d="M400 402 L400 488" marker-end="url(#ah)"></path>
+        <text class="tl" x="410" y="452">watches</text>
+        <!-- relay -> token -->
+        <path class="has" d="M540 402 L672 488" marker-end="url(#ah)"></path>
+        <text class="tl" x="486" y="472">reads token</text><text class="tn" x="572" y="472">R3</text>
+        <!-- gaia writes its own record -->
+        <path class="needs" d="M600 402 L918 488" marker-end="url(#an)"></path>
+        <text class="tl" x="700" y="420">writes its own record</text><text class="tn" x="856" y="420">R4</text>
+        <!-- forges register -->
+        <path class="has" d="M1040 402 L1040 474" marker-end="url(#ah)"></path>
+        <text class="tl" x="1030" y="456" text-anchor="end">each Overseer registers</text>
+
+        <!-- frame -->
+        <path class="needs" d="M125 68 L125 34 L890 34 L890 126" marker-end="url(#an)"></path>
+        <text class="tn" x="330" y="26">R4 R5</text>
+        <text class="tl" x="386" y="26">the window shows a forge's own Bridge, without its header</text>
+      </svg>
+    </div>
+    <div class="legend"><span><i></i>works with the forge as it is today</span><span><i class="n"></i>needs a forge change, numbered in the requirements below</span></div>
+  </figure>
+
+  <div class="twocol">
+    <div class="panel">
+      <h3>Finding forges</h3>
+      <p style="font-size:14px">Every forge already writes itself into <code>~/.forge-monitor/projects.json</code>, and a starting Overseer adds its URL and process id to its entry, then removes them when it stops. Gaia watches that one file. For each entry with a URL it asks <code>GET /api/identity</code> and checks that the tracker id matches, so a stale pointer from a crashed Overseer reads as stopped and a foreign program on the port reads as not a forge. No scanning, no network discovery, no forge has to know Gaia exists.</p>
+    </div>
+    <div class="panel">
+      <h3>Reading</h3>
+      <p style="font-size:14px">A running forge is read over its API. A stopped forge is read by running <code>forge status --json</code> in its root, which takes no lock. Both are mapped at the boundary into one fleet model. Gaia never recomputes a count or a rule a forge already owns: what waits on you, how many slots are free and what a job may do arrive as facts.</p>
+    </div>
+    <div class="panel">
+      <h3>Acting</h3>
+      <p style="font-size:14px">Answer, Ready, Accept, Pause and the rest are the forge's own control commands, posted to that forge's <code>POST /api/commands</code> with that forge's token. A refusal comes back as the forge worded it and is shown verbatim. Starting an Overseer is <code>forge oversee --detach</code>, run in the repository. Gaia has no other way to change anything.</p>
+    </div>
+    <div class="panel">
+      <h3>Being optional</h3>
+      <p style="font-size:14px">Nothing in a forge waits on Gaia. A forge that predates a Gaia feature is shown with what it can provide and marked as such. Gaia keeps only its own preferences and its server record, under <code>~/.forge-monitor/gaia/</code>. Deleting that folder loses nothing a forge needs.</p>
+    </div>
+  </div>
+</section>
+
+<section id="usecases">
+  <span class="caps">Use cases</span>
+  <h2>What you would use it for</h2>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Moment</th><th>What Gaia does</th><th>Where the facts come from</th><th>Needs</th></tr></thead>
+    <tbody>
+      <tr><td><b>"Does anything need me?"</b></td><td>One list across forges: questions, escalations, drafts to ready, reviews, merge accepts. Badge and menu bar show the count.</td><td>Each forge's open decisions, drafts and merge queue. The Bridge computes this list in the browser today.</td><td class="id">R1 R2</td></tr>
+      <tr><td><b>"Answer it without hunting"</b></td><td>Answer opens that forge's question panel in place, with the ticket's background beside it.</td><td>The forge's own Bridge, question panel route.</td><td class="id">R4 R5</td></tr>
+      <tr><td><b>"What is running?"</b></td><td>Every job on the machine with state, budget, last tool and tokens. Quiet jobs flagged.</td><td><code>jobs[].live</code> in each forge's board state.</td><td class="id">R1 R2</td></tr>
+      <tr><td><b>"Is anything stuck or off?"</b></td><td>Forges that need a look: stopped with ready work, launches held, paused after an outage, usage limit with its reset time, a failed Baton pass.</td><td>Registry entry without an Overseer pointer, each forge's notices, Overseer state and usage marker.</td><td class="id">R1</td></tr>
+      <tr><td><b>"Start my day"</b></td><td>Open the app. Stopped forges with ready work offer Start. Since-yesterday shows what landed per forge.</td><td><code>forge oversee --detach</code>; delivered tickets and the log.</td><td class="id">R8</td></tr>
+      <tr><td><b>"Go to that forge"</b></td><td>Rail click or a quick switcher. The forge's views open in the window. A restarted Overseer reconnects on its own.</td><td>Session codes, which Gaia can request with the forge's token.</td><td class="id">R3 R4 R5</td></tr>
+      <tr><td><b>"File something while I think of it"</b></td><td>Start an intake on any forge from wherever you are in Gaia.</td><td>The <code>intake-start</code> control command.</td><td class="id">R3</td></tr>
+      <tr><td><b>"What is this costing?"</b></td><td>Tokens today and done today per forge and for the machine. Later, a timeline of landings across forges.</td><td>Header figures, which the Bridge also computes in the browser today.</td><td class="id">R1</td></tr>
+      <tr><td><b>"I am in another app"</b></td><td>A notification when a forge asks, a forge stops, or a usage limit hits. Clicking it opens the item.</td><td>New item keys in the attention list, compared as a set difference.</td><td class="id">R1 R2</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="options">
+  <span class="caps">Options weighed</span>
+  <h2>Four decisions, with a recommendation each</h2>
+
+  <h3>1. How deep the integration goes</h3>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Option</th><th>What it means</th><th>For</th><th>Against</th></tr></thead>
+    <tbody>
+      <tr><td><b>Frame each Bridge</b></td><td>What agent-dashboard does: a list, and the whole board page in a frame.</td><td>Cheapest. Always matches the forge.</td><td>Two headers, two navigations, a page inside a page. This is the nesting you want to leave behind.</td></tr>
+      <tr><td><b>Rebuild the views in Gaia</b></td><td>Gaia renders Kanban, Questions and the rest itself from each forge's board state.</td><td>Fully native feel.</td><td>Every forge can run a different code version, and board state has no version of its own. Gaia would carry a copy of the Bridge that drifts from the forges it shows.</td></tr>
+      <tr class="pick"><td><b>Hybrid</b> (recommended)</td><td>Cross-forge views are Gaia's own. A single forge's views are that forge's Bridge, shown without its header, steered by Gaia's navigation.</td><td>One window and one navigation. Each forge renders itself, so views and rules cannot disagree. Gaia stays small.</td><td>Needs a headerless mode and route messages in the Bridge (R5), and a shared design system so the seam does not show (R6).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2. How forges are found</h3>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Option</th><th>For</th><th>Against</th></tr></thead>
+    <tbody>
+      <tr class="pick"><td><b>The registry file, checked by an identity call</b> (recommended)</td><td>Exists today. Lists stopped forges too. One file watch, no clock. Fails closed: an unreadable registry is a verdict, not a crash.</td><td>A crashed Overseer leaves a stale pointer, which the identity call catches. The registry only grows, so Gaia needs its own "hide this forge".</td></tr>
+      <tr><td><b>Scan the Overseer port range</b></td><td>Needs no file. Ports are derived from the tracker id inside a range of 100.</td><td>Misses stopped forges and any Overseer started with <code>--port</code>. Useful only as a repair button.</td></tr>
+      <tr><td><b>Forges announce themselves to Gaia</b></td><td>Instant.</td><td>Makes every forge know about Gaia, which breaks "optional addition".</td></tr>
+      <tr><td><b>Bonjour / mDNS</b></td><td>Standard discovery.</td><td>Announces local dev servers on the network for a problem that is one machine wide.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>3. How Gaia reads a forge</h3>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Option</th><th>For</th><th>Against</th></tr></thead>
+    <tbody>
+      <tr><td><b>Poll <code>GET /api/summary</code></b></td><td>Exists today, open, small.</td><td>Carries counts only: no question text, no live job facts, no notices. Polling means a timer decides.</td></tr>
+      <tr><td><b>Subscribe to the full <code>/api/events</code> stream</b></td><td>Exists today. Has everything.</td><td>Every <code>board</code> event carries every ticket body and the whole question history, per forge, per change. And Gaia would have to copy the Bridge's logic for what waits on you.</td></tr>
+      <tr class="pick"><td><b>A monitor stream from the forge</b> (recommended)</td><td>The forge states what waits on User and what a monitor needs, versioned, small, pushed. Gaia keeps no copy of any rule.</td><td>New forge work (R1, R2). Until it lands, Gaia runs on the summary.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4. How it becomes a macOS app</h3>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Option</th><th>For</th><th>Against</th></tr></thead>
+    <tbody>
+      <tr><td><b>Installed web app</b> (Safari "Add to Dock" or Chrome/Edge install)</td><td>No native code. Own Dock icon and window, notifications and a Dock badge. agent-dashboard already ships a manifest this way.</td><td>The icon cannot start the server, so a login item must keep it running. No menu bar item. Needs macOS 14 for Safari.</td></tr>
+      <tr class="pick"><td><b>Electrobun</b> (recommended, after a spike)</td><td>The app's main process is Bun, so the Gaia server and the app are one TypeScript program. System webview, small bundle, built-in updater, native menus and tray.</td><td>Young framework and a real dependency. Three things to prove first: the window can load from a local HTTP origin, the menu bar item, and notifications with a Dock badge.</td></tr>
+      <tr><td><b>A small Swift wrapper</b></td><td>A WKWebView window, a status item and native notifications in a few hundred lines. No third-party dependency.</td><td>A second language and toolchain in a TypeScript project. The fallback if the spike fails.</td></tr>
+      <tr><td><b>Tauri or Electron</b></td><td>Mature.</td><td>Tauri adds Rust and runs Bun as a sidecar. Electron's main process is Node, not Bun, and it ships a browser.</td></tr>
+      <tr><td><b>Bun.WebView</b></td><td>Built into Bun.</td><td>Not an option: it is a headless automation API, and its visible mode is not implemented.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Whatever the shell, the server and page stay a plain local web app that also opens in a browser with <code>gaia open</code>. The shell is the last and thinnest layer, so this choice can change without touching the rest.</p>
+</section>
+
+<section id="requirements">
+  <span class="caps">Requirements for the forge</span>
+  <h2>What the forge would need to add</h2>
+  <div class="prose muted"><p>Each row says what exists today, so the gap is exact. Nothing here asks a forge to depend on Gaia. Every item is a contract a monitor can use, and agent-dashboard's existing contract is the precedent for all of them.</p></div>
+  <div class="tablewrap"><table class="doc">
+    <thead><tr><th>Id</th><th>Requirement</th><th>Today</th><th>Why Gaia needs it</th><th>Weight</th></tr></thead>
+    <tbody>
+      <tr><td class="id">R1</td><td><b>A monitor summary, version 2.</b> Adds the waiting-on-User items with their keys, kinds, subjects and stamps; the notices; the header figures; and the live facts per job.</td><td><code>BoardSummary</code> version 1 has counts and bare jobs. The attention list and header figures are computed in the Bridge (<code>WaitingOnUserModel</code>, <code>HeaderModel</code>).</td><td>So the forge, not Gaia, decides what waits on you. Otherwise Gaia copies rules that then drift.</td><td>Must</td></tr>
+      <tr><td class="id">R2</td><td><b>A monitor event stream</b> that pushes that summary when it changes, with the same generation and replay rules as <code>/api/events</code>.</td><td>The summary is a plain GET. The only stream sends whole boards with every ticket body.</td><td>Live updates and notifications without a polling timer and without a whole board per change.</td><td>Must</td></tr>
+      <tr><td class="id">R3</td><td><b>A stated way for a monitor to hold a forge's token.</b> Either the token file's path becomes part of the contract, or the registry entry names it.</td><td>The token sits owner-only under <code>watchers/&lt;trackerId&gt;/</code> and the Baton names its path. A same-user process can read it, but nothing promises that path to a monitor.</td><td>Reading streams, sending commands, and asking for session codes so a framed Bridge signs in by itself.</td><td>Must</td></tr>
+      <tr><td class="id">R4</td><td><b>Gaia's origin may frame the Bridge.</b> Read the allowed frame origins from a record a monitor writes in the monitor folder.</td><td><code>frame-ancestors</code> is read only from agent-dashboard's own record under <code>~/.agent-progress-monitor/agent-dashboard/</code>.</td><td>Without it the browser refuses to show a forge inside Gaia.</td><td>Must for one window</td></tr>
+      <tr><td class="id">R5</td><td><b>A headerless embedded mode</b> for the Bridge: no header and no tab bar, the route set and reported over the frame channel, a session code accepted while embedded.</td><td>Only the literal <code>?embedded=dashboard</code>, with theme in and Esc out. Header and tabs stay.</td><td>This is what turns "a page in a frame" into one window.</td><td>Must for one window</td></tr>
+      <tr><td class="id">R6</td><td><b>The design system as a package</b>: <code>bridge/design-system/</code>, <code>tokens.css</code> and the styles of those components, importable by another project.</td><td>The components already know nothing about the board. Their classes live in one <code>board.css</code> with every view's.</td><td>Shared design language by construction, not by copy.</td><td>Must</td></tr>
+      <tr><td class="id">R7</td><td><b>The contract versions on <code>/api/identity</code></b>: which monitor summary and embed versions this Overseer serves.</td><td>Identity has code, install and Watcher protocol versions.</td><td>Gaia refuses or greys out a forge it cannot read, and says "update this forge".</td><td>Should</td></tr>
+      <tr><td class="id">R8</td><td><b>Machine-readable start.</b> <code>forge oversee --detach</code> answers in JSON with its URL or its refusal.</td><td>It prints its URL for a person.</td><td>Start Overseer from Gaia, with the refusal shown as the forge worded it.</td><td>Should</td></tr>
+      <tr><td class="id">R9</td><td><b>A way to ask where the monitor folder is</b>, since the product's names are one assignment that will change.</td><td><code>PRODUCT_NAMES.MONITOR_FOLDER</code>, a constant inside the forge.</td><td>Gaia should survive the rename from <code>forge</code> without a release.</td><td>Should</td></tr>
+      <tr><td class="id">R10</td><td><b>JSON refusals on a failed read.</b></td><td>A malformed <code>progress.json</code> makes <code>/api/summary</code> answer Bun's plain-text 500.</td><td>Gaia can show "this board cannot be read" with a reason, not a guess.</td><td>Could</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Gaia's own server takes the forge's guards as its model: bound to <code>127.0.0.1</code>, Host and Origin checked, a session for its page, a content security policy on every answer. It holds tokens for several forges, so it reads each token from its file per request and keeps none on disk.</p>
+</section>
+
+<section id="steps">
+  <span class="caps">Build order</span>
+  <h2>Four steps, each usable on its own</h2>
+  <div class="steps">
+    <div class="step"><b>Works on today's forge</b><span>Finder, summary reader, the rail and forge cards with counts, agents by id and state. A click opens the forge's Bridge in the browser. No forge change at all.</span></div>
+    <div class="step"><b>The monitor contract</b><span>R1, R2, R3, R6. The real attention list, the full Agents table, forges that need a look, notifications. Simple answers and Pause go through the command relay.</span></div>
+    <div class="step"><b>One window</b><span>R4, R5. A forge's views open in place, questions answer in a side panel, sessions reconnect by themselves.</span></div>
+    <div class="step"><b>Native presence</b><span>The macOS shell: Dock icon and badge, menu bar item, start at login. Runs in parallel with the others once the server exists.</span></div>
+  </div>
+</section>
+
+<section id="questions">
+  <span class="caps">For the sparring session</span>
+  <h2>Decisions that are yours</h2>
+  <ol class="qlist">
+    <li><b>Is the hybrid the "integrated whole" you have in mind?</b> My reading: one window and one navigation, with each forge still rendering its own board. If you meant Gaia renders everything itself, the forge needs a versioned board contract first and Gaia becomes several times larger.</li>
+    <li><b>May Gaia act, or only show?</b> I have assumed it relays your clicks, including Answer, Ready, Accept and Pause. A first version could be read-only and send you to the forge for every action.</li>
+    <li><b>May Gaia start an Overseer?</b> "Talks with the forges and needs no agents of its own" still allows it to run <code>forge oversee --detach</code> on your click. It never starts one unasked. Say if even that is too much.</li>
+    <li><b>Which shell?</b> I recommend a short Electrobun spike with the Swift wrapper as fallback. If you would rather have no dependency at all, the Swift wrapper comes first.</li>
+    <li><b>Only forge boards?</b> I have assumed Gaia reads <code>~/.forge-monitor</code> only, and that v1 agent-progress boards stay with agent-dashboard until they move over.</li>
+    <li><b>A machine-wide agent limit?</b> Each forge has its own "agents at most". Gaia could show the sum, or you may want one budget shared across forges. The second is new forge policy, not a Gaia feature, so I left it out.</li>
+    <li><b>Where does the shared design system live?</b> A package in your registry beside <code>@reliquary/eslint-config</code>, or a folder both repositories reach.</li>
+  </ol>
+
+  <h3>Left out on purpose</h3>
+  <ul class="qlist" style="list-style: disc">
+    <li>Agents, sessions or a chat of Gaia's own. Intake and the Assistant stay in each forge.</li>
+    <li>Writing a tracker file or the registry. Only forges write them.</li>
+    <li>Access from another machine or a phone. Everything stays on <code>127.0.0.1</code>.</li>
+    <li>Replacing the Bridge. A forge without Gaia loses nothing.</li>
+  </ul>
+</section>
+
+<footer>
+  <span>Read for this concept: the forge checkout at commit 5980c685 (README, CLAUDE.md, <code>docs/reference/overseer-api.md</code>, <code>docs/concepts/overview.md</code>, <code>docs/data-model/on-disk-atlas.md</code>, <code>docs/architecture/questions-and-incidents.md</code>, the Bridge's tokens and shell models), agent-dashboard's README and CLAUDE.md, and the coding conventions.</span>
+  <span>Shell facts checked against Bun's WebView documentation, Apple's "Use Safari web apps on Mac" and the Electrobun 2.0 announcement. Electrobun's tray, notification and badge support are claims to prove in the spike, not verified here.</span>
+  <span>Next phase after review: artboards of these views, the final forge requirements for the chosen feature set, and an architecture and implementation plan that follows the coding conventions.</span>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<div class="capacity">
+  <div class="capacity-controls">
+    <div>
+      <label class="field-label" for="capacity-agents-needed">Agents the team needs at once: <span data-role="agents-needed-value"></span></label>
+      <input id="capacity-agents-needed" type="range" min="1" max="24" value="7" data-role="agents-needed">
+    </div>
+    <div>
+      <span class="field-label">Agents per machine</span>
+      <div class="segmented" data-role="agents-per-machine">
+        <button class="segmented-option" type="button" data-value="2">2</button>
+        <button class="segmented-option" type="button" data-value="3">3</button>
+        <button class="segmented-option" type="button" data-value="4">4</button>
+      </div>
+    </div>
+  </div>
+  <p class="capacity-result" data-role="capacity-result" aria-live="polite"></p>
+  <div class="capacity-machines" data-role="capacity-machines"></div>
+  <div class="capacity-legend"><span class="legend-agent">a core running an agent</span><span class="legend-loop">the core kept for the Workflow Loop</span><span>a free agent slot</span></div>
+</div>

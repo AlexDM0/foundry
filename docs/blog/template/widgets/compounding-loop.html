@@ -1,0 +1,52 @@
+<div class="diagram-layout">
+  <svg class="diagram" viewBox="0 0 760 246" role="img" aria-label="The compounding loop: finished work is measured, improvements are proposed, an optional experiment re-runs a past feature, a human decides, and the next features run on the improved factory.">
+    <defs>
+      <marker id="compounding-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-head" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <g>
+      <path class="edge" d="M240 52H272" marker-end="url(#compounding-arrow)"/>
+      <path class="edge" d="M488 52H520" marker-end="url(#compounding-arrow)"/>
+      <path class="edge" d="M628 88V152" marker-end="url(#compounding-arrow)"/>
+      <path class="edge" d="M520 188H488" marker-end="url(#compounding-arrow)"/>
+      <path class="edge" d="M272 188H240" marker-end="url(#compounding-arrow)"/>
+      <path class="edge" d="M132 152V88" marker-end="url(#compounding-arrow)"/>
+    </g>
+    <g data-part="finished-work">
+      <rect class="box" x="24" y="16" width="216" height="72" rx="8"/>
+      <text class="label" x="132" y="41">1. Finished work</text>
+      <text class="sublabel" x="132" y="58">past sessions and features</text>
+      <text class="sublabel" x="132" y="74">become case studies</text>
+    </g>
+    <g data-part="measure">
+      <rect class="box" x="272" y="16" width="216" height="72" rx="8"/>
+      <text class="label" x="380" y="41">2. Measure</text>
+      <text class="sublabel" x="380" y="58">deterministic checks and</text>
+      <text class="sublabel" x="380" y="74">agentic analysis</text>
+    </g>
+    <g data-part="propose">
+      <rect class="box" x="520" y="16" width="216" height="72" rx="8"/>
+      <text class="label" x="628" y="41">3. Propose improvements</text>
+      <text class="sublabel" x="628" y="58">to the constitution, briefs,</text>
+      <text class="sublabel" x="628" y="74">gates, skills and more</text>
+    </g>
+    <g data-part="experiment">
+      <rect class="box" x="520" y="152" width="216" height="72" rx="8" stroke-dasharray="5 4"/>
+      <text class="label" x="628" y="177">4. Experiment (optional)</text>
+      <text class="sublabel" x="628" y="194">re-run a past feature in</text>
+      <text class="sublabel" x="628" y="210">isolation: old against new</text>
+    </g>
+    <g data-part="decide">
+      <rect class="box box-orange" x="272" y="152" width="216" height="72" rx="8"/>
+      <text class="label" x="380" y="177">5. A human decides</text>
+      <text class="sublabel" x="380" y="194">nothing is applied</text>
+      <text class="sublabel" x="380" y="210">automatically</text>
+    </g>
+    <g data-part="improved">
+      <rect class="box" x="24" y="152" width="216" height="72" rx="8"/>
+      <text class="label" x="132" y="177">6. Improved factory</text>
+      <text class="sublabel" x="132" y="194">the next features run on</text>
+      <text class="sublabel" x="132" y="210">the new configuration</text>
+    </g>
+  </svg>
+  <div class="detail-panel" data-role="detail-panel" aria-live="polite"></div>
+</div>

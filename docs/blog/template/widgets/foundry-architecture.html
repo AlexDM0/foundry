@@ -1,0 +1,124 @@
+<div class="diagram-layout">
+  <svg class="diagram" viewBox="0 0 1000 690" role="img" aria-label="Foundry's architecture. Gaia, one per machine, has a page and a server. The server reads from and sends commands to the forge's API, runs the forge CLI and reads a registry file. A forge, one per board, holds the CLI, the loop, a process supervisor with its child processes, the store and the ports.">
+    <defs>
+      <marker id="foundry-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-head" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+
+    <rect class="zone" x="40" y="16" width="920" height="130" rx="10"/>
+    <text class="zone-label" x="58" y="38">Gaia</text>
+    <text class="zone-note" x="942" y="38">one per machine</text>
+
+    <rect class="zone" x="40" y="250" width="920" height="424" rx="10"/>
+    <text class="zone-label" x="58" y="274">The forge</text>
+    <text class="zone-note" x="942" y="274">one per board: headless, versioned, runs alone</text>
+
+    <g>
+      <path class="edge" d="M464 86H536" marker-start="url(#foundry-arrow)" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M600 124V204H356V316" marker-start="url(#foundry-arrow)" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M560 124V176H139V300" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M875 124V170" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M356 372V384" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M556 372V384" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M456 432V444" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M323 496V508" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M456 496V508" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M589 496V508" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M666 320H700" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M818 376V404" marker-end="url(#foundry-arrow)"/>
+      <path class="edge edge-dashed" d="M700 500H683V356H650" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M139 376V600" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M356 586V600" marker-start="url(#foundry-arrow)" marker-end="url(#foundry-arrow)"/>
+      <path class="edge" d="M573 586V600" marker-end="url(#foundry-arrow)"/>
+      <text class="edge-label" x="150" y="168">start, stop, set up</text>
+      <text class="edge-label" x="366" y="196">reads and commands</text>
+      <text class="edge-label" x="149" y="480">commands</text>
+    </g>
+
+    <g data-part="gaia-page">
+      <rect class="box" x="64" y="48" width="400" height="76" rx="8"/>
+      <text class="label" x="264" y="80">Gaia's page</text>
+      <text class="sublabel" x="264" y="100">inventory · board views · conversations · warnings</text>
+    </g>
+    <g data-part="gaia-server">
+      <rect class="box" x="536" y="48" width="400" height="76" rx="8"/>
+      <text class="label" x="736" y="80">Gaia's server</text>
+      <text class="sublabel" x="736" y="100">forge client · registry reader · CLI runner</text>
+    </g>
+    <g data-part="registry">
+      <rect class="box" x="790" y="170" width="170" height="56" rx="8"/>
+      <text class="label" x="875" y="194">Registry file</text>
+      <text class="sublabel" x="875" y="211">forges register themselves</text>
+    </g>
+
+    <g data-part="command-line">
+      <rect class="box" x="64" y="300" width="150" height="76" rx="8"/>
+      <text class="label" x="139" y="332">The CLI</text>
+      <text class="sublabel" x="139" y="351">every state change</text>
+    </g>
+
+    <g>
+      <rect class="zone-solid" x="246" y="286" width="420" height="300" rx="10"/>
+      <text class="zone-label" x="262" y="307">The Workflow Loop</text>
+      <g data-part="api">
+        <rect class="box box-orange" x="262" y="316" width="188" height="56" rx="8"/>
+        <text class="label" x="356" y="340">API</text>
+        <text class="sublabel" x="356" y="357">reads, streams, commands</text>
+      </g>
+      <g data-part="agent-requests">
+        <rect class="box box-orange" x="462" y="316" width="188" height="56" rx="8"/>
+        <text class="label" x="556" y="340">Agent requests</text>
+        <text class="sublabel" x="556" y="357">judged by role</text>
+      </g>
+      <g data-part="command-handling">
+        <rect class="box box-orange" x="262" y="384" width="388" height="48" rx="8"/>
+        <text class="label" x="456" y="405">Command handling</text>
+        <text class="sublabel" x="456" y="422">one service applies every command</text>
+      </g>
+      <g data-part="loop">
+        <rect class="box box-orange" x="262" y="444" width="388" height="52" rx="8"/>
+        <text class="label" x="456" y="467">The loop</text>
+        <text class="sublabel" x="456" y="484">one pass at a time, following a pure policy</text>
+      </g>
+      <g data-part="verification">
+        <rect class="box box-orange" x="262" y="508" width="122" height="62" rx="8"/>
+        <text class="label" x="323" y="533">Verification</text>
+        <text class="sublabel" x="323" y="551">claims, gates</text>
+      </g>
+      <g data-part="merge-slot">
+        <rect class="box box-orange" x="395" y="508" width="122" height="62" rx="8"/>
+        <text class="label" x="456" y="533">Merge slot</text>
+        <text class="sublabel" x="456" y="551">merge, gate, land</text>
+      </g>
+      <g data-part="recovery">
+        <rect class="box box-orange" x="528" y="508" width="122" height="62" rx="8"/>
+        <text class="label" x="589" y="533">Recovery</text>
+        <text class="sublabel" x="589" y="551">reconcile</text>
+      </g>
+    </g>
+
+    <g data-part="supervisor">
+      <rect class="box box-teal" x="700" y="300" width="236" height="76" rx="8"/>
+      <text class="label" x="818" y="332">Process supervisor</text>
+      <text class="sublabel" x="818" y="351">commands every child</text>
+    </g>
+    <g data-part="child-processes">
+      <rect class="zone-solid" x="700" y="404" width="236" height="182" rx="8"/>
+      <text class="zone-label" x="716" y="426">Child processes</text>
+      <rect class="box" x="716" y="438" width="204" height="38" rx="6"/><text class="sublabel" x="818" y="462">builder session</text>
+      <rect class="box" x="716" y="484" width="204" height="38" rx="6"/><text class="sublabel" x="818" y="508">gate line: a confined command</text>
+      <rect class="box" x="716" y="530" width="204" height="38" rx="6"/><text class="sublabel" x="818" y="554">reviewer session</text>
+    </g>
+
+    <g data-part="store">
+      <rect class="box box-green" x="64" y="600" width="404" height="56" rx="8"/>
+      <text class="label" x="266" y="624">The store, behind the store port</text>
+      <text class="sublabel" x="266" y="641">records on local files first</text>
+    </g>
+    <g data-part="ports">
+      <rect class="box" x="480" y="600" width="186" height="56" rx="8"/>
+      <text class="label" x="573" y="624">Ports and adapters</text>
+      <text class="sublabel" x="573" y="641">operating system · agent</text>
+    </g>
+  </svg>
+  <div class="detail-panel" data-role="detail-panel" aria-live="polite"></div>
+</div>

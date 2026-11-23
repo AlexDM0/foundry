@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>foundry: compounding</title>
+<style>
+:root{
+  --bg:#f6f4f1;--card:#ffffff;--ink:#1f2328;--muted:#5d646c;--line:#d5d0c8;--soft:#ece8e2;
+  --accent:#d9600f;--accent-soft:#fbe6d6;--good:#2f7d4f;--good-soft:#dff1e5;--warn:#a86a00;--warn-soft:#fbefd0;
+  --bad:#b3372e;--bad-soft:#f8dedb;--blue:#2c5f9e;--blue-soft:#dde9f7;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17191c;--card:#22262b;--ink:#e8e6e2;--muted:#a3a9b0;--line:#3a4047;--soft:#2a2f35;
+  --accent:#ff8a3d;--accent-soft:#4a2d18;--good:#6cc48d;--good-soft:#1f3a2a;--warn:#e3b04b;--warn-soft:#40331a;
+  --bad:#ef8279;--bad-soft:#47231f;--blue:#85b3ea;--blue-soft:#1f3147;}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:28px 16px;border-right:1px solid var(--line)}
+nav .brand{font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:4px}
+nav .sub{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+nav a{display:block;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;border-left:3px solid transparent}
+nav a:hover{background:var(--soft)}
+nav a.active{border-left-color:var(--accent);background:var(--accent-soft);font-weight:600}
+main{padding:32px 36px 80px;min-width:0}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:23px;margin:56px 0 6px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:28px 0 8px}
+.lede{color:var(--muted);max-width:70ch;margin:0 0 18px}
+p,li{max-width:74ch}
+ul{padding-left:20px}
+li{margin:4px 0}
+code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);padding:1px 5px;border-radius:4px}
+sup a{text-decoration:none;font-size:11px;padding:0 1px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .q{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:6px}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:18px 0;overflow-x:auto}
+.figure svg{display:block;width:100%;min-width:760px;height:auto}
+.figure figcaption,.cap{font-size:13.5px;color:var(--muted);margin-top:8px}
+figure{margin:0}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+svg .ts{fill:var(--muted);font-size:11.5px}
+svg .th{font-weight:700;font-size:13.5px}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.5}
+svg .zl{fill:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+svg .b{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+svg .bd{fill:var(--bg);stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 4}
+svg .ba{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .bg{fill:var(--good-soft);stroke:var(--good);stroke-width:1.5}
+svg .bb{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.5}
+svg .bw{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+svg .ar{stroke:var(--ink);stroke-width:1.5;fill:none}
+svg .ard{stroke:var(--ink);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+svg .faded{opacity:.5}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:default}
+tr:last-child td{border-bottom:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.recorded,.tag.smaller,.tag.have{background:var(--good-soft);color:var(--good)}
+.tag.derived,.tag.closed,.tag.own{background:var(--blue-soft);color:var(--blue)}
+.tag.part,.tag.same,.tag.board{background:var(--warn-soft);color:var(--warn)}
+.tag.gap,.tag.missing,.tag.reserved{background:var(--bad-soft);color:var(--bad)}
+.tag.new{background:var(--accent-soft);color:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 13px;font-size:13.5px;cursor:pointer;font-family:inherit}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+input[type=search]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 11px;font-size:14px;min-width:220px;font-family:inherit}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:0 16px}
+summary{cursor:pointer;padding:13px 0;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details[open]{padding-bottom:12px}
+details p{margin:6px 0}
+details .rank{background:var(--accent);color:#fff;border-radius:99px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+details table{border-radius:8px}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:78ch}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:14px 18px 12px 58px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin:12px 0;max-width:none}
+.steps li::before{content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:99px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.steps.lettered li::before{content:attr(data-mark);width:auto;min-width:28px;padding:0 7px;font-size:12.5px}
+.steps h4{margin:0 0 2px;font-size:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.steps p{margin:6px 0;max-width:86ch;font-size:14.5px}
+.steps .label{font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+.sources{font-size:14px;padding-left:22px}
+.sources li{max-width:none;word-break:break-word}
+.muted{color:var(--muted)}
+@media (max-width:860px){.layout{grid-template-columns:1fr}nav{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:14px 16px}nav a{display:inline-block}main{padding:22px 16px 60px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav id="nav">
+  <div class="brand">foundry</div>
+  <div class="sub">Roadmap item · stage 2 · v2 · 23 Nov 2026</div>
+  <a href="#summary">Summary</a>
+  <a href="#asks">What the whitepaper asks</a>
+  <a href="#today">Where foundry starts</a>
+  <a href="#gather">What to gather</a>
+  <a href="#metrics">Metrics</a>
+  <a href="#experiments">Experiments</a>
+  <a href="#improve">What it would improve</a>
+  <a href="#proposals">Proposals and versions</a>
+  <a href="#decisions">Decisions</a>
+  <a href="#stages">Among the other stages</a>
+  <a href="#risks">Risks</a>
+  <a href="#changes">From v1 to v2</a>
+  <a href="#sources">Sources</a>
+</nav>
+<main>
+
+<section id="summary">
+<h1>Compounding: how the factory improves</h1>
+<p class="lede">Version 2 of the compounding research of 16 November, as a roadmap item: stage 2 of foundry's road to the agentic software factory. It states what the whitepaper asks, what forge records today, what it must start to gather, and what the owner decided on 23 November. Nothing on this page is built. The page presents the design document;<sup><a href="#s1">[1]</a></sup> where the two differ, the document is right.</p>
+<div class="cards">
+  <div class="card"><div class="q">The whitepaper asks</div><h4>Measure, propose, a person decides</h4><p>The factory learns from its own finished work: it measures features and sessions, proposes improvements, tries them on past features when wanted, and applies nothing by itself.<sup><a href="#s11">[11]</a></sup></p></div>
+  <div class="card"><div class="q">Foundry starts</div><h4>The raw data is already kept</h4><p>Every job session's stream sits in its job folder with a stamp per line, and nothing deletes it. Since the rework the log also holds one record per pipeline step, with its run time.<sup><a href="#s2">[2]</a><a href="#s3">[3]</a></sup></p></div>
+  <div class="card"><div class="q">The gap</div><h4>The joins, and a job that does not land</h4><p>A gate step names no job. The pipeline a job ran under is kept nowhere. Only totals reach the log. And nothing can run a job whose result stays off the main line.</p></div>
+</div>
+
+<figure class="figure">
+<svg viewBox="0 0 960 196" role="img" aria-label="The compounding loop: six steps, one of them a person's">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+  <rect class="bb" x="8" y="20" width="144" height="76" rx="8"/><text class="zl" x="22" y="42">Step 1</text><text class="th" x="22" y="62">Finished work</text><text class="ts" x="22" y="80">tickets and sessions</text>
+  <rect class="bb" x="168" y="20" width="144" height="76" rx="8"/><text class="zl" x="182" y="42">Step 2</text><text class="th" x="182" y="62">Measure</text><text class="ts" x="182" y="80">figures and metrics</text>
+  <rect class="bw" x="328" y="20" width="144" height="76" rx="8"/><text class="zl" x="342" y="42">Step 3</text><text class="th" x="342" y="62">Propose</text><text class="ts" x="342" y="80">a compounding run</text>
+  <rect class="bd" x="488" y="20" width="144" height="76" rx="8"/><text class="zl" x="502" y="42">Step 4</text><text class="th" x="502" y="62">Experiment</text><text class="ts" x="502" y="80">optional replay</text>
+  <rect class="ba" x="648" y="20" width="144" height="76" rx="8"/><text class="zl" x="662" y="42">Step 5</text><text class="th" x="662" y="62">A person decides</text><text class="ts" x="662" y="80">nothing is automatic</text>
+  <rect class="bg" x="808" y="20" width="144" height="76" rx="8"/><text class="zl" x="822" y="42">Step 6</text><text class="th" x="822" y="62">Improved factory</text><text class="ts" x="822" y="80">versions, audit trail</text>
+  <path class="ar" marker-end="url(#ah)" d="M152 58 L168 58"/>
+  <path class="ar" marker-end="url(#ah)" d="M312 58 L328 58"/>
+  <path class="ar" marker-end="url(#ah)" d="M472 58 L488 58"/>
+  <path class="ar" marker-end="url(#ah)" d="M632 58 L648 58"/>
+  <path class="ar" marker-end="url(#ah)" d="M792 58 L808 58"/>
+  <path class="ard" marker-end="url(#ah)" d="M400 96 L400 134 L720 134 L720 96"/>
+  <text class="ts" x="482" y="124">a run can skip the experiment</text>
+  <path class="ar" marker-end="url(#ah)" d="M880 96 L880 160 L80 160 L80 96"/>
+  <text class="ts" x="250" y="178">the next tickets run on the changed configuration, and become case studies in turn</text>
+</svg>
+<figcaption>The whitepaper's loop. Blue: code only, no model is called. Yellow: a compounding agent reads the figures and writes proposals. Dashed: optional. Orange: a person. Green: the result, with a version for everything that changed.</figcaption>
+</figure>
+
+<div class="note"><b>Two rules hold through all of it.</b> A figure is computed by code from what forge recorded, never by a model. And a proposal changes nothing: accepting it starts the path that kind of change already has.</div>
+<p>Version 1 was written against the Overseer, the Watcher and the Bridge. Version 2 has two inputs it did not have: the codebase after the rework, read at commit <code>0f1e760f</code>, and the whitepaper of 20 November. The owner answered this version's questions on 23 November; they are under <a href="#decisions">Decisions</a>. The <a href="#changes">last table</a> lists what changed.</p>
+</section>
+
+<section id="asks">
+<h2>What the whitepaper asks</h2>
+<p class="lede">Chapter 7 carries all of it. The middle column is version 1, the right-hand one version 2.</p>
+<div class="tablewrap"><table><thead><tr><th>The whitepaper says</th><th>Version 1</th><th>Version 2</th></tr></thead><tbody>
+<tr><td>Compounding measures finished features and sessions and proposes improvements; a person decides</td><td>The same</td><td>Kept</td></tr>
+<tr><td>Metrics are of two kinds: deterministic checks and build statistics, and an agent's analysis of each feature</td><td>Deterministic only, by the owner's decision of 16 November</td><td>Deterministic first, by the owner's answer of 23 November. The judged kind is reserved for later</td></tr>
+<tr><td>Metrics can be part of the harness, but do not have to be</td><td>Computed in a run only</td><td>Measured in a run, and may also be measured at each delivery once hooks exist</td></tr>
+<tr><td>Metrics are created and tried with an agent's help</td><td>A compounding agent defines a metric with User and writes its test suite</td><td>Kept</td></tr>
+<tr><td>Six areas can be improved: the agents, their guidance, architecture, models, checks, codebase and platform</td><td>Five targets: gates, instructions, constitution, documentation, model</td><td>All six, mapped to what forge can store, plus the workflow</td></tr>
+<tr><td>It runs periodically: by itself, or on a reminder, or when a user triggers it</td><td>A reminder every two weeks; User starts every run</td><td>Kept. The figures are there without a run</td></tr>
+<tr><td>Outcomes are never applied automatically</td><td>The same</td><td>Kept</td></tr>
+<tr><td>Who approves depends on the team and on company policy; a change of the workflow is discussed with the team</td><td>User accepts or rejects</td><td>User still decides, through the path each kind of change already has</td></tr>
+<tr><td>Every element is versioned, and every compounded change leaves an audit trail</td><td>Configuration by content hash; a ledger of accepted changes</td><td>The same two, stated as the audit trail, with a version for an agent as a whole</td></tr>
+<tr><td>The company monitors at its own level and may run an agent store</td><td>Not covered</td><td>Kept possible, not built</td></tr>
+<tr><td>An experiment on a past feature is a tool, not a required step</td><td>Implied</td><td>Stated</td></tr>
+<tr><td>A comparison is judged on a metric suite and by a person; a quality agent is optional; the person may fill in a small eval</td><td>The metrics and an evaluation agent</td><td>The metric suite, then the person's eval, made in the open, then a quality agent where a board has one</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="today">
+<h2>Where foundry starts</h2>
+<p class="lede">Read from the code on 23 November 2026, at commit <code>0f1e760f</code>. Forge is headless now: Hephaestus and Talos run the flow, Gaia is the window, a store port holds the records, and entities are built.<sup><a href="#s9">[9]</a></sup></p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 400" role="img" aria-label="What forge keeps today, and what compounding derives from it">
+  <rect class="zone" x="12" y="14" width="548" height="374" rx="14"/><text class="zl" x="28" y="38">Kept today</text>
+  <rect class="zone" x="580" y="14" width="368" height="374" rx="14"/><text class="zl" x="596" y="38">Proposed</text>
+
+  <rect class="b" x="30" y="60" width="180" height="60" rx="8"/><text class="th" x="44" y="84">Agent session</text><text class="ts" x="44" y="102">a job, under Talos</text>
+  <rect class="b" x="30" y="176" width="180" height="60" rx="8"/><text class="th" x="44" y="200">Gate and prepare steps</text><text class="ts" x="44" y="218">handoffs, the Airlock</text>
+  <rect class="b" x="30" y="292" width="180" height="60" rx="8"/><text class="th" x="44" y="316">Reviews and people</text><text class="ts" x="44" y="334">rounds, answers, accepts</text>
+
+  <rect class="bg" x="270" y="52" width="272" height="110" rx="8"/><text class="th" x="284" y="76">Job folder</text>
+  <text class="ts" x="284" y="96">events-&lt;n&gt;.ndjson: the raw stream, stamped</text><text class="ts" x="284" y="112">start.json, launch-settings.json</text><text class="ts" x="284" y="128">instructions-&lt;n&gt;.json: path and hash</text><text class="ts" x="284" y="144">red-handoff.json, gate.log: overwritten</text>
+  <rect class="bg" x="270" y="180" width="272" height="110" rx="8"/><text class="th" x="284" y="204">The log</text>
+  <text class="ts" x="284" y="224">agent-stopped: three token counts, cost</text><text class="ts" x="284" y="240">pipeline-step-ran: name, time, ending</text><text class="ts" x="284" y="256">gate-ran: tree and outcome</text><text class="ts" x="284" y="272">review-recorded, decisions, merges</text>
+  <rect class="bg" x="270" y="308" width="272" height="56" rx="8"/><text class="th" x="284" y="332">Committed content</text><text class="ts" x="284" y="350">a ticket's title and body, by hash</text>
+
+  <rect class="bd" x="598" y="60" width="150" height="60" rx="8"/><text class="th" x="612" y="84">Job digest</text><text class="ts" x="612" y="102">written at job end</text>
+  <rect class="bd" x="598" y="196" width="150" height="60" rx="8"/><text class="th" x="612" y="220">Feature record</text><text class="ts" x="612" y="238">per delivered ticket</text>
+  <rect class="ba" x="782" y="60" width="150" height="60" rx="8"/><text class="th" x="796" y="84">Figures</text><text class="ts" x="796" y="102">any range, no run</text>
+  <rect class="ba" x="782" y="196" width="150" height="60" rx="8"/><text class="th" x="796" y="220">Metrics</text><text class="ts" x="796" y="238">grade one feature</text>
+  <rect class="bw" x="782" y="308" width="150" height="56" rx="8"/><text class="th" x="796" y="332">Compounding run</text><text class="ts" x="796" y="350">writes proposals</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M210 90 L270 100"/>
+  <path class="ar" marker-end="url(#ah)" d="M210 196 L270 150"/>
+  <path class="ar" marker-end="url(#ah)" d="M210 214 L270 230"/>
+  <path class="ar" marker-end="url(#ah)" d="M210 316 L270 274"/>
+  <path class="ar" marker-end="url(#ah)" d="M542 96 L598 92"/>
+  <path class="ar" marker-end="url(#ah)" d="M542 234 L598 228"/>
+  <path class="ar" marker-end="url(#ah)" d="M673 120 L673 196"/>
+  <path class="ar" marker-end="url(#ah)" d="M748 90 L782 90"/>
+  <path class="ar" marker-end="url(#ah)" d="M748 226 L782 226"/>
+  <path class="ar" marker-end="url(#ah)" d="M857 120 L857 196"/>
+  <path class="ar" marker-end="url(#ah)" d="M857 256 L857 308"/>
+</svg>
+<figcaption>Green: stored today. Dashed: derived by code, proposed. Orange: what Gaia shows. Yellow: an agent. The digest is built from the agent port's measurements of a session, because only that port's adapter may read the vendor's stream.<sup><a href="#s8">[8]</a><a href="#s9">[9]</a></sup> It goes through the store, so a store shared between machines would hold every figure. The committed content is what a replay starts from.</figcaption>
+</figure>
+
+<h3>The figures, and where each comes from</h3>
+<p>"Recorded" means a stored record holds it today. "Derived" means code can compute it today from kept files. "In part" means a record holds it without something the figure needs, mostly the job it belongs to. "Gap" means forge does not record it.</p>
+<div class="controls" id="figureControls">
+  <button class="chip on" data-state="all">All</button>
+  <button class="chip" data-state="recorded">Recorded</button>
+  <button class="chip" data-state="derived">Derived</button>
+  <button class="chip" data-state="part">In part</button>
+  <button class="chip" data-state="gap">Gap</button>
+  <input type="search" id="figureSearch" placeholder="Filter by figure or source" aria-label="Filter figures">
+</div>
+<div class="tablewrap"><table id="figures"><thead><tr><th>About</th><th>Figure</th><th>Source</th><th>State</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+<p class="cap" id="figureCount"></p>
+
+<h3>Entities</h3>
+<ul>
+  <li>Entities are built. A job carries its entity and its stage, and <code>job-launched</code> records both, so every figure of a job groups by entity.</li>
+  <li>A step record names the entity whose gate it is. A package build runs its dependents' gates as well, so that entity is often not the job's.</li>
+  <li>A crossing ticket spends tokens under several entities. They count for the entity of each stage's job, not for the ticket's home.</li>
+  <li>Each entity has its own constitution, gates, review settings, agent settings and concurrency, so each has its own proposals, experiments and ledger. The product owner, the pipeline agent and the Assistant are the forge's.</li>
+</ul>
+
+<h3>What the tokens were spent on</h3>
+<p>No standard taxonomy exists; version 1's research found none. Two deterministic views are proposed, read from the event log and the files of the job folder.</p>
+<ul>
+  <li><b>By activity: when in the job.</b> Orient, build, self-check, repair, catch-up, report, with boundaries the event log shows. Version 1 called this "phase"; that word belongs to the pipeline now.</li>
+  <li><b>By content: what filled the context.</b> Instruction files, the ticket, files read per path, search results, shell output, the red-handoff note, subagent results, the session's own output. An item costs its size once when it enters, and again at each later call.</li>
+</ul>
+</section>
+
+<section id="gather">
+<h2>What to gather</h2>
+<p class="lede">Six things forge must start to record. Everything else is derived. Version 1 asked for a seventh, the ticket as launched, and the rework closed it.</p>
+<ol class="steps lettered">
+  <li data-mark="G1">
+    <h4>The job on each gate step <span class="tag smaller">Smaller than in v1</span></h4>
+    <p>The rework records <code>pipeline-step-ran</code>: step kind, name, phase, entity, run time and ending. What is left is the join: the job and its tickets, the place the step ran, the tree, the exit code, the wait for a gate slot, the cache report, the child instance, and one output file per red step in place of one <code>gate.log</code> that the next red overwrites.<sup><a href="#s2">[2]</a><a href="#s5">[5]</a></sup></p>
+    <p><span class="label">Gives</span>First-handoff pass rate per gate, flaky gates, gate time per feature.</p>
+  </li>
+  <li data-mark="G2">
+    <h4>The reason of a red handoff, in the log <span class="tag smaller">Smaller than in v1</span></h4>
+    <p><code>red-handoff.json</code> already holds what went red: its kind, the gate's name or the Customs check, the exit code and the resume count. It is a file of the job folder, and the next red overwrites it. <code>job-interrupted</code> gains those fields, and a job that Customs ends gains the check's id.<sup><a href="#s4">[4]</a></sup></p>
+    <p><span class="label">Gives</span>A session that fails the same check in every job points at a brief; one that fails the same gate points at the gate.</p>
+  </li>
+  <li data-mark="G3">
+    <h4>The configuration a job ran under <span class="tag same">As in v1</span></h4>
+    <p>The content hash of the pipeline on <code>job-launched</code>; each stored pipeline kept by that hash; each instruction file's content kept by the hash the launch already records. Today <code>pipeline.json</code> is overwritten, and an Apply logs the names of the changed fields and not their values.<sup><a href="#s6">[6]</a></sup></p>
+    <p><span class="label">Gives</span>A range of time that splits by configuration, and a ledger that can ask whether a figure moved after a change.</p>
+  </li>
+  <li data-mark="G4">
+    <h4>The ticket as launched <span class="tag closed">Closed by the rework</span></h4>
+    <p>A committed ticket's title and body are kept under their content hash, written once and never rewritten, and a job's <code>start.json</code> names the hash. A ticket holds no picture: User's pictures go to the product owner only, kept under the hash of their bytes for as long as a log record names them.<sup><a href="#s7">[7]</a></sup></p>
+  </li>
+  <li data-mark="G5">
+    <h4>A mark on everything an experiment writes <span class="tag same">As in v1</span></h4>
+    <p>Every job, gate step and token record of an experiment carries its experiment id and its repetition. No experiment credits a row, counts toward a ticket's bounds or appears in a figure of real work. Compounding's own spend is a figure of its own.</p>
+  </li>
+  <li data-mark="G6">
+    <h4>Compounding's own records <span class="tag same">Wider than in v1</span></h4>
+    <p>A run started and ended; a proposal and its fate, with who decided; what an accepted proposal became (a pipeline revision, a ticket, a constitution commit); an experiment with the phase it studies and its share of the launch slots; a person's eval; a quality agent's verdict; and a grading of an accepted change by a later run.</p>
+  </li>
+  <li data-mark="G7">
+    <h4>The session measurements the log drops <span class="tag new">New</span></h4>
+    <p>At a job's end the log keeps three token counts and a cost. The stream holds more: cache creation apart from input, thinking, the totals per model, the vendor's turn count and API time, the peak context. The agent port gains one capability, the measurements of a session, and the digest is built from its answer.<sup><a href="#s3">[3]</a></sup></p>
+  </li>
+</ol>
+
+<h3>Where the records live</h3>
+<ul>
+  <li><b>Behind the store port.</b> Every stored record of compounding is a record of <code>BoardStore</code> with a kind of its own. No code outside the local adapter names its path.<sup><a href="#s8">[8]</a></sup></li>
+  <li><b>Raw logs stay local.</b> Event logs, worktrees and job folders are outside the store by design. So the forge that ran a job writes its digest when the job ends.</li>
+  <li><b>Served, not read.</b> Gaia gets figures, proposals and experiments as documents of the Hephaestus API and starts a run through a command. Cost joins the served documents here for the first time.</li>
+</ul>
+<div class="note"><b>What gathering costs.</b> A log record of an unknown kind, or with an unknown word of a stored vocabulary, refuses the whole log, so an older program cannot read a log that holds the first new record. New records, documents and commands only add, so the system version's minor increases; it is 4.0 today. The rework's rule holds: nothing that exists has to be kept.</div>
+<div class="note warn"><b>Retention.</b> Job folders are still kept without a bound. The owner's rule: keep the raw logs of the newest 100, a count and never an age, as a setting of the board. The digest, the gate step records and the launch files are small and stay for good, so the digest must be written before the raw logs can go.</div>
+</section>
+
+<section id="metrics">
+<h2>Metrics</h2>
+<p class="lede">A metric maps one feature record to one number, and it is deterministic. The owner decided that on 16 November and confirmed on 23 November that forge starts there.</p>
+<div class="cards">
+  <div class="card"><h4>The contract, proposed</h4><p>A metric is a command line, as a gate is, so forge knows no language. It gets the feature record and read access to the start tree and the delivered tree, and writes a value and a unit. One that must run something runs confined, as a gate does.</p></div>
+  <div class="card"><h4>The test suite</h4><p>Each metric comes with small feature records and trees whose value is known. A change of the definition that moves a known value fails the suite. A board's metrics live in a tracked folder and land by a ticket.</p></div>
+  <div class="card"><h4>One runner serves two designs</h4><p>Forge runs gate lines and prepare steps confined today, and no other line. The phases-and-hooks design needs the same for a command hook: a confined, bounded line on a snapshot.<sup><a href="#s10">[10]</a></sup></p></div>
+</div>
+
+<h3>When a metric is measured</h3>
+<div class="tablewrap"><table><thead><tr><th>When</th><th>How</th><th>For</th></tr></thead><tbody>
+<tr><td>In a run, over the range</td><td>Code hands each feature record to each metric</td><td>Every metric. Past features are graded on the first day, and a metric defined later grades old work</td></tr>
+<tr><td>At each delivery</td><td>A hook after the merge that blocks nothing, once hooks exist. The owner's own example of such a hook is a statistics tracker<sup><a href="#s10">[10]</a></sup></td><td>A metric a board wants on every feature without asking</td></tr>
+</tbody></table></div>
+
+<h3>The metrics named so far</h3>
+<div class="tablewrap"><table><thead><tr><th>Metric</th><th>Named by</th><th>Kind</th><th>Reads</th><th>State of its data</th></tr></thead><tbody>
+<tr><td>Failing gates: red steps over all steps, and the share of gates green at the first handoff</td><td>Both</td><td><span class="tag own">Forge's own</span></td><td>Gate steps</td><td>Needs G1</td></tr>
+<tr><td>Duration of the gates</td><td>Whitepaper</td><td><span class="tag own">Forge's own</span></td><td>Gate steps</td><td>Recorded per step; per feature it needs G1</td></tr>
+<tr><td>Tokens per phase</td><td>Whitepaper</td><td><span class="tag own">Forge's own</span></td><td>Digests</td><td>Derived</td></tr>
+<tr><td>Rework in agent reviews</td><td>Whitepaper</td><td><span class="tag own">Forge's own</span></td><td><code>review-recorded</code></td><td>Recorded</td></tr>
+<tr><td>Rework by a person</td><td>Whitepaper</td><td><span class="tag own">Forge's own</span></td><td>What a person did</td><td>Partly recorded</td></tr>
+<tr><td>Rewrites of its own approach: lines written that are not in the delivered change; files created and then deleted; edits of a region already edited</td><td>Owner, 16 Nov</td><td><span class="tag own">Forge's own</span></td><td>Digests, the change</td><td>Derived</td></tr>
+<tr><td>Comment lines added; comment runs longer than the repository's rule allows</td><td>Both</td><td><span class="tag board">The board's, static</span></td><td>The change</td><td>Derived</td></tr>
+<tr><td>Anti-slop checks</td><td>Whitepaper</td><td><span class="tag board">The board's, static</span></td><td>The change</td><td>A tool the board names</td></tr>
+<tr><td>Unneeded tests: test cases the feature added that also pass on the start tree</td><td>Owner, 16 Nov</td><td><span class="tag board">The board's, executing</span></td><td>Both trees</td><td>Derived</td></tr>
+<tr><td>Code coverage by feature: the share of the changed lines that the feature's tests run</td><td>Whitepaper</td><td><span class="tag board">The board's, executing</span></td><td>The delivered tree</td><td>Derived</td></tr>
+<tr><td>Code complexity</td><td>Whitepaper, as an agent's analysis</td><td><span class="tag board">The board's, static</span> with a complexity tool; else <span class="tag reserved">Reserved</span></td><td>The change</td><td>Derived</td></tr>
+<tr><td>Test quality per criteria</td><td>Whitepaper</td><td><span class="tag reserved">Judged: reserved</span></td><td>Both trees</td><td></td></tr>
+<tr><td>Adherence to the coding conventions</td><td>Whitepaper</td><td><span class="tag reserved">Judged: reserved</span></td><td>The change, the constitution</td><td></td></tr>
+</tbody></table></div>
+
+<div class="note warn"><b>Judged metrics are reserved for later.</b> The whitepaper's three are an agent's score of a feature against a brief. What this version found is kept for the one that takes them up: a judged value is not a measured figure and is shown apart; a judge has a calibration set of a person's scores in place of a test suite; a judge costs about as much as a review. Nothing here blocks them: a value is stored with its metric's version, so a second kind can sit beside the first.</div>
+</section>
+
+<section id="experiments">
+<h2>Experiments</h2>
+<p class="lede">An experiment is a tool. A run can end in proposals that User accepts on the figures alone. When one is wanted, it replays a delivered ticket, the case study, and User says which phase it compounds.</p>
+
+<h3>The subject of an experiment</h3>
+<div class="controls" id="subjectControls">
+  <button class="chip on" data-subject="build">The build</button>
+  <button class="chip" data-subject="plan">The plan</button>
+  <button class="chip" data-subject="spec">The spec</button>
+  <button class="chip" data-subject="review">The review</button>
+</div>
+<figure class="figure">
+<svg viewBox="0 0 960 150" role="img" aria-label="Which phases an experiment keeps static, runs, or leaves out, by its subject">
+  <g id="phase-spec"><rect class="b" x="32" y="24" width="160" height="72" rx="8"/><text class="th" x="48" y="52">Spec</text><text class="ts" x="48" y="72">kept static</text></g>
+  <g id="phase-plan"><rect class="b" x="216" y="24" width="160" height="72" rx="8"/><text class="th" x="232" y="52">Plan</text><text class="ts" x="232" y="72">kept static</text></g>
+  <g id="phase-build"><rect class="ba" x="400" y="24" width="160" height="72" rx="8"/><text class="th" x="416" y="52">Build</text><text class="ts" x="416" y="72">runs, changed</text></g>
+  <g id="phase-review"><rect class="ba" x="584" y="24" width="160" height="72" rx="8"/><text class="th" x="600" y="52">Review</text><text class="ts" x="600" y="72">runs</text></g>
+  <g id="phase-delivery"><rect class="ba" x="768" y="24" width="160" height="72" rx="8"/><text class="th" x="784" y="52">Delivery</text><text class="ts" x="784" y="72">on its own reference</text></g>
+  <path class="ar" marker-end="url(#ah)" d="M192 60 L216 60"/>
+  <path class="ar" marker-end="url(#ah)" d="M376 60 L400 60"/>
+  <path class="ar" marker-end="url(#ah)" d="M560 60 L584 60"/>
+  <path class="ar" marker-end="url(#ah)" d="M744 60 L768 60"/>
+  <text class="ts" x="32" y="128">Grey: kept static as input, by its hash. Orange: runs in the experiment. Dashed: does not run.</text>
+</svg>
+<figcaption id="subjectCaption"></figcaption>
+</figure>
+<p>The build, the plan and the spec are the owner's answers of 23 November: the spec or the plan is compounded in isolation, so the step runs alone, the experiment ends at the artifact it puts out, and the two artifacts are compared. The review is the document's row, by the same rule. The plan is a phase only once the phases-and-hooks design is built.<sup><a href="#s10">[10]</a></sup> Inside its subject an experiment asks nobody: it passes an approval itself and records that, and a session that asks a question ends its repetition there.</p>
+
+<h3>What a replay needs</h3>
+<div class="tablewrap"><table><thead><tr><th>Need</th><th>State</th><th></th></tr></thead><tbody>
+<tr><td>The tree the feature started on</td><td><code>startCommit</code> in <code>start.json</code>, on the main line's history</td><td><span class="tag have">Have</span></td></tr>
+<tr><td>The ticket as committed</td><td>Kept by its content hash</td><td><span class="tag have">Have</span></td></tr>
+<tr><td>The baseline's feature record</td><td>Derived, for a ticket delivered through Hephaestus whose records exist</td><td><span class="tag derived">Derived</span></td></tr>
+<tr><td>A job that does not land on the main line</td><td>Nothing today. A gate profile and a pipeline check run gates in a fresh worktree, and neither runs an agent</td><td><span class="tag missing">Missing</span></td></tr>
+<tr><td>A target to deliver on</td><td>A reference at the start commit that only that repetition moves</td><td><span class="tag missing">Missing</span></td></tr>
+<tr><td>A place to run</td><td>A copy of the repository cut at the start commit, one per experiment set</td><td><span class="tag missing">Missing</span></td></tr>
+<tr><td>The changed configuration</td><td>A pipeline draft and instruction files that apply to the experiment only</td><td><span class="tag missing">Missing</span></td></tr>
+<tr><td>A cap on its spend</td><td><code>billing.maxBudgetUsd</code> caps a launch today. A set needs a cap of its own, shown with the estimate</td><td><span class="tag part">In part</span></td></tr>
+<tr><td>Launch slots</td><td>User gives the set a share of the board's launch slots when starting it. Real work keeps the rest</td><td><span class="tag missing">Missing</span></td></tr>
+</tbody></table></div>
+
+<div class="cards">
+  <div class="card"><h4>Which tickets are candidates</h4><p>One that Hephaestus delivered alone on the main line. Not: delivered by hand, in a group's release or in a bundle; a crossing ticket, whose stages ran under several entities; a ticket that declared a need, or whose group holds a fix ticket of a dependent.</p></div>
+  <div class="card"><h4>What the session must not see</h4><p>Replays leak: an agent in a public benchmark found the fix by listing the repository's references.<sup><a href="#s18">[18]</a></sup> So a case study runs in a copy that holds the start commit's history and nothing later. Customs and confinement apply as in any job.</p></div>
+  <div class="card"><h4>How far the baseline carries</h4><p>The original is one run, by an older forge, pipeline and model. So a set holds one experiment with no change, the control, and each experiment runs three times, unless User sets otherwise.<sup><a href="#s17">[17]</a></sup></p></div>
+</div>
+
+<h3>How a comparison is judged</h3>
+<ol>
+  <li><b>The metric suite.</b> Every metric of the board grades both results. This is the score the ledger keeps.</li>
+  <li><b>The person.</b> The person who compares may fill in a small eval: a few criteria, a score each. It is always open: the person sees which result is the original, which the experiment made, and what was changed.</li>
+  <li><b>A quality agent, where the board has one.</b> It judges what no metric holds: whether the feature meets the ticket's Acceptance as well as the original does.</li>
+</ol>
+</section>
+
+<section id="improve">
+<h2>What it would improve</h2>
+<p class="lede">The whitepaper's six areas, and the workflow. Every change is one forge can already store, unless its row says otherwise. An accepted proposal goes the way that kind of change goes today.</p>
+<div id="levers"></div>
+<div class="note"><b>Three limits.</b> Instruction files grow, and growth costs: compounding proposes one small edit at a time, and cuts first.<sup><a href="#s19">[19]</a><a href="#s20">[20]</a></sup> A shipped brief is never edited where it is installed, so a board's change is a file of its own. And a ticket's own model is not applied by any launch, so a model per role can be stored and a model per ticket size cannot.</div>
+<p>The pipeline agent's <code>advise</code> mode is the nearest thing forge has. It is still given the last 200 <code>gate-ran</code> lines, each an outcome and a tree, which is too little to advise from.</p>
+</section>
+
+<section id="proposals">
+<h2>Proposals and versions</h2>
+<p class="lede">The whitepaper leaves who approves to the team and to company policy. Forge is one owner on one machine, so every proposal is User's to accept. The shape still fits a team later.</p>
+<ul>
+  <li><b>A proposal changes nothing.</b> It is a record with its evidence. Accepting it starts a pipeline setup that User applies, a ticket that passes ticket review, or the constitution commit of an Apply. So every approval forge has also guards a compounded change.</li>
+  <li><b>A proposal names its lever.</b> A board can then list the levers compounding may propose on, which is the whitepaper's whitelist. Proposed, not decided.</li>
+  <li><b>A proposal on the workflow is marked as one.</b> Gates, phases, hooks and approvals are the workflow.</li>
+</ul>
+<div class="tablewrap"><table><thead><tr><th>Element</th><th>Its version</th><th>State</th></tr></thead><tbody>
+<tr><td>The pipeline</td><td><code>PipelineUtil.contentHashOf</code></td><td>Computed; kept nowhere per job: G3</td></tr>
+<tr><td>An instruction file: a brief, the constitution</td><td>The hash in <code>instructions-&lt;n&gt;.json</code></td><td>Recorded per launch; the content is not kept: G3</td></tr>
+<tr><td>The constitution on the main line</td><td>Its commit</td><td>Recorded on <code>pipeline-applied</code></td></tr>
+<tr><td>A gate phase</td><td>The phase hash on a row's green</td><td>Recorded</td></tr>
+<tr><td>A metric</td><td>The hash of its definition</td><td>Proposed</td></tr>
+<tr><td>An agent as a whole</td><td>The hash over a role's instruction file hashes, its model and its effort</td><td>Proposed</td></tr>
+</tbody></table></div>
+<p><b>The audit trail</b> is compounding's own records. For one change they answer, in order: which figures led to it, who accepted it, what it became, which configuration hashes changed with it, and whether a later run saw the figure move.</p>
+<div class="note"><b>The reminder.</b> Of the whitepaper's three ways, the owner chose two: forge reminds, and User starts the run. One notice per board, two weeks after the newest run, silent when nothing was delivered since. It launches nothing and names no command.</div>
+</section>
+
+<section id="decisions">
+<h2>Decisions</h2>
+<p class="lede">The owner's answers of 23 November come first. The decisions of 16 November are carried from version 1. The open list is what remains.</p>
+<h3>Decided on 23 November</h3>
+<div class="tablewrap"><table><thead><tr><th>Topic</th><th>Decision</th></tr></thead><tbody>
+<tr><td>Kinds of metric</td><td>Forge starts with deterministic metrics. A metric that an agent judges is reserved for later, and so is the question of when such a judge runs</td></tr>
+<tr><td>Verdict of a comparison</td><td>The metric suite, then the person's eval, then a quality agent where a board has one</td></tr>
+<tr><td>The person's eval</td><td>Always open: the person sees which result is the original, which the experiment made, and what was changed</td></tr>
+<tr><td>Figures</td><td>Always there, without a run. A run is the analysis and its proposals</td></tr>
+<tr><td>Experiments and real work</td><td>User gives an experiment set a share of the launch slots</td></tr>
+<tr><td>The subject of an experiment</td><td>User says which phase is compounded. The spec or the plan is compounded in isolation: it runs alone, the experiment ends at the artifact it puts out, and that artifact is what is compared. When the build is the subject, the spec and the plan are kept static as its input</td></tr>
+</tbody></table></div>
+
+<details>
+<summary>Decided on 16 November, carried from version 1</summary>
+<div class="tablewrap"><table><thead><tr><th>Topic</th><th>Decision</th></tr></thead><tbody>
+<tr><td>Trigger</td><td>User starts every run. Forge keeps the time since the last one and reminds every two weeks</td></tr>
+<tr><td>Scope</td><td>Per entity in a monorepo</td></tr>
+<tr><td>Analysis</td><td>Numbers, over a time range User gives</td></tr>
+<tr><td>Sessions counted</td><td>Jobs Hephaestus ran, and their subagents. No session User ran by hand</td></tr>
+<tr><td>Case study</td><td>A copy of the tree as it was when the feature started; build, review and deliver with the new configuration. The compounding proposes the experiments, and several may run</td></tr>
+<tr><td>Baseline</td><td>The original delivered feature</td></tr>
+<tr><td>Verdict</td><td>The metrics, and the compounding or evaluation agent. Replaced on 23 November</td></tr>
+<tr><td>Metrics</td><td>Anything measurable deterministically. More can be added with a compounding agent, which spars with User on the definition and writes the test suite</td></tr>
+<tr><td>What the compounding agent reads</td><td>The figures and the job digests. It opens a raw session log only when User points it at one</td></tr>
+<tr><td>Control and repetitions</td><td>One no-change control and three repetitions per experiment by default. User sets both per run, after seeing the estimated cost</td></tr>
+<tr><td>A board's metrics</td><td>Tracked in the repository and landed by a ticket, so the repository's own gates run their test suites</td></tr>
+<tr><td>Executing metrics</td><td>Allowed, confined as a gate is</td></tr>
+<tr><td>Where an experiment delivers</td><td>On a reference of its own at the start commit. It never shows on the board</td></tr>
+<tr><td>How the history is cut</td><td>Each experiment runs in a copy of the repository that holds the start commit's history and nothing later</td></tr>
+<tr><td>Case study candidates</td><td>A ticket Hephaestus delivered alone on the main line</td></tr>
+<tr><td>The reminder's unit</td><td>One per board, and silent when nothing was delivered since the last run</td></tr>
+<tr><td>Retention of raw logs</td><td>Configurable, by count and not by age. The default keeps the newest 100</td></tr>
+<tr><td>Briefs forge ships</td><td>Compounding either copies a shipped brief and changes the copy, or adds a brief with additions. The shipped briefs stay lean</td></tr>
+<tr><td>Views</td><td>Designed later. They are Gaia's now</td></tr>
+</tbody></table></div>
+</details>
+
+<h3>Open, for the owner</h3>
+<div id="openQuestions"></div>
+<p class="cap">Reserved by the owner, and so no question of this version: judged metrics, and when a judge runs.</p>
+
+<h3>Proposed by the document, not decided</h3>
+<ul>
+  <li>A metric of forge's own is computed for every delivery, since it costs no model call.</li>
+  <li>A board lists the levers compounding may propose on; the default is all of them.</li>
+  <li>An agent has a version as a whole: the hash over its instruction file hashes, its model and its effort.</li>
+  <li>An experiment set gets a cap on its spend, shown with the estimate.</li>
+  <li>The two weeks of the reminder become a setting of the board.</li>
+  <li>The build order below.</li>
+</ul>
+<p class="cap">Left to the owner's reading of the clock rules: whether the reminder takes a row in forge's Deviations table. It launches nothing and only selects what is shown.</p>
+</section>
+
+<section id="stages">
+<h2>Among the other stages</h2>
+<p class="lede">The roadmap places compounding second of seven: it needs nothing outside the machine, and it gives every later stage a way to measure itself.<sup><a href="#s12">[12]</a></sup></p>
+<div class="tablewrap"><table><thead><tr><th>Stage</th><th>What compounding gives it</th><th>What it gives compounding</th></tr></thead><tbody>
+<tr><td>3. A configurable workflow: phases and hooks</td><td>The figures that say what a hook, a plan or an approval costs and catches</td><td>The runner for a confined line on a snapshot; a hook after the merge, where a metric runs at each delivery; the audit trail of what a person did; the plan, as one more phase to count and to replay</td></tr>
+<tr><td>4. Company systems at the boundary</td><td>A figure to report outward</td><td>A way out: in the phases-and-hooks design a hook after the merge reports to another system. CI becomes a check to improve</td></tr>
+<tr><td>5. Shared state, many machines</td><td>The cost and rework of a ticket, which say whether a second machine pays</td><td>One record of figures for the factory, since every digest goes through the store</td></tr>
+<tr><td>6. Teams and the company</td><td>Burn rate per ticket and per size class, the metric values and the run records, served as documents; an agent's version, which an agent store needs</td><td>Roles, so a proposal goes to who may accept it; whitelists; a policy for how often a team compounds</td></tr>
+<tr><td>7. Other workflows</td><td>A metric and a proposal are not tied to software</td><td>Features that are not code</td></tr>
+</tbody></table></div>
+
+<h3>A build order, proposed</h3>
+<ol class="steps">
+  <li>
+    <h4>Figures</h4>
+    <p><span class="label">Adds</span>G1, G2, G3 and G7, the digest, the feature record, the served documents and Gaia's view of them.</p>
+    <p><span class="label">Needs</span>Nothing from the other stages. This step calls no model.</p>
+  </li>
+  <li>
+    <h4>Metrics and proposals</h4>
+    <p><span class="label">Adds</span>The metrics of forge's own, the compounding run, the proposal records and the reminder. A board's metrics follow once the runner exists.</p>
+  </li>
+  <li>
+    <h4>Experiments</h4>
+    <p><span class="label">Adds</span>The job that does not land, the cut copy, G5, the person's eval and the optional quality agent.</p>
+  </li>
+</ol>
+</section>
+
+<section id="risks">
+<h2>Risks</h2>
+<div class="tablewrap"><table><thead><tr><th>Risk</th><th>What the sources say</th><th>Guard in this design</th></tr></thead><tbody>
+<tr><td>Noise read as improvement</td><td>Single runs of one agent task swing by points even at temperature zero<sup><a href="#s17">[17]</a></sup></td><td>Repetitions, a control, and a report that says when the sample decides nothing</td></tr>
+<tr><td>A replay that saw the answer</td><td>Agents use any reference or history left in reach<sup><a href="#s18">[18]</a></sup></td><td>A copy cut at the start commit; the ticket as committed, without Handoff or Reviews</td></tr>
+<tr><td>Instructions that bloat or collapse</td><td>Context files cost and seldom help; whole rewrites collapse<sup><a href="#s19">[19]</a><a href="#s20">[20]</a></sup></td><td>Small edits, cuts first, each tested on a case study</td></tr>
+<tr><td>Fitting the rules to three tickets</td><td>Evaluations need held-out cases;<sup><a href="#s23">[23]</a></sup> the whitepaper names it: recursive overfitting on bad practice</td><td>Experiments on more than one case ticket; the ledger grades a change on later work; nothing is applied automatically</td></tr>
+<tr><td>Fewer tokens, worse features</td><td>Accuracy peaks at a middle cost;<sup><a href="#s23">[23]</a></sup> cheaper models can add rework</td><td>The figure is cost per delivered ticket with its rework, never tokens alone</td></tr>
+<tr><td>A judge that drifts, flatters or costs a review per feature</td><td>The phases-and-hooks design warns that a builder can write for the judge, and that judges multiply false reds<sup><a href="#s10">[10]</a></sup></td><td>Judged metrics are reserved for later; forge starts with deterministic ones</td></tr>
+<tr><td>A person's eval that proves nothing</td><td>One person, a few comparisons, made in the open</td><td>Stored as a score beside the metrics, never in their place</td></tr>
+<tr><td>Experiments that starve real work</td><td>An experiment set is some thirty jobs</td><td>User gives a set its share of the launch slots; a cap on a set's spend</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="changes">
+<h2>From v1 to v2</h2>
+<div class="tablewrap"><table><thead><tr><th>What changed</th><th>Why</th></tr></thead><tbody>
+<tr><td>The Bridge is gone and Gaia is the window; the Overseer is Hephaestus; the Watcher is Talos</td><td>The rework</td></tr>
+<tr><td>Compounding's records go through the store port, and its views and commands through the Hephaestus API</td><td>The rework: <code>BoardStore</code>, the contract package, typed mappers</td></tr>
+<tr><td>The digest is built from the agent port's measurements of a session</td><td>The rework: only the agent port's adapter reads the vendor's stream</td></tr>
+<tr><td>G1 shrank from a new record to the join of a step with its job</td><td>The rework records <code>pipeline-step-ran</code></td></tr>
+<tr><td>G2 moves a reason from a file to the log</td><td>The rework writes <code>red-handoff.json</code></td></tr>
+<tr><td>G4 is closed</td><td>The rework keeps committed content by hash, and pictures by the hash of their bytes</td></tr>
+<tr><td>G7 is new: the measurements the log drops</td><td>Thinking, cache creation and the totals per model are in the stream and nowhere else</td></tr>
+<tr><td>Entities are built, and a crossing ticket is no case study candidate</td><td>The rework</td></tr>
+<tr><td>"Phase" inside a job is "activity"</td><td>The pipeline owns the word, and the whitepaper measures tokens per phase</td></tr>
+<tr><td>Judged metrics are named, and reserved for later</td><td>The whitepaper; the owner's answer of 23 November</td></tr>
+<tr><td>A metric may be measured at each delivery</td><td>The whitepaper, and the hook after the merge of the phases-and-hooks design</td></tr>
+<tr><td>The person's eval, made in the open, and the quality agent as an option</td><td>The whitepaper; the owner's answer of 23 November</td></tr>
+<tr><td>Proposals, versions and the audit trail have a section; an agent has a version as a whole</td><td>The whitepaper</td></tr>
+<tr><td>More areas to improve: skills and the repository's instruction file, architecture, the codebase, the workflow</td><td>The whitepaper; the phases-and-hooks design</td></tr>
+<tr><td>Figures are there without a run</td><td>The whitepaper's company-level monitoring needs a burn rate at any time; the owner's answer of 23 November</td></tr>
+<tr><td>An experiment names the phase it studies and gets a share of the launch slots. One on the spec or the plan ends at that artifact</td><td>The owner's answers of 23 November</td></tr>
+<tr><td>The other stages and a build order</td><td>The whitepaper's road</td></tr>
+</tbody></table></div>
+<p class="cap">Version 1 is kept as a dated record.<sup><a href="#s13">[13]</a></sup></p>
+</section>
+
+<section id="sources">
+<h2>Sources</h2>
+<p class="cap">Sources 1 to 10 were read in the repository on 23 November 2026, at commit <code>0f1e760f</code>. Sources 14 to 27 are carried from version 1 as opened on 16 November 2026, and were not opened again. Not confirmed by the check of the code: whether the gate run of the merge before User's accept writes step records, and how a step's verdict file is named per child instance.</p>
+<ol class="sources" id="sourceList"></ol>
+</section>
+
+</main>
+</div>
+
+<script>
+const FIGURES = [
+  {about:"Tokens", figure:"Tokens per call: fresh input, cache creation, cache read, output", source:"<code>usage</code> of each assistant line in <code>events-&lt;n&gt;.ndjson</code>, appended by Talos", state:"derived", note:""},
+  {about:"Tokens", figure:"Thinking tokens", source:"The result line of a session and its totals per model", state:"derived", note:"Per session, not per call. The stream mapper drops them"},
+  {about:"Tokens", figure:"Tokens per job in the log", source:"<code>agent-stopped</code>: the input total, cache read, output", state:"recorded", note:"Cache creation is not apart, and thinking is absent"},
+  {about:"Tokens", figure:"Cost in USD", source:"<code>agent-stopped.costUsd</code>, summed over the job's sessions", state:"recorded", note:"When the vendor named it. No served document carries it"},
+  {about:"Tokens", figure:"Split over the job's own session and its subagents", source:"<code>TokenCrediting.sessionTokensOf</code>; only the total is stored", state:"derived", note:""},
+  {about:"Tokens", figure:"Per role, job kind and attempt", source:"<code>job-launched</code>", state:"recorded", note:""},
+  {about:"Tokens", figure:"Per pipeline phase", source:"The job kind", state:"derived", note:"The whitepaper's tokens used per phase"},
+  {about:"Tokens", figure:"Per model and effort", source:"<code>launch-settings.json</code>; the model's id on every assistant turn", state:"derived", note:"<code>agent-stopped</code> names neither"},
+  {about:"Tokens", figure:"Per ticket", source:"A row's <code>tokens</code> in <code>progress.json</code>", state:"recorded", note:"Input only; a bundle's tokens are split evenly"},
+  {about:"Tokens", figure:"Per entity and stage", source:"<code>job-launched.entity</code> and <code>stage</code>", state:"recorded", note:"Since entities were built"},
+  {about:"Tokens", figure:"Per configuration", source:"Which pipeline and which instruction files the job ran under", state:"gap", note:"G3"},
+  {about:"Tokens", figure:"Against a budget", source:"<code>billing.maxBudgetUsd</code> caps each launch; the decision <code>budget-reached</code>", state:"part", note:"Recorded as a decision. No figure says how near a job came"},
+  {about:"Turns", figure:"API calls of the job's own session", source:"<code>agent-stopped.apiCallCount</code>", state:"recorded", note:""},
+  {about:"Turns", figure:"API calls of its subagents", source:"Assistant lines with a parent tool use", state:"derived", note:""},
+  {about:"Turns", figure:"Turns as the vendor counts them, and its API time", source:"The raw result line; the stream mapper maps neither", state:"derived", note:""},
+  {about:"Turns", figure:"Chat turns sent to the session", source:"<code>job-messaged</code>, <code>job-reopened</code>", state:"recorded", note:""},
+  {about:"Turns", figure:"Sessions per job: resumes and their causes", source:"<code>job-interrupted</code>, <code>job-resumed</code>, <code>job-resume-instructed</code>", state:"recorded", note:"Thirteen causes now"},
+  {about:"Turns", figure:"Context at the end, at its peak, and the calls past 200,000 tokens", source:"Per-call usage", state:"derived", note:"<code>agent-stopped.endContextTokens</code> holds the end"},
+  {about:"Gates", figure:"Gate runs and their outcome", source:"<code>gate-ran</code>: tree, outcome, cache reports", state:"recorded", note:"No job, no ticket, no gate name. Shipping code always writes <code>cached: false</code>"},
+  {about:"Gates", figure:"Each step that ran", source:"<code>pipeline-step-ran</code>: kind, name, phase, entity, run time, ending", state:"recorded", note:"Since the rework. No job, ticket, tree or exit code"},
+  {about:"Gates", figure:"Which gate went red, for which job", source:"Job folder files: the gate run manifest, a verdict per step, <code>gate.log</code>, <code>red-handoff.json</code>", state:"gap", note:"In the log: G1, G2. A later run overwrites the files"},
+  {about:"Gates", figure:"Red handoffs per job", source:"<code>job-interrupted</code> with the cause <code>handoff-red</code>", state:"part", note:"Without what went red: G2"},
+  {about:"Gates", figure:"First-handoff pass rate per gate", source:"", state:"gap", note:"G1"},
+  {about:"Gates", figure:"Flaky gates: two endings on one tree", source:"A step names no tree", state:"gap", note:"G1"},
+  {about:"Gates", figure:"A prepare step or an install that failed", source:"The incident <code>setup-failed</code>; a step record", state:"part", note:"Without its job: G1"},
+  {about:"Gates", figure:"Reds on the Airlock's merged tree", source:"<code>gate-ran</code> and step records, with no job", state:"gap", note:"G1"},
+  {about:"Gates", figure:"A dependent's gates on a package build", source:"Steps named <code>&lt;entity&gt;: &lt;gate&gt;</code>; the decision <code>dependent-broken</code>", state:"part", note:"Without its job: G1"},
+  {about:"Gates", figure:"A Customs refusal", source:"<code>red-handoff.json</code> or <code>job-ended.cause</code>", state:"gap", note:"The log never holds the check's id: G2"},
+  {about:"Gate time", figure:"Wall time of a step", source:"<code>pipeline-step-ran.runMilliseconds</code>, a sleep not counted", state:"recorded", note:"Per job it needs G1"},
+  {about:"Gate time", figure:"The wait for a machine-wide gate slot", source:"Nothing", state:"gap", note:"G1"},
+  {about:"Gate time", figure:"Time of a gate on a quiet machine", source:"<code>gate-profiled.elapsedMilliseconds</code>, on User's press", state:"recorded", note:"Not a job's run"},
+  {about:"Gate time", figure:"What the cache saved", source:"<code>cacheReports</code>: hit, partial, miss", state:"recorded", note:"With durations it becomes time"},
+  {about:"Gate time", figure:"The checks a session runs itself", source:"Shell calls with a check fragment, and their stamps", state:"derived", note:"Paid in tokens as well"},
+  {about:"People", figure:"A ticket waited on User", source:"<code>decision-opened</code> to <code>decision-answered</code>", state:"recorded", note:""},
+  {about:"People", figure:"A person sent text to a session", source:"<code>job-messaged</code> without <code>byHephaestus</code>", state:"recorded", note:""},
+  {about:"People", figure:"A ticket went back to draft", source:"<code>ticket-unreadied</code>", state:"recorded", note:""},
+  {about:"People", figure:"A person approved a ticket or accepted a merge", source:"<code>ticket-approved</code>, <code>merge-acceptance-set</code>", state:"recorded", note:""},
+  {about:"People", figure:"An accept on a red, an edit of an artifact, findings sent to the builder, a reopening, a move by hand", source:"The audit trail of the phases-and-hooks design", state:"gap", note:"Not built; that design gathers it"},
+  {about:"People", figure:"Lines changed after a person's findings", source:"The commits between those findings and the next handoff", state:"gap", note:"Derived once the findings are recorded"},
+  {about:"Review", figure:"Review rounds, findings by class and severity, reworked lines", source:"<code>review-recorded</code>", state:"recorded", note:""},
+  {about:"Review", figure:"Lead time of a ticket", source:"The span from <code>ticket-committed</code> to <code>merge-landed</code>", state:"derived", note:""}
+];
+const STATE_LABEL = {recorded:"Recorded", derived:"Derived", part:"In part", gap:"Gap"};
+
+const SUBJECTS = {
+  build:  {phases:{spec:"static", plan:"static", build:"changed", review:"runs", delivery:"runs"},
+           caption:"The build is the subject. The ticket as committed and the accepted plan are kept static as its input. Build, review and delivery run, and two delivered features are compared on their feature records."},
+  plan:   {phases:{spec:"static", plan:"changed", build:"none", review:"none", delivery:"none"},
+           caption:"The plan is the subject, once it is a phase. The ticket as committed is kept static. The plan phase runs alone, the experiment ends at the plan, and two plans are compared."},
+  spec:   {phases:{spec:"changed", plan:"none", build:"none", review:"none", delivery:"none"},
+           caption:"The spec is the subject. Its input is the request as User gave it to the intake. The intake runs alone, the experiment ends at the ticket, and two tickets are compared. The intake is a conversation with a person, so how far this goes is an open question."},
+  review: {phases:{spec:"static", plan:"static", build:"static", review:"changed", delivery:"runs"},
+           caption:"The review is the subject. The commit the builder handed over is kept static. Review and delivery run, and two delivered features are compared. This row is the document's, by the same rule; the owner named the other three."}
+};
+const PHASE_STATUS = {
+  static:  {boxClass:"b",  text:"kept static", faded:false},
+  changed: {boxClass:"ba", text:"runs, changed", faded:false},
+  runs:    {boxClass:"ba", text:"runs", faded:false},
+  none:    {boxClass:"bd", text:"does not run", faded:true}
+};
+
+const LEVERS = [
+  {area:"The agents themselves", lever:"The briefs of a role: builder, reviewer, re-reviewer and conflict re-reviewer per entity; product owner and pipeline agent per forge",
+   signals:"Tokens spent in Orient; the same files read in job after job; a Customs check that refuses again and again; permissions denied again and again; questions to User that repeat; self-checks that double the gates; the size of each brief times the calls that carry it",
+   changes:"A brief of the board's with additions, after the shipped one; or a changed copy of the shipped brief in its place; say once where things are; remove what no job needs",
+   lands:"The role's instructions in the pipeline, through Apply; a tracked file through a ticket that names it"},
+  {area:"Guidance: the constitution", lever:"One per entity",
+   signals:"Findings of the class convention that repeat; rules no finding and no gate ever cites; paths and commands in it that no longer exist; its size times the calls that carry it",
+   changes:"One rule added, cut or reworded at a time, never a rewrite; a rule turned into a gate",
+   lands:"The constitution commit of an Apply"},
+  {area:"Guidance: the repository's instruction file, skills, readme and docs", lever:"Tracked files. Forge never writes a repository's own instruction file",
+   signals:"Reads per path over many jobs; searches that repeat; a large document read whole for one fact; findings of the class docs; paths in a document that no longer exist",
+   changes:"A map of where things are; a split of a large document; a correction; a page for what sessions keep searching; a skill for a task sessions redo by hand",
+   lands:"A ticket, filed with the evidence"},
+  {area:"Architecture", lever:"The architecture rules of an entity's constitution, and tracked descriptions",
+   signals:"Findings about structure that repeat; a red architecture test; changes outside an entity's home that Customs sends back",
+   changes:"A description made exact; a rule turned into an architecture test",
+   lands:"A ticket, or the constitution commit. A description that a team may not edit and that forge injects is a later stage's: it needs roles"},
+  {area:"Models", lever:"The model and effort of a role, per entity",
+   signals:"Cost per delivered ticket by role, model, effort, ticket type and size; serious findings per review token; rounds per ticket; escaped bugs; the share of thinking in the output",
+   changes:"Another model or effort for one role",
+   lands:"The pipeline, through Apply"},
+  {area:"Checks", lever:"Gates with their phases, fix line, network line and prepare steps; the re-review threshold",
+   signals:"Reds at the first handoff per gate; tokens of the repairs each gate causes; wall time times runs; flaky outcomes; a gate that cannot run; cache misses; a red at the Airlock that an earlier phase could have caught; a finding class that returns in review after review and a check could hold",
+   changes:"Order cheap gates first; move a gate to another phase; split a slow gate; give a gate a fix line; add a gate or a deterministic tool for a repeating finding; remove or repair a flaky one; cut the output a red sends back",
+   lands:"A pipeline setup in update mode, the check that runs a changed gate twice, then Apply. CI outside forge is a later stage"},
+  {area:"Codebase and platform", lever:"The code itself; the machine's limits",
+   signals:"Files that draw the most rework, reds and reads; a gate that is slow on every tree; time waiting for a launch slot or a gate slot",
+   changes:"A ticket that pays a debt; a cache path for a gate; another concurrency limit",
+   lands:"A ticket, filed with the evidence; the board's and the machine's settings"},
+  {area:"The workflow, once phases and hooks exist", lever:"The plan phase, the hooks of each hook point, the approvals",
+   signals:"A hook's reds that a person accepts anyway; its cost per ticket and its time in the path; an approval's wait, and how many versions it took; plans that the build did not follow",
+   changes:"Move a noisy judge to halt for a person; drop a hook that never says no; switch the plan on for one entity",
+   lands:"Pipeline setup, through Apply. Marked as a change of the workflow"}
+];
+
+const OPEN_QUESTIONS = [
+  {question:"What measures a spec or a plan?",
+   explanation:"An experiment on either compares the two artifacts it put out, and a feature record does not describe one.",
+   reading:"With judged metrics reserved, the comparison rests on the person's eval, and on a deterministic metric of an artifact where a board defines one. That kind of metric is not designed."},
+  {question:"Is a replay of the spec worth comparing?",
+   explanation:"The intake is a conversation in which a person answers. A replay asks no person anything, so it can only run the product owner on the request as User first gave it.",
+   reading:""},
+  {question:"What does the retention count count?",
+   explanation:"The owner said 100 sessions.",
+   reading:"The newest 100 job folders, since a job's sessions share one folder and are measured together."},
+  {question:"Do experiment jobs count toward the retention bound?",
+   explanation:"A set of four experiments with three repetitions each is some thirty jobs.",
+   reading:"Experiment jobs are counted apart, so a set does not push real work past the bound."},
+  {question:"One change per experiment?",
+   explanation:"An experiment with one change says what caused a difference; one with several is cheaper and says less.",
+   reading:""},
+  {question:"What are the compounding agent and the quality agent?",
+   explanation:"Their job kinds, roles, models and what each may reach are not designed. A new job kind touches the job and role unions, a default brief, the launch settings, the Playbook and the log's vocabulary.",
+   reading:""},
+  {question:"Does a finding about a shipped brief reach forge itself?",
+   explanation:"A board solves it with a file of its own. Whether the finding also improves the shipped brief for every board is not decided. No forge tracks forge's own repository, so today it could only arrive as a ticket a person files there.",
+   reading:""}
+];
+
+const SOURCES = [
+  "foundry: <code>apps/forge/docs/research/compounding/data-and-improvements.md</code>, version 2 of 23 November 2026: the design document this page presents",
+  "foundry: <code>apps/forge/src/lib/tracker-model/constants/LogRecordSchema.ts</code>, <code>apps/forge/docs/cli.md</code> (the log, the job folder, stored files)",
+  "foundry: <code>apps/forge/src/services/hephaestus/EndedJobTokens.ts</code>, <code>apps/forge/src/services/lifecycle/TokenCrediting.ts</code>, <code>apps/forge/src/lib/talos/EventLog.ts</code>, <code>apps/forge/src/lib/agent-launch/AgentSessionEvent.ts</code>, <code>apps/forge/src/lib/claude-code/ClaudeStreamMapper.ts</code>",
+  "foundry: <code>apps/forge/src/services/hephaestus/</code> (JobLaunch, RedHandoff, InstructionFiles, LaunchSettings, PipelineAgentSessions)",
+  "foundry: <code>apps/forge/src/services/lifecycle/</code> (GateLineRun, GateRun, Customs), <code>apps/forge/src/services/hephaestus/</code> (GateRunSlots, GateProfiling, PipelineChecking, Airlocks)",
+  "foundry: <code>apps/forge/src/lib/tracker-model/</code> (Pipeline, PipelineUtil, Job, Ticket, ReviewStatistics, ReviewRecordVocabulary)",
+  "foundry: <code>apps/forge/src/adapters/tickets/CommittedContentFile.ts</code>, <code>apps/forge/docs/cli.md</code> (the kept content, the pictures)",
+  "foundry: <code>apps/forge/src/services/store/BoardStore.ts</code>, <code>apps/forge/src/StoreBoundary.spec.ts</code>, <code>apps/forge/src/AgentBoundary.spec.ts</code>, <code>packages/forge-contracts/constants/ForgeSystemVersions.ts</code>",
+  "foundry: <code>docs/monorepo/hephaestus-talos.md</code>, decisions 16, 24, 32 and 36, and section 4 (the store and the contract)",
+  "foundry: <code>docs/monorepo/context-pipeline.md</code>, as it stood in the working tree on 23 November 2026: decisions 4, 5 and 19, the plan, and risks 2, 3 and 5",
+  ["Agentic Software Factory: Structured Whitepaper, chapter 7","https://claude.ai/artifact/AjfAP5hJDYQrZT8dcAcbKc"],
+  ["The same document, tab Foundry on the road to the factory: stage 2","https://claude.ai/artifact/AjfAP5hJDYQrZT8dcAcbKc"],
+  "v1: <code>apps/forge/docs/research/compounding/data-and-improvements.md</code> at commit <code>1ba31404</code>, 16 November 2026",
+  ["The compound step, its retrospective and its ledger","https://every.to/guides/compound-engineering"],
+  ["Token spend of coding agents, and its spread","https://arxiv.org/abs/2604.22750"],
+  ["Evaluations from real tasks, trials, isolation","https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"],
+  ["Randomness of single runs","https://arxiv.org/abs/2602.07150"],
+  ["A replay that found the fix in the references","https://bayes.net/swebench-hack"],
+  ["Context files and their cost","https://arxiv.org/abs/2602.11988"],
+  ["Context collapse on a whole rewrite","https://arxiv.org/html/2510.04618v2"],
+  ["Accuracy degrading with input length","https://www.trychroma.com/research/context-rot"],
+  ["Instruction file size and conflicts","https://code.claude.com/docs/en/memory"],
+  ["Cost beside accuracy, and held-out cases","https://arxiv.org/abs/2407.01502"],
+  ["Flaky tests and their rate","https://www.trunk.io/blog/what-we-learned-from-analyzing-20-2-million-ci-jobs-in-trunk-flaky-tests-part-1"],
+  ["Test selection","https://engineering.fb.com/developer-tools/predictive-test-selection/"],
+  ["Rework as a delivery metric","https://dora.dev/guides/dora-metrics/history/"],
+  ["Repeated reminders","https://psnet.ahrq.gov/issue/effects-workload-work-complexity-and-repeated-alerts-alert-fatigue-clinical-decision-support"]
+];
+
+function escapeText(value){return String(value).replace(/[&<>]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[character]));}
+function plainTextOf(markup){return markup.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">");}
+
+const figureBody = document.querySelector("#figures tbody");
+const figureSearch = document.getElementById("figureSearch");
+const figureChips = Array.from(document.querySelectorAll("#figureControls .chip"));
+let activeState = "all";
+function renderFigures(){
+  const needle = figureSearch.value.trim().toLowerCase();
+  const visibleRows = FIGURES.filter(row => (activeState==="all"||row.state===activeState)
+    && (!needle || plainTextOf(row.about+" "+row.figure+" "+row.source+" "+row.note).toLowerCase().includes(needle)));
+  figureBody.innerHTML = visibleRows.map(row => "<tr><td>"+escapeText(row.about)+"</td><td>"+escapeText(row.figure)+"</td><td>"+row.source
+    +'</td><td><span class="tag '+row.state+'">'+STATE_LABEL[row.state]+"</span></td><td>"+row.note+"</td></tr>").join("");
+  document.getElementById("figureCount").textContent = visibleRows.length+" of "+FIGURES.length+" figures shown.";
+}
+figureChips.forEach(chip => chip.addEventListener("click", () => {
+  activeState = chip.dataset.state;
+  figureChips.forEach(otherChip => otherChip.classList.toggle("on", otherChip===chip));
+  renderFigures();
+}));
+figureSearch.addEventListener("input", renderFigures);
+renderFigures();
+
+const subjectChips = Array.from(document.querySelectorAll("#subjectControls .chip"));
+function showSubject(subjectKey){
+  const subject = SUBJECTS[subjectKey];
+  Object.entries(subject.phases).forEach(([phaseKey, statusKey]) => {
+    const status = PHASE_STATUS[statusKey];
+    const group = document.getElementById("phase-"+phaseKey);
+    group.querySelector("rect").setAttribute("class", status.boxClass);
+    group.querySelector(".ts").textContent = phaseKey==="delivery" && statusKey==="runs" ? "on its own reference" : status.text;
+    group.classList.toggle("faded", status.faded);
+  });
+  document.getElementById("subjectCaption").textContent = subject.caption;
+  subjectChips.forEach(chip => chip.classList.toggle("on", chip.dataset.subject===subjectKey));
+}
+subjectChips.forEach(chip => chip.addEventListener("click", () => showSubject(chip.dataset.subject)));
+showSubject("build");
+
+document.getElementById("levers").innerHTML = LEVERS.map((lever, index) =>
+  "<details"+(index===0?" open":"")+'><summary><span class="rank">'+(index+1)+"</span>"+escapeText(lever.area)+"</summary><p><b>Lever in forge.</b> "+escapeText(lever.lever)
+  +"</p><p><b>Signals in the figures.</b> "+escapeText(lever.signals)+"</p><p><b>Changes to propose.</b> "+escapeText(lever.changes)+"</p><p><b>Lands by.</b> "+escapeText(lever.lands)+"</p></details>").join("");
+
+document.getElementById("openQuestions").innerHTML = OPEN_QUESTIONS.map((openQuestion, index) =>
+  "<details"+(index===0?" open":"")+'><summary><span class="rank">'+(index+1)+"</span>"+escapeText(openQuestion.question)+"</summary><p>"+escapeText(openQuestion.explanation)+"</p>"
+  +(openQuestion.reading ? "<p><b>The document's reading.</b> "+escapeText(openQuestion.reading)+"</p>" : "")+"</details>").join("");
+
+document.getElementById("sourceList").innerHTML = SOURCES.map((source, index) =>
+  '<li id="s'+(index+1)+'">'+(Array.isArray(source) ? escapeText(source[0])+': <a href="'+source[1]+'" target="_blank" rel="noopener">'+escapeText(source[1])+"</a>" : source)+"</li>").join("");
+
+const navigationLinks = Array.from(document.querySelectorAll("nav a"));
+const navigationSections = navigationLinks.map(link => document.querySelector(link.getAttribute("href")));
+function markActiveSection(){
+  let currentIndex = 0;
+  navigationSections.forEach((section, index) => { if (section.getBoundingClientRect().top < 140) currentIndex = index; });
+  navigationLinks.forEach((link, index) => link.classList.toggle("active", index===currentIndex));
+}
+window.addEventListener("scroll", markActiveSection, {passive:true});
+markActiveSection();
+</script>
+</body>
+</html>

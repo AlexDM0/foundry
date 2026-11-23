@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>foundry: shared state and many machines</title>
+<style>
+:root{
+  --bg:#f6f4f1;--card:#ffffff;--ink:#1f2328;--muted:#5d646c;--line:#d5d0c8;--soft:#ece8e2;
+  --accent:#d9600f;--accent-soft:#fbe6d6;--good:#2f7d4f;--good-soft:#dff1e5;--warn:#a86a00;--warn-soft:#fbefd0;
+  --bad:#b3372e;--bad-soft:#f8dedb;--blue:#2c5f9e;--blue-soft:#dde9f7;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17191c;--card:#22262b;--ink:#e8e6e2;--muted:#a3a9b0;--line:#3a4047;--soft:#2a2f35;
+  --accent:#ff8a3d;--accent-soft:#4a2d18;--good:#6cc48d;--good-soft:#1f3a2a;--warn:#e3b04b;--warn-soft:#40331a;
+  --bad:#ef8279;--bad-soft:#47231f;--blue:#85b3ea;--blue-soft:#1f3147;}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:28px 16px;border-right:1px solid var(--line)}
+nav .brand{font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:4px}
+nav .sub{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+nav a{display:block;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;border-left:3px solid transparent}
+nav a:hover{background:var(--soft)}
+nav a.active{border-left-color:var(--accent);background:var(--accent-soft);font-weight:600}
+main{padding:32px 36px 80px;min-width:0}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:23px;margin:56px 0 6px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:28px 0 8px}
+.lede{color:var(--muted);max-width:70ch;margin:0 0 18px}
+p,li{max-width:74ch}
+ul{padding-left:20px}
+li{margin:4px 0}
+code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);padding:1px 5px;border-radius:4px}
+sup a{text-decoration:none;font-size:11px;padding:0 1px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .q{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:6px}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:18px 0;overflow-x:auto}
+.figure svg{display:block;width:100%;min-width:760px;height:auto}
+.figure figcaption,.cap{font-size:13.5px;color:var(--muted);margin-top:8px}
+figure{margin:0}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+svg .ts{fill:var(--muted);font-size:11.5px}
+svg .th{font-weight:700;font-size:13.5px}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.5}
+svg .zl{fill:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+svg .b{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+svg .bd{fill:var(--bg);stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 4}
+svg .ba{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .bg{fill:var(--good-soft);stroke:var(--good);stroke-width:1.5}
+svg .bb{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.5}
+svg .bw{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+svg .sand{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:6 4}
+svg .sl{fill:var(--bad);font-size:11.5px;font-weight:700}
+svg .ar{stroke:var(--ink);stroke-width:1.5;fill:none}
+svg .ard{stroke:var(--ink);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:default}
+tr:last-child td{border-bottom:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.durable{background:var(--good-soft);color:var(--good)}
+.tag.coordination{background:var(--warn-soft);color:var(--warn)}
+.tag.machine{background:var(--blue-soft);color:var(--blue)}
+.tag.stream{background:var(--accent-soft);color:var(--accent)}
+.tag.yes{background:var(--good-soft);color:var(--good)}
+.tag.no{background:var(--bad-soft);color:var(--bad)}
+.tag.part{background:var(--warn-soft);color:var(--warn)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 13px;font-size:13.5px;cursor:pointer;font-family:inherit}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+input[type=search]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 11px;font-size:14px;min-width:220px;font-family:inherit}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:0 16px}
+summary{cursor:pointer;padding:13px 0;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details[open]{padding-bottom:12px}
+details p{margin:6px 0}
+details .rank{background:var(--accent);color:#fff;border-radius:99px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:78ch}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:14px 18px 12px 58px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin:12px 0;max-width:none}
+.steps li::before{content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:99px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.steps h4{margin:0 0 2px;font-size:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.steps p{margin:6px 0;max-width:86ch;font-size:14.5px}
+.steps .label{font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+.sources{font-size:14px;padding-left:22px}
+.sources li{max-width:none;word-break:break-word}
+.muted{color:var(--muted)}
+@media (max-width:860px){.layout{grid-template-columns:1fr}nav{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:14px 16px}nav a{display:inline-block}main{padding:22px 16px 60px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav id="nav">
+  <div class="brand">foundry</div>
+  <div class="sub">Roadmap item · stage 5 · v2 · 23 Nov 2026</div>
+  <a href="#summary">Summary</a>
+  <a href="#asks">What the whitepaper asks</a>
+  <a href="#today">Where foundry starts</a>
+  <a href="#target">The target</a>
+  <a href="#milestones">Milestones</a>
+  <a href="#decisions">Decisions</a>
+  <a href="#carried">Carried from v1</a>
+  <a href="#parked">Parked: cloud sessions</a>
+  <a href="#stages">Among the other stages</a>
+  <a href="#changes">From v1 to v2</a>
+  <a href="#sources">Sources</a>
+</nav>
+<main>
+
+<section id="summary">
+<h1>Shared state and many machines</h1>
+<p class="lede">Version 2 of the remote state research of 15 November, rewritten as a roadmap item: stage 5 of foundry's road to the agentic software factory. It states what the whitepaper asks of foundry here, where foundry starts, six milestones between the two, and what the owner has to decide. Nothing on this page is built or decided.</p>
+<div class="cards">
+  <div class="card"><div class="q">The whitepaper asks</div><h4>One state, many machines</h4><p>A factory state in the cloud, shared by machines that each run the Workflow Loop, anywhere. A fleet manager balances load across them and does nothing more.<sup><a href="#s11">[11]</a></sup></p></div>
+  <div class="card"><div class="q">Foundry starts</div><h4>One forge on one machine</h4><p>Board state already passes through the <code>BoardStore</code> port, and the design keeps a team possible through four seams. Nothing remote is built.<sup><a href="#s1">[1]</a><a href="#s3">[3]</a></sup></p></div>
+  <div class="card"><div class="q">The gap</div><h4>The pass, the names, the branches</h4><p>Hephaestus's pass holds the store while it runs git, which no remote store can offer. No forge knows its machine, no ticket knows its forge, and no branch leaves the machine.</p></div>
+</div>
+<div class="note"><b>Two rules hold through every milestone.</b> An agent's output is a claim, and only a loop turns a claim into state: that is v1's rule, and Customs and the gates enforce it today. Several machines add a second one: only one loop works a ticket at a time.</div>
+<p>v1 asked how one Overseer could keep its state in a remote database and drive cloud Claude Code sessions as workers. The whitepaper asks for a different shape, and foundry's own design of 18 to 21 November already sketches it: each member's forge works the tickets allocated to it, in full.<sup><a href="#s3">[3]</a></sup> So v2 keeps v1's findings on the database, the login and the trust boundary, <a href="#parked">parks its cloud workers</a>, and puts the redesign of the pass first. The <a href="#changes">last section</a> lists what changed.</p>
+</section>
+
+<section id="asks">
+<h2>What the whitepaper asks</h2>
+<p class="lede">Chapter 3 carries most of it; chapters 2 and 6 set the limits. The right-hand column is what foundry has today.</p>
+<div class="tablewrap"><table><thead><tr><th>The whitepaper says</th><th>What it asks of foundry</th><th>Foundry today</th></tr></thead><tbody>
+<tr><td><b>Factory state.</b> "A database in the cloud, shared across machines", holding the Workflow Loop's own state (ch. 3)</td><td>The board's records live in a store that every machine of the team reaches</td><td>Files in <code>.forge/</code> on one machine, behind the <code>BoardStore</code> port<sup><a href="#s1">[1]</a></sup></td></tr>
+<tr><td><b>Every machine runs a loop.</b> A factory machine "runs a factory's workflow loop" and spins up agents to the capacity of its hardware (ch. 3)</td><td>Several Hephaestus instances work one board, each with its own Talos and agents</td><td>One Hephaestus for a board, kept single by the Hephaestus lock<sup><a href="#s5">[5]</a></sup></td></tr>
+<tr><td><b>Machines anywhere.</b> In the cloud or on a laptop; two to four agents on a machine, one core reserved for the loop; more machines when more developers start features (ch. 3)</td><td>A forge started on a new machine can join a factory, and says how much it can take</td><td>A machine agent limit capped at the core count, shared by the boards of one machine. No machine has a name<sup><a href="#s5">[5]</a><a href="#s8">[8]</a></sup></td></tr>
+<tr><td><b>The state is decentralized.</b> It "lives in the shared factory state, not on any single machine" (ch. 3)</td><td>A machine can be lost without losing a ticket</td><td>Job folders, event logs, worktrees and ticket branches exist on the one machine only<sup><a href="#s10">[10]</a></sup></td></tr>
+<tr><td><b>Fleet manager.</b> "A load balancer", with no part in governance (ch. 1, 3)</td><td>Something that decides which machine works which ticket</td><td>The name Zeus is reserved for it. Nothing is built<sup><a href="#s3">[3]</a></sup></td></tr>
+<tr><td><b>Add or remove at any layer.</b> "A developer can run the factory locally or it can run remotely", and neither breaks the other (ch. 6)</td><td>The forge on local files stays whole. Shared state is one more adapter, never a requirement</td><td>True by construction: one adapter, and a contract spec that a second one must pass<sup><a href="#s1">[1]</a><a href="#s4">[4]</a></sup></td></tr>
+<tr><td><b>One factory per team.</b> Factories of different teams do not communicate (ch. 2, 6)</td><td>One shared state per factory. No store spans teams</td><td>One board per repository, identified by a random tracker id<sup><a href="#s8">[8]</a></sup></td></tr>
+<tr><td><b>Deterministic.</b> Steps and transitions are code, never a model's decision (ch. 3)</td><td>Spreading the loop over machines may not turn a transition into a race</td><td>The Playbook, a pure function, decides every status after ready<sup><a href="#s12">[12]</a></sup></td></tr>
+</tbody></table></div>
+<p>The whitepaper leaves three things to this item: how code moves between machines, what a machine does when the factory state cannot be reached, and which state stays in a company system such as Jira. The last one is stage 4's question; the first two are <a href="#decisions">decisions</a> below.</p>
+</section>
+
+<section id="today">
+<h2>Where foundry starts</h2>
+<p class="lede">Read from the code on 23 November 2026, at commit <code>0f1e760f</code>. Since v1 the Overseer became Hephaestus, the Watchers became one Talos per board, the Bridge went away for Gaia, and the store port that v1 recommended was built.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 440" role="img" aria-label="Foundry today: one forge on one machine">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+  <rect class="zone" x="12" y="14" width="936" height="414" rx="14"/>
+  <text class="zl" x="28" y="38">One machine</text>
+
+  <rect class="b" x="36" y="60" width="170" height="54" rx="8"/><text class="th" x="52" y="83">Gaia</text><text class="ts" x="52" y="100">one window, 127.0.0.1</text>
+  <rect class="b" x="36" y="150" width="170" height="54" rx="8"/><text class="th" x="52" y="173">forge CLI</text><text class="ts" x="52" y="190">verbs run by User</text>
+  <rect class="bb" x="36" y="330" width="170" height="70" rx="8"/><text class="th" x="52" y="354">~/.forge-monitor/</text><text class="ts" x="52" y="372">registry, slots, limits,</text><text class="ts" x="52" y="387">tokens</text>
+
+  <rect class="ba" x="270" y="96" width="210" height="92" rx="8"/><text class="th" x="286" y="120">Hephaestus</text><text class="ts" x="286" y="138">the pass, the Playbook,</text><text class="ts" x="286" y="153">gates, Customs, the Airlock;</text><text class="ts" x="286" y="172">serves the API on loopback</text>
+  <rect class="bw" x="270" y="222" width="210" height="46" rx="8"/><text class="th" x="286" y="243">BoardStore port</text><text class="ts" x="286" y="259">commands, transaction, reads</text>
+  <rect class="bg" x="270" y="296" width="210" height="104" rx="8"/><text class="th" x="286" y="320">.forge/</text><text class="ts" x="286" y="338">board, tickets, epics, log,</text><text class="ts" x="286" y="353">pipeline, committed content</text><text class="ts" x="286" y="372">beside the port: job folders,</text><text class="ts" x="286" y="387">locks, Talos's files</text>
+
+  <rect class="b" x="540" y="70" width="150" height="70" rx="8"/><text class="th" x="554" y="93">Talos</text><text class="ts" x="554" y="110">one per board, reached</text><text class="ts" x="554" y="125">over a local socket</text>
+
+  <rect class="sand" x="722" y="50" width="214" height="160" rx="10"/><text class="sl" x="734" y="68">SANDBOX</text>
+  <rect class="b" x="737" y="80" width="184" height="50" rx="8"/><text class="th" x="751" y="102">Claude Code session</text><text class="ts" x="751" y="118">builder or reviewer</text>
+  <text class="ts" x="737" y="156">writes only: its worktree</text><text class="ts" x="737" y="172">and its own Hatch folder;</text><text class="ts" x="737" y="192">holds no forge credential</text>
+
+  <rect class="bw" x="737" y="250" width="184" height="60" rx="8"/><text class="th" x="751" y="274">Hatch folder</text><text class="ts" x="751" y="292">request and reply files</text>
+  <rect class="b" x="540" y="340" width="381" height="60" rx="8"/><text class="th" x="556" y="364">Git repository and worktrees</text><text class="ts" x="556" y="382">no fetch, pull or push; landing is local</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M206 87 L270 120"/><text class="ts" x="214" y="76">HTTP, bearer token</text>
+  <path class="ar" marker-end="url(#ah)" d="M121 204 L121 245 L270 245"/><text class="ts" x="130" y="237">writes in process</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M375 188 L375 222"/>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M375 268 L375 296"/>
+  <path class="ar" marker-end="url(#ah)" d="M480 124 L540 106"/>
+  <path class="ar" marker-end="url(#ah)" d="M690 105 L737 105"/>
+  <path class="ar" marker-end="url(#ah)" d="M829 210 L829 250"/><text class="ts" x="839" y="234">request</text>
+  <path class="ar" marker-end="url(#ah)" d="M737 280 L480 160"/><text class="ts" x="596" y="196">applied in the pass</text>
+  <path class="ar" marker-end="url(#ah)" d="M462 188 L560 340"/><text class="ts" x="546" y="300">lands by fast-forward</text>
+</svg>
+<figcaption>Today. Everything sits on one machine and speaks over loopback, a local socket or files. Gaia never touches the store; the CLI and Hephaestus meet in it.</figcaption>
+</figure>
+
+<h3>What is stored, and what would be shared</h3>
+<div class="controls">
+  <button class="chip on" data-kind="all">All</button>
+  <button class="chip" data-kind="durable">Durable records</button>
+  <button class="chip" data-kind="stream">Job streams</button>
+  <button class="chip" data-kind="coordination">Local coordination</button>
+  <button class="chip" data-kind="machine">Machine facts</button>
+  <input type="search" id="inventorySearch" placeholder="Filter by name or content" aria-label="Filter inventory">
+</div>
+<div class="tablewrap"><table id="inventory"><thead><tr><th>Path</th><th>Holds</th><th>Kind</th><th>Behind the port</th><th>In a shared state?</th></tr></thead><tbody></tbody></table></div>
+<p class="cap" id="inventoryCount"></p>
+
+<h3>How it works now</h3>
+<ul>
+  <li><b>One port for the board, with three faces.</b> Commands, which a CLI verb, the Hatch and the HTTP command endpoint all reach through one service; a board transaction for Hephaestus; and reads that take no lock. There is one adapter, on local files, and a contract spec that any other adapter must pass.<sup><a href="#s1">[1]</a><a href="#s4">[4]</a></sup></li>
+  <li><b>The pass is not made of commands.</b> Hephaestus changes the board inside one hold and runs git inside that hold. The port says so itself: the write is exclusive "an <code>await</code> and a git call inside it included; a remote adapter cannot offer that".<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>A lock that passes only from a dead holder.</b> The write lock is a folder of generation records; another writer takes it only when the holder's process is gone. A hold journal is written first and replayed by the next holder.<sup><a href="#s2">[2]</a></sup></li>
+  <li><b>No write names what it read.</b> The store's revision is a hash for readers. Nothing compares versions on a write, because the lock makes that unnecessary on one machine.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>Nobody edits a stored record by hand.</b> An edit of a ticket is a command, refused once the ticket is committed.<sup><a href="#s3">[3]</a></sup></li>
+  <li><b>The CLI writes without Hephaestus.</b> Outside a job a verb writes in process and then nudges Hephaestus; under a job it is relayed through the Hatch.<sup><a href="#s5">[5]</a></sup></li>
+  <li><b>Wake-ups come from the filesystem.</b> A 150 ms debounced watch of the data folder and the Hatch folders, a 30 second sweep, and the nudge.<sup><a href="#s5">[5]</a></sup></li>
+  <li><b>Children are local by construction.</b> Hephaestus reaches Talos over a Unix socket or a named pipe and reads its records and event logs from disk. <code>BoardChildren</code> is the one interface to them, with one adapter.<sup><a href="#s5">[5]</a><a href="#s6">[6]</a></sup></li>
+  <li><b>Git never leaves the machine.</b> Forge's git code makes no fetch, pull or push call, and <code>push</code> is a denied command for a worker.<sup><a href="#s3">[3]</a><a href="#s5">[5]</a></sup></li>
+  <li><b>No person and no machine has an identity.</b> A forge binds to 127.0.0.1 and takes one bearer token, made fresh at each start. Roles in the context pipeline design are labels: "Nothing enforces it, and no login is part of this design."<sup><a href="#s5">[5]</a><a href="#s9">[9]</a></sup></li>
+</ul>
+
+<h3>The four seams the design already carries</h3>
+<p>Section 9 of the Hephaestus and Talos design, "Kept possible, not built", describes a team on a shared store and keeps four seams for it.<sup><a href="#s3">[3]</a></sup> They are the starting line of this item.</p>
+<div class="tablewrap"><table><thead><tr><th>Seam</th><th>In the code today</th><th>Milestone that uses it</th></tr></thead><tbody>
+<tr><td>The contract's outside face is commands, documents and a subscription, so a remote adapter is a client of an API</td><td><span class="tag yes">Built</span> The command service, the read API and its streams</td><td>3</td></tr>
+<tr><td>A ticket can carry which forge runs it, defaulting to the one forge</td><td><span class="tag no">Not found</span> No such field in the tracker model or the contracts</td><td>2, 5</td></tr>
+<tr><td>Landing stays one step with a compare-and-swap contract; nothing else assumes a local main line</td><td><span class="tag part">Local</span> The Airlock fast-forwards only if the target has not moved</td><td>1, 4</td></tr>
+<tr><td>A forge's own capacity is a fact it can publish</td><td><span class="tag no">Not found</span> The limits exist as files on the machine; nothing publishes them</td><td>2, 6</td></tr>
+</tbody></table></div>
+<p class="cap">Left out on purpose, in the design's words: "claiming and leases between forges, a merge queue, identity and permissions, schema migration of a shared store, relaying live agent output, offline work, and the redesign of Hephaestus's pass that a remote store needs". That list is this item's scope.</p>
+</section>
+
+<section id="target">
+<h2>The target</h2>
+<p class="lede">Each machine runs the whole loop for its own tickets. The board's records sit behind one forge that owns the database. Code moves between machines only through the code host.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 524" role="img" aria-label="Target: several machines on one factory state">
+  <rect class="zone" x="300" y="14" width="360" height="192" rx="14"/><text class="zl" x="316" y="36">Factory state · one per team</text>
+  <rect class="bg" x="320" y="48" width="150" height="46" rx="8"/><text class="th" x="334" y="68">Database</text><text class="ts" x="334" y="84">the board's records</text>
+  <rect class="bw" x="490" y="48" width="150" height="46" rx="8"/><text class="th" x="504" y="68">Allocator</text><text class="ts" x="504" y="84">the fleet manager</text>
+  <rect class="ba" x="320" y="120" width="320" height="72" rx="8"/><text class="th" x="336" y="144">State forge</text><text class="ts" x="336" y="162">commands in, documents out, a subscription;</text><text class="ts" x="336" y="177">the one writer of the database</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M395 94 L395 120"/>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M565 94 L565 120"/>
+
+  <rect class="zone" x="12" y="232" width="440" height="208" rx="14"/><text class="zl" x="28" y="254">Machine A · a laptop</text>
+  <rect class="b" x="28" y="272" width="110" height="74" rx="8"/><text class="th" x="42" y="296">Gaia</text><text class="ts" x="42" y="314">the member's</text><text class="ts" x="42" y="329">window</text>
+  <rect class="ba" x="160" y="272" width="276" height="74" rx="8"/><text class="th" x="174" y="296">Hephaestus</text><text class="ts" x="174" y="314">the loop, for the tickets allocated to it;</text><text class="ts" x="174" y="329">remote adapter, machine credential</text>
+  <rect class="bw" x="160" y="366" width="276" height="60" rx="8"/><text class="th" x="174" y="390">Talos, agents, worktrees</text><text class="ts" x="174" y="408">event logs, locks and slots stay here</text>
+  <path class="ar" marker-end="url(#ah)" d="M138 309 L160 309"/>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M298 346 L298 366"/>
+
+  <rect class="zone" x="508" y="232" width="440" height="208" rx="14"/><text class="zl" x="524" y="254">Machine B · cloud</text>
+  <rect class="ba" x="524" y="272" width="276" height="74" rx="8"/><text class="th" x="538" y="296">Hephaestus</text><text class="ts" x="538" y="314">the loop, for the tickets allocated to it;</text><text class="ts" x="538" y="329">remote adapter, machine credential</text>
+  <rect class="bw" x="524" y="366" width="276" height="60" rx="8"/><text class="th" x="538" y="390">Talos, agents, worktrees</text><text class="ts" x="538" y="408">event logs, locks and slots stay here</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M662 346 L662 366"/>
+  <text class="ts" x="814" y="296">no window;</text><text class="ts" x="814" y="311">2 to 4 agents,</text><text class="ts" x="814" y="326">one core kept</text><text class="ts" x="814" y="341">for the loop</text>
+
+  <rect class="b" x="300" y="460" width="360" height="52" rx="10"/><text class="th" x="316" y="482">Code host · a company system</text><text class="ts" x="316" y="499">ticket branches and the main line</text>
+
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M298 272 L380 192"/><text class="ts" x="40" y="224">HTTPS: commands, documents, subscription</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M770 272 L626 192"/><text class="ts" x="712" y="222">the same contract, from every machine</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M330 426 L372 460"/><text class="ts" x="204" y="462">fetch and push</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M630 426 L588 460"/><text class="ts" x="676" y="462">landing: a push that fails if the main line moved</text>
+</svg>
+<figcaption>Target. The whitepaper draws a database; foundry's design puts a forge's API in front of it, so that "no client holds database credentials, and validation runs in one place".<sup><a href="#s3">[3]</a></sup> "State forge" is this page's name for that forge.</figcaption>
+</figure>
+
+<h3>Three rules of the target</h3>
+<ul>
+  <li><b>One loop per ticket.</b> A ticket names the forge that runs it. That forge works it in full: build, gates, Customs, review and landing. No other loop touches it until the allocation changes. Deciding stays a pure function on one machine, so the loop stays deterministic.</li>
+  <li><b>One writer of the database.</b> Every machine is a client of the state forge and holds a credential of its own. A session holds none, as today: the Hatch folder is its only way in, and the sandbox on each machine is unchanged.</li>
+  <li><b>One road for code.</b> A ticket's branch leaves a machine only by a push to the code host, and landing is a compare-and-swap there. No machine reads another machine's disk, and no forge talks to another forge.</li>
+</ul>
+<div class="note"><b>Where v1 and the design agree.</b> v1 concluded from the security side that the Overseer should reach a backend of your own and never the database. The design reached the same from the validation side, and names the backend: a forge. That removes a second implementation of the command kinds, which a separate backend would have needed.</div>
+</section>
+
+<section id="milestones">
+<h2>Milestones</h2>
+<p class="lede">Six steps, ordered by what each needs. The first two change nothing outside one machine and need no decision about hosting. The order and the sizes are Claude's proposal.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 296" role="img" aria-label="Milestones and what each depends on">
+  <rect class="bb" x="24" y="24" width="198" height="60" rx="8"/><text class="th" x="38" y="49">1 · Split the pass</text><text class="ts" x="38" y="67">no hold spans a git call</text>
+  <rect class="bb" x="262" y="118" width="198" height="60" rx="8"/><text class="th" x="276" y="143">2 · Name the forge</text><text class="ts" x="276" y="161">id, capacity, allocation field</text>
+  <rect class="ba" x="262" y="24" width="198" height="60" rx="8"/><text class="th" x="276" y="49">3 · Shared state</text><text class="ts" x="276" y="67">state forge, remote adapter</text>
+  <rect class="ba" x="262" y="212" width="198" height="60" rx="8"/><text class="th" x="276" y="237">4 · Branches travel</text><text class="ts" x="276" y="255">fetch, push, remote landing</text>
+  <rect class="ba" x="500" y="118" width="198" height="60" rx="8"/><text class="th" x="514" y="143">5 · Two machines</text><text class="ts" x="514" y="161">claims, one merge order</text>
+  <rect class="ba" x="738" y="118" width="198" height="60" rx="8"/><text class="th" x="752" y="143">6 · Fleet manager</text><text class="ts" x="752" y="161">allocator, cloud machines</text>
+  <rect class="bd" x="24" y="212" width="198" height="60" rx="8"/><text class="th" x="38" y="237">Stage 4</text><text class="ts" x="38" y="255">pull requests and remote CI</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M222 54 L262 54"/>
+  <path class="ar" marker-end="url(#ah)" d="M460 54 L500 130"/>
+  <path class="ar" marker-end="url(#ah)" d="M460 148 L500 148"/>
+  <path class="ar" marker-end="url(#ah)" d="M460 242 L500 166"/>
+  <path class="ar" marker-end="url(#ah)" d="M698 148 L738 148"/>
+  <path class="ard" marker-end="url(#ah)" d="M222 242 L262 242"/>
+</svg>
+<figcaption>Blue: on local files, with nothing a user sees. Orange: needs something outside the machine. Dashed: stage 4 of the roadmap, which needs the same fetch and push that milestone 4 builds.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li>
+    <h4>Split the pass <span class="tag no">Large</span></h4>
+    <p><span class="label">Adds</span>Hephaestus's pass no longer holds the store while git runs. Every change the pass makes becomes one of two things: a command, or a step in two parts where the store records the intent, git settles it, and the store records the outcome. A restart resolves an intent that has no outcome by reading git, as reconciliation at start does today. A write also names the revision of the ticket it read.</p>
+    <p><span class="label">User sees</span>Nothing, and that is the test: everything passes on local files.</p>
+    <p><span class="label">Why first</span>The design names it as the one thing a remote store cannot do without: "A remote adapter cannot carry a hold that spans a git fast-forward; the remote future needs that pass redesigned, which this plan does not do."<sup><a href="#s3">[3]</a></sup> It touches landing, ending and interrupting a job, incidents and the Hatch inbox. The roadmap calls this the second decision on the road.<sup><a href="#s12">[12]</a></sup></p>
+  </li>
+  <li>
+    <h4>Name the forge <span class="tag yes">Small</span></h4>
+    <p><span class="label">Adds</span>A forge gets an identity that says which machine it is. It publishes its capacity: its agent limit and what is in use. A ticket carries the forge that runs it, defaulting to the one forge. These are seams 2 and 4 of the design; Claude found no field for either in the tracker model or the contracts.</p>
+    <p><span class="label">User sees</span>Gaia can say which forge works a ticket. With one forge that is always the same answer.</p>
+  </li>
+  <li>
+    <h4>Shared state <span class="tag no">Large</span></h4>
+    <p><span class="label">Adds</span>The state forge: a forge whose store adapter is a database and whose API is reachable beyond loopback, over TLS. A remote adapter that passes <code>BoardStore.contract.spec.ts</code>. Enrolment of a machine at init, which gives it a credential. A subscription to changes in place of the file watch, with the sweep kept as the fallback. A stated behaviour when the state cannot be reached, and an export back to local files.</p>
+    <p><span class="label">User sees</span>The board survives the loss of the machine. Gaia on a second machine shows the board, read only. Still one loop: one machine works the board.</p>
+    <p><span class="label">Needs</span>Milestone 1, and the owner's answers on where the state may live and who may enrol a machine.</p>
+  </li>
+  <li>
+    <h4>Branches travel <span class="tag part">Medium</span></h4>
+    <p><span class="label">Adds</span>Forge's git code learns to fetch and to push. A ticket's branch is pushed when its phase ends. Landing merges and gates the merged tree on the machine, then pushes a fast-forward that the code host refuses if the main line moved; a refusal starts the landing again. A worker still may not push.</p>
+    <p><span class="label">User sees</span>Ticket branches and merges on the code host.</p>
+    <p><span class="label">Note</span>This reverses a deliberate rule, that git never leaves the machine. Stage 4 needs the same code for pull requests, so it can be built there or here, once.</p>
+  </li>
+  <li>
+    <h4>Two machines, one board <span class="tag no">Large</span></h4>
+    <p><span class="label">Adds</span>A forge works only the tickets allocated to it. Until a fleet manager exists, allocation is a claim: a forge with room takes a ready ticket, and the state forge lets the first claim win. The merge order becomes one queue in the shared state. The board's concurrency limit becomes the factory's, beside each machine's own. An allocation is a lease, so the tickets of a lost machine surface. A machine on another forge version is refused and told to update.</p>
+    <p><span class="label">User sees</span>A second machine started on the same board picks up ready tickets. Gaia shows which machine works what, and an approval can be given from either machine.</p>
+    <p><span class="label">Needs</span>Milestones 2, 3 and 4. This is where the design's "left out on purpose" list is paid: claiming and leases between forges, and a merge queue.</p>
+  </li>
+  <li>
+    <h4>Fleet manager <span class="tag part">Medium</span></h4>
+    <p><span class="label">Adds</span>The allocator, Zeus in the design: it reads the published capacities and writes the allocation field, and nothing more. A recipe for a cloud machine: install, enrol, start, with billing by API key and a budget. A default capacity of the core count minus one, which is the whitepaper's core reserved for the loop.</p>
+    <p><span class="label">User sees</span>More machines mean more tickets in flight, without anybody assigning them.</p>
+  </li>
+</ol>
+<div class="note warn"><b>What this item does not build.</b> Identity of people, permissions, a personal dashboard per team member and governance above the factory are stage 6. Milestone 3 enrols machines; it gives no person a role.</div>
+</section>
+
+<section id="decisions">
+<h2>Decisions</h2>
+<p class="lede">The first list is the owner's: how the system behaves. Each carries Claude's recommendation. The second list closes questions v1 left open. Mechanics such as the database product, the token store and the feed's transport are the build's to choose.</p>
+<h3>Open, for the owner</h3>
+<div id="openDecisions"></div>
+<h3>Closed since v1</h3>
+<div class="tablewrap"><table><thead><tr><th>v1 asked</th><th>Answer since</th></tr></thead><tbody>
+<tr><td>Do tickets stay files that are edited by hand?</td><td>No. "Hand-editing stored records ends": an edit is a command, refused once the ticket is committed.<sup><a href="#s3">[3]</a></sup></td></tr>
+<tr><td>Who wins when a hand-edited ticket meets a remote change?</td><td>The question is gone with hand editing. A stale write is refused by the revision guard of milestone 1.</td></tr>
+<tr><td>Does the Bridge stay local?</td><td>The Bridge is deleted. Gaia is the one interface server of a machine and shows local forges; "a read-only status view of remote forges may come later".<sup><a href="#s3">[3]</a></sup></td></tr>
+<tr><td>Do CLI commands go through the Overseer?</td><td>No. The CLI and Hephaestus meet in the store, and "the CLI still writes to the store with no Hephaestus running". With a remote adapter both are clients of the state forge.<sup><a href="#s3">[3]</a></sup></td></tr>
+<tr><td>Is a store port feasible?</td><td>Built: <code>BoardStore</code>, with a local-files adapter and a contract spec.<sup><a href="#s1">[1]</a></sup></td></tr>
+<tr><td>Is there a seam for where a job runs?</td><td>Half: <code>BoardChildren</code> is the one interface to a board's children, with a local Talos behind it. In the target it stays local, because each machine has its own Talos.<sup><a href="#s5">[5]</a></sup></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="carried">
+<h2>Carried from v1</h2>
+<p class="lede">These findings still shape milestone 3. They stand as read on 15 November 2026 and were not opened again for v2.</p>
+<div class="cards">
+  <div class="card"><h4>The database is a low-stakes choice</h4><p>Behind the state forge the store needs little: one board's records, appends to a log, a guarded write per ticket and a feed of changes. MongoDB Atlas does that on its free or Flex tier.<sup><a href="#s14">[14]</a><a href="#s15">[15]</a><a href="#s37">[37]</a></sup> So would Postgres or SQLite beside the state forge, which is Claude's lean: fewer parts, and nothing of a client's leaves the machine that hosts it.</p></div>
+  <div class="card"><h4>No machine connects to the database</h4><p>Atlas takes identity-provider logins only from M10 up, GitHub issues no ID tokens for users, a roaming laptop meets the IP access list, and access control stops at the collection.<sup><a href="#s16">[16]</a><a href="#s17">[17]</a><a href="#s18">[18]</a><a href="#s19">[19]</a></sup> All four fall away behind the state forge.</p></div>
+  <div class="card"><h4>Alternatives worth knowing</h4><p>Supabase has row-level security and GitHub login built in. Turso keeps a local replica that syncs, the closest to today's files. A Cloudflare Durable Object per board is single-threaded, which removes the lock.<sup><a href="#s20">[20]</a><a href="#s21">[21]</a><a href="#s22">[22]</a></sup></p></div>
+  <div class="card"><h4>Enrolment through a GitHub login</h4><p>Loopback redirect with PKCE by default, the device flow only for a machine with no browser.<sup><a href="#s23">[23]</a><a href="#s24">[24]</a><a href="#s25">[25]</a></sup> The state forge checks the person's permission on the repository and issues the machine a short-lived credential.<sup><a href="#s27">[27]</a></sup> No connection string is copied to a machine.</p></div>
+  <div class="card"><h4>One process refreshes</h4><p>A GitHub App user token lasts eight hours; each refresh replaces the refresh token.<sup><a href="#s26">[26]</a></sup> Two processes refreshing at once strand one, so the remote adapter owns the credential for the CLI and Hephaestus alike. Bun's secrets API is new and experimental.<sup><a href="#s28">[28]</a></sup></p></div>
+  <div class="card"><h4>The sandbox is still the boundary</h4><p>A session can write its worktree and its Hatch folder, and gets a five-name environment plus the Claude login. The machine credential must never join that list, and gate confinement must deny it too.<sup><a href="#s5">[5]</a><a href="#s6">[6]</a><a href="#s7">[7]</a></sup></p></div>
+</div>
+<div class="note warn"><b>A compromised machine can still lie, and now it lies to the team.</b> On one machine a false gate verdict harms its owner. On a shared state the state forge accepts each machine's verdicts as it accepts its own. The landing gate on the merged tree still runs, but on the machine that holds the ticket. If a machine may not be trusted, the final gates belong on a runner no agent touched: the remote CI of stage 4.</div>
+<div class="note bad"><b>Windows has no confinement.</b> Sessions and gates run unconfined there by design.<sup><a href="#s7">[7]</a></sup> On Windows a session can reach whatever the loop can, the machine credential included. See the decisions.</div>
+</section>
+
+<section id="parked">
+<h2>Parked: cloud sessions as workers</h2>
+<p class="lede">v1's third question was how one Overseer could run jobs as cloud Claude Code sessions. This item does not build that.</p>
+<ul>
+  <li><b>It is not the whitepaper's machine.</b> The whitepaper's machine runs a loop: it gates, verifies and lands on its own. A cloud session is a worker with no loop beside it, so every check would still run on the machine that started it.</li>
+  <li><b>A daemon cannot follow or stop one.</b> v1 found no event stream and no stop for a session started with <code>claude --cloud</code>; a follow-up is queued and not awaited, and completion needs a Stop hook that calls a public endpoint.<sup><a href="#s29">[29]</a><a href="#s31">[31]</a></sup></li>
+  <li><b>The terms need an answer first.</b> The Consumer Terms forbid automated access except where Anthropic permits it.<sup><a href="#s36">[36]</a></sup> A loop that starts and steers cloud sessions all day goes further than the documented example.</li>
+  <li><b>A machine you run gives the same reach.</b> A cloud machine with forge on it is "in the cloud" in the whitepaper's sense, keeps Talos, the sandbox and the gates, and needs nothing from the vendor beyond what a laptop needs.</li>
+</ul>
+<div class="tablewrap"><table><thead><tr><th>Option</th><th>Follow events</th><th>Stop</th><th>Main blocker, as v1 found it</th></tr></thead><tbody>
+<tr><td><b>claude --cloud</b><sup><a href="#s29">[29]</a></sup></td><td>None documented</td><td>None documented</td><td>Completion needs a Stop hook calling a public endpoint</td></tr>
+<tr><td><b>Managed Agents</b><sup><a href="#s32">[32]</a></sup></td><td>Event stream and webhooks</td><td>Interrupt event</td><td>A separate product with its own session API</td></tr>
+<tr><td><b>Self-hosted environments</b><sup><a href="#s33">[33]</a></sup></td><td>Stop-hook recipe</td><td>None documented</td><td>Team and Enterprise plans only, public beta, and you run the compute</td></tr>
+<tr><td><b>Scheduled task fired by API</b><sup><a href="#s34">[34]</a></sup></td><td>None documented</td><td>None documented</td><td>Research preview, with a prompt fixed per task</td></tr>
+<tr><td><b>Agent SDK on your own machine</b><sup><a href="#s35">[35]</a></sup></td><td>Full control</td><td>Full control</td><td>You build the hosting; an API key only</td></tr>
+</tbody></table></div>
+<p class="cap">What would bring it back: an event stream and a stop for cloud sessions. It would then be a second adapter behind <code>BoardChildren</code>, on the machine that holds the ticket. The facts above are as of 15 November 2026 and were not rechecked.</p>
+</section>
+
+<section id="stages">
+<h2>Among the other stages</h2>
+<p class="lede">The roadmap places this item fifth of seven.<sup><a href="#s12">[12]</a></sup> Two of its milestones could start earlier, and one belongs to its neighbour.</p>
+<div class="tablewrap"><table><thead><tr><th>Stage</th><th>What it gives this item</th><th>What this item gives it</th></tr></thead><tbody>
+<tr><td>2. Compounding</td><td>Measurements of a ticket's cost and rework, which say whether a second machine pays</td><td>Token and cost figures live in each board's log.<sup><a href="#s10">[10]</a></sup> In a shared state they become one record for the factory</td></tr>
+<tr><td>3. A configurable workflow</td><td>Approvals declared on artifacts by role, and the state of a ticket at a hook point.<sup><a href="#s9">[9]</a></sup> A halted ticket holds no agent, so it is the natural moment for a ticket to change machines</td><td>The split pass of milestone 1. Stage 3 touches every path that moves a ticket, and so does milestone 1: building them apart means doing that twice</td></tr>
+<tr><td>4. Company systems</td><td>Fetch and push, pull requests, and CI on a runner no agent touched</td><td>Milestone 4, if it comes first</td></tr>
+<tr><td>6. Teams and the company</td><td>Nothing it must wait for</td><td>The shared state and the machine credential. Stage 6 adds people, roles that are enforced, and a dashboard per member</td></tr>
+</tbody></table></div>
+<p><b>Claude's reading of the order.</b> Milestones 1 and 2 need nothing outside the machine and no decision about hosting, and milestone 1 is the hardest part of the item. They can run beside stage 3, and milestone 1 is best designed together with stage 3's hook points. Milestone 4 is stage 4's work under another name. That leaves milestones 3, 5 and 6 as the real stage 5.</p>
+</section>
+
+<section id="changes">
+<h2>From v1 to v2</h2>
+<div class="tablewrap"><table><thead><tr><th>v1, 15 November</th><th>v2, 23 November</th></tr></thead><tbody>
+<tr><td>Three research questions: a remote database, a login, cloud workers</td><td>One roadmap item with six milestones towards chapter 3 of the whitepaper</td></tr>
+<tr><td>One Overseer writes the state; workers may sit elsewhere</td><td>Several machines each run the loop for their own tickets, as the whitepaper and the design's section 9 describe</td></tr>
+<tr><td>A backend of your own on the VPS, in front of the database</td><td>A forge that owns the database, as the design's section 4 names it</td></tr>
+<tr><td>"No storage port"; a port at <code>writeTracker</code> was step 2</td><td>Built: <code>BoardStore</code> with a contract spec. What remains is the pass, which is milestone 1</td></tr>
+<tr><td>A worker host seam was step 1</td><td><code>BoardChildren</code> and Talos exist, and stay local on each machine</td></tr>
+<tr><td>The lock is taken over after a 30 second stamp</td><td>The lock passes only when the holder's process is gone</td></tr>
+<tr><td>Tickets are edited by hand, byte for byte</td><td>Hand editing ended, which removes v1's two sync questions</td></tr>
+<tr><td>CLI commands should go through the Overseer</td><td>The CLI stays a writer of the store; with a remote adapter it is a client of the state forge</td></tr>
+<tr><td>Fifteen open decisions</td><td>Six closed by the design since, ten open with a recommendation each</td></tr>
+<tr><td>Overseer, Watcher, Bridge, Baton</td><td>Hephaestus, Talos, Gaia, the Hephaestus lock</td></tr>
+</tbody></table></div>
+<p class="cap">Not carried over: v1's tier table for Atlas, the ranking of the four homes for the credential, and the eleven facts on cloud sessions. They are in v1, which is kept as a dated record.<sup><a href="#s13">[13]</a></sup></p>
+</section>
+
+<section id="sources">
+<h2>Sources</h2>
+<p class="cap">Sources 1 to 10 were read in the repository on 23 November 2026. Sources 14 to 37 are carried from v1 as read on 15 November 2026.</p>
+<ol class="sources" id="sourceList"></ol>
+</section>
+
+</main>
+</div>
+
+<script>
+const INVENTORY = [
+  {path:".forge/progress.json", holds:"The board: rows, jobs, decisions, incidents", kind:"durable", port:"Yes", shared:"Yes"},
+  {path:".forge/tickets/, epics/", holds:"Tickets and epics. No longer edited by hand", kind:"durable", port:"Yes", shared:"Yes"},
+  {path:".forge/filing-cabinet/", holds:"Filing drafts", kind:"durable", port:"Yes", shared:"Yes"},
+  {path:".forge/committed-content/", holds:"A committed ticket's content, kept by its hash", kind:"durable", port:"Yes", shared:"Yes"},
+  {path:".forge/log.jsonl", holds:"Record of every board change, with token and cost figures per agent", kind:"durable", port:"Yes", shared:"Yes, as appends"},
+  {path:".forge/ pipeline, pipeline setup, gate profiles, constitution sources", holds:"How the board builds, checks and reviews", kind:"durable", port:"Yes", shared:"Yes"},
+  {path:".forge/jobs/<J>/", holds:"Gate run record, patches, instructions, launch settings", kind:"coordination", port:"No, written directly", shared:"A decision: only what another machine needs to restart or audit the job"},
+  {path:".forge/jobs/<J>/events-<n>.ndjson", holds:"Talos's event log of every child, appended in place", kind:"stream", port:"No", shared:"No. A reader gets it from the forge's job stream"},
+  {path:".forge/gate-profile-runs/, hephaestus.log", holds:"Gate run output and Hephaestus's log lines", kind:"stream", port:"No", shared:"No"},
+  {path:".forge/.lock/, hold-journal.json", holds:"The write lock and the journal of one hold", kind:"coordination", port:"Inside the local adapter", shared:"No. The shared store has its own transaction"},
+  {path:".forge/hephaestus/", holds:"The Hephaestus lock, presence, heartbeat, crash logs", kind:"coordination", port:"No", shared:"No. Presence becomes a fact the forge publishes"},
+  {path:".forge/talos/", holds:"Talos's records and launch files", kind:"coordination", port:"No", shared:"No"},
+  {path:".forge-worktrees/hatch/<J>/", holds:"Requests a session hands to Hephaestus, and the replies", kind:"coordination", port:"No", shared:"No"},
+  {path:".forge-worktrees/", holds:"Git worktrees of the builds", kind:"machine", port:"No", shared:"No. The branch travels through the code host"},
+  {path:".forge/version.json", holds:"The install version of this checkout", kind:"machine", port:"No", shared:"No. The state forge states the version it accepts"},
+  {path:"~/.forge-monitor/projects.json", holds:"Registry of every board on the machine, which Gaia reads", kind:"machine", port:"No", shared:"No"},
+  {path:"~/.forge-monitor/machine-limits.json, agent-slots/, gate-slots/", holds:"The machine's agent limit and the slots in use", kind:"machine", port:"No", shared:"No. They are what a forge publishes as its capacity"},
+  {path:"~/.forge-monitor/usage-windows.json", holds:"Usage of the vendor account on this machine", kind:"machine", port:"No", shared:"No"},
+  {path:"~/.forge-monitor/private/<trackerId>/", holds:"The API bearer token and Talos's secret", kind:"machine", port:"No", shared:"No. The machine credential would rest here or in the keychain"}
+];
+const KIND_LABEL = {durable:"Durable record", stream:"Job stream", coordination:"Local coordination", machine:"Machine fact"};
+
+const OPEN_DECISIONS = [
+  {question:"What does a machine do when the factory state cannot be reached?",
+   explanation:"The choices are to stop, to keep working on a local copy and sync later, or to carry on until the next change of state and wait there. The design left offline work out on purpose.",
+   recommendation:"A running session or gate carries on to its end and waits there. Nothing lands and no ticket changes status. A command is refused with the reason. No machine writes to a local copy."},
+  {question:"Who decides which machine works a ticket, before a fleet manager exists?",
+   explanation:"Either a person assigns each ticket to a machine, or a machine with room takes the next ready ticket by itself.",
+   recommendation:"A machine with room claims the next ready ticket and the first claim wins. The fleet manager of milestone 6 is then a better writer of the same field, and a person can still assign by hand."},
+  {question:"Does a ticket stay on one machine from its build to its merge?",
+   explanation:"A session's transcript and its worktree are on the machine that ran it, so moving a ticket in the middle of a phase means starting that phase again.",
+   recommendation:"Yes while an agent works on it. A ticket may change machines only where it holds no agent: waiting for an approval, for a person, or in the merge order. An approval can be given from any machine, because it is a command."},
+  {question:"What happens to a ticket when its machine is lost?",
+   explanation:"The machine's lease on the ticket runs out. What is safe to continue from is the last commit that was pushed.",
+   recommendation:"The ticket is shown as needing a person, as an incident. On their word another machine starts the phase again from the last pushed commit. No machine takes over a session by itself."},
+  {question:"In which order do tickets merge when several machines land?",
+   explanation:"Today the order of accepting is the order of merging, on one machine. With several machines the order is either kept for the whole factory, or left to whichever push arrives first.",
+   recommendation:"One merge order for the factory, kept in the shared state. The machine that holds the first ticket lands it; the push that fails when the main line moved is the fence, not the order."},
+  {question:"Whose Claude usage does a cloud machine spend?",
+   explanation:"A session inherits the Claude login of the machine it runs on. A board can also bill by API key with a budget. The whitepaper places this choice above the factory, with governance.",
+   recommendation:"A machine nobody sits at bills by API key with a budget. A member's laptop may use that member's own login. This also keeps unattended machines clear of the Consumer Terms question."},
+  {question:"Can a person see the board, and answer, from a machine that runs no forge?",
+   explanation:"That is the whitepaper's personal dashboard. Seeing needs only a read of the shared state. Answering needs to know who answers.",
+   recommendation:"Seeing comes with milestone 3: Gaia shows a shared board read only. Answering from there waits for stage 6, which brings people and roles that are enforced."},
+  {question:"Who may add a machine to a factory?",
+   explanation:"Stage 6 owns identity and permissions. Milestone 3 still has to refuse a stranger's machine.",
+   recommendation:"A person enrols a machine by signing in with GitHub, and write permission on the repository is the only test. Roles stay labels until stage 6."},
+  {question:"Where may the factory state live?",
+   explanation:"Tickets, logs and epics describe a client's repository and can quote its code. The whitepaper's core is that a factory's boundaries are systems the company owns.",
+   recommendation:"The state forge and its database run on a machine the company runs, in the company's own cloud or network. Foundry offers no hosted state. For the owner's own boards that is the VPS."},
+  {question:"May a Windows machine join a shared factory?",
+   explanation:"Sessions and gates run unconfined on Windows, so a session there can read the machine's credential and write to the shared state as if it were the loop.",
+   recommendation:"A Windows machine may show a shared board in Gaia. It works tickets only on local files until Windows has confinement."}
+];
+
+const SOURCES = [
+  "foundry: <code>apps/forge/src/services/store/</code> (BoardStore, LocalFilesBoardStore, LocalStoreLayout, BoardStore.contract.spec), <code>apps/forge/cli/BoardStoreOf.ts</code>",
+  "foundry: <code>apps/forge/src/services/tracker/</code> (GenerationLock, TrackerLock, HoldJournal, TrackerPipeline), <code>apps/forge/src/adapters/tickets/TicketFileWriter.ts</code>",
+  "foundry: <code>docs/monorepo/hephaestus-talos.md</code>, decisions 16 to 19, section 4 (the store port), section 8 and section 9 (kept possible, not built)",
+  "foundry: <code>docs/monorepo/hephaestus-talos-implementation/stage-5-store-port.md</code> and <code>status.md</code>",
+  "foundry: <code>apps/forge/src/services/hephaestus/</code> (DrivePass, DataFolderWatch, HephaestusServer, HephaestusLock, BoardChildren, TalosChildren, TalosStart, HatchInbox, AgentSlots, MachineAgentLimit, WorkerProfiles, SessionConfinement), <code>apps/forge/cli/ApplyCommandOfVerb.ts</code>",
+  "foundry: <code>apps/forge/src/lib/talos/</code> (ChildLaunch, TalosFrame, SupervisionLease, EventLog, LocalEndpoint), <code>apps/forge/src/lib/agent-launch/</code> (AgentLaunchPlan, AgentAdapter, PosixLaunchEnvironment), <code>apps/forge/src/lib/claude-code/ClaudeCodeAdapter.ts</code>",
+  "foundry: <code>apps/forge/src/lib/gate-confinement/</code> (DarwinSeatbelt, LinuxBubblewrap, WindowsNoConfinement), <code>apps/forge/src/services/lifecycle/Customs.ts</code>",
+  "foundry: <code>apps/forge/src/services/tracker/MonitorRegistration.ts</code>, <code>apps/gaia/CLAUDE.md</code>, <code>apps/gaia/src/lib/forge-client/</code>, <code>packages/forge-contracts/README.md</code>",
+  "foundry: <code>docs/monorepo/context-pipeline.md</code>, decision 8 and the list of what is not built",
+  "foundry: <code>apps/forge/docs/cli.md</code> (stored files and folders), <code>apps/forge/src/lib/tracker-model/</code> (Pipeline, LogRecordSchema, ConcurrencyLimits)",
+  ["Agentic Software Factory: Structured Whitepaper, chapters 1, 2, 3 and 6","https://claude.ai/artifact/AjfAP5hJDYQrZT8dcAcbKc"],
+  ["The same document, tab Foundry roadmap: stage 1 and stage 5","https://claude.ai/artifact/AjfAP5hJDYQrZT8dcAcbKc"],
+  "v1: <code>apps/forge/docs/research/remote-state/findings.md</code> and <code>findings.html</code>, 15 November 2026; the same page as <code>.claude/.evidence/remote-state-research.html</code>",
+  ["Atlas free cluster limits","https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/"],
+  ["Atlas Flex cluster limits","https://www.mongodb.com/docs/atlas/reference/flex-limitations/"],
+  ["Atlas Workforce Identity Federation","https://www.mongodb.com/docs/atlas/workforce-oidc/"],
+  ["GitHub: authentication discovery endpoints (no OpenID Connect for users)","https://docs.github.com/en/apps/github-authentication-discovery-endpoints"],
+  ["Atlas IP access list","https://www.mongodb.com/docs/atlas/security/ip-access-list/"],
+  ["MongoDB collection-level access control","https://www.mongodb.com/docs/manual/core/collection-level-access-control/"],
+  ["Supabase: row-level security and GitHub login","https://supabase.com/docs/guides/database/postgres/row-level-security"],
+  ["Turso embedded replicas","https://docs.turso.tech/features/embedded-replicas/introduction"],
+  ["Cloudflare: what are Durable Objects","https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/"],
+  ["RFC 8252, OAuth 2.0 for Native Apps, sections 6 and 7.3","https://www.rfc-editor.org/rfc/rfc8252#section-7.3"],
+  ["GitHub: authorizing OAuth apps (PKCE, loopback, device flow)","https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps"],
+  ["RFC 8628, Device Authorization Grant, section 5.4","https://www.rfc-editor.org/rfc/rfc8628#section-5.4"],
+  ["GitHub: refreshing user access tokens","https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/refreshing-user-access-tokens"],
+  ["GitHub REST: repository permission of a user","https://docs.github.com/en/rest/collaborators/collaborators#get-repository-permissions-for-a-user"],
+  ["Bun secrets API","https://bun.com/docs/runtime/secrets"],
+  ["Claude Code on the web (cloud sessions, follow-ups)","https://code.claude.com/docs/en/claude-code-on-the-web"],
+  ["Claude Code cloud environments","https://code.claude.com/docs/en/cloud-environments"],
+  ["Claude Code hooks","https://code.claude.com/docs/en/hooks"],
+  ["Claude Managed Agents: events, streaming and pricing","https://platform.claude.com/docs/en/managed-agents/events-and-streaming"],
+  ["Claude Code self-hosted environments","https://code.claude.com/docs/en/self-hosted-environments"],
+  ["Claude Code scheduled tasks (routines)","https://code.claude.com/docs/en/routines"],
+  ["Claude Agent SDK overview","https://code.claude.com/docs/en/agent-sdk/overview"],
+  ["Anthropic Consumer Terms of Service, section 3","https://www.anthropic.com/legal/consumer-terms"],
+  ["MongoDB Atlas pricing","https://www.mongodb.com/pricing"]
+];
+
+function escapeText(value){return String(value).replace(/[&<>]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[character]));}
+
+const inventoryBody = document.querySelector("#inventory tbody");
+const inventorySearch = document.getElementById("inventorySearch");
+let activeKind = "all";
+function renderInventory(){
+  const needle = inventorySearch.value.trim().toLowerCase();
+  const visibleRows = INVENTORY.filter(row => (activeKind==="all"||row.kind===activeKind) && (!needle || (row.path+" "+row.holds+" "+row.port+" "+row.shared).toLowerCase().includes(needle)));
+  inventoryBody.innerHTML = visibleRows.map(row => "<tr><td><code>"+escapeText(row.path)+"</code></td><td>"+escapeText(row.holds)+'</td><td><span class="tag '+row.kind+'">'+KIND_LABEL[row.kind]+"</span></td><td>"+escapeText(row.port)+"</td><td>"+escapeText(row.shared)+"</td></tr>").join("");
+  document.getElementById("inventoryCount").textContent = visibleRows.length+" of "+INVENTORY.length+" entries shown. Only the durable records are candidates for the shared state.";
+}
+const kindChips = Array.from(document.querySelectorAll(".chip"));
+kindChips.forEach(chip => chip.addEventListener("click", () => {
+  activeKind = chip.dataset.kind;
+  kindChips.forEach(otherChip => otherChip.classList.toggle("on", otherChip===chip));
+  renderInventory();
+}));
+inventorySearch.addEventListener("input", renderInventory);
+renderInventory();
+
+document.getElementById("openDecisions").innerHTML = OPEN_DECISIONS.map((decision, index) =>
+  "<details"+(index===0?" open":"")+'><summary><span class="rank">'+(index+1)+"</span>"+escapeText(decision.question)+"</summary><p>"+escapeText(decision.explanation)+"</p><p><b>Claude's recommendation.</b> "+escapeText(decision.recommendation)+"</p></details>").join("");
+
+document.getElementById("sourceList").innerHTML = SOURCES.map((source, index) =>
+  '<li id="s'+(index+1)+'">'+(Array.isArray(source) ? escapeText(source[0])+': <a href="'+source[1]+'" target="_blank" rel="noopener">'+escapeText(source[1])+"</a>" : source)+"</li>").join("");
+
+const navigationLinks = Array.from(document.querySelectorAll("nav a"));
+const navigationSections = navigationLinks.map(link => document.querySelector(link.getAttribute("href")));
+function markActiveSection(){
+  let currentIndex = 0;
+  navigationSections.forEach((section, index) => { if (section.getBoundingClientRect().top < 140) currentIndex = index; });
+  navigationLinks.forEach((link, index) => link.classList.toggle("active", index===currentIndex));
+}
+window.addEventListener("scroll", markActiveSection, {passive:true});
+markActiveSection();
+</script>
+</body>
+</html>

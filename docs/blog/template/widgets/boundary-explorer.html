@@ -1,0 +1,54 @@
+<div class="boundary-layout">
+  <svg class="diagram" viewBox="0 0 620 440" role="img" aria-label="The factory in the middle, with five company systems around it that can each be switched on or off.">
+    <g>
+      <path class="edge" data-layer-edge="ticketing" d="M105 84L250 150"/>
+      <path class="edge" data-layer-edge="code-host" d="M515 84L370 150"/>
+      <path class="edge" data-layer-edge="documentation" d="M105 356L250 290"/>
+      <path class="edge" data-layer-edge="cloud-machines" d="M310 356V290"/>
+      <path class="edge" data-layer-edge="chat" d="M515 356L370 290"/>
+      <path class="edge" d="M310 84V150"/>
+    </g>
+    <g data-layer="ticketing">
+      <rect class="box box-teal" x="20" y="20" width="170" height="64" rx="8"/>
+      <text class="label" x="105" y="47">Ticketing</text>
+      <text class="sublabel" x="105" y="65">Jira, Azure DevOps</text>
+    </g>
+    <g>
+      <rect class="box" x="225" y="20" width="170" height="64" rx="8"/>
+      <text class="label" x="310" y="47">Personal dashboard</text>
+      <text class="sublabel" x="310" y="65">always there</text>
+    </g>
+    <g data-layer="code-host">
+      <rect class="box box-teal" x="430" y="20" width="170" height="64" rx="8"/>
+      <text class="label" x="515" y="47">Code host</text>
+      <text class="sublabel" x="515" y="65">pull requests and CI</text>
+    </g>
+    <g>
+      <rect class="zone-solid" x="200" y="150" width="220" height="140" rx="10"/>
+      <text class="zone-label" x="216" y="174">The factory</text>
+      <rect class="box box-orange" x="216" y="186" width="188" height="52" rx="8"/>
+      <text class="label" x="310" y="209">Workflow Loop</text>
+      <text class="sublabel" x="310" y="226">phases, gates, sign-offs</text>
+      <text class="sublabel" x="310" y="266">agents and factory state</text>
+    </g>
+    <g data-layer="documentation">
+      <rect class="box box-teal" x="20" y="356" width="170" height="64" rx="8"/>
+      <text class="label" x="105" y="383">Documentation</text>
+      <text class="sublabel" x="105" y="401">Confluence, a wiki</text>
+    </g>
+    <g data-layer="cloud-machines">
+      <rect class="box box-teal" x="225" y="356" width="170" height="64" rx="8"/>
+      <text class="label" x="310" y="383">Cloud machines</text>
+      <text class="sublabel" x="310" y="401">behind a fleet manager</text>
+    </g>
+    <g data-layer="chat">
+      <rect class="box box-teal" x="430" y="356" width="170" height="64" rx="8"/>
+      <text class="label" x="515" y="383">Chat</text>
+      <text class="sublabel" x="515" y="401">Slack or Teams</text>
+    </g>
+  </svg>
+  <div>
+    <div class="boundary-switches" data-role="boundary-switches"></div>
+    <p class="boundary-verdict" data-role="boundary-verdict"></p>
+  </div>
+</div>

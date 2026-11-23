@@ -1,0 +1,66 @@
+<div class="diagram-layout">
+  <svg class="diagram" viewBox="0 0 760 430" role="img" aria-label="A fleet manager balances load over factory machines. Each machine runs a Workflow Loop that ingests from company systems, spins up subagents, keeps its state in a shared factory state and shows each team member a personal dashboard.">
+    <defs>
+      <marker id="concept-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-head" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <g>
+      <path class="edge" d="M396 72V104" marker-end="url(#concept-arrow)"/>
+      <path class="edge" d="M512 44H568" marker-end="url(#concept-arrow)"/>
+      <path class="edge" d="M200 174H264" marker-end="url(#concept-arrow)"/>
+      <path class="edge edge-dashed" d="M264 250H200" marker-end="url(#concept-arrow)"/>
+      <path class="edge" d="M396 212V244" marker-end="url(#concept-arrow)"/>
+      <path class="edge" d="M528 176H568" marker-start="url(#concept-arrow)" marker-end="url(#concept-arrow)"/>
+      <path class="edge" d="M396 316V346" marker-start="url(#concept-arrow)" marker-end="url(#concept-arrow)"/>
+      <text class="edge-label" x="406" y="92">balances load</text>
+      <text class="edge-label" x="232" y="166" text-anchor="middle">ingests</text>
+      <text class="edge-label" x="232" y="242" text-anchor="middle">can report</text>
+      <text class="edge-label" x="406" y="232">spins up</text>
+      <text class="edge-label" x="406" y="336">keeps its state</text>
+    </g>
+    <g data-part="fleet-manager">
+      <rect class="box" x="280" y="16" width="232" height="56" rx="8"/>
+      <text class="label" x="396" y="40">Fleet manager</text>
+      <text class="sublabel" x="396" y="57">in the cloud</text>
+    </g>
+    <g>
+      <rect class="box-dashed" x="568" y="20" width="168" height="48" rx="8"/>
+      <text class="sublabel" x="652" y="48">Other factory machines</text>
+    </g>
+    <g data-part="company-systems">
+      <rect class="zone-solid" x="24" y="104" width="176" height="212" rx="8"/>
+      <text class="zone-label" x="40" y="127">Company systems</text>
+      <rect class="box" x="40" y="140" width="144" height="34" rx="6"/><text class="sublabel" x="112" y="162">Jira</text>
+      <rect class="box" x="40" y="182" width="144" height="34" rx="6"/><text class="sublabel" x="112" y="204">Azure DevOps</text>
+      <rect class="box" x="40" y="224" width="144" height="34" rx="6"/><text class="sublabel" x="112" y="246">GitHub or GitLab</text>
+      <rect class="box" x="40" y="266" width="144" height="34" rx="6"/><text class="sublabel" x="112" y="288">Confluence</text>
+    </g>
+    <g data-part="factory-machine">
+      <rect class="zone-solid" x="264" y="104" width="264" height="212" rx="8"/>
+      <text class="zone-label" x="280" y="127">Factory machine</text>
+      <g data-part="workflow-loop">
+        <rect class="box box-orange" x="280" y="140" width="232" height="72" rx="8"/>
+        <text class="label" x="396" y="165">Workflow Loop</text>
+        <text class="sublabel" x="396" y="182">deterministic state machine</text>
+        <text class="sublabel" x="396" y="198">with steps, hooks and gates</text>
+      </g>
+      <g data-part="subagents">
+        <rect class="box" x="280" y="244" width="232" height="56" rx="8"/>
+        <text class="label" x="396" y="268">Subagents</text>
+        <text class="sublabel" x="396" y="285">parallel up to hardware capacity</text>
+      </g>
+    </g>
+    <g data-part="personal-dashboard">
+      <rect class="box" x="568" y="140" width="168" height="72" rx="8"/>
+      <text class="label" x="652" y="165">Personal dashboard</text>
+      <text class="sublabel" x="652" y="182">one per team member</text>
+      <text class="sublabel" x="652" y="198">TODO list and approvals</text>
+    </g>
+    <g data-part="factory-state">
+      <path class="box" d="M304 358V406A92 10 0 0 0 488 406V358A92 10 0 0 0 304 358Z"/>
+      <path class="edge" d="M304 358A92 10 0 0 0 488 358" style="stroke: var(--line-strong)"/>
+      <text class="label" x="396" y="390">Factory state</text>
+      <text class="sublabel" x="396" y="406">shared across machines</text>
+    </g>
+  </svg>
+  <div class="detail-panel" data-role="detail-panel" aria-live="polite"></div>
+</div>
