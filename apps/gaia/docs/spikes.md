@@ -16,12 +16,13 @@ Seen on the second server, in both browsers:
 - a navigation started by the parent page setting the frame's `src` carried it (`Sec-Fetch-Site: same-site`), since ports do not make
   two `127.0.0.1` origins cross-site.
 
-W5.5 may build the frame as PLAN 8.3 says.
+W5.5 may build the frame.
 
 ## 2. Notification permission in an app window with a kept profile: not yet run
 
 This needs a person: the permission prompt must be answered and the notification clicked while another application is in front. The
-spike script is ready and waits for the owner at the laptop. W5.6 waits for this result (PLAN 11 gives the fallback).
+spike script is ready and waits for the owner at the laptop. W5.6 waits for this result; a "no" means `osascript` notifications from
+the server, which cannot bring Gaia forward on a click.
 
 ## 3. The window's end through `--remote-debugging-port=0`: yes
 

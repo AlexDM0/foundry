@@ -1,7 +1,7 @@
 /**
- * `gaia install-app` (PLAN 9.1): generates Gaia.app from `resources/app-bundle/` in a staging folder beside its place, builds the launcher
- * stub as a universal binary and signs the bundle ad hoc through process-run, and only then moves it into place, so a failed install leaves
- * the bundle that was there as it was. An application of the same name that Gaia did not install is left alone.
+ * `gaia install-app` (`docs/architecture.md`, "Processes"): generates Gaia.app from `resources/app-bundle/` in a staging folder beside its
+ * place, builds the launcher stub as a universal binary and signs the bundle ad hoc through process-run, and only then moves it into place,
+ * so a failed install leaves the bundle that was there as it was. An application of the same name that Gaia did not install is left alone.
  */
 import {
   chmod,
@@ -22,7 +22,7 @@ import { PRODUCT_NAMES }                          from '../../shared/constants/P
 import { BundleTemplateUtil, type BundleValues }  from './utils/BundleTemplateUtil.ts';
 
 export interface AppInstallOptions {
-  /** Where the bundle is placed, `~/Applications` (PLAN 13, Q10); made when it does not exist. */
+  /** Where the bundle is placed, `~/Applications`; made when it does not exist. */
   readonly applicationsFolder:    string;
   /** `resources/app-bundle/`: the templates, the launcher's source and the icon. */
   readonly bundleResourcesFolder: string;

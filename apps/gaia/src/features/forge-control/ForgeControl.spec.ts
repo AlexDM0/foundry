@@ -1,6 +1,6 @@
 /**
  * forge-control over recorded Hephaestus answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
- * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
+ * spec per kind and the carrier `ForgeControl` picks for it. What matters: the command each kind sends and to whom, a refusal's code and sentence
  * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
  * know, every command sent at the versioned path of the commands, also
  * to a forge ahead of the one Gaia supports, a stop and a machine limit that fall back to the program, or the next live forge,

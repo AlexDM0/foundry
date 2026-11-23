@@ -190,7 +190,8 @@ The launcher's splash (`resources/page/loading.html`) is a file page, and Gaia's
 page's origin, so the splash cannot read the health route itself: the launcher follows it and moves the splash on through the browser's
 debugging pipe (`--remote-debugging-pipe`, never a port another process could reach), and navigates the window to Gaia's page with the
 session code. No session code is ever in the browser's arguments: when Gaia already runs, the window opens on the splash at its last
-step, and the launcher asks for the code once the window is listed and moves the window to the page at once (PLAN 9.2).
+step, and the launcher asks for the code once the window is listed and moves the window to the page at once
+(`docs/architecture.md`, "Guards and sessions").
 
 # Coding conventions
 

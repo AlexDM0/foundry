@@ -1,11 +1,11 @@
 /**
- * `gaia launch` (PLAN 9.2): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing answers and opens the
- * browser at once on the splash, which it moves on as the server and its forges answer; moves the window to Gaia's page with a session
- * code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no window of Gaia's is
- * left, stops the browser and the server it started, whatever other window the browser still shows on Gaia's profile. Every wait is a
- * bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog; a window User closes before the
- * page opens closes Gaia quietly. A launch from a Gaia.app installed for another install version refuses before it starts anything
- * (conventions section 9).
+ * `gaia launch` (`docs/architecture.md`, "Processes"): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing
+ * answers and opens the browser at once on the splash, which it moves on as the server and its forges answer; moves the window to Gaia's
+ * page with a session code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no
+ * window of Gaia's is left, stops the browser and the server it started, whatever other window the browser still shows on Gaia's profile.
+ * Every wait is a bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog; a window User
+ * closes before the page opens closes Gaia quietly. A launch from a Gaia.app installed for another install version refuses before it starts
+ * anything (conventions section 9).
  */
 import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';
@@ -52,7 +52,7 @@ export interface LauncherOptions {
   /** The Info.plist of the Gaia.app that started this launch; `null` for a launch from a terminal, which no bundle started. */
   readonly appBundleInfo:          AppBundleInfoReading | null;
   readonly serverProgram:          ProgramToStart;
-  /** Gaia's own browser profile, kept between launches for the notification permission and the stored choices (PLAN 4). */
+  /** Gaia's own browser profile, kept between launches for the notification permission and the stored choices. */
   readonly browserProfileFolder:   string;
   readonly splashPagePath:         string;
   readonly theme:                  ThemeChoice;

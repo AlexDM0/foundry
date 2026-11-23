@@ -1,5 +1,5 @@
 /**
- * The fleet's figures and machine facts (PLAN 7.4). What matters: each figure sums only the forges that report it, so a value no forge
+ * The fleet's figures and machine facts. What matters: each figure sums only the forges that report it, so a value no forge
  * reported adds nothing rather than a guessed zero; the forges that cannot vouch for their figures, a counts-only one first among them, are
  * named in `incompleteFor`; and the machine-wide limit is taken from a forge read in full now before a reading kept from before a stop.
  */

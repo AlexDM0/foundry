@@ -12,9 +12,10 @@ What is agreed and not started, with the reason it waits.
   3a6e9e6043da). Its recording spec asserts that older shape, so it records again only from a checkout of that forge.
 - **Notifications (W5.6).** `docs/design/screens.md` C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
-  prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
-  the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is
-  the "What notifies" checklist; the artboard of C2 also draws the notification card and the permission line, which wait with W5.6.
+  prompt must be answered and a notification clicked while another application is in front. A "no" there means the fallback,
+  `osascript` notifications from the server, which cannot bring Gaia forward on a click, and the owner decides. The window title that
+  leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is the "What notifies" checklist; the
+  artboard of C2 also draws the notification card and the permission line, which wait with W5.6.
 - **Record an update whose restart was not taken.** `forge update --json` answers `restart: 'failed'` with `restartStep:
   'restart-not-taken'` at exit 0 when the live Hephaestus does not take the restart, and Gaia answers it as restart pending
   (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a restart that was not needed: a recording

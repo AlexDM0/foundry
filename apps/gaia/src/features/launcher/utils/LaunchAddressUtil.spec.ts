@@ -1,9 +1,9 @@
 /**
  * The addresses of a launch against their own contract: the splash carries Gaia's address and theme in its query and its step in the
- * fragment, so a move between steps stays within the page, and leaves out counts Gaia did not report; the page address carries the code
- * in the fragment only; the browser's arguments are PLAN 9.2's; the dialog's message is an argument, never script; the window of the
- * splash is the one at the splash's file, or the only one listed; and a window of Gaia's is the one the launch opened or one at Gaia's
- * address, never another window on the same profile.
+ * fragment, so a move between steps stays within the page, and leaves out counts Gaia did not report; the page address carries the code in
+ * the fragment only; the browser's arguments are those of `docs/architecture.md`, "Processes"; the dialog's message is an argument, never
+ * script; the window of the splash is the one at the splash's file, or the only one listed; and a window of Gaia's is the one the launch
+ * opened or one at Gaia's address, never another window on the same profile.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,9 @@
 /**
  * The identity ingestion over the identities recorded from forges at the version Gaia supports, read through the forge client. What
- * matters: PLAN 7.1's choice of whether a forge is read, a monitor at the known number (read) against an older one, none or an identity
- * from before F1 (older, nothing read) and a newer number (nothing, at fidelity newer-contract, which equals B3's fixture); an identity
- * that names no contracts (malformed); an identity of another forge at the registry's address; and an identity at a newer
- * `identityVersion` mapped to nothing.
+ * matters: the choice in `docs/architecture.md`, "A reading, from forge to screen", of whether a forge is read, a monitor at the known
+ * number (read) against an older one, none or an identity from before F1 (older, nothing read) and a newer number (nothing, at fidelity
+ * newer-contract, which equals B3's fixture); an identity that names no contracts (malformed); an identity of another forge at the
+ * registry's address; and an identity at a newer `identityVersion` mapped to nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

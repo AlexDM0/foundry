@@ -152,7 +152,7 @@ function nodePlacesOf(pipeline: Pipeline, phaseIsDrawn: (phase: GatePhase) => bo
   ];
 }
 
-/** The node-to-dialog table of PLAN 9.1: the merge before review opens nothing, since nothing on it is set. */
+/** The node-to-dialog table: the merge before review opens nothing, since nothing on it is set. */
 function dialogTargetOf(place: NodePlace): PipelineNodeDialogTarget | null {
   switch (place.nodeKind) {
     case 'ticket-creation':

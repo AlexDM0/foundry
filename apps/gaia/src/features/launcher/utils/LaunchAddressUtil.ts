@@ -42,12 +42,12 @@ function splashStepAddressOf(splashAddress: string, step: SplashStep, forgeCount
   return stepAddress.href;
 }
 
-/** The page reads the code from the fragment, clears it and spends it for its session (PLAN 8.1). */
+/** The page reads the code from the fragment, clears it and spends it for its session (`docs/architecture.md`, "Guards and sessions"). */
 function pageAddressOf(port: number, sessionCode: string): string {
   return `http://${addressOfPort(port)}/#session=${sessionCode}`;
 }
 
-/** PLAN 9.2: an app window on Gaia's own profile, whose windows the browser reports over the debugging pipe only the launcher holds. */
+/** An app window on Gaia's own profile, whose windows the browser reports over the debugging pipe only the launcher holds. */
 function browserArgumentsOf(startAddress: string, profileFolder: string): readonly string[] {
   return [
     `--app=${startAddress}`,

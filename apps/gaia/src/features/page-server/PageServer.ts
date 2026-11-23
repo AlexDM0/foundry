@@ -1,7 +1,7 @@
 /**
- * Gaia's server on 127.0.0.1 (PLAN 8.1): every request passes the Host and Origin guards, each route its own guard, and every answer
- * carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token, then opens its routes; it refuses
- * to start where Gaia already answers.
+ * Gaia's server on 127.0.0.1 (`docs/architecture.md`, "Guards and sessions"): every request passes the Host and Origin guards, each route
+ * its own guard, and every answer carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token,
+ * then opens its routes; it refuses to start where Gaia already answers.
  */
 import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }            from '../../adapters/gaia-server/GaiaServerClient.ts';
 import type { ForgeCounts }                                                    from '../../adapters/gaia-server/HealthDocument.ts';

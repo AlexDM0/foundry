@@ -4,7 +4,7 @@
  * `launching`, one launched and ended within a pass included, is published `launching` first, so every state reaches the stream; a
  * state differing only in the page's generation stamp sends nothing; ids are `<generation>-<n>`, and a replay serves only a buffered id
  * of this generation. A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` directly
- * before `board`, so the flow animates its marks from that slice (PLAN 9.5).
+ * before `board`, so the flow animates its marks from that slice (`docs/reference/hephaestus-api.md`, "The event stream").
  */
 import { describe, expect, test } from 'bun:test';
 

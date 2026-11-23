@@ -239,7 +239,7 @@ export function appBundlePathAmong(remainingArguments: readonly string[]): strin
   return appBundlePath;
 }
 
-/** Wires the launcher (PLAN 9.2) to the real programs, browser and server; the launcher itself shows its dialogs. */
+/** Wires the launcher (`docs/architecture.md`, "Processes") to the real programs, browser and server; the launcher itself shows its dialogs. */
 async function launch(remainingArguments: readonly string[], _output: ProgramOutput): Promise<ExitCode> {
   const port = gaiaPort();
   if (port === null) throw new GaiaError('refused', 'port-invalid', `${PRODUCT_NAMES.environmentPrefix}PORT names no port Gaia can listen on.`);
@@ -279,7 +279,8 @@ export function appInstallErrorOf(verdict: Exclude<AppInstallVerdict, { readonly
   return new GaiaError(verdict.verdict, reason, appInstallMessageOf(verdict));
 }
 
-/** Wires the install of Gaia.app (PLAN 9.1) to the real compiler, joiner and signer, for this repository and the Bun that runs it. */
+/** Wires the install of Gaia.app (`docs/architecture.md`, "Processes") to the real compiler, joiner and signer, for this repository and
+ * the Bun that runs it. */
 async function installApp(_remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const repositoryPath = join(import.meta.dir, '..');
   const verdict = await createAppInstall({

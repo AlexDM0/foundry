@@ -1,6 +1,6 @@
 /**
  * The flow graph's contract: which nodes exist for each flow shape the designs draw (`Flow.dc.html` with Human code review off and on and
- * with the review step off, `A7Minimal.dc.html`), the insert-slot table of PLAN 9.1 row by row, the merge steps' placement and derived
+ * with the review step off, `A7Minimal.dc.html`), the insert-slot table row by row, the merge steps' placement and derived
  * meter (Q5, Q16), the node-to-dialog table, the editing marks (a removed gate stays drawn, a removed agent step goes and leaves its +),
  * and that no node or edge carries words. The cases pin the rules a client must not repeat, so each names the design or decision it holds.
  */
@@ -189,7 +189,7 @@ describe('the flow shapes the designs draw', () => {
     expect(nodeOf(graph, 'merge-in-airlock').settings).toEqual(WORKER_PAIR);
   });
 
-  test('A7Minimal.dc.html: Builder, then the merge train, and exactly the two + slots of decision 18', () => {
+  test('A7Minimal.dc.html: Builder, then the merge train, and exactly the two + slots', () => {
     const graph = graphOf(MINIMAL_PIPELINE, 'editing');
     expect(nodeIdsOf(graph)).toEqual(['ticket-creation', 'human-ticket-review', 'builder', 'airlock', 'merge-in-airlock', 'fast-forward-main']);
     expect(graph.insertSlots).toEqual([

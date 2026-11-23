@@ -8,8 +8,9 @@
  * of another major reloads the page once as another `fleetVersion` does, and one that cannot be read is passed over; the system version
  * each `fleet` event carries is the stream's, so the document published leaves it out.
  *
- * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends (PLAN 8.1: `fleet`
- * events and a heartbeat); the reopen is a schedule the spec runs, so no spec waits the interval.
+ * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends
+ * (`docs/architecture.md`, "A reading, from forge to screen": `fleet` events and a heartbeat); the reopen is a schedule the spec runs, so
+ * no spec waits the interval.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,7 +1,7 @@
 /**
- * The pipeline facts of the board state (PLAN 9.1): the stored pipeline, the open setup record, the flow the Pipeline view draws with its
- * occupants, the gate profiles, the pipeline history and the choices. It runs no git and reads no file: the main line's texts arrive as a
- * parameter, read by Hephaestus, since the render service cannot reach the hephaestus service.
+ * The pipeline facts of the board state (`docs/reference/hephaestus-api.md`, "BoardState"): the stored pipeline, the open setup record, the
+ * flow the Pipeline view draws with its occupants, the gate profiles, the pipeline history and the choices. It runs no git and reads no
+ * file: the main line's texts arrive as a parameter, read by Hephaestus, since the render service cannot reach the hephaestus service.
  */
 import type { PipelineReading }      from '../../adapters/pipeline/PipelineFile.ts';
 import type { GatePhase }            from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -381,7 +381,7 @@ function mergingMainNodesOf(context: OccupantContext, job: Readonly<Job>, worker
 
 /**
  * The nodes a job's tickets may stand on, most specific first. A review job still preparing catches up with main before its reviewer
- * starts, so it sits on the merge before review (Q5, PLAN 7.9). An Airlock job stands where its phase is.
+ * starts, so it sits on the merge before review (`docs/glossary.md`, "merge before review"). An Airlock job stands where its phase is.
  */
 function candidateNodesOf(context: OccupantContext, job: Readonly<Job>): string[] {
   switch (job.kind) {

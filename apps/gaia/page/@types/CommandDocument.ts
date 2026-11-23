@@ -1,6 +1,7 @@
 /**
- * The page contract of `POST /api/commands` (PLAN 6.3 and 8.2): the one command the page sends per request, and Gaia's answer to it. The
- * server reads the body in through its own ingestion and maps its verdict out to the answer, so the page knows only these two shapes.
+ * The page contract of `POST /api/commands` (`docs/architecture.md`, "A command, from button to forge"): the one command the page sends per
+ * request, and Gaia's answer to it. The server reads the body in through its own ingestion and maps its verdict out to the answer, so the
+ * page knows only these two shapes.
  */
 import type { PAGE_CONTRACT_VERSIONS } from '../../src/shared/constants/PageContractVersions.ts';
 import type { FleetDocumentSettings }  from './FleetDocument.ts';

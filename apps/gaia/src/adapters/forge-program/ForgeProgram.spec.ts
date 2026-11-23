@@ -1,7 +1,7 @@
 /**
  * ForgeProgram over the recorded forge program, one answer set per stage: a forge checkout recorded before it answers in versioned JSON,
  * and a forge that answers F8 recorded with every verb done, and with every verb refused. What matters: the call each verb makes and where,
- * the program PLAN 8.2 picks, a refusal's code and sentence passed through unchanged, and an answer Gaia does not understand named so.
+ * the program Gaia picks, a refusal's code and sentence passed through unchanged, and an answer Gaia does not understand named so.
  */
 import {
   afterAll,
@@ -189,7 +189,7 @@ describe('every verb refused (recorded)', () => {
   });
 });
 
-describe('the program a verb runs (PLAN 8.2)', () => {
+describe('the program a verb runs', () => {
   test('is the registry\'s program for the forge, before the one in the settings', async () => {
     const { forgeProgram, processRun } = forgeProgramAt('every-verb-done', MISSING_FORGE_PROGRAM_PATH);
     expect(await forgeProgram.stop(registeredForge(EXAMPLE_FORGE_PROGRAM_PATH))).toEqual({ verdict: 'done', answer: { outcome: 'done' } });

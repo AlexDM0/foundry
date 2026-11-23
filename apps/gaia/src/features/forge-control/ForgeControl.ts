@@ -1,7 +1,8 @@
 /**
- * Carries out one command (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what a Hephaestus does while it answers
- * and its control contract is known; the forge program carries the rest; Gaia's settings carry what is Gaia's own. One command per forge,
- * per repository being added, for the machine limit and for the chooser is on its way at a time.
+ * Carries out one command (`docs/architecture.md`, "A command, from button to forge") and answers a verdict, never a throw. The forge's API
+ * carries what a Hephaestus does while it answers and its control contract is known; the forge program carries the rest; Gaia's settings
+ * carry what is Gaia's own. One command per forge, per repository being added, for the machine limit and for the chooser is on its way at a
+ * time.
  */
 import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 

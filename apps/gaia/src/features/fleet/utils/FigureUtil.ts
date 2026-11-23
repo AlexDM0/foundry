@@ -1,5 +1,5 @@
 /**
- * The fleet's figures and machine facts (PLAN 7.4): each a sum over the forges that report it, never a guess. A forge that runs but cannot
+ * The fleet's figures and machine facts: each a sum over the forges that report it, never a guess. A forge that runs but cannot
  * vouch for its figures is named in `incompleteFor`.
  */
 import type { FleetFigures, MachineFacts }  from '../../../shared/@types/FleetSnapshot.ts';

@@ -1,7 +1,7 @@
 /**
  * The assembly of one `FleetSnapshot` from every forge's reading. What matters: the readings behind each artboard's fixture assemble to
  * exactly that fixture's model; the attention order of A1 holds whatever order the forges come in; a hidden forge is absent from everything
- * but the settings that hide it; agents and activity keep the orders PLAN 7.4 states; a forge's activity is cut at its newest 50; and
+ * but the settings that hide it; agents and activity keep the orders `docs/design/screens.md` states; a forge's activity is cut at its newest 50; and
  * a forge whose snapshot still carries a `flintBrain` key adds no row for it, so no row has the role `brain`.
  */
 import { describe, expect, test }    from 'bun:test';

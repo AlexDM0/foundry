@@ -1,6 +1,6 @@
 /**
  * Runs the forge program for what no Hephaestus API can do: one verb in the forge's root, through process-run, answered as a verdict. The
- * program is the registry's `program` for the forge, else the one in Gaia's settings (PLAN 8.2).
+ * program is the registry's `program` for the forge, else the one in Gaia's settings (`docs/architecture.md`, "A command, from button to forge").
  */
 import type { ProcessRun } from '../../lib/process-run/ProcessRun.ts';
 import type {

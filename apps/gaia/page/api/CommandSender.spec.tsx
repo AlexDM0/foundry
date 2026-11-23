@@ -1,11 +1,11 @@
 /**
- * The command sender. What matters (W4.3 acceptance; `docs/design/screens.md` B2 acceptance 2 and 3): one command goes as one JSON body at the known
- * `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence as Gaia answered them, and stays on that forge
- * until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge until dismissed or until a
- * restart, stop or update of it succeeds, since a pause leaves the old code running; while a
- * command to a forge is on its way that forge reads it on its way and takes no second one, and another forge is not held up; nothing is
- * sent while the controls may not act. Gaia's server is stood in for by answers authored
- * from PLAN 6.3, since the page's specs run without a server; the HTTP status of a refusal is not part of that contract, so the body alone decides.
+ * The command sender. What matters (W4.3 acceptance; `docs/design/screens.md` B2 acceptance 2 and 3): one command goes as one JSON body at
+ * the known `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence as Gaia answered them, and stays
+ * on that forge until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge until
+ * dismissed or until a restart, stop or update of it succeeds, since a pause leaves the old code running; while a command to a forge is on
+ * its way that forge reads it on its way and takes no second one, and another forge is not held up; nothing is sent while the controls may
+ * not act. Gaia's server is stood in for by answers authored from the commands route's contract, since the page's specs run without a
+ * server; the HTTP status of a refusal is not part of that contract, so the body alone decides.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';

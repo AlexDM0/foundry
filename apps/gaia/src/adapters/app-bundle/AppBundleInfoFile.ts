@@ -1,6 +1,7 @@
 /**
  * Where `gaia install-app` places Gaia.app, `~/Applications/Gaia.app`, and the ingestion of its `Contents/Info.plist`: the install version
- * the bundle was installed at (`GaiaInstallVersion`, PLAN 6.2), which the launcher compares with Gaia's own before it starts anything.
+ * the bundle was installed at (`GaiaInstallVersion`, `docs/contracts.md`, "The install version"), which the launcher compares with Gaia's
+ * own before it starts anything.
  */
 import { join } from 'node:path';
 

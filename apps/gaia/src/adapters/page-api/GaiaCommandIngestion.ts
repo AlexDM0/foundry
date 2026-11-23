@@ -1,7 +1,7 @@
 /**
- * The ingestion of the page's command body (`POST /api/commands`, PLAN 6.3): parse, check `commandVersion` against `CONTRACT_VERSIONS`,
- * check the keys of its kind, map to the internal `GaiaCommand`. Every key is read as the body's own. The page and the server ship
- * together, so another version means a stale page.
+ * The ingestion of the page's command body (`POST /api/commands`, `docs/architecture.md`, "A command, from button to forge"): parse, check
+ * `commandVersion` against `CONTRACT_VERSIONS`, check the keys of its kind, map to the internal `GaiaCommand`. Every key is read as the
+ * body's own. The page and the server ship together, so another version means a stale page.
  */
 import { isAbsolute } from 'node:path';
 

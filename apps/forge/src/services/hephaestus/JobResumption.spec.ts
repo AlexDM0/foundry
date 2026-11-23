@@ -241,7 +241,8 @@ describe('the last worker an Airlock agent stands in for', () => {
   });
 });
 
-// The merge train's conflict fixer is whoever last worked on the branch, read from history and never from the pipeline (PLAN 7.7).
+// The merge train's conflict fixer is whoever last worked on the branch, read from history and never from the pipeline (`docs/glossary.md`,
+// "last worker").
 describe('the last worker of a ticket', () => {
   const builderLaunch = (jobId: string): LogRecord => ({
     at:     AT,

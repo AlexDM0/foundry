@@ -1,7 +1,8 @@
 /**
  * The ingestion of a Hephaestus's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
- * `ForgeIdentity`, and decide from its `contracts` whether Gaia reads the forge (PLAN 7.1): only a forge that serves the monitor contract
- * Gaia knows is read. An identity without `identityVersion` is a forge's from before F1, older than Gaia reads.
+ * `ForgeIdentity`, and decide from its `contracts` whether Gaia reads the forge (`docs/architecture.md`, "A reading, from forge to
+ * screen"): only a forge that serves the monitor contract Gaia knows is read. An identity without `identityVersion` is a forge's from
+ * before F1, older than Gaia reads.
  */
 import type { IdentityContractsDocument, IdentityDocument } from 'forge-contracts/IdentityDocument';
 
@@ -21,7 +22,7 @@ import { ForgeReadingMapUtil } from './utils/ForgeReadingMapUtil.ts';
 
 export type IdentityReading =
   | { readonly verdict: 'readable'; readonly identity: ForgeIdentity }
-  /** Another forge answers at the address the registry names for this one: PLAN 7.1 reads this forge as unreachable. */
+  /** Another forge answers at the address the registry names for this one: Gaia reads this forge as unreachable. */
   | { readonly verdict: 'another-forge'; readonly trackerId: string }
   | NewerContractVerdict
   | OlderContractVerdict

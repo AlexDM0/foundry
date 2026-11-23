@@ -1,4 +1,4 @@
-/** `~/.gaia/settings.json` at major 1, exactly as it is stored (PLAN 6.2); an absent `minor` reads as 0. */
+/** `~/.gaia/settings.json` at major 1, exactly as it is stored (`docs/contracts.md`, "Versioned contracts"); an absent `minor` reads as 0. */
 import type { NotificationKind, ThemeChoice } from '../../../shared/@types/GaiaSettings.ts';
 
 export interface StoredSettingsVersion1 {

@@ -1,7 +1,7 @@
 /**
- * Maps the answers of the page's requests out to the page contract: how a command ended (PLAN 6.3), a verdict of a command Gaia carried or
- * the reason it could not read the command at all. A forge's refusal code and its sentence pass through
- * unchanged, even a sentence that names a command (decision 45), and a chosen path is a command answer's text.
+ * Maps the answers of the page's requests out to the page contract: how a command ended (`docs/architecture.md`, "A command, from button to
+ * forge"), a verdict of a command Gaia carried or the reason it could not read the command at all. A forge's refusal code and its sentence
+ * pass through unchanged, even a sentence that names a command (decision 45), and a chosen path is a command answer's text.
  */
 import type { CommandAnswerDocument, CommandAnswerForgeDocument } from '../../../page/@types/CommandDocument.ts';
 import type { CommandVerdict, OutageResumeForgeAnswer }           from '../../shared/@types/CommandVerdict.ts';
