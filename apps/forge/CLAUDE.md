@@ -140,6 +140,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Machine setup runs before a command context exists. `setup.sh` and `setup.ps1` only make sure that Bun exists, then
   start `setup.ts`. `setup.ts` gives `process.platform` to the `SetupPlatform` port in `cli/setup/`, and
   `cli/setup/BootstrapScripts.spec.ts` holds that no setup step is in a bootstrap script.
+  `cli/setup/SetupImportGraph.spec.ts` holds that setup loads no installed package, so it starts on a fresh clone.
 - Three selectors sit outside that record. `FileReplaceFor.ts` reads `process.platform` at call time, since lib writes
   have no context, and keeps its moves on a platform with no adapter, since every tracker write rests on them;
   `claudeCodeAdapterFor` selects `AgentHostFacts`, since the vendor stays in `src/lib/claude-code/`.

@@ -73,10 +73,10 @@ import {
   agentVariableIsSet,
   environmentCopy,
   hephaestusPollIntervalOverride,
-  outlivingProgramEnvironment,
-  versionsAnswerOverride
+  outlivingProgramEnvironment
 } from '../../src/shared/Environment.ts';
 import { OperationRefusal }                from '../../src/shared/OperationRefusal.ts';
+import { versionsAnswerOverride }          from '../../src/shared/VersionsAnswerOverride.ts';
 import {
   HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
   HEPHAESTUS_STOP_TRIES,
