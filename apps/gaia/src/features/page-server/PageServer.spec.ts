@@ -255,7 +255,7 @@ describe('a headless start under a scratch home', () => {
     expect(await response.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
-      installVersion:   1,
+      installVersion:   2,
       forgesRegistered: 5,
       forgesAnswered:   3,
     });

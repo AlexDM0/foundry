@@ -184,7 +184,9 @@ browser waits on the account's keychain and its windows answer no navigation.
 `gaia install-app` generates `~/Applications/Gaia.app` from `resources/app-bundle/`; nothing it generates lives in the repository. Its launch
 script names the bundle (`gaia launch --app-bundle <path>`), and the launcher refuses in a dialog, before it starts anything, when the
 bundle's `GaiaInstallVersion` is not `GAIA_INSTALL_VERSION`. That dialog is the one place Gaia names a command for User: `gaia install-app`
-is the only way the bundle is installed.
+is the only way the bundle is installed. The bundle's executable (`resources/app-bundle/launch.m`) is the process macOS knows as Gaia:
+it starts the launch script as its child only once macOS has registered it, since a browser that registers first takes Gaia's place and
+macOS then cannot open `Gaia.app` again, and it answers a second open by bringing Gaia's window forward.
 
 The launcher's splash (`resources/page/loading.html`) is a file page, and Gaia's server answers no cross-origin read and refuses a file
 page's origin, so the splash cannot read the health route itself: the launcher follows it and moves the splash on through the browser's

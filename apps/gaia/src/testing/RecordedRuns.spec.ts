@@ -164,7 +164,8 @@ describe('the recorded runs of a recording', () => {
   });
 
   test('of one situation hold that situation\'s answers only, keyed without the situation', () => {
-    const compileShape = runCallShapeOf('/usr/bin/clang', ['-arch', 'arm64', '-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-o', 'launch-arm64', 'launch.c']);
+    const compileOptions = ['-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-fobjc-arc', '-framework', 'AppKit'];
+    const compileShape = runCallShapeOf('/usr/bin/clang', ['-arch', 'arm64', ...compileOptions, '-o', 'launch-arm64', 'launch.m']);
     const installRuns  = recordedSituationRunsOf('app-install-programs', 'installs');
     const refusedRuns  = recordedSituationRunsOf('app-install-programs', 'compiler-refuses');
     expect(installRuns.find((run) => run.callShape === compileShape)?.answer).toMatchObject({ verdict: 'finished', exitCode: 0 });

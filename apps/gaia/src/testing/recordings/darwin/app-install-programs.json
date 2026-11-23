@@ -1,5 +1,6 @@
 {
   "recordingVersion": 1,
+  "recordingMinor": 0,
   "stamp": {
     "recordingName": "app-install-programs",
     "operatingSystem": "darwin",
@@ -9,16 +10,16 @@
   },
   "answers": [
     {
-      "callShape": "compiler-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "callShape": "compiler-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-fobjc-arc\",\"-framework\",\"AppKit\",\"-o\",\"launch-arm64\",\"launch.m\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
         "standardOutput": "",
-        "standardError": "launch.c:1:25: error: use of undeclared identifier 'undeclaredExample'\n    1 | int main(void) { return undeclaredExample; }\n      |                         ^~~~~~~~~~~~~~~~~\n1 error generated.\n"
+        "standardError": "launch.m:1:25: error: use of undeclared identifier 'undeclaredExample'\n    1 | int main(void) { return undeclaredExample; }\n      |                         ^~~~~~~~~~~~~~~~~\n1 error generated.\n"
       }
     },
     {
-      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-fobjc-arc\",\"-framework\",\"AppKit\",\"-o\",\"launch-arm64\",\"launch.m\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
@@ -27,7 +28,7 @@
       }
     },
     {
-      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-x86_64\",\"launch.c\"]",
+      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-fobjc-arc\",\"-framework\",\"AppKit\",\"-o\",\"launch-x86_64\",\"launch.m\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
@@ -54,7 +55,7 @@
       }
     },
     {
-      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-fobjc-arc\",\"-framework\",\"AppKit\",\"-o\",\"launch-arm64\",\"launch.m\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
@@ -63,7 +64,7 @@
       }
     },
     {
-      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-x86_64\",\"launch.c\"]",
+      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-fobjc-arc\",\"-framework\",\"AppKit\",\"-o\",\"launch-x86_64\",\"launch.m\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 0,

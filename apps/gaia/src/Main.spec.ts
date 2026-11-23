@@ -39,7 +39,7 @@ describe('gaia version', () => {
   test('answers the versioned JSON with --json', async () => {
     const output = capturedOutput();
     expect(await runGaia(['version', '--json'], output)).toBe(0);
-    expect(JSON.parse(output.standardOutput())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
+    expect(JSON.parse(output.standardOutput())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 2 });
   });
 
   test('prints the versioned JSON and exits 0 when run as the gaia program', () => {
@@ -52,7 +52,7 @@ describe('gaia version', () => {
         stderr: 'pipe',
       });
       expect(finished.exitCode).toBe(0);
-      expect(JSON.parse(finished.stdout.toString())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
+      expect(JSON.parse(finished.stdout.toString())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 2 });
     } finally {
       removeScratchPath(programHome);
     }
@@ -61,7 +61,7 @@ describe('gaia version', () => {
   test('answers one readable line without --json', async () => {
     const output = capturedOutput();
     expect(await runGaia(['version'], output)).toBe(0);
-    expect(output.standardOutput()).toBe(`gaia ${packageManifest.version} (install version 1)\n`);
+    expect(output.standardOutput()).toBe(`gaia ${packageManifest.version} (install version 2)\n`);
   });
 });
 
@@ -122,10 +122,10 @@ describe('an install that does not finish', () => {
       verdict:       'unrepaired',
       failure:       'compile-failed',
       appBundlePath: '/Users/example/Applications/Gaia.app',
-      detail:        '/usr/bin/clang exited 1: launch.c:1:25: error: use of undeclared identifier',
+      detail:        '/usr/bin/clang exited 1: launch.m:1:25: error: use of undeclared identifier',
     });
     expect([failure.kind, failure.reason, exitCodeOf(failure)]).toEqual(['unrepaired', 'compile-failed', 2]);
-    expect(failure.message).toBe('The launcher of Gaia.app did not compile, so nothing is installed. /usr/bin/clang exited 1: launch.c:1:25: error: use of undeclared identifier');
+    expect(failure.message).toBe('The launcher of Gaia.app did not compile, so nothing is installed. /usr/bin/clang exited 1: launch.m:1:25: error: use of undeclared identifier');
   });
 });
 

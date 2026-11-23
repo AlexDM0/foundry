@@ -53,7 +53,9 @@ const SIGNING_TIMEOUT_MILLISECONDS = 60_000;
 const COMPILER_PROGRAM = '/usr/bin/clang';
 const JOINING_PROGRAM = '/usr/bin/lipo';
 const SIGNING_PROGRAM = '/usr/bin/codesign';
-const LAUNCHER_SOURCE_FILE_NAME = 'launch.c';
+const LAUNCHER_SOURCE_FILE_NAME = 'launch.m';
+/** The launcher is an application process of its own, which answers macOS while the launch script runs as its child. */
+const LAUNCHER_FRAMEWORK = 'AppKit';
 const INFO_PLIST_TEMPLATE_FILE_NAME = 'Info.plist.template';
 const LAUNCH_SCRIPT_TEMPLATE_FILE_NAME = 'launch.sh.template';
 const LAUNCHER_EXECUTABLE_NAME = 'launch';
@@ -87,6 +89,9 @@ function launcherBuildRunsOf(): readonly LauncherBuildRun[] {
       '-Os',
       '-Wall',
       '-Werror',
+      '-fobjc-arc',
+      '-framework',
+      LAUNCHER_FRAMEWORK,
       '-o',
       architectureBuildName(architecture),
       LAUNCHER_SOURCE_FILE_NAME,

@@ -40,8 +40,9 @@ const LAUNCH_SCRIPT_MODE = 0o755;
 const READ_ONLY_FOLDER_MODE = 0o555;
 const WRITABLE_FOLDER_MODE = 0o755;
 
-const COMPILE_ARM_SHAPE = runCallShapeOf('/usr/bin/clang', ['-arch', 'arm64', '-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-o', 'launch-arm64', 'launch.c']);
-const COMPILE_INTEL_SHAPE = runCallShapeOf('/usr/bin/clang', ['-arch', 'x86_64', '-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-o', 'launch-x86_64', 'launch.c']);
+const COMPILE_OPTIONS = ['-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-fobjc-arc', '-framework', 'AppKit'];
+const COMPILE_ARM_SHAPE = runCallShapeOf('/usr/bin/clang', ['-arch', 'arm64', ...COMPILE_OPTIONS, '-o', 'launch-arm64', 'launch.m']);
+const COMPILE_INTEL_SHAPE = runCallShapeOf('/usr/bin/clang', ['-arch', 'x86_64', ...COMPILE_OPTIONS, '-o', 'launch-x86_64', 'launch.m']);
 const JOIN_SHAPE = runCallShapeOf('/usr/bin/lipo', ['-create', '-output', 'Gaia.app/Contents/MacOS/launch', 'launch-arm64', 'launch-x86_64']);
 const SIGN_SHAPE = runCallShapeOf('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', 'Gaia.app']);
 
@@ -119,7 +120,7 @@ describe('an install that fails', () => {
     placeEarlierBundle(EARLIER_GAIA_PLIST);
     const { verdict, processRun } = await installIn('compiler-refuses');
     expect(verdict).toMatchObject({ verdict: 'unrepaired', failure: 'compile-failed', appBundlePath });
-    expect(verdict.verdict === 'unrepaired' ? verdict.detail : '').toStartWith('/usr/bin/clang exited 1: launch.c:1:25: error:');
+    expect(verdict.verdict === 'unrepaired' ? verdict.detail : '').toStartWith('/usr/bin/clang exited 1: launch.m:1:25: error:');
     expect(processRun.callShapesAnswered()).toEqual([COMPILE_ARM_SHAPE]);
     expect(readFileSync(bundleFile('earlier-file'), 'utf8')).toBe('the earlier bundle');
     expect(stagingFolderRemains()).toBe(false);

@@ -23,7 +23,8 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
   window of Gaia's is left (the one it opened, or one at Gaia's address) stops the browser, whatever other window it still shows on
   that profile, and only the server it started; a server it started that ends closes the window with a dialog.
 - **`Gaia.app`** is generated into `~/Applications` by `gaia install-app` (`src/features/app-install/`): a compiled stub that runs a
-  generated script, which runs `gaia launch` from this checkout.
+  generated script, which runs `gaia launch` from this checkout. The stub is the process macOS knows as Gaia: it stays for as long as
+  the script runs, as its parent, and opening `Gaia.app` again brings Gaia's window forward.
 - **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory, drawn with Forge's linked `design-system`
   package, whose stylesheet and fonts Gaia's server serves from its own origin. It reaches nothing but Gaia's own server, and frames no
   forge's page.

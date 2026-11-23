@@ -14,7 +14,7 @@ describe('the health document', () => {
     expect(healthDocumentOf(FORGE_COUNTS)).toEqual({
       application:      'gaia',
       healthVersion:    1,
-      installVersion:   1,
+      installVersion:   2,
       forgesRegistered: 5,
       forgesAnswered:   3,
     });

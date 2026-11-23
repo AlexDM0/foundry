@@ -95,7 +95,7 @@ async function finishedOutputOf(program: string, programArguments: readonly stri
 
 function resourcesWithLauncherSource(launcherSource: string): string {
   for (const fileName of ['Info.plist.template', 'launch.sh.template', 'Gaia.icns']) copyFileSync(join(BUNDLE_RESOURCES_FOLDER, fileName), join(resourcesCopy, fileName));
-  writeFileSync(join(resourcesCopy, 'launch.c'), launcherSource);
+  writeFileSync(join(resourcesCopy, 'launch.m'), launcherSource);
   return resourcesCopy;
 }
 
@@ -111,7 +111,7 @@ describe('an install on a real Mac', () => {
     expect(await new AppBundleInfoFile(appBundlePath).read()).toEqual({ verdict: 'readable', installVersion: GAIA_INSTALL_VERSION });
     expect(existsSync(join(applicationsFolder, '.Gaia.app.installing'))).toBe(false);
 
-    // The stub only runs the script beside it: a script that names itself proves it, without opening Gaia's window.
+    // The stub runs the script beside it and ends with it: a script that names itself proves it, without opening Gaia's window.
     writeFileSync(join(appBundlePath, 'Contents', 'MacOS', 'launch.sh'), '#!/bin/sh\necho "launched $(basename "$0")"\n');
     expect(await finishedOutputOf(launcherPath, [])).toBe('launched launch.sh\n');
   });

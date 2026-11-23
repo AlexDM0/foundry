@@ -89,7 +89,7 @@ describe('gaia serve', () => {
     expect(await health.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
-      installVersion:   1,
+      installVersion:   2,
       forgesRegistered: 0,
       forgesAnswered:   0,
     });
