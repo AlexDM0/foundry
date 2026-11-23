@@ -27,12 +27,18 @@ import { OperationRefusal }                                                     
 import { createFakeWindowsKernel, fakeWindowsSupervision, type FakeWindowsKernel } from '../../src/testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                                                     from '../../src/testing/NativePlatformPorts.ts';
 import { PlantedChild }                                                            from '../../src/testing/PlantedChild.ts';
-import { createScratchDirectory, removeScratchDirectory }                          from '../../src/testing/ScratchWorkspace.ts';
-import { talosChildReadingsWith }                                                  from '../../src/testing/TalosChildReadings.ts';
-import { writeReadableTracker }                                                    from '../../src/testing/TrackerFileFixtures.ts';
-import type { CommandContext }                                                     from '../CommandContext.ts';
-import type { ArgumentParser }                                                     from '../arguments/ArgumentParser.ts';
-import { runHephaestusInTheForeground }                                            from './HephaestusForeground.ts';
+import {
+  GIT_CALL_SHAPES,
+  RECORDED_PLACEHOLDERS,
+  type RecordedGitStage,
+  useRecordedGit
+} from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                         from '../../src/testing/TalosChildReadings.ts';
+import { writeReadableTracker }                           from '../../src/testing/TrackerFileFixtures.ts';
+import type { CommandContext }                            from '../CommandContext.ts';
+import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
+import { runHephaestusInTheForeground }                   from './HephaestusForeground.ts';
 
 const CREATION_TIME = 134_000_000_000_000_001n;
 const REUSED_CREATION_TIME = CREATION_TIME + 1n;
@@ -40,10 +46,17 @@ const OTHER_PROCESS_ID = 5001;
 
 const nativePorts = nativePlatformPorts();
 
+const recordedGit = useRecordedGit();
+/** A start past its identity check reads the main line's branch, as in a repository on `main`. */
+const MAIN_LINE_BRANCH_READ: RecordedGitStage = [
+  { gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'], answeredAs: GIT_CALL_SHAPES.CURRENT_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: 'main' } },
+];
+
 let kernel: FakeWindowsKernel;
 let scratchDirectory = '';
 
 beforeEach(() => {
+  recordedGit.answerFrom(MAIN_LINE_BRANCH_READ);
   kernel = createFakeWindowsKernel();
   kernel.table.set(process.pid, { creationTime: CREATION_TIME });
   kernel.table.set(OTHER_PROCESS_ID, { creationTime: CREATION_TIME });

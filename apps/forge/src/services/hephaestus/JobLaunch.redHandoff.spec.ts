@@ -13,6 +13,7 @@ import {
 import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, WIND_DOWN_GRACE_CALLS }      from '../../shared/constants/HephaestusLimits.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
 import { jobFolderIn }                                                from './HephaestusFiles.ts';
@@ -20,6 +21,12 @@ import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './Jo
 import { RedHandoff }                                                 from './RedHandoff.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
+
+const recordedGit = useRecordedGit();
+/** The scene plants no worktree, so the commit an ended session left at the worktree's head reads as no such revision. */
+const WORKTREE_HEAD_READ_OF_NO_COMMIT: RecordedGitStage = [
+  { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', 'HEAD^{commit}'], answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION },
+];
 
 const folders: string[] = [];
 
@@ -96,6 +103,7 @@ describe('a session resumed after a red handoff', () => {
     expect(scene.board.jobs().find((job) => job.kind === 'build')?.state).toBe('stopping');
     expect(scene.board.incidents()).toEqual([]);
 
+    recordedGit.answerFrom(WORKTREE_HEAD_READ_OF_NO_COMMIT);
     scene.observe({ agentEnd: { reason: 'exited', exitCode: 0, signal: null } as unknown as BuildJobObservation['agentEnd'] });
 
     expect(scene.board.jobs().find((job) => job.kind === 'build')).toMatchObject({ state: 'interrupted', interruption: 'handoff-red' });

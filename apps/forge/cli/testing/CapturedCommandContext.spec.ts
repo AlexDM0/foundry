@@ -10,8 +10,11 @@ import {
   test
 }                 from 'bun:test';
 
+import { useRecordedGitOutsideAnyRepository }                      from '../../src/testing/RecordedGit.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { createCapturedCommandContext }                            from './CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 const REPOSITORY_DIRECTORY = join(import.meta.dir, '..', '..');
 const scratchDirectories: string[] = [];

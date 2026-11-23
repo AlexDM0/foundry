@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { workspacePathsFor }                              from '../../../src/services/tracker/Workspace.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
 import { boardStoreIn }                                   from '../../BoardStoreOf.ts';
 import { createArgumentParser }                           from '../../arguments/ArgumentParser.ts';
@@ -24,6 +25,8 @@ import {
   type RuntimeHephaestusCommand,
   answerControlCommand
 } from './CommandRoute.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 const scratchDirectories: string[] = [];
 

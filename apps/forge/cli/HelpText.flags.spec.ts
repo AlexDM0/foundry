@@ -15,12 +15,15 @@ import {
   test
 }                       from 'bun:test';
 
+import { useRecordedGitOutsideAnyRepository }             from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
 import { COMMAND_NAMES, commandLoaderFor }                from './CommandTable.ts';
 import { helpText }                                       from './HelpText.ts';
 import { createArgumentParser, type ArgumentParser }      from './arguments/ArgumentParser.ts';
 import { OPTION_NAMES_WITH_VALUES }                       from './arguments/constants/OptionNamesWithValues.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 const HELP_TEXT      = helpText('posix-shell');
 const REFERENCE_TEXT = readFileSync(join(import.meta.dir, '..', 'docs', 'cli.md'), 'utf8');

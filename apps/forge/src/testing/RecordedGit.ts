@@ -21,6 +21,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   spyOn
 } from 'bun:test';
 
@@ -528,6 +529,20 @@ export function useRecordedGit(): RecordedGit {
     enterScenario:          (scenario, values) => player.enterScenario({ scenario, replacements: scenarioReplacementsOf(values) }),
     answerFrom:             player.answerFrom,
   };
+}
+
+const COMMON_FOLDER_ASKED_OUTSIDE: RecordedGitStage = [{ gitArguments: ['rev-parse', '--git-common-dir'], answeredAs: GIT_CALL_SHAPES.COMMON_FOLDER_OUTSIDE }];
+
+/**
+ * Call at a spec file's top level instead of `useRecordedGit`, for a spec whose commands run in folders of no repository: outside a played
+ * stage, tracker discovery's question for the git common folder is answered as asked outside any repository, from the file's setup on.
+ */
+export function useRecordedGitOutsideAnyRepository(): RecordedGit {
+  const recordedGit = useRecordedGit();
+  const answerAsOutsideAnyRepository = (): void => recordedGit.answerFrom(COMMON_FOLDER_ASKED_OUTSIDE);
+  beforeAll(answerAsOutsideAnyRepository);
+  beforeEach(answerAsOutsideAnyRepository);
+  return recordedGit;
 }
 
 /**

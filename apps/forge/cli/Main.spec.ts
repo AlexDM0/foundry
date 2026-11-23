@@ -20,18 +20,25 @@ import {
   mock,
   test
 }                                                         from 'bun:test';
-import { createInstallManifestWriter }                    from '../src/adapters/install/InstallManifestWriter.ts';
-import { OperationRefusalWordingUtil }                    from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { TALOS_PROTOCOL_VERSION }                         from '../src/lib/talos/constants/TalosProtocol.ts';
-import { OperationRefusal }                               from '../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                  from '../src/shared/constants/ProductNames.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { COMMAND_NAMES }                                  from './CommandTable.ts';
-import { installedFilePathsIn }                           from './InstalledFiles.ts';
-import { runCommandLine }                                 from './Main.ts';
-import { INSTALL_VERSION }                                from './constants/InstallVersion.ts';
-import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
-import * as realNamespaceCommandModule                    from './tracking/namespace/NamespaceCommand.ts';
+import { createInstallManifestWriter }                                    from '../src/adapters/install/InstallManifestWriter.ts';
+import { OperationRefusalWordingUtil }                                    from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { TALOS_PROTOCOL_VERSION }                                         from '../src/lib/talos/constants/TalosProtocol.ts';
+import { OperationRefusal }                                               from '../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                                  from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGitOutsideAnyRepository }                             from '../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
+import { COMMAND_NAMES }                                                  from './CommandTable.ts';
+import { installedFilePathsIn }                                           from './InstalledFiles.ts';
+import { runCommandLine }                                                 from './Main.ts';
+import { INSTALL_VERSION }                                                from './constants/InstallVersion.ts';
+import { createCapturedCommandContext }                                   from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                         from './testing/InitializedScratchRepository.ts';
+import { INIT_ON_AN_EXISTING_TRACKER, REFRESH_OF_AN_IGNORING_REPOSITORY } from './testing/RecordedGitStages.ts';
+import * as realNamespaceCommandModule                                    from './tracking/namespace/NamespaceCommand.ts';
+
+const recordedGit = useRecordedGitOutsideAnyRepository();
+const TRACKER_CREATED_AT = new Date('2026-09-18T20:11:03Z');
+const INIT_ARGUMENTS = ['--project', 'Example Agency', '--no-hooks'];
 
 let errorThrownByTheStubbedCommand: unknown = null;
 // Holds no tracker, so a route that does reach a command is refused there instead of writing into the repository's own.
@@ -88,9 +95,7 @@ describe('-h that is not a request for the reference', () => {
   let trackedDirectory = '';
 
   beforeAll(async () => {
-    trackedDirectory = createScratchDirectory('main-short-help');
-    const initialisingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-    expect(await runCommandLine(['init', '--project', 'Example Agency', '--no-hooks'], initialisingContext)).toBe(0);
+    trackedDirectory = await createInitializedRecordedGitRepository('main-short-help', INIT_ARGUMENTS, () => TRACKER_CREATED_AT, recordedGit);
     expect(await runCommandLine(['ticket', 'add', '--type', 'ticket', 'Example ticket'], createCapturedCommandContext({ currentDirectory: trackedDirectory }))).toBe(0);
   });
 
@@ -160,9 +165,7 @@ describe('a tracker whose installed files are of another install version', () =>
   let trackedDirectory = '';
 
   beforeEach(async () => {
-    trackedDirectory = realpathSync(createScratchDirectory('main-install-version'));
-    const initialisingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-    expect(await runCommandLine(['init', '--project', 'Example Agency', '--no-hooks'], initialisingContext)).toBe(0);
+    trackedDirectory = realpathSync(await createInitializedRecordedGitRepository('main-install-version', INIT_ARGUMENTS, () => TRACKER_CREATED_AT, recordedGit));
     rmSync(installedFilePathsIn(trackedDirectory).installManifest);
   });
 
@@ -241,7 +244,7 @@ describe('a tracker whose installed files are of another install version', () =>
   });
 
   test('init runs and records the install version, after which a refused command runs', async () => {
-    expect(await runCommandLine(['init', '--no-hooks'], trackedContext())).toBe(0);
+    expect(await recordedGit.playStage(INIT_ON_AN_EXISTING_TRACKER, async () => runCommandLine(['init', '--no-hooks'], trackedContext()))).toBe(0);
     expect(existsSync(installedFilePathsIn(trackedDirectory).installManifest)).toBe(true);
     const addingContext = trackedContext();
     expect(await runCommandLine(['task', 'add', 'Example row'], addingContext), addingContext.errorText()).toBe(0);
@@ -250,7 +253,7 @@ describe('a tracker whose installed files are of another install version', () =>
   test('update runs and records the install version, after which a refused command runs', async () => {
     const refusedContext = trackedContext();
     expect(await runCommandLine(['task', 'add', 'Example row'], refusedContext)).toBe(1);
-    expect(await runCommandLine(['update', '--no-hooks'], trackedContext())).toBe(0);
+    expect(await recordedGit.playStage(REFRESH_OF_AN_IGNORING_REPOSITORY, async () => runCommandLine(['update', '--no-hooks'], trackedContext()))).toBe(0);
     const addingContext = trackedContext();
     expect(await runCommandLine(['task', 'add', 'Example row'], addingContext), addingContext.errorText()).toBe(0);
   });

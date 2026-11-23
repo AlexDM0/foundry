@@ -16,9 +16,12 @@ import {
 } from 'bun:test';
 import type { AgentToolCall }                             from '../../src/lib/agent-launch/AgentToolCall.ts';
 import { fakeAgentAdapter }                               from '../../src/testing/FakeAgentAdapter.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 let scratchDirectory = '';
 let worktree = '';

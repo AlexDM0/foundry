@@ -15,10 +15,13 @@ import {
 }                                                         from 'bun:test';
 import { OperationRefusal }                                                   from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                      from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGitOutsideAnyRepository }                                 from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                     from '../src/testing/ScratchWorkspace.ts';
 import { requireCurrentInstall, requireInstallManifestThisVersionCanReplace } from './InstallVersionCheck.ts';
 import { installedFilePathsIn }                                               from './InstalledFiles.ts';
 import { INSTALL_VERSION }                                                    from './constants/InstallVersion.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 let rootDirectory = '';
 

@@ -8,10 +8,13 @@
 import { afterEach, expect, test } from 'bun:test';
 
 import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { INSTALL_VERSION }                                from '../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 const FROZEN_NOW = new Date('2026-11-12T10:00:00+01:00');
 

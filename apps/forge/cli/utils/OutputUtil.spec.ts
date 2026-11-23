@@ -14,9 +14,12 @@ import {
 import { LogUtil }                                        from '../../src/adapters/utils/LogUtil.ts';
 import type { UnreadableRecord }                          from '../../src/services/tracker/@types/BoardRecords.ts';
 import { boardFixture, ticketFixture }                    from '../../src/testing/BoardFixtures.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { OutputUtil }                                     from './OutputUtil.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 const {
   padColumn,

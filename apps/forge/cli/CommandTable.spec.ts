@@ -10,10 +10,13 @@ import {
   test
 }                                                         from 'bun:test';
 import { PRODUCT_NAMES }                                  from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
 import { COMMAND_NAMES, COMMAND_TABLE }                   from './CommandTable.ts';
 import { runCommandLine }                                 from './Main.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 let untrackedDirectory = '';
 

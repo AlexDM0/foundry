@@ -11,9 +11,12 @@ import {
 } from 'bun:test';
 
 import { OperationRefusal }                               from '../src/shared/OperationRefusal.ts';
+import { useRecordedGitOutsideAnyRepository }             from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
 import { requirePipedStandardInput }                      from './PipedStandardInput.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
+
+useRecordedGitOutsideAnyRepository();
 
 let scratchDirectory = '';
 
