@@ -29,6 +29,7 @@ import { platformPortsFor }                       from '../../src/lib/platform-p
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PLATFORM_HOST_FACTS }                    from '../../src/shared/PlatformHostFacts.ts';
+import { defaultSpecPlatformPorts }               from '../../src/testing/DefaultSpecPlatformPorts.ts';
 import { entityForgePipelineTextOf }              from '../../src/testing/EntityForgeFixture.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -382,12 +383,12 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   });
 
   test('a line longer than the shell line port\'s limit is refused when stored, by gate add and gate prepare, and one at the limit is stored', async () => {
-    const nativePorts = platformPortsFor(process.platform, PLATFORM_HOST_FACTS);
-    const limitedShellLine = { ...nativePorts.shellLine, lineLimitCharacters: 12 };
+    const specPorts = defaultSpecPlatformPorts();
+    const limitedShellLine = { ...specPorts.shellLine, lineLimitCharacters: 12 };
     const context = createCapturedCommandContext({
       currentDirectory: repositoryDirectory,
       now:              () => FROZEN_NOW,
-      platformPorts:    { ...nativePorts, shellLine: limitedShellLine },
+      platformPorts:    { ...specPorts, shellLine: limitedShellLine },
     });
     const before = storedFiles();
 

@@ -57,7 +57,11 @@ export const EXECUTABLE_CALL_SHAPES = {
   MISSING:           'absolutePathOf <name>, the name in no folder of a planted PATH',
 } as const;
 
-export const CONFINEMENT_CALL_SHAPES = { CONFINED_ARGV: 'confinedArgvOf <plan> <argv>, a gate plan with no network and no extra writes', } as const;
+export const CONFINEMENT_CALL_SHAPES = {
+  CONFINED_ARGV:      'confinedArgvOf <plan> <argv>, a gate plan with no network and no extra writes',
+  AVAILABILITY:       'availability, the native confinement of the machine',
+  WORKER_CONFINEMENT: 'workerConfinement, the native confinement of the machine',
+} as const;
 
 /** The gate lines whose end the gate run boundary records; a default spec runs only these. */
 export const RECORDED_GATE_LINES = {
@@ -93,7 +97,7 @@ function recordedAnswersOf(boundary: string): ReadonlyMap<string, unknown> {
   return new Map(recording.answers.map(({ callShape, answer }) => [callShape, answer]));
 }
 
-function recordedAnswerOf(boundary: string, callShape: string): unknown {
+export function recordedAnswerOf(boundary: string, callShape: string): unknown {
   const answer = recordedAnswersOf(boundary).get(callShape);
   if (answer === undefined) throw new Error(`the recording of ${boundary} holds no answer for "${callShape}": run \`${recordCommandOf(boundary)}\`.`);
   return answer;

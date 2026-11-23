@@ -15,7 +15,7 @@ import { hephaestusFilesIn }                      from '../../../src/services/he
 import { Presence }                               from '../../../src/services/hephaestus/Presence.ts';
 import { requireWorkspace }                       from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
-import { nativePlatformPorts }                    from '../../../src/testing/NativePlatformPorts.ts';
+import { defaultSpecPlatformPorts }               from '../../../src/testing/DefaultSpecPlatformPorts.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                from '../../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
@@ -27,7 +27,7 @@ import { createInitializedRecordedGitRepository } from '../../testing/Initialize
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const recordedGit = useRecordedGit();
-const processTable = useRecordedProcessTable(nativePlatformPorts());
+const processTable = useRecordedProcessTable(defaultSpecPlatformPorts());
 
 let repositoryDirectory = '';
 

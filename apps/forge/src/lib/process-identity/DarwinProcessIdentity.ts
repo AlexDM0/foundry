@@ -10,8 +10,8 @@ export interface ProcessIdentityPrimitives {
   readonly outputOfProgram: (argv: readonly string[], environment: Readonly<Record<string, string>>) => string | null;
 }
 
-const PROCESS_STATUS_PATH       = '/bin/ps';
-const SYSTEM_CONTROL_PATH       = '/usr/sbin/sysctl';
+export const PROCESS_STATUS_PATH = '/bin/ps';
+export const SYSTEM_CONTROL_PATH = '/usr/sbin/sysctl';
 const DARWIN_BOOT_IDENTITY_NAME = 'kern.bootsessionuuid';
 const DARWIN_BOOT_TIME_NAME     = 'kern.boottime';
 

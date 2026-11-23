@@ -37,7 +37,7 @@ export interface BubblewrapInstall {
 
 export const BUBBLEWRAP_MECHANISM = 'bubblewrap';
 
-const BUBBLEWRAP_EXECUTABLE_NAME = 'bwrap';
+export const BUBBLEWRAP_EXECUTABLE_NAME = 'bwrap';
 const SYSTEM_TEMPORARY_FOLDERS = ['/tmp', '/var/tmp'] as const;
 const NESTED_NAMESPACE_REFUSAL_VERSION = '0.8.0';
 const VERSION_PATTERN = /bubblewrap (\d+)\.(\d+)\.(\d+)/;

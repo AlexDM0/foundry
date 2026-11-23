@@ -20,8 +20,8 @@ import {
 import type { FileReplace }                                from '../../lib/atomic-file/FileReplace.ts';
 import { fileReplaceFor }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
 import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { defaultSpecPlatformPorts }                        from '../../testing/DefaultSpecPlatformPorts.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
-import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                    from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
 import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }     from '../../testing/TalosChildReadings.ts';
@@ -55,7 +55,7 @@ describe('a gate slot held by a spawned, unclaimed holder on Windows', () => {
     kernel.table.set(process.pid, { creationTime: CREATION_TIME });
     kernel.table.set(HOLDER_PROCESS_ID, { creationTime: CREATION_TIME });
     const supervision = fakeWindowsSupervision(kernel);
-    const ports: PlatformPorts = { ...nativePlatformPorts(), processSupervision: supervision };
+    const ports: PlatformPorts = { ...defaultSpecPlatformPorts(), processSupervision: supervision };
     const scratch = createScratchDirectory('windows-gate-slots');
     scratchDirectories.push(scratch);
     const holder = join(scratch, 'job', 'gate-child');
@@ -89,7 +89,7 @@ describe('a gate slot held by a child folder', () => {
   function boardWithChildren() {
     const boardFolder = createScratchDirectory('child-folder-holders');
     scratchDirectories.push(boardFolder);
-    const ports = nativePlatformPorts();
+    const ports = defaultSpecPlatformPorts();
     const children = talosChildReadingsWith(ports, boardFolder, EVERY_TALOS_IS_LIVE);
     const runFolder = join(boardFolder, 'merge-gates', '0123456789abcdef');
     const isLive = (holder: string): boolean => GateRunSlots.gateRunHolderIsLive(children, ports, { holder, process: null });
@@ -140,7 +140,7 @@ describe('a slot file that the platform refuses to create or move', () => {
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
     const slots = GateRunSlots.createGateRunSlots({
-      ports: nativePlatformPorts(), folder, limit: 1, holderIsLive, retryMilliseconds: 1, fileReplace, heldCreateMeansTaken: heldSlotCreateMeansTakenFor(platform),
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive, retryMilliseconds: 1, fileReplace, heldCreateMeansTaken: heldSlotCreateMeansTakenFor(platform),
     });
     return { slots, slotPath: join(folder, 'slot-1') };
   }
@@ -188,7 +188,7 @@ describe('a slot file that the platform refuses to create or move', () => {
 
 describe('a gate profile after the real gates', () => {
   function inProcessSlots(limit: number): ReturnType<typeof GateRunSlots.createGateRunSlots> {
-    const ports = nativePlatformPorts();
+    const ports = defaultSpecPlatformPorts();
     const scratch = createScratchDirectory('profile-gate-slots');
     scratchDirectories.push(scratch);
     return GateRunSlots.createGateRunSlots({
@@ -230,7 +230,7 @@ describe('a gate profile after the real gates', () => {
   });
 
   test('a stopped wait for a slot ends at once, holding no slot and holding no gate profile back', async () => {
-    const ports = nativePlatformPorts();
+    const ports = defaultSpecPlatformPorts();
     const scratch = createScratchDirectory('stopped-gate-slot-wait');
     scratchDirectories.push(scratch);
     const slowRetryMilliseconds = 60_000;

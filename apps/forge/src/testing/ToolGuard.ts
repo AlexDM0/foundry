@@ -18,7 +18,12 @@ import { wireScenarioIsRecorded } from './fake-agent/RecordedClaudeLines.ts';
 
 export type RequiredTool = 'git' | 'bash';
 
-export type RecordedBoundaryRequirement = 'git-recording' | 'process-table-recording' | 'local-endpoint-recording' | 'folder-watch-recording';
+export type RecordedBoundaryRequirement =
+  | 'git-recording'
+  | 'process-table-recording'
+  | 'local-endpoint-recording'
+  | 'folder-watch-recording'
+  | 'gate-confinement-recording';
 
 export type SpecRequirement =
   | RequiredTool
@@ -34,10 +39,11 @@ export type SpecRequirement =
 
 /** The boundary of `BOUNDARY_SPECS` whose recording for this OS a spec playing it needs. */
 export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundaryRequirement, string>> = {
-  'git-recording':            'src/lib/git/GitProcess.ts',
-  'process-table-recording':  'src/lib/process-identity/',
-  'local-endpoint-recording': 'src/lib/talos/LocalEndpointFor.ts',
-  'folder-watch-recording':   'src/lib/quiet-watch/QuietWatch.ts',
+  'git-recording':              'src/lib/git/GitProcess.ts',
+  'process-table-recording':    'src/lib/process-identity/',
+  'local-endpoint-recording':   'src/lib/talos/LocalEndpointFor.ts',
+  'folder-watch-recording':     'src/lib/quiet-watch/QuietWatch.ts',
+  'gate-confinement-recording': 'src/lib/gate-confinement/',
 };
 
 function recordingIsPresent(requirement: RecordedBoundaryRequirement): () => boolean {
@@ -132,6 +138,7 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'process-table-recording':     recordingIsPresent('process-table-recording'),
   'local-endpoint-recording':    recordingIsPresent('local-endpoint-recording'),
   'folder-watch-recording':      recordingIsPresent('folder-watch-recording'),
+  'gate-confinement-recording':  recordingIsPresent('gate-confinement-recording'),
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
@@ -149,6 +156,7 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'process-table-recording':     unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
   'local-endpoint-recording':    unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
   'folder-watch-recording':      unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['folder-watch-recording'], process.platform),
+  'gate-confinement-recording':  unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['gate-confinement-recording'], process.platform),
 };
 
 type SpecBody = () => void | Promise<unknown>;

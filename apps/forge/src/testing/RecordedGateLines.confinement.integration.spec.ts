@@ -1,7 +1,8 @@
 /**
  * Records the argv the native gate confinement wraps a gate argv in, for a plan with no network and no extra writes. What matters is the
  * prefix before the wrapped argv, which the mock of `src/testing/RecordedGateLines.ts` reads as the mark of a confined spawn, and that a
- * line under it still runs; a platform that confines nothing records an empty prefix.
+ * line under it still runs; a platform that confines nothing records an empty prefix. It also records what the native confinement says
+ * of the machine, which `src/testing/RecordedGateConfinement.ts` answers a default spec with.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -53,4 +54,24 @@ test('the native confinement puts its own argv before the gate argv, leaves the 
   expect(run.stdout.toString()).toBe(`${WRAPPED_LINE_OUTPUT}\n`);
   const prefix = confinedArgv.slice(0, -WRAPPED_ARGV.length).map((argument) => argument.replaceAll(scratch, RECORDED_GATE_PLACEHOLDERS.SCRATCH));
   recordAnswer(CONFINEMENT_CALL_SHAPES.CONFINED_ARGV, [...prefix, RECORDED_GATE_PLACEHOLDERS.ARGV]);
+});
+
+test('the native confinement answers its availability and its worker confinement, and confines a line exactly when it is available', () => {
+  const confinement  = gateConfinementFor(process.platform);
+  const availability = confinement.availability();
+  const confinedArgv = confinement.confinedArgvOf({
+    worktree:            join(scratch, 'worktree'),
+    writableRoots:       [],
+    worktreeAdminFolder: null,
+    temporaryDirectory:  join(scratch, 'temp'),
+    writableCachePaths:  [],
+    deniedWritableRoots: [],
+    deniedReadableRoots: [],
+    network:             false,
+    confinementFilePath: join(scratch, 'availability-profile'),
+  }, WRAPPED_ARGV);
+
+  expect(confinedArgv.length > WRAPPED_ARGV.length).toBe(availability.verdict === 'confined');
+  recordAnswer(CONFINEMENT_CALL_SHAPES.AVAILABILITY, availability);
+  recordAnswer(CONFINEMENT_CALL_SHAPES.WORKER_CONFINEMENT, confinement.workerConfinement());
 });

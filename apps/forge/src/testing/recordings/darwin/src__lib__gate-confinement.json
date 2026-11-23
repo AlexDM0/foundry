@@ -7,6 +7,13 @@
   },
   "answers": [
     {
+      "callShape": "availability, the native confinement of the machine",
+      "answer": {
+        "verdict": "confined",
+        "mechanism": "sandbox-exec"
+      }
+    },
+    {
       "callShape": "confinedArgvOf <plan> <argv>, a gate plan with no network and no extra writes",
       "answer": [
         "/usr/bin/sandbox-exec",
@@ -14,6 +21,10 @@
         "<scratch>/confinement-profile",
         "<argv>"
       ]
+    },
+    {
+      "callShape": "workerConfinement, the native confinement of the machine",
+      "answer": "confined"
     }
   ]
 }

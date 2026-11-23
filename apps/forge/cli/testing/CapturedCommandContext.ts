@@ -7,8 +7,8 @@ import { join }   from 'node:path';
 
 import type { AgentAdapter }                            from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { defaultSpecPlatformPorts }                     from '../../src/testing/DefaultSpecPlatformPorts.ts';
 import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }                          from '../../src/testing/NativePlatformPorts.ts';
 import { requireTrackerIsolation, SHARED_SCRATCH_ROOT } from '../../src/testing/TrackerIsolation.ts';
 import type { CommandContext }                          from '../CommandContext.ts';
 
@@ -90,7 +90,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
       return Promise.resolve(options.confirmAnswer ?? false);
     },
     platform:             options.platform ?? DEFAULT_SPEC_PLATFORM,
-    platformPorts:        options.platformPorts ?? nativePlatformPorts(),
+    platformPorts:        options.platformPorts ?? defaultSpecPlatformPorts(),
     homeDirectory,
     executableSearchPath: options.executableSearchPath ?? [],
     temporaryDirectories: options.temporaryDirectories ?? [SHARED_SCRATCH_ROOT, tmpdir()],
