@@ -267,16 +267,17 @@
     <div class="eyebrow">Pipeline design · nothing here is built</div>
     <h1>A fixed pipeline a board can extend</h1>
     <p class="lede">Forge's phases stay forge's. A board switches on a plan, and fills the hook points between the
-    phases with hooks: a command, an agent or a person, each doing whatever that board needs at that point.</p>
+    phases with hooks: a command or an agent, each doing whatever that board needs at that point. It also marks which
+    artifacts a person must approve, where, and in which role.</p>
 
     <div class="verdict-strip">
       <div><div class="label">Phases are fixed</div><p>Intake, plan, build, review, merge, in that order. Each delivers an artifact. Only build and review change code.</p></div>
       <div><div class="label">Hooks are the board's</div><p>At six hook points, an ordered list. Forge knows three things about a hook: what it reads, whether it can stop the flow, what it produces.</p></div>
-      <div><div class="label">A board that adds nothing</div><p>behaves as forge does today. Gates, ticket review and merge approval are untouched.</p></div>
+      <div><div class="label">A board that adds nothing</div><p>behaves as forge does today. Ticket review and merge approval are approvals on an artifact, declared like any other.</p></div>
     </div>
 
     <h2 id="concept"><span class="number">01</span>The concept</h2>
-    <p class="section-lede">Six words carry the design.<sup><a href="#source-18">[18]</a></sup></p>
+    <p class="section-lede">Seven words carry the design.<sup><a href="#source-18">[18]</a></sup></p>
 
     <div class="table-wrap">
       <table>
@@ -285,7 +286,8 @@
           <tr><td class="term">Phase</td><td>A stretch of work that delivers an artifact. Forge ships the phases and their order.</td><td>Intake, build, review and the merge exist. Plan is new.</td></tr>
           <tr><td class="term">Artifact</td><td>A named document that forge keeps, with versions and the approvals given on it.</td><td>The ticket; the Handoff and each Review, which code writes from verified reports.<sup><a href="#source-2">[2]</a></sup></td></tr>
           <tr><td class="term">Hook point</td><td>The place after a phase where a board's hooks run, before the next phase may start.</td><td>Does not exist: passed gates start the review in the same transaction.<sup><a href="#source-2">[2]</a></sup></td></tr>
-          <tr><td class="term">Hook</td><td>One entry in a hook point's list. Run by a command, an agent or a person.</td><td>Nothing a board can add.</td></tr>
+          <tr><td class="term">Hook</td><td>One entry in a hook point's list. Run by a command or an agent.</td><td>Nothing a board can add.</td></tr>
+          <tr><td class="term">Approval</td><td>A declaration: this artifact, at this step, by these roles. The flow halts there until it is given.</td><td>Ticket review and merge approval, as two switches.<sup><a href="#source-3">[3]</a></sup></td></tr>
           <tr><td class="term">Gate</td><td>A command that judges the tree, inside a phase. Unchanged.</td><td>Gates in the phases build, review and merge.<sup><a href="#source-5">[5]</a></sup></td></tr>
           <tr><td class="term">Context</td><td>What a phase or a hook is given: the artifacts it names, and nothing else.</td><td>The ticket's body, put into an agent's first message.<sup><a href="#source-19">[19]</a></sup></td></tr>
         </tbody>
@@ -293,14 +295,14 @@
     </div>
 
     <h3>The anatomy of a hook</h3>
-    <div class="anatomy hook" role="img" aria-label="A hook declares who runs it, what it reads, whether it blocks and what a no does, and what it produces.">
-      <div class="slot"><div class="slot-name">Runs by</div><p>A command, an agent with a brief and a model, or a person with a role.</p></div>
+    <div class="anatomy hook" role="img" aria-label="A hook declares what runs it, what it reads, whether it blocks and what a no does, and what it produces.">
+      <div class="slot"><div class="slot-name">Runs by</div><p>A command, or an agent with a brief and a model.</p></div>
       <div class="slot"><div class="slot-name">Reads</div><div class="chips"><span class="chip">ticket</span><span class="chip">plan</span><span class="chip">an earlier hook's artifact</span><span class="chip">a snapshot of the code</span></div></div>
-      <div class="slot"><div class="slot-name">Blocks</div><p>Whether its "no" stops the flow. If it does, the hook says what the no does: return the work to the phase before it, or halt for a person.</p></div>
+      <div class="slot"><div class="slot-name">Blocks</div><p>Whether its "no" stops the flow. If it does, the hook says what the no does: return the work to the phase before it, or halt for a person to look.</p></div>
       <div class="slot"><div class="slot-name">Produces</div><p>Named artifacts, each with the headings it must have. A later phase or hook names them to get them.</p></div>
       <div class="slot wide">
         <div><div class="slot-name">A hook never</div><p>works in the ticket's worktree. One that reads code gets a snapshot of the commit handed over, to use and throw away.</p></div>
-        <div><div class="slot-name">A hook never</div><p>is a phase's conversation. A person's hook is a halt that ends on accept.</p></div>
+        <div><div class="slot-name">A hook never</div><p>is a person or a conversation. People approve artifacts; conversations belong to the phases.</p></div>
       </div>
     </div>
     <p class="caption">Everything else about a hook is its own business: a check, an analysis, a report to another system,
@@ -317,14 +319,31 @@
           <tr><td>No</td><td>Artifacts</td><td>Has no meaning</td><td>The ticket waits for a person</td><td>Test criteria that the reviewer reads</td></tr>
           <tr><td>Yes</td><td>Nothing</td><td>Returns the work, or halts for a person</td><td>The ticket waits for a person</td><td>A check on the plan</td></tr>
           <tr><td>Yes</td><td>Artifacts</td><td>The same, with the artifacts as findings</td><td>The ticket waits for a person</td><td>An architecture verification with its report</td></tr>
-          <tr><td>A person</td><td>Nothing</td><td>None: it halts until accept</td><td>Does not apply</td><td>An approval</td></tr>
         </tbody>
       </table>
     </div>
     <p>A command says no through its exit status, as a gate does. An agent says no through a verdict in its report, as a
-    reviewer does.<sup><a href="#source-11">[11]</a></sup> A person never says no: the hook halts until accept, and what
-    the person does before that (reads, edits the artifact, sends findings to the builder, nothing) is outside the flow
-    and on record.</p>
+    reviewer does.<sup><a href="#source-11">[11]</a></sup></p>
+
+    <h3>Approvals</h3>
+    <p>An approval is not a hook. A board marks which artifacts need a person's approval, at which step, and by which
+    roles. The code of a ticket can be approved in the same way. The flow halts at that step and passes once
+    the approval is given. Forge records each accept with the version it was given for; that record is for the audit
+    trail and the board, and the flow does not read it. Not every artifact needs approval: that is the board's choice.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Approval</th><th>On</th><th>Asked</th><th>By</th></tr></thead>
+        <tbody>
+          <tr><td class="term">Ticket review</td><td>The ticket</td><td>After the ticket</td><td>Roles A, B, C</td></tr>
+          <tr><td class="term">Plan</td><td>The plan</td><td>After the plan</td><td>Roles B, C</td></tr>
+          <tr><td class="term">Test criteria</td><td><code>test-criteria</code>, which a hook produced</td><td>After the plan</td><td>Role B</td></tr>
+          <tr><td class="term">Human review of the code</td><td>The code of the ticket</td><td>At the human review</td><td>User</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A person never says no. The ticket halts until the approval is given, for now by one person with one of the roles, and what the person does
+    before that (reads, edits the artifact, sends findings to the builder, nothing) is outside the flow and on record.
+    At a step, the hooks run first and the approvals are asked after them.</p>
 
     <h3>How context reaches an agent</h3>
     <div class="table-wrap">
@@ -346,7 +365,6 @@
 
 <span class="key">after the plan</span>
   test-criteria      <span class="key">agent</span>     reads ticket, plan, code       produces test-criteria
-  approve-criteria   <span class="key">person</span>    role B, reads test-criteria    halts until accept
 
 <span class="key">after the build</span>
   architecture       <span class="key">agent</span>     reads plan, code               on red: halt for role C
@@ -360,11 +378,16 @@
 <span class="key">after the merge</span>
   notify             <span class="key">command</span>   reads ticket, release-note     never blocks
 
-<span class="key">review</span>  also gets test-criteria</pre>
+<span class="key">review</span>  also gets test-criteria
+
+<span class="key">approvals</span>
+  ticket             after the ticket               roles A, B, C
+  test-criteria      after the plan                 role B
+  code               at the human review            User</pre>
     <p class="caption">A sketch to make the words concrete. It is not a file format.</p>
 
     <h2 id="explorer"><span class="number">02</span>A board, step by step</h2>
-    <p class="section-lede">Two boards on the same fixed phases: one as every board starts, one with a plan, merge approval
+    <p class="section-lede">Two boards on the same fixed phases: one as every board starts, one with a plan, three approvals
     and the hooks of the sketch above. Pick a phase or a hook point to see what it reads and what the context holds once
     it ends.</p>
 
@@ -498,7 +521,7 @@ const MODE_LABELS = {
   code: 'Code, no agent',
 };
 
-const RUNNER_LABELS = { command: 'A command', agent: 'An agent', person: 'A person' };
+const RUNNER_LABELS = { command: 'A command', agent: 'An agent' };
 
 const ITEMS = {
   'constitution': { label: 'CONSTITUTION.md', standing: true },
@@ -529,10 +552,10 @@ const PHASES = {
   },
   ticketReview: {
     kind: 'phase', name: 'Ticket review', mode: 'person', reads: ['ticket'], emits: ['ticket-review'],
-    note: 'Forge\'s own, on by default, and no hook. Only User readies a ticket; no agent may relay that move. From here the ticket is committed and its content is fixed.',
-    madeBy: 'User.',
+    note: 'The approval of the ticket, on by default. Only a person readies a ticket; no agent may relay that move. From here the ticket is committed and its content is fixed.',
+    madeBy: 'A person with one of the roles the board names. On a new board that is User.',
     worksIn: 'Nowhere.',
-    checkedBy: 'User\'s own move, after the board\'s hooks have passed.',
+    checkedBy: 'One accept, after the board\'s hooks have passed. Forge records it on that version of the ticket.',
     wayBack: 'The ticket stays in review, or User abandons it.',
     sources: [3, 4],
   },
@@ -583,7 +606,7 @@ const PHASES = {
   },
   humanReview: {
     kind: 'phase', name: 'Human review', mode: 'person', reads: ['handoff', 'review', 'repo-ticket'], emits: ['merge-accept'],
-    note: 'Merge approval, switched on on this board. Forge\'s own, and no hook: the ticket waits in the merge queue until User accepts.',
+    note: 'The approval of the code, which forge calls merge approval, switched on on this board. The ticket waits in the merge queue until a person accepts.',
     madeBy: 'User.',
     worksIn: 'Nowhere.',
     checkedBy: 'An accept counts only while git predicts a clean merge into the target\'s tip.',
@@ -619,7 +642,7 @@ const BOARDS = {
   },
   extended: {
     label: 'An extended board',
-    caption: 'The same phases with a plan and merge approval switched on, and eight hooks. Three hooks produce artifacts that later phases or hooks read. One always waits for a person, and one waits only when its check is red.',
+    caption: 'The same phases with a plan switched on, seven hooks and three approvals: of the ticket, of the test criteria and of the code. Three hooks produce artifacts that later phases or hooks read, and one hook asks a person only when its check is red.',
     nodes: [
       PHASES.intake,
       {
@@ -634,7 +657,9 @@ const BOARDS = {
         kind: 'handover', name: 'After the plan', note: 'An agent derives test criteria from the plan and the test patterns in the code. A person approves them, and may edit them first; the edit pins the artifact.',
         hooks: [
           { name: 'test-criteria', runner: 'agent', reads: ['ticket', 'plan', 'repo-target'], blocks: 'Never', produces: ['test-criteria'], emits: ['test-criteria'] },
-          { name: 'approve-criteria', runner: 'person', reads: ['test-criteria'], blocks: 'Halts until role B accepts', produces: [], emits: ['approve-criteria'] },
+        ],
+        approvals: [
+          { artifact: 'test-criteria', roles: 'Role B', emits: 'approve-criteria' },
         ],
       },
       PHASES.buildPlanned,
@@ -683,8 +708,8 @@ const FIT_LABELS = {
 };
 
 const BASELINE = [
-  { today: 'Ticket review: only User readies a ticket, and no agent may relay that move. On by default.', model: 'Untouched. A board\'s hooks after the ticket run before it.', fit: 'same', sources: [3] },
-  { today: 'Merge approval, shown as human code review. Off by default. The ticket waits in the merge queue, and the order of accepting is the order of merging.', model: 'Untouched: a merge is approved by User or by the Airlock. One hook point sits before the merge queue, one after User\'s accept.', fit: 'same', sources: [3] },
+  { today: 'Ticket review: only User readies a ticket, and no agent may relay that move. On by default.', model: 'Becomes an approval declared on the ticket, by the roles a board names. It behaves as now, and a board\'s hooks after the ticket run before it.', fit: 'grows', sources: [3] },
+  { today: 'Merge approval, shown as human code review. Off by default. The ticket waits in the merge queue, and the order of accepting is the order of merging.', model: 'Becomes the approval of the code at the human review, and keeps its queue and its order. With it off, the Airlock approves the merge. One hook point sits before the merge queue, one after the accept.', fit: 'grows', sources: [3] },
   { today: 'Gates: commands in the phases build, review and merge, with an optional `fix` line.', model: 'Untouched. A blocking hook is an addition at a hook point and replaces no gate.', fit: 'same', sources: [5] },
   { today: 'Intake with the product owner, the filing draft, and the ways a ticket starts.', model: 'Untouched. A ticket that a builder, a reviewer or forge itself files passes the hooks after the ticket too.', fit: 'grows', sources: [2, 3] },
   { today: 'Build: commits, a report, the commit checks, a Handoff written by code.', model: 'Untouched, and the builder also gets the plan and any artifact the board names for it.', fit: 'grows', sources: [2, 11] },
@@ -713,7 +738,7 @@ const RULE_GROUPS = [
   { title: 'Phases', rules: [
     'The phases and their order are forge\'s: intake, plan, build, review, merge.',
     'A board switches plan on and chooses how it is made: a planner alone, or a person with the planner.',
-    'Gates, ticket review and merge approval stay as they are. A merge is approved by User or by the Airlock.',
+    'Gates stay as they are. A merge is approved by a person or by the Airlock.',
     'One thing happens to a ticket at a time. A phase\'s agent may start subagents; forge sees one session and records their tokens and time.',
     'No ticket skips a phase or a hook.',
   ] },
@@ -725,9 +750,9 @@ const RULE_GROUPS = [
     'A hook point whose phase is off is dormant, and its hooks are kept.',
   ] },
   { title: 'Hooks', rules: [
-    'A hook is run by a command, an agent or a person, and declares what it reads, whether it blocks, and what it produces.',
+    'A hook is run by a command or an agent, and declares what it reads, whether it blocks, and what it produces.',
     'A hook never works in the ticket\'s worktree. One that reads code gets a snapshot of the commit handed over.',
-    'A hook is never a phase\'s conversation.',
+    'A hook is never a person and never a conversation.',
     'A command hook\'s program comes from the main line or the machine, never from the ticket\'s branch.',
     'A hook that gets a secret reads artifacts only. An agent hook never gets a secret.',
     'A hook runs once for each version of what it reads.',
@@ -737,15 +762,17 @@ const RULE_GROUPS = [
     'Could not run never sends work back, and nothing runs the hook again by itself. For a hook that neither blocks nor produces, the flow continues; otherwise the ticket waits for a person.',
     'A blocking hook says what its no does. Return the work: it goes to the phase before that hook point and passes everything after it again. Or halt for a person.',
     'Each hook point counts the work its hooks returned: two unless the board sets another number, then the ticket is parked.',
-    'A command or agent hook has the bound of a gate line, and one minute if it neither blocks nor produces. A person\'s hook has none.',
+    'A hook has the bound of a gate line, and one minute if it neither blocks nor produces.',
   ] },
-  { title: 'People', rules: [
-    'A person\'s hook halts the ticket until accept. What the person does in the meantime is outside the flow, and on record.',
+  { title: 'Approvals', rules: [
+    'A board marks which artifacts need a person\'s approval, at which step, and by which roles. The code of a ticket can be approved the same way.',
+    'Ticket review is the approval of the ticket. Merge approval is the approval of the code at the human review, and keeps its queue and its order.',
+    'An approval halts the ticket until it is given. For now one accept from a person with a named role is enough; how many it needs is the board\'s process to set. What the person does in the meantime is outside the flow, and on record.',
+    'Forge records each accept with the version it was given for. That record is for the audit trail and the board; the flow does not read it.',
+    'Not every artifact needs approval; the board decides. At a step, hooks run first and approvals are asked after them.',
     'While halted on a document, the person may edit it, alone or with an agent\'s help. While halted on code, the person may send findings to the builder.',
     'An accept on a red hook continues the flow, needs a reason, and is recorded.',
-    'A person is asked again only when what they approved has changed.',
-    'No agent passes a person\'s hook. A person can push a ticket past a hook by hand, on record.',
-    'A role is a label. A ticket that waits for a person holds no agent slot.',
+    'No agent gives an approval. A person can push a ticket past one by hand, on record. A role is a label.',
   ] },
   { title: 'Artifacts and change', rules: [
     'Forge keeps every artifact as a record with versions. Where they are stored stays replaceable.',
@@ -779,7 +806,7 @@ const DIFFICULTIES = [
     line: 'An agent writes test criteria, and a reviewer judges the code against them.',
     today: 'Nothing an agent says is taken as true: commit checks compare a report with git, and code writes the Handoff and each Review. Instructions come from the main line only, so a ticket cannot rewrite the instructions of its own agents.',
     bites: 'A hook\'s artifact has nothing to be verified against. And it can carry text from a ticket or a code comment that was written to steer an agent. Placed among the instructions, that text would speak with the authority of the constitution.',
-    needs: 'An artifact reaches an agent as labelled data in its message, as the ticket\'s body does, never as an instruction. Forge checks that it exists and has its headings. An approval hook behind an artifact that matters is the board\'s choice.',
+    needs: 'An artifact reaches an agent as labelled data in its message, as the ticket\'s body does, never as an instruction. Forge checks that it exists and has its headings. A board asks for an approval of an artifact that matters, at the step before it is used.',
     sources: [1, 7],
   },
   {
@@ -806,7 +833,7 @@ const DIFFICULTIES = [
     line: 'A plan is approved, then the ticket it was made from is reopened.',
     today: 'A committed ticket is fixed and kept by content hash. Code still adds to a started ticket: the Handoff, each Review, a waived item.',
     bites: 'One reopening touches the plan, what hooks produced from it, and each approval. If code-written sections counted as a new version of the ticket, every hook that reads the ticket would run again near the merge.',
-    needs: 'A ticket\'s version covers what a person wrote. A hook runs again, and a person is asked again, only where what they read changed. A person\'s edit pins an artifact against the hook that produced it. Reopening ends when the ticket enters the merge queue.',
+    needs: 'A ticket\'s version covers what a person wrote. A hook runs again only where what it reads changed. A person\'s edit pins an artifact against the hook that produced it. Reopening ends when the ticket enters the merge queue.',
     sources: [4, 18],
   },
   {
@@ -839,9 +866,9 @@ const DIFFICULTIES = [
   {
     severity: 'moderate',
     title: 'A person is asked often',
-    line: 'Every approval hook is one more request per ticket.',
+    line: 'Every approval is one more request per ticket.',
     today: 'Two approvals exist, each asked once per ticket, and one of them is off by default.',
-    bites: 'Fifteen tickets under way and three approval hooks are forty-five requests before any rework. People who are asked often stop reading.',
+    bites: 'Fifteen tickets under way and three approvals each are forty-five requests before any rework. People who are asked often stop reading.',
     needs: 'An approval shows what changed since the version that person accepted, what it was made from, why a hook was red and how long the ticket has waited. A soft gate takes the person out of every green.',
     sources: [3],
   },
@@ -912,14 +939,15 @@ const IMPACT = [
   { part: 'Pipeline setup', today: 'Six steps; the agent proposes edits to a closed list of fields.', after: 'The agent also proposes the plan phase and hooks; forge refuses an unsound list; User edits the lists.', size: 'M', sources: [17] },
   { part: 'Gaia', today: 'Board views on fixed statuses.', after: 'A plan lane, the hooks of each hook point with their outcome, what an approver has to see, what waits on which role.', size: 'L', sources: [4] },
   { part: 'Entities', today: 'Gates, agents and review per entity.', after: 'Hooks and the plan setting per entity; a crossed package\'s hooks in its stages.', size: 'M', sources: [9] },
-  { part: 'Gates, ticket review, merge approval, the Airlock, Talos', today: 'As they are.', after: 'Unchanged.', size: 'None', sources: [8] },
+  { part: 'Approvals', today: 'Two switches, each for User.', after: 'Declarations on artifacts and on the code, with roles, tracked per version and shown on the board.', size: 'M', sources: [3] },
+  { part: 'Gates, the Airlock, Talos', today: 'As they are.', after: 'Unchanged.', size: 'None', sources: [8] },
 ];
 
 const STAGES = [
   { stage: '1. Artifacts', delivers: 'The ticket, the Handoff and each Review as versioned records; the audit trail\'s new records.', notices: 'Nothing.' },
   { stage: '2. Hook points', delivers: 'The state of a ticket at a hook point, on every path, with empty lists.', notices: 'Nothing, and that is the test.' },
   { stage: '3. Hooks by command and agent', delivers: 'Snapshots, blocking and producing hooks, once per version, the counts, the bounds, could not run.', notices: 'A board can add a check or a notifier.' },
-  { stage: '4. Hooks by a person', delivers: 'Approval hooks, red that asks a person, the edit session, what an approver sees.', notices: 'A board can add an approval at any hook point.' },
+  { stage: '4. Approvals', delivers: 'Approvals declared on artifacts and on the code, tracked per version; red that asks a person; the edit session; what an approver sees.', notices: 'A board can ask for an approval of any artifact at any step.' },
   { stage: '5. The plan', delivers: 'The plan phase, alone and as a conversation; the plan in the builder\'s and the reviewer\'s messages.', notices: 'A board can switch a plan on.' },
   { stage: '6. Reopening', delivers: 'Reopen, the update that runs through, pins, the halted build and its choice.', notices: 'An accepted plan can change without starting over.' },
   { stage: '7. Setup', delivers: 'The pipeline agent proposes hooks and a plan; the lists in Gaia.', notices: 'A board is extended without editing a file.' },
@@ -930,10 +958,10 @@ const STEELMAN = [
   { title: 'Forge already has every kind of hook', text: 'A gate is a command that can stop the flow. A reviewer is an agent whose verdict sends work back. Ticket review is a person the flow waits for. The design lets a board add those three at each hook point; it invents no fourth thing.', sources: [2, 3] },
   { title: 'The guarantees are not in reach of a hook', text: 'Only build and review change code, and a hook never stands in the ticket\'s worktree. The commit checks, the gates and the Airlock still see everything that can reach the main line, so a board can add a bad hook and not break what forge promises.', sources: [1] },
   { title: 'A team adds a step without forge designing it', text: 'A test evaluation, an architecture verification, a threat model and a notifier need no feature of their own. Each is a brief or a command plus three declarations.', sources: [18] },
-  { title: 'The baseline is free', text: 'A board with plan off and empty lists is today\'s forge. Gates, ticket review, merge approval and the order of phases are untouched, so the test of the whole design is that nothing changes when nothing is added.', sources: [8] },
+  { title: 'The baseline is free', text: 'A board with plan off and empty lists is today\'s forge. Gates, the order of phases and what the two approvals do are untouched, so the test of the whole design is that nothing changes when nothing is added.', sources: [8] },
   { title: 'The thinking moves in front of the spending', text: 'Today the first judgement of the work comes after it is built. A plan, with a check and an approval where a board wants them, catches the wrong work while it costs a planner\'s session and not a build, a review and a rework round.', sources: [2] },
   { title: 'A soft gate fits judgement checks', text: 'An agent that judges architecture is right often and wrong sometimes. Sending every red back to the builder turns its mistakes into rework; asking a person on red costs a look.', sources: [18] },
-  { title: 'Approvals need no redesign', text: 'The rework already calls the user a step in the workflow. A board adds an approval as one line at any hook point, and the two approvals forge has stay exactly as they are.', sources: [4] },
+  { title: 'Approvals need no redesign', text: 'The rework already calls the user a step in the workflow. A board declares an approval on any artifact at any step, and the two approvals forge has are declared the same way and behave as they do now.', sources: [4] },
   { title: 'Declared context can be priced and replayed', text: 'The compounding research asks what forge must record to say where tokens went and to replay a feature under another configuration. A phase or hook with declared inputs at known versions is that record.', sources: [14] },
 ];
 
@@ -950,7 +978,7 @@ const STRAWMAN_BUILD = [
 
 const STRAWMAN_OBJECTIONS = [
   { title: '"A board should define its own phases"', text: 'A design phase, a QA phase, a different order per team.', ruling: 'Half holds. A producing hook with an approval behind it gives a board its own deliverable at any hook point. It does not give a board anything that must change code or hold a conversation: tests written first by another agent, a committed design record. Plan is the one such phase forge adds.' },
-  { title: '"A hook is just a gate"', text: 'Forge has gates. This is the same thing with a new name.', ruling: 'Half holds. A blocking command hook is close to a gate. An agent hook, a person\'s hook, a producer and a notifier are not, and a gate has no place before the build.' },
+  { title: '"A hook is just a gate"', text: 'Forge has gates. This is the same thing with a new name.', ruling: 'Half holds. A blocking command hook is close to a gate. An agent hook, a producer and a notifier are not, and a gate has no place before the build.' },
   { title: '"An accept on red makes the check meaningless"', text: 'If a person can wave it through, why run it.', ruling: 'Holds only for a check nobody believes. A soft gate removes the person from every green, which is most of them, and puts each red on record with a reason.' },
   { title: '"Agent judges are unreliable"', text: 'An agent\'s opinion should not stop a build.', ruling: 'Forge already lets one do exactly that: the reviewer. The design adds the choice forge lacks today, of sending a red to a person instead of to the builder.' },
   { title: '"Waiting for a notifier is silly"', text: 'A message to a chat should not hold up a merge.', ruling: 'Does not hold. A notifier is a script call that ends in seconds and is bounded at a minute, and in exchange a hook point has one simple rule: each hook finishes before the next thing starts.' },
@@ -965,8 +993,9 @@ const citationMarks = (sourceNumbers) => (sourceNumbers || [])
   .join('');
 const elementById = (identifier) => document.getElementById(identifier);
 const uniqueOf = (values) => Array.from(new Set(values));
-const readsOf = (node) => node.kind === 'phase' ? node.reads : uniqueOf(node.hooks.flatMap((hook) => hook.reads));
-const emitsOf = (node) => node.kind === 'phase' ? node.emits : uniqueOf(node.hooks.flatMap((hook) => hook.emits));
+const approvalsOf = (node) => node.approvals || [];
+const readsOf = (node) => node.kind === 'phase' ? node.reads : uniqueOf([...node.hooks.flatMap((hook) => hook.reads), ...approvalsOf(node).map((approval) => approval.artifact)]);
+const emitsOf = (node) => node.kind === 'phase' ? node.emits : uniqueOf([...node.hooks.flatMap((hook) => hook.emits), ...approvalsOf(node).map((approval) => approval.emits)]);
 const chipsHtml = (itemIds) => itemIds.length === 0
   ? '<p>Nothing.</p>'
   : `<div class="chips">${itemIds.map((itemId) => `<span class="chip">${escapeHtml(ITEMS[itemId].label)}</span>`).join('')}</div>`;
@@ -1032,11 +1061,19 @@ function handoverDetailHtml(handover) {
       <td>${hook.produces.length === 0 ? 'Nothing' : hook.produces.map((itemId) => `<code>${escapeHtml(ITEMS[itemId].label)}</code>`).join(', ')}</td>
     </tr>
   `).join('');
+  const approvalRows = approvalsOf(handover).map((approval) => `
+    <tr><td class="term">${escapeHtml(ITEMS[approval.artifact].label)}</td><td>${escapeHtml(approval.roles)}</td><td>Halts until one of them accepts</td></tr>
+  `).join('');
+  const approvalsHtml = approvalRows === '' ? '' : `
+    <div class="hook-list"><div class="table-wrap"><table>
+      <thead><tr><th>Approval asked here, on</th><th>By</th><th>Effect</th></tr></thead>
+      <tbody>${approvalRows}</tbody>
+    </table></div></div>`;
   return `${head}
     <div class="hook-list"><div class="table-wrap"><table>
       <thead><tr><th>Hook</th><th>Runs by</th><th>Reads</th><th>Blocks</th><th>Produces</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table></div></div>`;
+    </table></div></div>${approvalsHtml}`;
 }
 
 function renderNodeDetail() {

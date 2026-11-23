@@ -12,9 +12,11 @@ its difficulties, its impact and the arguments for and against it. Where the two
   the plan, build delivers the commits and the Handoff, review delivers the Review, and the merge delivers the change
   on the main line.
 - **Plan is a new phase.** A board switches it on and configures it.
-- **The gates, ticket review and merge approval stay as they are.** A merge is approved by User or by the Airlock.
+- **The gates stay as they are.**
+- **An approval is declared on an artifact:** which artifact, at which step, by which roles. Ticket review and merge
+  approval are two such approvals, and keep what they do today.
 - **A hook point follows each phase and the human review.** A board fills it with an ordered list of hooks. A hook is
-  run by a command, by an agent or by a person, and forge knows three things about it: what it reads, whether it can
+  run by a command or by an agent, and forge knows three things about it: what it reads, whether it can
   block the flow, and which artifacts it produces.
 
 ```
@@ -30,7 +32,7 @@ decision 11 of the rework stands as written.
 
 Decisions 1 to 16 are the owner's own. Decisions 17 to 44 were recommended; the owner accepted them as a set on 21
 November 2026, after an adversarial review of the design, and answered none of them one by one. Decisions 45 to 47
-are the run's own.
+are the run's own. Decisions 5 and 7 carry the owner's additions of 23 November: approvals are declared on artifacts.
 
 ### The owner's
 
@@ -41,11 +43,18 @@ are the run's own.
    tracker, a script that notifies another system with no verdict and no output. What forge needs to know is whether
    the hook can block the flow and which artifacts, if any, it produces. A hook that acts as a gate can also be set
    so that green continues and red halts for a person's review.
-5. A hook can be a person's approval. It halts the ticket until the person presses accept. What the person does in
-   the meantime is not the flow's concern. An example: an agent hook analyses patterns for test criteria and produces
-   an artifact, a person approves it, and a later phase or hook gets that artifact as context.
+5. An artifact can need a person's approval. A board marks which artifacts need approval, at which step, and by which
+   roles. The code of a ticket can be approved in the same way, as the human review of the code is. Forge tracks
+   each approval on the artifact, for the audit trail and so that Gaia can show what is approved and by whom. That
+   record steers nothing: the flow halts at the step where an approval is asked and passes once it is given. Not
+   every artifact needs approval; that is the pipeline definition's choice. Ticket review is
+   such an approval: on the ticket, after the ticket, by the roles the board names. An approval halts the ticket
+   until a person accepts, and what the person does in the meantime is not the flow's concern. An example: an agent
+   hook analyses patterns for test criteria and produces an artifact, a person approves it, and a later phase or
+   hook gets that artifact as context.
 6. Forge waits for each phase to finish, and for each hook. Nothing at a hook point runs beside the flow.
-7. A merge is approved by User or by the Airlock, as today, and that approval is no hook. The hook points are: after
+7. A merge is approved by a person or by the Airlock, as today. By a person, it is the approval of the code at the
+   human review, and it keeps its merge queue and its order. The hook points are: after
    the ticket, after the build, after the review, after the human review and after the merge. This design adds one
    after the plan, where a board has a plan.
 8. The first version is for one person who holds several roles, shaped so that a team fits later. A role is a label
@@ -57,7 +66,7 @@ are the run's own.
     deliverables of their own, as its brief defines. Forge sees one session, and records each subagent's tokens and
     time as it does for its own agents.
 11. No ticket skips a phase or a hook in the first version. A short lane for small work is a later improvement.
-12. Where a person's hook is defined, it is always followed, and no agent ever passes it. A person keeps a move by
+12. Where an approval is defined, it is always followed, and no agent ever passes it. A person keeps a move by
     hand that pushes a ticket past one; it is recorded with who made it and why, and the ticket shows it. A ticket
     that waits for a person holds no agent slot: it is a branch that waits to be picked up.
 13. The triggers are the ones forge has today. A source outside forge comes later.
@@ -79,7 +88,8 @@ are the run's own.
     worktree. One that reads code gets a snapshot of the commit that was handed over, to use and throw away, as the
     pipeline agent gets a snapshot of the main line today. So no hook can change the repository, and none can leave
     files behind that the next job is blamed for.
-18. A hook is never a phase's conversation. A person's hook is a halt with one event the flow knows, accept.
+18. A hook is run by a command or an agent, never by a person, and is never a phase's conversation. An approval is
+    a halt with one event the flow knows, accept.
     Conversations that deliver an artifact belong to intake and plan; changing code belongs to build and review, and
     to a gate's `fix` line.
 19. An artifact reaches an agent as labelled data in its first message, as the ticket's body does today, and in the
@@ -90,19 +100,24 @@ are the run's own.
 21. A command hook's program comes from the main line or from the machine, never from the ticket's branch. A command
     hook may get secrets the board names. A hook that gets a secret reads artifacts only, never code. An agent hook
     never gets a secret.
-22. Today's gates, ticket review and merge approval stay mechanisms of their own. A hook is an addition at a hook
-    point and replaces none of them.
+22. Today's gates stay a mechanism of their own, and a hook replaces none. Ticket review and merge approval are
+    approvals by decision 5 and keep their behaviour: only a person readies a ticket and no agent relays it; the
+    approval of the code waits in the merge queue, and the order of accepting is the order of merging.
 23. Forge refuses a list of hooks, when it is stored, that holds any of these: a hook that reads something no earlier
     phase or hook delivers; a hook with a secret that reads code; a blocking hook after the merge; a hook set to
     return the work that reads nothing its phase delivered, since the phase could never change its verdict.
 
 *Versions and order*
 
-24. A hook runs once for each version of what it reads, and a person is asked again only when what they approved
-    changed. The version of an artifact is the hash of its content. The version of a ticket covers what a person
+24. A hook runs once for each version of what it reads. An approval is asked each time the flow reaches its step.
+    The version of an artifact is the hash of its content. The version of a ticket covers what a person
     wrote, not the sections code adds. The version of code is the commit handed over. A hook that reads nothing runs
     once for each pass through its hook point.
-25. The hooks of a hook point run in the order the board lists them, each after the one before it passed.
+25. The hooks of a hook point run in the order the board lists them, each after the one before it passed. The
+    approvals asked at that step come after its hooks, so a person is asked only about what the checks let through.
+    For now one accept from a person with any of the named roles is enough; how many an approval needs, and from
+    whom, is the pipeline definition's to say. An artifact may need approval at more than one
+    step.
 26. A ticket at a hook point is in a state of its own, which every path that starts a phase or queues a merge checks.
     Today nothing holds a ticket between phases: the transaction that records passed gates also starts the review or
     queues the merge.
@@ -130,7 +145,7 @@ are the run's own.
     approval shows what changed since the version that person accepted, what it was made from, why a hook was red,
     and how long the ticket has waited.
 34. A command or agent hook has a bound: the bound of a gate line, and one minute for a hook that neither blocks nor
-    produces unless the board sets more. A person's hook has none. Every run carries an identity of its own, which a
+    produces unless the board sets more. An approval has none. Every run carries an identity of its own, which a
     hook that reports to another system can use to report once.
 
 *The hook points*
@@ -148,12 +163,13 @@ are the run's own.
 
 39. A board chooses how the plan is made: by a planner that works alone, or in a conversation between a person and
     the planner. The planner reads the committed ticket and a snapshot of the target, and delivers the plan as a
-    record of forge, with the commit it was made against. An approval of the plan is a person's hook after it.
+    record of forge, with the commit it was made against. An approval of the plan is declared on the plan.
 40. The edit of decision 14 is a session forge hosts when a person asks for help with an artifact, as it hosts an
     intake. It is neither a hook nor a phase, and it holds a slot only while a turn runs.
 41. An artifact can be reopened until its ticket enters the merge queue; after that, a change is a new ticket.
     Reopening stops the work under way first, and the session that resumes takes the new version as its start.
-42. A new board gets today's pipeline: plan off, ticket review on, merge approval off, no hook. During setup the
+42. A new board gets today's pipeline: plan off, the approval of the ticket on, the approval of the code off, no
+    hook. During setup the
     pipeline agent proposes a plan phase and hooks, and User adds what the board needs.
 43. A ticket keeps the list of hooks it entered a hook point with. A change of a board's hooks applies from a
     ticket's next hook point; switching plan on or off applies to tickets committed afterwards.
@@ -173,9 +189,9 @@ are the run's own.
 
 | It declares | Meaning |
 | --- | --- |
-| Runs by | A command, an agent with a brief and a model, or a person with a role |
+| Runs by | A command, or an agent with a brief and a model |
 | Reads | The artifacts it gets, and whether it gets a snapshot of the code |
-| Blocks | Whether its "no" stops the flow, and if so what the no does: returns the work, or halts for a person with a role. A person's hook always halts, until accept |
+| Blocks | Whether its "no" stops the flow, and if so what the no does: returns the work, or halts for a person with a role. |
 | Produces | The named artifacts it leaves, each with the headings it must have |
 | Network, secrets | Whether it reaches the network; for a command that reads no code, the secrets it gets |
 
@@ -187,20 +203,26 @@ Forge waits for every hook. The declarations decide what an outcome does:
 | No | Artifacts | Has no meaning | The ticket waits for a person | Test criteria the reviewer reads |
 | Yes | Nothing | Returns the work, or halts for a person | The ticket waits for a person | A check on the plan |
 | Yes | Artifacts | The same, with the artifacts as findings | The ticket waits for a person | An architecture verification with its report |
-| A person | Nothing | None: it halts until accept | Does not apply | An approval |
 
 A command says no through its exit status, as a gate does. An agent says no through a verdict in its report, as a
-reviewer does. A person never says no: the hook halts until accept, and what the person does before that (reads,
-edits the artifact, sends findings to the builder, nothing) is outside the flow and on record.
+reviewer does.
 
-The owner's example, as a board would list it after the plan:
+### Approvals
 
-| Hook | Runs by | Reads | Blocks | Produces |
-| --- | --- | --- | --- | --- |
-| Test criteria | An agent | The ticket, the plan, the code | No | `test-criteria` |
-| Approve test criteria | A person, role B | `test-criteria` | Halts | Nothing |
+An approval is a declaration on an artifact, not a hook. The flow halts at the step where it is asked and passes
+once it is given. Forge records each accept with the version it was given for; that record is for the audit trail
+and the board, and the flow does not read it. An artifact that no approval names is simply never asked about.
 
-The review phase then names `test-criteria`, and its reviewer gets the accepted version in its first message.
+| Approval | On | Asked | By |
+| --- | --- | --- | --- |
+| Ticket review | The ticket | After the ticket | Roles A, B, C |
+| Plan | The plan | After the plan | Roles B, C |
+| Test criteria | `test-criteria`, which a hook produced | After the plan | Role B |
+| Human review of the code | The code of the ticket | At the human review | User |
+
+A person never says no. The ticket halts until accept, and what the person does before that (reads, edits the
+artifact, sends findings to the builder, nothing) is outside the flow and on record. The review phase of this board
+names `test-criteria`, and its reviewer gets the accepted version in its first message.
 
 ## 4. The hook points
 
@@ -233,9 +255,9 @@ The review phase then names `test-criteria`, and its reviewer gets the accepted 
 | A hook could not run | Sends nothing back. The ticket waits for a person, unless the hook neither blocks nor produces | 29 |
 | A person edits an artifact while a ticket is halted | Makes a new version and pins it; the hooks that read it run again, then the approval waits again | 14, 24, 27 |
 | A person sends findings to the builder while a ticket is halted | Resumes the builder; the new commits pass the gates, the review and the hooks again | 30, 31 |
-| A person reopens an artifact | Records it. Later finished phases update in order; hooks and approvals run again only where what they read changed | 15, 24, 41 |
+| A person reopens an artifact | Records it. Later finished phases update in order; hooks run again only where what they read changed, and each approval is asked again when the flow reaches its step | 15, 24, 41 |
 | An artifact is reopened while a build runs | Stops the build at the end of the turn and asks User: resume with the change, or start fresh | 15 |
-| A person pushes a ticket past a hook by hand | Records who and why, and shows it on the ticket | 12, 29 |
+| A person pushes a ticket past a hook or an approval by hand | Records who and why, and shows it on the ticket | 12, 29 |
 
 The audit trail is forge's log. It gains a record for each hook run and its outcome, each approval, edit, reopening
 and move by hand, and each names the version it concerns.
@@ -243,7 +265,8 @@ and move by hand, and each names the version it concerns.
 ## 7. What stays as it is
 
 - **Gates,** their phases and their hashes, and the run on the merged tree.
-- **Ticket review and merge approval,** the merge queue and the order of accepting as the order of landing.
+- **What ticket review and merge approval do,** the merge queue and the order of accepting among it. They are now
+  declared as approvals.
 - **The Airlock** and the landing by compare-and-swap.
 - **Talos.** A hook reaches it as a launch plan, as a gate line or a job does now.
 - **Groups, release tickets, dependencies and epics,** the five stages of a crossing, incidents, slots and budgets.
@@ -280,7 +303,7 @@ they would name.
 | 1. Artifacts | The ticket, the Handoff and each Review as versioned records; the audit trail's new records | None |
 | 2. Hook points | The state of a ticket at a hook point, on every path, with empty lists | None, and that is the test |
 | 3. Hooks by command and agent | Snapshots, blocking and producing hooks, once per version, the counts, the bounds, could not run | A board can add a check or a notifier |
-| 4. Hooks by a person | Approval hooks, red that asks a person, the edit session, what an approver sees | A board can add an approval at any hook point |
+| 4. Approvals | Approvals declared on artifacts and on the code, tracked per version; red that asks a person; the edit session; what an approver sees | A board can ask for an approval of any artifact at any step |
 | 5. The plan | The plan phase, alone and as a conversation; the plan in the builder's and reviewer's messages | A board can switch a plan on |
 | 6. Reopening | Reopen, the update that runs through, pins, the halted build and its choice | An accepted plan can change without starting over |
 | 7. Setup | The pipeline agent proposes hooks and a plan; the lists in Gaia | A board is extended without editing a file |
@@ -311,7 +334,7 @@ they would name.
 5. **Each agent hook that reads code costs about as much as a review,** and it runs once per version, one after the
    other.
 6. **Waiting for every hook** puts each one in the path of every ticket, up to its bound.
-7. **A person is asked often.** Every approval hook is one more request per ticket, and one more for each version
+7. **A person is asked often.** Every approval is one more request per ticket, and one more for each version
    that changed what it covers.
 8. **A halted ticket ages** while its target moves. The Airlock still catches a conflict at the merge.
 9. **The state at a hook point touches every path** that moves a ticket today (decision 26). It is the largest and
