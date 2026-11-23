@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Ink the draft": the pen goes once around the outline of a draft, which then becomes a ready ticket
+ * Ink the draft: the pen goes once around the outline of a draft, which then becomes a ready ticket
  * with its header, and the ticket leaves. The pen traces, it does not write, so it keeps its place right of its tip in Flint's own units
  * and is mirrored with Flint: on the edge nearest the body it is on the sheet, never between the sheet and the body.
  */

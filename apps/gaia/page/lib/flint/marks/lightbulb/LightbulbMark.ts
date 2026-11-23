@@ -1,4 +1,4 @@
-/** The lightbulb of `01-character.md`, the only part of Flint with gradients; its rays show after a moment of the Idea emote. */
+/** The lightbulb, the only part of Flint with gradients; its rays show after a moment of the Idea emote. */
 import { markDefinition }     from '../MarkDefinition.ts';
 import { SHARED_MARK_ANCHOR } from '../constants/MarkShapes.ts';
 import { LIGHTBULB_SHAPE }    from './constants/LightbulbValues.ts';

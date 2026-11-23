@@ -1,4 +1,4 @@
-/** Quiet job of `06-more-animations.md`: Flint listens at a dark block, taps it, and wonders; sprite units, for Flint facing right. */
+/** Quiet job: Flint listens at a dark block, taps it, and wonders; sprite units, for Flint facing right. */
 export const LISTEN_TIMELINE = {
   CYCLE_MILLISECONDS:        3600,
   FADE_IN_MILLISECONDS:      300,

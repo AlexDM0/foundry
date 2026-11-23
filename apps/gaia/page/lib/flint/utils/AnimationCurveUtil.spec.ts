@@ -1,6 +1,6 @@
 /**
  * The shared curves against their own contract: the clamp's default bounds, a cycle that wraps also before zero, and the spring of
- * `02-animations.md` Emotes, which must start at nothing, overshoot, and rest at exactly 1 so a mark never jumps when the spring ends; and
+ * an emote mark, which must start at nothing, overshoot, and rest at exactly 1 so a mark never jumps when the spring ends; and
  * the one interpolation every gesture and the easing step blend with.
  */
 import { describe, expect, test } from 'bun:test';

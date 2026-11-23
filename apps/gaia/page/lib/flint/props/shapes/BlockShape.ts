@@ -1,4 +1,4 @@
-/** The block of the shared vocabulary (`06-more-animations.md`): a change, by its state. */
+/** The block of the shared vocabulary: a change, by its state. */
 import type { FlintColourRole } from '../../constants/Palette.ts';
 import type { Shape }           from '../../drawing/Shape.ts';
 import { BLOCK_SHAPE }          from './constants/SharedShapes.ts';

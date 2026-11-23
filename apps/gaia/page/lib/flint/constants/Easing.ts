@@ -1,4 +1,4 @@
-/** The easing rates of `02-animations.md`, "Rules for all animations": `value += (target - value) × (1 - exp(-rate × seconds))`. */
+/** The easing rates: `value += (target - value) × (1 - exp(-rate × seconds))`. */
 export const EASING_RATES_PER_SECOND = {
   /** Hands (position and radius), props (shown level and slide), the lens, the eye shift and the sideways width. */
   HANDS_AND_PROPS: 18,

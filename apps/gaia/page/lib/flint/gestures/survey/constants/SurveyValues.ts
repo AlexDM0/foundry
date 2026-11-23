@@ -1,5 +1,5 @@
 /**
- * Survey of `06-more-animations.md`: the onboarder reads a repository and proposes a pipeline. Flint measures a blueprint, thinks, sets
+ * Survey: the onboarder reads a repository and proposes a pipeline. Flint measures a blueprint, thinks, sets
  * three posts with lamps, and the lamps pass. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
  */
 export const SURVEY_TIMELINE = {
@@ -28,7 +28,7 @@ export const BLUEPRINT_SHAPE = {
 } as const;
 
 /**
- * Two measure lines with an end mark of 2 at each end: one along the slope of the paper, one straight down. The handoff puts the second at
+ * Two measure lines with an end mark of 2 at each end: one along the slope of the paper, one straight down. The design puts the second at
  * x 33, on post 0, where the post and its lamp vanish into it; it runs at x 30, 2 in from the paper's left edge, a builder decision.
  */
 export const SURVEY_MEASURE = {
@@ -44,7 +44,7 @@ export const SURVEY_MEASURE = {
 
 /**
  * Three posts on the line `y = BASE_Y_UNITS + slope × (x - BASE_ORIGIN_X_UNITS)`, each growing to its height with a lamp on top. The lamp
- * is the shared lamp of 2.2, not the handoff's 1.6, which cannot be read at 0.5 pixels for one unit, a builder decision.
+ * is the shared lamp of 2.2, not the design's 1.6, which cannot be read at 0.5 pixels for one unit, a builder decision.
  */
 export const SURVEY_POSTS = {
   X_UNITS:             [33, 38, 43],

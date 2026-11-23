@@ -1,5 +1,5 @@
 /**
- * The one easing step of `02-animations.md`, "Rules for all animations": it moves the drawn pose towards the target pose, so every change
+ * The one easing step: it moves the drawn pose towards the target pose, so every change
  * of state is smooth and no behaviour animates a transition. A field with no rate in that table is taken from the target as it is. Each
  * prop eases by its own definition, through the prop catalog.
  */

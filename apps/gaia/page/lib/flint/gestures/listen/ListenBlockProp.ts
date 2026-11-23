@@ -1,4 +1,4 @@
-/** The block of Quiet job (`06-more-animations.md`): a block of the other side, graphite, of 14 by 10. */
+/** The block of Quiet job: a block of the other side, graphite, of 14 by 10. */
 import { propDefinition }     from '../../props/PropDefinition.ts';
 import { blockShapeOf }       from '../../props/shapes/BlockShape.ts';
 import { LISTEN_BLOCK_SHAPE } from './constants/ListenValues.ts';

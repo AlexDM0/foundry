@@ -1,5 +1,5 @@
 /**
- * Lay the bar of `06-more-animations.md`: while the host walks Flint along a row, a bar grows behind it and one hand presses it down. In
+ * Lay the bar: while the host walks Flint along a row, a bar grows behind it and one hand presses it down. In
  * milliseconds from the start of the cycle, and in sprite units for Flint facing right; negative x is behind Flint.
  */
 export const LAY_BAR_TIMELINE = {
@@ -30,7 +30,7 @@ export const LAY_BAR_SHAPE = {
 } as const;
 
 /**
- * One square behind Flint presses the bar each `PRESS_INTERVAL_MILLISECONDS`: down by `PRESS_DEPTH_UNITS` and back. The handoff puts it at
+ * One square behind Flint presses the bar each `PRESS_INTERVAL_MILLISECONDS`: down by `PRESS_DEPTH_UNITS` and back. The design puts it at
  * (-10, -8), 2 units clear of the bar's end at x -18; it stands over the bar's head instead, its lower corner 1 above the bar's top, a
  * builder decision, so that each press goes into the bar.
  */

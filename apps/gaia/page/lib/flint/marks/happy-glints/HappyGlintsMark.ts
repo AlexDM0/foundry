@@ -1,4 +1,4 @@
-/** The two glints of `01-character.md` that the Happy emote shows, each a square turned 45 degrees. */
+/** The two glints that the Happy emote shows, each a square turned 45 degrees. */
 import type { FlintColourRole }            from '../../constants/Palette.ts';
 import type { Shape }                      from '../../drawing/Shape.ts';
 import { markDefinition, NO_MARK_DETAILS } from '../MarkDefinition.ts';

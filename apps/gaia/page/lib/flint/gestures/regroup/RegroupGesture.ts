@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Regrouping": four dim sparks fade in; a triangle points at each in turn, and each live one lights up
+ * Regrouping: four dim sparks fade in; a triangle points at each in turn, and each live one lights up
  * with a spring while the dead one goes grey and Flint narrows its eyes; a square sweeps the dead spark down and away; the live sparks bob
  * and Flint is happy; the sparks fade.
  */

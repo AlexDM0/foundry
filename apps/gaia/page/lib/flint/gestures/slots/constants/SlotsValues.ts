@@ -1,5 +1,5 @@
 /**
- * Slots of `06-more-animations.md`: the concurrency limit, as three sockets on a rail. In `slots` a spark falls into each socket; in
+ * Slots: the concurrency limit, as three sockets on a rail. In `slots` a spark falls into each socket; in
  * `slots-full` every socket has its spark and a ticket finds no free one. In milliseconds from the start of the cycle, and in sprite units
  * for Flint facing right.
  */
@@ -39,7 +39,7 @@ export const SLOTS_SHAPE = {
 } as const;
 
 /**
- * One triangle points at the socket that fills: from the socket's x plus `OFFSET_X_UNITS`, at `Y_UNITS`. The handoff puts it at (socket x -
+ * One triangle points at the socket that fills: from the socket's x plus `OFFSET_X_UNITS`, at `Y_UNITS`. The design puts it at (socket x -
  * 6, -40), turned 150, where its vertical edge faces the socket and it reads as pointing back at Flint; it stands straight above the
  * socket, turned 180, so it reads as pointing down at it, a builder decision. It is the far hand, so the falling spark passes in front of it.
  */
@@ -60,7 +60,7 @@ export const SLOTS_FULL = {
   HAND_RADIUS_UNITS:         5.5,
   ABOVE_SOCKET_Y_UNITS:      -42,
   /**
-   * The handoff's rest place (28, -34) lays the ticket over socket 0, as if it were filed, and the hand on the body; it is held up above
+   * The design's rest place (28, -34) lays the ticket over socket 0, as if it were filed, and the hand on the body; it is held up above
    * the middle socket instead, clear of the rail and the body, a builder decision. While Flint waits it stands upright, so the sweat drop
    * and the hand stay off the body.
    */

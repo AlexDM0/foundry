@@ -1,5 +1,5 @@
 /**
- * The variant part that typing and reviewing share, against `02-animations.md`, "Type" and "Review". What matters: each variant's lean and eye
+ * The variant part that typing and reviewing share. What matters: each variant's lean and eye
  * height; the busy bob of 0.8 × sin(t / 50) as a lift; the angry shake of 0.8 × sin(t / 28), the glare of 20 degrees and the vein that
  * pulses by 1 + 0.1 × sin(t / 95) without a spring; and no mark outside the angry variant.
  */

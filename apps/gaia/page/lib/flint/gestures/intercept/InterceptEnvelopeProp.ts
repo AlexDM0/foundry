@@ -1,5 +1,5 @@
 /**
- * The envelope of Assistant intercept (`06-more-animations.md`): the envelope of the shared vocabulary, turned and scaled around its own
+ * The envelope of Assistant intercept: the envelope of the shared vocabulary, turned and scaled around its own
  * centre, whose flap folds open and lets a small paper with two lines rise out of its top; and the tick of a handled incident. The open
  * flap is the back of the envelope, so it and the paper are drawn before the envelope's front. A hand can hold its lower corner.
  */

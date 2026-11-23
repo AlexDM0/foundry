@@ -1,5 +1,5 @@
 /**
- * The rail of Slots (`06-more-animations.md`): a rail with three sockets on stems, the spark of a Watcher in each filled socket, and the
+ * The rail of Slots: a rail with three sockets on stems, the spark of a Watcher in each filled socket, and the
  * mini sheet of a ticket that waits for a socket. A socket's ring is graphite when free, the body colour when its spark is in, and crimson
  * while it refuses a ticket. A hand held to this prop holds the mini sheet at its lower left.
  */

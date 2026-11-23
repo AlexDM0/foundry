@@ -1,5 +1,5 @@
 /**
- * The sparks of a snap (`02-animations.md`, "Merge"), which every gesture that snaps or flares shares: four small sparks fly apart on their ways from a
+ * The sparks of a snap, which every gesture that snaps or flares shares: four small sparks fly apart on their ways from a
  * centre, turning, and fade; `travel factor` stretches how far they fly.
  */
 import { BLOCK_PRESS } from './BlockPress.ts';

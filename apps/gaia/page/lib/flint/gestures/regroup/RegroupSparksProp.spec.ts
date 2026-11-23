@@ -1,5 +1,5 @@
 /**
- * The sparks of Regrouping against `06-more-animations.md`, "Regrouping". What matters: each spark is drawn dim (the dark ember colour, no
+ * The sparks of Regrouping. What matters: each spark is drawn dim (the dark ember colour, no
  * core), dead (the grey spark of the vocabulary) and live (the spark of the vocabulary, scaled around its centre by the spring), each at
  * its own opacity; the places ease at the hand rate while the sparks show, and keep the drawn state while they fade; the hidden state draws.
  */

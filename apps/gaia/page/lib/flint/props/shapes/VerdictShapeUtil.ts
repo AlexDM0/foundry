@@ -1,5 +1,5 @@
 /**
- * The tick and the cross of the shared vocabulary (`06-more-animations.md`): a verdict, drawn from its start point, never mirrored. A
+ * The tick and the cross of the shared vocabulary: a verdict, drawn from its start point, never mirrored. A
  * small one is the same shape at `VERDICT_SHAPE.SMALL_SCALE`, scaled around its start point.
  */
 import type { FlintColourRole }      from '../../constants/Palette.ts';

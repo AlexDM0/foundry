@@ -1,5 +1,5 @@
 /**
- * The two squares that type on the keyboard (`02-animations.md`, "Type"), which every gesture that types shares: each hand's key, and the
+ * The two squares that type on the keyboard, which every gesture that types shares: each hand's key, and the
  * tap of normal typing. A tap is negative, up from the key: `-depth × (TAP_MIDDLE ± TAP_MIDDLE × sin(t / divisor))`, the far hand opposite.
  */
 export const TYPING_HANDS = {

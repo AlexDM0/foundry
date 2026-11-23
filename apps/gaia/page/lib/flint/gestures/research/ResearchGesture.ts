@@ -1,6 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Research": a book, notes, a search and a hologram, one study after the other; and "Reading
- * and writing direction", "Book", "Ticket and notes" and "Search". Each study shows only its own prop, so the last one fades out as the
+ * Research: a book, notes, a search and a hologram, one study after the other. Each study shows only its own prop, so the last one fades out as the
  * next fades in.
  */
 import type { Facing }                     from '../../SpriteGeometry.ts';
@@ -38,7 +37,7 @@ export interface StudyMoment {
   readonly study:             ResearchStudy;
   /** Since this study started. */
   readonly studyMilliseconds: number;
-  /** From 0 to 1 over the study: the `part` of the handoff. */
+  /** From 0 to 1 over the study. */
   readonly part:              number;
 }
 

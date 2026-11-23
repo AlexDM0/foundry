@@ -1,4 +1,4 @@
-/** The note of Gate failed (`06-more-animations.md`): a paper card with a crimson edge and a small cross at its centre, never mirrored. */
+/** The note of Gate failed: a paper card with a crimson edge and a small cross at its centre, never mirrored. */
 import { propDefinition }             from '../../props/PropDefinition.ts';
 import { VerdictShapeUtil }           from '../../props/shapes/VerdictShapeUtil.ts';
 import { CROSS_SHAPE, VERDICT_SHAPE } from '../../props/shapes/constants/SharedShapes.ts';

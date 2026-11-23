@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Emotes", the Idea row: wide eyes, one hop, and the lightbulb of `01-character.md`, whose rays show and
+ * The Idea emote: wide eyes, one hop, and the lightbulb, whose rays show and
  * flicker after a moment. Under reduced motion the rays show without the flicker.
  */
 import type { EmoteInput } from '../EmoteDefinition.ts';

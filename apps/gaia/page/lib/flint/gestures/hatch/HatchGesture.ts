@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Hatch": Flint pushes a note through a slot in a wall and thinks while it waits. In the `normal`
+ * Hatch: Flint pushes a note through a slot in a wall and thinks while it waits. In the `normal`
  * variant a reply comes out, the hand takes it, Flint reads it and is happy; in the `queued` variant no reply comes, and Flint shrugs with
  * a stub in its hand and the sweat drop. The thinking dots are the Thinking emote's mark, and the sweat drop is the Sweatdrop emote's.
  */

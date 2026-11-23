@@ -1,5 +1,5 @@
 /**
- * The contract of an attendant (`06-more-animations.md`, "Spark companion"): a thing that stays with Flint through each gesture, emote,
+ * The contract of an attendant: a thing that stays with Flint through each gesture, emote,
  * walk, jump, drag and sleep, until the host takes it away with `attend(name, 0)`. The host gives a count; each member of that count is
  * placed by `memberPoseOf` and drawn by `shapesOf` around its own centre. The easing step shrinks a member that the host took away.
  */

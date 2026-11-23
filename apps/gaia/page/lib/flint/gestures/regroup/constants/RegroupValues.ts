@@ -1,4 +1,4 @@
-/** Regrouping of `06-more-animations.md`: Flint counts its Watchers, sweeps away the dead one and is happy; in sprite units, facing right. */
+/** Regrouping: Flint counts its Watchers, sweeps away the dead one and is happy; in sprite units, facing right. */
 export const REGROUP_TIMELINE = {
   CYCLE_MILLISECONDS:           4600,
   FADE_IN_MILLISECONDS:         400,
@@ -14,7 +14,7 @@ export const REGROUP_TIMELINE = {
 
 /**
  * The four sparks, by their centres; spark 2 is the dead one. Each starts dim, as the dark ember colour at low opacity. The hand points at
- * each from the body centre (0, -24), as the handoff says, but at spark 1 from straight below it: a builder decision, since the line from
+ * each from the body centre (0, -24), as the design says, but at spark 1 from straight below it: a builder decision, since the line from
  * the body centre to spark 1 passes over spark 0, and the hand on it would cover spark 0.
  */
 export const REGROUP_SPARKS = {

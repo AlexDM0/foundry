@@ -1,4 +1,4 @@
-/** The make-a-ticket gesture of `02-animations.md`, "Make a ticket": one cycle of writing, stamping and filing, in milliseconds. */
+/** The make-a-ticket gesture: one cycle of writing, stamping and filing, in milliseconds. */
 export const MAKE_TICKET_TIMELINE = {
   CYCLE_MILLISECONDS:           3200,
   FADE_IN_MILLISECONDS:         300,
@@ -26,7 +26,7 @@ export const FILED_TICKET = {
   LEAVE_Y_UNITS: -6,
 } as const;
 
-/** The ticket of `01-character.md`: the paper, its header, its written lines and its seal, in sprite units, for Flint facing right. */
+/** The ticket: the paper, its header, its written lines and its seal, in sprite units, for Flint facing right. */
 export const TICKET_SHAPE = {
   LINE_START_X_UNITS:  31,
   LINE_Y_UNITS:        [-34, -28, -22],

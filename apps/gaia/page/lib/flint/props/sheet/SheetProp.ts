@@ -1,5 +1,5 @@
 /**
- * The floating sheet of Review (`01-character.md`), which Bug jar shares: its loose pile of stacked pages, its four lines with the one
+ * The floating sheet of Review, which Bug jar shares: its loose pile of stacked pages, its four lines with the one
  * Flint reads in the body colour, and the verdict above it. It slides in from the side away from Flint as it fades in.
  */
 import type { Shape }                 from '../../drawing/Shape.ts';

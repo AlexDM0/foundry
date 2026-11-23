@@ -1,5 +1,5 @@
 /**
- * Slots against `06-more-animations.md`, "Slots". What matters, in `slots`: spark n falls from y -56 into socket n at 0.5 + 0.9n s in 300
+ * Slots. What matters, in `slots`: spark n falls from y -56 into socket n at 0.5 + 0.9n s in 300
  * ms with `p²`, lands with a spring that overshoots from its full size, and lights its ring; a triangle straight above the socket that
  * fills points down at it, behind the falling spark, and the eyes follow; from 3.2 s the sparks breathe. In `slots-full`: every socket has
  * its spark; a pentagon holds a ticket above each socket in turn, 700 ms each, at y -42, and each ring refuses it in crimson for 300 ms;

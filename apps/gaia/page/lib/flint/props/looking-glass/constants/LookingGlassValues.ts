@@ -1,4 +1,4 @@
-/** The looking glass of `01-character.md`, in sprite units, for Flint facing right. */
+/** The looking glass, in sprite units, for Flint facing right. */
 export const LOOKING_GLASS_SHAPE = {
   LENS_RADIUS_UNITS:                5.5,
   LENS_OPACITY:                     0.7,

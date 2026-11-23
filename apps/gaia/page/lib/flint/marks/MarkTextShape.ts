@@ -1,4 +1,4 @@
-/** The text of the "!", "?" and "Hi!" marks of `01-character.md`: centred on the anchor, bold, in the hand colour. */
+/** The text of the "!", "?" and "Hi!" marks: centred on the anchor, bold, in the hand colour. */
 import type { Shape }      from '../drawing/Shape.ts';
 import { MARK_TEXT_SHAPE } from './constants/MarkShapes.ts';
 

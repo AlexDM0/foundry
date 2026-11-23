@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Crash resume": Flint flickers out to an outline, lies landed with one spark at its centre, fills
+ * Crash resume: Flint flickers out to an outline, lies landed with one spark at its centre, fills
  * again bright, shakes its head with two blinks and looks behind, then ahead. The flicker, the fill and the tint are set on each frame.
  */
 import type {

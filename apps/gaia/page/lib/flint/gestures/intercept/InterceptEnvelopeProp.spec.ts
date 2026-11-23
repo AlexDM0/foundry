@@ -1,5 +1,5 @@
 /**
- * The envelope of Assistant intercept against `06-more-animations.md`, "Assistant intercept". What matters: it is the envelope of the
+ * The envelope of Assistant intercept. What matters: it is the envelope of the
  * shared vocabulary, turned and scaled around its own centre; a closed flap is drawn over the front, an open flap behind the paper and the
  * front, folded up to `M0 0 L7 -5 L14 0`; the paper of 10 by 8 with two lines stands out of the top by its rise and is hidden inside; the
  * tick starts at (36, -48) and is never mirrored; a hand holds the lower corner; the hidden state draws.

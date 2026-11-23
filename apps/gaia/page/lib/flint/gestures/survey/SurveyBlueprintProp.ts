@@ -1,7 +1,7 @@
 /**
- * The blueprint of Survey (`06-more-animations.md`): the paper in the `water` colour with a grid of thirds, two measure lines with end
+ * The blueprint of Survey: the paper in the `water` colour with a grid of thirds, two measure lines with end
  * marks, and three posts with a lamp on each. The measure along the top grows from its left end on the screen whatever the facing, as a
- * written line does (`02-animations.md`, "Reading and writing direction").
+ * written line does.
  */
 import type { Facing, Point }                            from '../../SpriteGeometry.ts';
 import type { Shape }                                    from '../../drawing/Shape.ts';

@@ -1,4 +1,4 @@
-/** The notepad of Research in `01-character.md`, which Interview shares, in sprite units, for Flint facing right. */
+/** The notepad of Research, which Interview shares, in sprite units, for Flint facing right. */
 export const NOTEPAD_SHAPE = {
   POINTS: [
     { x: 30, y: -42 },

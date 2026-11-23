@@ -1,4 +1,4 @@
-/** The happy glints of `01-character.md`, at the shared anchor of "!" and "?". */
+/** The happy glints, at the shared anchor of "!" and "?". */
 export const HAPPY_GLINTS_SHAPE = {
   LARGE_X_UNITS:    -5,
   LARGE_Y_UNITS:    -1,

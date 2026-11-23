@@ -1,5 +1,5 @@
 /**
- * The sheet of Ink the draft (`06-more-animations.md`): a draft with three dashed lines, the solid outline the pen leaves behind it, and,
+ * The sheet of Ink the draft: a draft with three dashed lines, the solid outline the pen leaves behind it, and,
  * once inked, the ready ticket with its header, a short pop and two small sparks from its top corners.
  */
 import type { Point }                                         from '../../SpriteGeometry.ts';

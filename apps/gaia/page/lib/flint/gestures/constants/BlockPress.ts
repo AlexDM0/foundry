@@ -1,4 +1,4 @@
-/** The press of two blocks into one (`02-animations.md`, "Merge"): two hexagons press the blocks together and let go at the snap. */
+/** The press of two blocks into one: two hexagons press the blocks together and let go at the snap. */
 export const BLOCK_PRESS = {
   CENTRE_X_UNITS:              34,
   TRAVEL_UNITS:                8,

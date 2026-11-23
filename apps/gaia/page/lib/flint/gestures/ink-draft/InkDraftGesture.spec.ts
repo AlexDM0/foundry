@@ -1,5 +1,5 @@
 /**
- * Ink the draft against `06-more-animations.md`. What matters: the draft fades in while the pen waits at the top left corner; the pen
+ * Ink the draft. What matters: the draft fades in while the pen waits at the top left corner; the pen
  * goes around the outline, one side in 500, 600, 500 and 400 ms, with the solid outline behind it and the eyes on its tip, the lift held
  * between -3 and 3; at 2300 the sheet is inked and pops for 100 ms; the header fades in to 2600; happy eyes and no hand from 2400; the
  * ticket leaves by (14, -6) from 3300; the loop repeats; reduced motion holds the ready ticket; the part is the same facing left, so the

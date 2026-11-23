@@ -1,5 +1,5 @@
 /**
- * The looking glass of Review (`01-character.md`): the lens grows from scale 0 with its shown level, and its centre eases at the hand
+ * The looking glass of Review: the lens grows from scale 0 with its shown level, and its centre eases at the hand
  * rate. A hand held to it sits at the grip point on every frame, so the hand and the glass move as one rigid part; the handle runs from
  * the edge of the lens to that hand while the hand is larger than its minimum.
  */

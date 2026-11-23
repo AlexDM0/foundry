@@ -1,4 +1,4 @@
-/** The bug of the shared vocabulary (`06-more-animations.md`): a finding, a hexagon with four legs that wiggles. */
+/** The bug of the shared vocabulary: a finding, a hexagon with four legs that wiggles. */
 import type { Point }         from '../../SpriteGeometry.ts';
 import { HAND_SHAPE, ANGLE }  from '../../constants/HandShape.ts';
 import type { Shape }         from '../../drawing/Shape.ts';

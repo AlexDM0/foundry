@@ -1,4 +1,4 @@
-/** The hand of Point (`02-animations.md`, "Point"), which every gesture that points shares: a triangle that points forward and swings. */
+/** The hand of Point, which every gesture that points shares: a triangle that points forward and swings. */
 import type { HandPose } from '../SpritePose.ts';
 import { HAND_SHAPE }    from '../constants/HandShape.ts';
 import { POINTING_HAND } from './constants/PointingHand.ts';

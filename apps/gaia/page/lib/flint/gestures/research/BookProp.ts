@@ -1,5 +1,5 @@
 /**
- * The open book of Research (`01-character.md`), turned and lowered so that it slants to Flint, with the page that turns between the
+ * The open book of Research, turned and lowered so that it slants to Flint, with the page that turns between the
  * text and the spine. Its values are in the book's own coordinates before that turn and drop.
  */
 import type { Shape }       from '../../drawing/Shape.ts';

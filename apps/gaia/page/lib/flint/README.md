@@ -132,15 +132,39 @@ never mirrored and never eased. Once the behaviour gives none, the last ones fad
 | `constants/` | The values the core uses, with their unit in their name, and the palette. |
 | `react/` | The React layer: `<Flint>`, `useFlintHabitat` and `useFlintPerform`. |
 | `testing/` | The manual frame source, the mind run, and the frame capture. |
-| `demo/` | The demo page: the playground of the design handoff, rebuilt on the library. |
+| `demo/` | The demo page: a playground that shows every animation. |
 
 The library's own guard, `PackageIsolation.spec.ts`, holds that no file imports outside the folder and that nothing
 that ships imports a `bun:` or `node:` module.
 
+## Design rules
+
+No spec holds these. A new animation follows them.
+
+- **Flat colour.** No gradients, no shadows and no outline on the body. The lightbulb is the only part with a gradient.
+- **Sharp, geometric shapes.** The body is a diamond, the hands are regular polygons, and embers and sparks are squares.
+- **Serious, not cute.** No round body, no mouth, no cheeks.
+- **Subtle effects.** An effect is never larger or louder than the body.
+- **A prop keeps one meaning in all animations.** A sheet is a ticket, a block is a change, a spark is a Watcher, a lamp is
+  one gate check, an envelope is an incident, a bug is a finding, a gauge is a budget, and a tick or a cross is a verdict.
+  A small spark is only an effect.
+- **Crimson is an alarm.** The `alarm` colour shows only a failed gate, a refusal, an incident or a bug.
+
+Rejected, and not to bring back:
+
+- A flame on the tip of the body, like a candle.
+- A heavy black shape. A solid graphite one was too heavy.
+- Hands in the dark orange of `emberDark`.
+- A stack of more than 3 pages.
+- A sheet with perspective.
+- A sideways pose narrower than 80%, or one that hides an eye.
+- A book at eye height that faces the viewer. Flint reads a book a little below its eyes, turned to Flint.
+- Wide eyes at the hologram. Flint reads it with narrow, focused eyes.
+
 ## Add an animation
 
-These are the only steps, for a behaviour too. Change no core file: `AnimationModules.spec.ts` fails when a core file (the core of
-`07-animation-modules.md`, the mind, sleep and `MotionPose.ts`) names an animation or a behaviour, as a string, a property or a piece
+These are the only steps, for a behaviour too. Change no core file: `AnimationModules.spec.ts` fails when a core file (the files its
+`CORE_FILES` lists, the mind and sleep) names an animation or a behaviour, as a string, a property or a piece
 of a built string, or imports from an animation or behaviour folder anything but a catalog or a contract; when a folder is not in its
 catalog, a catalog entry has no folder, a folder's module has no spec, or a folder has no `constants/<Name>Values.ts` (a behaviour
 needs one only when it has values); and when a prop is not in the prop catalog.
@@ -191,7 +215,7 @@ through `MovementUtil.loweredLiftOf`, so the floor still follows its box at once
   (`null` for a loop or a steady pose, a number for one action that ends by itself) and `stillMomentMilliseconds`, the
   moment reduced motion holds. A gesture with one form names its one intent after itself, with the variant `normal`
   (`singleFormOf(duration, stillMoment)` writes that form). An intent is unique across every catalog.
-- `targetPose(input)`: a pure function of `input.elapsedMilliseconds` (the `t` of the handoff), `input.variant`,
+- `targetPose(input)`: a pure function of `input.elapsedMilliseconds` (the `t` of the formulas in the comments), `input.variant`,
   `input.facing`, `input.sidewaysWidth`, `input.target` and `input.verdict`. It returns a `PosePart`: a field left out keeps
   what the layers below gave; `nearHand` or `farHand` as `null` takes that hand away.
 - `continuesWhileWalking`, `continuesWhileJumping`, `aimsAtElement` (only a gesture `perform(intent, element)` aims at,
@@ -220,7 +244,7 @@ to a stroked path), a `stroke`, `opacity`, `dash` and `transform`; a shape that 
 `unmirroredAboutX`, its own centre. Writing goes from left to right on the screen whatever the facing: use
 `context.facing`, as `writtenLineShapeOf` does.
 
-The shared vocabulary of `06-more-animations.md` is in `flint/props/shapes/`: `PaperShapeUtil` (the paper, a draft, the
+The shared vocabulary is in `flint/props/shapes/`: `PaperShapeUtil` (the paper, a draft, the
 header in any colour, the mini sheet and a ticket at any scale), `blockShapeOf` (any size), `SparkShapeUtil` (the spark of
 a Watcher, live, dim or dead, at any scale; the small spark in any side and colour; a small spark's flight),
 `LampShapeUtil` (any radius), `envelopeShapesOf` (an open flap, a turn, a scale), `BugShapeUtil`, `gaugeShapesOf`,

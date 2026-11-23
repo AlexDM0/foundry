@@ -1,5 +1,5 @@
 /**
- * Fasten against `02-animations.md`, "Fasten". What matters: the bolt shows; one hexagon of radius 8 at (31, -24) waits for the first
+ * Fasten. What matters: the bolt shows; one hexagon of radius 8 at (31, -24) waits for the first
  * 15% of each 1.2 second cycle, turns 60 degrees in a straight line during the next 45%, then waits; the eyes are 5 high.
  */
 import { expect, test } from 'bun:test';

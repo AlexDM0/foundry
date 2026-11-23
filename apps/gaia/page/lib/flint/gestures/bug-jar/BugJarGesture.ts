@@ -1,7 +1,7 @@
 /**
- * Implements `06-more-animations.md`, "Bug jar": Flint reads the sheet of Review through its looking glass, finds a bug below the lens,
+ * Bug jar: Flint reads the sheet of Review through its looking glass, finds a bug below the lens,
  * puts the glass away, catches the bug in a jar, and the jar becomes a low ticket. Reading goes from left to right on the screen whatever
- * the facing (`02-animations.md`, "Reading and writing direction", "Review"), so the bug shows where the lens stopped on the screen.
+ * the facing, so the bug shows where the lens stopped on the screen.
  */
 import type { Facing, Point } from '../../SpriteGeometry.ts';
 import type {

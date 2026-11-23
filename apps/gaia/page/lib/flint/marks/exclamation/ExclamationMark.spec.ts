@@ -1,4 +1,4 @@
-/** The exclamation mark of `01-character.md`. What matters: its anchor and scale, and the shapes it draws, in their order. */
+/** The exclamation mark. What matters: its anchor and scale, and the shapes it draws, in their order. */
 import { expect, test } from 'bun:test';
 
 import { EXCLAMATION_MARK } from './ExclamationMark.ts';

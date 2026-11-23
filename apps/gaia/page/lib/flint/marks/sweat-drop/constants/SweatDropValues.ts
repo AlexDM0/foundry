@@ -1,4 +1,4 @@
-/** The sweat drop of `01-character.md`, at its anchor relative to the bottom tip of the body. */
+/** The sweat drop, at its anchor relative to the bottom tip of the body. */
 export const SWEAT_DROP_SHAPE = {
   PATH:                   'M0 -8 q7 10 0 14 q-7 -4 0 -14Z',
   HIGHLIGHT_X_UNITS:      -2.6,

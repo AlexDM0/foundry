@@ -1,5 +1,5 @@
 /**
- * Review of `02-animations.md`: the hand that holds the lens, and the verdicts; the lens reads as `flint/gestures/constants/ReadingLens.ts`
+ * Review: the hand that holds the lens, and the verdicts; the lens reads as `flint/gestures/constants/ReadingLens.ts`
  * gives.
  */
 export const REVIEW_GESTURE_VALUES = {

@@ -1,4 +1,4 @@
-/** Customs of `06-more-animations.md`: a loop that checks three claims against a crate, in milliseconds and sprite units, facing right. */
+/** Customs: a loop that checks three claims against a crate, in milliseconds and sprite units, facing right. */
 export const CUSTOMS_TIMELINE = {
   CYCLE_MILLISECONDS:              5200,
   FADE_IN_MILLISECONDS:            300,

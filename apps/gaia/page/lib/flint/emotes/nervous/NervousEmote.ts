@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Emotes", the Nervous row: narrow darting eyes, a shiver, and the sweat beads of `01-character.md` that
+ * The Nervous emote: narrow darting eyes, a shiver, and the sweat beads that
  * fly off one after another. A carried Flint (`flint/emotes/nervous/CarriedPose.ts`) shows the same nerves for as long as the drag goes on.
  */
 import type { EmoteMarkPoseOf, PosePart } from '../../SpritePose.ts';

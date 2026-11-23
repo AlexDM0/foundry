@@ -1,5 +1,5 @@
 /**
- * Escaped bug of `06-more-animations.md`: a bug leaves a landed block, Flint chases it with one pentagon and catches it on the third hit,
+ * Escaped bug: a bug leaves a landed block, Flint chases it with one pentagon and catches it on the third hit,
  * and traces it back to its block. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
  */
 export const ESCAPED_BUG_TIMELINE = {
@@ -16,7 +16,7 @@ export const ESCAPED_BUG_TIMELINE = {
   LIFTED_MILLISECONDS:        3200,
   FADES_OUT_MILLISECONDS:     3800,
   /**
-   * Reduced motion holds the lifted bug above the block with the trace to it. The handoff holds 2900, as the hand lifts the bug; on the
+   * Reduced motion holds the lifted bug above the block with the trace to it. The design holds 2900, as the hand lifts the bug; on the
    * lift around the block that frame shows the bug beside the shelf and nothing of the trace, so 3500 is held, a builder decision.
    */
   STILL_MOMENT_MILLISECONDS:  3500,
@@ -42,7 +42,7 @@ export const ESCAPED_BUG_ROUTE = [
 
 /**
  * From the catch the hand lifts the bug around the block and the shelf, through these points, to its lifted place above the block: out
- * past the shelf's end, up beside it, and back over the block. The handoff lifts it straight up, through the shelf and the block; the way
+ * past the shelf's end, up beside it, and back over the block. The design lifts it straight up, through the shelf and the block; the way
  * around them is a builder decision.
  */
 export const ESCAPED_BUG_LIFT_WAYPOINTS = [
@@ -70,7 +70,7 @@ export const ESCAPED_BUG_HAND = {
 } as const;
 
 /**
- * The shelf, the landed block on it, and the trace back to the block. The handoff lifts the bug to (34, -30), inside the block; it is
+ * The shelf, the landed block on it, and the trace back to the block. The design lifts the bug to (34, -30), inside the block; it is
  * lifted above the block instead, so the dashed line to the block can show.
  */
 export const ESCAPED_BUG_SHAPE = {

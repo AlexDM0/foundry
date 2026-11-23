@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Emotes", the Annoyed row: a glare, a short shake, and the pulsing anger vein of `01-character.md`. */
+/** The Annoyed emote: a glare, a short shake, and the pulsing anger vein. */
 import { emoteDefinition }                  from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }                    from '../EmoteMarkUtil.ts';
 import { ANGER_VEIN_PULSE, ANNOYED_MOTION } from './constants/AnnoyedValues.ts';

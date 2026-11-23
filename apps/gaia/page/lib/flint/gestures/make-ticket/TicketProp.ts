@@ -1,5 +1,5 @@
 /**
- * The ticket of Make a ticket (`01-character.md`): the paper with its header, the three lines Flint writes, and the seal of the stamp. It
+ * The ticket of Make a ticket: the paper with its header, the three lines Flint writes, and the seal of the stamp. It
  * fades in and out within its cycle and moves when Flint files it; a written line grows from its left end on the screen.
  */
 import type { Shape }         from '../../drawing/Shape.ts';

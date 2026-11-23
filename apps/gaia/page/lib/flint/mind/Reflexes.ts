@@ -1,5 +1,5 @@
 /**
- * The reflexes that run on each frame before any intent (`03-behaviour-and-architecture.md`, "The mind"): Flint finds its first floor or
+ * The reflexes that run on each frame before any intent: Flint finds its first floor or
  * its stored habitat, hears cues, leaves a habitat that is gone or too small, and answers the pointer. A reflex never waits for a director
  * and wins over it.
  */

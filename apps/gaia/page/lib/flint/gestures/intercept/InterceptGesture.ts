@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Assistant intercept": an incident flies in as an envelope, two pentagons catch it, Flint pulls it
+ * Assistant intercept: an incident flies in as an envelope, two pentagons catch it, Flint pulls it
  * close, opens it and reads the paper inside. The outcome alternates by cycle: handled (the paper goes back, the envelope goes into Flint,
  * a tick and happy eyes) and passed up (the hand lifts the envelope, and it flies up and fades).
  */

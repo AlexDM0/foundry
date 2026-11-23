@@ -1,5 +1,5 @@
 /**
- * The airlock of Airlock (`06-more-animations.md`): the main line, the chamber, the queue of blocks, the block that passes, and the two
+ * The airlock of Airlock: the main line, the chamber, the queue of blocks, the block that passes, and the two
  * doors over them, so a block goes under an open door. The passing block lands as the landed colour rises in it from its bottom edge,
  * so each colour stays clean while it changes.
  */

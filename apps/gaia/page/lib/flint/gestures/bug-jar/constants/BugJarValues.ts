@@ -1,5 +1,5 @@
 /**
- * Bug jar of `06-more-animations.md`: a review finds a bug, Flint catches it in a jar, and the jar becomes a low ticket. In milliseconds
+ * Bug jar: a review finds a bug, Flint catches it in a jar, and the jar becomes a low ticket. In milliseconds
  * from the start of the cycle, and in sprite units for Flint facing right. The sheet and the looking glass are those of Review.
  */
 export const BUG_JAR_TIMELINE = {

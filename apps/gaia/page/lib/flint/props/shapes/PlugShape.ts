@@ -1,4 +1,4 @@
-/** The plug of Forced stop (`06-more-animations.md`), which Unplugged shares: a graphite block with two prongs, which go into a socket. */
+/** The plug of Forced stop, which Unplugged shares: a graphite block with two prongs, which go into a socket. */
 import type { Shape } from '../../drawing/Shape.ts';
 import { PLUG_SHAPE } from './constants/SharedShapes.ts';
 

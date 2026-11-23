@@ -1,5 +1,5 @@
 /**
- * The barrier of Bouncer (`06-more-animations.md`): a post with a knob, the crimson rope from the hand to the post, and the verdict above
+ * The barrier of Bouncer: a post with a knob, the crimson rope from the hand to the post, and the verdict above
  * it. The rope unhooks by moving its far end and its bend from the hooked path to the hanging one; the tick and the cross are never
  * mirrored.
  */

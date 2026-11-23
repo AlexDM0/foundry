@@ -1,4 +1,4 @@
-/** Bouncer of `06-more-animations.md`: a loop at a roped post, refused or admitted; in sprite units, for Flint facing right. */
+/** Bouncer: a loop at a roped post, refused or admitted; in sprite units, for Flint facing right. */
 export const BOUNCER_TIMELINE = {
   CYCLE_MILLISECONDS:            2400,
   SHAKE_STARTS_MILLISECONDS:     600,

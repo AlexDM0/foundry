@@ -1,4 +1,4 @@
-/** Walking of `02-animations.md`: a steady speed along the floor, and the wobble of the body height while Flint walks. */
+/** Walking: a steady speed along the floor, and the wobble of the body height while Flint walks. */
 import { MILLISECONDS_PER_SECOND } from '../constants/Easing.ts';
 import { WALK }                    from '../constants/Motion.ts';
 

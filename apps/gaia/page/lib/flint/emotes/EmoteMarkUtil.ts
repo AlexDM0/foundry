@@ -1,5 +1,5 @@
 /**
- * What the emotes of `02-animations.md`, "Emotes", share: the mark's exit, the entrance spring, the entrances of the sweat drop and the
+ * What the emotes share: the mark's exit, the entrance spring, the entrances of the sweat drop and the
  * thinking dots, the flight of the sweat beads, and the hop. A gesture that shows one of these marks reaches them through
  * `flint/gestures/GestureMarkUtil.ts`.
  */

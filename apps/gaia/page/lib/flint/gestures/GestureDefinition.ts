@@ -1,5 +1,5 @@
 /**
- * The contract of a gesture (`02-animations.md`, Gestures, and `07-animation-modules.md`): a pure function from the time in the gesture,
+ * The contract of a gesture: a pure function from the time in the gesture,
  * its variant, the facing and the gesture's own input to its part of the target pose. A gesture never eases and never reads a clock; the
  * easing step makes it smooth. Each gesture names its own intents, one for each variant, with the timing of that variant.
  */
@@ -7,7 +7,7 @@ import type { Facing, Point } from '../SpriteGeometry.ts';
 import type { PosePart }      from '../SpritePose.ts';
 
 export interface GestureInput<Variant extends string = string> {
-  /** Since the gesture started; under reduced motion, the variant's still moment. Use it as `t` in the handoff's `sin(t / n)`. */
+  /** Since the gesture started; under reduced motion, the variant's still moment. Use it as `t` in a `sin(t / n)`. */
   readonly elapsedMilliseconds: number;
   /** The variant of the intent that started the gesture. */
   readonly variant:             Variant;

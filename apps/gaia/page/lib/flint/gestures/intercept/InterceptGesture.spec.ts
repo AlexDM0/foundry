@@ -1,5 +1,5 @@
 /**
- * Assistant intercept against `06-more-animations.md`, "Assistant intercept". What matters: the envelope fades in over 300 ms as it flies in
+ * Assistant intercept. What matters: the envelope fades in over 300 ms as it flies in
  * turned -20 degrees, so it never shows at once at the start of a cycle, and
  * two pentagons reach for it from 450 with wide eyes; at 700 it is caught exactly where the flight ends, with a hop of 4; it is pulled to
  * (34, -30) as the far hand goes and the near hand holds its lower corner; it opens and its paper rises while Flint reads; then the outcome

@@ -1,5 +1,5 @@
 /**
- * Survey against `06-more-animations.md`, "Survey". What matters: the blueprint fades in; a triangle runs along the top edge while the top
+ * Survey. What matters: the blueprint fades in; a triangle runs along the top edge while the top
  * measure grows, then down the side while the side measure grows, with eye height 5; the thinking dots show one after another with the
  * eyes up; a hexagon sets three posts, 600 ms each, going 5 down above each; the lamps pass 120 ms apart with happy eyes; the props fade
  * from 5 s; the top measure, the posts and the lamps go from left to right on the screen whatever the facing; the cycle repeats every

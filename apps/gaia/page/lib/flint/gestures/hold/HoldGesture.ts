@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Held": an entrance in which a ready ticket fades in, a clamp slides down over it and a hexagon
+ * Held: an entrance in which a ready ticket fades in, a clamp slides down over it and a hexagon
  * fastens it; then a steady pose in which Flint faces the user and holds up a square as a flat palm.
  */
 import type { HandPose, PosePart }                     from '../../SpritePose.ts';

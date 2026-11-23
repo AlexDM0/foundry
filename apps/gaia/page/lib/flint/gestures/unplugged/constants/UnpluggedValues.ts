@@ -1,5 +1,5 @@
 /**
- * Unplugged of `06-more-animations.md`: the event stream is down, then it is back. Flint looks from the plug to the socket, pushes the
+ * Unplugged: the event stream is down, then it is back. Flint looks from the plug to the socket, pushes the
  * plug in, and the stream flows down the cable. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
  */
 export const UNPLUGGED_TIMELINE = {
@@ -37,7 +37,7 @@ export const UNPLUGGED_SHAPE = {
 } as const;
 
 /**
- * The cable leaves the plug at its left edge, `LEAD_Y_UNITS` below its top, runs straight to the offset of the plug where the handoff's
+ * The cable leaves the plug at its left edge, `LEAD_Y_UNITS` below its top, runs straight to the offset of the plug where the design's
  * curve starts, then through its fixed control point to the floor: so it stays joined to the plug once the hand lets go.
  */
 export const UNPLUGGED_CABLE = {
@@ -49,7 +49,7 @@ export const UNPLUGGED_CABLE = {
   END_X_UNITS:          12,
   END_Y_UNITS:          2,
   STROKE_UNITS:         1.4,
-  /** The handoff's pulse is 1.3, lost in the cable at 0.5 pixels for one unit; 2 keeps it readable, a builder decision. */
+  /** The design's pulse is 1.3, lost in the cable at 0.5 pixels for one unit; 2 keeps it readable, a builder decision. */
   PULSE_RADIUS_UNITS:   2,
 } as const;
 

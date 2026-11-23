@@ -1,5 +1,5 @@
 /**
- * The jar of Bug jar (`06-more-animations.md`): the bug of the shared vocabulary, a glass jar with its rim and lid, and the low ticket the
+ * The jar of Bug jar: the bug of the shared vocabulary, a glass jar with its rim and lid, and the low ticket the
  * jar becomes. The bug is drawn before the glass, so the glass tints it once it is inside. A hand held to this prop pinches the bug.
  */
 import type { Point }                                 from '../../SpriteGeometry.ts';

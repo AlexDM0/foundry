@@ -1,4 +1,4 @@
-/** The thinking dots of `01-character.md`: three squares that show one after the other. */
+/** The thinking dots: three squares that show one after the other. */
 import { markDefinition }      from '../MarkDefinition.ts';
 import { SHARED_MARK_ANCHOR }  from '../constants/MarkShapes.ts';
 import { THINKING_DOTS_SHAPE } from './constants/ThinkingDotsValues.ts';

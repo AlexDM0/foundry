@@ -1,5 +1,5 @@
 /**
- * The dome of Sandbox (`06-more-animations.md`): a half ellipse of water over Flint, drawn in front of all other parts at half opacity.
+ * The dome of Sandbox: a half ellipse of water over Flint, drawn in front of all other parts at half opacity.
  * It lights up to full opacity where the hand meets it, and two short ripples of light water show at the contact.
  */
 import type { Shape }         from '../../drawing/Shape.ts';

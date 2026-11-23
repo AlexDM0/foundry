@@ -1,5 +1,5 @@
 /**
- * The card of Needs an answer (`06-more-animations.md`): a paper card with "?", which is never mirrored. A hand is held just below its
+ * The card of Needs an answer: a paper card with "?", which is never mirrored. A hand is held just below its
  * bottom left corner, and the card turns around that hold, so the card and the hand move as one rigid part.
  */
 import type { Point }         from '../../SpriteGeometry.ts';

@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Gestures", "Fasten": a bolt slides in and one hexagon turns it in steps. */
+/** Fasten: a bolt slides in and one hexagon turns it in steps. */
 import type { PosePart }                   from '../../SpritePose.ts';
 import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
 import { HAND_SHAPE }                      from '../../constants/HandShape.ts';

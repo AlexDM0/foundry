@@ -1,4 +1,4 @@
-/** The "Hi!" of `01-character.md` that a wave shows. */
+/** The "Hi!" that a wave shows. */
 import { markDefinition, NO_MARK_DETAILS } from '../MarkDefinition.ts';
 import { markTextShapeOf }                 from '../MarkTextShape.ts';
 import { GREETING_ANCHOR, GREETING_TEXT }  from './constants/GreetingValues.ts';

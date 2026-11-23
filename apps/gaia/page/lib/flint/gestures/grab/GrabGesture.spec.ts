@@ -1,5 +1,5 @@
 /**
- * Grab against `02-animations.md`, "Grab". What matters: the two pentagons reach to the target, no further than 44 units from the body
+ * Grab. What matters: the two pentagons reach to the target, no further than 44 units from the body
  * centre (0, -24), spread by 9 and then by 4 after 0.25 seconds; the eyes look at the target; the catch is taken once at 0.25 seconds
  * and holds a target nearer than 58 units; the eyes open to 10 on a catch and narrow to 4 on a miss; the grab ends after 0.9 seconds.
  */

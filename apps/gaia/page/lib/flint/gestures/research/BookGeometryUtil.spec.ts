@@ -1,5 +1,5 @@
 /**
- * The book's geometry against `02-animations.md`, "Book placement" and "Book". What matters: the book is turned 20 degrees clockwise
+ * The book's geometry. What matters: the book is turned 20 degrees clockwise
  * around (39, -27) and then dropped 13, with no skew; and the turning page's outer edge is at x = 39 + 10.5k, its top rising by 3 as the
  * page stands upright.
  */

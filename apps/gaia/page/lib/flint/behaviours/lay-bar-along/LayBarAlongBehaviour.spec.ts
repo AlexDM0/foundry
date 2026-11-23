@@ -1,5 +1,5 @@
 /**
- * Lay the bar along a row, `08-more-behaviours.md`, on the pure mind frame by frame. What matters: Flint walks along its floor to below
+ * Lay the bar along a row, on the pure mind frame by frame. What matters: Flint walks along its floor to below
  * the bar's left end at the walk speed; its floor rises to the bar's bottom edge at the body rate, with no jump; it walks to the right end
  * with the hand and eyes of `lay-bar` and without its row line and bar, at the bar's width over a time of 110 units a second clamped
  * between 1500 and 6000 ms; the shimmer is a page shape from the bar's left end to 18 behind Flint, its four segments with the opacity of

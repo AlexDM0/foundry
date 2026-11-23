@@ -23,5 +23,5 @@ What is agreed and not started, with the reason it waits.
   cannot stage from one read-only forge checkout.
 - **Flint looks at the composer.** The design handoff's answer of the chat habitat to "the user types", and the look after the doubt of
   "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint (`page/lib/flint/`): no intent of the
-  fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. It waits for a look in the
+  fixed list looks at an element, and no design gives a look's motion yet. It waits for a look in the
   playground, and a `look` intent with the element the habitat names.

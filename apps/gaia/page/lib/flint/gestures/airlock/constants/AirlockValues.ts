@@ -1,4 +1,4 @@
-/** Airlock of `06-more-animations.md`: one loop in which one block passes the chamber; in milliseconds and sprite units, for Flint facing right. */
+/** Airlock: one loop in which one block passes the chamber; in milliseconds and sprite units, for Flint facing right. */
 export const AIRLOCK_TIMELINE = {
   CYCLE_MILLISECONDS:             4800,
   FADE_IN_MILLISECONDS:           300,

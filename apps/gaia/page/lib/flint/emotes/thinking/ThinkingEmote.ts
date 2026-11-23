@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Emotes", the Thinking row: the eyes look up, and the thinking dots of `01-character.md` show one by one. */
+/** The Thinking emote: the eyes look up, and the thinking dots show one by one. */
 import { emoteDefinition } from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }   from '../EmoteMarkUtil.ts';
 import { THINKING_MOTION } from './constants/ThinkingValues.ts';

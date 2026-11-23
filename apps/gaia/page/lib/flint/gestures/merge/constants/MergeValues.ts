@@ -1,4 +1,4 @@
-/** The merge gesture of `02-animations.md`, "Merge": one cycle of pressing two blocks into one, in milliseconds. */
+/** The merge gesture: one cycle of pressing two blocks into one, in milliseconds. */
 export const MERGE_TIMELINE = {
   CYCLE_MILLISECONDS:        2600,
   FADE_IN_MILLISECONDS:      300,

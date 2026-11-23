@@ -1,6 +1,6 @@
 /**
- * The part of the pose that typing and reviewing share for each of their variants (`02-animations.md`, "Type" and "Review", where they
- * are called moods): the working lean and eye shift, the eye height, the bob of the busy variant, and the shake, glare and pulsing vein of
+ * The part of the pose that typing and reviewing share for each of their variants:
+ * the working lean and eye shift, the eye height, the bob of the busy variant, and the shake, glare and pulsing vein of
  * the angry variant.
  */
 import type { EmoteMarkPoseOf, PosePart }                                      from '../SpritePose.ts';

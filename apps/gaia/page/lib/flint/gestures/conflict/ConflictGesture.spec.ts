@@ -1,5 +1,5 @@
 /**
- * Conflict against `06-more-animations.md`. What matters: the first press is Merge's with a shorter travel that ends when the tips of the
+ * Conflict. What matters: the first press is Merge's with a shorter travel that ends when the tips of the
  * teeth touch; the hit shakes both blocks for 100 ms, shows the crimson lines at the seam for 300 ms and slants the eyes; the blocks move
  * apart and the hands go; the file makes three full strokes, set exactly, while the top teeth move over by 3 and each stroke drops two
  * shavings; the second press has Merge's travel and the teeth fit, alternating; then Merge's snap and leave. Reduced motion holds 2800.

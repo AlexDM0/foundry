@@ -1,4 +1,4 @@
-/** Waiver of `06-more-animations.md`: one loop in which Flint initials a failed verdict and it becomes a grey tick; in milliseconds. */
+/** Waiver: one loop in which Flint initials a failed verdict and it becomes a grey tick; in milliseconds. */
 export const WAIVER_TIMELINE = {
   CYCLE_MILLISECONDS:          3400,
   FADE_IN_MILLISECONDS:        400,
@@ -14,7 +14,7 @@ export const WAIVER_TIMELINE = {
 /**
  * The initials, the path `m0 0 q2 -5 3.5 0 q1.5 4 3 -1 l2 2` from its start point: each stroke a quadratic curve relative to the end of the
  * one before, the last, a straight line, given with its control point at its middle. Each curve is drawn as this many straight steps. The
- * handoff starts them at (30, -53), where the pen covers the cross while it writes and their tail touches the tick; they start 3 further
+ * design starts them at (30, -53), where the pen covers the cross while it writes and their tail touches the tick; they start 3 further
  * left, a builder decision.
  */
 export const WAIVER_INITIALS = {

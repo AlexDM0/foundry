@@ -1,5 +1,5 @@
 /**
- * The still pose every layer starts from, against `01-character.md` and `reference/flint-neutral.svg`: eyes shifted 2 to the facing side,
+ * The still pose every layer starts from: eyes shifted 2 to the facing side,
  * 8 high, the hover at its rest height, no hand, every prop hidden, no mark, no sleep. And each emote mark at its anchor and scale of the
  * character sheet, which the emotes build on.
  */

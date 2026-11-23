@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Emotes", the Happy row: the happy eyes, two bounces, and the two glints of `01-character.md`. */
+/** The Happy emote: the happy eyes, two bounces, and the two glints. */
 import type { EmoteInput } from '../EmoteDefinition.ts';
 import { emoteDefinition } from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }   from '../EmoteMarkUtil.ts';

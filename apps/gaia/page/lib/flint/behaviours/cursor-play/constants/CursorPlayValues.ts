@@ -1,4 +1,4 @@
-/** Cursor play of `02-animations.md` and `03-behaviour-and-architecture.md`. The values are not in the handoff. */
+/** Cursor play. The values are builder decisions. */
 export const CURSOR_PLAY = {
   /** Cursor play stops when the pointer does not move for this long. */
   STILL_POINTER_MILLISECONDS:    3000,

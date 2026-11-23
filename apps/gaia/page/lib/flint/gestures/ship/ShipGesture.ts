@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Ship": two pentagons lift a landed block onto a shelf, the block and the shelf give on landing, a
+ * Ship: two pentagons lift a landed block onto a shelf, the block and the shelf give on landing, a
  * tick shows, and Flint salutes with a square, standing tall, then is happy. One action. The hands lift with the block, so they are placed
  * exactly; the renderer mirrors the tick back, so the part is the same either facing.
  */

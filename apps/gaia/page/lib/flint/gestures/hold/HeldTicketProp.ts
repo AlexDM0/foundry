@@ -1,4 +1,4 @@
-/** The held ticket of Held (`06-more-animations.md`): a ready ticket at 80% with a graphite clamp over its top edge. */
+/** The held ticket of Held: a ready ticket at 80% with a graphite clamp over its top edge. */
 import { propDefinition }    from '../../props/PropDefinition.ts';
 import { PaperShapeUtil }    from '../../props/shapes/PaperShapeUtil.ts';
 import { PAPER_SHAPE }       from '../../props/shapes/constants/SharedShapes.ts';

@@ -1,5 +1,5 @@
 /**
- * A mark a gesture shows during one step of its timeline (`06-more-animations.md`, "New channels of the pose"): the mark enters as its emote
+ * A mark a gesture shows during one step of its timeline: the mark enters as its emote
  * brings it in and leaves in the last 160 ms of the step, as an emote's mark leaves. Outside the step there is no mark.
  */
 import type { EmoteMarkPoseOf }              from '../SpritePose.ts';

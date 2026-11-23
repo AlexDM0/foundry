@@ -1,5 +1,5 @@
 /**
- * Forced stop of `06-more-animations.md`, "Sessions and budget": Flint pulls a plug and a spark dies, in one action; in sprite units, for
+ * Forced stop: Flint pulls a plug and a spark dies, in one action; in sprite units, for
  * Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
  */
 export const FORCED_STOP = {
@@ -34,7 +34,7 @@ export const PLUG = {
 
 /**
  * The cable from the middle of the plug's back to below the spark; while the plug is pulled its control point drops and it goes slack. The
- * handoff's slack control point (30, -4) leaves the cable from the pulled plug almost straight, tighter than before the pull; (42, 2) hangs
+ * design's slack control point (30, -4) leaves the cable from the pulled plug almost straight, tighter than before the pull; (42, 2) hangs
  * it in a loop below the line from the plug to the spark, a builder decision.
  */
 export const CABLE = {

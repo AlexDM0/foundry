@@ -1,5 +1,5 @@
 /**
- * The contracts between Flint and its host (`03-behaviour-and-architecture.md`, "The sprite field"): the habitat a host component
+ * The contracts between Flint and its host: the habitat a host component
  * declares, the fixed list of intents Flint can carry out, and the director that picks the next intent. Habitat kinds and cue names are
  * the host's own strings; Flint knows no host component. The intents and the attendants come from the catalogs, the behaviour intents
  * from the behaviour catalog.

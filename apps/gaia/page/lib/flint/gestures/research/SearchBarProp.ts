@@ -1,4 +1,4 @@
-/** The search bar of Research (`01-character.md`): its icon, and the query that grows from its left end on the screen. */
+/** The search bar of Research: its icon, and the query that grows from its left end on the screen. */
 import { propDefinition }   from '../../props/PropDefinition.ts';
 import { SEARCH_BAR_SHAPE } from './constants/ResearchValues.ts';
 

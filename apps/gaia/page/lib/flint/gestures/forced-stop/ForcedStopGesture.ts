@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Forced stop": a pentagon goes to the plug and pulls it out of its socket, the cable goes slack, two
+ * Forced stop: a pentagon goes to the plug and pulls it out of its socket, the cable goes slack, two
  * small sparks fly from the socket, and the spark the plug fed dies. From the pull the hand and the plug move as one, set exactly. No
  * happy eyes.
  */

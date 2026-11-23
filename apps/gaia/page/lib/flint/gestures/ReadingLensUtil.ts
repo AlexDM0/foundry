@@ -1,4 +1,4 @@
-/** The looking glass of Review (`02-animations.md`, "Review") as it reads a line of the sheet, which every gesture that reads it shares. */
+/** The looking glass of Review as it reads a line of the sheet, which every gesture that reads it shares. */
 import type { Point }   from '../SpriteGeometry.ts';
 import { SHEET_SHAPE }  from '../props/shapes/constants/SheetShape.ts';
 import { READING_LENS } from './constants/ReadingLens.ts';

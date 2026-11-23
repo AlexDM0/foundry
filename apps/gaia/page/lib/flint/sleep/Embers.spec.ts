@@ -1,5 +1,5 @@
 /**
- * The embers. What matters: ember n starts 1050 × n ms after the rise starts and rises on a 4200 ms cycle along the handoff's formulas
+ * The embers. What matters: ember n starts 1050 × n ms after the rise starts and rises on a 4200 ms cycle along its formulas
  * (side +1 for embers 0 and 2, -1 for 1 and 3); its opacity fades in until p is 0.15, then is 1 - p, times the fade; and fading embers
  * lose their opacity at the waking rate of 7 per second.
  */
@@ -14,7 +14,7 @@ describe('the rise', () => {
     expect(embersOf(1000, 1, 1000 + 3151).map((ember) => ember.opacity > 0)).toEqual([true, true, true, true]);
   });
 
-  test('an ember follows the handoff formulas on its own side', () => {
+  test('an ember follows its formulas on its own side', () => {
     const [first, second] = embersOf(0, 1, 2100);
     expect(first?.x).toBeCloseTo(4 + 7, 9);
     expect(first?.y).toBeCloseTo(-44 - 15, 9);

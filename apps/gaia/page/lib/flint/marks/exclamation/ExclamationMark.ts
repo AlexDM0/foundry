@@ -1,4 +1,4 @@
-/** The "!" of `01-character.md`. */
+/** The "!". */
 import { markDefinition, NO_MARK_DETAILS } from '../MarkDefinition.ts';
 import { markTextShapeOf }                 from '../MarkTextShape.ts';
 import { SHARED_MARK_ANCHOR }              from '../constants/MarkShapes.ts';

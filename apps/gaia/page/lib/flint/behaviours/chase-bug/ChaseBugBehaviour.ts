@@ -1,5 +1,5 @@
 /**
- * Chase the bug (`08-more-behaviours.md`, `chase-bug`): a bug leaves the host's element (the row or card of a delivered ticket), falls to
+ * Chase the bug (`chase-bug`): a bug leaves the host's element (the row or card of a delivered ticket), falls to
  * the floor of the habitat Flint lives in, and runs away from Flint; each run is slower than the last, and after the limit it runs no
  * more. Flint is surprised, walks after it with narrowed eyes, jumps when it changes side close by, and grabs for it as cursor play grabs
  * for the pointer. The grab that catches it holds it between the closed hands; a dashed line links it to the element; it shrinks away

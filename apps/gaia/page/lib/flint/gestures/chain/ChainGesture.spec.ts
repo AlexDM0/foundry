@@ -1,5 +1,5 @@
 /**
- * Chain against `06-more-animations.md`. What matters: the sheets fade in; a hexagon adds link n at 300 + 330n, at the link + (-5, 4),
+ * Chain. What matters: the sheets fade in; a hexagon adds link n at 300 + 330n, at the link + (-5, 4),
  * one more turn of 60 degrees for each link, and each link springs in; the hand goes away at 1300; B pulls by (4, 3) × sin(π × p) at 1700
  * and 2200 while the eyes look at it; from 2800 Flint looks at A; from 3300 the props fade; reduced motion holds the made chain at rest.
  */

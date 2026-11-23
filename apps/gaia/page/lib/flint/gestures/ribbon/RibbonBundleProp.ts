@@ -1,5 +1,5 @@
 /**
- * The bundle of Ribbon (`06-more-animations.md`): three tickets of one epic as mini sheets that gather from apart into a fan, the ribbon
+ * The bundle of Ribbon: three tickets of one epic as mini sheets that gather from apart into a fan, the ribbon
  * that grows around them, and the bow that springs in on top. The bundle leaves as one part.
  */
 import type { Point }                 from '../../SpriteGeometry.ts';

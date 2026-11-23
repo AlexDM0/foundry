@@ -1,5 +1,5 @@
 /**
- * The blocks of Merge (`01-character.md`): two blocks that the hands press together, the merged block they snap into with its tick, and
+ * The blocks of Merge: two blocks that the hands press together, the merged block they snap into with its tick, and
  * the sparks of the snap. The tick is never mirrored.
  */
 import { propDefinition }       from '../../props/PropDefinition.ts';

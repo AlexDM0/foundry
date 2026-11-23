@@ -1,4 +1,4 @@
-/** The envelope of the shared vocabulary (`06-more-animations.md`): an incident, with its flap and seal. */
+/** The envelope of the shared vocabulary: an incident, with its flap and seal. */
 import type { Shape, TransformStep } from '../../drawing/Shape.ts';
 import { SvgTextUtil }               from '../../drawing/SvgTextUtil.ts';
 import { ENVELOPE_SHAPE }            from './constants/SharedShapes.ts';

@@ -1,5 +1,5 @@
 /**
- * Point against `02-animations.md`, "Point". What matters: one triangle of radius 7 points forward (turn 90) and swings by
+ * Point. What matters: one triangle of radius 7 points forward (turn 90) and swings by
  * 4 × sin(t / 220) around (29, -25); there is no second hand; Flint leans and shifts its eyes into the working pose.
  */
 import { expect, test } from 'bun:test';

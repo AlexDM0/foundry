@@ -1,5 +1,5 @@
 /**
- * The bar of Lay the bar (`06-more-animations.md`): a faint row line under Flint, and a rounded bar behind it that grows away from Flint.
+ * The bar of Lay the bar: a faint row line under Flint, and a rounded bar behind it that grows away from Flint.
  * The end of the bar nearest Flint is the fresh part, in the body colour, rounded on the side that faces Flint.
  */
 import type { Shape }     from '../../drawing/Shape.ts';

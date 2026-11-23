@@ -1,4 +1,4 @@
-/** The "?" of `01-character.md`: the same size as "!", in the shared type of the text marks. */
+/** The "?": the same size as "!", in the shared type of the text marks. */
 export const QUESTION_TEXT = {
   TEXT:       '?',
   SIZE_UNITS: 14,

@@ -1,5 +1,5 @@
 /**
- * The props of Incident fuse (`06-more-animations.md`): the envelope of the shared vocabulary with a fuse from its top right corner, the
+ * The props of Incident fuse: the envelope of the shared vocabulary with a fuse from its top right corner, the
  * flame at the end of the part that has not burned, the smoke when the flame goes out, and the seal of the stamp on the envelope's seal.
  */
 import type { Shape }         from '../../drawing/Shape.ts';

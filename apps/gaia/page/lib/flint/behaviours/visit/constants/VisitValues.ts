@@ -1,6 +1,6 @@
 /**
- * `02-animations.md`, "Pop-in around a corner": an offset is the x of the body centre from the component's edge, positive outside it. The
- * values that are not in the handoff are each named for what they bound.
+ * The pop-in around a corner: an offset is the x of the body centre from the component's edge, positive outside it. The
+ * values that are builder decisions are each named for what they bound.
  */
 export const POP_IN = {
   BESIDE_OFFSET_UNITS:                28,

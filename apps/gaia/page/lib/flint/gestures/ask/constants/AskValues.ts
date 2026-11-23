@@ -1,4 +1,4 @@
-/** Needs an answer of `06-more-animations.md`: Flint holds up a card with "?", and in its second variant knocks; sprite units, facing right. */
+/** Needs an answer: Flint holds up a card with "?", and in its second variant knocks; sprite units, facing right. */
 export const ASK_TIMELINE = {
   /** Each period Flint looks at the card, in its last moment. */
   LOOK_PERIOD_MILLISECONDS:        3000,
@@ -53,7 +53,7 @@ export const ASK_CARD_SHAPE = {
   CENTRE_X_UNITS:                    38,
   CENTRE_Y_UNITS:                    -34,
   GLYPH_SIZE_UNITS:                  12,
-  /** The baseline sits this far below the glyph's centre, as the marks of `01-character.md` set it for their size. */
+  /** The baseline sits this far below the glyph's centre, as the marks set it for their size. */
   GLYPH_BASELINE_BELOW_CENTRE_UNITS: 4.3,
   HOLD_BELOW_CORNER_UNITS:           2,
 } as const;

@@ -1,5 +1,5 @@
 /**
- * The Watchers of Regrouping (`06-more-animations.md`): four sparks, each drawn in three looks that cross over: dim (the dark ember colour
+ * The Watchers of Regrouping: four sparks, each drawn in three looks that cross over: dim (the dark ember colour
  * with no core), live (the spark of the vocabulary, with the spring on its scale) and dead (the grey spark). The places ease at the hand
  * rate, so the bob of the live sparks starts without a jump.
  */

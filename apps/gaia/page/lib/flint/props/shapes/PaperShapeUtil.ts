@@ -1,4 +1,4 @@
-/** The paper of the shared vocabulary (`06-more-animations.md`): a sheet or ticket, a draft with a dashed outline, its header, the mini sheet. */
+/** The paper of the shared vocabulary: a sheet or ticket, a draft with a dashed outline, its header, the mini sheet. */
 import type { Point }                from '../../SpriteGeometry.ts';
 import type { FlintColourRole }      from '../../constants/Palette.ts';
 import type { Shape, TransformStep } from '../../drawing/Shape.ts';

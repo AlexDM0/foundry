@@ -1,5 +1,5 @@
 /**
- * Assistant intercept of `06-more-animations.md`: an incident goes to the Assistant before it goes to the user. The cycles alternate
+ * Assistant intercept: an incident goes to the Assistant before it goes to the user. The cycles alternate
  * between the two outcomes, handled first. In sprite units, for Flint facing right; the envelope is placed by its top left corner.
  */
 export const INTERCEPT_TIMELINE = {

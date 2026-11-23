@@ -1,5 +1,5 @@
 /**
- * Conflict of `06-more-animations.md`: Merge with one more step, in milliseconds and sprite units, for Flint facing right. The blocks, the
+ * Conflict: Merge with one more step, in milliseconds and sprite units, for Flint facing right. The blocks, the
  * hands, the snap and the leave are the shared press (`flint/gestures/constants/BlockPress.ts`); these are the values Conflict adds.
  */
 export const CONFLICT_TIMELINE = {

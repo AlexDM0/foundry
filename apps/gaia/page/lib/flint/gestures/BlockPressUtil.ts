@@ -1,5 +1,5 @@
 /**
- * The press of two blocks into one (`02-animations.md`, "Merge"), which every gesture that presses blocks shares: the two hexagons, the
+ * The press of two blocks into one, which every gesture that presses blocks shares: the two hexagons, the
  * widening of the eyes, the squash of the snap, and the merged block that leaves with its tick.
  */
 import type { BodyPose, HandPose } from '../SpritePose.ts';

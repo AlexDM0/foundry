@@ -1,4 +1,4 @@
-/** Idle and movement of `02-animations.md`; `sin(t / n)` names `n` as a divisor in milliseconds. */
+/** Idle and movement; `sin(t / n)` names `n` as a divisor in milliseconds. */
 export const HOVER = {
   HEIGHT_UNITS:               6,
   SWING_UNITS:                3,

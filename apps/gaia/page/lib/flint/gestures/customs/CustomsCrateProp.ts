@@ -1,5 +1,5 @@
 /**
- * The crate of Customs (`06-more-animations.md`), with its two open flaps, and the item the hand lifts out of it. It is in front of all,
+ * The crate of Customs, with its two open flaps, and the item the hand lifts out of it. It is in front of all,
  * so the hand that reaches in goes behind the front of the crate; the item is drawn behind the crate and in front of the hand, so it is
  * hidden while it is in the crate and seen in the hand once lifted.
  */

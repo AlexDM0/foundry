@@ -1,5 +1,5 @@
 /**
- * Lay the bar along a row of `08-more-behaviours.md`: Flint walks to the left end of the host's bar, rises to its bottom edge, lays it from
+ * Lay the bar along a row: Flint walks to the left end of the host's bar, rises to its bottom edge, lays it from
  * the left end to the right end with the `lay-bar` gesture, and leaves a fresh shimmer over it. In sprite units and milliseconds.
  */
 export const LAY_BAR_ALONG = {

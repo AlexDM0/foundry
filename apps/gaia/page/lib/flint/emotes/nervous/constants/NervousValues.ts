@@ -1,4 +1,4 @@
-/** The Nervous emote of `02-animations.md`, "Emotes": how long it shows, and its moves; `sin(age / n)` names `n` a divisor. */
+/** The Nervous emote: how long it shows, and its moves; `sin(age / n)` names `n` a divisor. */
 export const NERVOUS_MOTION = {
   DURATION_MILLISECONDS:      2100,
   EYE_HEIGHT_UNITS:           5,

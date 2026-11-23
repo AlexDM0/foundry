@@ -1,5 +1,5 @@
 /**
- * Reorder against `06-more-animations.md`. What matters: the stack fades in; the pentagon reaches the right end of the third card at (50,
+ * Reorder. What matters: the stack fades in; the pentagon reaches the right end of the third card at (50,
  * -25.5); from 800 the hand is held to the card while it is pulled its whole width, 18, out so it clears the stack before it rises, lifted
  * to y -49 as the two cards above go 7 down, and pushed in on top at (30, -42); the eyes follow it up from lift 0 to -3; happy eyes from
  * 2100 and no hand from 2000; the stack fades from 2700; reduced motion holds the card on top.

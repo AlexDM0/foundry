@@ -1,4 +1,4 @@
-/** The sweat beads of `01-character.md`: three drops that fly off, each placed and turned by the emote that shows them. */
+/** The sweat beads: three drops that fly off, each placed and turned by the emote that shows them. */
 import type { Shape }        from '../../drawing/Shape.ts';
 import { markDefinition }    from '../MarkDefinition.ts';
 import { SWEAT_BEADS_SHAPE } from './constants/SweatBeadsValues.ts';

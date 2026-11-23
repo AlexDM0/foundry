@@ -1,4 +1,4 @@
-/** The lightbulb of `01-character.md`, at the shared anchor of "!" and "?". */
+/** The lightbulb, at the shared anchor of "!" and "?". */
 export const LIGHTBULB_SHAPE = {
   GLASS_PATH:                  'M0 -8 A6 6 0 0 1 3.6 2.8 L3.2 4.5 H-3.2 L-3.6 2.8 A6 6 0 0 1 0 -8Z',
   GLASS_STROKE_UNITS:          0.45,

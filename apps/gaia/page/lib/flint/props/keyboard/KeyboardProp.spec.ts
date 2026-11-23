@@ -1,4 +1,4 @@
-/** The keyboard. What matters: the rectangle of `01-character.md`, turned -9 degrees; it slides 5 units up as it fades in, and jolts down. */
+/** The keyboard. What matters: the rectangle, turned -9 degrees; it slides 5 units up as it fades in, and jolts down. */
 import { expect, test } from 'bun:test';
 
 import { KEYBOARD_PROP } from './KeyboardProp.ts';

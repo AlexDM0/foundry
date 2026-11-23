@@ -1,4 +1,4 @@
-/** Hatch of `06-more-animations.md`: one loop of a note through a slot in a wall, in milliseconds and sprite units, for Flint facing right. */
+/** Hatch: one loop of a note through a slot in a wall, in milliseconds and sprite units, for Flint facing right. */
 export const HATCH_TIMELINE = {
   CYCLE_MILLISECONDS:               4400,
   FADE_IN_MILLISECONDS:             300,

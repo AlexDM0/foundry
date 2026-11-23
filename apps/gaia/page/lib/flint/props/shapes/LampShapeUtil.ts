@@ -1,4 +1,4 @@
-/** The lamp of the shared vocabulary (`06-more-animations.md`): one gate check, off, running, passed or failed. */
+/** The lamp of the shared vocabulary: one gate check, off, running, passed or failed. */
 import type { Shape } from '../../drawing/Shape.ts';
 import { LAMP_SHAPE } from './constants/SharedShapes.ts';
 

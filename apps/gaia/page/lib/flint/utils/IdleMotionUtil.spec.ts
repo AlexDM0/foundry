@@ -1,4 +1,4 @@
-/** Idle against `02-animations.md`: the hover swings 3 units around 6, and a blink shuts the eyes for 120 ms of every 4 seconds. */
+/** Idle: the hover swings 3 units around 6, and a blink shuts the eyes for 120 ms of every 4 seconds. */
 import { expect, test } from 'bun:test';
 
 import { IdleMotionUtil } from './IdleMotionUtil.ts';

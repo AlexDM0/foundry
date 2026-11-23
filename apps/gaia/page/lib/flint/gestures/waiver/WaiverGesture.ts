@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Waiver": Flint writes its initials beside the cross of a reviewed sheet, the cross greys and gives
+ * Waiver: Flint writes its initials beside the cross of a reviewed sheet, the cross greys and gives
  * way to a grey tick, and Flint doubts it, with no happy eyes. The initials read from left to right on the screen whatever the facing, and
  * the pen stays right of their written end on the screen, as the pen of Make a ticket.
  */

@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Sandbox": Flint types in the normal mood under a dome, reaches out with a pentagon, is stopped
+ * Sandbox: Flint types in the normal mood under a dome, reaches out with a pentagon, is stopped
  * where its edge meets the dome (which lights up and ripples), springs back with a wobble, sweats, and goes back to typing. The far hand
  * rests on its key while the near hand is away.
  */

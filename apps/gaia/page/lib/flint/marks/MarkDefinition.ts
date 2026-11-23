@@ -1,5 +1,5 @@
 /**
- * The contract of a mark (`01-character.md`, "Emote marks"): a small drawing that an emote or a gesture shows at an anchor relative to the
+ * The contract of a mark: a small drawing that an emote or a gesture shows at an anchor relative to the
  * bottom tip of the body. The anchor's x follows the facing; the mark itself is never mirrored, so its text stays readable. A mark's
  * details are what changes inside it from frame to frame, such as the dots that show.
  */

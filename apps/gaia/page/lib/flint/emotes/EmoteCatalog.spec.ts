@@ -1,5 +1,5 @@
 /**
- * The emote catalog. What matters: every emote has a name of its own and shows for its time of `02-animations.md`, "Emotes"; every
+ * The emote catalog. What matters: every emote has a name of its own and shows for its time; every
  * emote gives a mark at every age, so its mark hides a gesture's anger vein or "Hi!"; and under reduced motion no emote moves the body.
  */
 import { describe, expect, test } from 'bun:test';
@@ -19,7 +19,7 @@ describe('the catalog', () => {
     expect(new Set(EMOTE_NAMES).size).toBe(EMOTE_CATALOG.length);
   });
 
-  test('each emote shows for its time of the handoff', () => {
+  test('each emote shows for its own time', () => {
     expect(Object.fromEntries(EMOTE_CATALOG.map((emote) => [emote.name, emote.durationMilliseconds]))).toMatchObject({
       annoyed: 1500, sweatdrop: 1500, surprised: 1100, doubt: 1500, thinking: 2400, idea: 1600, happy: 1300, nervous: 2100,
     });

@@ -1,5 +1,5 @@
 /**
- * The shelf of Ship (`06-more-animations.md`): a shelf line, the landed block of the shared vocabulary that is lifted onto it, and the
+ * The shelf of Ship: a shelf line, the landed block of the shared vocabulary that is lifted onto it, and the
  * tick of the delivery. A squashed block keeps its bottom edge where it was.
  */
 import { propDefinition }   from '../../props/PropDefinition.ts';

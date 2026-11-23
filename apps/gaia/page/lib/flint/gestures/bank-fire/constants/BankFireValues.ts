@@ -1,5 +1,5 @@
 /**
- * Bank the fire of `06-more-animations.md`, "Sessions and budget": the stop of Hephaestus, an entrance of 2000 ms and then a steady pose
+ * Bank the fire: the stop of Hephaestus, an entrance of 2000 ms and then a steady pose
  * in which Flint is dark, landed and awake a little; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a
  * divisor.
  */
@@ -11,7 +11,7 @@ export const BANK_FIRE = {
 } as const;
 
 /**
- * One square pats the top of Flint two times: DEPTH_UNITS down and back, PAT_MILLISECONDS each. The handoff puts it at (10, -56), where
+ * One square pats the top of Flint two times: DEPTH_UNITS down and back, PAT_MILLISECONDS each. The design puts it at (10, -56), where
  * its lower corner never reaches Flint; it pats over the tip leaned back by -5 instead, a builder decision, so that the corner meets the
  * tip at the bottom of each pat, also once the body is 0.97 high.
  */

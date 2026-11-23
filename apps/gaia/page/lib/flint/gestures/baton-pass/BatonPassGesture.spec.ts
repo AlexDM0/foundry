@@ -1,5 +1,5 @@
 /**
- * Baton pass against `06-more-animations.md`, "Baton pass". What matters: it is one action of 2.6 seconds; the pentagon holds the baton
+ * Baton pass. What matters: it is one action of 2.6 seconds; the pentagon holds the baton
  * upright, the toss takes it to y -66 with a full turn and the hand away; the flicker sets the fill opacity at once at each of its four
  * moments and only the outline shows until 1300; the return is filled, bright and glowing, both fading to nothing at 1800, with a hop and
  * wide eyes; the baton falls back to the hand that shows again from 1350; the catch squashes the body for 120 ms; the happy eyes and glints

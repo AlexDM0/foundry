@@ -1,5 +1,5 @@
 /**
- * Incident fuse of `06-more-animations.md`: an incident's default move when nobody settles it. A fuse burns down to the envelope, the
+ * Incident fuse: an incident's default move when nobody settles it. A fuse burns down to the envelope, the
  * flame goes out, and Flint stamps the envelope. In sprite units, for Flint facing right; the envelope is placed by its top left corner.
  */
 export const INCIDENT_FUSE_TIMELINE = {

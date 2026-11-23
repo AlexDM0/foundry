@@ -1,5 +1,5 @@
 /**
- * Copy (`03-behaviour-and-architecture.md`, "The mind"): Flint walks below the element the habitat's `copyTargetFor` names, an agent's row,
+ * Copy: Flint walks below the element the habitat's `copyTargetFor` names, an agent's row,
  * and copies that agent's state with the gesture of its intent. A new intent of the target changes the gesture; a target that is gone, or
  * an intent that is not a gesture, ends the copy, and so does a gesture the host or a director asks for.
  */

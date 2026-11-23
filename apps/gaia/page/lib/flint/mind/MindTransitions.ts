@@ -1,6 +1,6 @@
 /**
- * The small changes every behaviour and reflex makes to the mind, kept in one place so each holds `02-animations.md`, "Rules between
- * animations": walking stops a gesture unless it is point or grab, jumping stops a gesture unless it is point, and an emote stops sleep.
+ * The small changes every behaviour and reflex makes to the mind, kept in one place so each holds the rules between
+ * animations: walking stops a gesture unless it is point or grab, jumping stops a gesture unless it is point, and an emote stops sleep.
  */
 import { intendedGestureOf }        from '../IntentMeaning.ts';
 import type { Point }               from '../SpriteGeometry.ts';

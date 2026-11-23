@@ -1,6 +1,6 @@
 /**
  * What every emote shares. What matters: in its last 160 ms a mark fades out and goes to 60% of its scale, and under reduced motion it
- * only fades; the entrance spring is the handoff's formula over 200 ms, and a still mark under reduced motion; the hop rises to 6 units
+ * only fades; the entrance spring is the spring formula over 200 ms, and a still mark under reduced motion; the hop rises to 6 units
  * at 150 ms and is over at 300 ms.
  */
 import { describe, expect, test } from 'bun:test';
@@ -12,8 +12,8 @@ function inputAt(ageMilliseconds: number, reducedMotion = false): EmoteInput {
   return { ageMilliseconds, facing: 1, reducedMotion };
 }
 
-/** The spring of `02-animations.md`, "Emotes", written out from the handoff. */
-function handoffSpringAt(progress: number): number {
+/** The spring formula, written out apart from the implementation. */
+function writtenOutSpringAt(progress: number): number {
   return (2 ** (-10 * progress)) * Math.sin(((10 * progress) - 0.75) * 2.094) + 1;
 }
 
@@ -37,9 +37,9 @@ describe('the mark\'s exit', () => {
 });
 
 describe('the entrance spring', () => {
-  test('follows the handoff formula over 200 ms', () => {
+  test('follows the spring formula over 200 ms', () => {
     for (const ageMilliseconds of [20, 50, 100, 150, 190]) {
-      expect(EmoteMarkUtil.entranceSpringOf(inputAt(ageMilliseconds))).toBeCloseTo(handoffSpringAt(ageMilliseconds / 200), 9);
+      expect(EmoteMarkUtil.entranceSpringOf(inputAt(ageMilliseconds))).toBeCloseTo(writtenOutSpringAt(ageMilliseconds / 200), 9);
     }
   });
 

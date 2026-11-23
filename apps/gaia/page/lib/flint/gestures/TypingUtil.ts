@@ -1,5 +1,5 @@
 /**
- * Typing (`02-animations.md`, "Type"), as every gesture that types shares it: the square of each hand on its key, the alternating tap of
+ * Typing, as every gesture that types shares it: the square of each hand on its key, the alternating tap of
  * the two hands, and the whole part of normal typing that Gate failed, Sandbox and Wind-down start from.
  */
 import type { HandPose, PosePart }     from '../SpritePose.ts';

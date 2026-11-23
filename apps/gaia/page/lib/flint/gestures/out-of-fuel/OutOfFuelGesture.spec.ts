@@ -1,5 +1,5 @@
 /**
- * Out of fuel and Refuel against `06-more-animations.md`, "Out of fuel". What matters: out-of-fuel is a steady pose (cooled at the rate
+ * Out of fuel and Refuel. What matters: out-of-fuel is a steady pose (cooled at the rate
  * of falling asleep, landed, leaned back, no glow) with a crimson level that blinks every 350 ms, a slow blink each 3 s and a look at the
  * user each 5 s, and its still moment at 3000 shows neither; refuel is one action of 1600 ms that fills the gauge in 700 ms, turns the
  * level green when full, lets the tint go at the body rate, flares at 700 (glow, hop, swell, sparks), and is happy from 900. Neither

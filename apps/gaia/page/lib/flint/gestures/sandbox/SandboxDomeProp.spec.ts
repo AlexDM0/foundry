@@ -1,7 +1,7 @@
 /**
- * The dome of Sandbox against `06-more-animations.md`, "Sandbox". What matters: the dome is the given path, a water fill at 8% with a
+ * The dome of Sandbox. What matters: the dome is the given path, a water fill at 8% with a
  * water stroke of 1, in front of all other parts at half opacity, and at full opacity when it flashes; the two ripples are water arcs 1.5
- * wide (the handoff's light water cannot be read on a light ground) at the contact point (34, -34), opening away from Flint; the hidden state draws.
+ * wide (the design's light water cannot be read on a light ground) at the contact point (34, -34), opening away from Flint; the hidden state draws.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,4 +1,4 @@
-/** The knock of Needs an answer (`06-more-animations.md`): two short arcs above the knuckle that knocks, which fade after each knock. */
+/** The knock of Needs an answer: two short arcs above the knuckle that knocks, which fade after each knock. */
 import { SvgTextUtil }        from '../../drawing/SvgTextUtil.ts';
 import { propDefinition }     from '../../props/PropDefinition.ts';
 import { AnimationCurveUtil } from '../../utils/AnimationCurveUtil.ts';

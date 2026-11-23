@@ -1,4 +1,4 @@
-/** The easing a prop gets by default, and the one step a prop's own easing builds on (`02-animations.md`, "Rules for all animations"). */
+/** The easing a prop gets by default, and the one step a prop's own easing builds on. */
 import { AnimationCurveUtil } from '../utils/AnimationCurveUtil.ts';
 import type { PropState }     from './PropDefinition.ts';
 

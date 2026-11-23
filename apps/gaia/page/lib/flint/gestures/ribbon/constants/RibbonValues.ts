@@ -1,4 +1,4 @@
-/** Ribbon of `06-more-animations.md`: one loop in which three tickets of one epic are bundled with a ribbon; in milliseconds. */
+/** Ribbon: one loop in which three tickets of one epic are bundled with a ribbon; in milliseconds. */
 export const RIBBON_TIMELINE = {
   CYCLE_MILLISECONDS:        4000,
   FADE_IN_MILLISECONDS:      300,

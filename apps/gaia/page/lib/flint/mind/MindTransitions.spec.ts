@@ -1,5 +1,5 @@
 /**
- * The changes every behaviour shares, `02-animations.md`, "Rules between animations". What matters: walking stops a gesture unless it is
+ * The changes every behaviour shares. What matters: walking stops a gesture unless it is
  * point or grab; jumping stops a gesture unless it is point, and starts only from the floor; an emote wakes Flint, and the sleep behaviour
  * sees the wake on its own frame; the gesture of the same intent goes on with only its target changed.
  */

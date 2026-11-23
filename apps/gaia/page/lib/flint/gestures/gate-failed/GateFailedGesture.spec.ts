@@ -1,5 +1,5 @@
 /**
- * Gate failed against `06-more-animations.md`, "Gate failed". What matters: until 350 Flint types in the normal variant while the note
+ * Gate failed. What matters: until 350 Flint types in the normal variant while the note
  * falls with `p²` from y -70 to -18; at 350 the keyboard and the note jolt 1.6 down for 100 ms, and the eye height 10 and the full crimson
  * tint are set at once; the flinch lifts 4 × sin(π × p) until 600; until 900 the lean is -4, the tint fades in a straight line to 0 and
  * the hands are drawn back to (16, -16) and (20, -19); upright, so its body stays clear of them, Flint then looks down at the note,

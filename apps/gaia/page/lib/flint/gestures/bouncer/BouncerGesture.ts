@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Bouncer": one hexagon holds a crimson rope to a post. Refuse keeps the rope hooked, stands firm,
+ * Bouncer: one hexagon holds a crimson rope to a post. Refuse keeps the rope hooked, stands firm,
  * shakes its head and shows a cross above the post; admit unhooks the rope, steps aside with a tick and happy eyes, and lets the props
  * fade. Both loop.
  */

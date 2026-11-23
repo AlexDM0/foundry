@@ -1,5 +1,5 @@
 /**
- * The props of Chain (`06-more-animations.md`): mini sheet A, the ticket that waits, mini sheet B, the ticket it waits for, and the links
+ * The props of Chain: mini sheet A, the ticket that waits, mini sheet B, the ticket it waits for, and the links
  * between them. The links lie evenly on the straight line from A's end of the chain to B's, so they follow B when it pulls; each springs in.
  */
 import type { Point }                from '../../SpriteGeometry.ts';

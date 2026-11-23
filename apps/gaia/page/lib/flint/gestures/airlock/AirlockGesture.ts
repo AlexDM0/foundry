@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Airlock": one block at a time passes. The left door opens, the front block enters the chamber and
+ * Airlock: one block at a time passes. The left door opens, the front block enters the chamber and
  * the queue moves up, the door closes, one hexagon turns the chamber and the block lands, the right door opens, the block goes onto the
  * main line, and while it fades a new block joins the back of the queue. The props fade in only at the very start, so the loop runs on
  * without a break.

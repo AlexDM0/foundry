@@ -1,4 +1,4 @@
-/** The Happy emote of `02-animations.md`, "Emotes": how long it shows, and its moves; `sin(age / n)` names `n` a divisor. */
+/** The Happy emote: how long it shows, and its moves; `sin(age / n)` names `n` a divisor. */
 export const HAPPY_MOTION = {
   DURATION_MILLISECONDS:           1300,
   BOUNCE_HEIGHT_UNITS:             4,

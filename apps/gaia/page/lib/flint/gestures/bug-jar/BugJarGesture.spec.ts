@@ -1,5 +1,5 @@
 /**
- * Bug jar against `06-more-animations.md`, "Bug jar". What matters: the lens reads line 0 and stops on line 1 at 0.6 of it, at 0.7 s for
+ * Bug jar. What matters: the lens reads line 0 and stops on line 1 at 0.6 of it, at 0.7 s for
  * a line, from left to right on the screen whatever the facing; the bug shows below the stopped lens with the "!" and wide eyes; the lens
  * leaves with its hand and a pentagon comes back to the bug; the caught bug wiggles twice as fast from the catch on, with no jump in its
  * turn, is carried above the jar, falls in, and

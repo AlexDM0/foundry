@@ -1,5 +1,5 @@
 /**
- * The shelf of Escaped bug (`06-more-animations.md`): a landed block on a shelf, the bug of the shared vocabulary that escapes from it, and
+ * The shelf of Escaped bug: a landed block on a shelf, the bug of the shared vocabulary that escapes from it, and
  * the trace back to the block: a dashed crimson line and a warning triangle on the block's corner. A hand held to this prop sits above the
  * bug, at the distance the state gives.
  */

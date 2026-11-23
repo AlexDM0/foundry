@@ -1,5 +1,5 @@
 /**
- * Wind-down against `06-more-animations.md`, "Wind-down". What matters: 0 to 500 normal typing with `sin(t / 120)`; 500 to 1700 the near
+ * Wind-down. What matters: 0 to 500 normal typing with `sin(t / 120)`; 500 to 1700 the near
  * hand is a hexagon of 6.5 on the dial at (40, -40), and from 700 it and the pointer turn 60 degrees down in 200 ms in each of three steps
  * of 330 ms (pointer 60 to -120) while the far hand types with `sin(t / 200)`, then `sin(t / 320)`, then stops, and the eyes are 6, 5, 4;
  * 1700 to 2100 the dial fades and the hands go; 2100 to 2900 a small ticket fades in and the pen writes one more line in 600 ms,

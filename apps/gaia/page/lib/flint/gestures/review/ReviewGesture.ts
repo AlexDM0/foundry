@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Review": Flint reads the four lines of a floating sheet through a looking glass, then gives
+ * Review: Flint reads the four lines of a floating sheet through a looking glass, then gives
  * a verdict, and starts again. One pentagon holds the glass at a fixed offset from the lens. Reading goes from left to right on the
  * screen whatever the facing ("Reading and writing direction", "Review"): facing left, `1 - along` takes the place of `along`.
  */

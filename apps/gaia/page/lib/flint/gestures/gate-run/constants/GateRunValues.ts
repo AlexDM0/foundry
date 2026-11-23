@@ -1,4 +1,4 @@
-/** Gate run of `06-more-animations.md`: four lamps on a rail run one after the other and pass; sprite units, for Flint facing right. */
+/** Gate run: four lamps on a rail run one after the other and pass; sprite units, for Flint facing right. */
 export const GATE_RUN_TIMELINE = {
   CYCLE_MILLISECONDS:           4200,
   FADE_IN_MILLISECONDS:         300,

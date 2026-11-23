@@ -1,5 +1,5 @@
 /**
- * The blocks of Conflict (`06-more-animations.md`): Merge's two blocks with two teeth each on the edges that face, drawn over the blocks so
+ * The blocks of Conflict: Merge's two blocks with two teeth each on the edges that face, drawn over the blocks so
  * that teeth that fit show inside the other block; the crimson lines of the hit; the shavings of the file; and Merge's merged block, tick
  * and sparks. The tick is never mirrored.
  */

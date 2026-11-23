@@ -1,5 +1,5 @@
 /**
- * The floating sheet of Review in `01-character.md`, which Bug jar and Waiver share: its printed lines, stacked pages and verdicts, in
+ * The floating sheet of Review, which Bug jar and Waiver share: its printed lines, stacked pages and verdicts, in
  * sprite units, for Flint facing right.
  */
 export const SHEET_SHAPE = {

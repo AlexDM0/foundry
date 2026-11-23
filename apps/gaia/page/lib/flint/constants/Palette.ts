@@ -1,5 +1,5 @@
 /**
- * Every colour of Flint as a CSS custom property with its default from the handoff's character sheet. A host changes a colour by setting
+ * Every colour of Flint as a CSS custom property with its default. A host changes a colour by setting
  * the property on any ancestor of the overlay, or through the `theme` option of `createFlint`.
  */
 export const FLINT_COLOURS = {

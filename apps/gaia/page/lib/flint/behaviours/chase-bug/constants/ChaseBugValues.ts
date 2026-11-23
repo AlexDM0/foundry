@@ -1,5 +1,5 @@
 /**
- * Chase the bug of `08-more-behaviours.md`: a bug leaves a delivered ticket and runs along the floor, Flint chases it, catches it, and it
+ * Chase the bug: a bug leaves a delivered ticket and runs along the floor, Flint chases it, catches it, and it
  * becomes a ticket. In sprite units and milliseconds; a place on the page is in overlay units, of the same size.
  */
 export const CHASE_BUG_BUG = {
@@ -11,7 +11,7 @@ export const CHASE_BUG_BUG = {
   RUN_SHORTEST_UNITS:               60,
   RUN_SPREAD_UNITS:                 80,
   FIRST_RUN_SPEED_UNITS_PER_SECOND: 260,
-  /** Each next run is this fraction of the speed of the run before it. */
+  /** Each next run is this fraction of the speed of the run before it, so Flint, at its walk speed, is the faster one from the third run. */
   NEXT_RUN_SPEED_FACTOR:            0.85,
   /** A resting bug runs again when Flint comes this close, sideways, or after its rest. */
   RUNS_AGAIN_WITHIN_UNITS:          40,

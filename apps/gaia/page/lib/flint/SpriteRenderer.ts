@@ -1,5 +1,5 @@
 /**
- * Writes a drawn pose to an SVG overlay, in the layer order of `01-character.md`. It knows nothing about behaviour, and it names no prop,
+ * Writes a drawn pose to an SVG overlay, in the layer order. It knows nothing about behaviour, and it names no prop,
  * mark or attendant: it draws the body, the eyes, the hands, the glow and the embers itself, and asks each catalog's definitions for their
  * shapes, which `flint/drawing/ShapeWriter.ts` writes. Every element is made once and each frame only sets attributes; every colour is a
  * `var(--flint-*, default)`. The pose mirrors with the facing, except the marks, a shape that is never mirrored, and the direction of

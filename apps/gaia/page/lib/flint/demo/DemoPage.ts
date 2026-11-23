@@ -1,5 +1,5 @@
 /**
- * The demo page: the playground of the design handoff rebuilt on the package. It is a host like any other: it gives Flint a home, a card
+ * The demo page: a playground on the package. It is a host like any other: it gives Flint a home, a card
  * as a habitat and a visit-target policy, and it drives every animation through `perform`, `attend` and `steer`. It makes one control
  * for each intent and each attendant from the catalogs, so a new animation shows here with no change: a gesture that aims is given the
  * floating square, and a behaviour that takes an element the grey bar of a ticket. The movement controls are in `flint/demo/index.html`,

@@ -1,5 +1,5 @@
 /**
- * The sheet of Waiver (`06-more-animations.md`): the sheet of Review with its cross, the initials Flint writes beside the cross, and the
+ * The sheet of Waiver: the sheet of Review with its cross, the initials Flint writes beside the cross, and the
  * grey tick the cross becomes. The cross turns grey as a cross-fade of a crimson and a grey cross, since a colour role does not blend.
  * The initials, the cross and the tick are never mirrored.
  */

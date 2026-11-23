@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Reorder": a pentagon takes the third card of a stack at its right end, pulls it out, lifts it while
+ * Reorder: a pentagon takes the third card of a stack at its right end, pulls it out, lifts it while
  * the cards above it move down, and pushes it in on top. From the pull on, the hand is held to the card, so the two move as one part.
  */
 import type { Point }                      from '../../SpriteGeometry.ts';

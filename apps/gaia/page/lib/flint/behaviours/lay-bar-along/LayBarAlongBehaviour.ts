@@ -1,5 +1,5 @@
 /**
- * Lay the bar along a row (`08-more-behaviours.md`, `lay-bar-along`): the host gives the element of a ticket's bar on its timeline, and
+ * Lay the bar along a row (`lay-bar-along`): the host gives the element of a ticket's bar on its timeline, and
  * the bar stays the host's. Flint walks along its floor to below the bar's left end, hovers up to the bar's bottom edge at the body rate,
  * and walks to its right end with the hand and eyes of the `lay-bar` gesture, while a fresh shimmer lies over the bar behind it. At the
  * right end it is happy, the shimmer fades out, and it hovers back down and rests. The bar is clamped to the habitat's box; a bar too

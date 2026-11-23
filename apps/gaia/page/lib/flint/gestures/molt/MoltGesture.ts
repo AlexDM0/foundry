@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Molt": a full context spills pages while the body strains and sweats; then Flint sheds a husk that
+ * Molt: a full context spills pages while the body strains and sweats; then Flint sheds a husk that
  * falls behind it, hops out bright and glowing, and ends happy. The husk is held still on the screen through the hop, so only Flint hops.
  */
 import type { EmoteMarkPose, EyesPose, PosePart } from '../../SpritePose.ts';

@@ -1,4 +1,4 @@
-/** The snap of two pressed blocks (`01-character.md`, Merge): the merged block, two blocks high, with its tick, and the sparks of the snap. */
+/** The snap of two pressed blocks: the merged block, two blocks high, with its tick, and the sparks of the snap. */
 import type { Shape }           from '../../drawing/Shape.ts';
 import { blockShapeOf }         from './BlockShape.ts';
 import type { SmallSparkPlace } from './SparkShapeUtil.ts';

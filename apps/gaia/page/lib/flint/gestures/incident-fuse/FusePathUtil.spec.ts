@@ -1,6 +1,6 @@
 /**
  * The fuse path of Incident fuse. What matters: the whole fuse runs from the envelope's corner (44, -22) to its free end (51, -42) along
- * the two curves of `06-more-animations.md`; the part that has not burned shrinks from the free end at an even pace by length; the flame
+ * the two curves; the part that has not burned shrinks from the free end at an even pace by length; the flame
  * is at its end, and at a full burn the part is the envelope's corner alone.
  */
 import { expect, test } from 'bun:test';

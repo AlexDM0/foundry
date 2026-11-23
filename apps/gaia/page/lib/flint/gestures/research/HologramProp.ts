@@ -1,4 +1,4 @@
-/** The hologram of Research (`01-character.md`): a panel of light above a small emitter, with a scan line, that flickers. */
+/** The hologram of Research: a panel of light above a small emitter, with a scan line, that flickers. */
 import { propDefinition } from '../../props/PropDefinition.ts';
 import { HOLOGRAM_SHAPE } from './constants/ResearchValues.ts';
 

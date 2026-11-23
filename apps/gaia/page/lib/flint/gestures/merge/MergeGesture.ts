@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Merge": two hexagon hands press two blocks into one, which snaps with sparks and a tick.
+ * Merge: two hexagon hands press two blocks into one, which snaps with sparks and a tick.
  * The happy eyes show on the frame of the snap, with no fade. The renderer mirrors the tick back, so the part is the same either facing.
  */
 import type { PosePart }                   from '../../SpritePose.ts';

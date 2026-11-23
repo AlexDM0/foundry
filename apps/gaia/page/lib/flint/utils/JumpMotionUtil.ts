@@ -1,4 +1,4 @@
-/** The jump of `02-animations.md`: a start speed up, gravity down, a stretch in the air and a squash on landing that eases back. */
+/** The jump: a start speed up, gravity down, a stretch in the air and a squash on landing that eases back. */
 import type { PosePart }           from '../SpritePose.ts';
 import { MILLISECONDS_PER_SECOND } from '../constants/Easing.ts';
 import { JUMP }                    from '../constants/Motion.ts';

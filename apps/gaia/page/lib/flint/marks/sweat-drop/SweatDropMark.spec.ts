@@ -1,4 +1,4 @@
-/** The sweat-drop mark of `01-character.md`. What matters: its anchor and scale, and the shapes it draws, in their order. */
+/** The sweat-drop mark. What matters: its anchor and scale, and the shapes it draws, in their order. */
 import { expect, test } from 'bun:test';
 
 import { SWEAT_DROP_MARK } from './SweatDropMark.ts';

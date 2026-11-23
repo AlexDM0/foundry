@@ -1,4 +1,4 @@
-/** Reorder of `06-more-animations.md`: one loop in which the third card of a stack moves to the top; in milliseconds. */
+/** Reorder: one loop in which the third card of a stack moves to the top; in milliseconds. */
 export const REORDER_TIMELINE = {
   CYCLE_MILLISECONDS:        3600,
   FADE_IN_MILLISECONDS:      300,
@@ -14,7 +14,7 @@ export const REORDER_TIMELINE = {
 } as const;
 
 /**
- * A stack of four cards, each with a tab at its left end; the card that moves is the third, with a tab in the body colour. The handoff
+ * A stack of four cards, each with a tab at its left end; the card that moves is the third, with a tab in the body colour. The design
  * pulls the card 12 out, where it still overlaps the stack and its lift crosses the cards above it; it is pulled its whole width, 18, so it
  * clears the stack before it rises, a builder decision.
  */

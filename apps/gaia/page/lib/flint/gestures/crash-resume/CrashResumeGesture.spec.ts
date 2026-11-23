@@ -1,5 +1,5 @@
 /**
- * Crash resume against `06-more-animations.md`, "Crash resume". What matters: the eyes are 10 at once until 120; the fill opacity is 1,
+ * Crash resume. What matters: the eyes are 10 at once until 120; the fill opacity is 1,
  * 0.3, 0.9 and 0, each set at once at 120, 220, 320 and 420; from 420 the eyes are 1 at once, Flint lands and leans -7; the spark at
  * the centre shows from 600 and pulses by 0.3 × sin(t / 80); from 1300 the fill comes back in a straight line by 1600, the bright tint 0.6
  * goes out by 2000, the spark fades out by 1600, and the hover returns; 1700 to 2200 a dying head shake with two blinks; then the eyes look

@@ -1,5 +1,5 @@
 /**
- * Wander (`03-behaviour-and-architecture.md`, "The mind"): Flint rests, then walks to another point of its floor, and rests again. It walks
+ * Wander: Flint rests, then walks to another point of its floor, and rests again. It walks
  * only while it does nothing else, and under reduced motion it stands still. Its points come from the seeded sequence in the mind's state,
  * so a run is the same each time. A walk the host steers wins over the wander's own walk. It is the rest: every other behaviour ends in it,
  * and its intent only wakes Flint, while a gesture or an emote is laid over it. A Flint that a behaviour left above its floor comes down

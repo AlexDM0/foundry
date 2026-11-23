@@ -1,5 +1,5 @@
 /**
- * The research gesture against `02-animations.md`, "Research", with values from `reference/playground.html`. What matters: the four
+ * The research gesture. What matters: the four
  * studies of 2.6 s each run in order and repeat; each shows only its own prop, so the last fades out as the next fades in; each phase of
  * each study (the book's rest and page turn, the notes' three lines, the stepped query, the hologram's scan); research shows no
  * lightbulb; and facing left, the page still turns from right to left on the screen and the notes still grow from left to right.

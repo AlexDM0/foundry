@@ -1,4 +1,4 @@
-/** The bolt of `01-character.md` that Fasten turns: it slides in from the side away from Flint as it fades in. */
+/** The bolt that Fasten turns: it slides in from the side away from Flint as it fades in. */
 import { propDefinition } from '../../props/PropDefinition.ts';
 import { BOLT_SHAPE }     from './constants/FastenValues.ts';
 

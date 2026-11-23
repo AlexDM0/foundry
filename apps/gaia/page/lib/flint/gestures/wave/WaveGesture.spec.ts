@@ -1,5 +1,5 @@
 /**
- * Wave against `02-animations.md`, "Wave" and "Pop-in around a corner", step 7. What matters: one pentagon of radius 7 rocks with
+ * Wave. What matters: one pentagon of radius 7 rocks with
  * `rock = sin(t / 100)` around (27, -41); the eyes are 9 high, shifted 6, and the body leans 5; the "Hi!" mark springs in on its width
  * and height and stops with the wave, with no fade; the wave lasts 2.2 seconds; in the sideways pose of a peek the hand keeps its
  * distance of 21 ahead of the body on the screen and the eye shift of the pop-in stays; reduced motion holds the hand upright.

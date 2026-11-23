@@ -1,5 +1,5 @@
 /**
- * Unplugged against `06-more-animations.md`, "Unplugged". What matters: the props fade in with a pentagon held to the loose plug at
+ * Unplugged. What matters: the props fade in with a pentagon held to the loose plug at
  * (34, -30); the crimson warning blinks 300 ms on, 300 ms off until the plug is in; Flint looks at the plug, then at the socket; the hand
  * becomes a hexagon and pushes the plug to (42, -30), placed exactly; at 2.2 s sparks fly, the slots turn green and the eyes open wide;
  * pulses run down the cable each 500 ms until 3.4 s, with happy eyes from 2.4 s; the props fade; the part does not depend on the facing;

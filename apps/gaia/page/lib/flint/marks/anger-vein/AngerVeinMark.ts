@@ -1,4 +1,4 @@
-/** The anger vein of `01-character.md`, which the Annoyed emote and the angry variants share. */
+/** The anger vein, which the Annoyed emote and the angry variants share. */
 import { markDefinition, NO_MARK_DETAILS } from '../MarkDefinition.ts';
 import { ANGER_VEIN_SHAPE }                from './constants/AngerVeinValues.ts';
 

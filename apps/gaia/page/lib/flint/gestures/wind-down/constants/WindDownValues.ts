@@ -1,5 +1,5 @@
 /**
- * Wind-down of `06-more-animations.md`, "Sessions and budget": Flint types slower, turns a dial down in three steps, and writes one last
+ * Wind-down: Flint types slower, turns a dial down in three steps, and writes one last
  * line on a ticket, in one action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
  */
 export const WIND_DOWN = {

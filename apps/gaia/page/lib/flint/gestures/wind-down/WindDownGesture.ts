@@ -1,7 +1,7 @@
 /**
- * Implements `06-more-animations.md`, "Wind-down": Flint types slowly, turns a dial down in three steps while its far hand types slower
- * and its eyes close a little more after each, then writes one last line on a small ticket and files it. The written line follows
- * `02-animations.md`, "Reading and writing direction": it grows from its left end on the screen, and the pen sits right of its end.
+ * Wind-down: Flint types slowly, turns a dial down in three steps while its far hand types slower
+ * and its eyes close a little more after each, then writes one last line on a small ticket and files it. The written line
+ * grows from its left end on the screen, and the pen sits right of its end.
  */
 import type { Facing, Point }                from '../../SpriteGeometry.ts';
 import type { EyesPose, HandPose, PosePart } from '../../SpritePose.ts';

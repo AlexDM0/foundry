@@ -1,5 +1,5 @@
 /**
- * The notepad of Interview (`06-more-animations.md`): the shared notepad of Research, the lines Flint writes in it, and the tick above it. The
+ * The notepad of Interview: the shared notepad of Research, the lines Flint writes in it, and the tick above it. The
  * written lines and the tick fade out at the end of the loop while the notepad stays; a written line grows from its left end on the screen.
  */
 import { propDefinition }    from '../../props/PropDefinition.ts';

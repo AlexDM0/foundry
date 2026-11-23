@@ -1,5 +1,5 @@
 /**
- * Regrouping against `06-more-animations.md`, "Regrouping". What matters: the 4.6-second loop fades in four dim sparks; from 400, a
+ * Regrouping. What matters: the 4.6-second loop fades in four dim sparks; from 400, a
  * triangle of radius 6 points at each spark for 700 ms, 9 units short of it on the line from the body centre (from straight below at spark
  * 1, so the hand never covers spark 0), its corner along that line, with the eyes lifted towards it; no hand covers another spark; each
  * live spark lights with a spring, the dead spark 2 goes grey at 15% and narrows the eyes; a square sweeps from (44, -48) to (54, -38)

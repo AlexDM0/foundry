@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Interview": two rounds in which Flint asks the user with the question mark, listens and nods, and
+ * Interview: two rounds in which Flint asks the user with the question mark, listens and nods, and
  * writes one line of a notepad with the rules of the notes study; then one more nod, the happy eyes and a tick. The question mark comes
  * with the spring of an emote mark and leaves with its fade; a written line grows from left to right on the screen whatever the facing.
  */

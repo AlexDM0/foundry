@@ -1,5 +1,5 @@
 /**
- * The socket of Unplugged (`06-more-animations.md`): a socket plate with two slots, the plug of Forced stop with its prongs, a cable from
+ * The socket of Unplugged: a socket plate with two slots, the plug of Forced stop with its prongs, a cable from
  * the plug to the floor that follows the plug, two crimson warning lines, the small sparks of the connection, and a pulse of the stream on
  * the cable. The prongs are drawn before the plate, so once the plug is in they are inside it. A hand held to this prop holds the plug.
  */

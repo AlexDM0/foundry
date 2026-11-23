@@ -1,5 +1,5 @@
 /**
- * Review of `02-animations.md`, which Bug jar shares: the lens moves along the line Flint reads, `across` from 0 to 1 on the screen, below
+ * Review, which Bug jar shares: the lens moves along the line Flint reads, `across` from 0 to 1 on the screen, below
  * the line of `flint/props/shapes/constants/SheetShape.ts`; the eyes go down the lines and along them with it.
  */
 export const READING_LENS = {

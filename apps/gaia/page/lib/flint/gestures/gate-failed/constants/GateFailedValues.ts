@@ -1,4 +1,4 @@
-/** Gate failed of `06-more-animations.md`: one action in which a failed check falls onto the keyboard; sprite units, Flint facing right. */
+/** Gate failed: one action in which a failed check falls onto the keyboard; sprite units, Flint facing right. */
 export const GATE_FAILED_TIMELINE = {
   DURATION_MILLISECONDS:           2400,
   NOTE_LANDS_MILLISECONDS:         350,

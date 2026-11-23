@@ -1,5 +1,5 @@
 /**
- * The visit and its pop-in around a corner, `02-animations.md` steps 1 to 8, on the pure mind. What matters: the steps come in their order
+ * The visit and its pop-in around a corner, on the pure mind. What matters: the steps come in their order
  * with their exact points, speeds and times; Flint faces in while it goes behind and out from the wait on; the component is drawn in front
  * for the whole sequence; the width turns by the formula; the peek eases the position and narrows the eyes; the wave is the wave gesture;
  * at the end Flint lives in the habitat, hears `arrived` and is marked as greeted, so one wave asked for right after is the greeting again.

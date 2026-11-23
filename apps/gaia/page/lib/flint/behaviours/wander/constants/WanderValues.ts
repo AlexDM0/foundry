@@ -1,4 +1,4 @@
-/** Wander of `03-behaviour-and-architecture.md`: how long Flint rests between its walks. The values are not in the handoff. */
+/** Wander: how long Flint rests between its walks. The values are builder decisions. */
 export const WANDER = {
   REST_SHORTEST_MILLISECONDS: 2500,
   REST_SPREAD_MILLISECONDS:   3000,

@@ -1,4 +1,4 @@
-/** The variants of typing and reviewing in `02-animations.md`, "Type" and "Review": the body and eyes the two share per variant. */
+/** The variants of typing and reviewing: the body and eyes the two share per variant. */
 import { BODY_SHAPE, EYE_SHAPE } from '../../constants/BodyShape.ts';
 
 export const NORMAL_WORKING_VARIANT = {

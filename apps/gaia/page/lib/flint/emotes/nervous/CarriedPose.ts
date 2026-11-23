@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Carried": while the user drags Flint, it shows the eyes, the shake and the sweat beads of the Nervous
+ * Carried: while the user drags Flint, it shows the eyes, the shake and the sweat beads of the Nervous
  * emote for as long as the drag goes on, with no fade. Where Flint hangs below the pointer is the mind's.
  */
 import type { Facing }     from '../../SpriteGeometry.ts';

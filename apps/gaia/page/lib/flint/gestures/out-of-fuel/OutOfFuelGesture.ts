@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Out of fuel": a steady pose in which Flint, cooled and landed but awake, watches an empty gauge;
+ * Out of fuel: a steady pose in which Flint, cooled and landed but awake, watches an empty gauge;
  * and its variant Refuel, one action that starts from that pose, fills the gauge and ends in a flare.
  */
 import type { EyesPose, PosePart } from '../../SpritePose.ts';

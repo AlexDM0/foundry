@@ -1,9 +1,9 @@
 /**
- * The shared vocabulary of `06-more-animations.md`: a prop keeps one meaning in all animations, and these are its shapes, in sprite
+ * The shared vocabulary: a prop keeps one meaning in all animations, and these are its shapes, in sprite
  * units, for Flint facing right.
  */
 
-/** The paper of `01-character.md`: the sheet, the ticket and a stacked page share this outline. */
+/** The paper: the sheet, the ticket and a stacked page share this outline. */
 export const PAPER_SHAPE = {
   POINTS: [
     { x: 28, y: -46 },

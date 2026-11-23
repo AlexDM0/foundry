@@ -1,5 +1,5 @@
 /**
- * Crash resume of `06-more-animations.md`, "Sessions and budget": Flint flickers out, lies as an outline around one spark, and comes back,
+ * Crash resume: Flint flickers out, lies as an outline around one spark, and comes back,
  * in one action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
  */
 export const CRASH_RESUME = {

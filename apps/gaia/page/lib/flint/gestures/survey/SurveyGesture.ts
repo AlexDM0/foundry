@@ -1,7 +1,7 @@
 /**
- * Implements `06-more-animations.md`, "Survey": Flint measures a blueprint along its top and down its side, thinks, sets three posts with
+ * Survey: Flint measures a blueprint along its top and down its side, thinks, sets three posts with
  * a lamp on each, and the lamps pass. The measure along the top goes from left to right on the screen whatever the facing, and so do the
- * posts and the lamps, since a pipeline reads in that order (`02-animations.md`, "Reading and writing direction").
+ * posts and the lamps, since a pipeline reads in that order.
  */
 import type { Facing } from '../../SpriteGeometry.ts';
 import type {

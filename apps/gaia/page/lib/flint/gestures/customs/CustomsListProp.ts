@@ -1,5 +1,5 @@
 /**
- * The list of Customs (`06-more-animations.md`): three claims, each a box and a line, and the verdict of each claim in its box. A list is
+ * The list of Customs: three claims, each a box and a line, and the verdict of each claim in its box. A list is
  * written from left to right on the screen, so facing left the box and the line change ends within the list; the verdicts are never
  * mirrored.
  */

@@ -1,4 +1,4 @@
-/** The four printed lines of Review's sheet (`01-character.md`), parallel to its top edge; the line Flint reads is in the body colour. */
+/** The four printed lines of Review's sheet, parallel to its top edge; the line Flint reads is in the body colour. */
 import type { Shape }  from '../../drawing/Shape.ts';
 import { SvgTextUtil } from '../../drawing/SvgTextUtil.ts';
 import { SHEET_SHAPE } from './constants/SheetShape.ts';

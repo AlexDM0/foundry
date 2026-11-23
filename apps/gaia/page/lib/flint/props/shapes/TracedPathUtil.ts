@@ -1,6 +1,6 @@
 /**
- * A path that grows along its length, as a pen writes it or a fuse burns it (`06-more-animations.md`, "Waiver", "Incident fuse" and "Ink
- * the draft"): its curves as straight steps, the part of it up to a share of its length, and its path data.
+ * A path that grows along its length, as a pen writes it or a fuse burns it:
+ * its curves as straight steps, the part of it up to a share of its length, and its path data.
  */
 import type { Point }         from '../../SpriteGeometry.ts';
 import { SvgTextUtil }        from '../../drawing/SvgTextUtil.ts';

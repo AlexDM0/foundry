@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Needs an answer": a loop in which Flint holds up a card with "?". In `ask` one pentagon holds it,
+ * Needs an answer: a loop in which Flint holds up a card with "?". In `ask` one pentagon holds it,
  * the two bob and the card sways around the hand, and Flint looks at it each 3 seconds. In `ask-knock` Flint faces the user, holds a
  * smaller, lower card in the far hand and knocks twice in each cycle with a square knuckle, with two arcs that fade after each knock.
  */

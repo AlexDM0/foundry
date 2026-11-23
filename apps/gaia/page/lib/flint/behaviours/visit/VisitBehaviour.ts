@@ -1,5 +1,5 @@
 /**
- * Visit, with `02-animations.md`, "Pop-in around a corner": Flint walks to 28 units outside an edge of the component, goes behind it while
+ * Visit, with its pop-in around a corner: Flint walks to 28 units outside an edge of the component, goes behind it while
  * it turns sideways, waits, peeks, ducks, peeks again, waves, and moves in while it turns to face the user; then it lives there. The
  * component is drawn in front of Flint for the whole sequence. A Flint on another floor line starts hidden behind the edge, at the wait.
  * A habitat that keeps Flint inside gets the same steps mirrored through its edge: Flint waits hidden outside the box, where the page is
@@ -23,7 +23,7 @@ import { behaviourDefinition }                          from '../BehaviourDefini
 import { wanderAtRest }                                 from '../wander/WanderBehaviour.ts';
 import { POP_IN }                                       from './constants/VisitValues.ts';
 
-/** The steps of `02-animations.md`, "Pop-in around a corner", in order. */
+/** The steps, in order. */
 export type PopInStep = 'go' | 'go-behind' | 'wait' | 'peek' | 'duck' | 'peek-again' | 'wave' | 'move-in';
 
 export interface VisitState {

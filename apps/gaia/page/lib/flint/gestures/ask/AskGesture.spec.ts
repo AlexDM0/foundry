@@ -1,5 +1,5 @@
 /**
- * Needs an answer against `06-more-animations.md`. What matters: in `ask` one pentagon of radius 6 is held to the card, the card bobs by
+ * Needs an answer. What matters: in `ask` one pentagon of radius 6 is held to the card, the card bobs by
  * 1.5 × sin(t / 300) and turns 4 × sin(t / 600) around the hand, the body leans 3, the eyes are 8 high and shifted 3, and in the last
  * 400 ms of each 3 seconds shifted 6; in `ask-knock` Flint faces the user (lean 0, shift 0, height 9), the far hand holds the card at 85%
  * and 6 lower, and a square of radius 5.5 at (26, -38) knocks at 200 and 420 of each 1600 ms: to radius 7.5 and back in 90 ms with a

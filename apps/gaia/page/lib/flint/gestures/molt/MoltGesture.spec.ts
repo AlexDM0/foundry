@@ -1,5 +1,5 @@
 /**
- * Molt against `06-more-animations.md`, "Molt". What matters: 0 to 900 the body strains (width × (1 + 0.05 × sin(t / 60))), the eyes are
+ * Molt. What matters: 0 to 900 the body strains (width × (1 + 0.05 × sin(t / 60))), the eyes are
  * 5, the sweat drop shows and five pages spill from the top, one each 150 ms, on their curve and side; at 900 the husk is left and the
  * bright tint 0.7 is set at once; the hop of 10 runs to 1400 and the husk moves down by it, so it stays on the screen; the husk falls to
  * (-14, 8), -25 degrees and opacity 0 by 2100; 1300 to 2000 the tint and the glow (0.5) go out in a straight line and the eyes are 10,

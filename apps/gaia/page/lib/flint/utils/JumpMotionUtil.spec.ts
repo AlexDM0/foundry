@@ -1,5 +1,5 @@
 /**
- * The jump against `02-animations.md`: 520 units per second up against a gravity of 1400 tops out near 97 units; the body stretches to
+ * The jump: 520 units per second up against a gravity of 1400 tops out near 97 units; the body stretches to
  * 0.94 by 1.07 with eyes 9 high in the air, and lands squashed to 1.14 by 0.82, back to normal in 180 ms. A jump starts only from the floor.
  */
 import { describe, expect, test } from 'bun:test';

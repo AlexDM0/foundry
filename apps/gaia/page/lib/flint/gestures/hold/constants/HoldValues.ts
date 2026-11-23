@@ -1,4 +1,4 @@
-/** Held of `06-more-animations.md`: Flint clamps a ready ticket and holds up a flat palm; sprite units, for Flint facing right. */
+/** Held: Flint clamps a ready ticket and holds up a flat palm; sprite units, for Flint facing right. */
 export const HOLD_TIMELINE = {
   /** The ticket fades in and the clamp slides down until the fastening starts. */
   FASTEN_STARTS_MILLISECONDS: 500,

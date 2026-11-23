@@ -1,4 +1,4 @@
-/** The anger-vein mark of `01-character.md`. What matters: its anchor and scale, and the shapes it draws, in their order. */
+/** The anger-vein mark. What matters: its anchor and scale, and the shapes it draws, in their order. */
 import { expect, test } from 'bun:test';
 
 import { ANGER_VEIN_MARK } from './AngerVeinMark.ts';

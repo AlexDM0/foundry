@@ -1,4 +1,4 @@
-/** Ink the draft of `06-more-animations.md`: one loop in which the pen goes around a draft and it becomes a ready ticket; in milliseconds. */
+/** Ink the draft: one loop in which the pen goes around a draft and it becomes a ready ticket; in milliseconds. */
 export const INK_DRAFT_TIMELINE = {
   CYCLE_MILLISECONDS:        4200,
   FADE_IN_MILLISECONDS:      300,
@@ -25,7 +25,7 @@ export const INK_DRAFT_EYES = {
   HIGHEST_LIFT_UNITS: 3,
 } as const;
 
-/** The draft's three lines are at the places of the ticket text of `01-character.md`; the ready ticket pops and leaves as Make a ticket's does. */
+/** The draft's three lines are at the places of the ticket text; the ready ticket pops and leaves as Make a ticket's does. */
 export const INK_DRAFT_SHEET = {
   LINE_START_X_UNITS: 31,
   LINE_Y_UNITS:       [-34, -28, -22],

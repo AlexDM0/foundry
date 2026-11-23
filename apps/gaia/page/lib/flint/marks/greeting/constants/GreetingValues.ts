@@ -1,4 +1,4 @@
-/** The "Hi!" of `01-character.md`: its text, its size, and its anchor beside the raised hand. */
+/** The "Hi!": its text, its size, and its anchor beside the raised hand. */
 export const GREETING_ANCHOR = {
   ANCHOR_X_UNITS: 38,
   ANCHOR_Y_UNITS: -58,

@@ -1,4 +1,4 @@
-/** The anger vein of `01-character.md`, at its anchor relative to the bottom tip of the body. */
+/** The anger vein, at its anchor relative to the bottom tip of the body. */
 export const ANGER_VEIN_SHAPE = {
   PATH:           'M-6.5 -2 Q-2 -2 -2 -6.5 M6.5 -2 Q2 -2 2 -6.5 M-6.5 2 Q-2 2 -2 6.5 M6.5 2 Q2 2 2 6.5',
   STROKE_UNITS:   1.9,

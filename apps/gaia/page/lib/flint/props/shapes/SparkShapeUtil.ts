@@ -1,4 +1,4 @@
-/** The sparks of the shared vocabulary (`06-more-animations.md`): the spark of a Watcher, and the small spark of an effect. */
+/** The sparks of the shared vocabulary: the spark of a Watcher, and the small spark of an effect. */
 import type { Point }                     from '../../SpriteGeometry.ts';
 import type { FlintColourRole }           from '../../constants/Palette.ts';
 import type { Shape, TransformStep }      from '../../drawing/Shape.ts';

@@ -1,4 +1,4 @@
-/** Idle of `02-animations.md`: the hover and the blink, as functions of the frame source's elapsed time. */
+/** Idle: the hover and the blink, as functions of the frame source's elapsed time. */
 import { BLINK, HOVER } from '../constants/Motion.ts';
 
 export const IdleMotionUtil = Object.freeze({

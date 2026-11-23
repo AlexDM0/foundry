@@ -1,4 +1,4 @@
-/** Wave of `02-animations.md`: one pentagon rocks with `rock = sin(t / ROCK_DIVISOR_MILLISECONDS)` while the "Hi!" mark shows. */
+/** Wave: one pentagon rocks with `rock = sin(t / ROCK_DIVISOR_MILLISECONDS)` while the "Hi!" mark shows. */
 export const WAVE_GESTURE_VALUES = {
   DURATION_MILLISECONDS:     2200,
   HAND_RADIUS_UNITS:         7,

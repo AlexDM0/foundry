@@ -34,9 +34,9 @@ paths:
 - The mind and the pose are pure, with plain `.spec.ts` specs. The renderer and `createFlint` have `.dom.tsx` specs,
   which Gaia's `test:dom` task runs through `testing/RunDomSpecs.ts`. A spec gives a manual frame source
   (`apps/gaia/page/lib/flint/testing/ManualFrameSource.ts`) and never waits for real time.
-- Each value of the design handoff is a named constant with its unit in its name: a value of the core in
+- Each design value is a named constant with its unit in its name: a value of the core in
   `apps/gaia/page/lib/flint/constants/`, a value of one animation or behaviour in `constants/<Name>Values.ts` in its
   own folder.
-- `apps/gaia/page/lib/flint/demo/index.html` shows each animation of the design handoff through `createFlint`,
+- `apps/gaia/page/lib/flint/demo/index.html` shows each animation through `createFlint`,
   `perform`, `attend` and `steer`. The command in `apps/gaia/page/lib/flint/README.md` builds it into one file in
   `apps/gaia/page/lib/flint/demo/build/`. Git ignores this folder.

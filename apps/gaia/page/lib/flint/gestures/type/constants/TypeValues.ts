@@ -1,4 +1,4 @@
-/** The busy and angry variants of Type in `02-animations.md`; the hands and normal typing are `flint/gestures/constants/TypingHands.ts`. */
+/** The busy and angry variants of Type; the hands and normal typing are `flint/gestures/constants/TypingHands.ts`. */
 
 /** The eye shift takes the next value of the list every `EYE_SHIFT_STEP_MILLISECONDS`. */
 export const BUSY_TYPING = {

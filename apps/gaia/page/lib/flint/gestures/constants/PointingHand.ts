@@ -1,4 +1,4 @@
-/** The hand of Point in `02-animations.md`, which Playbook shares: one triangle that points forward and swings by `SWING_UNITS × sin(t / divisor)`. */
+/** The hand of Point, which Playbook shares: one triangle that points forward and swings by `SWING_UNITS × sin(t / divisor)`. */
 export const POINTING_HAND = {
   RADIUS_UNITS:               7,
   CENTRE_X_UNITS:             29,

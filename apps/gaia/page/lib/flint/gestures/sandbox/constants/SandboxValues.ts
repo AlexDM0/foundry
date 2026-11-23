@@ -1,4 +1,4 @@
-/** Sandbox of `06-more-animations.md`: Flint types under a dome, reaches out, meets the dome and sweats; in sprite units, facing right. */
+/** Sandbox: Flint types under a dome, reaches out, meets the dome and sweats; in sprite units, facing right. */
 import { EYE_SHAPE }              from '../../../constants/BodyShape.ts';
 import { NORMAL_TYPING }          from '../../constants/TypingHands.ts';
 import { NORMAL_WORKING_VARIANT } from '../../constants/WorkingVariantValues.ts';
@@ -14,7 +14,7 @@ export const SANDBOX_TIMELINE = {
   STILL_MOMENT_MILLISECONDS: 2150,
 } as const;
 
-/** Typing in the normal variant of `02-animations.md`, "Type", as every gesture that types. */
+/** Typing in the normal variant, as every gesture that types. */
 export const SANDBOX_TYPING = {
   LEAN_DEGREES:     NORMAL_WORKING_VARIANT.LEAN_DEGREES,
   EYE_HEIGHT_UNITS: NORMAL_WORKING_VARIANT.EYE_HEIGHT_UNITS,
@@ -46,7 +46,7 @@ export const SANDBOX_SWEAT = {
 } as const;
 
 /**
- * The dome, in front of all other parts, and the two short ripples at the point where the hand's edge meets it. The handoff draws the
+ * The dome, in front of all other parts, and the two short ripples at the point where the hand's edge meets it. The design draws the
  * ripples in light water `#e4f2f5`, 1 wide; they are drawn in water, 1.5 wide, a builder decision for the owner to confirm, since light
  * water on a light ground cannot be read at 0.5 pixels for one unit.
  */

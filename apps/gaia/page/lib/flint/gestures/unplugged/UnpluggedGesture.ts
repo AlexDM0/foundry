@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Unplugged": the event stream is down. Flint holds the loose plug, looks at it and at the blinking
+ * Unplugged: the event stream is down. Flint holds the loose plug, looks at it and at the blinking
  * socket, changes its pentagon to a hexagon and pushes the plug in, placed exactly; sparks fly, the slots turn green, and pulses of the
  * stream run down the cable. The hand is held to the plug, so the two move as one part.
  */

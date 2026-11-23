@@ -1,5 +1,5 @@
 /**
- * Strike a spark against `06-more-animations.md`. What matters: the square rises, then strikes along the edge of the body with its place
+ * Strike a spark. What matters: the square rises, then strikes along the edge of the body with its place
  * set exactly; at 330 the five small sparks fly on their fan of angles, the body squashes for 120 ms and the inner glow falls from 0.6 to 0
  * at 700; the Watcher flies an arc that rises past its place, the eyes follow it (at the working shift while the struck square is there, so
  * the right eye never runs under it), then it floats, the hand goes, the happy eyes show and it fades in the last 200 ms. It is one action

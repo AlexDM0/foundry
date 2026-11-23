@@ -1,5 +1,5 @@
 /**
- * Hatch against `06-more-animations.md`. What matters: the pentagon holds the note so it reaches the slot, and pushes it in along a path
+ * Hatch. What matters: the pentagon holds the note so it reaches the slot, and pushes it in along a path
  * set exactly; the note goes in from its far end; Flint waits with the thinking dots, all three whole before they leave as an emote's mark
  * leaves. In `hatch` the reply comes out of the slot and the hand takes it, Flint reads it, gets the tick, and is happy from 3200. In
  * `hatch-queued` no reply comes, the dots wait on until 2900, and Flint shrugs with a stub and the sweat drop; the stub stays at the wait

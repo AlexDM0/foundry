@@ -1,5 +1,5 @@
 /**
- * Gate run against `06-more-animations.md`, "Gate run". What matters: the rail fades in over 300 ms with all lamps off; lamp n runs from
+ * Gate run. What matters: the rail fades in over 300 ms with all lamps off; lamp n runs from
  * 300 + 650n to 950 + 650n and is passed after it, while the eyes follow it (shift 4 + n, height 6); at 2900 all are passed, the tick shows
  * and the eyes are happy until 3700; from 3700 the rail and the tick fade out, in a cycle of 4200; no hands, lean 5. Reduced motion holds
  * 3200.

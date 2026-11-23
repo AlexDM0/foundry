@@ -1,5 +1,5 @@
 /**
- * The contract of a behaviour (`03-behaviour-and-architecture.md`, "The mind", and `08-more-behaviours.md`, "New parts of the core"): how
+ * The contract of a behaviour: how
  * it starts, what it does after each frame, and its part of the target pose, with its intents and what the mind must know of it. The mind
  * reaches a behaviour only through `flint/behaviours/BehaviourCatalog.ts`, as it reaches a gesture, so it names none. A behaviour is pure:
  * it changes the mind's state and gives a pose part, and the pose stage eases.

@@ -1,5 +1,5 @@
 /**
- * Molt of `06-more-animations.md`, "Sessions and budget": a full context spills pages, Flint sheds a husk and comes out bright, in one
+ * Molt: a full context spills pages, Flint sheds a husk and comes out bright, in one
  * action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
  */
 export const MOLT = {

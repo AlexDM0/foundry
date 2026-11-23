@@ -1,4 +1,4 @@
-/** The sweat beads of `01-character.md`. What matters: one drop for each bead of the details, at most three, placed, turned and faded. */
+/** The sweat beads. What matters: one drop for each bead of the details, at most three, placed, turned and faded. */
 import { expect, test } from 'bun:test';
 
 import { SWEAT_BEADS_MARK } from './SweatBeadsMark.ts';

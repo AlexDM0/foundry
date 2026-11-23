@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Type": two squares tap in turn on the keyboard. In the normal and busy variants the far hand
+ * Type: two squares tap in turn on the keyboard. In the normal and busy variants the far hand
  * taps opposite to the near hand; in the angry variant each hand slams, the far hand half a cycle later, and the keyboard jolts down.
  */
 import type { PosePart }        from '../../SpritePose.ts';

@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Quiet job": a loop in which Flint leans in to listen at a dark block, taps it twice with a
+ * Quiet job: a loop in which Flint leans in to listen at a dark block, taps it twice with a
  * triangle, then leans back and shows the question mark of the Doubt emote, with its spring at its start and its fade in its last 160 ms.
  */
 import type { PosePart }                   from '../../SpritePose.ts';

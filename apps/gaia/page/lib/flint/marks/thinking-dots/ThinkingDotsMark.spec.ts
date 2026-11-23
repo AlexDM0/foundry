@@ -1,4 +1,4 @@
-/** The thinking dots of `01-character.md`. What matters: three squares of 3, and the ones the details count show, from the left. */
+/** The thinking dots. What matters: three squares of 3, and the ones the details count show, from the left. */
 import { expect, test } from 'bun:test';
 
 import { THINKING_DOTS_MARK } from './ThinkingDotsMark.ts';

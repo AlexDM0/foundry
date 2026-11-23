@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Grab": two pentagons reach from the body centre to the target, as far as the reach allows,
+ * Grab: two pentagons reach from the body centre to the target, as far as the reach allows,
  * and close on it. The catch is the `verdict`, taken once when the hands close; the mind turns Flint to the target before the grab.
  */
 import type { Point }                      from '../../SpriteGeometry.ts';

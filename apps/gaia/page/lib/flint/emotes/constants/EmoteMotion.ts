@@ -1,5 +1,5 @@
 /**
- * What the emotes of `02-animations.md`, "Emotes", share: the exit of a mark, the entrances of the sweat drop, the thinking dots and the
+ * What the emotes share: the exit of a mark, the entrances of the sweat drop, the thinking dots and the
  * sweat beads, which a gesture that shows them shares too, and the one hop of Surprised and Idea.
  */
 

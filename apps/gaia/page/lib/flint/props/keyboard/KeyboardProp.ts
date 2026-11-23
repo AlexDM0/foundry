@@ -1,4 +1,4 @@
-/** The keyboard of `01-character.md`, which typing and the search of research share: it slides up as it fades in, and jolts down. */
+/** The keyboard, which typing and the search of research share: it slides up as it fades in, and jolts down. */
 import { propDefinition } from '../PropDefinition.ts';
 import { KEYBOARD_SHAPE } from './constants/KeyboardValues.ts';
 

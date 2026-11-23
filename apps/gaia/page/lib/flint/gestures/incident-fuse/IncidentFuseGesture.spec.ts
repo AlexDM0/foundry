@@ -1,5 +1,5 @@
 /**
- * Incident fuse against `06-more-animations.md`, "Incident fuse". What matters: the 7.6-second loop burns the fuse in a straight line to
+ * Incident fuse. What matters: the 7.6-second loop burns the fuse in a straight line to
  * 6000 with a pulsing flame, while Flint watches it with no hands, its eyes going from -3 to 0, and looks at the user for 400 ms every 2
  * seconds; from 4200 (a burn of 0.7) its eyes dart between 5 and 7, it shivers and the sweat beads show; at 6000 the flame goes out in
  * smoke; the stamp of Make a ticket rises, falls onto the envelope's seal, seals it with a jolt and lifts away; the props fade from 7200,

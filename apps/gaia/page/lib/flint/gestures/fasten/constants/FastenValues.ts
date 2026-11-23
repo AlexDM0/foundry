@@ -1,4 +1,4 @@
-/** Fasten of `02-animations.md`: one hexagon at the bolt waits for a share of each cycle, turns, then waits again. */
+/** Fasten: one hexagon at the bolt waits for a share of each cycle, turns, then waits again. */
 export const FASTEN_GESTURE_VALUES = {
   HAND_RADIUS_UNITS:      8,
   HAND_CENTRE_X_UNITS:    31,
@@ -10,7 +10,7 @@ export const FASTEN_GESTURE_VALUES = {
   EYE_HEIGHT_UNITS:       5,
 } as const;
 
-/** The bolt of `01-character.md`, and its slide of `02-animations.md`, in sprite units, for Flint facing right. */
+/** The bolt, and its slide, in sprite units, for Flint facing right. */
 export const BOLT_SHAPE = {
   X_UNITS:      34,
   Y_UNITS:      -26,

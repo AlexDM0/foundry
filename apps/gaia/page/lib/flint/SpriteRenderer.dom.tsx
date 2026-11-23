@@ -1,5 +1,5 @@
 /**
- * The renderer in a happy-dom document. What matters: it draws every part of `01-character.md` in its layer order; Flint is hidden from
+ * The renderer in a happy-dom document. What matters: it draws every part in its layer order; Flint is hidden from
  * assistive technology and only its body takes the pointer; every colour is a `--flint-*` property with its default; the pose mirrors with
  * the facing but the marks, the ticks and the direction of writing do not; the sideways pose keeps the eyes and hands in shape; a prop
  * slides in with its level; the body's tint and dashed outline follow their channels; an attendant is drawn behind Flint with its x

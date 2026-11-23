@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Bank the fire": Flint lands and leans back, one square pats its top twice and cools it, the eyes
+ * Bank the fire: Flint lands and leans back, one square pats its top twice and cools it, the eyes
  * close to a slit, and then the fire stays banked: a dark body, a slow inner glow and one ember. It is not Sleep: the body does not breathe
  * and the eyes stay a little open. The ember is ember 2 of Sleep (`flint/sleep/Embers.ts`), timed to rise from the end of the entrance.
  */

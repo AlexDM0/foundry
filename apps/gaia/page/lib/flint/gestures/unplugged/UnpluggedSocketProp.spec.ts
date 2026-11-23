@@ -1,5 +1,5 @@
 /**
- * The socket of Unplugged. What matters: the cable leaves the plug's left edge and follows it, then takes the handoff's curve to the
+ * The socket of Unplugged. What matters: the cable leaves the plug's left edge and follows it, then takes the design's curve to the
  * floor; the prongs are drawn before the plate, so a plug that is in hides them; the slots are green once connected; the warning lines are
  * crimson; the pulse is on the cable; and a held hand sits on the plug.
  */

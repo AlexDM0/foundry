@@ -1,5 +1,5 @@
 /**
- * Chase the bug, `08-more-behaviours.md`, on the pure mind frame by frame. What matters: the bug comes from the bottom centre of the
+ * Chase the bug, on the pure mind frame by frame. What matters: the bug comes from the bottom centre of the
  * element, clamped to the floor, and falls with the gravity of the jump; with no element it starts 60 ahead of Flint on the floor; a run
  * goes away from Flint to 60 to 140 from it as the seeded sequence says, and past a wall it turns and runs past Flint; the runs go at 260,
  * then 85% of the last; a resting bug runs when Flint comes within 40 or after 900 ms, and after 12 s it runs no more. Flint is surprised,

@@ -1,5 +1,5 @@
 /**
- * Writing on paper, shared by the notes study and the ticket (`02-animations.md`, "Reading and writing direction", "Ticket and notes"):
+ * Writing on paper, shared by the notes study and the ticket:
  * lines fill one after the other, each grows from its left end on the screen, and the pen follows the end that grows.
  */
 import type { Facing, Point }      from '../SpriteGeometry.ts';

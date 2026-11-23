@@ -1,5 +1,5 @@
 /**
- * The baton of Baton pass against `06-more-animations.md`, "Baton pass". What matters: it is a bar 4 by 14 with corner radius 2 in the
+ * The baton of Baton pass. What matters: it is a bar 4 by 14 with corner radius 2 in the
  * light ember colour, a band of 3 in the body colour at each end, over a glow circle of radius 6 at 40%; it is placed by its centre and
  * turned around it; it fades with its levels; the hidden state draws.
  */

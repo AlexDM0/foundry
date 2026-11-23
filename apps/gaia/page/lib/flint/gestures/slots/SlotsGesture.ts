@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Slots": the concurrency limit. In `slots` a spark falls into each of three sockets in turn, lands
+ * Slots: the concurrency limit. In `slots` a spark falls into each of three sockets in turn, lands
  * with a spring and lights its ring, while a triangle points at the socket that fills; then the sparks breathe. In `slots-full` every
  * socket has its spark: a pentagon holds a ticket above each socket in turn, each ring refuses it in crimson, and Flint takes the ticket
  * back, sweats and waits.

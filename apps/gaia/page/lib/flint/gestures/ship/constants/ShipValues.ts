@@ -1,5 +1,5 @@
 /**
- * Ship of `06-more-animations.md`: a delivered ticket. Two pentagons lift a landed block onto a shelf, a tick shows, and Flint salutes. In
+ * Ship: a delivered ticket. Two pentagons lift a landed block onto a shelf, a tick shows, and Flint salutes. In
  * milliseconds from the start of the action, and in sprite units for Flint facing right.
  */
 export const SHIP_TIMELINE = {

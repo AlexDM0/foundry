@@ -1,4 +1,4 @@
-/** The lightbulb of `01-character.md`. What matters: the rays first, at the opacity of the details, then the glass and fitting in their gradients. */
+/** The lightbulb. What matters: the rays first, at the opacity of the details, then the glass and fitting in their gradients. */
 import { expect, test } from 'bun:test';
 
 import { LIGHTBULB_MARK } from './LightbulbMark.ts';

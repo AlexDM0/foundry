@@ -1,4 +1,4 @@
-/** The behaviour's base pose from the motion of `02-animations.md`: where Flint stands, its hover, its walk wobble, its jump and blink. */
+/** The behaviour's base pose from the motion: where Flint stands, its hover, its walk wobble, its jump and blink. */
 import { poseWithPart }       from './PoseComposition.ts';
 import type { Facing }        from './SpriteGeometry.ts';
 import type { Pose }          from './SpritePose.ts';

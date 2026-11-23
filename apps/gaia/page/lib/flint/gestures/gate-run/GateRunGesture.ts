@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Gate run": a loop in which the four lamps of a rail run one after the other and pass while the
+ * Gate run: a loop in which the four lamps of a rail run one after the other and pass while the
  * eyes follow the lamp that runs; when all have passed a tick shows and Flint is happy, then the rail fades out. No hands. A failed gate is
  * the gesture Gate failed.
  */

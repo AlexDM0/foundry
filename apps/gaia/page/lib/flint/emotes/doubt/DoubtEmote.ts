@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Emotes", the Doubt row: one narrowed eye, a lean back, and the "?" of `01-character.md`. */
+/** The Doubt emote: one narrowed eye, a lean back, and the "?". */
 import { emoteDefinition } from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }   from '../EmoteMarkUtil.ts';
 import { DOUBT_MOTION }    from './constants/DoubtValues.ts';

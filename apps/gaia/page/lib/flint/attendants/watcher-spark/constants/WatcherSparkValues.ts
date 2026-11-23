@@ -1,4 +1,4 @@
-/** The spark companion of `06-more-animations.md`: one spark for each running Watcher, behind Flint; `sin(t / n)` names `n` a divisor. */
+/** The spark companion: one spark for each running Watcher, behind Flint; `sin(t / n)` names `n` a divisor. */
 export const WATCHER_SPARK = {
   MAXIMUM_COUNT:                4,
   /** Spark n is at (FIRST_X - ZIGZAG_X × (n mod 2), FIRST_Y + STEP_Y × n). */

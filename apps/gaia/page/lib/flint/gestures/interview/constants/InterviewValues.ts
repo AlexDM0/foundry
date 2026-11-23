@@ -1,4 +1,4 @@
-/** Interview of `06-more-animations.md`: two rounds of asking, listening and writing, then an end; in milliseconds from the loop's start. */
+/** Interview: two rounds of asking, listening and writing, then an end; in milliseconds from the loop's start. */
 export const INTERVIEW_TIMELINE = {
   CYCLE_MILLISECONDS:             5600,
   ROUND_MILLISECONDS:             2200,
@@ -30,7 +30,7 @@ export const INTERVIEW_NOD = {
   EYE_SHIFT_UNITS:  0,
 } as const;
 
-/** The notepad of research in `01-character.md`, its lines written at the pace of the notes study; the tick floats above it. */
+/** The notepad of research, its lines written at the pace of the notes study; the tick floats above it. */
 export const INTERVIEW_NOTEPAD = {
   LINE_MILLISECONDS:  700,
   TICK_START_X_UNITS: 40,

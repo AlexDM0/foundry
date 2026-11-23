@@ -1,5 +1,5 @@
 /**
- * Held against `06-more-animations.md`, "Held". What matters: until 500 the ticket fades in and the clamp slides 8 units down to its place,
+ * Held. What matters: until 500 the ticket fades in and the clamp slides 8 units down to its place,
  * with no hand; from 500 to 1100 one hexagon of radius 6 at (38, -52) turns 120 degrees with eye height 5; from 1100 on the hand is a
  * square of radius 7, turn 0, at (26, -34), moving by sin(t / 500), with lean 0, eye height 6 and eye shift 2. It runs until something
  * stops it, and reduced motion holds 2000.

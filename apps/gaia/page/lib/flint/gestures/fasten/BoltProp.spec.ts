@@ -1,4 +1,4 @@
-/** The bolt. What matters: the rectangle of `01-character.md`, which slides in 8 units from the side away from Flint as it fades in. */
+/** The bolt. What matters: the rectangle, which slides in 8 units from the side away from Flint as it fades in. */
 import { expect, test } from 'bun:test';
 
 import { BOLT_PROP } from './BoltProp.ts';

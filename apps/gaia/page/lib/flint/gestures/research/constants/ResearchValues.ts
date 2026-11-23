@@ -1,4 +1,4 @@
-/** The research gesture of `02-animations.md`, "Research": four studies of equal length in turn; `sin(t / n)` names `n` as a divisor. */
+/** The research gesture: four studies of equal length in turn; `sin(t / n)` names `n` as a divisor. */
 export const RESEARCH = {
   STUDY_MILLISECONDS:        2600,
   /** Reduced motion holds the book study before its page turns. */
@@ -58,7 +58,7 @@ export const HOLOGRAM_STUDY = {
   EYE_SHIFT_HALF_TURNS:         6,
 } as const;
 
-/** The book of research in `01-character.md`, in the book's own coordinates before its turn and drop, in sprite units. */
+/** The book of research, in the book's own coordinates before its turn and drop, in sprite units. */
 export const BOOK_SHAPE = {
   COVER_POINTS: [
     { x: 27, y: -41 },
@@ -100,7 +100,7 @@ export const BOOK_SHAPE = {
   DROP_UNITS:               13,
 } as const;
 
-/** The hologram of research in `01-character.md`, in sprite units, for Flint facing right. */
+/** The hologram of research, in sprite units, for Flint facing right. */
 export const HOLOGRAM_SHAPE = {
   EMITTER_X_UNITS:             37,
   EMITTER_Y_UNITS:             -8,
@@ -125,7 +125,7 @@ export const HOLOGRAM_SHAPE = {
   SCAN_LINE_TOP_Y_UNITS:       -47,
 } as const;
 
-/** The search bar of research in `01-character.md`, in sprite units, for Flint facing right. */
+/** The search bar of research, in sprite units, for Flint facing right. */
 export const SEARCH_BAR_SHAPE = {
   X_UNITS:             26,
   Y_UNITS:             -47,

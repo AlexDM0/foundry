@@ -1,4 +1,4 @@
-/** The keyboard of `01-character.md`, and its slide of `02-animations.md`, in sprite units, for Flint facing right. */
+/** The keyboard, and its slide, in sprite units, for Flint facing right. */
 export const KEYBOARD_SHAPE = {
   X_UNITS:             14,
   Y_UNITS:             -4,

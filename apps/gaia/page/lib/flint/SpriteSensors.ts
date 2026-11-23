@@ -1,5 +1,5 @@
 /**
- * The sensors stage (`03-behaviour-and-architecture.md`, "The pattern"): the one part besides the renderer that touches the page. On each
+ * The sensors stage: the one part besides the renderer that touches the page. On each
  * frame it measures the home and the habitats against the overlay, reads the pointer and the cues, and gives the mind one `Perception` in
  * overlay units. It also says when Flint must stop: the tab is hidden, or the place Flint stands on is off the screen.
  */

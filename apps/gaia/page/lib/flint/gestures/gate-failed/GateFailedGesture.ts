@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Gate failed": Flint types in the normal variant of Type until a crimson note falls onto the keyboard;
+ * Gate failed: Flint types in the normal variant of Type until a crimson note falls onto the keyboard;
  * it flinches with a crimson tint that fades in a straight line, draws its hands back, looks down at the note, sighs, and puts its hands
  * back on the keys. One action; the host then starts the typing of the next variant.
  */

@@ -1,6 +1,6 @@
 /**
  * The prop catalog. What matters: no two props share a name; the props part of the pose holds every prop by its name, hidden at the
- * start; the props of the first build keep the draw order of `01-character.md`, and of them only the looking glass has a grip.
+ * start; the props of the first build keep the draw order, and of them only the looking glass has a grip.
  */
 import { expect, test } from 'bun:test';
 

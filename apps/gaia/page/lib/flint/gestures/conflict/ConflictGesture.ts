@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Conflict": Merge with one more step. Two hexagons press the blocks, the teeth hit, the blocks shake
+ * Conflict: Merge with one more step. Two hexagons press the blocks, the teeth hit, the blocks shake
  * and move apart; one triangle files the teeth of the top block over until they fit; then the hexagons press with Merge's travel and the
  * blocks snap as in Merge. The tick is mirrored back by the renderer, so the part is the same either facing.
  */

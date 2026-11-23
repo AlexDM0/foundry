@@ -1,5 +1,5 @@
 /**
- * The book of the research gesture is drawn turned and lowered (`02-animations.md`, "Book placement"); its values are in the book's own
+ * The book of the research gesture is drawn turned and lowered; its values are in the book's own
  * coordinates before that turn and move. This gives its points in Flint's own units, and the outer edge of the page that turns.
  */
 import type { Point }         from '../../SpriteGeometry.ts';

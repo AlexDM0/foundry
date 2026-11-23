@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Lay the bar": while the host walks Flint along a row, a bar grows behind it and one square behind
+ * Lay the bar: while the host walks Flint along a row, a bar grows behind it and one square behind
  * Flint presses it down at a steady beat; once a cycle Flint looks back at it. It goes on while Flint walks, and stops when Flint jumps. The
  * press is short, so the hand is placed exactly and only its radius eases. The square is the far hand, over the head of the bar.
  */

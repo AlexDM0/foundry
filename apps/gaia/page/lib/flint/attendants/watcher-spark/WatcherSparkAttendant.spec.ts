@@ -1,5 +1,5 @@
 /**
- * The spark companion against `06-more-animations.md`, "Spark companion". What matters: spark n sits at (-26 - 9 × (n mod 2), -44 + 11n);
+ * The spark companion. What matters: spark n sits at (-26 - 9 × (n mod 2), -44 + 11n);
  * it bobs by 2 × sin(t / 500 + 1.7n), turns 45 + 0.03 × t degrees and pulses by 1 + 0.08 × sin(t / 300 + n); it enters with the spring of
  * an emote mark in 200 ms; under reduced motion it holds still at scale 1; it draws one spark around its own centre; and the host can
  * give at most four.

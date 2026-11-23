@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Sleep": the sleep level, the landing hover and back lean, the breath, the glow, and the wake. The mind
+ * Sleep: the sleep level, the landing hover and back lean, the breath, the glow, and the wake. The mind
  * keeps a `SleepState` and changes it only through the transitions here, so this module owns the state's shape. The level is a pure
  * function of the state and the time: it rises at the falling-asleep rate and drops at the waking rate.
  */
@@ -25,7 +25,7 @@ export const SLEEP_AWAKE: SleepState = Object.freeze({ phase: 'awake' });
 
 export interface SleepInput {
   readonly state:               SleepState;
-  /** The frame source's elapsed time; the handoff's `t`. */
+  /** The frame source's elapsed time; the `t` of a formula. */
   readonly elapsedMilliseconds: number;
   /** The eye height of the layers below, which the closing eyes follow: height + (1.6 - height) × level. */
   readonly incomingEyeHeight:   number;

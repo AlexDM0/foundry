@@ -1,5 +1,5 @@
 /**
- * Cursor play (`02-animations.md` and `03-behaviour-and-architecture.md`, "Pointer"): after a click Flint is surprised, then walks and
+ * Cursor play: after a click Flint is surprised, then walks and
  * jumps to the pointer along its floor and grabs at it when it is within the catch distance of the grab. When the pointer leaves the
  * component, or stands still for some seconds, Flint shows the Doubt emote and stops. Under reduced motion it only turns and grabs.
  */

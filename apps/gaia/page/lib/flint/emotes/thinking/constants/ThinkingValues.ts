@@ -1,4 +1,4 @@
-/** The Thinking emote of `02-animations.md`, "Emotes": how long it shows and where the eyes look; the dots' entrance is shared. */
+/** The Thinking emote: how long it shows and where the eyes look; the dots' entrance is shared. */
 export const THINKING_MOTION = {
   DURATION_MILLISECONDS: 2400,
   EYE_LIFT_UNITS:        -3,

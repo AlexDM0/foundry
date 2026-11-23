@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Wave", with its "Hi!" mark; and "Pop-in around a corner", step 7, the wave of a peek: in the
+ * Wave, with its "Hi!" mark, and the wave of a peek around a corner: in the
  * sideways pose the hand keeps its distance ahead of the body on the screen, and the eye shift of the pop-in stays.
  */
 import type { PosePart }                   from '../../SpritePose.ts';

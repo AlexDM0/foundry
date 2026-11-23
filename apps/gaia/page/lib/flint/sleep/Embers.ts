@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Sleep", "Embers": four squares that rise behind Flint, one after another, each on its own repeating
+ * Embers: four squares that rise behind Flint, one after another, each on its own repeating
  * cycle. They are never mirrored; `flint/sleep/SleepSequence.ts` decides when they rise and when they fade out.
  */
 import type { EmberPose }           from '../SpritePose.ts';

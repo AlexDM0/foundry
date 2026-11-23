@@ -1,5 +1,5 @@
 /**
- * The baton of Baton pass (`06-more-animations.md`): a light bar with a band in the body colour at each end, over a soft glow, placed by
+ * The baton of Baton pass: a light bar with a band in the body colour at each end, over a soft glow, placed by
  * its centre and turned around it. The bands are the rounded bar itself, with the light middle drawn over it, so the ends stay round.
  */
 import { propDefinition } from '../../props/PropDefinition.ts';

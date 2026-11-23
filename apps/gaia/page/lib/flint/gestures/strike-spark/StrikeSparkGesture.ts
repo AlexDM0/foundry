@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Strike a spark": the launch of a job. One square rises and strikes down along the edge of the body;
+ * Strike a spark: the launch of a job. One square rises and strikes down along the edge of the body;
  * small sparks fly, the inner glow flares, and the spark of the new Watcher flies on an arc to its place, floats, and fades.
  */
 import type { HandPose, PosePart }         from '../../SpritePose.ts';

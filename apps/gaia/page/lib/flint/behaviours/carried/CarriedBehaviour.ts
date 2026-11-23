@@ -1,5 +1,5 @@
 /**
- * Carried (`02-animations.md`, "Carried"): while the user drags Flint, it hangs below the pointer and is nervous. The drop decides what
+ * Carried: while the user drags Flint, it hangs below the pointer and is nervous. The drop decides what
  * comes next: on a roomy habitat Flint falls to its floor (`flint/behaviours/landing/`); on no habitat it is stranded
  * (`flint/behaviours/stranded/`).
  */

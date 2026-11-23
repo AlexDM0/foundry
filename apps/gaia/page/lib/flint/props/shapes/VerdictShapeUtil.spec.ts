@@ -1,5 +1,5 @@
 /**
- * The tick and the cross of the shared vocabulary. What matters: each is drawn from its start point as `01-character.md` draws it; both
+ * The tick and the cross of the shared vocabulary. What matters: each is drawn from its start point; both
  * are never mirrored, so each is mirrored back about its own centre; a small one is the same shape scaled around its start point; and a
  * waived verdict is grey.
  */

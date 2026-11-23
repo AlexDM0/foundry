@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Escaped bug": a landed block rocks, a bug escapes from it, and Flint chases it with one pentagon.
+ * Escaped bug: a landed block rocks, a bug escapes from it, and Flint chases it with one pentagon.
  * Two hits miss and the third has the bug; each hit falls onto its point and rests there, placed exactly. Then the hand lifts the bug and
  * a dashed crimson line traces it back to its block.
  */

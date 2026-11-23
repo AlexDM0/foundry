@@ -1,4 +1,4 @@
-/** The gauge of the shared vocabulary (`06-more-animations.md`): a budget, its level a bar from the bottom. */
+/** The gauge of the shared vocabulary: a budget, its level a bar from the bottom. */
 import type { FlintColourRole } from '../../constants/Palette.ts';
 import type { Shape }           from '../../drawing/Shape.ts';
 import { GAUGE_SHAPE }          from './constants/SharedShapes.ts';

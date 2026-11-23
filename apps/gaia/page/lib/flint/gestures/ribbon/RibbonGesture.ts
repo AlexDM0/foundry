@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Ribbon": two pentagons push three tickets of one epic together; a hexagon goes once around the
+ * Ribbon: two pentagons push three tickets of one epic together; a hexagon goes once around the
  * bundle while the ribbon grows; the bow springs in; then the bundle leaves.
  */
 import type { HandPose, PosePart }         from '../../SpritePose.ts';

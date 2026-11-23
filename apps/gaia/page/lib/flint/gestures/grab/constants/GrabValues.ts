@@ -1,4 +1,4 @@
-/** Grab of `02-animations.md`: two pentagons reach from the body centre to the target and close on it, or on nothing. */
+/** Grab: two pentagons reach from the body centre to the target and close on it, or on nothing. */
 export const GRAB_GESTURE_VALUES = {
   DURATION_MILLISECONDS:   900,
   CLOSE_MILLISECONDS:      250,

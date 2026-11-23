@@ -1,5 +1,5 @@
 /**
- * The landing after a drop on a habitat (`03-behaviour-and-architecture.md`, "Pointer"): Flint falls from the pointer to the bottom edge of
+ * The landing after a drop on a habitat: Flint falls from the pointer to the bottom edge of
  * the habitat's box, lands with the squash of a jump, looks around, and then lives there and hears `arrived`. Under reduced motion it is on
  * the floor at once. Only the drag starts it, through `landingStarted`.
  */

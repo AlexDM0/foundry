@@ -1,5 +1,5 @@
 /**
- * The sparks of Strike a spark (`06-more-animations.md`): the small sparks of the strike, and the spark of the new Watcher, which grows
+ * The sparks of Strike a spark: the small sparks of the strike, and the spark of the new Watcher, which grows
  * with the spring of an emote mark around its own centre.
  */
 import type { Shape }           from '../../drawing/Shape.ts';

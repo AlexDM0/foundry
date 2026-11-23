@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Spark companion": one spark for each Watcher the host counts, in a zigzag behind Flint. Each spark
+ * Spark companion: one spark for each Watcher the host counts, in a zigzag behind Flint. Each spark
  * bobs, turns and pulses on its own phase, and enters with the spring of an emote mark. Under reduced motion it holds still at scale 1.
  */
 import { SPRING }              from '../../constants/Motion.ts';

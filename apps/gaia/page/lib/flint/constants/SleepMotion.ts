@@ -1,5 +1,5 @@
 /**
- * The sleep sequence of `02-animations.md`, "Sleep", checked against `reference/playground.html`; `sin(t / n)` names `n` as a divisor in
+ * The sleep sequence; `sin(t / n)` names `n` as a divisor in
  * milliseconds. The rates of the level are in `flint/constants/Easing.ts`, the ember shapes in `flint/constants/EmoteMarkShapes.ts`.
  */
 export const SLEEP_POSE = {

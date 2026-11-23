@@ -1,4 +1,4 @@
-/** The body, eyes and glow of `01-character.md`, in sprite units; the origin is the bottom tip of the body, y points down. */
+/** The body, eyes and glow, in sprite units; the origin is the bottom tip of the body, y points down. */
 export const BODY_SHAPE = {
   PATH:                       'M0 -50 L20 -24 L0 0 L-20 -24Z',
   WIDTH_UNITS:                40,
@@ -24,7 +24,7 @@ export const EYE_SHAPE = {
   HAPPY_EYES_STROKE_UNITS: 2.5,
 } as const;
 
-/** The dashed outline of `06-more-animations.md`, "New channels of the pose", that the body shows while its fill fades. */
+/** The dashed outline that the body shows while its fill fades. */
 export const BODY_OUTLINE = {
   STROKE_UNITS: 1.5,
   DASH_UNITS:   3,

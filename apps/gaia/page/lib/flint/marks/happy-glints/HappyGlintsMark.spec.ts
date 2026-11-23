@@ -1,4 +1,4 @@
-/** The happy-glints mark of `01-character.md`. What matters: its anchor and scale, and the shapes it draws, in their order. */
+/** The happy-glints mark. What matters: its anchor and scale, and the shapes it draws, in their order. */
 import { expect, test } from 'bun:test';
 
 import { HAPPY_GLINTS_MARK } from './HappyGlintsMark.ts';

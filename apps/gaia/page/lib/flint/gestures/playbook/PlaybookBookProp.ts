@@ -1,5 +1,5 @@
 /**
- * The small book of Playbook (`06-more-animations.md`): a page with four printed lines under a cover. The cover opens by narrowing to its
+ * The small book of Playbook: a page with four printed lines under a cover. The cover opens by narrowing to its
  * spine; the line Flint reads is in the body colour. A book has a spine side, so it is never mirrored: its spine stays on the left on the
  * screen whatever the facing.
  */

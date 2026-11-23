@@ -1,5 +1,5 @@
 /**
- * The stack of Reorder (`06-more-animations.md`): four cards of paper with a tab at their left end. The third card, whose tab is in the
+ * The stack of Reorder: four cards of paper with a tab at their left end. The third card, whose tab is in the
  * body colour, moves on its own and is drawn on top; a hand holds it at its right end, so the card and the hand move as one part.
  */
 import type { Point }                  from '../../SpriteGeometry.ts';

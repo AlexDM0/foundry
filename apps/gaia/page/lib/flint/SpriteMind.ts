@@ -1,5 +1,5 @@
 /**
- * The mind stage, pure (`03-behaviour-and-architecture.md`, "The mind"): on each frame the reflexes run, then a waiting intent, then the
+ * The mind stage, pure: on each frame the reflexes run, then a waiting intent, then the
  * behaviour, then the timers of the jump, the gesture, the emote and sleep; and the target pose the mind asks for. The state and the
  * directors are in `flint/mind/`; the behaviours are reached through the behaviour catalog, the gestures and emotes through their intents.
  */

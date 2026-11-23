@@ -1,5 +1,5 @@
 /**
- * A written line of the shared vocabulary (`06-more-animations.md`), after `02-animations.md`, "Reading and writing direction": it grows
+ * A written line of the shared vocabulary: it grows
  * from its left end on the screen, so facing left it starts at the far end of the paper in Flint's own coordinates, and it goes down with
  * the slope of the paper.
  */

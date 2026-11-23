@@ -1,5 +1,5 @@
 /**
- * The default director (`03-behaviour-and-architecture.md`, "The mind"): it follows the suggestions of the habitat Flint lives in. The
+ * The default director: it follows the suggestions of the habitat Flint lives in. The
  * newest new cue that has a suggestion wins. With nothing new, the first behaviour of the catalog whose `chosenWhenNothingIsNew` answers
  * yes is chosen (a sleeping Flint sleeps on, an awake one visits the visit target, copies what its habitat offers, and after the quiet time
  * goes home to sleep); otherwise Flint rests. The copy follows the habitat's state, so a Flint that arrives while an agent already works

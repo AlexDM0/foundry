@@ -1,5 +1,5 @@
 /**
- * The stamp of Make a ticket (`02-animations.md`, "Make a ticket"), which every gesture that seals shares: it rises above the seal, falls
+ * The stamp of Make a ticket, which every gesture that seals shares: it rises above the seal, falls
  * onto it, and from the seal on is placed exactly, so it lands on the seal, and then it lifts.
  */
 import type { Point }          from '../SpriteGeometry.ts';

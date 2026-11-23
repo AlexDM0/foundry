@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Emotes", the Sweatdrop row: the eyes look away, and the sweat drop of `01-character.md` grows in at
+ * The Sweatdrop emote: the eyes look away, and the sweat drop grows in at
  * once and slides down. Under reduced motion the drop holds still at its anchor.
  */
 import { emoteDefinition }  from '../EmoteDefinition.ts';

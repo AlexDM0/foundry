@@ -1,5 +1,5 @@
 /**
- * The one easing step against `02-animations.md`, "Rules for all animations". What matters: easing is exponential at the rate of each
+ * The one easing step. What matters: easing is exponential at the rate of each
  * value; a hand that changes shape shrinks first at twice the hand step and only then appears from the body in its new shape; a hand held
  * to a prop sits on that prop's drawn grip, as the looking glass's hand at a fixed offset from the drawn lens; a prop fades and keeps its
  * last look while it goes; an exact field snaps, as a blink does; the tint, the fill opacity and the inner glow ease at the eye rate or the

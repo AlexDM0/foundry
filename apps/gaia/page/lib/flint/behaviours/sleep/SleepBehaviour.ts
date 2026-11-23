@@ -1,5 +1,5 @@
 /**
- * Sleep (`03-behaviour-and-architecture.md`, "The mind"): Flint sleeps in its home, the host's corner. A Flint that lives elsewhere is
+ * Sleep: Flint sleeps in its home, the host's corner. A Flint that lives elsewhere is
  * placed home first. `flint/sleep/SleepSequence.ts` draws the sleep itself; a cue, a click, a drag, a gesture or an emote wakes it, and on
  * the frame it sees the wake the sleep hands Flint to the rest.
  */

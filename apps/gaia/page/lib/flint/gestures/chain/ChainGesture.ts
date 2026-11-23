@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Chain": a hexagon adds three links from ticket A to ticket B, each with the spring of an emote mark;
+ * Chain: a hexagon adds three links from ticket A to ticket B, each with the spring of an emote mark;
  * then B pulls at the chain two times while A stays, and Flint looks at A, the ticket that waits.
  */
 import type { EyesPose, HandPose, PosePart } from '../../SpritePose.ts';

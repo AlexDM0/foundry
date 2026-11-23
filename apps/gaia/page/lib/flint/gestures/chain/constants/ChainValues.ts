@@ -1,4 +1,4 @@
-/** Chain of `06-more-animations.md`: one loop in which a ticket is chained to the ticket it waits for; in milliseconds. */
+/** Chain: one loop in which a ticket is chained to the ticket it waits for; in milliseconds. */
 export const CHAIN_TIMELINE = {
   CYCLE_MILLISECONDS:         3800,
   FADE_IN_MILLISECONDS:       300,

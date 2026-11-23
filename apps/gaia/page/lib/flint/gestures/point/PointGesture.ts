@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Gestures", "Point": one triangle points forward and swings; Flint can walk and jump while it points. */
+/** Point: one triangle points forward and swings; Flint can walk and jump while it points. */
 import type { PosePart }                   from '../../SpritePose.ts';
 import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import type { GestureInput }               from '../GestureDefinition.ts';

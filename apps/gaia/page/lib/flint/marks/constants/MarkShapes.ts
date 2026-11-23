@@ -1,5 +1,5 @@
 /**
- * What the marks of `01-character.md` share. A mark sits at its anchor, relative to the bottom tip of the body; the anchor's x follows the
+ * What the marks share. A mark sits at its anchor, relative to the bottom tip of the body; the anchor's x follows the
  * facing, the mark itself never mirrors.
  */
 

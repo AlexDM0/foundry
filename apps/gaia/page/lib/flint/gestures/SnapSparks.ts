@@ -1,4 +1,4 @@
-/** The sparks of a snap (`02-animations.md`, "Merge"), which every gesture that snaps or flares shares. */
+/** The sparks of a snap, which every gesture that snaps or flares shares. */
 import type { Point }           from '../SpriteGeometry.ts';
 import type { SmallSparkPlace } from '../props/shapes/SparkShapeUtil.ts';
 import { SNAP_SPARKS }          from './constants/SnapSparks.ts';

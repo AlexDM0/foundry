@@ -1,5 +1,5 @@
 /**
- * The contract of a prop (`07-animation-modules.md`, rule 2): pure data and pure functions. A gesture gives a prop's state in its part of
+ * The contract of a prop: pure data and pure functions. A gesture gives a prop's state in its part of
  * the pose; the easing step moves the drawn state towards it; the renderer asks `shapesOf` for the shapes of the drawn state and writes
  * them. A prop makes no element itself.
  */

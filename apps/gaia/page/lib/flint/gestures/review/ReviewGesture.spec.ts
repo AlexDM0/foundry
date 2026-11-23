@@ -1,5 +1,5 @@
 /**
- * Review against `02-animations.md`, "Review", "Reading and writing direction" and "Rules between animations". What matters: the pace,
+ * Review. What matters: the pace,
  * the pages behind the sheet and the verdicts of each variant; the lens that follows the line Flint reads, and the line drawn as read; the
  * eyes that follow the lens down the sheet and along the line; the angry jab and the busy page turn; that facing left, Flint still reads
  * from left to right on the screen and gives the same verdict, which the renderer never mirrors; and that the hand of the looking glass
@@ -25,7 +25,7 @@ function partAt(elapsedMilliseconds: number, variant: WorkingVariant, facing: Fa
   return REVIEW_GESTURE.targetPose(input);
 }
 
-/** The handoff's `lineY` where the lens is: over the lens travel of 13 units from x 31, the line height drops 2.8. */
+/** The height of a line where the lens is: over the lens travel of 13 units from x 31, the line height drops 2.8. */
 function lineYUnderLens(lineIndex: number, lensX: number): number {
   return -39 + (7 * lineIndex) + (2.8 * ((lensX - 31) / 13));
 }

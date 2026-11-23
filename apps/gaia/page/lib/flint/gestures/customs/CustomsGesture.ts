@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Customs": Flint compares each claim of a report with what is in the crate. For each of three
+ * Customs: Flint compares each claim of a report with what is in the crate. For each of three
  * claims one pentagon reaches into the crate, lifts the item, Flint looks at the list and ticks the claim, and the hand puts the item back.
  * The third claim is found in one cycle and not found in the next: then the hand comes up empty and searches, and the claim gets a cross.
  */

@@ -1,5 +1,5 @@
 /**
- * The barrier of Bouncer against `06-more-animations.md`, "Bouncer". What matters: the post is a graphite line from (46, -8) to (46, -30)
+ * The barrier of Bouncer. What matters: the post is a graphite line from (46, -8) to (46, -30)
  * with a knob of radius 2; the rope runs from the hand to the post while hooked and hangs to (30, -8) once unhooked, in crimson; the cross
  * stands at 70% scale centred on (46, -40), and the tick starts at (42, -44), both never mirrored; the hidden state draws.
  */

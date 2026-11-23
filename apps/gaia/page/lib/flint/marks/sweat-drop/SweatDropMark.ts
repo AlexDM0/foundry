@@ -1,4 +1,4 @@
-/** The sweat drop of `01-character.md`, with its highlight. */
+/** The sweat drop, with its highlight. */
 import { markDefinition, NO_MARK_DETAILS } from '../MarkDefinition.ts';
 import { SWEAT_DROP_SHAPE }                from './constants/SweatDropValues.ts';
 

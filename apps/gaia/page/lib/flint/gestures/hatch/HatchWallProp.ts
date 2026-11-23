@@ -1,5 +1,5 @@
 /**
- * The wall of Hatch (`06-more-animations.md`) with its slot, and the papers that pass it: the note Flint pushes in, the reply that comes
+ * The wall of Hatch with its slot, and the papers that pass it: the note Flint pushes in, the reply that comes
  * out with its line and its small tick, and the stub of a queued note. A paper that is partly in the slot shows only up to the wall, so it
  * gets narrower from its far end as it goes in.
  */

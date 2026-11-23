@@ -1,4 +1,4 @@
-/** Walking against `02-animations.md`: 220 units per second along the floor, never past its ends, with the body height wobbling 4%. */
+/** Walking: 220 units per second along the floor, never past its ends, with the body height wobbling 4%. */
 import { expect, test } from 'bun:test';
 
 import { WalkMotionUtil } from './WalkMotionUtil.ts';

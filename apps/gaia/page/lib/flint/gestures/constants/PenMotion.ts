@@ -1,4 +1,4 @@
-/** The pen of `02-animations.md`, "Notes" and "Make a ticket": a triangle hand just right of the written line's end on the screen. */
+/** The pen: a triangle hand just right of the written line's end on the screen. */
 export const PEN = {
   CORNER_COUNT:                3,
   RADIUS_UNITS:                5.5,

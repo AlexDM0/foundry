@@ -1,4 +1,4 @@
-/** The notepad of Research (`01-character.md`): the paper, its binding of dots, and the three lines Flint writes. */
+/** The notepad of Research: the paper, its binding of dots, and the three lines Flint writes. */
 import { propDefinition }  from '../../props/PropDefinition.ts';
 import { notepadShapesOf } from '../../props/shapes/NotepadShape.ts';
 import { NOTEPAD_SHAPE }   from '../../props/shapes/constants/NotepadShape.ts';

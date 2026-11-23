@@ -1,5 +1,5 @@
 /**
- * A drop on no habitat (`03-behaviour-and-architecture.md`, "Pointer"): Flint stays where the user let go and shows the Doubt emote; then
+ * A drop on no habitat: Flint stays where the user let go and shows the Doubt emote; then
  * it goes back to the habitat it came from, around that habitat's corner, or to its home. Only the drag starts it, through
  * `strandedStarted`.
  */

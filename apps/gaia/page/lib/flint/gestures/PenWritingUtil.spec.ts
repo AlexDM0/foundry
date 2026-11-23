@@ -1,5 +1,5 @@
 /**
- * Writing on paper against `02-animations.md`, "Reading and writing direction", "Ticket and notes". What matters: lines fill one after
+ * Writing on paper. What matters: lines fill one after
  * the other; a line grows from its left end on the screen whichever way Flint faces, going down 0.2 for each unit; the pen is a triangle
  * just right of the growing end on the screen, turned -35 × facing; and the eyes look down at the line being written.
  */

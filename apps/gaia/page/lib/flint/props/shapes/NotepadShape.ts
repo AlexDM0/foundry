@@ -1,4 +1,4 @@
-/** The notepad of Research (`01-character.md`), which Interview shares: the paper, its binding of dots, and the lines Flint writes. */
+/** The notepad of Research, which Interview shares: the paper, its binding of dots, and the lines Flint writes. */
 import type { Facing }        from '../../SpriteGeometry.ts';
 import type { Shape }         from '../../drawing/Shape.ts';
 import { writtenLineShapeOf } from './WrittenLineShape.ts';

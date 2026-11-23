@@ -1,4 +1,4 @@
-/** Implements `02-animations.md`, "Emotes", the Surprised row: wide eyes, one hop, and the "!" of `01-character.md`. */
+/** The Surprised emote: wide eyes, one hop, and the "!". */
 import { emoteDefinition }  from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }    from '../EmoteMarkUtil.ts';
 import { SURPRISED_MOTION } from './constants/SurprisedValues.ts';

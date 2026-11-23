@@ -1,4 +1,4 @@
-/** The hands of `01-character.md`: regular polygons that grow from the body and shrink away before they change shape. */
+/** The hands: regular polygons that grow from the body and shrink away before they change shape. */
 export const HAND_SHAPE = {
   EMERGE_X_UNITS:              10,
   EMERGE_Y_UNITS:              -22,

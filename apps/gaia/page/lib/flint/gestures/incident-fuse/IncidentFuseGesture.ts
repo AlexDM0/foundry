@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Incident fuse": a fuse burns down to an incident's envelope while Flint watches the flame, looks at
+ * Incident fuse: a fuse burns down to an incident's envelope while Flint watches the flame, looks at
  * the user now and then, and grows nervous in the last of the burn; the flame goes out in smoke, and Flint does the default move: it
  * stamps the envelope with the fall and the seal of Make a ticket. Then the props fade.
  */

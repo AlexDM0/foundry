@@ -1,6 +1,6 @@
 /**
  * The core entry of the package: `createFlint` mounts Flint's overlay in the host's root and runs the frame loop, sense, mind, pose,
- * easing, draw (`03-behaviour-and-architecture.md`, "The pattern"). There is one Flint per document.
+ * easing, draw. There is one Flint per document.
  */
 import type { FrameSource }       from './FrameSource.ts';
 import { animationFrameSourceOf } from './FrameSource.ts';

@@ -1,5 +1,5 @@
 /**
- * Out of fuel and Refuel of `06-more-animations.md`, "Sessions and budget": a steady pose in which Flint waits by an empty gauge, and the
+ * Out of fuel and Refuel: a steady pose in which Flint waits by an empty gauge, and the
  * one action that fills it; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
  */
 export const OUT_OF_FUEL = {
@@ -27,7 +27,7 @@ export const OUT_OF_FUEL = {
 export const EMPTY_GAUGE = {
   X_UNITS:                  32,
   Y_UNITS:                  -40,
-  /** The handoff's level is 0.06, under one pixel at 0.5 pixels for one unit; 0.12 keeps the alarm readable, a builder decision. */
+  /** The design's level is 0.06, under one pixel at 0.5 pixels for one unit; 0.12 keeps the alarm readable, a builder decision. */
   LEVEL:                    0.12,
   BRIGHT_LEVEL_OPACITY:     1,
   DIM_LEVEL_OPACITY:        0.4,

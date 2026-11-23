@@ -1,4 +1,4 @@
-/** The rail of Gate run (`06-more-animations.md`): a graphite rail with four lamps of the shared vocabulary, and the tick above it. */
+/** The rail of Gate run: a graphite rail with four lamps of the shared vocabulary, and the tick above it. */
 import type { Shape }       from '../../drawing/Shape.ts';
 import { propDefinition }   from '../../props/PropDefinition.ts';
 import type { LampState }   from '../../props/shapes/LampShapeUtil.ts';

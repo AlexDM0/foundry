@@ -1,4 +1,4 @@
-/** Strike a spark of `06-more-animations.md`: one action, in milliseconds and sprite units, for Flint facing right. */
+/** Strike a spark: one action, in milliseconds and sprite units, for Flint facing right. */
 export const STRIKE_SPARK_TIMELINE = {
   DURATION_MILLISECONDS:           1500,
   STRIKE_STARTS_MILLISECONDS:      250,
@@ -32,7 +32,7 @@ export const STRIKE_BODY = {
   SQUASH_HEIGHT_FACTOR:     1.03,
   STRUCK_GLOW_OPACITY:      0.6,
   /**
-   * The eyes follow the Watcher on its flight and keep looking at it. The handoff gives the shift of 7 from 330; it starts when the hand
+   * The eyes follow the Watcher on its flight and keep looking at it. The design gives the shift of 7 from 330; it starts when the hand
    * goes at 800, a builder decision, since with the square still struck at (18, -18) the right eye at 7 runs under it.
    */
   FOLLOW_EYE_LIFT_UNITS:    -3,

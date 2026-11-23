@@ -1,5 +1,5 @@
 /**
- * Implements `02-animations.md`, "Gestures", "Make a ticket": write three lines, stamp the seal, file the ticket, in one cycle; and
+ * Make a ticket: write three lines, stamp the seal, file the ticket, in one cycle; and
  * "Reading and writing direction", "Ticket and notes". One hand: the pen while Flint writes, then the stamp, which shrinks the pen first.
  */
 import type { PosePart }                   from '../../SpritePose.ts';

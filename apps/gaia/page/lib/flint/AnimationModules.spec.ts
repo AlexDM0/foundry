@@ -1,8 +1,8 @@
 /**
- * The guard of `07-animation-modules.md`, which `08-more-behaviours.md` extends to the behaviours. Rule 1: a core file names no gesture,
+ * The guard of the animation modules, the behaviours included. First: a core file names no gesture,
  * intent, emote, prop, mark, attendant or behaviour (as a string, a property, or a piece of a string built from parts), and imports from
- * an animation root only a catalog or a contract: it reads the catalogs. The core is the files rule 1 lists, the shared machinery the
- * foundation added, the mind, sleep and the motion pose; the core's own sleep layer is the one word a behaviour shares with it. Rule 6:
+ * an animation root only a catalog or a contract: it reads the catalogs. The core is the files `CORE_FILES` lists, the mind and sleep;
+ * the core's own sleep layer is the one word a behaviour shares with it. Second:
  * each gesture, emote, mark, attendant and behaviour is one folder, named as it is, with its module and its spec; a gesture, an emote, a
  * mark and an attendant keep their values in `constants/<Name>Values.ts`, and a behaviour that has values keeps them there too; every
  * such folder is registered in its catalog, and every catalog entry has its folder; every prop module is registered in the prop catalog.
@@ -21,7 +21,7 @@ import { PROP_CATALOG }      from './props/PropCatalog.ts';
 
 const PACKAGE_FOLDER = import.meta.dir;
 
-/** The core of rule 1, and the shared machinery the foundation added to it. */
+/** The core files outside the mind and sleep. */
 const CORE_FILES = [
   'SpritePose.ts',
   'PoseEasing.ts',
