@@ -133,7 +133,8 @@ The trackers of a repository meet in `<git common dir>/forge/`, which every work
 
 Every mutating command takes the tracker's lock. It reads, changes and writes in one hold, in this order:
 `progress.json`, `pipeline.json` when it changed, `constitution-sources.json` when an Apply stored the constitution's
-sources, the tickets, the epics, the filing drafts, `gate-profiles.json` when a profile move changed it, `log.jsonl`
+sources, the tickets, each changed ticket's documents (every version's text before the record naming it), the epics,
+the filing drafts, `gate-profiles.json` when a profile move changed it, `log.jsonl`
 when it logged something, then `pipeline-setup.json` when a setup move changed or removed it. A ticket file is
 therefore never ahead of the progress file, a log line never describes a change that was not stored, and an Apply
 closes its setup record after everything it stored. A file whose bytes on disk already are its new contents is left in
@@ -629,6 +630,11 @@ naming its status), or when any is incomplete (`incomplete-tickets`, naming each
 - `acceptance-unnumbered` when its `## Acceptance` holds no numbered item, read as a landing reads it;
 - `brief-missing` when it has no `## Brief` holding a non-blank line.
 
+A ticket with [documents](#ticket-documents) is judged by them instead: `acceptance-unnumbered` when the spec's head
+holds no numbered Acceptance item, `spec-unapproved` and `plan-unapproved` while a document is not approved at its
+head, and `plan-out-of-date` when the plan was approved on an older spec. Its body's Brief is not judged, and the paths
+of E85 are read from the approved plan.
+
 In a forge with entities, a draft or a ticket in `ready-for-review` with no `entity` is refused at exit 1 with nothing
 written (`ticket-without-entity`, naming each such ticket), since each ticket builds in the pipeline of its entity. The
 Board refuses it on every way to `committed`: `ticket submit` and `intake close` with ticket review off, and a worker's
@@ -730,6 +736,42 @@ history, so the group has none, and no release bundle, until another is marked.
   is held or waiting on a dependency.
 - `--branch` and `--commit` record where the work landed.
 - `--tokens` replaces the row's figure, and on a ticket with no row (a low one never started) is refused at exit 1.
+
+### Ticket documents
+
+In the spec-then-plan route a ticket is written as two documents, each with its own agent: the spec (what and why, with
+the numbered Acceptance) and then the plan (how; it takes the place of the Brief). A ticket has documents only once
+they opened: at the product owner's `intake close`, or at User's first save or message on a draft. A ticket with
+documents is judged by them ever after, whatever the route becomes. User moves them from a client only; no verb does.
+
+- A document holds versions, each known by the content hash of its text; its number is for display. A save of the
+  head's own text makes no version. A document holds at most 200000 characters (`document-too-long`).
+- A save names the version it was made on. When the head moved since, the two changes merge by line: changes apart from
+  each other both apply. Where User's change overlaps an agent's, User's text wins, the agent's edit is kept as a
+  `conflicted` proposal and the agent is told; where it overlaps another save of User's, the save is refused
+  (`document-merge-conflict`).
+- An agent proposes line edits on the version it read. In `ask-first` mode each waits for User's Apply, Edit first
+  (User's own lines in the agent's place) or Discard; in `auto-apply` each applies as it arrives; the first write
+  applies at once in either mode. An edit applies only where its original lines still stand on the head; else the
+  proposal is `conflicted` and the agent is told.
+- A message to the agent is queued and delivered one at a time, in order, while the agent is idle; only a queued one is
+  withdrawn. A comment anchors to lines; its place moves with each new version, and it is orphaned, its quote kept,
+  when its lines are deleted or its quote is gone from them.
+- User approves only the head (`document-version-moved` otherwise), only while the document's review is on
+  (`approvals.spec`, `approvals.plan`, on when absent; `document-review-is-off` otherwise), a spec only with a numbered
+  Acceptance item (`spec-acceptance-unnumbered`), and a plan only once its spec is approved
+  (`plan-before-approved-spec`). With the review off the agent's ready approves the head for the pipeline, and the
+  document is the agent's: User reads it and messages its agent but does not edit it. Approvals are appended and kept.
+- The approval that leaves both documents approved readies a draft ticket in the same write, as `ticket ready` would,
+  its refusals included.
+- A spec changed after the plan's approval leaves the plan out of date. A committed ticket whose spec, or a document
+  its builder reads, is not approved at its head, or whose plan is out of date, is held (`documents-not-in-order`): it
+  is not ready, `concurrency.heldTicketIds` lists it, and its frontmatter `hold` stays as it was.
+- Edits, messages and approvals are refused once an agent picked the ticket up (`document-not-editable`).
+- A builder reads the spec and the plan at their approved heads; a reviewer the spec and, by default, the plan only
+  once a person approved it on the spec given (`agents.<builder|reviewer>.documents`). Both are added after the brief.
+  Customs V8 reads the Acceptance from the approved spec and V18 refuses a job whose ticket's document heads changed
+  since its launch; a landing accounts for the spec's items against the body's review.
 
 ### Epics
 
@@ -1755,11 +1797,16 @@ runs, and is told to propose edits of the record's draft and to file no ticket; 
 
 #### `intake close`
 
-In the same hold it submits every draft ticket it (and any session it took over from) filed, as `ticket submit` does:
-with ticket review off each complete one becomes `committed` with its row, with it on each becomes `ready-for-review`
-for User's `ticket ready`, and an incomplete one stays a draft. With ticket review off in a forge with entities, a
-complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`). `--set` is stored on
-the job and decides nothing. Once no child of it is live Hephaestus ends it `closed`.
+In the spec-then-plan route (`pipeline.json` `ticketWriting`), each draft it filed with a `## Report` and a `## Wanted`
+that hold a non-blank line stays a draft and opens its [documents](#ticket-documents) (`ticket-documents-opened`);
+ticket review does not apply, and its documents' approvals ready it. A draft without both stays a draft with no
+documents. A need's ticket and a dependent fix ticket are submitted as below in either route.
+
+Otherwise, in the same hold it submits every draft ticket it (and any session it took over from) filed, as
+`ticket submit` does: with ticket review off each complete one becomes `committed` with its row, with it on each becomes
+`ready-for-review` for User's `ticket ready`, and an incomplete one stays a draft. With ticket review off in a forge
+with entities, a complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`).
+`--set` is stored on the job and decides nothing. Once no child of it is live Hephaestus ends it `closed`.
 
 A product owner interrupted by a reboot waits for User's resume, and an answer to its question counts as one: it then
 resumes by id. One past the crash bound with no question open waits for User's resume in the same way; with a question
@@ -2288,6 +2335,14 @@ writes `hold-journal.json` with the contents of every file it changes, and remov
 file a reader may hold open is written atomically: a temporary file beside the target, fsync, rename. On Windows a
 rename or removal of a file something else holds is retried 12 times, under 2 seconds in all. Timestamps carry the
 offset of the machine that wrote them and are displayed as written, never re-parsed into a viewer's zone.
+
+### `<data>/ticket-documents/<ticketId>/`
+
+A ticket's documents: `record.json` and one `<contentHash>.md` per version, written before the record names it and
+never rewritten. The record holds `version` (1), `ticketId`, `openedAt` and `documents`, one per kind in the order spec,
+plan, each with its `versions`, `approvals`, `messages`, `proposals`, `proposalMode`, optional `readyAtNumber` and its
+next message, comment and proposal numbers. An optional key is written only once set. A record that cannot be read, or
+names a version whose text is missing or changed, is listed as unreadable and never overwritten.
 
 ### `<data>/progress.json`
 
@@ -2862,6 +2917,14 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-grouped` | `ticketId` | `group`: the group `ticket group`, or Hephaestus's act on `dependent-broken`, put the ticket into |
 | `dependent-fix-filed` | `ticketId` | `entity`: the dependent the crossing ticket's package change breaks; `fixTicketIds`: the tickets filed in its group to fix it |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
+| `ticket-documents-opened` | `ticketId` | none |
+| `ticket-document-versioned` | `ticketId` | `document`: `spec` or `plan`; `number`; `author`: `person` or `agent` |
+| `ticket-document-approved` | `ticketId` | `document`; `number`; `by`: `person` or `pipeline`; `onSpecNumber` on a plan's approval |
+| `ticket-document-message-queued` | `ticketId` | `document`; `messageId` |
+| `ticket-document-proposed` | `ticketId` | `document`; `proposalId` |
+| `ticket-document-proposal-settled` | `ticketId` | `document`; `proposalId`; `state`: `applied`, `discarded` or `conflicted` |
+| `ticket-document-mode-set` | `ticketId` | `document`; `mode`: `ask-first` or `auto-apply` |
+| `ticket-document-snapshot-touched` | `ticketId` | `document`; `jobId`; `checks`: the Customs checks the agent's turn failed |
 
 #### Epic records
 

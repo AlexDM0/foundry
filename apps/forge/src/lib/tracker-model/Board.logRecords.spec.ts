@@ -6,13 +6,13 @@
  */
 import { expect, test } from 'bun:test';
 
-import { everyRecordKindTheBoardLogs, ticketDocumentRecordsBeforeTheirMoves } from '../../testing/EveryBoardLogRecord.ts';
-import type { LogRecord }                                                     from './@types/LogRecord.ts';
-import { LOG_RECORD_SCHEMA, RETIRED_LOG_RECORD_KINDS }                        from './constants/LogRecordSchema.ts';
+import { everyRecordKindTheBoardLogs }                 from '../../testing/EveryBoardLogRecord.ts';
+import type { LogRecord }                              from './@types/LogRecord.ts';
+import { LOG_RECORD_SCHEMA, RETIRED_LOG_RECORD_KINDS } from './constants/LogRecordSchema.ts';
 
 const LOGGED_AT = '2026-09-26T10:15:00+02:00';
 
-const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length - ticketDocumentRecordsBeforeTheirMoves(LOGGED_AT).length;
+const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length;
 
 /**
  * Six kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
@@ -179,6 +179,14 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profiled","profileRunId":"P1","fields":{"gateName":"tests","phase":"build","state":"passed","elapsedMilliseconds":4200}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profile-requested","profileRunId":"P2","fields":{"gateName":"tests","phase":"build","setupId":null}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profile-stopped","profileRunId":"P2","fields":{"gateName":"tests","phase":"build"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-documents-opened","ticketId":"004","fields":{}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-versioned","ticketId":"004","fields":{"document":"spec","number":1,"author":"person"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-message-queued","ticketId":"004","fields":{"document":"spec","messageId":"M1"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-proposed","ticketId":"004","fields":{"document":"spec","proposalId":"P1"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-proposal-settled","ticketId":"004","fields":{"document":"spec","proposalId":"P1","state":"discarded"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-approved","ticketId":"004","fields":{"document":"spec","number":1,"by":"person"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-mode-set","ticketId":"004","fields":{"document":"plan","mode":"auto-apply"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-document-snapshot-touched","ticketId":"004","fields":{"document":"plan","jobId":"J9","checks":["V16"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"tracker-cleared","fields":{}}',
 ];
 

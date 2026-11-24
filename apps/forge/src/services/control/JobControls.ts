@@ -6,7 +6,9 @@
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { JsonRecordUtil }                      from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PictureReference }               from '../../lib/tracker-model/@types/Job.ts';
+import type { ReadinessGap }                   from '../../lib/tracker-model/@types/Ticket.ts';
 import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
+import { TicketWritingUtil }                   from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/HephaestusLimits.ts';
@@ -34,9 +36,17 @@ function storedPicturesOf(pictures: unknown, change: BoardTransaction): PictureR
   return pictures.map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
 }
 
+/** In the spec-then-plan route the product owner writes only a ticket's Report and Wanted; its spec and plan hold the rest. */
+function intakeGapsOf(body: string): ReadinessGap[] {
+  const sectionIsWritten = (heading: string): boolean => TicketAcceptanceUtil.sectionsOf(body).some((section) => section.heading === heading && section.markdown.trim() !== '');
+  return [...(sectionIsWritten('Report') ? [] : ['report-missing' as const]), ...(sectionIsWritten('Wanted') ? [] : ['wanted-missing' as const])];
+}
+
 function closeIntake(command: ControlCommandOf<'intake-close'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-close-without-job' });
-  return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at, TicketAcceptanceUtil.workFilesOf);
+  const route = TicketWritingUtil.routeOf(change.board.pipeline());
+  const readinessGapsOf = route === 'spec-then-plan' ? intakeGapsOf : TicketAcceptanceUtil.readinessGapsOf;
+  return change.board.closeIntake(command.jobId, command.proposedDraftSets, readinessGapsOf, change.at, TicketAcceptanceUtil.workFilesOf, route);
 }
 
 function titleIntake(command: ControlCommandOf<'intake-title'>, change: BoardTransaction) {

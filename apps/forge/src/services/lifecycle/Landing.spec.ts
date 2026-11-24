@@ -1,11 +1,11 @@
 /**
- * Landing on git answers recorded from a real main checkout and feature commit by `src/lib/git/RecordedGitAnswers.integration.spec.ts`. What
- * matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands; main
- * lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit reads
- * as already landed; and every refusal maps to a typed outcome. A tracker in a project folder shares its landings through the git common
- * directory, and one at its repository's root asks git nothing for them; an already-landed rerun writes the journal line a stop cut off,
- * once. Each stage names every call in order, so a call it does not name fails. The journal and the lock themselves are held by
- * `Airlocks.siblingTrackers.spec.ts`.
+ * Landing on git answers recorded from a real main checkout and feature commit by `src/lib/git/RecordedGitAnswers.integration.spec.ts`.
+ * What matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands;
+ * main lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit
+ * reads as already landed; every refusal maps to a typed outcome; and a ticket with documents is accounted for against its approved spec. A
+ * tracker in a project folder shares its landings through the git common directory, and one at its repository's root asks git nothing for
+ * them; an already-landed rerun writes the journal line a stop cut off, once. Each stage names every call in order, so a call it does not
+ * name fails. The journal and the lock themselves are held by `Airlocks.siblingTrackers.spec.ts`.
  */
 import {
   existsSync,
@@ -36,6 +36,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
+import { loadedRecordFixture }                                      from '../../testing/TicketDocumentRecordFixtures.ts';
 import { describeWhenGitIsRecorded }                                from '../../testing/ToolGuard.ts';
 import { LockGenerationSteps }                                      from '../tracker/GenerationLock.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
@@ -230,6 +231,17 @@ describeWhenGitIsRecorded('landing a gated commit', () => {
     for (const reason of ['acceptance-unnumbered', 'acceptance-unaccounted', 'acceptance-waived'] as const) {
       expect(LANDING_OUTCOME_OF_REFUSAL[reason]).toBe('hold-ticket');
     }
+  });
+
+  test('a ticket with documents takes its Acceptance items from its approved spec and its review\'s lines from its body', () => {
+    const spec    = { texts: ['## Acceptance\n\nA1. The basket shows.\nA2. The total shows.\n'], approvals: [{ number: 1, by: 'person' as const }] };
+    const records = { ticketDocumentRecordOf: () => loadedRecordFixture('003', { spec }) };
+    const reviewedA1 = { ...ticketFixture({ id: '003' }), body: '## Report\nEmpty basket.\n\n## Review\nA1 holds — probe.\n' };
+    const reviewedBoth = { ...reviewedA1, body: `${reviewedA1.body}A2 holds — probe.\n` };
+
+    expect(Landing.ticketRefusalOf([reviewedA1], records)).toEqual({ verdict: 'refused', reason: 'acceptance-unaccounted', facts: { ticketId: '003' } });
+    expect(Landing.ticketRefusalOf([reviewedBoth], records)).toBeNull();
+    expect(Landing.ticketRefusalOf([reviewedBoth])).toEqual({ verdict: 'refused', reason: 'acceptance-unnumbered', facts: { ticketId: '003' } });
   });
 });
 

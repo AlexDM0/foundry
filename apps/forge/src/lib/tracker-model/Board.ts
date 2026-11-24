@@ -109,7 +109,8 @@ import type {
   PipelineApproval,
   PipelineBilling,
   PipelineGate,
-  PipelineStep
+  PipelineStep,
+  TicketWritingRoute
 } from './@types/Pipeline.ts';
 import type {
   ApplyFinishing,
@@ -174,7 +175,7 @@ import {
 import { BoardRecords }                                  from './BoardRecords.ts';
 import { BoardRefusal, type BoardRefusalDetail }         from './BoardRefusal.ts';
 import { Decisions }                                     from './Decisions.ts';
-import { DispatchQueries }                               from './DispatchQueries.ts';
+import { DispatchQueries, DOCUMENTS_HOLD_REASON }        from './DispatchQueries.ts';
 import { DisplayQueries }                                from './DisplayQueries.ts';
 import { DraftContents }                                 from './DraftContents.ts';
 import { Drafts }                                        from './Drafts.ts';
@@ -317,7 +318,6 @@ export class Board {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
       input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' },
       input.ticketDocumentRecords ?? []);
-    this.ticketDocumentRules = new TicketDocuments(this.records);
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);
@@ -326,6 +326,9 @@ export class Board {
     this.ticketDependencies = new TicketDependencies(this.records);
     this.ticketLinks        = new TicketLinks(this.records);
     this.ticketMoves        = new TicketMoves(this.records, this.reviewBars, this.ticketDependencies, this.groupReleases);
+    this.ticketDocumentRules = new TicketDocuments(this.records, (ticketId, judges, at) => this.ticketMoves.readyDraftTickets(
+      [ticketId], judges.bodyGapsOf, at, ['draft'], judges.workFilesOf
+    ).logged);
     this.ticketClaims       = new TicketClaims(this.records, this.ticketMoves, this.reviewBars, this.dispatchQueries, this.groupReleases);
     this.ticketSettings     = new TicketSettings(this.records);
     this.ticketEdits        = new TicketEdits(this.records);
@@ -412,7 +415,8 @@ export class Board {
 
   /**
    * The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. Work
-   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close.
+   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close. In the spec-then-plan `route`,
+   * `readinessGapsOf` judges a draft's Report and Wanted: each complete draft stays a draft and opens its spec and plan, which ready it.
    */
   closeIntake(
     jobId: string,
@@ -420,7 +424,15 @@ export class Board {
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
     workFilesOf?: WorkFilesOf,
+    route: TicketWritingRoute = 'one-ticket',
   ): JobChanged {
+    if (route === 'spec-then-plan') {
+      const closed = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
+      const opened = this.draftsFiledByIntakeOf(jobId)
+        .filter((ticket) => ticket.frontmatter.status === 'draft' && readinessGapsOf(ticket.body).length === 0)
+        .flatMap((ticket) => this.ticketDocumentRules.open(ticket.frontmatter.id, at).logged);
+      return { job: closed.job, logged: [...closed.logged, ...opened] };
+    }
     const drafts = this.draftsFiledByIntakeOf(jobId);
     if (workFilesOf !== undefined) this.refuseWorkOutsideTheEntity(drafts, readinessGapsOf, workFilesOf);
     const closed    = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
@@ -888,7 +900,10 @@ export class Board {
   /** The ticket as the Playbook reads it: its frontmatter, whether it is queued to land, and the stage its row stores once it crosses. */
   private playbookTicketOf(ticket: Readonly<Ticket>): PlaybookTicket {
     const stage = this.records.linkedTaskRecordOf(ticket)?.stage;
-    return { ...ticket.frontmatter, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id), ...(stage === undefined ? {} : { stage: { ...stage } }) };
+    const documentsHold = ticket.frontmatter.hold === undefined && this.dispatchQueries.ticketIsHeldByItsDocuments(ticket) ? { hold: DOCUMENTS_HOLD_REASON } : {};
+    return {
+      ...ticket.frontmatter, ...documentsHold, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id), ...(stage === undefined ? {} : { stage: { ...stage } })
+    };
   }
 
   private interruptedJobs(): readonly Readonly<Job>[] {
@@ -1764,6 +1779,11 @@ export class Board {
   /** The spec and plan moves of the tickets in the spec-then-plan route. */
   ticketDocuments(): TicketDocuments {
     return this.ticketDocumentRules;
+  }
+
+  /** The ticket's documents record with its version texts; `null` for a ticket outside the spec-then-plan route. */
+  ticketDocumentRecordOf(ticketId: string): Readonly<LoadedTicketDocumentRecord> | null {
+    return this.records.ticketDocumentRecordOf(ticketId) ?? null;
   }
 
   changedTicketDocumentRecords(): readonly LoadedTicketDocumentRecord[] {

@@ -25,7 +25,7 @@ export type OperationRefusalDetail =
   | { kind: 'older-program-present'; rootDirectory: string; olderDataFolderPath: string; program: string; olderProgram: string }
   | { kind: 'no-readable-ticket'; reference: string }
   | { kind: 'malformed-ticket-file'; filePath: string; line: number; reason: string }
-  | { kind: 'unreadable-file-in-the-way'; filePath: string; record: 'epic' | 'draft' }
+  | { kind: 'unreadable-file-in-the-way'; filePath: string; record: 'epic' | 'draft' | 'ticket-documents' }
   | { kind: 'malformed-pipeline'; filePath: string; reason: string }
   | { kind: 'older-pipeline'; filePath: string }
   | { kind: 'entities-in-a-folder'; filePath: string; projectPrefix: string }

@@ -3,7 +3,8 @@
  * leaves nothing), writes are exclusive and queue behind one another across an `await`, a command waits for a transaction rather than
  * slipping into it, every later read and every other client sees a write, the revision moves with the progress record and the log
  * only, and a committed ticket whose stored text is changed behind the store reads with the content its hash names until the next write
- * restores it. A second adapter joins `STORE_SUBJECTS`, with the step that changes a ticket's stored text behind it.
+ * restores it. A ticket's documents a command changed are read back with every version's text. A second adapter joins `STORE_SUBJECTS`,
+ * with the step that changes a ticket's stored text behind it.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
@@ -152,6 +153,34 @@ const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
       expect(reading.contents.epicListing).toEqual({ epics: [], unreadable: [] });
       expect(reading.contents.draftListing).toEqual({ drafts: [], unreadable: [] });
       expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'none' });
+    },
+  },
+  {
+    claim: 'a ticket\'s documents a command changed are in every later read, each version with its text, and a new board holds none',
+    check: async (subject) => {
+      const { store, anotherClientOfTheSameBoard } = await subject();
+      expect(store.reads.requireBoard().ticketDocumentListing).toEqual({ records: [], unreadable: [] });
+      const opened = await store.transactions.transact({
+        at:     CHANGED_AT,
+        mutate: (transaction) => {
+          const ticket = transaction.records.newTicket({
+            title: 'Example basket page', type: 'ticket', bodyFor: () => '## Report\n\nEmpty.\n', at: transaction.at
+          });
+          transaction.board.fileTicket(ticket, transaction.at);
+          transaction.board.ticketDocuments().open(ticket.frontmatter.id, transaction.at);
+          return ticket.frontmatter.id;
+        },
+      });
+      const specText = '## Acceptance\n\nA1. The basket shows.\n';
+
+      const saved = await applyCommand(store, {
+        kind: 'ticket-document-save', ticketReference: opened.result, document: 'spec', baseVersion: null, markdown: specText
+      });
+
+      expect(saved.outcome).toBe('done');
+      const [loadedRecord] = anotherClientOfTheSameBoard().reads.requireBoard().ticketDocumentListing.records;
+      expect(loadedRecord?.record.documents[0]?.versions.map((version) => version.number)).toEqual([1]);
+      expect(Object.values(loadedRecord?.textOfContentHash ?? {})).toEqual([specText]);
     },
   },
   {

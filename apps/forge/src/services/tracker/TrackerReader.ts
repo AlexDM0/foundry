@@ -18,6 +18,7 @@ import { listDrafts }                                      from './DraftStore.ts
 import { listEpics }                                       from './EpicStore.ts';
 import { localStoreLayoutOf }                              from './LocalStoreLayout.ts';
 import { projectLocationOf }                               from './ProjectLocation.ts';
+import { listTicketDocuments }                             from './TicketDocumentStore.ts';
 import { listTickets, ticketListingOf }                    from './TicketStore.ts';
 import type { Workspace }                                  from './Workspace.ts';
 
@@ -94,6 +95,7 @@ function readLocalTracker(workspace: Workspace): LocalTrackerReading {
       listing:                    ticketListingOf(ticketListing),
       epicListing:                listEpics(workspace),
       draftListing:               listDrafts(workspace),
+      ticketDocumentListing:      listTicketDocuments(workspace),
     },
   };
 }

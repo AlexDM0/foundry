@@ -44,13 +44,13 @@ import { ProjectPathsUtil }                                                     
  * `airlock-agent` is the ticket's last worker resumed into the Airlock for a conflict or a red merged tree; a conflict re-reviewer in the
  * Airlock is verified as a `reviewer`.
  */
-export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-agent';
+export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-agent' | 'document-agent';
 
-/** The roles that end with a report: the pipeline agent is a session, verified at each turn end with no report. */
-export type ReportingRole = Exclude<VerifiedRole, 'pipeline-agent'>;
+/** The roles that end with a report: the pipeline agent and a document agent are sessions, verified at each turn end with no report. */
+export type ReportingRole = Exclude<VerifiedRole, 'pipeline-agent' | 'document-agent'>;
 
 export type VerificationCheck =
-  | 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16' | 'V17';
+  | 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16' | 'V17' | 'V18';
 
 export type VerificationRefusalReason =
   | 'report-invalid'
@@ -60,6 +60,7 @@ export type VerificationRefusalReason =
   | 'worktree-dirty'
   | 'data-folder-touched'
   | 'ticket-content-changed'
+  | 'ticket-documents-changed'
   | 'ai-attribution-in-range'
   | 'acceptance-without-evidence'
   | 'fixed-finding-outside-range'
@@ -230,53 +231,62 @@ export type AgentNaming = Pick<AgentAdapter, 'configurationNames' | 'attribution
 const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
 export interface CustomsSubject {
-  role:                VerifiedRole;
-  worktreePath:        string;
+  role:                      VerifiedRole;
+  worktreePath:              string;
   /** The worktree's HEAD at launch, the branch tip with `MERGE_HEAD` at the target tip for an Airlock agent, the merged commit after it. */
-  startCommit:         string;
+  startCommit:               string;
   /** V3 measures from it when set: the start of the failed build attempts this one retries, whose commits its branch already holds. */
-  workStartCommit?:    string;
+  workStartCommit?:          string;
   /** The report as parsed from the session's structured output, unvalidated. */
-  report:              unknown;
-  ticketBody:          string;
+  report:                    unknown;
+  /** The ticket's body, and for a ticket with documents its spec and plan beside it: V11 lets through a path it names. */
+  ticketBody:                string;
+  /** V8 reads the Acceptance here when set: the approved spec of a ticket with documents; else from `ticketBody`. */
+  acceptanceText?:           string;
+  /**
+   * V18: the ticket's document heads as the job's start recorded them, and as they stand as the job ends; both absent or empty for a
+   * ticket without documents.
+   */
+  documentVersionsAtLaunch?: string;
+  ticketDocumentVersions?:   string;
   /** The ticket's content hash as the job's start recorded it; empty for a job with no ticket or a ticket that holds none. */
-  contentHashAtLaunch: string;
+  contentHashAtLaunch:       string;
   /** The ticket's content hash as the job ends, empty likewise: V6 compares the two. */
-  ticketContentHash:   string;
+  ticketContentHash:         string;
   /** V10's merge, for an Airlock agent. */
-  merge?:              MergeUnderVerification;
+  merge?:                    MergeUnderVerification;
   /**
    * The gate catalogue, every gate whatever phases run it: V11 reads each one's `definedBy`, V15 the ones an agent runs; absent or empty,
    * both pass.
    */
-  gates?:              readonly Readonly<PipelineGate>[];
+  gates?:                    readonly Readonly<PipelineGate>[];
   /**
    * V11 also: the tracked files, as repository paths, each role's resolved instruction list names, the constitution's path among them,
    * which a branch changes only where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
    */
-  instructionFiles?:   readonly string[];
+  instructionFiles?:         readonly string[];
   /**
    * V11 also: the line the branch lands on. When set, an instruction file counts as changed only where the branch changed it itself; a
    * change that reached the branch through a merge of this line, such as a constitution commit, is not the worker's edit.
    */
-  target?:             string;
+  target?:                   string;
   /** V12: the job being verified, and the log as stored plus this hold's records. */
-  jobId?:              string;
-  logRecords?:         readonly LogRecord[];
+  jobId?:                    string;
+  logRecords?:               readonly LogRecord[];
   /** V13 and V14: what was snapshotted at launch; without it V14 refuses, since nothing proves no ref moved. */
-  launchSnapshot?:     LaunchSnapshot;
-  refMovesAllowed?:    RefMovesAllowed;
+  launchSnapshot?:           LaunchSnapshot;
+  refMovesAllowed?:          RefMovesAllowed;
   /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
-  pathStyle?:          GitPathStyle;
+  pathStyle?:                GitPathStyle;
   /**
    * V5, V11, V13 and V17; absent for a tracker at its repository's root whose pipeline has no entities. `worktreePath` is the worktree's
    * root either way.
    */
-  projectScope?:       ProjectScope;
+  projectScope?:             ProjectScope;
   /** A job of a ticket that crosses into whitelisted packages, once its row stores a stage; absent for every other job. */
-  crossingStage?:      CrossingStageScope;
+  crossingStage?:            CrossingStageScope;
   /** The agent's configuration, which V13 protects, and its attribution, which V7 refuses beside forge's own. */
-  agentNaming:         AgentNaming;
+  agentNaming:               AgentNaming;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -424,7 +434,7 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 }
 
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
-  if (subject.role === 'pipeline-agent') return refused('report-invalid', ['no report']);
+  if (subject.role === 'pipeline-agent' || subject.role === 'document-agent') return refused('report-invalid', ['no report']);
   const verdict = reportVerdictOf(reportSchemaOf(subject.role, crossingStageNameOf(subject)), subject.report);
   if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems);
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
@@ -498,6 +508,12 @@ function ticketContentUnchanged(subject: CustomsSubject): CheckVerdict {
   return ticketContentHash === contentHashAtLaunch ? PASSED : refused('ticket-content-changed', [contentHashAtLaunch, ticketContentHash]);
 }
 
+function ticketDocumentsUnchanged(subject: CustomsSubject): CheckVerdict {
+  const atLaunch = subject.documentVersionsAtLaunch ?? '';
+  const atEnd    = subject.ticketDocumentVersions ?? '';
+  return atLaunch === atEnd ? PASSED : refused('ticket-documents-changed', [atLaunch, atEnd]);
+}
+
 function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
   const commits = gitLines(subject.worktreePath, ['rev-list', ...rangeArgumentsOf(subject)]);
   if (commits === null) return refused('git-failed', [rangeOf(subject)]);
@@ -514,7 +530,9 @@ function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
  */
 function everyAcceptanceItemAccountedFor(subject: CustomsSubject): CheckVerdict {
   if (inAPackageStage(subject)) return PASSED;
-  const labels  = TicketAcceptanceUtil.acceptanceItemsOf(subject.ticketBody).filter(({ waivedReason }) => waivedReason === null).map(({ label }) => label);
+  const labels  = TicketAcceptanceUtil.acceptanceItemsOf(subject.acceptanceText ?? subject.ticketBody)
+    .filter(({ waivedReason }) => waivedReason === null)
+    .map(({ label }) => label);
   const covered = subject.role === 'reviewer'
     ? reportListOf(subject.report, 'claims').map((claim) => String(claim['item']).trim())
     : reportListOf(subject.report, 'acceptance')
@@ -1154,14 +1172,16 @@ export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationChec
   V15: everyAgentGateClaimedOnHead,
   V16: headUnmoved,
   V17: changesStayInHomeAndReach,
+  V18: ticketDocumentsUnchanged,
 };
 
 /** The design's table, column by column, in check order. */
 export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly VerificationCheck[]>> = {
-  'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V17', 'V13', 'V14', 'V15'],
-  'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V17', 'V12', 'V13', 'V14'],
-  'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V17', 'V13', 'V14'],
+  'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V18', 'V7', 'V8', 'V11', 'V17', 'V13', 'V14', 'V15'],
+  'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V18', 'V7', 'V8', 'V9', 'V11', 'V17', 'V12', 'V13', 'V14'],
+  'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V18', 'V7', 'V10', 'V11', 'V17', 'V13', 'V14'],
   'pipeline-agent': ['V16', 'V4', 'V5', 'V13', 'V14'],
+  'document-agent': ['V16', 'V4', 'V5', 'V13', 'V14'],
 };
 
 /**

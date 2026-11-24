@@ -673,8 +673,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `The ${detail.document} of #${detail.ticketId} cannot be changed: the ticket is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `or its review is off and its agent writes it. ${NOTHING_WAS_WRITTEN}`;
     case 'document-version-moved':
-      return `The ${detail.document} of #${detail.ticketId} is at ${documentVersionText(detail.headNumber)}, not `
-        + `${documentVersionText(detail.version)}: read it again first. ${NOTHING_WAS_WRITTEN}`;
+      return `The ${detail.document} of #${detail.ticketId} is at ${documentVersionText(detail.headNumber)}, `
+        + `${detail.version === null ? 'not empty' : `not ${documentVersionText(detail.version)}`}: read it again first. ${NOTHING_WAS_WRITTEN}`;
     case 'document-merge-conflict':
       return `The change to the ${detail.document} of #${detail.ticketId}, made on version ${detail.baseNumber}, overlaps a later change `
         + `in version ${detail.headNumber}: read it again and make the change there. ${NOTHING_WAS_WRITTEN}`;
@@ -703,6 +703,12 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         + `so job ${detail.jobId} ended and its moves of this turn were refused. ${NOTHING_WAS_WRITTEN}`;
   }
 }
+
+const UNREADABLE_RECORD_TEXT: Readonly<Record<Extract<OperationRefusalDetail, { kind: 'unreadable-file-in-the-way' }>['record'], string>> = {
+  'epic':             'an epic',
+  'draft':            'a draft',
+  'ticket-documents': 'a ticket\'s spec and plan',
+};
 
 /** `version 4`, or `no version` for a document that has none. */
 function documentVersionText(versionNumber: number | null): string {
@@ -864,7 +870,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'malformed-ticket-file':
       return `Ticket file ignored: ${detail.filePath}${detail.line > 0 ? ` (line ${detail.line})` : ''}: ${detail.reason}`;
     case 'unreadable-file-in-the-way':
-      return `${detail.filePath} already exists but cannot be read as ${detail.record === 'epic' ? 'an epic' : 'a draft'}, so it is not overwritten. `
+      return `${detail.filePath} already exists but cannot be read as ${UNREADABLE_RECORD_TEXT[detail.record]}, so it is not overwritten. `
         + 'Nothing was written; repair or delete it first.';
     case 'malformed-pipeline':
       return `${detail.filePath} cannot be read as a pipeline (${detail.reason}), so it is not overwritten. Nothing was written; repair `

@@ -11,8 +11,9 @@ import {
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
-import { Board }        from './Board.ts';
-import { createLogger } from './Logger.ts';
+import { loadedRecordFixture } from '../../testing/TicketDocumentRecordFixtures.ts';
+import { Board }               from './Board.ts';
+import { createLogger }        from './Logger.ts';
 import {
   FIXTURE_AT,
   FIXTURE_LIMITS,
@@ -20,6 +21,7 @@ import {
   LIVE_ASSISTANT,
   jobFixture
 } from './testing/LifecycleFixtures.ts';
+import { PipelineUtil } from './utils/PipelineUtil.ts';
 
 describe('the ticket ids in flight', () => {
   test('come once each in row order, from in-progress rows that belong to a ticket only', () => {
@@ -460,4 +462,86 @@ test('none of these queries changes a record or marks a ticket changed', () => {
   expect(fixture.progress).toEqual(progressAsRead);
   expect(fixture.tickets).toEqual(ticketsAsRead);
   expect(board.changedTickets()).toEqual([]);
+});
+
+describe('the hold a committed ticket\'s documents put on it', () => {
+  const SPEC_V1 = '## Acceptance\n\nA1. The basket shows.\n';
+  const SPEC_V2 = '## Acceptance\n\nA1. The basket shows.\nA2. The total shows.\n';
+  const PLAN    = '## Files\n\nWork belongs in: apps/web/src/Basket.ts\n';
+
+  function committedTicketWith(record: ReturnType<typeof loadedRecordFixture>, pipeline = PipelineUtil.minimalPipelineOf()): Board {
+    return boardFixture({
+      tickets:               [ticketFixture({ id: '004', status: 'committed', task: 1 })],
+      tasks:                 [taskFixture({ id: 1, status: 'committed', ticket: '004' })],
+      pipeline:              { ...pipeline, ticketWriting: 'spec-then-plan' },
+      ticketDocumentRecords: [record],
+    }).board;
+  }
+
+  const changedSpec = (): ReturnType<typeof loadedRecordFixture> => loadedRecordFixture('004', {
+    spec: { texts: [SPEC_V1, SPEC_V2], approvals: [{ number: 1, by: 'person' }] },
+    plan: { texts: [PLAN], approvals: [{ number: 1, by: 'person', onSpecNumber: 1 }] },
+  });
+
+  test('a ticket whose documents are in order is ready and held by nothing', () => {
+    const board = committedTicketWith(loadedRecordFixture('004', {
+      spec: { texts: [SPEC_V1], approvals: [{ number: 1, by: 'person' }] },
+      plan: { texts: [PLAN], approvals: [{ number: 1, by: 'person', onSpecNumber: 1 }] },
+    }));
+    expect(board.readyTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['004']);
+    expect(board.heldTicketIds()).toEqual([]);
+  });
+
+  test('a spec changed after its approval holds the build: the ticket is not ready, is held, and its frontmatter keeps no hold', () => {
+    const board = committedTicketWith(changedSpec());
+    expect(board.readyTickets()).toEqual([]);
+    expect(board.heldTicketIds()).toEqual(['004']);
+    expect(board.ticketByReference('004')?.frontmatter.hold).toBeUndefined();
+  });
+
+  test('a plan the builder never reads holds nothing', () => {
+    const record = loadedRecordFixture('004', {
+      spec: { texts: [SPEC_V1], approvals: [{ number: 1, by: 'person' }] },
+      plan: { texts: [PLAN, `${PLAN}More.\n`], approvals: [{ number: 1, by: 'person', onSpecNumber: 1 }] },
+    });
+    const pipeline = { ...PipelineUtil.minimalPipelineOf(), agents: { builder: { documents: { plan: 'never' as const } } } };
+    expect(committedTicketWith(record, pipeline).readyTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['004']);
+    expect(committedTicketWith(record).readyTickets()).toEqual([]);
+  });
+
+  test('the Playbook launches the build of a ticket whose documents are in order, and none of one its documents hold', () => {
+    const buildLaunchesWith = (record: ReturnType<typeof loadedRecordFixture>): number => {
+      const board = new Board({
+        progress: {
+          trackerId:       'example-tracker-id',
+          project:         'Example Agency',
+          startedAt:       FIXTURE_AT,
+          view:            { kind: 'auto' },
+          nextTaskId:      2,
+          nextJobId:       2,
+          hephaestusState: 'running',
+          jobs:            [{ ...LIVE_ASSISTANT }],
+          tasks:           [taskFixture({ id: 1, status: 'committed', ticket: '004' })],
+        },
+        tickets:  [ticketFixture({ id: '004', status: 'committed', task: 1 })],
+        epics:    [],
+        logger:   createLogger(() => undefined),
+        pipeline: {
+          version:       5,
+          prepare:       [],
+          gates:         [{ name: 'verify', run: 'bun run verify' }],
+          phases:        { build: ['verify'], review: ['verify'], merge: ['verify'] },
+          ticketWriting: 'spec-then-plan',
+        },
+        ticketDocumentRecords: [record],
+      });
+      const { steps } = board.followPlaybook(FIXTURE_LIMITS, FIXTURE_OBSERVATIONS, () => ({ questions: [], context: '' }));
+      return steps.filter((step) => step.kind === 'launch-build').length;
+    };
+    expect(buildLaunchesWith(loadedRecordFixture('004', {
+      spec: { texts: [SPEC_V1], approvals: [{ number: 1, by: 'person' }] },
+      plan: { texts: [PLAN], approvals: [{ number: 1, by: 'person', onSpecNumber: 1 }] },
+    }))).toBe(1);
+    expect(buildLaunchesWith(changedSpec())).toBe(0);
+  });
 });

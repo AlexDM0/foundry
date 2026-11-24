@@ -57,6 +57,8 @@ import { FIRST_CHILD_INSTANCE, HANDOFF_RED_INTERRUPTION } from '../../lib/tracke
 import { EntityOwnershipUtil, type PipelineEntities }     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { GroupNameUtil }                                  from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentReadingUtil }                      from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import type { DocumentReading }                           from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { BranchNames }                               from '../../shared/BranchNames.ts';
@@ -447,16 +449,18 @@ const TARGET_CATCH_UP_CAUSES: readonly string[] = [BUILD_JOB_CAUSES.targetConfli
 type PackageBuildStart = Pick<JobStart, 'homeEntity' | 'dependentsFixedInGroup'>;
 
 interface JobStart {
-  startCommit:             string;
-  contentHashAtLaunch:     string;
-  launchSnapshot:          LaunchSnapshot;
+  startCommit:               string;
+  contentHashAtLaunch:       string;
+  /** The ticket's document heads at launch, which V18 compares with; absent for a ticket without documents. */
+  documentVersionsAtLaunch?: string;
+  launchSnapshot:            LaunchSnapshot;
   /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
-  homeEntity?:             EntityKey;
+  homeEntity?:               EntityKey;
   /**
    * A package build's dependents whose fix tickets are in its ticket's group, whose gates its run also leaves out: the group's release runs
    * them (E26). Absent when there are none.
    */
-  dependentsFixedInGroup?: EntityKey[];
+  dependentsFixedInGroup?:   EntityKey[];
 }
 
 function ticketIdOf(job: Readonly<Job>): string {
@@ -1293,23 +1297,25 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity, refusedPackages);
   const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
-    role:                job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
-    worktreePath:        worktreeOf(hold.context.workspace, job),
-    startCommit:         start.startCommit,
+    role:                     job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
+    worktreePath:             worktreeOf(hold.context.workspace, job),
+    startCommit:              start.startCommit,
     ...(retriedStart === null ? {} : { workStartCommit: retriedStart.startCommit }),
-    contentHashAtLaunch: start.contentHashAtLaunch,
-    ticketContentHash:   ticket.frontmatter.contentHash ?? '',
-    report:              observation.report,
-    ticketBody:          ticket.body,
-    jobId:               job.id,
-    logRecords:          board.logRecordsSoFar(),
-    launchSnapshot:      start.launchSnapshot,
-    refMovesAllowed:     refMovesAllowedFor(hold.context, board, job),
-    gates:               pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.gates ?? [],
-    instructionFiles:    InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
-    target:              job.target ?? hold.context.mainLine,
-    pathStyle:           hold.context.platformPorts.dataFolders,
-    agentNaming:         hold.context.agentAdapter,
+    contentHashAtLaunch:      start.contentHashAtLaunch,
+    ticketContentHash:        ticket.frontmatter.contentHash ?? '',
+    documentVersionsAtLaunch: start.documentVersionsAtLaunch ?? '',
+    ticketDocumentVersions:   ticketDocumentVersionsOf(board, ticket.frontmatter.id),
+    report:                   observation.report,
+    ...ticketTextOfCustoms(board, ticket),
+    jobId:                    job.id,
+    logRecords:               board.logRecordsSoFar(),
+    launchSnapshot:           start.launchSnapshot,
+    refMovesAllowed:          refMovesAllowedFor(hold.context, board, job),
+    gates:                    pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.gates ?? [],
+    instructionFiles:         InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
+    target:                   job.target ?? hold.context.mainLine,
+    pathStyle:                hold.context.platformPorts.dataFolders,
+    agentNaming:              hold.context.agentAdapter,
     ...(projectScope === null ? {} : { projectScope }),
     ...(crossingStage === null ? {} : { crossingStage }),
   };
@@ -2904,6 +2910,37 @@ async function spawnGateStep(context: JobLaunchContext, job: Readonly<Job>, pipe
   }
 }
 
+/** The role that reads a build or a review job's ticket documents; `null` for any other job. */
+function documentReadingRoleOf(job: Readonly<Job>): 'builder' | 'reviewer' | null {
+  if (job.kind === 'build') return 'builder';
+  return job.kind === REVIEW_JOB_KIND ? 'reviewer' : null;
+}
+
+/** The ticket's spec and plan as the job's role reads them, in pipeline order; none for a ticket without documents or another job. */
+function ticketDocumentReadingsOf(board: Board, job: Readonly<Job>, ticketId: string): DocumentReading[] {
+  const loadedRecord = board.ticketDocumentRecordOf(ticketId);
+  const role         = documentReadingRoleOf(job);
+  if (loadedRecord === null || role === null) return [];
+  const entityKey = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter.entity;
+  return TicketDocumentReadingUtil.readingsForRoleOf(loadedRecord, board.pipeline(), role, entityKey);
+}
+
+/** Each document's head as `<kind>:<content hash>`, in pipeline order: what V18 compares; empty for a ticket without documents. */
+function ticketDocumentVersionsOf(board: Board, ticketId: string): string {
+  const loadedRecord = board.ticketDocumentRecordOf(ticketId);
+  if (loadedRecord === null) return '';
+  return loadedRecord.record.documents.map((document) => `${document.kind}:${document.versions.at(-1)?.contentHash ?? ''}`).join(' ');
+}
+
+/** The text V8 reads the Acceptance from and V11 the named paths: the body, and for a ticket with documents its spec and plan heads. */
+function ticketTextOfCustoms(board: Board, ticket: Readonly<{ frontmatter: { id: string }; body: string }>): { ticketBody: string; acceptanceText?: string } {
+  const loadedRecord = board.ticketDocumentRecordOf(ticket.frontmatter.id);
+  if (loadedRecord === null) return { ticketBody: ticket.body };
+  const specText = TicketDocumentReadingUtil.approvedHeadOf(loadedRecord, 'spec')?.text ?? '';
+  const planText = TicketDocumentReadingUtil.briefTextOf(loadedRecord) ?? '';
+  return { ticketBody: [ticket.body, specText, planText].join('\n'), acceptanceText: specText };
+}
+
 /** What a package build's start records of the entities its gate run leaves out; nothing for every other job. */
 function packageBuildStartOf(board: Board, job: Readonly<Job>): PackageBuildStart {
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
@@ -2925,8 +2962,13 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   const startCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD', GitWorktrees.ceilingOf(worktree));
   const launchSnapshot = launchSnapshotOf(worktree);
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
+  const documentVersionsAtLaunch = ticketDocumentVersionsOf(board, ticket.frontmatter.id);
   const start: JobStart = {
-    startCommit, contentHashAtLaunch: ticket.frontmatter.contentHash ?? '', launchSnapshot, ...packageBuildStartOf(board, job)
+    startCommit,
+    contentHashAtLaunch: ticket.frontmatter.contentHash ?? '',
+    ...(documentVersionsAtLaunch === '' ? {} : { documentVersionsAtLaunch }),
+    launchSnapshot,
+    ...packageBuildStartOf(board, job),
   };
   mkdirSync(dirname(startPath), { recursive: true });
   writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);
@@ -2967,6 +3009,9 @@ function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): Main
 
 export const JobLaunch = Object.freeze({
   manifestOf,
+  ticketDocumentReadingsOf,
+  ticketDocumentVersionsOf,
+  ticketTextOfCustoms,
   recordInstructionsRead,
   recordLaunchSettings,
   recordedLaunchSettingsOf,

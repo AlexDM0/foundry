@@ -272,6 +272,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     concurrency:       board.concurrency(),
     boardFacts:        boardFactsOf(board),
     draftRequests:     reading.drafts.map((draft) => ({ id: draft.id, request: draft.request })),
+    documentRecords:   board,
   });
   return {
     ...reading.statusDocument,

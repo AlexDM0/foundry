@@ -15,14 +15,14 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord, LogRecordKind }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES }                     from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { START_KINDS }                                                        from '../../lib/tracker-model/constants/JobStates.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }                          from '../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { everyRecordKindTheBoardLogs, ticketDocumentRecordsBeforeTheirMoves } from '../../testing/EveryBoardLogRecord.ts';
-import { createScratchDirectory, removeScratchDirectory }                     from '../../testing/ScratchWorkspace.ts';
-import { LogFileIngestion }                                                   from './LogFileIngestion.ts';
-import { logRecordProblemOf }                                                 from './LogRecordProblem.ts';
+import type { LogRecord, LogRecordKind }                  from '../../lib/tracker-model/@types/LogRecord.ts';
+import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { START_KINDS }                                    from '../../lib/tracker-model/constants/JobStates.ts';
+import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { LogFileIngestion }                               from './LogFileIngestion.ts';
+import { logRecordProblemOf }                             from './LogRecordProblem.ts';
 
 const RECORDED_AT = '2026-09-18T21:30:54+02:00';
 
@@ -39,7 +39,7 @@ const RETIRED_RECORDS: readonly LogRecord[] = [
   { at: RECORDED_AT, kind: 'dispatcher-set', fields: { state: 'finished', runId: 'wf_example-run' } },
 ];
 
-const RECORDS_THE_BOARD_LOGS = [...everyRecordKindTheBoardLogs(RECORDED_AT), ...RETIRED_RECORDS, ...ticketDocumentRecordsBeforeTheirMoves(RECORDED_AT)];
+const RECORDS_THE_BOARD_LOGS = [...everyRecordKindTheBoardLogs(RECORDED_AT), ...RETIRED_RECORDS];
 
 // No field shape accepts an empty object, and an agent pair names its missing model.
 const MALFORMED_VALUE = {};
