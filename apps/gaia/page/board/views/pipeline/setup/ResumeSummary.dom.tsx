@@ -46,17 +46,18 @@ describe('the resume summary', () => {
   test('each step row shows its status and summary, and a done row Open', () => {
     renderResume('A0b-running');
     const rows = stepRows();
-    expect(rows.map((row) => row.getAttribute('data-status'))).toEqual(['done', 'done', 'done', 'current', 'upcoming']);
-    expect(rows[1]?.textContent).toContain('1 stack item, 2 scripts, 1 question answered');
-    expect(rows[3]?.textContent).toContain('Pipeline agent J4 running');
-    expect(rows[4]?.textContent).toContain('not yet');
-    expect(within(rows[2] as HTMLElement).getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/constitution');
-    expect(within(rows[3] as HTMLElement).queryByRole('link', { name: 'Open' })).toBeNull();
+    expect(rows.map((row) => row.getAttribute('data-status'))).toEqual(['done', 'done', 'done', 'done', 'current', 'upcoming']);
+    expect(rows[1]?.textContent).toContain('This machine\'s program');
+    expect(rows[2]?.textContent).toContain('1 stack item, 2 scripts, 1 question answered');
+    expect(rows[4]?.textContent).toContain('Pipeline agent J4 running');
+    expect(rows[5]?.textContent).toContain('not yet');
+    expect(within(rows[3] as HTMLElement).getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/constitution');
+    expect(within(rows[4] as HTMLElement).queryByRole('link', { name: 'Open' })).toBeNull();
   });
 
   test('a step that needs a recheck says so', () => {
     renderResume('A0b-recheck');
-    expect(stepRows()[2]?.querySelector('.board-pipeline-resume-recheck')?.textContent).toBe('recheck');
+    expect(stepRows()[3]?.querySelector('.board-pipeline-resume-recheck')?.textContent).toBe('recheck');
   });
 
   test('Start over asks first and sends the command only on the confirm', async () => {
@@ -75,7 +76,7 @@ describe('the resume summary', () => {
 
   test('the footer counts the steps done', () => {
     renderResume('A0b-running');
-    expect(within(screen.getByRole('region', { name: 'Resume setup actions' })).getByText('3 of 5 steps done')).toBeDefined();
+    expect(within(screen.getByRole('region', { name: 'Resume setup actions' })).getByText('4 of 6 steps done')).toBeDefined();
   });
 
   test('the main-moved note shows only while main moved', () => {
@@ -95,6 +96,6 @@ describe('the resume summary', () => {
 
   test('a pending Apply names the constitution commit on its row', () => {
     renderResume('A0b-apply-pending');
-    expect(stepRows()[4]?.textContent).toContain('Committing CONSTITUTION.md to main');
+    expect(stepRows()[5]?.textContent).toContain('Committing CONSTITUTION.md to main');
   });
 });

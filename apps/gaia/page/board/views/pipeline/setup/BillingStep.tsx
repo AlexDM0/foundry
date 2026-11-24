@@ -4,7 +4,7 @@
  * phases; beside it the pipeline agent's panel, which introduces Flint and what it does once started; the footer words the chosen billing.
  * On the landing the one start sends the chosen billing and opens the research. Reopened from the step bar while a record is open, a
  * billing change is saved to the record, and the start is replaced by the way back to the current step, or by Continue while the record
- * is still at billing.
+ * is still at billing. The start and Continue open the agent step.
  */
 import { useId, useState, type ReactNode } from 'react';
 import type { BoardSetupRecordDocument }   from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -100,14 +100,14 @@ function BillingCards({ choice, onChoose }: BillingCardsProps) {
   );
 }
 
-/** The step card's head: "Step 1 of 5" after the signal dot, the step's name and what it decides, and the head's end. */
-function BillingStepHead({ end }: { readonly end: ReactNode }) {
+/** The step card's head: "Step 1 of 6" after the signal dot, the step's name and what it decides, and the head's end. */
+function BillingStepHead({ end, stepCount }: { readonly end: ReactNode; readonly stepCount: number }) {
   return (
     <header className="board-pipeline-setup-card-head">
       <View gap="two">
         <Row centerY gap="seven">
           <span className="board-pipeline-setup-step-dot" aria-hidden="true" />
-          <Text typeRole="small" muted>Step 1 of 5</Text>
+          <Text typeRole="small" muted>{`Step 1 of ${stepCount}`}</Text>
         </Row>
         <Text typeRole="phase" element="h3">Billing</Text>
         <Text typeRole="lead" muted>Who pays for the agents. The pipeline agent is billed this way too.</Text>
@@ -123,7 +123,7 @@ function PhaseOverview() {
     <section className="board-pipeline-setup-card" aria-label="What the pipeline decides">
       <Row centerY gap="ten" paddingTop="fourteen" paddingHorizontal="twentyTwo" wrap>
         <Text typeRole="title" element="h3">What the pipeline decides</Text>
-        <Text muted>Every ticket goes through four phases. You design each one in step 4.</Text>
+        <Text muted>Every ticket goes through four phases. You design each one in the pipeline design step.</Text>
       </Row>
       <div className="board-pipeline-setup-phases">
         {PIPELINE_PHASE_SUMMARIES.map((summary) => (
@@ -191,11 +191,11 @@ function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBack
   if (continueCommand !== null) {
     return (
       <CommandButton
-        label="Continue to research"
+        label="Continue to the agent"
         command={continueCommand}
         primary
         attention
-        onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('research'))}
+        onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('agent'))}
       />
     );
   }
@@ -208,7 +208,7 @@ function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBack
       command={BillingStepModel.startCommandOf(choice, replacesUnreadablePipeline)}
       primary
       attention
-      onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('research'))}
+      onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('agent'))}
     />
   );
 }
@@ -233,6 +233,7 @@ export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepPr
       </View>
       <section className="board-pipeline-setup-card" aria-label="Step 1: Billing">
         <BillingStepHead
+          stepCount={PipelineViewModel.setupStepsOf(record).length}
           end={record === null
             ? <Text typeRole="tab" muted>You can change it later</Text>
             : <CommandButton label="Save billing" command={BillingStepModel.billingChangeCommandOf(record, choice)} />}

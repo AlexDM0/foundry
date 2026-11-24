@@ -92,7 +92,7 @@ function billingsAreEqual(first: BoardBillingDocument, second: BoardBillingDocum
 function startCommandOf(choice: BillingChoice, replacesUnreadablePipeline: boolean): BoardCommandDocument | null {
   const billing = billingOf(choice);
   return billing === null ? null : {
-    boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-start', billing, replacesUnreadablePipeline
+    boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-start', billing, replacesUnreadablePipeline, agent: null
   };
 }
 
@@ -155,7 +155,7 @@ function backLabelOf(record: BoardSetupRecordDocument): string {
 }
 
 /**
- * A record still at the billing step, as a reopen leaves it, continues to the research from here, so the way out is never a link back to
+ * A record still at the billing step, as a reopen leaves it, continues to the agent step from here, so the way out is never a link back to
  * this same screen; `null` at any later step.
  */
 function continueCommandOf(record: BoardSetupRecordDocument): BoardCommandDocument | null {

@@ -281,7 +281,11 @@ function agentStripOf(
   return WORKING_STRIPS[step];
 }
 
-function composerTagOf(agentJobState: BoardJobState | null): TagProps {
+const NOT_LAUNCHED_TAG: TagProps = { text: 'Not launched', tone: 'error' };
+
+/** A job whose launch forge refused reads as not launched, never as the Running its state names. */
+function composerTagOf(agentJobState: BoardJobState | null, isNotLaunched = false): TagProps {
+  if (isNotLaunched) return NOT_LAUNCHED_TAG;
   return agentJobState === null ? STOPPED_TAG : RUNNING_TAG;
 }
 

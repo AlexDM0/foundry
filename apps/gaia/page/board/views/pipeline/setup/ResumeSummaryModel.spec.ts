@@ -26,6 +26,7 @@ describe('each step\'s row', () => {
   test('shows the status and summary from the facts, and Open on a done step', () => {
     expect(ResumeSummaryModel.resumeStepsOf(setupOf('A0b-running')).map((step) => [step.step, step.status, step.summary, step.openRoute?.item ?? null])).toEqual([
       ['billing', 'done', 'Subscription', 'setup/billing'],
+      ['agent', 'done', 'This machine\'s program', 'setup/agent'],
       ['research', 'done', '1 stack item, 2 scripts, 1 question answered', 'setup/research'],
       ['constitution', 'done', 'Drafted · 4 sections, 6 rules', 'setup/constitution'],
       ['design', 'current', 'Proposal saved: 1 prepare step, 3 build gates, 3 review gates, 3 merge gates. 2 changes by User kept.', null],
@@ -36,9 +37,9 @@ describe('each step\'s row', () => {
   test('in monorepo mode the entities step follows the research and counts the draft\'s entities with the root', () => {
     const { setup } = entitiesStepBoardOf().pipeline;
     if (setup === undefined || setup === null) throw new Error('the entities board has a setup');
-    expect(ResumeSummaryModel.resumeStepsOf(setup).map((step) => step.step)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(ResumeSummaryModel.resumeStepsOf(setup).map((step) => step.step)).toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
     expect(stepOf(setup, 'entities')).toMatchObject({ status: 'current', summary: '6 entities: 2 apps, 3 packages and the root' });
-    expect(ResumeSummaryModel.doneStepsTextOf(setup)).toBe('2 of 6 steps done');
+    expect(ResumeSummaryModel.doneStepsTextOf(setup)).toBe('3 of 7 steps done');
   });
 
   test('a step that needs a recheck says so and reopens', () => {
@@ -61,8 +62,8 @@ describe('each step\'s row', () => {
 });
 
 describe('the footer', () => {
-  test('counts the steps done of the five', () => {
-    expect(ResumeSummaryModel.doneStepsTextOf(setupOf('A0b-running'))).toBe('3 of 5 steps done');
+  test('counts the steps done of the six', () => {
+    expect(ResumeSummaryModel.doneStepsTextOf(setupOf('A0b-running'))).toBe('4 of 6 steps done');
   });
 });
 

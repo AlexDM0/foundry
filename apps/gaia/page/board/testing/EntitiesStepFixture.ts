@@ -54,6 +54,8 @@ export function entitiesStepDraftOf(entities: Readonly<Record<string, BoardPipel
     agents:           {},
     approvals:        {},
     billing:          null,
+    agent:            null,
+    tools:            null,
     reach:            [],
     entities:         structuredClone(entities) as Record<string, BoardPipelineEntityDocument>,
   };
@@ -72,7 +74,7 @@ export function entitiesStepBoardOf(changes: Partial<BoardSetupRecordDocument> =
     entities:    null,
     currentStep: 'entities',
     stepStates:  {
-      billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     },
     draft:           entitiesStepDraftOf(),
     edits:           [],

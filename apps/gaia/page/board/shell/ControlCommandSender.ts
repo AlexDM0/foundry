@@ -41,18 +41,25 @@ function commandsOf(command: SentCommands | null): readonly BoardCommandDocument
   return isCommandList(command) ? command : [command];
 }
 
-/** `command` is `null` while the form behind it is not complete: the sender stays disabled. */
-export function useControlCommand(command: SentCommands | null, options: ControlCommandOptions = {}): ControlCommandSender {
-  const { answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied } = options;
+export interface ControlCommandSequenceSender {
+  /** Whether the board lets a control act now and no send is on its way. */
+  readonly canSend:      boolean;
+  readonly refusal:      string | null;
+  /** Sends the commands in order, stopping at the first one the forge does not apply; `true` once every one was applied. */
+  readonly sendCommands: (commands: readonly BoardCommandDocument[]) => Promise<boolean>;
+}
+
+/** A sender whose commands are named at the moment they are sent, such as a program's path chosen in the system's dialog. */
+export function useControlCommandSequence(options: ControlCommandOptions = {}): ControlCommandSequenceSender {
+  const { answeredWhileInstallHeld = false, onApplied } = options;
   const {
     availability, commandClient, onInstallHeld, onSessionLost, onRefused
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const commands = commandsOf(command);
-  const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && commands.length > 0;
+  const canSend = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending;
 
-  const outcomeOfEvery = async (): Promise<CommandOutcome> => {
+  const outcomeOfEvery = async (commands: readonly BoardCommandDocument[]): Promise<CommandOutcome> => {
     let outcome: CommandOutcome = { verdict: 'unreachable' };
     for (const each of commands) {
       outcome = await commandClient.send(each);
@@ -61,11 +68,11 @@ export function useControlCommand(command: SentCommands | null, options: Control
     return outcome;
   };
 
-  const send = async (): Promise<void> => {
-    if (!enabled) return;
+  const sendCommands = async (commands: readonly BoardCommandDocument[]): Promise<boolean> => {
+    if (!canSend || commands.length === 0) return false;
     setSending(true);
     setRefusal(null);
-    const outcome = await outcomeOfEvery();
+    const outcome = await outcomeOfEvery(commands);
     setSending(false);
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
     if (outcome.verdict === 'refused') {
@@ -76,7 +83,20 @@ export function useControlCommand(command: SentCommands | null, options: Control
     if (outcome.verdict === 'outcome-unknown') setRefusal(OUTCOME_UNKNOWN_WORDING);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
     if (outcome.verdict === 'no-session') onSessionLost?.();
+    return outcome.verdict === 'applied';
   };
 
-  return { enabled, refusal, send };
+  return { canSend, refusal, sendCommands };
+}
+
+/** `command` is `null` while the form behind it is not complete: the sender stays disabled. */
+export function useControlCommand(command: SentCommands | null, options: ControlCommandOptions = {}): ControlCommandSender {
+  const { hasNothingToSend = false } = options;
+  const sequence = useControlCommandSequence(options);
+  const commands = commandsOf(command);
+  const enabled = sequence.canSend && !hasNothingToSend && commands.length > 0;
+  const send = async (): Promise<void> => {
+    if (enabled) await sequence.sendCommands(commands);
+  };
+  return { enabled, refusal: sequence.refusal, send };
 }

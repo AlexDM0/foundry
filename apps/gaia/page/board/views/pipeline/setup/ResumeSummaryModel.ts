@@ -73,6 +73,9 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
   switch (step) {
     case 'billing':
       return billingTextOf(record.billing);
+    case 'agent':
+      if (record.agent === null) return reached ? 'Not chosen yet' : null;
+      return 'pinned' in record.agent.program ? `A program for this forge only: ${record.agent.program.pinned}` : 'This machine\'s program';
     case 'research':
       return reached
         ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `

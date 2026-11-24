@@ -29,6 +29,7 @@ import { ViewTitle }                                 from '../../ViewTitle.tsx';
 import { PipelinePage }                              from '../PipelinePage.tsx';
 import { PipelinePanel }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
+import { NotLaunchedJob }                            from '../agent/NotLaunchedJob.tsx';
 import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
 import { PipelineAgentPanel }                        from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                   from '../agent-panel/PipelineAgentPanelModel.ts';
@@ -166,7 +167,8 @@ function ResearchPage({
   const boardHrefOf = useBoardHrefOf();
   const navigateTo = useBoardNavigation();
   const levelShown = research === null ? null : { level: research.level, hrefOf: (level: PipelineLevel) => boardHrefOf(research.routeOf(level)) };
-  const status = research === null ? ResearchStepModel.panelStatusOf(setup) : EntitySessionListModel.panelStatusOf(research.shown.state);
+  const notLaunched = ResearchStepModel.notLaunchedOf(setup, facts.jobs);
+  const status = research === null ? ResearchStepModel.panelStatusOf(setup, notLaunched) : EntitySessionListModel.panelStatusOf(research.shown.state);
   const layoutItems = ResearchStepModel.layoutItemsOf(record.findings);
   const statusLine = ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
   const continueStep = ResearchStepModel.continueStepOf(PipelineViewModel.setupStepsOf(record));
@@ -175,12 +177,13 @@ function ResearchPage({
   const main = (
     <>
       <View gap="two">
-        <span className="board-pipeline-research-status" data-state={state}>
+        <span className="board-pipeline-research-status" data-state={notLaunched === null ? state : 'not-launched'}>
           <span className="board-pipeline-research-status-dot" aria-hidden="true" />
-          {statusLine}
+          {notLaunched === null ? statusLine : ResearchStepModel.notLaunchedLineOf(record.agentJobId)}
         </span>
         <ViewTitle title={ResearchStepModel.headingOf(facts.project ?? '')} lead={monorepoMode ? MONOREPO_LEAD : SINGLE_MODE_LEAD} />
       </View>
+      {notLaunched === null ? null : <NotLaunchedJob jobId={record.agentJobId} notLaunched={notLaunched} agent={facts.agent} choiceMode="setup" />}
       {monorepoMode && layoutItems.length > 0
         ? <LayoutFinding items={layoutItems} sourcePaths={ResearchStepModel.layoutSourcePathsOf(record.findings)} />
         : null}
@@ -198,6 +201,7 @@ function ResearchPage({
       <PipelineAgentPanel
         setup={setup}
         step="research"
+        agentIsNotLaunched={notLaunched !== null}
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder={research === null ? SINGLE_MODE_PLACEHOLDER : MONOREPO_PLACEHOLDER}

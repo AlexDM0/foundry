@@ -28,6 +28,8 @@ import { QuestionPanel }                                           from '../view
 import { QuestionPanelModel }                                      from '../views/question-panel/QuestionPanelModel.ts';
 import { ShownQuestionContext, useQuestionPanelState }             from '../views/question-panel/QuestionPanelState.ts';
 import { QuestionsModelUtil }                                      from '../views/questions/QuestionsModel.ts';
+import { AgentNotice }                                             from './AgentNotice.tsx';
+import { AgentNoticeModel }                                        from './AgentNoticeModel.ts';
 import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from './BoardClock.ts';
 import { BoardGoToContext, BoardTrackerContext }                   from './BoardRouteLinks.ts';
 import {
@@ -51,6 +53,7 @@ import { Header }                                                               
 import { headerModelOf }                                                                 from './HeaderModel.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                                                       from './IncidentNoticeModel.ts';
+import { ProgramFileChooserContext }                                                     from './ProgramFileChooser.ts';
 import { QuestionPanelOpenerContext }                                                    from './QuestionPanelOpener.ts';
 import { WaitingOnUserModel }                                                            from './WaitingOnUserModel.ts';
 
@@ -188,6 +191,7 @@ export function BoardApp({
     // The line goes, and the focused button with it; the focus moves to the panel instead of falling to the body.
     mainPanelRef.current?.focus();
   };
+  const agentNotice = useMemo(() => (board === null ? null : AgentNoticeModel.agentNoticeOf(board)), [board]);
   const questionQueue = useMemo(() => (board === null ? [] : QuestionsModelUtil.openDecisionsOf(board)), [board]);
   const pipelineReadingVerdict = board?.pipeline.applied.readingVerdict ?? null;
   const quietDecisionIds = useMemo(() => QuestionPanelModel.decisionIdsTheSetupAnswersOf(questionQueue, pipelineReadingVerdict), [questionQueue, pipelineReadingVerdict]);
@@ -234,70 +238,73 @@ export function BoardApp({
     <BoardTrackerContext value={services.trackerId}>
       <BoardGoToContext value={services.goTo}>
         <ControlSurroundingsContext value={controlSurroundings}>
-          <QuestionPanelOpenerContext value={questionPanel.open}>
-            <BoardClockContext value={boardClock}>
-              <BoardFlint
-                boardStore={boardStore}
-                boardReading={flintBoardReading}
-                {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
-                {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
-              >
-                <div className="board-shell">
-                  <ConnectionBanners
-                    streamIsDown={streamIsDown}
-                    boardShownAsOf={boardShownAsOf}
-                    installHeldRefusal={installIsHeld ? installRefusal : undefined}
-                    warnings={headerModel.warnings}
-                    notices={headerModel.notices}
-                  />
-                  {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
-                  <Header
-                    project={board?.project ?? project}
-                    model={headerModel}
-                    selectedTab={shownRoute.tab}
-                    shownTabs={shownTabs}
-                    activityIsLive={connection === 'live'}
-                    sidePanelIsOpen={shownQuestion !== null}
-                    clock={boardClock}
-                    tabBarEnd={tabFilters.filterLine}
-                    onShowLane={tabFilters.showLane}
-                    waitingOnUser={waitingOnUser}
-                    tabCounts={tabCounts}
-                    questionNotifier={services.questionNotifier}
-                    timestampSlices={board === null ? null : IncidentNoticeModelUtil.timestampSlicesOf(board)}
-                  />
-                  <main
-                    ref={mainPanelRef}
-                    tabIndex={-1}
-                    className="board-panel"
-                    data-tab={shownRoute.tab}
-                  >
-                    <QuestionPanelShownContext value={shownQuestion !== null}>
-                      <ShownQuestionContext value={shownQuestion?.decision.id ?? null}>
-                        {mainArea()}
-                      </ShownQuestionContext>
-                    </QuestionPanelShownContext>
-                  </main>
-                  {board === null
-                    ? null
-                    : (
-                      <QuestionPanel
-                        board={board}
-                        queue={questionQueue}
-                        shownDecision={shownQuestion}
-                        isHiddenBehindDetail={DetailRoute.openDetailOf(shownRoute) !== null}
-                        format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(board) }}
-                        followTranscript={services.followTranscript}
-                        onFold={questionPanel.fold}
-                        onClose={questionPanel.close}
-                        onNext={questionPanel.showNext}
-                        focusesCloseOnOpen={() => questionPanel.openedByUser}
-                      />
-                    )}
-                </div>
-              </BoardFlint>
-            </BoardClockContext>
-          </QuestionPanelOpenerContext>
+          <ProgramFileChooserContext value={services.chooseProgramFile ?? null}>
+            <QuestionPanelOpenerContext value={questionPanel.open}>
+              <BoardClockContext value={boardClock}>
+                <BoardFlint
+                  boardStore={boardStore}
+                  boardReading={flintBoardReading}
+                  {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
+                  {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
+                >
+                  <div className="board-shell">
+                    <ConnectionBanners
+                      streamIsDown={streamIsDown}
+                      boardShownAsOf={boardShownAsOf}
+                      installHeldRefusal={installIsHeld ? installRefusal : undefined}
+                      warnings={headerModel.warnings}
+                      notices={headerModel.notices}
+                    />
+                    {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
+                    {agentNotice === null ? null : <AgentNotice notice={agentNotice} />}
+                    <Header
+                      project={board?.project ?? project}
+                      model={headerModel}
+                      selectedTab={shownRoute.tab}
+                      shownTabs={shownTabs}
+                      activityIsLive={connection === 'live'}
+                      sidePanelIsOpen={shownQuestion !== null}
+                      clock={boardClock}
+                      tabBarEnd={tabFilters.filterLine}
+                      onShowLane={tabFilters.showLane}
+                      waitingOnUser={waitingOnUser}
+                      tabCounts={tabCounts}
+                      questionNotifier={services.questionNotifier}
+                      timestampSlices={board === null ? null : IncidentNoticeModelUtil.timestampSlicesOf(board)}
+                    />
+                    <main
+                      ref={mainPanelRef}
+                      tabIndex={-1}
+                      className="board-panel"
+                      data-tab={shownRoute.tab}
+                    >
+                      <QuestionPanelShownContext value={shownQuestion !== null}>
+                        <ShownQuestionContext value={shownQuestion?.decision.id ?? null}>
+                          {mainArea()}
+                        </ShownQuestionContext>
+                      </QuestionPanelShownContext>
+                    </main>
+                    {board === null
+                      ? null
+                      : (
+                        <QuestionPanel
+                          board={board}
+                          queue={questionQueue}
+                          shownDecision={shownQuestion}
+                          isHiddenBehindDetail={DetailRoute.openDetailOf(shownRoute) !== null}
+                          format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(board) }}
+                          followTranscript={services.followTranscript}
+                          onFold={questionPanel.fold}
+                          onClose={questionPanel.close}
+                          onNext={questionPanel.showNext}
+                          focusesCloseOnOpen={() => questionPanel.openedByUser}
+                        />
+                      )}
+                  </div>
+                </BoardFlint>
+              </BoardClockContext>
+            </QuestionPanelOpenerContext>
+          </ProgramFileChooserContext>
         </ControlSurroundingsContext>
       </BoardGoToContext>
     </BoardTrackerContext>

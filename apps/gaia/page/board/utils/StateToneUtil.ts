@@ -66,6 +66,9 @@ const LOOK_OF_DISPLAY_STATE: Readonly<Record<JobDisplayState, StateLook>> = Obje
   'not-supervised': WAITING_LOOK,
 });
 
+/** A job whose launch forge refused for its agent's program: a failure, plain, never pulsing as a running job does. */
+const NOT_LAUNCHED_LOOK: StateLook = Object.freeze({ ...PLAIN_LOOK, tone: 'error' });
+
 /** A ticket nothing holds back: the accent tone, plain. */
 const READY_LOOK: StateLook = Object.freeze({ ...PLAIN_LOOK, tone: 'accent' });
 
@@ -101,8 +104,9 @@ function lookOfJobState(jobState: BoardJobState): StateLook {
   return lookOf(JobStateUtil.displayStateOf(jobState));
 }
 
-/** The look of a job as it waits or works: an interruption the board words by its cause looks as that wait. */
-function lookOfJob(job: Pick<BoardJobDocument, 'state' | 'interruption'>): StateLook {
+/** The look of a job as it waits or works: an interruption the board words by its cause looks as that wait, and a refused launch as a failure. */
+function lookOfJob(job: Pick<BoardJobDocument, 'state' | 'interruption'> & Partial<Pick<BoardJobDocument, 'notLaunched'>>): StateLook {
+  if (job.notLaunched !== undefined && job.notLaunched !== null) return NOT_LAUNCHED_LOOK;
   return lookOf(JobStateUtil.displayStateOfJob(job));
 }
 

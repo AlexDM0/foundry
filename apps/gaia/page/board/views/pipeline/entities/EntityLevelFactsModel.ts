@@ -71,6 +71,7 @@ function editWithinAnEntityOf(edit: BoardDraftEditDocument): BoardEntityDraftEdi
     case 'approval':
     case 'entity':
     case 'within-entity':
+    case 'tools':
       return null;
     case 'role':
       return roleIsForgeLevel(edit.role) ? null : { target: 'role', role: edit.role, value: edit.value };

@@ -42,11 +42,13 @@ export interface PipelineAgentPanelProps {
   readonly showsAgentStrip?:    boolean;
   /** Absent in single mode: the record's one session. */
   readonly levelShown?:         AgentPanelLevel | null;
+  /** Forge refused the agent's launch for its program: the composer says not launched rather than Running. */
+  readonly agentIsNotLaunched?: boolean;
 }
 
 export function PipelineAgentPanel({
   setup, step, followTranscript, todayCalendarDate, composerPlaceholder, beforeChat = null, afterChat = null, showsAgentStrip = false,
-  levelShown = null
+  levelShown = null, agentIsNotLaunched = false
 }: PipelineAgentPanelProps) {
   const { record } = setup;
   const session = PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null);
@@ -76,7 +78,7 @@ export function PipelineAgentPanel({
           label="Message the pipeline agent"
           recipientLabel={PIPELINE_AGENT_SPEAKER}
           recipientJobId={agentJobId}
-          status={PipelineAgentPanelModel.composerTagOf(agentJobState)}
+          status={PipelineAgentPanelModel.composerTagOf(agentJobState, agentIsNotLaunched)}
           placeholder={composerPlaceholder}
           sendLabel="Send"
           commandOf={(text) => PipelineAgentPanelModel.messageCommandOf(agentJobId, text)}

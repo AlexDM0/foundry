@@ -1,0 +1,111 @@
+/**
+ * The agent choice's model. What matters: every vendor card comes from what the forge sends, one it cannot run is never selectable, and a
+ * card stands for the agents to come while the forge names none; this machine's program is the one kept, else the first place found; a
+ * program chosen for every forge is kept as this machine's before it is followed, and pinned otherwise; changing a program other forges
+ * follow asks first and names how many; and Continue waits until the record's program runs.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import {
+  EXAMPLE_AGENT_PROGRAM_PATH,
+  EXAMPLE_AGENT_VENDOR,
+  EXAMPLE_PIPELINE_AGENT,
+  exampleBoardAgent,
+  nothingFoundBoardAgent
+} from '../../../testing/AgentFixture.ts';
+import { AgentChoiceModel } from './AgentChoiceModel.ts';
+
+const VERSION = { boardCommandVersion: 1 } as const;
+const SETUP = { kind: 'setup', setupId: 'S1' } as const;
+
+describe('the vendor cards', () => {
+  test('a supported vendor is selectable and found, and a card stands for the agents to come', () => {
+    expect(AgentChoiceModel.vendorCardsOf(exampleBoardAgent())).toEqual([
+      {
+        vendor: EXAMPLE_AGENT_VENDOR, label: 'Example Agent', description: 'Runs every job of this forge.', selectable: true, tag: { text: 'Found', tone: 'neutral' }
+      },
+      {
+        vendor:      null,
+        label:       'More coding agents',
+        description: 'Forge runs more coding agents in a later version.',
+        selectable:  false,
+        tag:         { text: 'Coming later', tone: 'neutral' },
+      },
+    ]);
+  });
+
+  test('a vendor the forge cannot run yet is shown coming later, never selectable, and no card stands in for it', () => {
+    const agent = exampleBoardAgent({ vendors: [...exampleBoardAgent().vendors, { vendor: 'other-example-agent', displayName: 'Other Example Agent', supported: false }] });
+    expect(AgentChoiceModel.vendorCardsOf(agent).map((card) => [card.label, card.selectable, card.tag.text]))
+      .toEqual([['Example Agent', true, 'Found'], ['Other Example Agent', false, 'Coming later']]);
+  });
+
+  test('a program found nowhere marks the vendor not found', () => {
+    expect(AgentChoiceModel.vendorCardsOf(nothingFoundBoardAgent())[0]?.tag).toEqual({ text: 'Not found', tone: 'warn' });
+  });
+});
+
+describe('this machine\'s program', () => {
+  test('is the one the machine keeps, else the first place forge found, else none', () => {
+    expect(AgentChoiceModel.machineProgramOf(exampleBoardAgent())).toEqual({ path: EXAMPLE_AGENT_PROGRAM_PATH, isKept: true });
+    expect(AgentChoiceModel.machineProgramOf(exampleBoardAgent({ machineProgramPath: null }))).toEqual({ path: EXAMPLE_AGENT_PROGRAM_PATH, isKept: false });
+    expect(AgentChoiceModel.machineProgramOf(nothingFoundBoardAgent())).toBeNull();
+  });
+
+  test('following one only found keeps it as this machine\'s first', () => {
+    expect(AgentChoiceModel.machineChoiceCommandsOf(SETUP, EXAMPLE_AGENT_VENDOR, { path: '/example/agent', isKept: false })).toEqual([
+      {
+        ...VERSION, kind: 'machine-agent-program-set', vendor: EXAMPLE_AGENT_VENDOR, programPath: '/example/agent'
+      },
+      {
+        ...VERSION, kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: EXAMPLE_AGENT_VENDOR, program: { follows: 'machine' } }
+      },
+    ]);
+    expect(AgentChoiceModel.machineChoiceCommandsOf({ kind: 'forge' }, EXAMPLE_AGENT_VENDOR, { path: '/example/agent', isKept: true })).toEqual([
+      { ...VERSION, kind: 'pipeline-agent-set', agent: { vendor: EXAMPLE_AGENT_VENDOR, program: { follows: 'machine' } } },
+    ]);
+  });
+});
+
+describe('a chosen program', () => {
+  test('is kept for every forge, or pinned to this forge', () => {
+    expect(AgentChoiceModel.chosenProgramCommandsOf(SETUP, EXAMPLE_AGENT_VENDOR, '/example/agent', false)).toEqual([
+      {
+        ...VERSION, kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: EXAMPLE_AGENT_VENDOR, program: { pinned: '/example/agent' } }
+      },
+    ]);
+    expect(AgentChoiceModel.chosenProgramCommandsOf(SETUP, EXAMPLE_AGENT_VENDOR, '/example/agent', true).map((command) => command.kind))
+      .toEqual(['machine-agent-program-set', 'pipeline-setup-agent']);
+  });
+
+  test('is for every forge by default only while the machine names none', () => {
+    expect(AgentChoiceModel.forEveryForgeByDefault(nothingFoundBoardAgent())).toBe(true);
+    expect(AgentChoiceModel.forEveryForgeByDefault(exampleBoardAgent())).toBe(false);
+  });
+
+  test('changing the program other forges follow asks first and names how many', () => {
+    expect(AgentChoiceModel.machineChangeAsksFirst(exampleBoardAgent(), true)).toBe(true);
+    expect(AgentChoiceModel.machineChangeAsksFirst(exampleBoardAgent(), false)).toBe(false);
+    expect(AgentChoiceModel.machineChangeAsksFirst(exampleBoardAgent({ otherForgesFollowingMachine: 0 }), true)).toBe(false);
+    expect(AgentChoiceModel.machineChangeAsksFirst(nothingFoundBoardAgent(), true)).toBe(false);
+    expect(AgentChoiceModel.machineChangeQuestionOf(exampleBoardAgent({ otherForgesFollowingMachine: 1 }), 'Example Agent'))
+      .toBe('1 other forge follows this machine\'s Example Agent. Change it for every one of them?');
+  });
+});
+
+describe('the program\'s run and Continue', () => {
+  test('a program that runs names its version, and one that does not forge\'s own words', () => {
+    expect(AgentChoiceModel.programStatusOf(exampleBoardAgent(), EXAMPLE_PIPELINE_AGENT)).toEqual({ runs: true, text: 'runs · 2.1.327' });
+    const refused = exampleBoardAgent({ check: { verdict: 'does-not-run', cause: 'not-there', text: 'the Example Agent at /example is not there' } });
+    expect(AgentChoiceModel.programStatusOf(refused, EXAMPLE_PIPELINE_AGENT)).toEqual({ runs: false, text: 'the Example Agent at /example is not there' });
+    expect(AgentChoiceModel.programStatusOf(exampleBoardAgent(), null)).toBeNull();
+  });
+
+  test('Continue waits until the record holds an agent whose program runs', () => {
+    expect(AgentChoiceModel.continueCommandOf('S1', null, exampleBoardAgent())).toBeNull();
+    expect(AgentChoiceModel.continueCommandOf('S1', EXAMPLE_PIPELINE_AGENT, exampleBoardAgent({ check: null }))).toBeNull();
+    expect(AgentChoiceModel.continueCommandOf('S1', EXAMPLE_PIPELINE_AGENT, exampleBoardAgent())).toEqual({
+      ...VERSION, kind: 'pipeline-setup-step', setupId: 'S1', step: 'agent', move: 'continue'
+    });
+  });
+});

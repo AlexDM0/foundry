@@ -5,7 +5,9 @@
  * draws attention to it. In monorepo mode the layout the agent reports first stands apart from the findings, and Continue opens `entities`.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                                    from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardJobNotLaunchedDocument }                                                          from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                                 from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardJobDocument }                                                                     from '../../../../@types/board/BoardJobDocuments.ts';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardFindingTopic, BoardSetupStep }                                                    from '../../../../@types/board/BoardVocabulary.ts';
 import { ChatTurnWordingUtil }                                                                       from '../../../conversation/ChatTurnWordingUtil.ts';
@@ -177,9 +179,21 @@ const PANEL_STATUSES: Readonly<Record<ResearchState, PanelStatus>> = {
   stopped:     { tone: 'idle', text: 'Stopped' },
 };
 
-/** The panel head's dot and word, and the footer's pill: "Researching". */
-function panelStatusOf(setup: BoardPipelineSetupDocument): PanelStatus {
-  return PANEL_STATUSES[researchStateOf(setup)];
+const NOT_LAUNCHED_STATUS: PanelStatus = { tone: 'idle', text: 'Not launched' };
+
+/** Why the pipeline agent's job stands not launched, as forge words it; `null` while it launched or no job stands. */
+function notLaunchedOf(setup: BoardPipelineSetupDocument, jobs: readonly Pick<BoardJobDocument, 'id' | 'notLaunched'>[]): BoardJobNotLaunchedDocument | null {
+  return jobs.find((job) => job.id === setup.record.agentJobId)?.notLaunched ?? null;
+}
+
+/** The panel head's dot and word, and the footer's pill: "Researching", or "Not launched" while forge refused its launch. */
+function panelStatusOf(setup: BoardPipelineSetupDocument, notLaunched: BoardJobNotLaunchedDocument | null = null): PanelStatus {
+  return notLaunched === null ? PANEL_STATUSES[researchStateOf(setup)] : NOT_LAUNCHED_STATUS;
+}
+
+/** "Pipeline agent J1 · not launched", over the title while forge refused the launch. */
+function notLaunchedLineOf(jobId: string | null): string {
+  return jobId === null ? 'Pipeline agent · not launched' : `Pipeline agent ${jobId} · not launched`;
 }
 
 /** "6 scripts found · 1 open question", after the footer's pill. */
@@ -226,6 +240,8 @@ export const ResearchStepModel = Object.freeze({
   layoutSourcePathsOf,
   continueStepOf,
   panelStatusOf,
+  notLaunchedOf,
+  notLaunchedLineOf,
   footerCountsOf,
   headingOf,
   continueCommandOf,

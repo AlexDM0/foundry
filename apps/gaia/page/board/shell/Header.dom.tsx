@@ -527,11 +527,11 @@ describe('the header in setup', () => {
     const stepper = screen.getByRole('list', { name: 'Setup steps' });
     expect(stepper.hasAttribute('data-compact')).toBe(true);
     const steps = [...stepper.querySelectorAll('.design-system-stepper-step')];
-    expect(steps.map((step) => step.getAttribute('data-status'))).toEqual(['done', 'current', 'recheck', 'recheck', 'upcoming']);
-    expect(steps.map((step) => step.querySelector('.design-system-stepper-check') !== null)).toEqual([true, false, false, false, false]);
-    expect(steps.map((step) => step.querySelector('.design-system-stepper-circle') !== null)).toEqual([true, true, false, false, false]);
-    expect(steps[1]?.getAttribute('aria-current')).toBe('step');
-    expect(screen.getByText('Step 2 of 5 · saved as you go')).toBeDefined();
+    expect(steps.map((step) => step.getAttribute('data-status'))).toEqual(['done', 'done', 'current', 'recheck', 'recheck', 'upcoming']);
+    expect(steps.map((step) => step.querySelector('.design-system-stepper-check') !== null)).toEqual([true, true, false, false, false, false]);
+    expect(steps.map((step) => step.querySelector('.design-system-stepper-circle') !== null)).toEqual([true, true, true, false, false, false]);
+    expect(steps[2]?.getAttribute('aria-current')).toBe('step');
+    expect(screen.getByText('Step 3 of 6 · saved as you go')).toBeDefined();
     expect(within(stepper).getByRole('link', { name: 'Billing' }).getAttribute('href')).toBe(boardHrefOf('pipeline/setup/billing'));
     expect(within(stepper).getByRole('link', { name: 'Constitution' }).getAttribute('href')).toBe(boardHrefOf('pipeline/setup/constitution'));
     expect(within(stepper).queryByRole('link', { name: 'Research' })).toBeNull();

@@ -893,3 +893,5 @@ a.board-activity-job:active {
     animation: none;
   }
 }
+
+.board-shell > .board-agent-notice { margin: 12px var(--page-gutter) var(--sp-4); }
