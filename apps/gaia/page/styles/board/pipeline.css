@@ -1252,6 +1252,8 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-agent-place[data-found="true"] .board-agent-place-dot { background: var(--tone-success); border-color: var(--tone-success); }
 
+.board-agent-tool-path { min-width: 0; overflow-wrap: anywhere; }
+
 .board-agent-tool-add { display: flex; align-items: flex-end; gap: var(--sp-2); }
 
 .board-agent-not-launched {

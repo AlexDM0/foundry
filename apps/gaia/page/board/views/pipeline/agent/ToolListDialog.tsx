@@ -81,7 +81,7 @@ export function ToolListDialog({
         />
       ),
       tool:    <Text mono>{row.name}</Text>,
-      foundAt: <Text mono {...(row.isMissing ? { subtle: true } : { muted: true })}>{row.foundAt}</Text>,
+      foundAt: <span className="board-agent-tool-path"><Text mono {...(row.isMissing ? { subtle: true } : { muted: true })}>{row.foundAt}</Text></span>,
       usedBy:  <Text muted>{row.usedBy}</Text>,
       mark:    row.isMissing ? <Tag text="missing" tone="warn" /> : null,
     },
@@ -91,9 +91,11 @@ export function ToolListDialog({
     cells: {
       approved: null,
       tool:     <Text mono>{added.name}</Text>,
-      foundAt:  added.path === null ? <Text subtle>Forge finds it when the list is kept</Text> : <Text mono muted>{added.path}</Text>,
-      usedBy:   <Text muted>added by hand</Text>,
-      mark:     <Tag text="new" tone="neutral" />,
+      foundAt:  added.path === null
+        ? <Text subtle>Forge finds it when the list is kept</Text>
+        : <span className="board-agent-tool-path"><Text mono muted>{added.path}</Text></span>,
+      usedBy: <Text muted>added by hand</Text>,
+      mark:   <Tag text="new" tone="neutral" />,
     },
   }));
   const add = (): void => {
@@ -119,7 +121,13 @@ export function ToolListDialog({
       )}
     >
       <View gap="twelve">
-        <DataTable<ToolColumn> label="Agent tools" columns={COLUMNS} columnWidths="32px 120px minmax(0, 2fr) minmax(0, 2fr) 88px" rows={[...toolRows, ...addedRows]} />
+        <DataTable<ToolColumn>
+          label="Agent tools"
+          columns={COLUMNS}
+          columnWidths="32px 120px minmax(0, 2fr) minmax(0, 2fr) 88px"
+          rowHeight="tall"
+          rows={[...toolRows, ...addedRows]}
+        />
         <form
           className="board-agent-tool-add"
           onSubmit={(event) => {

@@ -40,10 +40,7 @@
 .design-system-data-table-cell { min-width: 0; }
 .design-system-data-table-cell[data-align="end"] { text-align: end; }
 .design-system-data-table-cell[data-hidden] {
-  position: absolute;
   overflow: hidden;
-  width: 1px;
-  height: 1px;
   clip-path: inset(50%);
   white-space: nowrap;
 }
