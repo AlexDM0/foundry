@@ -16,6 +16,8 @@ import { MachineAgentLimit }                     from '../../../src/services/hep
 import type { BoardStore }                       from '../../../src/services/store/BoardStore.ts';
 import type { Workspace }                        from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommand, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
+import type { ControlContext }                   from '../../../src/shared/@types/ControlContext.ts';
+import type { EffectReadingSource }              from '../../../src/shared/@types/EffectReading.ts';
 import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }              from '../../../src/shared/constants/HephaestusApiContracts.ts';
 import type { CommandContext }                   from '../../CommandContext.ts';
@@ -45,6 +47,8 @@ export interface CommandRouteRequest {
   wake:                 () => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
   machineAgentCeiling?: number;
+  /** The serving pass's effect readings, `null` before it runs; absent, an effect read is refused and a ticket's documents carry none. */
+  effectReadings?:      () => EffectReadingSource | null;
 }
 
 const HTTP_STATUS = {
@@ -53,6 +57,11 @@ const HTTP_STATUS = {
   CONFLICT:    409,
   LOCKED:      423,
 } as const;
+
+function controlContextOf(request: CommandRouteRequest): ControlContext {
+  const effectReadings = request.effectReadings?.() ?? null;
+  return effectReadings === null ? INSIDE_HEPHAESTUS_CONTROL_CONTEXT : { ...INSIDE_HEPHAESTUS_CONTROL_CONTEXT, effectReadings };
+}
 
 const RUNTIME_COMMAND_KINDS: readonly RuntimeHephaestusCommand['kind'][] = ['hephaestus-stop', 'hephaestus-restart', 'talos-restart'];
 
@@ -173,7 +182,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   const { context, workspace, boardStore } = request;
   try {
     const at      = OptionValueUtil.atStampFrom(request.commandArguments, context.now());
-    const written = await boardStore.commands.apply({ command, at, context: INSIDE_HEPHAESTUS_CONTROL_CONTEXT });
+    const written = await boardStore.commands.apply({ command, at, context: controlContextOf(request) });
     OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
     OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
     await registerWrittenTracker(context, workspace);

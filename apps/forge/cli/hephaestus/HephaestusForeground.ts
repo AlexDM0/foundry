@@ -702,6 +702,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         mergeForecastCache,
         mainLineReads,
         silentSweepsOf:   (jobId: string) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
+        effectReadings:   () => drivePass?.effectReadings ?? null,
         onRuntimeCommand: async (command: RuntimeHephaestusCommand): Promise<RuntimeCommandOutcome> => {
           log(`${command.kind} received${'now' in command && command.now ? ' (now)' : ''}.`);
           if (current === null || (handingOver && !preflightRunning)) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
@@ -852,6 +853,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         startClassification:       admission.classification,
       });
       const startedPass = drivePass;
+      startedPass.effectReadings.onChanged(ownBroker.announceTicketDocuments);
       dataFolderWatch = DataFolderWatch.startWatching({
         trackerDirectory: workspace.trackerDirectory,
         repositoryRoot:   workspace.rootDirectory,

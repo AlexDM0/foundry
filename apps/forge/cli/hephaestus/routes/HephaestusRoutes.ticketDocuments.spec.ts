@@ -2,7 +2,8 @@
  * A ticket's documents as the routes read them from a stored board. What matters: a reference that names no ticket, and a ticket with no
  * documents record, each answer 404 worded; a ticket whose record holds a saved spec answers 200 with that version's text and the effect
  * readings the source holds for that ticket alone; and a save through the command route changes the ticket's fingerprint, so the next
- * publish sends `documents` for it before `board`.
+ * publish sends `documents` for it before `board`; and an effect read through the command route asks the serving pass's readings, and is
+ * refused while no pass serves.
  */
 import {
   afterEach,
@@ -12,21 +13,21 @@ import {
 } from 'bun:test';
 import type { ForgeTicketDocumentsDocument } from 'forge-contracts/TicketDocumentsDocument';
 
-import { EventBroker, type HephaestusEvent }       from '../../../src/services/hephaestus/EventBroker.ts';
-import type { HephaestusRoutes }                   from '../../../src/services/hephaestus/HephaestusServer.ts';
-import { TicketDocumentsAssembly }                 from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
-import type { BoardStore }                         from '../../../src/services/store/BoardStore.ts';
-import { requireWorkspace }                        from '../../../src/services/tracker/Workspace.ts';
-import type { EffectReading, EffectReadingSource } from '../../../src/shared/@types/EffectReading.ts';
-import { useRecordedGit }                          from '../../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                  from '../../../src/testing/ScratchWorkspace.ts';
-import { talosChildReadingsWith }                  from '../../../src/testing/TalosChildReadings.ts';
-import { describeWhenGitIsRecorded }               from '../../../src/testing/ToolGuard.ts';
-import { boardStoreIn }                            from '../../BoardStoreOf.ts';
-import { createArgumentParser }                    from '../../arguments/ArgumentParser.ts';
-import { createCapturedCommandContext }            from '../../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }  from '../../testing/InitializedScratchRepository.ts';
-import { hephaestusRoutesOf }                      from './HephaestusRoutes.ts';
+import { EventBroker, type HephaestusEvent }                             from '../../../src/services/hephaestus/EventBroker.ts';
+import type { HephaestusRoutes }                                         from '../../../src/services/hephaestus/HephaestusServer.ts';
+import { TicketDocumentsAssembly }                                       from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
+import type { BoardStore }                                               from '../../../src/services/store/BoardStore.ts';
+import { requireWorkspace }                                              from '../../../src/services/tracker/Workspace.ts';
+import type { EffectReading, EffectReadingRequest, EffectReadingSource } from '../../../src/shared/@types/EffectReading.ts';
+import { useRecordedGit }                                                from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                        from '../../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                                        from '../../../src/testing/TalosChildReadings.ts';
+import { describeWhenGitIsRecorded }                                     from '../../../src/testing/ToolGuard.ts';
+import { boardStoreIn }                                                  from '../../BoardStoreOf.ts';
+import { createArgumentParser }                                          from '../../arguments/ArgumentParser.ts';
+import { createCapturedCommandContext }                                  from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                        from '../../testing/InitializedScratchRepository.ts';
+import { hephaestusRoutesOf }                                            from './HephaestusRoutes.ts';
 
 const FROZEN_NOW = new Date('2026-11-24T10:00:00+01:00');
 
@@ -71,7 +72,16 @@ function effectReadingsHolding(ticketId: string): EffectReadingSource {
   };
 }
 
-function routesOf(effectReadings?: EffectReadingSource): { routes: HephaestusRoutes; boardStore: BoardStore } {
+/** Keeps every reading asked of it, and holds none. */
+function effectReadingsAsked(requests: EffectReadingRequest[]): EffectReadingSource {
+  return {
+    readingsOf: () => [],
+    request:    (request) => { requests.push(request); },
+    onChanged:  () => () => undefined,
+  };
+}
+
+function routesOf(effectReadings?: EffectReadingSource | null): { routes: HephaestusRoutes; boardStore: BoardStore } {
   const context    = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const workspace  = requireWorkspace(repositoryDirectory);
   const boardStore = boardStoreIn(context, workspace);
@@ -93,7 +103,7 @@ function routesOf(effectReadings?: EffectReadingSource): { routes: HephaestusRou
     hephaestus:       () => ({
       state: 'serving', url: null, generation: 3, codeVersion: 'code-example', installVersion: 1, restartWarning: null
     }),
-    ...(effectReadings === undefined ? {} : { effectReadings }),
+    ...(effectReadings === undefined ? {} : { effectReadings: () => effectReadings }),
   });
   return { routes, boardStore };
 }
@@ -170,5 +180,34 @@ describeWhenGitIsRecorded('a ticket\'s documents at the route', () => {
       ['documents', { ticketId }],
       ['board', null],
     ]);
+  });
+
+  test('an effect read through the command route asks the serving pass\'s readings for the person', async () => {
+    const asked: EffectReadingRequest[] = [];
+    const { routes, boardStore } = routesOf(effectReadingsAsked(asked));
+    const ticketId = await ticketWithOpenRecord(routes, boardStore);
+    await savedSpec(routes);
+
+    const answer = await routes.command({
+      kind: 'ticket-document-effect-read', ticketReference: '1', document: 'spec', version: 1
+    });
+
+    expect(answer.status).toBe(200);
+    expect(asked).toEqual([{
+      ticketId, document: 'spec', versionNumber: 1, requestedByAgent: false
+    }]);
+  });
+
+  test('an effect read while no pass serves is refused as runtime only', async () => {
+    const { routes, boardStore } = routesOf(null);
+    await ticketWithOpenRecord(routes, boardStore);
+    await savedSpec(routes);
+
+    const answer = await routes.command({
+      kind: 'ticket-document-effect-read', ticketReference: '1', document: 'spec', version: 1
+    });
+
+    expect(answer.status).toBe(409);
+    expect(answer.body).toMatchObject({ refusal: 'hephaestus-control-is-runtime-only' });
   });
 });

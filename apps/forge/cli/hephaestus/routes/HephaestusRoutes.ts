@@ -35,14 +35,12 @@ import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } f
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
 export interface HephaestusRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context'> {
-  token:           () => string | null;
-  started:         () => boolean;
-  broker:          () => EventBroker | null;
-  monitorStream:   () => MonitorStream | null;
+  token:         () => string | null;
+  started:       () => boolean;
+  broker:        () => EventBroker | null;
+  monitorStream: () => MonitorStream | null;
   /** `null` until Hephaestus took its generation. */
-  monitorFacts:    () => MonitorHephaestusFacts | null;
-  /** The effect readings Hephaestus holds in memory; absent, a ticket's documents carry none. */
-  effectReadings?: EffectReadingSource;
+  monitorFacts:  () => MonitorHephaestusFacts | null;
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
@@ -105,7 +103,7 @@ const TICKET_DOCUMENTS_STATUS = {
 
 /** What a ticket's documents are read from beside the board: the effect readings and the constitution numbers counted so far. */
 interface TicketDocumentsReads {
-  effectReadings:      EffectReadingSource | null;
+  effectReadings:      () => EffectReadingSource | null;
   constitutionNumbers: ConstitutionNumbers;
 }
 
@@ -121,7 +119,7 @@ function ticketDocumentsAnswerOf(boardReads: StoreReadFace, reads: TicketDocumen
       loadedRecord:        board.ticketDocumentRecordOf(ticketId),
       pipeline:            board.pipeline(),
       jobs:                board.jobs(),
-      effectReadings:      reads.effectReadings?.readingsOf(ticketId) ?? [],
+      effectReadings:      reads.effectReadings()?.readingsOf(ticketId) ?? [],
       constitutionNumbers: reads.constitutionNumbers,
     });
     return { status: TICKET_DOCUMENTS_STATUS.ANSWERED, body: document };
@@ -140,7 +138,7 @@ export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusR
     ports: context.platformPorts, workspace, boardReads, files: hephaestusFilesIn(workspace.trackerDirectory)
   };
   const ticketDocumentsReads: TicketDocumentsReads = {
-    effectReadings:      request.effectReadings ?? null,
+    effectReadings:      () => request.effectReadings?.() ?? null,
     constitutionNumbers: TicketDocumentsAssembly.constitutionNumbersIn(workspace.rootDirectory),
   };
   const jobFolderOf = (jobId: string): string | null => {
