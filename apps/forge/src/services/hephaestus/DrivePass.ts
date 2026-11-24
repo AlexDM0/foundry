@@ -1666,11 +1666,18 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
       || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0;
+    let refusalResolvedSinceItsLaunch = false;
     if (holdIsDue) await holdTracker((hold) => {
       for (const refused of agentProgramRefusals) {
-        if (hold.board.jobById(refused.notLaunchedJobId) !== undefined) hold.board.recordNotLaunched(refused.notLaunchedJobId, refused.notLaunched, hold.at);
+        const job = hold.board.jobById(refused.notLaunchedJobId);
+        if (job === undefined) continue;
+        // The agent setting may have changed between the launch and this hold; only a refusal that still stands is recorded.
+        const resolutionNow = agentProgramResolutionOf(request, hold.board, job);
+        if (resolutionNow.verdict === 'not-launched') hold.board.recordNotLaunched(job.id, resolutionNow.notLaunched, hold.at);
+        else refusalResolvedSinceItsLaunch = true;
       }
       hold.board.retryNotLaunched(hold.at, (job) => notLaunchedJobIdsToRetry.includes(job.id));
+      for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
@@ -1714,7 +1721,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     // A job the merge sweep launched after this pass launched children needs one more pass, which its settled fingerprint would skip.
     const jobIdsThisPassSaw = new Set(written.board.jobs().map((job) => job.id));
     const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass
-      || notLaunchedJobIdsToRetry.length > 0;
+      || notLaunchedJobIdsToRetry.length > 0 || refusalResolvedSinceItsLaunch;
     if (passIsDue || settled.childObservations.some((childObservation) => !jobIdsThisPassSaw.has(childObservation.jobId))) {
       forcedNext = true;
       wokenAgain = true;
@@ -1838,9 +1845,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     // Another board's job that ended frees a machine slot without a change on this board, so only a sweep tries a waiting ticket again.
     const ticketsAwaitMachineSlot = state.ticketsWaitingForMachineSlot > 0;
     const heldTargetIsDue = targetsHeldAtTheLastPass > 0;
+    // The machine's config and the program files are not in the fingerprint, so only a sweep sees a refused program fixed outside the board.
+    const jobsStandNotLaunched = jobsAtTheLastPass.some((job) => job.notLaunched !== undefined);
     if (
       due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0 && !ticketsAwaitMachineSlot
-      && !heldTargetIsDue
+      && !heldTargetIsDue && !jobsStandNotLaunched
     ) return;
     quietJobIdsDue.push(...due);
     forcedStopRetryJobIdsDue.push(...forcedStopRetries);

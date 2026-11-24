@@ -2,10 +2,11 @@
  * `gate agent`, `gate tools` and `gate look-again`, and `machine agent`, on a scratch board, the program check answered by its recording:
  * the runtime answers its version, any other program has no answer. What matters: a program is kept as its path names it only once it
  * ran, and one that is not there is refused at exit 1 with nothing written; `machine` follows the machine's program, which `machine agent`
- * stores in the monitor folder's config, and with none set the choice is refused; a tool named alone is found or refused, `pipeline`
- * removes the list; and look again writes nothing while no job stands not launched.
+ * stores in the monitor folder's config, and with none set the choice is refused; `machine agent` refuses a program inside any registered
+ * forge; a tool named alone is found or refused, `pipeline` removes the list; and look again writes nothing while no job stands not launched.
  */
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
 
 import {
   afterEach,
@@ -85,6 +86,16 @@ describeWhenGitIsRecorded('the agent verbs', () => {
     await run(['gate', 'agent', 'machine']);
     expect(storedPipeline()['agent']).toEqual({ vendor: VENDOR, program: { follows: 'machine' } });
     expect(JSON.parse((await run(['machine', 'agent', '--json'])).outputText())).toMatchObject({ vendor: VENDOR, programPath: process.execPath });
+  });
+
+  test('machine agent refuses a program inside the repository of any forge the machine registry names, with nothing written', async () => {
+    mkdirSync(monitorFolder(), { recursive: true });
+    writeFileSync(join(monitorFolder(), 'projects.json'), JSON.stringify({ version: 2, projects: { 'example-tracker': { root: repositoryDirectory } } }));
+    const programInsideAForge = join(repositoryDirectory, 'bin', 'example-agent');
+
+    const refused = await runWithExitCode(['machine', 'agent', programInsideAForge]);
+    expect([refused.exitCode, refused.context.errorText()]).toEqual([1, expect.stringContaining('lies inside a tracked repository')]);
+    expect(MachineConfigFile.programPathOf(MachineConfigFile.read(monitorFolder()), VENDOR)).toBeNull();
   });
 
   test('gate tools keeps a named path, refuses a name found nowhere, and pipeline removes the list', async () => {

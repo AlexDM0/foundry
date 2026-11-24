@@ -100,7 +100,7 @@ function progressRecordPath(): string {
   return localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath;
 }
 
-function routeRequest(launchesHeld = false): CommandRouteRequest {
+function routeRequest(launchesHeld = false, wake: CommandRouteRequest['wake'] = () => undefined): CommandRouteRequest {
   const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const workspace = requireWorkspace(repositoryDirectory);
   return {
@@ -110,7 +110,7 @@ function routeRequest(launchesHeld = false): CommandRouteRequest {
     boardStore:          boardStoreIn(context, workspace),
     launchesHeld:        () => launchesHeld,
     onRuntimeCommand:    () => Promise.resolve('done' as const),
-    wake:                () => undefined,
+    wake,
     machineAgentCeiling: MACHINE_AGENT_CEILING,
   };
 }
@@ -129,6 +129,13 @@ describeWhenGitIsRecorded('the control contract', () => {
       expect(outcomes).toContain(String((answer.body as Record<string, unknown>)['outcome']));
     });
   }
+
+  test('a machine agent program set wakes a forced pass, since the machine\'s config is outside the board the pass fingerprints', async () => {
+    const wakes: (boolean | undefined)[] = [];
+    const answer = await answerControlCommand(CONTRACT_BODIES['machine-agent-program-set'].body, routeRequest(false, (forced) => wakes.push(forced)));
+    expect(answer.status).toBe(200);
+    expect(wakes).toEqual([true]);
+  });
 
   test('a body of a contract kind with a field of the wrong type or none answers 400 with its code and sentence, and writes nothing', async () => {
     const progressBefore = readFileSync(progressRecordPath(), 'utf8');

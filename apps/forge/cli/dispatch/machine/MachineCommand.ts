@@ -8,6 +8,7 @@ import { AgentCommandPreparation }          from '../../../src/services/control/
 import { AgentPrograms }                    from '../../../src/services/control/AgentPrograms.ts';
 import { AgentSlots }                       from '../../../src/services/hephaestus/AgentSlots.ts';
 import { MachineAgentLimit }                from '../../../src/services/hephaestus/MachineAgentLimit.ts';
+import { registeredRepositoryRootsIn }      from '../../../src/services/tracker/RegisteredRepositoryRoots.ts';
 import type { ControlCommandOf }            from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';
@@ -53,7 +54,8 @@ async function machineAgentProgram(commandArguments: ArgumentParser, context: Co
   // The machine's program is User's choice of what runs on the machine, never a session's.
   if (context.job !== undefined) throw new OperationRefusal('refused', { kind: 'verb-not-relayable', verb: context.commandVerb, jobId: context.job.jobId });
   const programPath = programPathFrom(written, context, AGENT_USAGE);
-  await AgentCommandPreparation.requireRunningProgram(vendor, programPath, agentCommandPreparationContextOf(context, []));
+  // Every forge that follows the machine's program runs it, so it may lie in no repository of a forge on this machine.
+  await AgentCommandPreparation.requireRunningProgram(vendor, programPath, agentCommandPreparationContextOf(context, registeredRepositoryRootsIn(monitorFolder)));
   const write = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
   if (write !== 'written') {
     const reason = write.verdict === 'newer-version' ? `its version ${write.version} is newer than this program reads` : write.reason;

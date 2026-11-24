@@ -17,7 +17,7 @@ function programClauseOf(cause: AgentProgramRefusalCause, agentName: string, pro
     case 'relative-path':
       return `${program} is not an absolute path`;
     case 'inside-forbidden-root':
-      return `${program} lies inside the repository, where a job could have written it`;
+      return `${program} lies inside a tracked repository, where a job could have written it`;
     case 'batch-target':
       return `${program} is a batch file, which takes no quoted argument`;
     case 'not-there':

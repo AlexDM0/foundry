@@ -21,6 +21,7 @@ import { MachineAgentLimit }                                            from '..
 import type { BoardStore }                                              from '../../../src/services/store/BoardStore.ts';
 import { readingBoardOfContents }                                       from '../../../src/services/tracker/BoardOfContents.ts';
 import { projectLocationOf }                                            from '../../../src/services/tracker/ProjectLocation.ts';
+import { registeredRepositoryRootsIn }                                  from '../../../src/services/tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                                               from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommand, ControlCommandOf }                        from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                             from '../../../src/shared/OperationRefusal.ts';
@@ -49,8 +50,8 @@ export interface CommandRouteRequest {
   boardStore:           BoardStore;
   launchesHeld:         () => boolean;
   onRuntimeCommand:     (command: RuntimeHephaestusCommand) => Promise<RuntimeCommandOutcome>;
-  /** After a command was applied, so the pass acts on it at once. */
-  wake:                 () => void;
+  /** After a command was applied, so the pass acts on it at once; forced when the change is outside the board the pass fingerprints. */
+  wake:                 (forced?: boolean) => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
   machineAgentCeiling?: number;
   /** Hephaestus's newest run of each agent program, which a command's own run of a program updates. */
@@ -154,14 +155,17 @@ async function machineAgentProgramAnswerOf(body: Record<string, unknown>, reques
   const { vendor, programPath } = body;
   if (typeof vendor !== 'string' || typeof programPath !== 'string') return MALFORMED;
   try {
-    await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, []));
     const monitorFolder = request.context.platformPorts.dataFolders.monitorFolderOf(request.context.homeDirectory);
+    // Every forge that follows the machine's program runs it, so it may lie in no repository of a forge on this machine.
+    const forbiddenRoots = [projectLocationOf(request.workspace.rootDirectory).repositoryRoot, ...registeredRepositoryRootsIn(monitorFolder)];
+    await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, forbiddenRoots));
     const written = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
     if (written !== 'written') {
       const reason = written.verdict === 'newer-version' ? `its version ${written.version} is newer than this program reads` : written.reason;
       throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), reason });
     }
-    request.wake();
+    // The machine's config is not in the pass's fingerprint, so only a forced pass tries a job not launched for its program again.
+    request.wake(true);
     return appliedAnswerOf({ outcome: 'done', result: { kind: 'machine-agent-program-set', vendor, programPath } });
   } catch (thrown) {
     if (thrown instanceof OperationRefusal) return refusedAnswerOf(thrown);
