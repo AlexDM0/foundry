@@ -1,15 +1,17 @@
 /**
- * The page ticket's text parts: a view quotes a ticket's Wanted and Brief and its Acceptance items, and shows them escaped, so what
- * matters is that each section and item arrives as its source text, that a waived item is marked, and that a ticket without an
- * Acceptance has no items rather than a missing key. Forge renders no HTML: a ticket's `bodyMarkdown` is its stored body with the Acceptance
- * items separated, an epic's `descriptionMarkdown` its stored description byte for byte, and no key of the document ends in `Html`.
- * The section and item reading itself is pinned in `src/adapters/tickets/utils/TicketAcceptanceUtil.spec.ts`.
+ * The page ticket's text parts: a view quotes a ticket's Wanted and Brief and its Acceptance items, and shows them escaped, so what matters
+ * is that each section and item arrives as its source text, that a waived item is marked, and that a ticket without an Acceptance has no
+ * items rather than a missing key; a ticket with documents takes its items from its approved spec. Forge renders no HTML: a ticket's
+ * `bodyMarkdown` is its stored body with the Acceptance items separated, an epic's `descriptionMarkdown` its stored description byte for
+ * byte, and no key of the document ends in `Html`. The section and item reading itself is pinned in
+ * `src/adapters/tickets/utils/TicketAcceptanceUtil.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { Epic }                                from '../../lib/tracker-model/@types/Epic.ts';
 import type { Ticket }                              from '../../lib/tracker-model/@types/Ticket.ts';
 import { boardFixture, epicFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { loadedRecordFixture }                      from '../../testing/TicketDocumentRecordFixtures.ts';
 import { boardFactsOf }                             from './BoardFacts.ts';
 import { assemblePagePayload }                      from './PagePayloadAssembly.ts';
 import type { AssembledPagePayload }                from './PagePayloadAssembly.ts';
@@ -55,6 +57,26 @@ function assembledFor(tickets: Ticket[], epics: Epic[] = []): AssembledPagePaylo
 }
 
 describe('assemblePagePayload page tickets', () => {
+  test('a ticket with documents takes its Acceptance items from its approved spec, not its body', () => {
+    const tickets = [ticketWithBody('004', EXPORT_BODY)];
+    const { board, progress } = boardFixture({
+      tickets,
+      ticketDocumentRecords: [loadedRecordFixture('004', { spec: { texts: ['## Acceptance\n\nA1. The basket shows.\n'], approvals: [{ number: 1, by: 'person' }] } })],
+    });
+    const [ticket] = assemblePagePayload({
+      progress,
+      logRecords:        [],
+      tickets,
+      epics:             [],
+      pageScriptFailure: null,
+      generatedAt:       GENERATED_AT,
+      concurrency:       { limit: 2, agentsInFlight: 0 },
+      boardFacts:        boardFactsOf(board),
+      documentRecords:   board,
+    }).tickets;
+    expect(ticket?.acceptanceItems).toEqual([{ label: 'A1', text: 'The basket shows.', waived: false }]);
+  });
+
   test('a ticket carries its `##` sections and its Acceptance items as source text, in written order', () => {
     const [ticket] = assembledFor([ticketWithBody('004', EXPORT_BODY)]).tickets;
 

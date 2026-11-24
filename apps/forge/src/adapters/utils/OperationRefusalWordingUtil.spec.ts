@@ -187,3 +187,22 @@ test('the by-hand task and namespace refusals are worded as their verbs printed 
     expect(OperationRefusalWordingUtil.apiMessageOf(refusal)).toBe(sentence);
   }
 });
+
+test('an unreadable record in the way names what it cannot be read as, a ticket\'s spec and plan among them', () => {
+  const inTheWay = (record: 'epic' | 'draft' | 'ticket-documents'): string => OperationRefusalWordingUtil.messageOf(
+    new OperationRefusal('refused', { kind: 'unreadable-file-in-the-way', filePath: '/example/record', record })
+  );
+  expect(inTheWay('epic')).toContain('cannot be read as an epic,');
+  expect(inTheWay('draft')).toContain('cannot be read as a draft,');
+  expect(inTheWay('ticket-documents')).toBe('/example/record already exists but cannot be read as a ticket\'s spec and plan, so it is not overwritten. '
+    + 'Nothing was written; repair or delete it first.');
+});
+
+test('a document refusal names its ticket, document and versions', () => {
+  expect(OperationRefusalWordingUtil.boardRefusalMessageOf({
+    reason: 'document-version-moved', ticketId: '004', document: 'spec', version: 3, headNumber: 4
+  })).toContain('The spec of #004 is at version 4, not version 3');
+  expect(OperationRefusalWordingUtil.boardRefusalMessageOf({
+    reason: 'document-version-moved', ticketId: '004', document: 'plan', version: null, headNumber: 1
+  })).toContain('The plan of #004 is at version 1, not empty: read it again first.');
+});

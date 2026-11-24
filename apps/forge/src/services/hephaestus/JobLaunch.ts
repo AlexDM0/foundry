@@ -3010,6 +3010,8 @@ function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): Main
 export const JobLaunch = Object.freeze({
   manifestOf,
   ticketDocumentReadingsOf,
+  ticketDocumentVersionsOf,
+  ticketTextOfCustoms,
   recordInstructionsRead,
   recordLaunchSettings,
   recordedLaunchSettingsOf,

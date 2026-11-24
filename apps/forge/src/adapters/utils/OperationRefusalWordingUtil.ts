@@ -673,8 +673,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `The ${detail.document} of #${detail.ticketId} cannot be changed: the ticket is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `or its review is off and its agent writes it. ${NOTHING_WAS_WRITTEN}`;
     case 'document-version-moved':
-      return `The ${detail.document} of #${detail.ticketId} is at ${documentVersionText(detail.headNumber)}, not `
-        + `${documentVersionText(detail.version)}: read it again first. ${NOTHING_WAS_WRITTEN}`;
+      return `The ${detail.document} of #${detail.ticketId} is at ${documentVersionText(detail.headNumber)}, `
+        + `${detail.version === null ? 'not empty' : `not ${documentVersionText(detail.version)}`}: read it again first. ${NOTHING_WAS_WRITTEN}`;
     case 'document-merge-conflict':
       return `The change to the ${detail.document} of #${detail.ticketId}, made on version ${detail.baseNumber}, overlaps a later change `
         + `in version ${detail.headNumber}: read it again and make the change there. ${NOTHING_WAS_WRITTEN}`;

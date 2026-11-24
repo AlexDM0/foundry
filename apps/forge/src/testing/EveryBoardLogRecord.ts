@@ -4,6 +4,7 @@
  */
 import type { LogRecord } from '../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }     from '../lib/tracker-model/Board.ts';
+import { PipelineUtil }   from '../lib/tracker-model/utils/PipelineUtil.ts';
 import {
   boardFixture,
   entityPipelineFixture,
@@ -14,6 +15,40 @@ import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
+
+/**
+ * A draft of the spec-then-plan route walked through every document move on a board of its own, each logging its kind once. A document
+ * agent's turn end that changed its snapshot is logged by Hephaestus outside the Board's moves, so it is built as it is stored.
+ */
+function everyTicketDocumentRecordOf(at: string): LogRecord[] {
+  const draft = ticketFixture({ id: '004', status: 'draft' });
+  const { board, records } = boardFixture({ tickets: [draft], pipeline: { ...PipelineUtil.minimalPipelineOf(), ticketWriting: 'spec-then-plan' } });
+  const judges = {
+    bodyGapsOf:       () => [],
+    workFilesOf:      () => [],
+    conflictNoticeOf: () => 'Example conflict notice',
+  };
+  const documents = board.ticketDocuments();
+  documents.open('004', at);
+  documents.save('004', 'spec', null, '## Acceptance\n\nA1. The basket shows.\n', judges, at);
+  documents.comment('004', 'spec', null, 'Name the total.', at);
+  documents.propose('004', 'spec', 'J4', {
+    baseNumber: 1,
+    edits:      [{
+      fromLine: 1, toLine: 1, originalLines: ['## Acceptance'], replacementLines: ['## Acceptance items']
+    }],
+    summary: 'Rename'
+  }, 'c1', judges, at);
+  documents.discardProposal('004', 'spec', 'P1', at);
+  documents.approve('004', 'spec', 1, 'c1', judges, at);
+  documents.setProposalMode('004', 'plan', 'auto-apply', at);
+  return [
+    ...records,
+    {
+      at, kind: 'ticket-document-snapshot-touched', ticketId: '004', fields: { document: 'plan', jobId: 'J9', checks: ['V16'] }
+    },
+  ];
+}
 
 /**
  * One setup record walked through every move, each logging its own kind once, its Apply request held, refused and cancelled before it is
@@ -306,44 +341,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   records.push(...crossingStageRecordsOf(at));
   logEverySetupRecordKind(board, at);
   logEveryGateProfileRecordKind(board, at);
+  records.push(...everyTicketDocumentRecordOf(at));
   board.clearTracker({ ticketsSurvive: true }, at);
   return records;
-}
-
-/**
- * One record of each ticket document kind, written by hand in the schema's key order, because the moves that log them are stubs that lane B
- * builds; lane B then logs them through the Board and removes this list.
- */
-export function ticketDocumentRecordsBeforeTheirMoves(at: string): LogRecord[] {
-  return [
-    {
-      at, kind: 'ticket-documents-opened', ticketId: '004', fields: {}
-    },
-    {
-      at, kind: 'ticket-document-versioned', ticketId: '004', fields: { document: 'spec', number: 1, author: 'agent' }
-    },
-    {
-      at,
-      kind:     'ticket-document-approved',
-      ticketId: '004',
-      fields:   {
-        document: 'plan', number: 2, by: 'person', onSpecNumber: 1
-      }
-    },
-    {
-      at, kind: 'ticket-document-message-queued', ticketId: '004', fields: { document: 'spec', messageId: 'M1' }
-    },
-    {
-      at, kind: 'ticket-document-proposed', ticketId: '004', fields: { document: 'spec', proposalId: 'P1' }
-    },
-    {
-      at, kind: 'ticket-document-proposal-settled', ticketId: '004', fields: { document: 'spec', proposalId: 'P1', state: 'applied' }
-    },
-    {
-      at, kind: 'ticket-document-mode-set', ticketId: '004', fields: { document: 'plan', mode: 'auto-apply' }
-    },
-    {
-      at, kind: 'ticket-document-snapshot-touched', ticketId: '004', fields: { document: 'plan', jobId: 'J9', checks: ['V16'] }
-    },
-  ];
 }

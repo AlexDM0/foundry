@@ -1,8 +1,9 @@
 /**
- * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6 and V8, which
- * judge the ticket's content hash and the report alone. V13's and V14's path comparisons run here under the Windows path module, so git's `C:/`
- * spelling and a joined backslash path are shown to meet on this machine. Every check that reads the repository is held on one of the fake
- * git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what git answers.
+ * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6, V8 and V18,
+ * which judge the ticket's content hash, its document heads, its spec and the report alone. V13's and V14's path comparisons run here under
+ * the Windows path module, so git's `C:/` spelling and a joined backslash path are shown to meet on this machine. Every check that reads
+ * the repository is held on one of the fake git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what
+ * git answers.
  */
 import { posix, win32 } from 'node:path';
 
@@ -13,6 +14,7 @@ import type { LogRecord }              from '../../lib/tracker-model/@types/LogR
 import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
 import {
   agentConfigPathsAmong,
+  CHECKS_OF_ROLE,
   commitMessageIsAttributed,
   CUSTOMS_CHECKS,
   type CustomsSubject,
@@ -113,6 +115,25 @@ test('V8 refuses an Acceptance item the builder gave no evidence or waiver propo
   expect(refusalOf('V8', builderSubject({ report: { ...builderReport(), acceptance: [{ item: 'A1', state: 'waiver-proposed', evidence: '' }] } }))).toBeNull();
   expect(refusalOf('V8', builderSubject({ role: 'reviewer', report: reviewerClaims([]) }))).toBe('acceptance-without-evidence');
   expect(refusalOf('V8', builderSubject({ role: 'reviewer', report: reviewerClaims([heldClaim]) }))).toBeNull();
+});
+
+test('V8 reads the Acceptance of a ticket with documents from its spec, not its body', () => {
+  const specWithTwoItems = '## Acceptance\n\nA1. The basket shows.\nA2. The total shows.\n';
+  const builderWithA1 = builderSubject({ acceptanceText: specWithTwoItems });
+  expect(refusalOf('V8', builderWithA1)).toBe('acceptance-without-evidence');
+  expect(refusalOf('V8', builderSubject())).toBeNull();
+});
+
+test('V18 passes while the ticket\'s document heads are those its launch recorded, also for a ticket without documents', () => {
+  expect(refusalOf('V18', builderSubject())).toBeNull();
+  expect(refusalOf('V18', builderSubject({ documentVersionsAtLaunch: 'spec:a plan:b', ticketDocumentVersions: 'spec:a plan:b' }))).toBeNull();
+  const changedSpec = builderSubject({ documentVersionsAtLaunch: 'spec:a plan:b', ticketDocumentVersions: 'spec:c plan:b' });
+  expect(refusalOf('V18', changedSpec)).toBe('ticket-documents-changed');
+});
+
+test('V18 runs in the builder, reviewer and Airlock agent columns, and a document agent runs the snapshot checks of the pipeline agent', () => {
+  expect([CHECKS_OF_ROLE.builder, CHECKS_OF_ROLE.reviewer, CHECKS_OF_ROLE['airlock-agent']].map((checks) => checks.includes('V18'))).toEqual([true, true, true]);
+  expect(CHECKS_OF_ROLE['document-agent']).toEqual(CHECKS_OF_ROLE['pipeline-agent']);
 });
 
 test('a definition-file pattern reads as a git pathspec glob: a bare name at any depth, an inner / anchored, a trailing / a folder', () => {
