@@ -9,27 +9,54 @@ import { join }                 from 'node:path';
 import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { CommandAnswerDocument, ForgeCommandBody }                                           from '../@types/CommandDocument.ts';
-import type { FleetDocument }                                                                     from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext, type CommandStates }                           from '../api/CommandSender.ts';
-import type { BoardServices }                                                                     from '../board/@types/BoardServices.ts';
-import { HashRouter }                                                                             from '../shared/HashRouter.ts';
-import { GaiaShell, viewPartsOf }                                                                 from '../shell/GaiaApp.tsx';
-import { ForgesLayout }                                                                           from '../views/forges/ForgesLayout.tsx';
-import { ForgesModel, type StopDialogState }                                                      from '../views/forges/ForgesModel.ts';
-import { GaiaPanelModel }                                                                         from '../views/forges/GaiaPanelModel.ts';
-import { WhatNotifiesDialog }                                                                     from '../views/forges/WhatNotifiesDialog.tsx';
-import { DesignSystemStylesheet }                                                                 from './DesignSystemStylesheet.ts';
-import { PackageStylesheet }                                                                      from './PackageStylesheet.ts';
-import { forgeViewSurroundingsAt, silentBoardServicesOf }                                         from './ShellSurroundingsAt.ts';
-import { FLEET_AT_LIMIT }                                                                         from './fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }                                                                         from './fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }                                                                            from './fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT }               from './fixtures/fleet-five-forges.ts';
-import { FLEET_OUTAGE_ENDINGS }                                                                   from './fixtures/fleet-outage-endings.ts';
-import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG } from './fixtures/fleet-storefront-crashed.ts';
-import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                             from './fixtures/fleet-versions.ts';
-import { storefrontBoardOf }                                                                      from './fixtures/storefront-board.ts';
+import { MarkdownBlocks }                                               from '../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { CommandAnswerDocument, ForgeCommandBody }                 from '../@types/CommandDocument.ts';
+import type { FleetDocument }                                           from '../@types/FleetDocument.ts';
+import type { BoardDocument }                                           from '../@types/board/BoardDocument.ts';
+import type { BoardTicketDocument }                                     from '../@types/board/BoardTicketDocuments.ts';
+import type { BoardTicketDocumentKind }                                 from '../@types/board/BoardVocabulary.ts';
+import type { BoardTranscriptEntryDocument }                            from '../@types/board/ConversationDocument.ts';
+import type { GaiaTicketDocumentsDocument }                             from '../@types/board/TicketDocumentsDocument.ts';
+import { type CommandSender, CommandSenderContext, type CommandStates } from '../api/CommandSender.ts';
+import type { BoardServices }                                           from '../board/@types/BoardServices.ts';
+import { BoardGoToContext, BoardTrackerContext }                        from '../board/shell/BoardRouteLinks.ts';
+import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shell/ControlAvailability.ts';
+import {
+  DOCUMENT_STATES,
+  DOCUMENTS_PROJECT,
+  documentsTicketOf,
+  lineOf,
+  PLAN_OUT_OF_DATE_TRANSCRIPT,
+  PLAN_TRANSCRIPT,
+  SPEC_MARKDOWN,
+  SPEC_MARKDOWN_V6,
+  SPEC_TRANSCRIPT_IDLE,
+  SPEC_TRANSCRIPT_SPLIT,
+  SPEC_TRANSCRIPT_WORKING
+} from '../board/testing/TicketDocumentsFixture.ts';
+import type { CommentDraft }                                                                          from '../board/views/documents/CommentPopover.tsx';
+import { DocumentSelectionModel }                                                                     from '../board/views/documents/DocumentSelectionModel.ts';
+import { TicketDocumentsPage, type PageStateAtMount }                                                 from '../board/views/documents/TicketDocumentsView.tsx';
+import { FirstOpenPhaseContext }                                                                      from '../board/views/pipeline/flow/FlowSelection.ts';
+import type { PipelinePhase }                                                                         from '../board/views/pipeline/flow/PipelinePhaseModel.ts';
+import { HashRouter }                                                                                 from '../shared/HashRouter.ts';
+import { GaiaShell, viewPartsOf }                                                                     from '../shell/GaiaApp.tsx';
+import { ForgesLayout }                                                                               from '../views/forges/ForgesLayout.tsx';
+import { ForgesModel, type StopDialogState }                                                          from '../views/forges/ForgesModel.ts';
+import { GaiaPanelModel }                                                                             from '../views/forges/GaiaPanelModel.ts';
+import { WhatNotifiesDialog }                                                                         from '../views/forges/WhatNotifiesDialog.tsx';
+import { DesignSystemStylesheet }                                                                     from './DesignSystemStylesheet.ts';
+import { PackageStylesheet }                                                                          from './PackageStylesheet.ts';
+import { type PipelineDocumentArtboard, pipelineDocumentDialogMarkupOf, type PipelineDocumentScreen } from './PipelineDocumentArtboards.tsx';
+import { forgeViewSurroundingsAt, silentBoardServicesOf }                                             from './ShellSurroundingsAt.ts';
+import { FLEET_AT_LIMIT }                                                                             from './fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }                                                                             from './fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }                                                                                from './fixtures/fleet-empty.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT }                   from './fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                                                                       from './fixtures/fleet-outage-endings.ts';
+import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG }     from './fixtures/fleet-storefront-crashed.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                                 from './fixtures/fleet-versions.ts';
+import { storefrontBoardOf }                                                                          from './fixtures/storefront-board.ts';
 
 export type ScreenTheme = 'dark' | 'light';
 
@@ -534,20 +561,29 @@ function fleetDocumentInTheme(fleetDocument: FleetDocument, theme: ScreenTheme):
  * A painted screen runs no read, so Example Storefront in place shows its board as read over a live stream while it serves, and a lost
  * stream with no board while it does not; any other forge's board waits for its first.
  */
-function screenBoardServicesOf(fleetDocument: FleetDocument): (trackerId: string) => BoardServices {
+function screenBoardServicesOf(fleetDocument: FleetDocument, storefrontBoard: BoardDocument | null): (trackerId: string) => BoardServices {
   const storefront = fleetDocument.forges.find((forge) => forge.trackerId === TRACKER_IDS.exampleStorefront);
   return (trackerId) => {
     const services = silentBoardServicesOf(trackerId);
     if (trackerId !== TRACKER_IDS.exampleStorefront || storefront === undefined) return services;
+    const board = storefrontBoard === null ? storefrontBoardOf(trackerId) : { ...storefrontBoard, trackerId };
     const readingAtMount = storefront.presence.state === 'serving'
-      ? { board: storefrontBoardOf(trackerId), connection: 'live' as const }
+      ? { board, connection: 'live' as const }
       : { board: null, connection: 'down' as const };
     return { ...services, readingAtMount };
   };
 }
 
-/** The shell as the page paints it for the screen: the brand bar, the rail, the page title and the view, with every control live. */
-export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): string {
+/**
+ * The shell as the page paints it for the screen: the brand bar, the rail, the page title and the view, with every control live. A
+ * screen that draws a board of its own gives it as Example Storefront's.
+ */
+export function screenMarkupOf(
+  screen: ArtboardScreen,
+  theme: ScreenTheme,
+  storefrontBoard: BoardDocument | null = null,
+  firstOpenPhase: PipelinePhase = 'build',
+): string {
   const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
   const route = HashRouter.routeOf(screen.fragment);
   const routedParts = viewPartsOf(route, fleetDocument, {
@@ -556,7 +592,7 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
     goTo:               doNothing,
     forgeView:          {
       ...forgeViewSurroundingsAt(),
-      boardServicesOf:      screenBoardServicesOf(fleetDocument),
+      boardServicesOf:      screenBoardServicesOf(fleetDocument, storefrontBoard),
       crashLogsReadAtMount: (trackerId) => (trackerId === TRACKER_IDS.exampleStorefront ? [STOREFRONT_CRASH_LOG] : []),
     },
   });
@@ -564,14 +600,16 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
   const view = viewContent === null ? routedParts : { ...routedParts, content: viewContent };
   return renderToStaticMarkup(
     <CommandSenderContext value={senderHolding(commandStatesOf(screen.viewState))}>
-      <GaiaShell
-        fleetDocument={fleetDocument}
-        streamState="live"
-        route={route}
-        view={view}
-        themeChoice={theme}
-        onThemeChoice={doNothing}
-      />
+      <FirstOpenPhaseContext value={firstOpenPhase}>
+        <GaiaShell
+          fleetDocument={fleetDocument}
+          streamState="live"
+          route={route}
+          view={view}
+          themeChoice={theme}
+          onThemeChoice={doNothing}
+        />
+      </FirstOpenPhaseContext>
     </CommandSenderContext>,
   );
 }
@@ -689,4 +727,206 @@ export function splashScreenAddressOf(screen: SplashScreen, theme: ScreenTheme):
   splashAddress.search = new URLSearchParams({ address: SPLASH_SERVER_ADDRESS, theme }).toString();
   splashAddress.hash = new URLSearchParams({ step: screen.step }).toString();
   return splashAddress.href;
+}
+
+/** The ticket document artboards, 1 to 8 of the spec and plan design, each by its file among the owner's drawings. */
+export type TicketDocumentArtboard = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+export interface TicketDocumentScreen {
+  readonly artboard:   TicketDocumentArtboard;
+  readonly title:      string;
+  readonly designFile: string;
+  readonly documents:  GaiaTicketDocumentsDocument;
+  readonly shown:      BoardTicketDocumentKind;
+  readonly transcript: readonly BoardTranscriptEntryDocument[];
+  readonly ticket:     BoardTicketDocument;
+  readonly atMount:    PageStateAtMount;
+}
+
+const SPEC_BLOCKS = MarkdownBlocks.blocksOf(SPEC_MARKDOWN);
+
+const SPEC_LINE_COUNT = SPEC_MARKDOWN.split('\n').length;
+
+/** The spec version the idle screens show, which their comments are made on. */
+const SPEC_HEAD_NUMBER = DOCUMENT_STATES.specIdle.documents[0]?.head?.number ?? 1;
+
+const OUTCOME_QUOTE = 'with no white flash on load.';
+
+const OUTCOME_LINE = lineOf(SPEC_MARKDOWN, OUTCOME_QUOTE);
+
+const OUTCOME_COLUMN = (SPEC_MARKDOWN.split('\n')[OUTCOME_LINE - 1] ?? '').indexOf(OUTCOME_QUOTE) + 1;
+
+const OUTCOME_SELECTION = {
+  start: { line: OUTCOME_LINE, column: OUTCOME_COLUMN },
+  end:   { line: OUTCOME_LINE, column: OUTCOME_COLUMN + OUTCOME_QUOTE.length },
+  quote: OUTCOME_QUOTE,
+};
+
+/** Artboard 2's comment on the Outcome's last words, as a selection in Preview gives it. */
+const OUTCOME_COMMENT: CommentDraft = {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfPreviewSelection(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, OUTCOME_SELECTION),
+};
+
+/** The theme flow's mermaid block in the spec, fence to fence. */
+const THEME_FLOW_LINES = { from: lineOf(SPEC_MARKDOWN, '```mermaid'), to: lineOf(SPEC_MARKDOWN, 'Paint --> Account') + 1 };
+
+/** Artboard 3's comment on the theme flow's lines in Code. */
+const THEME_FLOW_COMMENT: CommentDraft = {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfLines(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW_LINES),
+};
+
+const THEME_FLOW = DocumentSelectionModel.diagramAtLine(SPEC_BLOCKS, THEME_FLOW_LINES.from);
+
+/** Artboard 6's comment on the diagram's Saved choice node, C5 of its payloads. */
+const SAVED_CHOICE_COMMENT: CommentDraft | null = THEME_FLOW === null ? null : {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfNode(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW, { nodeId: 'Stored', label: 'Saved choice' }),
+};
+
+export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
+  {
+    artboard:   1,
+    title:      'Spec in Preview with the spec agent',
+    designFile: 'Main.dc.html',
+    documents:  DOCUMENT_STATES.specWorking,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_WORKING,
+    ticket:     documentsTicketOf(),
+    atMount:    {},
+  },
+  {
+    artboard:   2,
+    title:      'Comment on a selection in Preview',
+    designFile: 'Comment-preview.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { draft: OUTCOME_COMMENT, draftText: 'Measurable? Say how a reviewer sees a flash.' },
+  },
+  {
+    artboard:   3,
+    title:      'Comment on lines in Code',
+    designFile: 'Comment-code.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { view: 'code', draft: THEME_FLOW_COMMENT, draftText: 'Server-rendered pages paint before the resolver runs. Put the server path in the flow.' },
+  },
+  {
+    artboard:   4,
+    title:      'The agent answers on the anchor',
+    designFile: 'Agent-proposal.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    {},
+  },
+  {
+    artboard:   5,
+    title:      'Edit freely while the agent works',
+    designFile: 'Split-edit.dc.html',
+    documents:  DOCUMENT_STATES.specSplit,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_SPLIT,
+    ticket:     documentsTicketOf(),
+    atMount:    { view: 'split', editedText: `${SPEC_MARKDOWN_V6}\n`, caretLine: lineOf(SPEC_MARKDOWN_V6, '#011') },
+  },
+  {
+    artboard:   6,
+    title:      'What a comment hands the agent',
+    designFile: 'Anchor-payload.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { draft: SAVED_CHOICE_COMMENT, draftText: 'Drop this if C4 finds nothing.' },
+  },
+  {
+    artboard:   7,
+    title:      'Plan with what it names',
+    designFile: 'Plan.dc.html',
+    documents:  DOCUMENT_STATES.plan,
+    shown:      'plan',
+    transcript: PLAN_TRANSCRIPT,
+    ticket:     documentsTicketOf(),
+    atMount:    { effectIsOpen: true },
+  },
+  {
+    artboard:   8,
+    title:      'Plan out of date',
+    designFile: 'Plan-out-of-date.dc.html',
+    documents:  DOCUMENT_STATES.planOutOfDate,
+    shown:      'plan',
+    transcript: PLAN_OUT_OF_DATE_TRANSCRIPT,
+    ticket:     documentsTicketOf('committed', true),
+    atMount:    {},
+  },
+];
+
+/** The documents artboards are drawn at this size. */
+export const TICKET_DOCUMENT_ARTBOARD_SIZE_PIXELS = { width: 1440, height: 900 } as const;
+
+/** Controls a painted screen offers live, which send nothing: a screen is painted, never used. */
+const PAINTED_CONTROLS: ControlSurroundings = {
+  availability:  'enabled',
+  commandClient: { send: () => Promise.reject(new Error('A screen of the visual pass sends no command.')) },
+  onInstallHeld: doNothing,
+};
+
+/** The documents page as the board's panel holds it, with every control live, painted from the screen's documents and transcript. */
+export function ticketDocumentScreenMarkupOf(screen: TicketDocumentScreen): string {
+  return renderToStaticMarkup(
+    <BoardTrackerContext value={TRACKER_IDS.exampleStorefront}>
+      <BoardGoToContext value={doNothing}>
+        <ControlSurroundingsContext value={PAINTED_CONTROLS}>
+          <div className="board-shell" style={{ height: `${TICKET_DOCUMENT_ARTBOARD_SIZE_PIXELS.height}px` }}>
+            <main className="board-panel" data-tab="documents">
+              <TicketDocumentsPage
+                project={DOCUMENTS_PROJECT}
+                ticket={screen.ticket}
+                documents={screen.documents}
+                shown={screen.shown}
+                transcript={screen.transcript}
+                atMount={screen.atMount}
+              />
+            </main>
+          </div>
+        </ControlSurroundingsContext>
+      </BoardGoToContext>
+    </BoardTrackerContext>,
+  );
+}
+
+/** A whole page for a browser, at the artboards' 1440 by 900, in the screen's theme. */
+export function ticketDocumentScreenDocumentOf(screen: TicketDocumentScreen, theme: ScreenTheme): string {
+  return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>`);
+}
+
+/** The phase each artboard draws open: 9 the Ticket phase it changes, 10 the Review phase its dialog edits a step of. */
+const OPEN_PHASE_OF_PIPELINE_DOCUMENT_ARTBOARD: Readonly<Record<PipelineDocumentArtboard, PipelinePhase>> = { 9: 'ticket', 10: 'review' };
+
+/** Example Storefront in place at the artboard's board route and phase, drawn from the artboard's board, with the dialog it draws over it. */
+export function pipelineDocumentScreenMarkupOf(screen: PipelineDocumentScreen, theme: ScreenTheme): string {
+  const storefrontInPlace: ArtboardScreen = {
+    artboard:      'B1',
+    title:         screen.title,
+    designFile:    screen.designFile,
+    fleetDocument: FLEET_FIVE_FORGES,
+    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: screen.boardRoute }),
+    viewState:     'as-routed',
+  };
+  const boardMarkup = screenMarkupOf(storefrontInPlace, theme, screen.board, OPEN_PHASE_OF_PIPELINE_DOCUMENT_ARTBOARD[screen.artboard]);
+  return boardMarkup + pipelineDocumentDialogMarkupOf(screen, TRACKER_IDS.exampleStorefront);
+}
+
+/** A whole page for a browser at the page's artboard size, in the screen's theme, with the artboard's dialog shown as a modal. */
+export function pipelineDocumentScreenDocumentOf(screen: PipelineDocumentScreen, theme: ScreenTheme): string {
+  const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_SCRIPT}`;
+  const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>${dialogScript}`;
+  return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
 }

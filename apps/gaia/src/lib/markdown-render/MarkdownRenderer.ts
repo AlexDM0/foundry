@@ -1,14 +1,14 @@
 /**
- * Renders Markdown that someone else wrote to HTML on the server, so the page carries no Markdown parser. Two of marked's defaults are
- * unacceptable for text an agent wrote: raw HTML in the source is escaped rather than passed through, and a link or image survives only
- * with an allowlisted scheme, judged after the entity decoding a browser would do. It knows nothing of what the Markdown describes.
+ * Renders Markdown that someone else wrote to HTML on the server. Two of marked's defaults are unacceptable for text an agent wrote: raw
+ * HTML in the source is escaped rather than passed through, and a link or image survives only with an allowlisted scheme, judged after the
+ * entity decoding a browser would do; `MarkdownBlocks.ts` judges its links by the same rule. It knows nothing of what the Markdown describes.
  */
 import { Marked }                      from 'marked';
 import type { RendererObject, Tokens } from 'marked';
 
 import { HtmlEscapeUtil } from './HtmlEscapeUtil.ts';
 
-const ALLOWED_HREF_SCHEMES = ['http:', 'https:', 'mailto:'] as const;
+export const ALLOWED_HREF_SCHEMES = ['http:', 'https:', 'mailto:'] as const;
 
 const NAMED_ENTITY_REPLACEMENTS: ReadonlyArray<readonly [entity: string, character: string]> = [
   ['&colon;', ':'],
@@ -65,7 +65,7 @@ function normaliseHrefForJudgement(href: string): string {
  * An href with no colon before its first `/`, `?` or `#` is allowed and one with an unlisted scheme is not: a denylist would have to enumerate every
  * scheme an attacker reaches for. A reference still undecoded in that region leaves the scheme unjudgeable, so the href is dropped.
  */
-function hrefIsAllowed(href: string): boolean {
+export function hrefIsAllowed(href: string): boolean {
   const normalised = normaliseHrefForJudgement(href);
   const schemeRegion = SCHEME_REGION_PATTERN.exec(normalised)?.[0] ?? '';
   if (schemeRegion.includes('&')) {

@@ -9,7 +9,8 @@
  * runs), links the tickets the landing lets start and says what still holds the others, and is absent without a forecast; the facts carry
  * their second lines; the live job's controls offer a message while it takes one and Wind down, Stop and Fresh agent as it offers them
  * (nothing while stopping), each worded with the ticket, its branch and the served hold, a ticket already held keeping its hold; and the
- * newest open incident listing the ticket heads the Overview.
+ * newest open incident listing the ticket heads the Overview; a ticket with a spec and plan lists each with its standing and its page,
+ * and says when they hold its build, and a ticket without them lists none.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -416,5 +417,37 @@ describe('the facts', () => {
   test('Started has no second line with no build at work', () => {
     const { facts } = overviewOf(exampleDetailBoard({ tickets: [BUILDING] }), '004');
     expect(facts.find((fact) => fact.label === 'started')?.secondaryText).toBeUndefined();
+  });
+});
+
+describe('the documents', () => {
+  test('list the spec and plan with their standing and the page that opens each, and say when they hold the build', () => {
+    const ticket = exampleDetailTicket('004', {
+      status:    'committed',
+      documents: {
+        spec:      { standing: 'approved', headNumber: 6, approvedNumber: 6 },
+        plan:      { standing: 'out-of-date', headNumber: 3, approvedNumber: 3 },
+        buildHeld: true,
+      },
+    });
+    const { documents } = overviewOf(exampleDetailBoard({ tickets: [ticket] }), '004');
+    expect(documents?.rows.map((row) => [row.title, row.standingText, row.route.item])).toEqual([
+      ['Spec', 'Approved v6', 'ticket/004/spec'],
+      ['Plan', 'Out of date: the spec changed · v3', 'ticket/004/plan'],
+    ]);
+    expect(documents?.buildHeldText).toBe('The build waits until the spec and plan are in order.');
+  });
+
+  test('say a document not written yet, and nothing of a held build while none is held', () => {
+    const ticket = exampleDetailTicket('004', {
+      status:    'draft',
+      documents: { spec: { standing: 'drafting', headNumber: 2, approvedNumber: null }, plan: { standing: 'unwritten', headNumber: null, approvedNumber: null }, buildHeld: false },
+    });
+    const { documents } = overviewOf(exampleDetailBoard({ tickets: [ticket] }), '004');
+    expect([documents?.rows.map((row) => row.standingText), documents?.buildHeldText]).toEqual([['Being written · v2', 'Not written yet'], null]);
+  });
+
+  test('are absent on a ticket with no spec and plan', () => {
+    expect(overviewOf(exampleDetailBoard({ tickets: [BUILDING] }), '004').documents).toBeNull();
   });
 });

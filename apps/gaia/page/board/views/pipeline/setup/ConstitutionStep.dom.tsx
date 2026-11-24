@@ -66,13 +66,13 @@ function renderConstitution(board: BoardDocument = pipelineBoardStateOf('A3b'), 
 }
 
 function mirrorLines(): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>('.board-pipeline-constitution-mirror-line')];
+  return [...document.querySelectorAll<HTMLElement>('.board-markdown-editor-mirror-line')];
 }
 
 function taggedLines(): string[][] {
   return mirrorLines().flatMap((line) => {
     const tag = line.querySelector('.design-system-tag');
-    const text = line.querySelector('.board-pipeline-constitution-mirror-text')?.textContent ?? '';
+    const text = line.querySelector('.board-markdown-editor-mirror-text')?.textContent ?? '';
     return tag === null ? [] : [[text, tag.textContent ?? '']];
   });
 }
@@ -119,10 +119,10 @@ describe('the text', () => {
   test('the mirror draws the textarea lines through React, the headings marked, and is hidden from the accessibility tree', () => {
     renderConstitution();
     const lines = mirrorLines();
-    expect(lines.map((line) => line.querySelector('.board-pipeline-constitution-mirror-text')?.textContent)).toEqual(editor().value.split('\n'));
+    expect(lines.map((line) => line.querySelector('.board-markdown-editor-mirror-text')?.textContent)).toEqual(editor().value.split('\n'));
     expect(lines[0]?.hasAttribute('data-heading')).toBe(true);
     expect(lines[3]?.hasAttribute('data-heading')).toBe(false);
-    expect(document.querySelector('.board-pipeline-constitution-mirror')?.getAttribute('aria-hidden')).toBe('true');
+    expect(document.querySelector('.board-markdown-editor-mirror')?.getAttribute('aria-hidden')).toBe('true');
     expect(document.querySelector('.board-pipeline-constitution-article h1')).toBeNull();
   });
 
@@ -289,13 +289,13 @@ describe('the aside and the footer', () => {
 
   test('the drafting agent draws a caret after the last line, and a stopped one none', () => {
     renderConstitution();
-    expect(mirrorLines().at(-1)?.querySelector('.board-pipeline-constitution-caret')).not.toBeNull();
+    expect(mirrorLines().at(-1)?.querySelector('.board-markdown-editor-caret')).not.toBeNull();
     cleanup();
     const board = pipelineBoardStateOf('A3b');
     const { setup } = board.pipeline;
     if (setup === null || setup === undefined) throw new Error('no setup');
     renderConstitution(withPipelineFacts(board, { setup: { ...setup, agentJobState: null } }));
-    expect(document.querySelector('.board-pipeline-constitution-caret')).toBeNull();
+    expect(document.querySelector('.board-markdown-editor-caret')).toBeNull();
     expect(document.querySelector('.board-pipeline-constitution-status')?.textContent).toBe('Pipeline agent · not running');
   });
 

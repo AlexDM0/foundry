@@ -50,6 +50,8 @@ describe('the habitats of the Flint slots', () => {
       ['assistant', ['agent-waits-on-user', 'agent-is-idle']],
       ['questions', ['agent-waits-on-user']],
       ['intake', ['agent-writes']],
+      ['specAgent', ['agent-reads', 'agent-writes', 'agent-waits-on-user', 'agent-is-done', 'agent-is-idle']],
+      ['planAgent', ['agent-reads', 'agent-writes', 'agent-waits-on-user', 'agent-is-done', 'agent-is-idle']],
     ]);
   });
 

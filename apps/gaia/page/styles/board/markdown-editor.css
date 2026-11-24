@@ -1,0 +1,84 @@
+/* The board's Markdown editor (the constitution's Edit view and a ticket document's Code view). The textarea and the mirror share one
+   font, line height and padding, so the mirror's lines stand under the textarea's; the textarea's own text is var(--see-through) and its
+   caret stays visible. A gutter, where the caller asks for one, keeps the same line height, so its numbers stand beside their lines. */
+.board-markdown-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.board-markdown-editor-lines { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+.board-markdown-editor-body { position: relative; display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; min-height: 0; }
+
+.board-markdown-editor-mirror,
+.board-markdown-editor-input,
+.board-markdown-editor-gutter {
+  box-sizing: border-box; margin: 0; padding: 18px 22px;
+  font: 12.5px/22px var(--font-mono); letter-spacing: normal; tab-size: 2; white-space: pre;
+}
+
+.board-markdown-editor-mirror { position: absolute; inset: 0; overflow: hidden; color: var(--ink); pointer-events: none; }
+
+.board-markdown-editor-mirror-line { display: flex; align-items: center; gap: 10px; min-height: 22px; width: max-content; min-width: 100%; }
+
+.board-markdown-editor-mirror-line[data-heading] { font-weight: 600; }
+
+.board-markdown-editor-mirror-line[data-selected] { background: var(--badge-accent-tint); }
+
+.board-markdown-editor-mirror-text { white-space: pre; }
+
+.board-markdown-editor-caret { display: inline-block; width: 7px; height: 15px; align-self: center; background: var(--signal); }
+
+.board-markdown-editor-input {
+  position: relative; flex: 1 1 auto; width: 100%; min-height: 420px; resize: none; overflow: auto;
+  color: var(--see-through); caret-color: var(--ink); background: var(--see-through); border: 0; outline: none;
+}
+
+.board-markdown-editor-input::selection { color: var(--see-through); background: var(--accent-ring); }
+
+.board-markdown-editor-input:focus-visible { box-shadow: inset 0 0 0 2px var(--link); }
+
+.board-markdown-editor-input:read-only { caret-color: var(--see-through); }
+
+.board-markdown-editor-gutter {
+  flex: none; align-self: stretch; overflow: hidden; padding-right: 0; padding-left: 8px; color: var(--ink-4); background: var(--wash); border-right: 1px solid var(--line);
+  user-select: none;
+}
+
+.board-markdown-editor-gutter-line { display: grid; grid-template-columns: 46px 24px 22px; align-items: center; height: 22px; }
+
+.board-markdown-editor-marker-place { display: flex; justify-content: flex-end; padding-right: 6px; }
+
+.board-markdown-editor-line-number { text-align: right; font-variant-numeric: tabular-nums; }
+
+.board-markdown-editor-marker {
+  display: inline-flex; align-items: center; height: 16px; padding: 0 5px; font-size: var(--fs-micro); line-height: 1;
+  color: var(--ink-muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+}
+
+.board-markdown-editor-marker[data-tone="open"] { color: var(--link); border-color: var(--accent-outline); }
+
+.board-markdown-editor-comment-button {
+  width: 16px; height: 16px; margin-left: 4px; padding: 0; font: inherit; line-height: 14px; color: var(--link); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-1); opacity: 0;
+}
+
+.board-markdown-editor-gutter-line:hover .board-markdown-editor-comment-button,
+.board-markdown-editor-comment-button:focus-visible { opacity: 1; }
+
+.board-markdown-editor-marker-list { margin: 0; padding: 0; list-style: none; }
+
+.board-markdown-editor-refusal {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px;
+  border-top: 1px solid var(--line);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-markdown-editor-caret { animation: board-caret 1s steps(1) infinite; }
+
+  .board-markdown-editor-mirror-line[data-changed] {
+    background-image: linear-gradient(var(--new-text-tint), var(--new-text-tint)); background-repeat: no-repeat;
+    animation: board-mark 700ms var(--ease-out) 400ms both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-markdown-editor-mirror-line[data-changed] { background: var(--new-text-tint); }
+}

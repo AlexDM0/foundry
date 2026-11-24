@@ -1,7 +1,8 @@
 /**
  * The ticket form's Overview: the state card with its Flint slot, the newest open incident on the ticket, the one likely action with its
  * effect, the live job's message box and More menu, Next as numbered steps (the current one marked), Other moves, and the Facts grid.
- * Watch is a link, so a stream that is down never disables it; every move posts a board command.
+ * Watch is a link, so a stream that is down never disables it; every move posts a board command. A ticket with a spec and plan lists each
+ * with where it stands and a link to its page.
  */
 
 import { useState } from 'react';
@@ -31,6 +32,7 @@ import type {
   NextStepModel,
   NowCardModel,
   OpenIncidentLineModel,
+  TicketDocumentsModel,
   TicketJobControlsModel,
   TicketOverviewModel
 } from './TicketOverviewModel.ts';
@@ -127,6 +129,24 @@ function JobControls({ ticketId, controls }: { readonly ticketId: string; readon
   );
 }
 
+function TicketDocumentRows({ documents }: { readonly documents: TicketDocumentsModel }) {
+  const hrefOf = useBoardHrefOf();
+  return (
+    <>
+      <ul className="board-detail-documents" aria-label="Ticket documents">
+        {documents.rows.map((row) => (
+          <li key={row.document} className="board-detail-document">
+            <Text bold>{row.title}</Text>
+            <Text muted>{row.standingText}</Text>
+            <a className="board-detail-document-link" href={hrefOf(row.route)}>{`Open the ${row.title.toLowerCase()}`}</a>
+          </li>
+        ))}
+      </ul>
+      {documents.buildHeldText === null ? null : <p className="board-detail-note">{documents.buildHeldText}</p>}
+    </>
+  );
+}
+
 function NumberedSteps({ steps }: { readonly steps: readonly NextStepModel[] }) {
   return (
     <ol className="board-detail-steps">
@@ -152,6 +172,7 @@ export function TicketOverview({ ticketId, model }: { readonly ticketId: string;
           {model.conflictedFiles.map((file) => <li key={file}>{file}</li>)}
         </ul>
       )}
+      {model.documents === null ? null : <TitledBlock title="Documents" rule="above"><TicketDocumentRows documents={model.documents} /></TitledBlock>}
       {model.nextSteps === null ? null : <TitledBlock title="Next" rule="above"><NumberedSteps steps={model.nextSteps} /></TitledBlock>}
       {model.otherMoves.length === 0 ? null : (
         <TitledBlock title="Other moves" rule="above">

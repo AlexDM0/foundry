@@ -731,8 +731,7 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 /* The constitution step (A3bConstitution), as FlowConstitution draws it: the status line over the title row with Edit or Preview, the
    document in a card on the surface with the board's strong line and its 40 px head; in the panel, who reads it as quiet pills and the
-   sources as outlined checkbox rows. The editor's textarea and mirror share one font, line height and padding, so the mirror's lines
-   stand under the textarea's; the textarea's own text is var(--see-through) and its caret stays visible. */
+   sources as outlined checkbox rows. The editor is the board's Markdown editor (markdown-editor.css). */
 .board-pipeline-constitution { display: flex; flex-direction: column; min-width: 0; }
 
 /* Edit or Preview sits at the foot of the title row, level with the lead, at its own height. */
@@ -761,39 +760,6 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 .board-pipeline-constitution-article[data-view="preview"] { overflow: auto; }
 
 .board-pipeline-constitution-article[data-view="preview"] > :not(.board-pipeline-constitution-article-head) { margin: 18px 22px; }
-
-.board-pipeline-constitution-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
-
-.board-pipeline-constitution-mirror,
-.board-pipeline-constitution-input {
-  box-sizing: border-box; margin: 0; padding: 18px 22px;
-  font: 12.5px/22px var(--font-mono); letter-spacing: normal; tab-size: 2; white-space: pre;
-}
-
-.board-pipeline-constitution-mirror { position: absolute; inset: 0; overflow: hidden; color: var(--ink); pointer-events: none; }
-
-.board-pipeline-constitution-mirror-line { display: flex; align-items: center; gap: 10px; min-height: 22px; width: max-content; }
-
-.board-pipeline-constitution-mirror-line[data-heading] { font-weight: 600; }
-
-.board-pipeline-constitution-mirror-text { white-space: pre; }
-
-.board-pipeline-constitution-caret { display: inline-block; width: 7px; height: 15px; align-self: center; background: var(--signal); }
-
-.board-pipeline-constitution-input {
-  position: relative; flex: 1 1 auto; width: 100%; min-height: 420px; resize: none; overflow: auto;
-  color: var(--see-through); caret-color: var(--ink); background: var(--see-through); border: 0; outline: none;
-}
-
-.board-pipeline-constitution-input::selection { color: var(--see-through); background: var(--accent-ring); }
-
-.board-pipeline-constitution-input:focus-visible { box-shadow: inset 0 0 0 2px var(--link); }
-
-.board-pipeline-constitution-sources-list { margin: 0; padding: 0; list-style: none; }
-
-.board-pipeline-constitution-refusal {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px; border-top: 1px solid var(--line);
-}
 
 .board-pipeline-constitution-readers,
 .board-pipeline-constitution-sources { display: flex; flex-direction: column; gap: 6px; }
@@ -840,16 +806,6 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
   .board-pipeline-constitution-article { animation: board-rise var(--motion-rise) var(--ease-out) both; }
 
-  .board-pipeline-constitution-caret { animation: board-caret 1s steps(1) infinite; }
-
-  .board-pipeline-constitution-mirror-line[data-changed] {
-    background-image: linear-gradient(var(--new-text-tint), var(--new-text-tint)); background-repeat: no-repeat;
-    animation: board-mark 700ms var(--ease-out) 400ms both;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-pipeline-constitution-mirror-line[data-changed] { background: var(--new-text-tint); }
 }
 
 /* The step and gate dialogs, as the Flow*Editor boards draw them: the model select beside the effort choices (each a bordered 36px
