@@ -61,6 +61,8 @@ export const AGENT_INSTALL: { parts: readonly InstalledPart[] } = {
         { name: 'reReviewerDefault', templateFileName: 'ReReviewerBrief.md' },
         { name: 'conflictReReviewerDefault', templateFileName: 'ConflictReReviewerBrief.md' },
         { name: 'productOwnerDefault', templateFileName: 'ProductOwnerPrompt.md', resourceFolder: 'prompts' },
+        { name: 'specAgentDefault', templateFileName: 'SpecAgentBrief.md' },
+        { name: 'planAgentDefault', templateFileName: 'PlanAgentBrief.md' },
         { name: 'pipelineAgentDefault', templateFileName: 'PipelineAgentBrief.md' },
         { name: 'assistantDefault', templateFileName: 'AssistantBrief.md' },
         { name: 'sessionInstructions', templateFileName: 'SessionInstructions.md' },

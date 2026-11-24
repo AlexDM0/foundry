@@ -10,10 +10,11 @@ paths:
 
 - Two skills, split by audience. `skills/agent-po/` is PO intake: it loads in any session asked to file a ticket and
   as a Hephaestus product-owner job's first line, holds the whole filing procedure, files every ticket as a draft with a
-  numbered Acceptance and a `## Brief`, and readies drafts only on User's yes in User's own session (under Hephaestus
-  it closes intake instead); it loads no other skill. `skills/agent-pipeline/` is pipeline setup: it holds the whole
-  setup procedure (the five relayed verbs, the questions rule, the lines rule and the research, entities, constitution
-  and design steps), runs in User's own session as in the pipeline agent, and loads no other skill.
+  numbered Acceptance and a `## Brief` (in the spec-then-plan route only its `## Report` and `## Wanted`), and readies
+  drafts only on User's yes in User's own session (under Hephaestus it closes intake instead); it loads no other skill.
+  `skills/agent-pipeline/` is pipeline setup: it holds the whole setup procedure (the five relayed verbs, the questions
+  rule, the lines rule and the research, entities, constitution and design steps), runs in User's own session as in the
+  pipeline agent, and loads no other skill.
 - No agent preloads a skill, and nothing installs a worker definition. Hephaestus's roles read the instruction files
   `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
   fixed prompts under `resources/prompts/`.

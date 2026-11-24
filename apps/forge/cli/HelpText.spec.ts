@@ -24,7 +24,7 @@ const PIPELINE_SETUP_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skil
  * of that session's API calls re-reads it, so orchestrator or agent material creeping into it is paid for by every
  * filing. Raise this only with the same argument.
  */
-const FILING_SKILL_LIMIT_CHARACTERS = 9_300;
+const FILING_SKILL_LIMIT_CHARACTERS = 9_450;
 
 function commandWordsDocumented(): string[] {
   const words = HELP_TEXT.split('\n')

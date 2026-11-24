@@ -17,7 +17,7 @@ import { installedFilePathsIn } from './InstalledFiles.ts';
 
 const EXAMPLE_ROOT = join(sep, 'scratch', 'example-repository');
 
-test('the session instructions and the reference sit in the tracker directory, the eight instruction defaults in its briefs/defaults', () => {
+test('the session instructions and the reference sit in the tracker directory, the ten instruction defaults in its briefs/defaults', () => {
   const paths = installedFilePathsIn(EXAMPLE_ROOT);
   expect(relative(EXAMPLE_ROOT, paths.sessionInstructions)).toBe(join(PRODUCT_NAMES.DATA_FOLDER, 'session-instructions.md'));
   expect(relative(EXAMPLE_ROOT, paths.reference)).toBe(join(PRODUCT_NAMES.DATA_FOLDER, 'reference.md'));
@@ -28,10 +28,12 @@ test('the session instructions and the reference sit in the tracker directory, t
     paths.reReviewerDefault,
     paths.conflictReReviewerDefault,
     paths.productOwnerDefault,
+    paths.specAgentDefault,
+    paths.planAgentDefault,
     paths.pipelineAgentDefault,
     paths.assistantDefault,
   ].map((path) => relative(EXAMPLE_ROOT, path));
-  expect(defaults).toEqual(['constitution', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'productOwner', 'pipelineAgent', 'assistant']
+  expect(defaults).toEqual(['constitution', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'productOwner', 'specAgent', 'planAgent', 'pipelineAgent', 'assistant']
     .map((role) => join(PRODUCT_NAMES.DATA_FOLDER, 'briefs', 'defaults', `${role}.md`)));
 });
 
@@ -41,7 +43,7 @@ test('the install manifest sits in the tracker directory, beside what it version
 
 test('every path is absolute and under the root it was given', () => {
   const installedFilePaths = Object.values(installedFilePathsIn(EXAMPLE_ROOT));
-  expect(installedFilePaths).toHaveLength(11);
+  expect(installedFilePaths).toHaveLength(13);
   for (const installedFilePath of installedFilePaths) {
     expect(isAbsolute(installedFilePath), installedFilePath).toBe(true);
     expect(installedFilePath).toStartWith(`${EXAMPLE_ROOT}${sep}`);
