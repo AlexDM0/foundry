@@ -154,8 +154,8 @@ and the answers of the user.
 - Give each edit one field, the whole new value of the field and one summary sentence. The user reads the sentence
   on the board.
 - The fields are `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `role:<role>`, `review`,
-  `airlock`, `approval:<approval>` and `constitution`. The value `null` removes a gate, a prepare step, the review or
-  the merge train. On a role or an approval, `null` sets the default again.
+  `airlock`, `approval:<approval>`, `ticket-writing` and `constitution`. The value `null` removes a gate, a prepare
+  step, the review or the merge train. On a role, an approval or `ticket-writing`, `null` sets the default again.
 - A gate is `{name, run, fix?, in?, definedBy?, network?, writes?}`. `in` is the folder the gate runs in, from the
   project's folder, or from the repository root when it starts with `/`; leave it out to run in the project's folder.
   Put the files that define the gate in `definedBy`, a file above the project's folder with a leading `/`. Put the
@@ -167,12 +167,24 @@ and the answers of the user.
 - Do not make a gate from a script that starts a server or watches files.
 - A prepare step is `{name, run, in?}`, its `in` written as a gate's. It installs what a new worktree needs. The
   prepare steps run in the order of `prepare-order`, before the build gates.
-- A role is `{model?, effort?, instructions?}`. The roles are `productOwner`, `builder`, `reviewer`, `reReviewer`,
-  `conflictReReviewer`, `pipelineAgent` and `assistant`. The models are `haiku`, `sonnet`, `opus` and `fable`. The
-  efforts are `low`, `medium`, `high`, `xhigh` and `max`. Change a role only when the project needs it.
+- A role is `{model?, effort?, instructions?}`. The roles are `productOwner`, `specAgent`, `planAgent`, `builder`,
+  `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent` and `assistant`. The models are `haiku`, `sonnet`,
+  `opus` and `fable`. The efforts are `low`, `medium`, `high`, `xhigh` and `max`. Change a role only when the project
+  needs it.
 - The review is `{name, reReview?: {thresholdLines}}`. The merge train is `{reReview?: {thresholdLines}}`. A
   re-review runs when the fixes change more lines than `thresholdLines`.
-- The approvals are `tickets` and `merge`. Each one is `true` or `false`.
+- The approvals are `tickets`, `merge`, `spec` and `plan`. Each one is `true` or `false`.
+- `ticket-writing` sets how a ticket is written. It is `one-ticket` or `spec-then-plan`. The default is
+  `one-ticket`: the product owner writes the ticket, and the user reviews it when the `tickets` approval is on.
+- With `spec-then-plan`, the product owner writes only the Report and the Wanted of a ticket. Then the spec agent
+  writes the spec, and the plan agent writes the plan after the spec is approved. The plan replaces the Brief. The
+  user approves each document when its approval, `spec` or `plan`, is on. When an approval is off, the pipeline
+  approves the document when its agent calls it ready. A ticket is ready for the builder only when both documents are
+  approved.
+- Propose `spec-then-plan` only when the tickets of this project need a design before the build. Ask the user first.
+- The builder and the reviewer can also have `documents`: `{spec?, plan?}`, each `always`, `if-person-approved` or
+  `never`. `always` gives the approved document. `if-person-approved` gives the plan only when the user approved it on
+  the current spec. The reviewer always reads the spec. Set `documents` only when the user asks for it.
 - When the user writes to you, change the draft with edits. Then tell the user in one sentence what you changed.
 - When only the user can decide, ask with the subject `node` or `gate`.
 

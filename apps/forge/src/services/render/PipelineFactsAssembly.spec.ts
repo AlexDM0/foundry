@@ -3,14 +3,14 @@
  * reading says, with its newest Apply; the setup facts (counts, the agent job's state, the constitution's HTML, its outline counting `##`
  * lines and top-level `-` items, each annotation with the index of the line it anchors, the roles reading the constitution, and a held
  * Apply's blocking files and the ticket holding main); the flow's stage, its question markers and its change list; the live occupants on
- * the node of each job's step, a review catching up with main on the merge before review (Q5) and a filing draft on ticket creation, never
- * the constitution commit job; every model and effort in order (Q9); each gate's cache mark from its newest run in a phase, a job's or a
- * profile's, by log order; and each step's newest run time, kept by entity, step kind, step name and phase. On a forge over entities: the
- * forge's flow beside each entity's flow, drawn from its single pipeline and marked against the applied entity; each entity's setup facts
- * from its part of the record, a record-only entity included, read by the entity's roles alone; and profile runs and cache marks kept by
- * entity, gate and phase; and the product owner the first Apply over entities started, with its job's state and each of its tickets' entity
- * and reason from the newest assignment since its launch; an update over entities lists no forge constitution. A forge without entities
- * gets none of these keys. The main line's texts arrive as a parameter, so no case runs git.
+ * the node of each job's step, a review catching up with main on the merge before review (Q5), a document agent on its writing step and a
+ * filing draft on ticket creation, never the constitution commit job; every model and effort in order (Q9); each gate's cache mark from
+ * its newest run in a phase, a job's or a profile's, by log order; and each step's newest run time, kept by entity, step kind, step name
+ * and phase. On a forge over entities: the forge's flow beside each entity's flow, drawn from its single pipeline and marked against the
+ * applied entity; each entity's setup facts from its part of the record, a record-only entity included, read by the entity's roles alone;
+ * and profile runs and cache marks kept by entity, gate and phase; and the product owner the first Apply over entities started, with its
+ * job's state and each of its tickets' entity and reason from the newest assignment since its launch; an update over entities lists no
+ * forge constitution. A forge without entities gets none of these keys. The main line's texts arrive as a parameter, so no case runs git.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -465,6 +465,16 @@ describe('the live occupants', () => {
     expect(facts.pipelineFlow?.occupants.map(({ occupantId, nodeId, jobId }) => ({ occupantId, nodeId, jobId }))).toEqual([
       { occupantId: '002', nodeId: 're-review-before-human-code-review', jobId: 'J2' },
     ]);
+  });
+
+  test('a spec agent stands on Spec and a plan agent on Plan, where the spec-then-plan route draws them, and nowhere on one ticket', () => {
+    const documentAgent = (role: Job['role']): Job[] => [jobFixture({
+      id: 'J8', kind: 'document-agent', role, ticketIds: ['008']
+    })];
+    const specThenPlan: Pipeline = { ...FULL_PIPELINE, ticketWriting: 'spec-then-plan' };
+    expect(nodeOfTicket(specThenPlan, documentAgent('spec-agent'), '008')).toBe('spec-writing');
+    expect(nodeOfTicket(specThenPlan, documentAgent('plan-agent'), '008')).toBe('plan-writing');
+    expect(nodeOfTicket(FULL_PIPELINE, documentAgent('spec-agent'), '008')).toBeUndefined();
   });
 
   test('an Airlock job stands where its phase is, and the constitution commit job is no occupant', () => {

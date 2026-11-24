@@ -405,6 +405,8 @@ function candidateNodesOf(context: OccupantContext, job: Readonly<Job>): string[
         default:
           return [NODE_IDS.mergeInAirlock];
       }
+    case 'document-agent':
+      return job.role === 'plan-agent' ? [NODE_IDS.planWriting] : [NODE_IDS.specWriting];
     default:
       return [];
   }

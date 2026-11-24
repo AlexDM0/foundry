@@ -2,7 +2,9 @@
  * The flow graph's contract: which nodes exist for each flow shape the designs draw (`Flow.dc.html` with Human code review off and on and
  * with the review step off, `A7Minimal.dc.html`), the insert-slot table row by row, the merge steps' placement and derived
  * meter (Q5, Q16), the node-to-dialog table, the editing marks (a removed gate stays drawn, a removed agent step goes and leaves its +),
- * and that no node or edge carries words. The cases pin the rules a client must not repeat, so each names the design or decision it holds.
+ * the ticket writing route (`PipelineDesignTicket.dc.html`: one ticket draws today's graph byte for byte, spec then plan its four steps
+ * with their own switches and agents), and that no node or edge carries words. The cases pin the rules a client must not repeat, so each
+ * names the design or decision it holds.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -220,6 +222,72 @@ describe('the flow shapes the designs draw', () => {
     expect(new Set(graph.nodes.map((node) => node.mark))).toEqual(new Set(['proposed']));
     expect(new Set(graph.nodes.flatMap((node) => node.gateChips.map((chip) => chip.mark)))).toEqual(new Set(['proposed']));
     expect(new Set(graph.gateRows.build.map((row) => row.mark))).toEqual(new Set(['proposed']));
+  });
+});
+
+describe('the ticket writing route', () => {
+  const SPEC_THEN_PLAN: Pipeline = { ...DRAWN_PIPELINE, ticketWriting: 'spec-then-plan' };
+
+  test('one ticket, absent or written out, draws today\'s nodes and edges byte for byte', () => {
+    for (const stage of ['proposal', 'live', 'editing'] as const) {
+      const today = JSON.stringify(graphOf(DRAWN_PIPELINE, stage, DRAWN_PIPELINE));
+      expect(JSON.stringify(graphOf({ ...DRAWN_PIPELINE, ticketWriting: 'one-ticket' }, stage, DRAWN_PIPELINE)), stage).toBe(today);
+    }
+  });
+
+  test('PipelineDesignTicket.dc.html: spec then plan draws Spec, Human spec review, Plan and Human plan review in place of the two ticket steps', () => {
+    const graph = graphOf(SPEC_THEN_PLAN);
+
+    expect(nodeIdsOf(graph).slice(0, 5)).toEqual(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review', 'builder']);
+    expect(nodeIdsOf(graph)).not.toContain('ticket-creation');
+    expect(nodeIdsOf(graph)).not.toContain('human-ticket-review');
+    expect(nodeIdsOf(graph).slice(5)).toEqual(nodeIdsOf(graphOf(DRAWN_PIPELINE)).slice(3));
+    expect(edgeKeysOf(graph).slice(0, 4)).toEqual([
+      'spec-writing->human-spec-review forward -',
+      'human-spec-review->plan-writing forward -',
+      'plan-writing->human-plan-review forward -',
+      'human-plan-review->builder forward -',
+    ]);
+  });
+
+  test('each writing step is its agent\'s step, with its pair and instructions, and opens the agent step dialog', () => {
+    const graph = graphOf(SPEC_THEN_PLAN);
+
+    for (const [nodeId, role] of [['spec-writing', 'specAgent'], ['plan-writing', 'planAgent']] as const) {
+      expect(nodeOf(graph, nodeId)).toMatchObject({
+        nodeKind: nodeId, role, settings: WORKER_PAIR, instructionEntries: instructionEntriesOf(role), dialogTarget: 'agent-step', switchState: null,
+      });
+    }
+    expect(nodeOf(graphOf({ ...SPEC_THEN_PLAN, agents: { planAgent: { model: 'fable', effort: 'max' } } }), 'plan-writing').settings)
+      .toEqual({ model: 'fable', effort: 'max' });
+  });
+
+  test('each human review is a switch of its own approval, on where absent, and opens no dialog', () => {
+    const onByDefault = graphOf(SPEC_THEN_PLAN);
+    const specOff     = graphOf({ ...SPEC_THEN_PLAN, approvals: { spec: false } });
+    const planOff     = graphOf({ ...SPEC_THEN_PLAN, approvals: { plan: false, tickets: false } });
+
+    expect([nodeOf(onByDefault, 'human-spec-review').switchState, nodeOf(onByDefault, 'human-plan-review').switchState]).toEqual(['on', 'on']);
+    expect([nodeOf(specOff, 'human-spec-review').switchState, nodeOf(specOff, 'human-plan-review').switchState]).toEqual(['off', 'on']);
+    expect([nodeOf(planOff, 'human-spec-review').switchState, nodeOf(planOff, 'human-plan-review').switchState]).toEqual(['on', 'off']);
+    expect([nodeOf(onByDefault, 'human-spec-review').dialogTarget, nodeOf(onByDefault, 'human-plan-review').dialogTarget]).toEqual([null, null]);
+  });
+
+  test('editing: a change of route marks the four steps new; a switch or an agent of its own marks its node changed', () => {
+    const routed = graphOf(SPEC_THEN_PLAN, 'editing', DRAWN_PIPELINE);
+    expect(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review'].map((nodeId) => nodeOf(routed, nodeId).mark)).toEqual(['new', 'new', 'new', 'new']);
+    expect(nodeOf(routed, 'builder').mark).toBe('unchanged');
+
+    const specSwitched = graphOf({ ...SPEC_THEN_PLAN, approvals: { spec: false } }, 'editing', SPEC_THEN_PLAN);
+    expect(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review'].map((nodeId) => nodeOf(specSwitched, nodeId).mark))
+      .toEqual(['unchanged', 'changed', 'unchanged', 'unchanged']);
+
+    const planAgentChanged = graphOf({ ...SPEC_THEN_PLAN, agents: { planAgent: { model: 'sonnet' } } }, 'editing', SPEC_THEN_PLAN);
+    expect(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review'].map((nodeId) => nodeOf(planAgentChanged, nodeId).mark))
+      .toEqual(['unchanged', 'unchanged', 'changed', 'unchanged']);
+
+    const backToOneTicket = graphOf(DRAWN_PIPELINE, 'editing', SPEC_THEN_PLAN);
+    expect([nodeOf(backToOneTicket, 'ticket-creation').mark, nodeOf(backToOneTicket, 'human-ticket-review').mark]).toEqual(['new', 'new']);
   });
 });
 

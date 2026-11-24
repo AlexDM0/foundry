@@ -3,9 +3,14 @@
  * the same graph on every stage; only the marks differ: all `proposed` in a proposal, all `unchanged` live, and against the applied
  * pipeline while editing. On a forge over entities each entity's single pipeline gives a graph of its own the same way.
  */
-import { GATE_PHASES, type GatePhase }                 from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey, Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PIPELINE_FORMAT_VERSION }                     from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GATE_PHASES, type GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgentRole,
+  PipelineApproval
+} from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   DerivedSettingsSource,
   MergePlacement,
@@ -27,6 +32,7 @@ import type { AgentPair }          from '../../lib/tracker-model/@types/Ticket.t
 import type { PipelineChangeKind } from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import { PipelineChangeUtil }      from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import { PipelineUtil }            from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketWritingUtil }       from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 
 export interface PipelineFlowGraphInput {
   /** The draft during a setup or an edit; the stored pipeline when live. */
@@ -50,6 +56,10 @@ export interface EntityFlowGraphsInput extends Omit<PipelineFlowGraphInput, 'ins
 export const PIPELINE_FLOW_NODE_IDS = Object.freeze({
   ticketCreation:                'ticket-creation',
   humanTicketReview:             'human-ticket-review',
+  specWriting:                   'spec-writing',
+  humanSpecReview:               'human-spec-review',
+  planWriting:                   'plan-writing',
+  humanPlanReview:               'human-plan-review',
   builder:                       'builder',
   buildGates:                    'gates-build',
   mergeBeforeReview:             'merge-before-review',
@@ -109,6 +119,22 @@ function placeOf(nodeId: string, nodeKind: PipelineNodeKind, changes: Partial<No
   };
 }
 
+/** How a ticket is written: the product owner's ticket and User's review of it, or a spec and a plan, each with User's review. */
+function ticketWritingPlacesOf(pipeline: Pipeline): NodePlace[] {
+  if (TicketWritingUtil.routeOf(pipeline) === 'one-ticket') {
+    return [
+      placeOf(NODE_IDS.ticketCreation, 'ticket-creation', { role: 'productOwner' }),
+      placeOf(NODE_IDS.humanTicketReview, 'human-ticket-review'),
+    ];
+  }
+  return [
+    placeOf(NODE_IDS.specWriting, 'spec-writing', { role: 'specAgent' }),
+    placeOf(NODE_IDS.humanSpecReview, 'human-spec-review'),
+    placeOf(NODE_IDS.planWriting, 'plan-writing', { role: 'planAgent' }),
+    placeOf(NODE_IDS.humanPlanReview, 'human-plan-review'),
+  ];
+}
+
 /**
  * The nodes of a pipeline in drawing order. The merge before review comes with the review step (Q5); the merge before User's code
  * review, its re-review and its gates come with the merge approval; a merge's worker is the builder when no review step exists (Q16).
@@ -121,8 +147,7 @@ function nodePlacesOf(pipeline: Pipeline, phaseIsDrawn: (phase: GatePhase) => bo
   const phaseBeforeHumanCodeReview = review === undefined ? 'build' : 'review';
   const gatesPlaceOf = (nodeId: string, phase: GatePhase): NodePlace[] => (phaseIsDrawn(phase) ? [placeOf(nodeId, 'gates', { phase })] : []);
   return [
-    placeOf(NODE_IDS.ticketCreation, 'ticket-creation', { role: 'productOwner' }),
-    placeOf(NODE_IDS.humanTicketReview, 'human-ticket-review'),
+    ...ticketWritingPlacesOf(pipeline),
     placeOf(NODE_IDS.builder, 'builder', { role: 'builder' }),
     ...gatesPlaceOf(NODE_IDS.buildGates, 'build'),
     ...(review === undefined ? [] : [
@@ -156,6 +181,8 @@ function nodePlacesOf(pipeline: Pipeline, phaseIsDrawn: (phase: GatePhase) => bo
 function dialogTargetOf(place: NodePlace): PipelineNodeDialogTarget | null {
   switch (place.nodeKind) {
     case 'ticket-creation':
+    case 'spec-writing':
+    case 'plan-writing':
     case 'builder':
       return 'agent-step';
     case 'review':
@@ -229,6 +256,13 @@ function nodeIsChanged(context: GraphContext, place: NodePlace): boolean {
   switch (place.nodeKind) {
     case 'human-ticket-review':
       return changeKinds.has('approval:tickets');
+    case 'spec-writing':
+    case 'plan-writing':
+      return roleChanged || changeKinds.has('ticket-writing');
+    case 'human-spec-review':
+      return changeKinds.has('approval:spec') || changeKinds.has('ticket-writing');
+    case 'human-plan-review':
+      return changeKinds.has('approval:plan') || changeKinds.has('ticket-writing');
     case 'human-code-review':
       return changeKinds.has('approval:merge');
     case 'review':
@@ -256,10 +290,17 @@ function gateChipsOfPlace(context: GraphContext, place: NodePlace): PipelineGate
   return [];
 }
 
+const APPROVAL_OF_SWITCH_NODE: Readonly<Partial<Record<PipelineNodeKind, PipelineApproval>>> = Object.freeze({
+  'human-ticket-review': 'tickets',
+  'human-spec-review':   'spec',
+  'human-plan-review':   'plan',
+  'human-code-review':   'merge',
+});
+
 function switchStateOf(context: GraphContext, place: NodePlace): PipelineFlowNode['switchState'] {
-  if (place.nodeKind === 'human-ticket-review') return PipelineChangeUtil.approvalIsOn(context.draft, 'tickets') ? 'on' : 'off';
-  if (place.nodeKind === 'human-code-review') return PipelineChangeUtil.approvalIsOn(context.draft, 'merge') ? 'on' : 'off';
-  return null;
+  const approval = APPROVAL_OF_SWITCH_NODE[place.nodeKind];
+  if (approval === undefined) return null;
+  return PipelineChangeUtil.approvalIsOn(context.draft, approval) ? 'on' : 'off';
 }
 
 function nodeOf(context: GraphContext, place: NodePlace): PipelineFlowNode {
