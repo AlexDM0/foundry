@@ -1,13 +1,9 @@
 /**
- * The contract's board command mapped into forge's own `ControlCommand` of the same kind, field by field, each readonly array copied into
- * the model's form. One branch per kind, so a kind the contract adds fails the typecheck until it is mapped here.
+ * The contract's board command, or its ticket document command, mapped into forge's own `ControlCommand` of the same kind, field by
+ * field, each readonly array copied into the model's form. One branch per kind, so a kind the contract adds fails the typecheck until it
+ * is mapped here.
  */
-import type {
-  ChartRangeRequest,
-  DecisionAnswerFormDocument,
-  ForgeBoardCommand,
-  PictureReferenceDocument
-} from 'forge-contracts/BoardCommand';
+import type { ChartRangeRequest, DecisionAnswerFormDocument, PictureReferenceDocument } from 'forge-contracts/BoardCommand';
 import type {
   AgentStepSettingsDocument,
   EntityDraftEditDocument,
@@ -17,6 +13,7 @@ import type {
   PipelineGateDocument,
   PipelineStepsDraftEditDocument
 } from 'forge-contracts/BoardPipelineDocuments';
+import type { CommentAnchorDocument, DiagramAnchorDocument, LineRangeDocument } from 'forge-contracts/TicketDocumentsDocument';
 
 import type { DecisionAnswerForm }                                from '../../../lib/tracker-model/@types/Decision.ts';
 import type { PictureReference }                                  from '../../../lib/tracker-model/@types/Job.ts';
@@ -27,11 +24,13 @@ import type {
   PipelineEntityDefinition,
   PipelineStepsDraftEdit
 } from '../../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { CommentAnchor, DiagramAnchor, LineRange }                     from '../../../lib/tracker-model/@types/TicketDocument.ts';
 import type { ChartRangeRequest as ForgeChartRangeRequest, ControlCommand } from '../../../shared/@types/ControlCommand.ts';
+import type { BoardContractCommand }                                        from './BoardCommandReadingUtil.ts';
 
-type BoardCommandOf<Kind extends ForgeBoardCommand['kind']> = Extract<ForgeBoardCommand, { kind: Kind }>;
+type BoardCommandOf<Kind extends BoardContractCommand['kind']> = Extract<BoardContractCommand, { kind: Kind }>;
 
-type BoardCommandMappers = { readonly [Kind in ForgeBoardCommand['kind']]: (command: BoardCommandOf<Kind>) => ControlCommand };
+type BoardCommandMappers = { readonly [Kind in BoardContractCommand['kind']]: (command: BoardCommandOf<Kind>) => ControlCommand };
 
 function chartRangeOf(range: ChartRangeRequest): ForgeChartRangeRequest {
   return range.kind === 'automatic' ? { kind: 'automatic' } : {
@@ -143,6 +142,30 @@ function draftEditOf(edit: PipelineDraftEditDocument): PipelineDraftEdit {
   }
 }
 
+function lineRangeOf(range: LineRangeDocument): LineRange {
+  return { from: range.from, to: range.to };
+}
+
+function diagramAnchorOf(diagram: DiagramAnchorDocument): DiagramAnchor {
+  return {
+    lines: lineRangeOf(diagram.lines), diagramKind: diagram.diagramKind, nodeId: diagram.nodeId, nodeLabel: diagram.nodeLabel
+  };
+}
+
+function commentAnchorOf(anchor: CommentAnchorDocument | null): CommentAnchor | null {
+  if (anchor === null) return null;
+  return {
+    view:             anchor.view,
+    versionNumber:    anchor.versionNumber,
+    lines:            lineRangeOf(anchor.lines),
+    ...(anchor.columns === undefined ? {} : { columns: lineRangeOf(anchor.columns) }),
+    sectionPath:      [...anchor.sectionPath],
+    ...(anchor.quote === undefined ? {} : { quote: anchor.quote }),
+    surroundingLines: lineRangeOf(anchor.surroundingLines),
+    ...(anchor.diagram === undefined ? {} : { diagram: diagramAnchorOf(anchor.diagram) }),
+  };
+}
+
 function optionalOf<Key extends string, Value>(key: Key, value: Value | undefined): { [Field in Key]?: Value } {
   return value === undefined ? {} : { [key]: value } as { [Field in Key]?: Value };
 }
@@ -212,17 +235,46 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
   'ticket-park':    (command) => ({
     kind: 'ticket-park', ticketReference: command.ticketReference, reason: command.reason, ...optionalOf('incidentId', command.incidentId)
   }),
-  'ticket-priority': (command) => ({ kind: 'ticket-priority', ticketReference: command.ticketReference, priority: command.priority }),
-  'ticket-ready':    (command) => ({ kind: 'ticket-ready', ticketReferences: [...command.ticketReferences] }),
-  'ticket-unhold':   (command) => ({ kind: 'ticket-unhold', ticketReference: command.ticketReference }),
-  'tracker-clear':   (command) => ({ kind: 'tracker-clear', scope: command.scope }),
+  'ticket-priority':      (command) => ({ kind: 'ticket-priority', ticketReference: command.ticketReference, priority: command.priority }),
+  'ticket-ready':         (command) => ({ kind: 'ticket-ready', ticketReferences: [...command.ticketReferences] }),
+  'ticket-unhold':        (command) => ({ kind: 'ticket-unhold', ticketReference: command.ticketReference }),
+  'tracker-clear':        (command) => ({ kind: 'tracker-clear', scope: command.scope }),
+  'ticket-document-save': (command) => ({
+    kind: 'ticket-document-save', ticketReference: command.ticketReference, document: command.document, baseVersion: command.baseVersion, markdown: command.markdown
+  }),
+  'ticket-document-comment': (command) => ({
+    kind: 'ticket-document-comment', ticketReference: command.ticketReference, document: command.document, anchor: commentAnchorOf(command.anchor), text: command.text
+  }),
+  'ticket-document-comment-withdraw': (command) => ({
+    kind: 'ticket-document-comment-withdraw', ticketReference: command.ticketReference, document: command.document, messageId: command.messageId
+  }),
+  'ticket-document-proposal-apply': (command) => ({
+    kind:            'ticket-document-proposal-apply',
+    ticketReference: command.ticketReference,
+    document:        command.document,
+    proposalId:      command.proposalId,
+    ...optionalOf('replacementLines', command.replacementLines?.map((lines) => [...lines])),
+  }),
+  'ticket-document-proposal-discard': (command) => ({
+    kind: 'ticket-document-proposal-discard', ticketReference: command.ticketReference, document: command.document, proposalId: command.proposalId
+  }),
+  'ticket-document-mode-set': (command) => ({
+    kind: 'ticket-document-mode-set', ticketReference: command.ticketReference, document: command.document, mode: command.mode
+  }),
+  'ticket-document-approve': (command) => ({
+    kind: 'ticket-document-approve', ticketReference: command.ticketReference, document: command.document, version: command.version
+  }),
+  'ticket-document-effect-read': (command) => ({
+    kind: 'ticket-document-effect-read', ticketReference: command.ticketReference, document: command.document, version: command.version
+  }),
+  'ticket-document-turn-stop': (command) => ({ kind: 'ticket-document-turn-stop', ticketReference: command.ticketReference, document: command.document }),
 };
 
-function mapperOf<Kind extends ForgeBoardCommand['kind']>(kind: Kind): (command: BoardCommandOf<Kind>) => ControlCommand {
+function mapperOf<Kind extends BoardContractCommand['kind']>(kind: Kind): (command: BoardCommandOf<Kind>) => ControlCommand {
   return MAPPER_OF_KIND[kind];
 }
 
-function controlCommandOf(command: ForgeBoardCommand): ControlCommand {
+function controlCommandOf(command: BoardContractCommand): ControlCommand {
   return mapperOf(command.kind)(command);
 }
 

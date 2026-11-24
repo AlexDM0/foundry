@@ -1795,6 +1795,11 @@ export class Board {
     return this.records.changedTicketDocumentRecords;
   }
 
+  /** Every ticket's documents record, each with the text of every version it names. */
+  ticketDocumentRecords(): readonly Readonly<LoadedTicketDocumentRecord>[] {
+    return this.records.ticketDocumentRecords;
+  }
+
   removedDrafts(): readonly Draft[] {
     return this.records.removedDraftRecords;
   }

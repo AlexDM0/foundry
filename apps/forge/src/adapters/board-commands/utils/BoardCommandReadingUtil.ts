@@ -1,15 +1,24 @@
 /**
- * An untrusted body of a board kind read into the contract's `ForgeBoardCommand`, field by field, or `null` when a field is missing or of
- * the wrong shape. A key the kind does not name is left behind. Whether a value fits the board (a ticket that exists, a revision still
- * current) is the applier's.
+ * An untrusted body of a board kind read into the contract's `ForgeBoardCommand` or `ForgeTicketDocumentCommand`, field by field, or `null`
+ * when a field is missing or of the wrong shape. A key the kind does not name is left behind; inside a comment's anchor, an unknown key
+ * does not read. Whether a value fits the board (a ticket that exists, a revision still current) is the applier's.
  */
 import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
   ForgeBoardCommand,
+  ForgeTicketDocumentCommand,
   PictureReferenceDocument
 } from 'forge-contracts/BoardCommand';
 import type { ConstitutionSourcesDocument, PipelineBillingDocument, PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';
+import { PROPOSAL_MODES, TICKET_DOCUMENT_KINDS }                                                from 'forge-contracts/BoardVocabulary';
+import type {
+  ColumnRangeDocument,
+  CommentAnchorDocument,
+  CommentView,
+  DiagramAnchorDocument,
+  LineRangeDocument
+} from 'forge-contracts/TicketDocumentsDocument';
 
 import { JsonRecordUtil }               from '../../../lib/json-record/JsonRecordUtil.ts';
 import { GATE_PHASES }                  from '../../../lib/tracker-model/@types/GatePhase.ts';
@@ -18,11 +27,14 @@ import { TICKET_PRIORITIES }            from '../../../lib/tracker-model/constan
 import { BOARD_COMMAND_CONTRACT_KINDS } from '../../../shared/constants/HephaestusApiContracts.ts';
 import { SetupPayloadSchemas }          from '../../pipeline-setup/SetupPayloadSchemas.ts';
 
-type BoardCommandKind = ForgeBoardCommand['kind'];
+/** Every command a view sends of the contract's board kinds: the board's own, and from forge 4.1 the user's moves on a ticket's documents. */
+export type BoardContractCommand = ForgeBoardCommand | ForgeTicketDocumentCommand;
+
+type BoardCommandKind = BoardContractCommand['kind'];
 
 type BodyRecord = Record<string, unknown>;
 
-type BoardCommandReader = (body: BodyRecord) => ForgeBoardCommand;
+type BoardCommandReader = (body: BodyRecord) => BoardContractCommand;
 
 const JOB_STOP_MODES = ['stop', 'wind-down'] as const;
 
@@ -31,6 +43,14 @@ const TRACKER_CLEAR_SCOPES = ['tasks-and-log', 'everything'] as const;
 const BILLING_KEYS: readonly string[] = ['mode', 'maxBudgetUsd'];
 
 const CONSTITUTION_SOURCE_KEYS = ['contributing', 'research', 'installedDefault'] as const;
+
+const COMMENT_VIEWS = ['preview', 'code'] as const satisfies readonly CommentView[];
+
+const RANGE_KEYS: readonly string[] = ['from', 'to'];
+
+const ANCHOR_KEYS: readonly string[] = ['view', 'versionNumber', 'lines', 'columns', 'sectionPath', 'quote', 'surroundingLines', 'diagram'];
+
+const DIAGRAM_KEYS: readonly string[] = ['lines', 'diagramKind', 'nodeId', 'nodeLabel'];
 
 /** Thrown inside a reading and caught at its edge, so each check is one line. */
 class MalformedBoardCommand extends Error {}
@@ -154,6 +174,65 @@ function draftSetsOf(value: unknown): string[][] {
   return value.map(textListOf);
 }
 
+/** A record that holds no key outside `keys`. */
+function recordOfKeys(value: unknown, keys: readonly string[]): BodyRecord {
+  const record = recordOf(value);
+  if (Object.keys(record).some((key) => !keys.includes(key))) malformed();
+  return record;
+}
+
+function versionNumberOrNullAt(record: BodyRecord, key: string): number | null {
+  return valueAt(record, key) === null ? null : wholeNumberAt(record, key);
+}
+
+/** Line or column numbers from 1, `from` not after `to`. */
+function rangeOf(value: unknown): LineRangeDocument & ColumnRangeDocument {
+  const range = recordOfKeys(value, RANGE_KEYS);
+  const from  = wholeNumberAt(range, 'from');
+  const to    = wholeNumberAt(range, 'to');
+  if (from < 1 || to < from) malformed();
+  return { from, to };
+}
+
+function diagramOf(value: unknown): DiagramAnchorDocument {
+  const diagram = recordOfKeys(value, DIAGRAM_KEYS);
+  return {
+    lines:       rangeOf(valueAt(diagram, 'lines')),
+    diagramKind: textAt(diagram, 'diagramKind'),
+    nodeId:      textAt(diagram, 'nodeId'),
+    nodeLabel:   textAt(diagram, 'nodeLabel'),
+  };
+}
+
+/** `null` for a message on no lines; otherwise the anchor whole, each optional key only when the body carries it. */
+function anchorOrNullOf(value: unknown): CommentAnchorDocument | null {
+  if (value === null) return null;
+  const anchor = recordOfKeys(value, ANCHOR_KEYS);
+  return {
+    view:             oneOf(COMMENT_VIEWS, anchor, 'view'),
+    versionNumber:    wholeNumberAt(anchor, 'versionNumber'),
+    lines:            rangeOf(valueAt(anchor, 'lines')),
+    ...(Object.hasOwn(anchor, 'columns') ? { columns: rangeOf(anchor['columns']) } : {}),
+    sectionPath:      textListOf(valueAt(anchor, 'sectionPath')),
+    ...optionalTextAt(anchor, 'quote'),
+    surroundingLines: rangeOf(valueAt(anchor, 'surroundingLines')),
+    ...(Object.hasOwn(anchor, 'diagram') ? { diagram: diagramOf(anchor['diagram']) } : {}),
+  };
+}
+
+/** One list of lines for each edit of the proposal, when the user changed them before applying. */
+function replacementLinesOf(record: BodyRecord): { replacementLines?: string[][] } {
+  if (!Object.hasOwn(record, 'replacementLines')) return {};
+  const lists = valueAt(record, 'replacementLines');
+  if (!Array.isArray(lists)) malformed();
+  return { replacementLines: lists.map(textListOf) };
+}
+
+/** The ticket and the document every ticket document kind names. */
+function documentAddressOf(body: BodyRecord): Pick<ForgeTicketDocumentCommand, 'ticketReference' | 'document'> {
+  return { ticketReference: textAt(body, 'ticketReference'), document: oneOf(TICKET_DOCUMENT_KINDS, body, 'document') };
+}
+
 const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   'chart-range-set':    (body) => ({ kind: 'chart-range-set', range: chartRangeOf(valueAt(body, 'range')) }),
   'decision-answer':    (body) => ({ kind: 'decision-answer', decisionId: textAt(body, 'decisionId'), answer: answerOf(valueAt(body, 'answer')) }),
@@ -226,10 +305,25 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   'ticket-park':    (body) => ({
     kind: 'ticket-park', ticketReference: textAt(body, 'ticketReference'), reason: textAt(body, 'reason'), ...optionalTextAt(body, 'incidentId')
   }),
-  'ticket-priority': (body) => ({ kind: 'ticket-priority', ticketReference: textAt(body, 'ticketReference'), priority: oneOf(TICKET_PRIORITIES, body, 'priority') }),
-  'ticket-ready':    (body) => ({ kind: 'ticket-ready', ticketReferences: textListOf(valueAt(body, 'ticketReferences')) }),
-  'ticket-unhold':   (body) => ({ kind: 'ticket-unhold', ticketReference: textAt(body, 'ticketReference') }),
-  'tracker-clear':   (body) => ({ kind: 'tracker-clear', scope: oneOf(TRACKER_CLEAR_SCOPES, body, 'scope') }),
+  'ticket-priority':      (body) => ({ kind: 'ticket-priority', ticketReference: textAt(body, 'ticketReference'), priority: oneOf(TICKET_PRIORITIES, body, 'priority') }),
+  'ticket-ready':         (body) => ({ kind: 'ticket-ready', ticketReferences: textListOf(valueAt(body, 'ticketReferences')) }),
+  'ticket-unhold':        (body) => ({ kind: 'ticket-unhold', ticketReference: textAt(body, 'ticketReference') }),
+  'tracker-clear':        (body) => ({ kind: 'tracker-clear', scope: oneOf(TRACKER_CLEAR_SCOPES, body, 'scope') }),
+  'ticket-document-save': (body) => ({
+    kind: 'ticket-document-save', ...documentAddressOf(body), baseVersion: versionNumberOrNullAt(body, 'baseVersion'), markdown: textAt(body, 'markdown')
+  }),
+  'ticket-document-comment': (body) => ({
+    kind: 'ticket-document-comment', ...documentAddressOf(body), anchor: anchorOrNullOf(valueAt(body, 'anchor')), text: textAt(body, 'text')
+  }),
+  'ticket-document-comment-withdraw': (body) => ({ kind: 'ticket-document-comment-withdraw', ...documentAddressOf(body), messageId: textAt(body, 'messageId') }),
+  'ticket-document-proposal-apply':   (body) => ({
+    kind: 'ticket-document-proposal-apply', ...documentAddressOf(body), proposalId: textAt(body, 'proposalId'), ...replacementLinesOf(body)
+  }),
+  'ticket-document-proposal-discard': (body) => ({ kind: 'ticket-document-proposal-discard', ...documentAddressOf(body), proposalId: textAt(body, 'proposalId') }),
+  'ticket-document-mode-set':         (body) => ({ kind: 'ticket-document-mode-set', ...documentAddressOf(body), mode: oneOf(PROPOSAL_MODES, body, 'mode') }),
+  'ticket-document-approve':          (body) => ({ kind: 'ticket-document-approve', ...documentAddressOf(body), version: wholeNumberAt(body, 'version') }),
+  'ticket-document-effect-read':      (body) => ({ kind: 'ticket-document-effect-read', ...documentAddressOf(body), version: wholeNumberAt(body, 'version') }),
+  'ticket-document-turn-stop':        (body) => ({ kind: 'ticket-document-turn-stop', ...documentAddressOf(body) }),
 };
 
 function isBoardCommandKind(kind: string): kind is BoardCommandKind {
@@ -237,7 +331,7 @@ function isBoardCommandKind(kind: string): kind is BoardCommandKind {
 }
 
 /** The command a body of a board kind names, or `null` for a body of another kind or one that does not read. */
-function boardCommandOf(body: BodyRecord): ForgeBoardCommand | null {
+function boardCommandOf(body: BodyRecord): BoardContractCommand | null {
   const kind = valueAt(body, 'kind');
   if (typeof kind !== 'string' || !isBoardCommandKind(kind)) return null;
   try {

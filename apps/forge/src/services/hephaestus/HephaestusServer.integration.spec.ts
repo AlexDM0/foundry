@@ -92,6 +92,7 @@ function startExampleServer(
       return { status: 200, body: { outcome: 'done', result: null } };
     },
     onNudge:         () => nudges.push('nudge'),
+    ticketDocuments: () => ({ status: 200, body: { ticketId: '001', documents: [], effectReadings: [] } }),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     board:           () => ({ project: 'Example Agency' }),
     summary:         () => ({ summaryVersion: 3 }),

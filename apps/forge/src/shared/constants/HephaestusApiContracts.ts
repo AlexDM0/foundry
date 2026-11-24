@@ -3,10 +3,10 @@
  * `SERVED_CONTRACT_VERSIONS` as `contracts`; a contract this program does not serve has no entry. A change of shape in a contract raises
  * its number in the package in the same change.
  */
-import type { ForgeBoardCommand }       from 'forge-contracts/BoardCommand';
-import type { ForgeControlCommand }     from 'forge-contracts/ForgeControlCommand';
-import { HEPHAESTUS_CONTRACT_VERSIONS } from 'forge-contracts/HephaestusContractVersions';
-import type { ServedContractName }      from 'forge-contracts/IdentityDocument';
+import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from 'forge-contracts/BoardCommand';
+import type { ForgeControlCommand }                           from 'forge-contracts/ForgeControlCommand';
+import { HEPHAESTUS_CONTRACT_VERSIONS }                       from 'forge-contracts/HephaestusContractVersions';
+import type { ServedContractName }                            from 'forge-contracts/IdentityDocument';
 
 export const IDENTITY_VERSION = HEPHAESTUS_CONTRACT_VERSIONS.identity;
 
@@ -37,8 +37,8 @@ export const CONTROL_CONTRACT_KINDS = [
 
 /**
  * The board's kinds of the contract, under the same control version: what a view sends to `POST /api/commands`, each body
- * the package's `ForgeBoardCommand`, read and mapped into forge's command by `src/adapters/board-commands/`, and pinned by
- * `cli/hephaestus/routes/CommandRoute.boardContract.spec.ts`.
+ * the package's `ForgeBoardCommand`, or from forge 4.1 its `ForgeTicketDocumentCommand`, read and mapped into forge's command by
+ * `src/adapters/board-commands/`, and pinned by `cli/hephaestus/routes/CommandRoute.boardContract.spec.ts`.
  */
 export const BOARD_COMMAND_CONTRACT_KINDS = [
   'chart-range-set',
@@ -76,4 +76,13 @@ export const BOARD_COMMAND_CONTRACT_KINDS = [
   'ticket-ready',
   'ticket-unhold',
   'tracker-clear',
-] as const satisfies readonly ForgeBoardCommand['kind'][];
+  'ticket-document-save',
+  'ticket-document-comment',
+  'ticket-document-comment-withdraw',
+  'ticket-document-proposal-apply',
+  'ticket-document-proposal-discard',
+  'ticket-document-mode-set',
+  'ticket-document-approve',
+  'ticket-document-effect-read',
+  'ticket-document-turn-stop',
+] as const satisfies readonly (ForgeBoardCommand | ForgeTicketDocumentCommand)['kind'][];

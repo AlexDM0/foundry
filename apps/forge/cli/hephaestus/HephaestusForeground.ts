@@ -61,6 +61,7 @@ import {
   TALOS_START_BOUNDS,
   TALOS_START_WAITS
 } from '../../src/services/hephaestus/TalosStart.ts';
+import { TicketDocumentsAssembly }    from '../../src/services/hephaestus/TicketDocumentsAssembly.ts';
 import { mainLineOf }                 from '../../src/services/lifecycle/MergeTargets.ts';
 import type { BoardStore }            from '../../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore } from '../../src/services/store/LocalFilesBoardStore.ts';
@@ -769,7 +770,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           mergeForecastCache,
           mainLineReads,
         });
-        ownBroker.publishState(read.state);
+        ownBroker.publishState(read.state, TicketDocumentsAssembly.fingerprintsOf(read.board.ticketDocumentRecords()));
         const monitorFacts = monitorFactsNow();
         if (monitorFacts !== null) ownMonitorStream.publish(MonitorSnapshotAssembly.monitorSnapshotOf({ ...read, hephaestus: monitorFacts, now: context.now() }));
       } catch (thrown) {

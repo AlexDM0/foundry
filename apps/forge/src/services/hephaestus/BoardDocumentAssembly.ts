@@ -21,11 +21,12 @@ import { todayCalendarDateOf, todayFiguresOf }       from '../../shared/monitor/
 import { NoticeWordingUtil }                         from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                         from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState }                           from './BoardState.ts';
+import { TicketDocumentsAssembly }                   from './TicketDocumentsAssembly.ts';
 
 /** One reading of the board: the state the monitor reads, the Board it was read from for the offers, and the clock's moment. */
 export interface BoardDocumentSource {
   state:      BoardState;
-  board:      Pick<Board, 'ticketOffersOf' | 'jobOffersOf'>;
+  board:      Pick<Board, 'ticketOffersOf' | 'jobOffersOf' | 'ticketDocumentRecordOf' | 'pipeline'>;
   logRecords: readonly LogRecord[];
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
   now:        Date;
@@ -48,8 +49,9 @@ function ticketReadingsOf(source: BoardDocumentSource): (ticket: PageTicket) => 
     const facts = boardFactsById.get(ticket.id);
     const ownRow = facts?.ownRowPosition === null || facts === undefined ? undefined : progress.tasks[facts.ownRowPosition];
     return {
-      facts:  BoardReadingMappingUtil.ticketFactsOf(ticket, facts, ownRow),
-      offers: BoardReadingMappingUtil.ticketOffersOf(board.ticketOffersOf(ticket.id, mergeWaitOf(state.mergeQueue, ticket.id))),
+      facts:     BoardReadingMappingUtil.ticketFactsOf(ticket, facts, ownRow),
+      offers:    BoardReadingMappingUtil.ticketOffersOf(board.ticketOffersOf(ticket.id, mergeWaitOf(state.mergeQueue, ticket.id))),
+      documents: TicketDocumentsAssembly.documentsSummaryOf(ticket, board.ticketDocumentRecordOf(ticket.id), board.pipeline()),
     };
   };
 }

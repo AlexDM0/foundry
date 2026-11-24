@@ -549,6 +549,18 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedRun(GIT_CALL_SHAPES.UNMERGED_FILES_ONE, ticketWorktree, ['ls-files', '-u']).standardOutput).toContain('\tshared.txt\n');
   });
 
+  test('a constitution changed by two of three commits counts two up to the tip, and a commit the repository does not hold fails', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    commitFile(repositoryDirectory, 'CONSTITUTION.md', '# Example Agency\n');
+    commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n');
+    const tip = commitFile(repositoryDirectory, 'CONSTITUTION.md', '# Example Agency\n\nWrite tests first.\n').trim();
+    expect(recordedRun(GIT_CALL_SHAPES.COMMITS_OF_A_PATH_TWO, repositoryDirectory, ['rev-list', '--count', '--end-of-options', tip, '--', 'CONSTITUTION.md']).standardOutput)
+      .toBe('2\n');
+    const absentCommit = '0123456789abcdef0123456789abcdef01234567';
+    const absentCommitArguments = ['rev-list', '--count', '--end-of-options', absentCommit, '--', 'CONSTITUTION.md'];
+    expect(recordedRun(GIT_CALL_SHAPES.COMMITS_OF_A_PATH_AT_NO_COMMIT, repositoryDirectory, absentCommitArguments).exitCode).not.toBe(0);
+  });
+
   test('a main line answers a missing revision\'s tree, a batch of one clean prediction, a modified checkout\'s status and its blocked fast-forward', () => {
     const repositoryDirectory = realpathSync(scratchRepository());
     gitOutputIn(repositoryDirectory, ['checkout', '-q', '-B', 'main']);

@@ -3,7 +3,7 @@
  * log, the epics, the drafts and the Board's facts of each row and ticket, then the limits, the concurrency, Hephaestus, the usage
  * windows and the notices. Every field is named, so a field the model gains reaches no reader until it is mapped here.
  */
-import type { BoardLimitsDocument } from 'forge-contracts/BoardLimitsDocument';
+import type { BoardLimitsDocument }     from 'forge-contracts/BoardLimitsDocument';
 import type {
   BoardDraftQuestionDocument,
   BoardDraftSummaryDocument,
@@ -15,7 +15,8 @@ import type {
   BoardReadyTicketDocument,
   BoardRowFactsDocument,
   BoardTaskDocument,
-  BoardTicketDocument
+  BoardTicketDocument,
+  BoardTicketDocumentsSummaryDocument
 } from 'forge-contracts/BoardPageDocuments';
 import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                   from 'forge-contracts/BoardReadingDocuments';
 import type { BoardConcurrencyDocument, BoardHephaestusDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
@@ -38,10 +39,11 @@ import { NoticeWordingUtil }                from '../../../shared/monitor/utils/
 import type { HephaestusFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
 import { BoardReadingMappingUtil }          from './BoardReadingMappingUtil.ts';
 
-/** What forge reads of one ticket beyond its file: its facts and the commands it accepts now. */
+/** What forge reads of one ticket beyond its file: its facts, the commands it accepts now, and where its documents stand, if it has any. */
 export interface TicketReadings {
-  readonly facts:  BoardTicketFactsDocument;
-  readonly offers: BoardTicketOffersDocument;
+  readonly facts:     BoardTicketFactsDocument;
+  readonly offers:    BoardTicketOffersDocument;
+  readonly documents: BoardTicketDocumentsSummaryDocument | null;
 }
 
 function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocument {
@@ -78,6 +80,7 @@ function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocu
     acceptanceItems: ticket.acceptanceItems.map((item) => ({ label: item.label, text: item.text, waived: item.waived })),
     facts:           readings.facts,
     offers:          readings.offers,
+    ...(readings.documents === null ? {} : { documents: readings.documents }),
   };
 }
 

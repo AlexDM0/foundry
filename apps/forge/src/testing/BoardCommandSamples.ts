@@ -1,11 +1,28 @@
 /**
- * One body of each board command kind of the contract, with every optional field it takes, and one typed draft edit of each target: what
- * the board commands' reading and mapping specs read and map.
+ * One body of each board command kind of the contract, the ticket document kinds included, with every optional field it takes, and one
+ * typed draft edit of each target: what the board commands' reading and mapping specs read and map.
  */
-import type { ForgeBoardCommand }         from 'forge-contracts/BoardCommand';
-import type { PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';
+import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from 'forge-contracts/BoardCommand';
+import type { PipelineDraftEditDocument }                     from 'forge-contracts/BoardPipelineDocuments';
+import type { CommentAnchorDocument }                         from 'forge-contracts/TicketDocumentsDocument';
 
-type BoardCommandSamples = { readonly [Kind in ForgeBoardCommand['kind']]: Extract<ForgeBoardCommand, { kind: Kind }> };
+type BoardContractCommand = ForgeBoardCommand | ForgeTicketDocumentCommand;
+
+type BoardCommandSamples = { readonly [Kind in BoardContractCommand['kind']]: Extract<BoardContractCommand, { kind: Kind }> };
+
+/** A comment on a mermaid node in Preview, with every optional key of an anchor. */
+export const COMMENT_ANCHOR_SAMPLE: CommentAnchorDocument = {
+  view:             'preview',
+  versionNumber:    4,
+  lines:            { from: 20, to: 22 },
+  columns:          { from: 3, to: 18 },
+  sectionPath:      ['3 Behaviour', 'Theme flow'],
+  quote:            'Theme toggled',
+  surroundingLines: { from: 17, to: 25 },
+  diagram:          {
+    lines: { from: 20, to: 20 }, diagramKind: 'flowchart', nodeId: 'toggle', nodeLabel: 'Theme toggled'
+  },
+};
 
 export const DRAFT_EDIT_SAMPLES: readonly PipelineDraftEditDocument[] = [
   {
@@ -100,8 +117,33 @@ export const BOARD_COMMAND_SAMPLES: BoardCommandSamples = {
   'ticket-park':    {
     kind: 'ticket-park', ticketReference: '7', reason: 'Blocked by the example vendor.', incidentId: 'I1'
   },
-  'ticket-priority': { kind: 'ticket-priority', ticketReference: '7', priority: 'high' },
-  'ticket-ready':    { kind: 'ticket-ready', ticketReferences: ['7', '8'] },
-  'ticket-unhold':   { kind: 'ticket-unhold', ticketReference: '7' },
-  'tracker-clear':   { kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-priority':      { kind: 'ticket-priority', ticketReference: '7', priority: 'high' },
+  'ticket-ready':         { kind: 'ticket-ready', ticketReferences: ['7', '8'] },
+  'ticket-unhold':        { kind: 'ticket-unhold', ticketReference: '7' },
+  'tracker-clear':        { kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-document-save': {
+    kind: 'ticket-document-save', ticketReference: '7', document: 'spec', baseVersion: 4, markdown: '# Example spec\n\n## Outcome\n'
+  },
+  'ticket-document-comment': {
+    kind: 'ticket-document-comment', ticketReference: '7', document: 'spec', anchor: COMMENT_ANCHOR_SAMPLE, text: 'Name the example page.'
+  },
+  'ticket-document-comment-withdraw': {
+    kind: 'ticket-document-comment-withdraw', ticketReference: '7', document: 'spec', messageId: 'M3'
+  },
+  'ticket-document-proposal-apply': {
+    kind: 'ticket-document-proposal-apply', ticketReference: '7', document: 'plan', proposalId: 'P2', replacementLines: [['- Add the example page.'], []]
+  },
+  'ticket-document-proposal-discard': {
+    kind: 'ticket-document-proposal-discard', ticketReference: '7', document: 'plan', proposalId: 'P2'
+  },
+  'ticket-document-mode-set': {
+    kind: 'ticket-document-mode-set', ticketReference: '7', document: 'spec', mode: 'auto-apply'
+  },
+  'ticket-document-approve': {
+    kind: 'ticket-document-approve', ticketReference: '7', document: 'spec', version: 5
+  },
+  'ticket-document-effect-read': {
+    kind: 'ticket-document-effect-read', ticketReference: '7', document: 'plan', version: 2
+  },
+  'ticket-document-turn-stop': { kind: 'ticket-document-turn-stop', ticketReference: '7', document: 'spec' },
 };

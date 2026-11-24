@@ -4,7 +4,9 @@
  * `launching`, one launched and ended within a pass included, is published `launching` first, so every state reaches the stream; a
  * state differing only in the page's generation stamp sends nothing; ids are `<generation>-<n>`, and a replay serves only a buffered id
  * of this generation. A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` directly
- * before `board`, so the flow animates its marks from that slice (`docs/reference/hephaestus-api.md`, "The event stream").
+ * before `board`, so the flow animates its marks from that slice (`docs/reference/hephaestus-api.md`, "The event stream"). A ticket whose
+ * documents record changed, appeared or left sends `documents` with its id after the other slices and before `board`, which follows also
+ * when nothing else changed; the first state sends none; an effect reading's change sends `documents` at once.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -131,5 +133,30 @@ describe('EventBroker', () => {
       ['profile', { ...queued, state: 'running' }],
       ['board', expect.anything()],
     ]);
+  });
+
+  test('a ticket whose documents record changed, appeared or left sends documents before board, which follows also when nothing else changed', () => {
+    const { broker, events } = recordingBroker();
+    broker.publishState(exampleState(), new Map([['004', 'spec v1'], ['006', 'spec v1']]));
+    broker.publishState(exampleState({ paused: true }), new Map([['004', 'spec v2'], ['006', 'spec v1'], ['007', 'spec v1']]));
+    broker.publishState(exampleState({ paused: true }), new Map([['004', 'spec v2'], ['007', 'spec v1']]));
+    broker.publishState(exampleState({ paused: true }), new Map([['004', 'spec v2'], ['007', 'spec v1']]));
+    expect(events.map((event) => [event.kind, event.kind === 'documents' ? event.data : null])).toEqual([
+      ['board', null],
+      ['hephaestus', null],
+      ['documents', { ticketId: '004' }],
+      ['documents', { ticketId: '007' }],
+      ['board', null],
+      ['documents', { ticketId: '006' }],
+      ['board', null],
+    ]);
+  });
+
+  test('an effect reading\'s change sends documents at once, with its ticket', () => {
+    const { broker, events } = recordingBroker();
+    broker.publishState(exampleState());
+    broker.announceTicketDocuments('004');
+    expect(events.map((event) => `${event.id} ${event.kind}`)).toEqual(['3-1 board', '3-2 documents']);
+    expect(events[1]?.data).toEqual({ ticketId: '004' });
   });
 });
