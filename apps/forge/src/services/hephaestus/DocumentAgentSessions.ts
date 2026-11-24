@@ -178,7 +178,7 @@ function documentAgentFactsOf(board: Board, job: Readonly<Job>): DocumentAgentFa
   const held     = board.ticketDocuments().documentOf(ticketId, document);
   const spec     = board.ticketDocuments().documentOf(ticketId, 'spec');
   const head     = versionTextOf(board, ticketId, document, held === null ? undefined : TicketDocumentVersionUtil.headOf(held)?.number);
-  const approvedSpec = document === 'plan' && spec !== null ? versionTextOf(board, ticketId, 'spec', TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number) : null;
+  const approvedSpec = document === 'plan' && spec !== null ? versionTextOf(board, ticketId, 'spec', job.attempt) : null;
   const outOfDate = document === 'plan' && board.ticketDocuments().standingOf(ticketId, 'plan') === 'out-of-date';
   return {
     document,

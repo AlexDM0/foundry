@@ -4,7 +4,8 @@
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
  * `ready-for-review` while ticket review is on and to `committed` while it is off, and in a forge with entities refuses one without an
  * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
- * child is live; in the spec-then-plan route closing leaves a draft with its Report and Wanted a draft and opens its documents; only
+ * child is live; in the spec-then-plan route closing leaves a draft with its Report and Wanted a draft and opens its documents, and with
+ * entities refuses one without an entity before the job moves; only
  * User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
  * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
  * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
@@ -301,6 +302,21 @@ describe('intake', () => {
     expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['draft', 'draft']);
     expect(board.ticketDocuments().standingOf('004', 'spec')).toBe('unwritten');
     expect(board.ticketDocuments().standingOf('005', 'spec')).toBeNull();
+  });
+
+  test('in the spec-then-plan route in a forge with entities, intake-close refuses a complete draft without an entity before the job moves', () => {
+    const reportAndWanted = '## Report\nThe basket is empty.\n\n## Wanted\nThe basket shows its items.\n';
+    const { board } = boardFixture({
+      pipeline: { ...entityPipelineFixture(), ticketWriting: 'spec-then-plan' },
+      tickets:  [draftFiledBy('004', 'J1', reportAndWanted)],
+    });
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+    const jobStateBefore = board.jobById('J1')?.state;
+
+    expect(refusalDetailOf(() => apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] })))
+      .toEqual({ reason: 'ticket-without-entity', ticketIds: ['004'] });
+    expect(board.jobById('J1')?.state).toBe(jobStateBefore);
+    expect(board.ticketDocuments().standingOf('004', 'spec')).toBeNull();
   });
 
   test('User\'s ticket ready moves a ticket ready for review to committed; a draft-only ready refuses it', () => {

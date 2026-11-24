@@ -29,6 +29,14 @@ function approvalAtHeadOf(document: Readonly<TicketDocument>): Readonly<Document
   return document.approvals.findLast((approval) => approval.contentHash === head.contentHash) ?? null;
 }
 
+/**
+ * The head's number while an approval stands at the head: the spec version a plan is written for. Not the approval's own number, which
+ * names the version first approved with that text and stays old when the text comes back.
+ */
+function approvedHeadNumberOf(document: Readonly<TicketDocument>): number | null {
+  return approvalAtHeadOf(document) === null ? null : headOf(document)?.number ?? null;
+}
+
 /** The head's content hash while an approval stands at the head; what a plan's approval must have been made on. */
 function approvedHeadHashOf(document: Readonly<TicketDocument>): string | null {
   return approvalAtHeadOf(document) === null ? null : headOf(document)?.contentHash ?? null;
@@ -40,5 +48,6 @@ export const TicketDocumentVersionUtil = Object.freeze({
   versionOfNumber,
   nextVersionNumberOf,
   approvalAtHeadOf,
+  approvedHeadNumberOf,
   approvedHeadHashOf,
 });

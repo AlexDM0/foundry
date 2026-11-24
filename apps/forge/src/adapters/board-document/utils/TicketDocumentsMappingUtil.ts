@@ -190,17 +190,20 @@ function lineChangeOf(hunk: Readonly<LineHunk>): LineChangeDocument {
   };
 }
 
-/** A plan out of date: the spec version it was approved on, the spec's head now, and the spec's lines changed between the two. */
+/**
+ * A plan out of date: the spec version it was approved on, or with no approval at its head the one it was written for, the spec's head now,
+ * and the spec's lines changed between the two.
+ */
 function outOfDateOf(plan: Readonly<TicketDocument>, spec: Readonly<TicketDocument>, loadedRecord: Readonly<LoadedTicketDocumentRecord>): DocumentOutOfDateDocument | null {
-  const approval = TicketDocumentVersionUtil.approvalAtHeadOf(plan);
-  const specHead = TicketDocumentVersionUtil.headOf(spec);
-  if (approval?.onSpecNumber === undefined || approval.onSpecContentHash === undefined || specHead === null) return null;
-  const approvedOnText = Object.hasOwn(loadedRecord.textOfContentHash, approval.onSpecContentHash) ? loadedRecord.textOfContentHash[approval.onSpecContentHash] : undefined;
+  const specVersion = TicketDocumentStandingUtil.specVersionOfPlanHeadOf(plan, spec);
+  const specHead    = TicketDocumentVersionUtil.headOf(spec);
+  if (specVersion === null || specHead === null) return null;
+  const approvedOnText = Object.hasOwn(loadedRecord.textOfContentHash, specVersion.contentHash) ? loadedRecord.textOfContentHash[specVersion.contentHash] : undefined;
   const specHeadText = textOfVersion(loadedRecord, specHead);
   const specChanges = approvedOnText === undefined || specHeadText === null
     ? []
     : LineDiffUtil.hunksOf(LineDiffUtil.linesOf(approvedOnText), LineDiffUtil.linesOf(specHeadText)).map(lineChangeOf);
-  return { approvedOnSpecNumber: approval.onSpecNumber, specNumber: specHead.number, specChanges };
+  return { approvedOnSpecNumber: specVersion.number, specNumber: specHead.number, specChanges };
 }
 
 function documentOf(

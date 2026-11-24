@@ -149,12 +149,12 @@ describe('the profile and the first message', () => {
     });
   });
 
-  test('an out-of-date plan asks for an update for the newer approved spec, whose text it carries', () => {
+  test('an out-of-date plan asks for an update for the newer approved spec its attempt names, whose text it carries', () => {
     const record = ticketDocumentRecordFixture('004', [
       { kind: 'spec', texts: [SPEC_TEXT, NEWER_SPEC_TEXT], approvals: [{ number: 1 }, { number: 2 }] },
       { kind: 'plan', texts: [PLAN_TEXT], approvals: [{ number: 1, onSpecText: SPEC_TEXT }] },
     ]);
-    const facts = DocumentAgentSessions.documentAgentFactsOf(sessionFixture(record, []).board, documentAgentJobFixture('004', 'plan'));
+    const facts = DocumentAgentSessions.documentAgentFactsOf(sessionFixture(record, []).board, documentAgentJobFixture('004', 'plan', { attempt: 2 }));
     expect(facts).toMatchObject({ request: 'update', head: { versionNumber: 1, text: PLAN_TEXT }, approvedSpec: { versionNumber: 2, text: NEWER_SPEC_TEXT } });
   });
 

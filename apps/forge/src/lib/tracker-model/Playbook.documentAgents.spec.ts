@@ -1,8 +1,10 @@
 /**
  * When the Playbook starts a ticket document's agent. What matters: the spec agent starts once the record opens with no spec, as the
  * Board's open move leaves it; the plan
- * agent once the spec is approved, and again for a newer approved spec while no edit for it is open, once per spec version; a queued
- * message starts the agent, or resumes the one waiting for it; nothing starts while an agent works the document, once an agent picked the
+ * agent once the spec is approved, and again for a newer approved spec while no edit for it is open, once per spec version, a spec
+ * version known by its head number, so a spec whose text went back to an approved older one still counts as newer; a plan the agent wrote
+ * for an older spec is due too, and a waiting plan agent given an older spec is replaced for it; a queued message starts the agent, or
+ * resumes the one waiting for it; nothing starts while an agent works the document, once an agent picked the
  * ticket up, or by itself after an agent failed; and a document agent's turn is first in line for a slot, before any build.
  */
 import { describe, expect, test } from 'bun:test';
@@ -129,6 +131,42 @@ describe('the plan agent', () => {
       }],
     }];
     expect(documentLaunchesOf(stepsOf({ documents: withOpenEdit, log: agentLaunched('J5', 'plan-agent', 1) }))).toEqual([]);
+  });
+});
+
+const PLAN_WRITTEN_FOR_SPEC_ONE: DocumentFixture = {
+  kind:          'plan',
+  texts:         [PLAN_TEXT],
+  readyAtNumber: 1,
+  proposals:     [{
+    proposalId: 'P1', jobId: 'J5', baseNumber: null, edits: [], summary: 'Plan', forSpecNumber: 1, state: 'applied', appliedNumber: 1, at: FIXTURE_AT
+  }],
+};
+
+const SPEC_APPROVED_AT_TWO: DocumentFixture = { kind: 'spec', texts: [SPEC_TEXT, NEWER_SPEC_TEXT], approvals: [{ number: 1 }, { number: 2 }] };
+
+describe('the plan agent for a newer spec', () => {
+  test('starts again when the spec\'s text went back to an approved older one, the head a newer version than any launch carried', () => {
+    const documents: DocumentFixture[] = [
+      { kind: 'spec', texts: [SPEC_TEXT, NEWER_SPEC_TEXT, SPEC_TEXT], approvals: [{ number: 1 }, { number: 2 }] },
+      { kind: 'plan', texts: [PLAN_TEXT], approvals: [{ number: 1, onSpecText: NEWER_SPEC_TEXT }] },
+    ];
+    expect(documentLaunchesOf(stepsOf({ documents, log: [...agentLaunched('J5', 'plan-agent', 1), ...agentLaunched('J6', 'plan-agent', 2)] })))
+      .toEqual([{ kind: 'launch-document-agent', ticketId: '004', document: 'plan' }]);
+  });
+
+  test('starts for a plan not yet approved that its agent wrote for an older spec', () => {
+    expect(documentLaunchesOf(stepsOf({ documents: [SPEC_APPROVED_AT_TWO, PLAN_WRITTEN_FOR_SPEC_ONE], log: agentLaunched('J5', 'plan-agent', 1) })))
+      .toEqual([{ kind: 'launch-document-agent', ticketId: '004', document: 'plan' }]);
+  });
+
+  test('replaces a waiting plan agent given an older spec, and leaves one given the approved spec waiting', () => {
+    const documents = [SPEC_APPROVED_AT_TWO, PLAN_WRITTEN_FOR_SPEC_ONE];
+    const olderAgent = documentAgentJobFixture('004', 'plan', { state: 'awaiting-answer', attempt: 1 });
+    expect(documentLaunchesOf(stepsOf({ documents, jobs: [olderAgent], log: agentLaunched('J9', 'plan-agent', 1, null) })))
+      .toEqual([{ kind: 'launch-document-agent', ticketId: '004', document: 'plan' }]);
+    const currentAgent = documentAgentJobFixture('004', 'plan', { state: 'awaiting-answer', attempt: 2 });
+    expect(documentLaunchesOf(stepsOf({ documents, jobs: [currentAgent], log: agentLaunched('J9', 'plan-agent', 2, null) }))).toEqual([]);
   });
 });
 

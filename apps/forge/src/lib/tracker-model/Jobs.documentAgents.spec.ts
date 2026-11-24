@@ -1,7 +1,8 @@
 /**
  * The Board's step that starts a ticket document's agent. What matters: with no agent on the board a fresh one launches in its document's
- * role, a plan agent carrying the approved spec version it writes for as its attempt; and an agent waiting for its next message resumes
- * its session in its next instance instead of a second agent launching.
+ * role, a plan agent carrying the approved spec version it writes for as its attempt, the spec's head number; an agent waiting for its next
+ * message resumes its session in its next instance instead of a second agent launching; and a waiting plan agent given an older spec is
+ * closed and a fresh one launches for the approved spec.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,6 +37,24 @@ describe('launch-document-agent', () => {
     const record = ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT, `${SPEC_TEXT}2. Alex Example pays.\n`], approvals: [{ number: 2 }] }]);
     const { board } = followedBoard(record);
     expect(board.jobs().map((job) => [job.role, job.attempt])).toEqual([['plan-agent', 2]]);
+  });
+
+  test('a plan agent carries the spec\'s head number when the head\'s text is that of an older approved version', () => {
+    const texts  = [SPEC_TEXT, `${SPEC_TEXT}2. Alex Example pays.\n`, SPEC_TEXT];
+    const record = ticketDocumentRecordFixture('004', [{ kind: 'spec', texts, approvals: [{ number: 1 }, { number: 2 }] }]);
+    const { board } = followedBoard(record);
+    expect(board.jobs().map((job) => [job.role, job.attempt])).toEqual([['plan-agent', 3]]);
+  });
+
+  test('a waiting plan agent given an older spec is closed, and a fresh one launches for the approved spec', () => {
+    const record = ticketDocumentRecordFixture('004', [
+      { kind: 'spec', texts: [SPEC_TEXT, `${SPEC_TEXT}2. Alex Example pays.\n`], approvals: [{ number: 1 }, { number: 2 }] },
+      { kind: 'plan', texts: ['# Plan\n'], messages: [documentMessageFixture('M1')] },
+    ]);
+    const { board, records } = followedBoard(record, [documentAgentJobFixture('004', 'plan', { state: 'awaiting-answer', attempt: 1 })]);
+    expect(board.jobs().map((job) => [job.role, job.attempt, job.state])).toEqual([['plan-agent', 2, 'launching']]);
+    expect(records.filter((logged) => logged.kind === 'job-ended').map((logged) => [logged.jobId, logged.kind === 'job-ended' ? logged.fields.outcome : null]))
+      .toEqual([['J9', 'closed']]);
   });
 
   test('a waiting agent resumes its session for a queued message, and no second agent launches', () => {

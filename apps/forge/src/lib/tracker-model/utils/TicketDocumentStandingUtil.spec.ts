@@ -1,7 +1,8 @@
 /**
  * Where a ticket document stands. What matters: each of the six standings is reached by the facts the plan names and no others; staleness
  * is judged on content hashes, never on stamps; a plan approved on a spec version that is no longer the spec's approved head is out of
- * date, also while the spec waits for its next approval; and a record that lacks a document reads it unwritten.
+ * date, also while the spec waits for its next approval; a plan not approved at its head whose head the agent wrote for an older spec
+ * version is out of date too, while one a person wrote is judged as before; and a record that lacks a document reads it unwritten.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -58,45 +59,70 @@ function recordOf(documents: TicketDocument[]): TicketDocumentRecord {
 const SPEC_FIVE = versionOf(5, '# Spec\n\nVersion five.\n');
 const SPEC_SIX  = versionOf(6, '# Spec\n\nVersion six.\n');
 const PLAN_TWO  = versionOf(2, '# Plan\n\nVersion two.\n');
+const SPEC_APPROVED_AT_FIVE = documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_FIVE)]);
+const SPEC_APPROVED_AT_SIX  = documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE), approvalOf(SPEC_SIX)]);
+const SPEC_AWAITING_SIX     = documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE)]);
+
+/** A plan whose head version 2 the agent's proposal P1, written for spec `forSpecNumber`, made; its agent called it ready. */
+function planWrittenFor(forSpecNumber: number): TicketDocument {
+  return {
+    ...documentOf('plan', [PLAN_TWO], [], 2),
+    proposals: [{
+      proposalId: 'P1', jobId: 'J4', baseNumber: 1, edits: [], summary: 'The plan.', forSpecNumber, state: 'applied', appliedNumber: 2, at: '2026-11-24T10:00:00.000Z'
+    }],
+  };
+}
 
 describe('standingOf', () => {
   test('a document with no version is unwritten', () => {
-    expect(standingOf(documentOf('spec', []), null)).toBe('unwritten');
+    expect(standingOf(documentOf('spec', []), undefined)).toBe('unwritten');
   });
 
   test('a document its agent has not called ready at the head is drafting', () => {
-    expect(standingOf(documentOf('spec', [SPEC_FIVE], [], 4), null)).toBe('drafting');
+    expect(standingOf(documentOf('spec', [SPEC_FIVE], [], 4), undefined)).toBe('drafting');
   });
 
   test('a document its agent called ready at the head awaits review', () => {
-    expect(standingOf(documentOf('spec', [SPEC_FIVE], [], 5), null)).toBe('awaiting-review');
+    expect(standingOf(documentOf('spec', [SPEC_FIVE], [], 5), undefined)).toBe('awaiting-review');
   });
 
   test('a document approved at its head is approved', () => {
-    expect(standingOf(documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_FIVE)]), null)).toBe('approved');
+    expect(standingOf(documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_FIVE)]), undefined)).toBe('approved');
   });
 
   test('a document changed after its approval reads changed since approval, even when its agent called the new head ready', () => {
-    expect(standingOf(documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE)], 6), null)).toBe('changed-since-approval');
+    expect(standingOf(documentOf('spec', [SPEC_FIVE, SPEC_SIX], [approvalOf(SPEC_FIVE)], 6), undefined)).toBe('changed-since-approval');
   });
 
   test('a plan approved on the spec\'s approved head is approved', () => {
     const plan = documentOf('plan', [PLAN_TWO], [approvalOf(PLAN_TWO, SPEC_FIVE)]);
-    expect(standingOf(plan, SPEC_FIVE.contentHash)).toBe('approved');
+    expect(standingOf(plan, SPEC_APPROVED_AT_FIVE)).toBe('approved');
   });
 
   test('a plan approved on an older spec version is out of date', () => {
     const plan = documentOf('plan', [PLAN_TWO], [approvalOf(PLAN_TWO, SPEC_FIVE)]);
-    expect(standingOf(plan, SPEC_SIX.contentHash)).toBe('out-of-date');
+    expect(standingOf(plan, SPEC_APPROVED_AT_SIX)).toBe('out-of-date');
   });
 
   test('a plan approved while the spec waits for its next approval is out of date', () => {
     const plan = documentOf('plan', [PLAN_TWO], [approvalOf(PLAN_TWO, SPEC_FIVE)]);
-    expect(standingOf(plan, null)).toBe('out-of-date');
+    expect(standingOf(plan, SPEC_AWAITING_SIX)).toBe('out-of-date');
   });
 
-  test('the spec ignores the spec hash it is handed', () => {
-    expect(standingOf(documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_FIVE)]), 'ffffffffffffffff')).toBe('approved');
+  test('the spec ignores the spec it is handed', () => {
+    expect(standingOf(documentOf('spec', [SPEC_FIVE], [approvalOf(SPEC_FIVE)]), SPEC_AWAITING_SIX)).toBe('approved');
+  });
+
+  test('a plan not yet approved whose head the agent wrote for an older spec version is out of date', () => {
+    expect(standingOf(planWrittenFor(5), SPEC_APPROVED_AT_SIX)).toBe('out-of-date');
+  });
+
+  test('a plan not yet approved whose head the agent wrote for the spec\'s approved head awaits review', () => {
+    expect(standingOf(planWrittenFor(6), SPEC_APPROVED_AT_SIX)).toBe('awaiting-review');
+  });
+
+  test('a plan head a person wrote names no spec version, so it is not judged out of date', () => {
+    expect(standingOf(documentOf('plan', [{ ...PLAN_TWO, author: 'person' }], [], 2), SPEC_APPROVED_AT_SIX)).toBe('awaiting-review');
   });
 });
 

@@ -2,11 +2,13 @@
  * A ticket's spec and plan moves. What matters: a ticket without a record has no document and no standing; the next message is the oldest
  * one still queued, and marking it sent records its delivery; a save makes a version unless its text equals the head, merges with an
  * agent's newer version (User's text winning where the two overlap, the agent's edit conflicted and told) and is refused where two of
- * User's saves overlap; a proposal lands on User's newer text only where its lines still stand, the first write applies at once, and Edit
- * first applies User's lines; comments move with a replace hunk and are orphaned when their lines go; only the head is approved, only by
- * User with the review on, and a spec without numbered Acceptance never; the approval that leaves both documents approved readies the draft
- * in the same write, E85 read from the plan; a changed spec leaves the plan out of date, its approval kept; and nothing is edited after
- * pickup.
+ * User's saves overlap, judged on the lines each save changed; a proposal lands on User's newer text only where its lines still stand, the
+ * first write applies at once, and Edit first applies User's lines; comments move with a replace hunk and are orphaned when their lines go;
+ * only the head is approved, only by User with the review on, and a spec without numbered Acceptance never; the approval that leaves both
+ * documents approved readies the draft in the same write, E85 read from the plan; with the review off the agent's proposals apply as they
+ * come and its ready applies one left open, so nothing waits on a person who cannot act; a changed spec leaves the plan out of date, its
+ * approval kept, and so does a newer approved spec for a plan the agent wrote for an older one, whose ready the pipeline approves on the
+ * spec it was given; a comment names lines its version holds; and nothing is edited after pickup.
  */
 import {
   describe,
@@ -27,16 +29,17 @@ import type { TicketStatus } from './@types/Ticket.ts';
 import type {
   CommentAnchor,
   DocumentMessage,
+  LineEdit,
   LoadedTicketDocumentRecord,
   TicketDocument,
   TicketDocumentKind
 } from './@types/TicketDocument.ts';
-import type { Board }                from './Board.ts';
-import { BoardRefusal }              from './BoardRefusal.ts';
-import type { DocumentMoveJudges }   from './TicketDocuments.ts';
-import type { WorkFilesOf }          from './TicketMoves.ts';
-import { PipelineUtil }              from './utils/PipelineUtil.ts';
-import { TicketDocumentVersionUtil } from './utils/TicketDocumentVersionUtil.ts';
+import type { Board }                                  from './Board.ts';
+import { BoardRefusal }                                from './BoardRefusal.ts';
+import type { DocumentMoveJudges, ProposalSubmission } from './TicketDocuments.ts';
+import type { WorkFilesOf }                            from './TicketMoves.ts';
+import { PipelineUtil }                                from './utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }                   from './utils/TicketDocumentVersionUtil.ts';
 
 const SPEC_TEXT = '# Example spec\n\n## Acceptance\n\n1. Alex Example sees the basket.\n';
 
@@ -189,6 +192,24 @@ function boardWithApprovedSpec(options: RouteBoardOptions = {}): BoardFixture {
   return fixture;
 }
 
+/** The plan agent's first write, made for spec version `forSpecNumber`. */
+function planFirstWrite(forSpecNumber: number): ProposalSubmission {
+  return {
+    baseNumber: null,
+    edits:      [{
+      fromLine: 1, toLine: 0, originalLines: [], replacementLines: PLAN_TEXT.split('\n')
+    }],
+    summary: 'Plan',
+    forSpecNumber
+  };
+}
+
+function planLineEdit(workFile: string): LineEdit {
+  return {
+    fromLine: 5, toLine: 5, originalLines: ['Work belongs in: apps/web/src/Basket.ts'], replacementLines: [`Work belongs in: ${workFile}`]
+  };
+}
+
 describe('saves', () => {
   test('a save makes a version, and a text equal to the head makes none', () => {
     const { board } = routeBoard();
@@ -254,6 +275,45 @@ describe('saves', () => {
     documents.save('004', 'spec', 1, 'one\nfirst tab', judgesWith(), AT);
     expect(refusalDetailOf(() => documents.save('004', 'spec', 1, 'one\nsecond tab', judgesWith(), AT))).toEqual({
       reason: 'document-merge-conflict', ticketId: '004', document: 'spec', baseNumber: 1, headNumber: 2
+    });
+  });
+
+  test('a save whose overlap is only with the agent\'s edit is merged, though another save of User came since on other lines', () => {
+    const { board } = routeBoard();
+    const documents = board.ticketDocuments();
+    documents.save('004', 'spec', null, 'one\ntwo\nthree\nfour', judgesWith(), AT);
+    documents.save('004', 'spec', 1, 'one\ntwo\nthree\nfour by the other tab', judgesWith(), AT);
+    documents.setProposalMode('004', 'spec', 'auto-apply', AT);
+    documents.propose('004', 'spec', 'J4', {
+      baseNumber: 2,
+      edits:      [{
+        fromLine: 2, toLine: 2, originalLines: ['two'], replacementLines: ['agent two']
+      }],
+      summary: 'Agent edit'
+    }, 'c1', judgesWith(), AT);
+
+    documents.save('004', 'spec', 1, 'one\nUser two\nthree\nfour', judgesWith(), AT);
+
+    expect(textOfHead(board, 'spec')).toBe('one\nUser two\nthree\nfour by the other tab');
+    expect(documents.documentOf('004', 'spec')?.proposals.at(-1)).toMatchObject({ state: 'conflicted', jobId: 'J4' });
+  });
+
+  test('a save is refused as a merge conflict where it overlaps the other save of User, also with an agent\'s edit between them', () => {
+    const { board } = routeBoard();
+    const documents = board.ticketDocuments();
+    documents.save('004', 'spec', null, 'one\ntwo\nthree\nfour', judgesWith(), AT);
+    documents.save('004', 'spec', 1, 'one\nother tab two\nthree\nfour', judgesWith(), AT);
+    documents.setProposalMode('004', 'spec', 'auto-apply', AT);
+    documents.propose('004', 'spec', 'J4', {
+      baseNumber: 2,
+      edits:      [{
+        fromLine: 4, toLine: 4, originalLines: ['four'], replacementLines: ['agent four']
+      }],
+      summary: 'Agent edit'
+    }, 'c1', judgesWith(), AT);
+
+    expect(refusalDetailOf(() => documents.save('004', 'spec', 1, 'one\nUser two\nthree\nfour', judgesWith(), AT))).toEqual({
+      reason: 'document-merge-conflict', ticketId: '004', document: 'spec', baseNumber: 1, headNumber: 3
     });
   });
 
@@ -386,6 +446,23 @@ describe('messages', () => {
     expect(onFour?.placement).toBeUndefined();
   });
 
+  test('a comment whose lines the version it names does not hold is refused, and nothing is queued', () => {
+    const { board } = routeBoard();
+    const documents = board.ticketDocuments();
+    documents.save('004', 'spec', null, 'one\ntwo\nthree', judgesWith(), AT);
+    const anchorOn = (from: number, to: number): CommentAnchor => ({
+      view: 'code', versionNumber: 1, lines: { from, to }, sectionPath: [], surroundingLines: { from: 1, to: 3 }
+    });
+
+    for (const [from, to] of [[40, 45], [1, 2_000_000_000], [3, 4]] as const) {
+      expect(refusalDetailOf(() => documents.comment('004', 'spec', anchorOn(from, to), 'Past the end', AT))).toEqual({
+        reason: 'document-version-moved', ticketId: '004', document: 'spec', version: 1, headNumber: 1
+      });
+    }
+    expect(documents.comment('004', 'spec', anchorOn(3, 3), 'On three', AT).message.placement).toEqual({ from: 3, to: 3 });
+    expect(documents.documentOf('004', 'spec')?.messages).toHaveLength(1);
+  });
+
   test('edits and comments are refused once an agent picked the ticket up', () => {
     const fixture = boardWithApprovedSpec();
     const [ticket] = fixture.tickets;
@@ -458,6 +535,53 @@ describe('approvals', () => {
 
     expect(ready.logged.map((record) => record.kind)).toEqual(['ticket-document-approved', 'ticket-committed']);
     expect(documents.documentOf('004', 'plan')?.approvals[0]).toMatchObject({ by: 'pipeline', onSpecNumber: 1 });
+  });
+
+  test('with the review off the agent\'s later proposal applies as it arrives, though the document asks first', () => {
+    const { board } = boardWithApprovedSpec({ approvals: { spec: false, plan: false } });
+    const documents = board.ticketDocuments();
+    documents.propose('004', 'plan', 'J5', planFirstWrite(1), 'c2', judgesWith(), AT);
+
+    const update = documents.propose('004', 'plan', 'J5', {
+      baseNumber: 1, edits: [planLineEdit('apps/web/src/Total.ts')], summary: 'Update', forSpecNumber: 1
+    }, 'c3', judgesWith(), AT);
+
+    expect(update.proposal.state).toBe('applied');
+    expect(textOfHead(board, 'plan')).toContain('apps/web/src/Total.ts');
+  });
+
+  test('with the review off a proposal still open from before applies at the agent\'s ready, before the pipeline approves the head', () => {
+    const fixture = boardWithApprovedSpec({ approvals: { spec: false } });
+    const documents = fixture.board.ticketDocuments();
+    documents.propose('004', 'plan', 'J5', planFirstWrite(1), 'c2', judgesWith(), AT);
+    documents.propose('004', 'plan', 'J5', {
+      baseNumber: 1, edits: [planLineEdit('apps/web/src/Total.ts')], summary: 'Update', forSpecNumber: 1
+    }, 'c3', judgesWith(), AT);
+    fixture.board.setApproval('plan', false, AT);
+
+    const ready = documents.markReady('004', 'plan', 'c3', judgesWith(), AT, 1);
+
+    expect(documents.documentOf('004', 'plan')?.proposals.map((proposal) => proposal.state)).toEqual(['applied', 'applied']);
+    expect(documents.documentOf('004', 'plan')?.approvals).toEqual([expect.objectContaining({ number: 2, by: 'pipeline', onSpecNumber: 1 })]);
+    expect(ready.logged.map((record) => record.kind)).toContain('ticket-committed');
+  });
+
+  test('a plan the agent wrote for an older spec is out of date once a newer spec is approved, and its agent\'s ready approves it on that older spec', () => {
+    const { board } = boardWithApprovedSpec({ approvals: { plan: false } });
+    const documents = board.ticketDocuments();
+    documents.propose('004', 'plan', 'J5', planFirstWrite(1), 'c2', judgesWith(), AT);
+    documents.save('004', 'spec', 1, `${NUMBERED_SPEC}A2. The total shows.\n`, judgesWith(), AT);
+    documents.approve('004', 'spec', 2, 'c3', judgesWith(), AT);
+
+    expect(documents.standingOf('004', 'plan')).toBe('out-of-date');
+    documents.markReady('004', 'plan', 'c2', judgesWith(), AT, 1);
+    expect(documents.documentOf('004', 'plan')?.approvals[0]).toMatchObject({ by: 'pipeline', onSpecNumber: 1 });
+    expect(documents.standingOf('004', 'plan')).toBe('out-of-date');
+    expect(board.ticketByReference('004')?.frontmatter.status).toBe('draft');
+
+    documents.markReady('004', 'plan', 'c3', judgesWith(), AT, 2);
+    expect(documents.standingOf('004', 'plan')).toBe('approved');
+    expect(board.ticketByReference('004')?.frontmatter.status).toBe('committed');
   });
 
   test('a spec changed after the plan\'s approval leaves the plan out of date, its approval kept', () => {

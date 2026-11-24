@@ -9,6 +9,7 @@ import type {
   CommentAnchor,
   DocumentApprover,
   DocumentAuthor,
+  DocumentVersion,
   DocumentMessage,
   DocumentProposal,
   DocumentStanding,
@@ -26,6 +27,7 @@ import type { WorkFilesOf }                                                     
 import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                                                  from './constants/Statuses.ts';
 import { DocumentLineMergeUtil }                                                                   from './utils/DocumentLineMergeUtil.ts';
 import { LineDiffUtil }                                                                            from './utils/LineDiffUtil.ts';
+import type { LineHunk }                                                                           from './utils/LineDiffUtil.ts';
 import type { BodyGapsOf }                                                                         from './utils/TicketDocumentReadinessUtil.ts';
 import { TicketDocumentStandingUtil }                                                              from './utils/TicketDocumentStandingUtil.ts';
 import { TicketDocumentVersionUtil }                                                               from './utils/TicketDocumentVersionUtil.ts';
@@ -97,6 +99,37 @@ function linesOfVersion(loadedRecord: Readonly<LoadedTicketDocumentRecord>, cont
 function textOfContentHash(loadedRecord: Readonly<LoadedTicketDocumentRecord>, contentHash: string): string {
   if (!Object.hasOwn(loadedRecord.textOfContentHash, contentHash)) throw new Error(`The documents record of #${loadedRecord.record.ticketId} names no text for ${contentHash}.`);
   return loadedRecord.textOfContentHash[contentHash] ?? '';
+}
+
+/** Base lines as 0-based indexes, `end` excluded; equal for an insert before line `fromLine`. */
+interface BaseSpan {
+  start: number;
+  end:   number;
+}
+
+function baseSpanOf(fromLine: number, lineCount: number): BaseSpan {
+  return { start: fromLine - 1, end: fromLine - 1 + lineCount };
+}
+
+/** Two changes overlap when they change a common line, or both insert at one place, or one inserts at the other's first line. */
+function spansOverlap(first: BaseSpan, second: BaseSpan): boolean {
+  if (first.start < second.end && second.start < first.end) return true;
+  return first.start === second.start && (first.start === first.end || second.start === second.end);
+}
+
+/** A change's lines carried back to the base through `backToBase`; `null` when a line it changed is not in the base. */
+function baseSpanOfLinesIn(hunk: Readonly<LineHunk>, backToBase: readonly Readonly<LineHunk>[]): BaseSpan | null {
+  if (hunk.originalLines.length === 0) {
+    const insertedBefore = LineDiffUtil.lineRangeAfter(hunk.originalFromLine, backToBase);
+    return insertedBefore === null ? null : baseSpanOf(insertedBefore.from, 0);
+  }
+  const first = LineDiffUtil.lineRangeAfter(hunk.originalFromLine, backToBase);
+  const last  = LineDiffUtil.lineRangeAfter(hunk.originalFromLine + hunk.originalLines.length - 1, backToBase);
+  return first === null || last === null ? null : baseSpanOf(first.from, last.to - first.from + 1);
+}
+
+function lineRangeIsWithin(range: Readonly<LineRange>, lineCount: number): boolean {
+  return range.from >= 1 && range.from <= range.to && range.to <= lineCount;
 }
 
 function spanOf(ranges: readonly LineRange[]): LineRange | null {
@@ -174,8 +207,8 @@ export class TicketDocuments {
 
   /**
    * User's save, made on `baseNumber`. A head that moved since is merged three ways: changes apart from each other both apply, and where
-   * User's overlaps an agent's, User's wins and the agent's is kept as a conflicted proposal it is told of. An overlap where a person also
-   * wrote since is `document-merge-conflict`. A draft in the spec-then-plan route with no record opens one.
+   * User's overlaps an agent's, User's wins and the agent's is kept as a conflicted proposal it is told of. An overlap with lines another
+   * save of a person changed since is `document-merge-conflict`. A draft in the spec-then-plan route with no record opens one.
    */
   save(ticketId: string, document: TicketDocumentKind, baseNumber: number | null, markdown: string, judges: DocumentMoveJudges, at: string): DocumentSaved {
     const opened = this.openForUser(ticketId, at);
@@ -206,7 +239,7 @@ export class TicketDocuments {
       );
       if (merge.overriddenHeadHunks.length > 0) {
         const versionsSince = writable.versions.filter((version) => version.number > base.number);
-        if (versionsSince.some((version) => version.author === 'person')) {
+        if (this.aPersonChangedAnOverriddenLine(inHand, base, merge.overriddenHeadHunks)) {
           throw new BoardRefusal({
             reason: 'document-merge-conflict', ticketId, document, baseNumber: base.number, headNumber: head.number
           });
@@ -266,8 +299,9 @@ export class TicketDocuments {
   }
 
   /**
-   * The agent's edits, made on the version it read. The first write, with no version yet, applies at once; in auto-apply so does every
-   * other, carried onto the head. An edit whose original lines no longer stand there makes the proposal conflicted, and the agent is told.
+   * The agent's edits, made on the version it read. The first write, with no version yet, applies at once; in auto-apply, and while the
+   * document's review is off, so that nobody would be left to apply it, so does every other, carried onto the head. An edit whose original
+   * lines no longer stand there makes the proposal conflicted, and the agent is told.
    */
   propose(
     ticketId: string,
@@ -282,7 +316,8 @@ export class TicketDocuments {
     const proposed = this.addProposal(inHand, { ...submission, jobId }, at);
     const { proposal } = proposed;
     const isFirstWrite = submission.baseNumber === null && inHand.document.versions.length === 0;
-    if (!isFirstWrite && inHand.document.proposalMode === 'ask-first') return proposed;
+    const waitsForUser = inHand.document.proposalMode === 'ask-first' && TicketWritingUtil.documentReviewIsOn(this.records.pipeline, document);
+    if (!isFirstWrite && waitsForUser) return proposed;
     const settled = this.settleByApplying(inHand, proposal, proposal.edits, { author: 'agent', jobId, constitutionCommit }, judges, at);
     return { proposal, logged: [...proposed.logged, ...settled] };
   }
@@ -327,17 +362,43 @@ export class TicketDocuments {
 
   /**
    * The agent calls its head ready. With the document's review on, User approves it next; with it off, the pipeline approves it here, and an
-   * approval that leaves both documents approved readies a draft ticket. A spec whose head holds no numbered Acceptance is refused.
+   * approval that leaves both documents approved readies a draft ticket. A spec whose head holds no numbered Acceptance is refused. With
+   * review off, a proposal still open from before applies first, and one that conflicts leaves the head unapproved for the agent to answer.
+   * A plan agent's ready names `forSpecNumber`, the spec version it was given: the pipeline's approval is made on that one, so a ready
+   * from an agent that never saw the newer spec leaves the plan out of date.
    */
-  markReady(ticketId: string, document: TicketDocumentKind, constitutionCommit: string, judges: DocumentMoveJudges, at: string): DocumentMoved {
-    const inHand = this.editableDocumentOf(ticketId, document);
-    const head   = TicketDocumentVersionUtil.headOf(inHand.document);
-    if (head === null) return { logged: [] };
+  markReady(
+    ticketId: string,
+    document: TicketDocumentKind,
+    constitutionCommit: string,
+    judges: DocumentMoveJudges,
+    at: string,
+    forSpecNumber: number | null = null
+  ): DocumentMoved {
+    const inHand     = this.editableDocumentOf(ticketId, document);
+    const reviewIsOn = TicketWritingUtil.documentReviewIsOn(this.records.pipeline, document);
+    const settled    = reviewIsOn ? { logged: [], allApplied: true } : this.applyOpenProposals(inHand, constitutionCommit, judges, at);
+    if (!settled.allApplied) return { logged: settled.logged };
+    const head = TicketDocumentVersionUtil.headOf(inHand.document);
+    if (head === null) return { logged: settled.logged };
     this.refuseASpecWithoutNumberedAcceptance(inHand, head.contentHash, judges);
     inHand.document.readyAtNumber = head.number;
     this.records.markTicketDocumentsChanged(inHand.loadedRecord);
-    if (TicketWritingUtil.documentReviewIsOn(this.records.pipeline, document)) return { logged: [] };
-    return { logged: this.approveHead(inHand, 'pipeline', constitutionCommit, judges, at).logged };
+    if (reviewIsOn) return { logged: settled.logged };
+    return { logged: [...settled.logged, ...this.approveHead(inHand, 'pipeline', constitutionCommit, judges, at, forSpecNumber).logged] };
+  }
+
+  /** Each proposal still open applies in the order it came, as the agent's; `allApplied` is false once one conflicted. */
+  private applyOpenProposals(
+    inHand: DocumentInHand, constitutionCommit: string, judges: DocumentMoveJudges, at: string
+  ): { logged: readonly LogRecord[]; allApplied: boolean } {
+    const logged: LogRecord[] = [];
+    let allApplied = true;
+    for (const proposal of inHand.document.proposals.filter((candidate) => candidate.state === 'proposed')) {
+      logged.push(...this.settleByApplying(inHand, proposal, proposal.edits, { author: 'agent', jobId: proposal.jobId, constitutionCommit }, judges, at));
+      allApplied &&= proposal.state === 'applied';
+    }
+    return { logged, allApplied };
   }
 
   /**
@@ -358,7 +419,18 @@ export class TicketDocuments {
     return this.approveHead(inHand, 'person', constitutionCommit, judges, at);
   }
 
-  private approveHead(inHand: DocumentInHand, by: DocumentApprover, constitutionCommit: string, judges: DocumentMoveJudges, at: string): DocumentSettingChanged {
+  /**
+   * A person approves the plan on the spec's head, which they read; the pipeline on `forSpecNumber`, the spec version its agent was given,
+   * when the spec still holds it.
+   */
+  private approveHead(
+    inHand: DocumentInHand,
+    by: DocumentApprover,
+    constitutionCommit: string,
+    judges: DocumentMoveJudges,
+    at: string,
+    forSpecNumber: number | null = null
+  ): DocumentSettingChanged {
     const { ticket, loadedRecord, document } = inHand;
     const head = TicketDocumentVersionUtil.headOf(document);
     if (head === null) return { changed: false, logged: [] };
@@ -366,8 +438,10 @@ export class TicketDocuments {
     const approvedSpecHeadHash = TicketDocumentVersionUtil.approvedHeadHashOf(spec);
     if (document.kind === 'plan' && approvedSpecHeadHash === null) throw new BoardRefusal({ reason: 'plan-before-approved-spec', ticketId: ticket.frontmatter.id });
     if (TicketDocumentStandingUtil.standingsOf(loadedRecord.record)[document.kind] === 'approved') return { changed: false, logged: [] };
-    const specHead = TicketDocumentVersionUtil.headOf(spec);
-    const onSpec   = document.kind === 'plan' && specHead !== null ? { onSpecNumber: specHead.number, onSpecContentHash: specHead.contentHash } : {};
+    const specHead    = TicketDocumentVersionUtil.headOf(spec);
+    const givenSpec   = forSpecNumber === null ? null : TicketDocumentVersionUtil.versionOfNumber(spec, forSpecNumber);
+    const specVersion = givenSpec ?? specHead;
+    const onSpec      = document.kind === 'plan' && specVersion !== null ? { onSpecNumber: specVersion.number, onSpecContentHash: specVersion.contentHash } : {};
     document.approvals.push({
       number: head.number, contentHash: head.contentHash, by, at, constitutionCommit, ...onSpec
     });
@@ -513,7 +587,10 @@ export class TicketDocuments {
     delete message.orphaned;
   }
 
-  /** The anchor as sent, and where its lines stand on the head: carried from the version it names when the head moved since. */
+  /**
+   * The anchor as sent, and where its lines stand on the head: carried from the version it names when the head moved since. An anchor whose
+   * lines the version it names does not hold is refused, as one on a version that moved.
+   */
   private placedAnchorOf(inHand: DocumentInHand, anchor: CommentAnchor): Pick<DocumentMessage, 'anchor' | 'placement' | 'orphaned'> {
     const { loadedRecord, document, ticket } = inHand;
     const head    = TicketDocumentVersionUtil.headOf(document);
@@ -523,8 +600,14 @@ export class TicketDocuments {
         reason: 'document-version-moved', ticketId: ticket.frontmatter.id, document: document.kind, version: anchor.versionNumber, headNumber: head?.number ?? null
       });
     }
+    const versionLines = linesOfVersion(loadedRecord, version.contentHash);
+    if (!lineRangeIsWithin(anchor.lines, versionLines.length)) {
+      throw new BoardRefusal({
+        reason: 'document-version-moved', ticketId: ticket.frontmatter.id, document: document.kind, version: anchor.versionNumber, headNumber: head.number
+      });
+    }
     const headLines = linesOfVersion(loadedRecord, head.contentHash);
-    const hunks     = LineDiffUtil.hunksOf(linesOfVersion(loadedRecord, version.contentHash), headLines);
+    const hunks     = LineDiffUtil.hunksOf(versionLines, headLines);
     const placement = LineDiffUtil.placementAfter(anchor.lines, anchor.quote ?? null, hunks, headLines);
     return placement === null ? { anchor, orphaned: true } : { anchor, placement };
   }
@@ -587,6 +670,26 @@ export class TicketDocuments {
       reason: 'document-not-editable', ticketId, document: kind, status
     });
     return inHand;
+  }
+
+  /**
+   * Whether a person's save since `base` changed a line of an overridden head change, both read in the base's numbering. Each person
+   * version's own change, against the version before it, is carried back to the base; one that cannot be, made on lines added since, counts.
+   */
+  private aPersonChangedAnOverriddenLine(inHand: DocumentInHand, base: Readonly<DocumentVersion>, overriddenHunks: readonly LineHunk[]): boolean {
+    const { loadedRecord, document } = inHand;
+    const baseLines       = linesOfVersion(loadedRecord, base.contentHash);
+    const overriddenSpans = overriddenHunks.map((hunk) => baseSpanOf(hunk.originalFromLine, hunk.originalLines.length));
+    return document.versions.some((version, index) => {
+      const before = document.versions[index - 1];
+      if (version.number <= base.number || version.author !== 'person' || before === undefined) return false;
+      const beforeLines = linesOfVersion(loadedRecord, before.contentHash);
+      const backToBase  = LineDiffUtil.hunksOf(beforeLines, baseLines);
+      return LineDiffUtil.hunksOf(beforeLines, linesOfVersion(loadedRecord, version.contentHash)).some((ownHunk) => {
+        const span = baseSpanOfLinesIn(ownHunk, backToBase);
+        return span === null || overriddenSpans.some((overridden) => spansOverlap(span, overridden));
+      });
+    });
   }
 
   /** With its review off, a document is its agent's: User reads it and talks to the agent, and does not edit it. */

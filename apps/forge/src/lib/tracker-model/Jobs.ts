@@ -229,16 +229,19 @@ export class Jobs {
 
   /**
    * A ticket document's agent: the one waiting for its next message resumes its session in its next instance; with none on the board a
-   * fresh one launches, a plan's agent carrying as its attempt the spec version it writes the plan for.
+   * fresh one launches, a plan's agent carrying as its attempt the spec version it writes the plan for. A waiting plan agent that was given
+   * an older spec version than the one approved now is closed and a fresh one launches, since its session holds the older spec.
    */
   launchOrResumeDocumentAgent(ticketId: string, document: TicketDocumentKind, at: string): JobChanged {
-    const waiting = DocumentAgentJobUtil.liveAgentOf(this.jobs(), ticketId, document);
-    if (waiting?.state === 'awaiting-answer') return this.moveJob(waiting.id, 'running', at);
     const spec    = this.records.ticketDocumentRecordOf(ticketId)?.record.documents.find((candidate) => candidate.kind === 'spec');
-    const attempt = document === 'plan' && spec !== undefined ? TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? 1 : 1;
-    return this.launchJob({
+    const attempt = document === 'plan' && spec !== undefined ? TicketDocumentVersionUtil.approvedHeadNumberOf(spec) ?? 1 : 1;
+    const waiting = DocumentAgentJobUtil.liveAgentOf(this.jobs(), ticketId, document);
+    const closed  = waiting?.state === 'awaiting-answer' && waiting.attempt !== attempt ? this.endJob(waiting.id, { outcome: 'closed' }, at).logged : [];
+    if (waiting?.state === 'awaiting-answer' && closed.length === 0) return this.moveJob(waiting.id, 'running', at);
+    const launched = this.launchJob({
       kind: 'document-agent', role: DocumentAgentJobUtil.roleOf(document), ticketIds: [ticketId], parentJobId: null, attempt, target: null
     }, at);
+    return { job: launched.job, logged: [...closed, ...launched.logged] };
   }
 
   /**

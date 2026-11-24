@@ -94,16 +94,14 @@ function submissionOf(command: ControlCommandOf<'ticket-document-agent-propose'>
   };
 }
 
-/** A plan is written for the spec's approved version; `null` for a spec, or while the spec has no approval at its head. */
-function forSpecNumberOf(board: Board, agent: LiveDocumentAgent): number | null {
-  if (agent.document !== 'plan') return null;
-  const spec = board.ticketDocuments().documentOf(agent.ticketId, 'spec');
-  return spec === null ? null : TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? null;
+/** A plan is written for the spec version its agent was given, the attempt it launched with; `null` for a spec. */
+function forSpecNumberOf(agent: LiveDocumentAgent): number | null {
+  return agent.document === 'plan' ? agent.job.attempt : null;
 }
 
 function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, change: BoardTransaction): { proposal: Readonly<DocumentProposal>; logged: readonly LogRecord[] } {
   const agent      = liveDocumentAgentOf(change.board, command.jobId);
-  const submission = submissionOf(command, forSpecNumberOf(change.board, agent));
+  const submission = submissionOf(command, forSpecNumberOf(agent));
   const commit     = stampedCommitOf(agent, command.constitutionCommit);
   const judges     = ticketDocumentMoveJudgesOf(agent.document);
   const { proposal, logged } = change.board.ticketDocuments().propose(agent.ticketId, agent.document, agent.job.id, submission, commit, judges, change.at);
@@ -113,7 +111,9 @@ function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, cha
 function markReady(command: ControlCommandOf<'ticket-document-agent-ready'>, change: BoardTransaction): { jobId: string; logged: readonly LogRecord[] } {
   const agent  = liveDocumentAgentOf(change.board, command.jobId);
   const commit = stampedCommitOf(agent, command.constitutionCommit);
-  const { logged } = change.board.ticketDocuments().markReady(agent.ticketId, agent.document, commit, ticketDocumentMoveJudgesOf(agent.document), change.at);
+  const { logged } = change.board.ticketDocuments().markReady(
+    agent.ticketId, agent.document, commit, ticketDocumentMoveJudgesOf(agent.document), change.at, forSpecNumberOf(agent)
+  );
   return { jobId: agent.job.id, logged };
 }
 

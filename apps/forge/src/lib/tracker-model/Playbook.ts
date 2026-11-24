@@ -827,7 +827,7 @@ function ticketDocumentFactsOf(records: readonly LoadedTicketDocumentRecord[]): 
     const documentOfKind     = (kind: TicketDocumentKind): Readonly<TicketDocument> | undefined => record.documents.find((document) => document.kind === kind);
     const standings          = TicketDocumentStandingUtil.standingsOf(record);
     const spec               = documentOfKind('spec');
-    const approvedSpecNumber = spec === undefined ? null : TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? null;
+    const approvedSpecNumber = spec === undefined ? null : TicketDocumentVersionUtil.approvedHeadNumberOf(spec);
     return {
       ticketId: record.ticketId,
       spec:     documentFactsOf(spec, standings.spec, null),
@@ -865,7 +865,8 @@ function documentAgentIsDue(documents: PlaybookTicketDocuments, document: Ticket
 
 /**
  * A ticket no agent picked up whose document needs its agent: a queued message, or a first write or a newer spec, with no agent working it.
- * A waiting agent is started again only by a message.
+ * A waiting agent is started again only by a message, but for a waiting plan agent given an older spec than the approved one, which a fresh
+ * agent replaces once the plan is due for the newer spec.
  */
 function documentAgentCandidatesOf(facts: IndexedPlaybookFacts): PlaybookStep[] {
   return (facts.ticketDocuments ?? []).flatMap((documents) => {
@@ -874,7 +875,8 @@ function documentAgentCandidatesOf(facts: IndexedPlaybookFacts): PlaybookStep[] 
     return (['spec', 'plan'] as const).flatMap((document): PlaybookStep[] => {
       const agent = DocumentAgentJobUtil.liveAgentOf(facts.jobs, documents.ticketId, document);
       if (agent !== null && agent.state !== 'awaiting-answer') return [];
-      const due = documents[document].messageWaits || (agent === null && documentAgentIsDue(documents, document, facts));
+      const agentHoldsAnOlderSpec = agent !== null && document === 'plan' && documents.approvedSpecNumber !== null && agent.attempt !== documents.approvedSpecNumber;
+      const due = documents[document].messageWaits || ((agent === null || agentHoldsAnOlderSpec) && documentAgentIsDue(documents, document, facts));
       return due ? [{ kind: 'launch-document-agent', ticketId: documents.ticketId, document }] : [];
     });
   });
