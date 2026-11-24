@@ -716,6 +716,8 @@ const APPLIED_PIPELINE_RULE = {
 const SETUP_STEP_STATES_SHAPE: DocumentShape = {
   ...keyedByVocabularyShape('setupStep', vocabularyRule('setupStepState')),
   entities: { optional: vocabularyRule('setupStepState') },
+  // Forge 4.1's agent step, which Gaia draws no step for yet.
+  agent:    { optional: vocabularyRule('setupStepState') },
 };
 
 const RESEARCH_SCRIPT_SHAPE = {
