@@ -4,7 +4,7 @@
  * (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting or crashing, so Hephaestus, Talos and crash specs drive
  * a session without a vendor. It replays that adapter's recorded wire, so it keeps its line mapping, capabilities and plan values.
  */
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import type { AgentAdapter }                 from '../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan }              from '../lib/agent-launch/AgentLaunchPlan.ts';
@@ -158,7 +158,8 @@ export function fakeAgentAdapter(
     promptFills:            CLAUDE_CODE_PROMPT_FILLS,
     credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
     // The fake's program is the runtime, which prints its own version.
-    programPlacesOf:        () => [process.execPath],
+    programFileName:        basename(process.execPath),
+    vendorProgramFolders:   [],
     versionArguments:       ['--version'],
     versionOf:              (versionOutput) => (versionOutput.trim() === '' ? null : versionOutput.trim()),
     programRepairOf:        claudeProgramRepairOf,

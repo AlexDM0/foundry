@@ -26,6 +26,7 @@ import type { WorkerProfile }                        from '../../lib/agent-launc
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { ProgramSearchUtil }                         from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
 import type { ChildEnd }                             from '../../lib/talos/ChildRecord.ts';
 import type { RecognisedEnding }                     from '../../lib/talos/EndingPatterns.ts';
@@ -929,12 +930,12 @@ function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: 
 
 /** Exactly the approved tools' folders, then the program's own, then the system's: nothing else of the inherited search path. */
 function agentSearchFoldersOf(request: DrivePassRequest, board: Board, programPath: string, repositoryRoot: string): string[] {
-  const { executableResolver, launchEnvironment, shellLine } = request.platformPorts;
+  const { executableResolver, programFolders, shellLine } = request.platformPorts;
   const git = executableResolver.absolutePathOf('git', [repositoryRoot]);
   const tools = AgentTools.launchToolsOf(
     board.pipeline(),
     shellLine,
-    launchEnvironment.toolFoldersOf(request.homeDirectory),
+    ProgramSearchUtil.toolFoldersOf(programFolders, request.homeDirectory),
     executableResolver,
     git.verdict === 'found' ? git.path : null,
   );

@@ -4,13 +4,17 @@
  * a program is kept as its path spells it and refused where it lies; a run that does not start, fails, outlives the bound or answers as
  * another program does not run; and the run searches only the program's own folder and the system's.
  */
+import { posix } from 'node:path';
+
 import { describe, expect, test } from 'bun:test';
 
-import { POSIX_LAUNCH_ENVIRONMENT }                         from '../../lib/agent-launch/PosixLaunchEnvironment.ts';
+import { launchEnvironmentFor }                             from '../../lib/agent-launch/LaunchEnvironmentFor.ts';
 import type { ProgramFileKind }                             from '../../lib/executable-resolver/ExecutableLookup.ts';
 import { createPosixExecutableResolver }                    from '../../lib/executable-resolver/PosixExecutableResolver.ts';
 import { createWindowsExecutableResolver }                  from '../../lib/executable-resolver/WindowsExecutableResolver.ts';
 import type { ProgramCheckRequest }                         from '../../lib/program-check/ProgramCheck.ts';
+import { DARWIN_PROGRAM_FOLDERS }                           from '../../lib/program-folders/DarwinProgramFolders.ts';
+import type { ProgramFolders }                              from '../../lib/program-folders/ProgramFolders.ts';
 import { fakeAgentAdapter }                                 from '../../testing/FakeAgentAdapter.ts';
 import { PROGRAM_CHECK_RECORDING, recordedProgramCheckRun } from '../../testing/RecordedProgramChecks.ts';
 import { type AgentProgramCheckContext, AgentPrograms }     from './AgentPrograms.ts';
@@ -76,7 +80,7 @@ describe('checkOf', () => {
       adapter,
       resolver:             RESOLVER,
       forbiddenRoots:       [REPOSITORY],
-      launchEnvironment:    POSIX_LAUNCH_ENVIRONMENT,
+      launchEnvironment:    launchEnvironmentFor('darwin', DARWIN_PROGRAM_FOLDERS.baseFolders),
       inheritedEnvironment: { HOME: '/home/example', PATH: '/home/example/inherited/bin', SECRET: 'left behind' },
       run:                  (request) => {
         requests.push(request);
@@ -118,8 +122,12 @@ describe('checkOf', () => {
 });
 
 describe('placesOf', () => {
-  test('reports each place the vendor\'s installers use, found or not, as the path spells it', () => {
-    const adapter = { ...ADAPTER, programPlacesOf: () => [PROGRAM, '/opt/example/bin/gone'] };
-    expect(AgentPrograms.placesOf(adapter, '/home/example', RESOLVER)).toEqual([{ path: PROGRAM, found: true }, { path: '/opt/example/bin/gone', found: false }]);
+  test('reports the vendor\'s own folder, then each program folder of the platform, found or not, as the path spells it, never a base folder', () => {
+    const adapter = { ...ADAPTER, programFileName: 'agent', vendorProgramFolders: [['.example', 'bin']] };
+    const programFolders: ProgramFolders = {
+      pathModule: posix, installFoldersOf: () => ['/opt/example/bin'], nodeVersionFoldersOf: () => [], baseFolders: () => ['/usr/bin'],
+    };
+    expect(AgentPrograms.placesOf(adapter, programFolders, '/home/example', RESOLVER))
+      .toEqual([{ path: '/home/example/.example/bin/agent', found: false }, { path: PROGRAM, found: true }]);
   });
 });

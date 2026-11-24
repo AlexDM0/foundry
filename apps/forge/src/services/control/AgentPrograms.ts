@@ -8,6 +8,8 @@ import type { AgentAdapter }                        from '../../lib/agent-launch
 import type { LaunchEnvironment }                   from '../../lib/agent-launch/LaunchEnvironment.ts';
 import type { ExecutableResolver }                  from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { ProgramCheckRun }                     from '../../lib/program-check/ProgramCheck.ts';
+import type { ProgramFolders }                      from '../../lib/program-folders/ProgramFolders.ts';
+import { ProgramSearchUtil }                        from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { JobNotLaunched, JobNotLaunchedCause } from '../../lib/tracker-model/@types/Job.ts';
 import type { AgentProgramChoice, PipelineAgent }   from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { AgentProgramPlace }                   from '../../shared/@types/AgentFacts.ts';
@@ -95,8 +97,10 @@ async function choiceCheckOf(agent: Readonly<PipelineAgent>, machineProgramPath:
   return checkOf(programPath, context);
 }
 
-function placesOf(adapter: AgentAdapter, homeDirectory: string, resolver: ExecutableResolver): AgentProgramPlace[] {
-  return adapter.programPlacesOf(homeDirectory).map((path) => ({ path, found: resolver.programAt(path, []).verdict === 'found' }));
+/** The vendor's own folders, then this platform's program folders, each with the vendor's program file name. */
+function placesOf(adapter: AgentAdapter, programFolders: ProgramFolders, homeDirectory: string, resolver: ExecutableResolver): AgentProgramPlace[] {
+  return ProgramSearchUtil.programPlacesOf(programFolders, homeDirectory, adapter)
+    .map((path) => ({ path, found: resolver.programAt(path, []).verdict === 'found' }));
 }
 
 export const AgentPrograms = Object.freeze({

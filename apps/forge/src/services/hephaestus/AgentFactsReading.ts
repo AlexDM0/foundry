@@ -5,6 +5,7 @@
 import { MachineConfigFile }      from '../../adapters/machine-config/MachineConfigFile.ts';
 import type { AgentAdapter }      from '../../lib/agent-launch/AgentAdapter.ts';
 import type { PlatformPorts }     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { ProgramSearchUtil }      from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { Board }             from '../../lib/tracker-model/Board.ts';
 import type { AgentFacts }        from '../../shared/@types/AgentFacts.ts';
 import type { AgentProgramCheck } from '../../shared/@types/AgentProgramCheck.ts';
@@ -38,8 +39,8 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
   const vendor = choice?.vendor ?? adapter.vendor;
   const machineProgramPath = MachineConfigFile.programPathOf(MachineConfigFile.read(source.monitorFolder), vendor);
   const programPath = choice === null ? null : AgentPrograms.chosenPathOf(choice.program, machineProgramPath);
-  const { executableResolver, launchEnvironment, shellLine } = platformPorts;
-  const toolFolders = launchEnvironment.toolFoldersOf(homeDirectory);
+  const { executableResolver, programFolders, shellLine } = platformPorts;
+  const toolFolders = ProgramSearchUtil.toolFoldersOf(programFolders, homeDirectory);
   const pipeline = board.pipeline();
   const setup = board.pipelineSetup();
   return {
@@ -49,7 +50,7 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
     machineProgramPath,
     programPath,
     check:       checkOfChoice(source, programPath),
-    places:      vendor === adapter.vendor ? AgentPrograms.placesOf(adapter, homeDirectory, executableResolver) : [],
+    places:      vendor === adapter.vendor ? AgentPrograms.placesOf(adapter, programFolders, homeDirectory, executableResolver) : [],
     toolsListed: pipeline?.tools !== undefined,
     tools:       AgentTools.toolFactsOf(pipeline, shellLine, toolFolders, executableResolver),
     setupTools:  setup === null ? [] : AgentTools.toolFactsOf(setup.draft ?? pipeline, shellLine, toolFolders, executableResolver),

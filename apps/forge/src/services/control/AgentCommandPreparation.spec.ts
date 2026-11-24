@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { POSIX_LAUNCH_ENVIRONMENT }                                     from '../../lib/agent-launch/PosixLaunchEnvironment.ts';
+import { createPosixLaunchEnvironment }                                 from '../../lib/agent-launch/PosixLaunchEnvironment.ts';
 import { createPosixExecutableResolver }                                from '../../lib/executable-resolver/PosixExecutableResolver.ts';
 import type { AgentProgramCheck }                                       from '../../shared/@types/AgentProgramCheck.ts';
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
@@ -33,7 +33,7 @@ function contextOf(monitorFolder: string, recorded: AgentProgramCheck[]): AgentC
       adapter:              ADAPTER,
       resolver:             RESOLVER,
       forbiddenRoots:       [],
-      launchEnvironment:    POSIX_LAUNCH_ENVIRONMENT,
+      launchEnvironment:    createPosixLaunchEnvironment(() => []),
       inheritedEnvironment: {},
       run:                  recordedProgramCheckRun({ [RUNS]: PROGRAM_CHECK_RECORDING.ANSWERS, [FAILS]: PROGRAM_CHECK_RECORDING.FAILS }),
       timeoutMilliseconds:  1000,
