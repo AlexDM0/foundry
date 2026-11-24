@@ -1,6 +1,7 @@
 /** The board's pipeline, stored in `pipeline.json` beside the progress file: absent until a `gate` verb first writes it. */
 import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
+import type { TicketDocumentKind }      from './TicketDocument.ts';
 
 /** The one `pipeline.json` format: every pipeline is read and written in it, and a file of any other version is refused. */
 export const PIPELINE_FORMAT_VERSION = 5;
@@ -37,6 +38,8 @@ export type PipelinePhaseOrders = Record<GatePhase, string[]>;
 
 export type PipelineAgentRole =
   | 'productOwner'
+  | 'specAgent'
+  | 'planAgent'
   | 'builder'
   | 'reviewer'
   | 'reReviewer'
@@ -46,16 +49,16 @@ export type PipelineAgentRole =
 
 /** The roles in the order the flow draws their steps. */
 export const PIPELINE_AGENT_ROLES: readonly PipelineAgentRole[] = Object.freeze([
-  'productOwner', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant',
+  'productOwner', 'specAgent', 'planAgent', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant',
 ]);
 
 /** The roles set once for the whole forge, at the top of `pipeline.json`, also when it holds entities. */
-export type ForgeLevelAgentRole = 'productOwner' | 'pipelineAgent' | 'assistant';
+export type ForgeLevelAgentRole = 'productOwner' | 'specAgent' | 'planAgent' | 'pipelineAgent' | 'assistant';
 
 /** The roles an entity sets for its own tickets. */
 export type EntityAgentRole = Exclude<PipelineAgentRole, ForgeLevelAgentRole>;
 
-export const FORGE_LEVEL_AGENT_ROLES: readonly ForgeLevelAgentRole[] = Object.freeze(['productOwner', 'pipelineAgent', 'assistant']);
+export const FORGE_LEVEL_AGENT_ROLES: readonly ForgeLevelAgentRole[] = Object.freeze(['productOwner', 'specAgent', 'planAgent', 'pipelineAgent', 'assistant']);
 
 export const ENTITY_AGENT_ROLES: readonly EntityAgentRole[] = Object.freeze(['builder', 'reviewer', 'reReviewer', 'conflictReReviewer']);
 
@@ -65,11 +68,19 @@ export type InstructionEntry =
   /** A tracked path, or a path under the data folder. */
   | { kind: 'file'; path: string };
 
+/**
+ * Which version of a ticket document a role reads: `always` the approved head; `if-person-approved` the newest version a person approved,
+ * only while it was approved on the spec version given; `never` none.
+ */
+export type DocumentReadingRule = 'always' | 'if-person-approved' | 'never';
+
 export interface AgentStepSettings {
   model?:        AgentModel;
   effort?:       AgentEffort;
   /** Read top to bottom; absent is the role's default list. */
   instructions?: InstructionEntry[];
+  /** On the builder and the reviewer only; absent is the role's default (`DEFAULT_DOCUMENTS_OF_ROLE`). */
+  documents?:    Partial<Record<TicketDocumentKind, DocumentReadingRule>>;
 }
 
 /** Present means on: a re-review runs when the fixes change more than `thresholdLines` lines. */
@@ -92,9 +103,14 @@ export interface PipelineConstitution {
 
 /**
  * A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up; `merge` is User's accept
- * of a reviewed ticket before its Airlock, on every target.
+ * of a reviewed ticket before its Airlock, on every target; `spec` and `plan` are User's review of each ticket document.
  */
-export type PipelineApproval = 'tickets' | 'merge';
+export type PipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
+
+/** How a ticket is written: the product owner's one ticket body, or a spec and a plan, each with its own agent. */
+export type TicketWritingRoute = 'one-ticket' | 'spec-then-plan';
+
+export const TICKET_WRITING_ROUTES: readonly TicketWritingRoute[] = Object.freeze(['one-ticket', 'spec-then-plan']);
 
 /**
  * How the agents Hephaestus starts are billed: `subscription` by the login, `api` by the Console account of the API key Hephaestus's
@@ -138,27 +154,29 @@ export interface PipelineEntity {
 }
 
 export interface Pipeline {
-  version:       typeof PIPELINE_FORMAT_VERSION;
+  version:        typeof PIPELINE_FORMAT_VERSION;
   /** Empty beside `entities`, whose own steps run instead. */
-  prepare:       PipelineStep[];
+  prepare:        PipelineStep[];
   /** Every gate, defined once; an empty list is no gates on purpose, which counts as set. Empty beside `entities`. */
-  gates:         PipelineGate[];
+  gates:          PipelineGate[];
   /** Empty beside `entities`. */
-  phases:        PipelinePhaseOrders;
+  phases:         PipelinePhaseOrders;
   /** Present: the review phase is on. */
-  review?:       PipelineReview;
+  review?:        PipelineReview;
   /** The merge train. */
-  airlock?:      PipelineAirlock;
-  constitution?: PipelineConstitution;
-  agents?:       Partial<Record<PipelineAgentRole, AgentStepSettings>>;
-  /** An absent `tickets` approval is on; an absent `merge` approval is off. */
-  approvals?:    Partial<Record<PipelineApproval, boolean>>;
+  airlock?:       PipelineAirlock;
+  constitution?:  PipelineConstitution;
+  agents?:        Partial<Record<PipelineAgentRole, AgentStepSettings>>;
+  /** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
+  approvals?:     Partial<Record<PipelineApproval, boolean>>;
   /** Absent bills by subscription; not part of the pipeline hash, as `approvals` is not. */
-  billing?:      PipelineBilling;
+  billing?:       PipelineBilling;
   /** The repository paths besides the project a ticket may change, each leading with `/`; absent reaches none. */
-  reach?:        string[];
+  reach?:         string[];
   /** Present: a forge at the repository's root over these entities, each read through `PipelineUtil.pipelineOfEntity`. */
-  entities?:     Record<EntityKey, PipelineEntity>;
+  entities?:      Record<EntityKey, PipelineEntity>;
   /** Present: the board turned the Assistant on. Absent is off; not part of the pipeline hash, as `approvals` is not. */
-  assistant?:    true;
+  assistant?:     true;
+  /** Absent is `one-ticket`. */
+  ticketWriting?: TicketWritingRoute;
 }

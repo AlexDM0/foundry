@@ -84,7 +84,7 @@ describe('the targets and the command', () => {
   test('send the whole set as one edit marked as a copy', () => {
     const edits: BoardDraftEditDocument[] = [{ target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'lint', value: null } }];
     expect(CopyBetweenEntitiesDialogModel.copyCommandOf({ setupId: 'S1', draftRevision: 3 }, edits)).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits, isACopy: true,
+      boardCommandVersion: 2, kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits, isACopy: true,
     });
     expect(CopyBetweenEntitiesDialogModel.copyLabelOf(1)).toBe('Copy 1 edit');
     expect(CopyBetweenEntitiesDialogModel.copyLabelOf(4)).toBe('Copy 4 edits');

@@ -140,7 +140,7 @@ describe('a board command the forge answers', () => {
 describe('a board command Gaia does not send', () => {
   test('is refused as unknown-kind for a kind the page contract does not name, and the forge is asked nothing', async () => {
     const hephaestusFetch = recordedHephaestusFetch([]);
-    const exchange = await exchangeOf(JSON.stringify({ boardCommandVersion: 1, kind: 'ticket-unready', ticketId: '001' }), hephaestusFetch);
+    const exchange = await exchangeOf(JSON.stringify({ boardCommandVersion: 2, kind: 'ticket-unready', ticketId: '001' }), hephaestusFetch);
     expect([exchange.status, exchange.document, hephaestusFetch.callsAnswered()]).toEqual([400, {
       boardCommandAnswerVersion: 1,
       outcome:                   'refused',
@@ -151,7 +151,7 @@ describe('a board command Gaia does not send', () => {
 
   test('is refused as malformed-body for a body that is no command, and the forge is asked nothing', async () => {
     const hephaestusFetch = recordedHephaestusFetch([]);
-    const bodies = ['not json', JSON.stringify({ ...TICKET_HOLD, ticketId: 7 }), JSON.stringify({ ...TICKET_HOLD, boardCommandVersion: 2 })];
+    const bodies = ['not json', JSON.stringify({ ...TICKET_HOLD, ticketId: 7 }), JSON.stringify({ ...TICKET_HOLD, boardCommandVersion: 3 })];
     const exchanges = await Promise.all(bodies.map((body) => exchangeOf(body, hephaestusFetch)));
     expect(exchanges.map((exchange) => [exchange.status, (exchange.document as { readonly refusal: { readonly code: string } }).refusal.code]))
       .toEqual([[400, 'malformed-body'], [400, 'malformed-body'], [400, 'malformed-body']]);

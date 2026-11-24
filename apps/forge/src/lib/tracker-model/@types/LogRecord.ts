@@ -121,6 +121,7 @@ interface ValueOfFieldShape {
   'flint-brain-starter':      FlintBrainStarter;
   'flint-brain-ended-reason': FlintBrainEndedReason;
   'entity-assigner':          EntityAssigner;
+  'customs-checks':           readonly string[];
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;

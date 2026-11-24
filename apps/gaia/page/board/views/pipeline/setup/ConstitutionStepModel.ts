@@ -26,6 +26,8 @@ export type ConstitutionAgentState = 'drafting' | 'ready' | 'not-running';
 /** The roles' words as READ BY names them; both re-reviewers read as one Re-review. */
 const READER_LABELS: Readonly<Record<BoardPipelineAgentRole, string>> = {
   productOwner:       'Ticket creation',
+  specAgent:          'Spec',
+  planAgent:          'Plan',
   builder:            'Builder',
   reviewer:           'Review',
   reReviewer:         'Re-review',

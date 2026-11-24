@@ -65,7 +65,7 @@ import { AgentsView }                              from './AgentsView.tsx';
 
 const STARTED_AT = '2026-10-29T20:00:00Z';
 
-const COMMAND_VERSION = { boardCommandVersion: 1 } as const;
+const COMMAND_VERSION = { boardCommandVersion: 2 } as const;
 
 const BUILD_JOB: AgentJobDocument = exampleAgentJob({
   id:         'J12',
@@ -800,7 +800,7 @@ describe('the Agents tab on the board', () => {
     };
     await act(async () => {
       stream().onConnection('live');
-      stream().onEvent({ boardVersion: 1, kind: 'board-changed' });
+      stream().onEvent({ boardVersion: 2, kind: 'board-changed' });
       await Promise.resolve();
     });
     expect(cellOf(jobRow('J12'), 'calls').textContent).toBe('13 / 150');

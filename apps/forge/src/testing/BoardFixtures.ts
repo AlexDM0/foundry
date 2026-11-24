@@ -15,12 +15,13 @@ import type {
   TicketFrontmatter,
   TicketStatus
 } from '../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }    from '../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                   from '../lib/tracker-model/Board.ts';
-import type { BoardRefusalDetail } from '../lib/tracker-model/BoardRefusal.ts';
-import { refusalIsBoardRefusal }   from '../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }            from '../lib/tracker-model/Logger.ts';
-import { PipelineUtil }            from '../lib/tracker-model/utils/PipelineUtil.ts';
+import type { LoadedTicketDocumentRecord } from '../lib/tracker-model/@types/TicketDocument.ts';
+import type { TrackerProgress }            from '../lib/tracker-model/@types/TrackerProgress.ts';
+import { Board }                           from '../lib/tracker-model/Board.ts';
+import type { BoardRefusalDetail }         from '../lib/tracker-model/BoardRefusal.ts';
+import { refusalIsBoardRefusal }           from '../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }                    from '../lib/tracker-model/Logger.ts';
+import { PipelineUtil }                    from '../lib/tracker-model/utils/PipelineUtil.ts';
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
@@ -96,15 +97,16 @@ export function entityPipelineFixture(): Pipeline {
 
 /** The next task id is one past the highest row handed in, as a tracker that filed those rows itself would hold. */
 export function boardFixture(contents: {
-  tasks?:               Task[];
-  tickets?:             Ticket[];
-  epics?:               Epic[];
-  drafts?:              Draft[];
-  concurrencyLimit?:    number;
-  pipeline?:            Pipeline;
-  pipelineSetup?:       PipelineSetupReading;
-  gateProfiles?:        GateProfilesReading;
-  constitutionSources?: ConstitutionSourcesReading;
+  tasks?:                 Task[];
+  tickets?:               Ticket[];
+  epics?:                 Epic[];
+  drafts?:                Draft[];
+  concurrencyLimit?:      number;
+  pipeline?:              Pipeline;
+  pipelineSetup?:         PipelineSetupReading;
+  gateProfiles?:          GateProfilesReading;
+  constitutionSources?:   ConstitutionSourcesReading;
+  ticketDocumentRecords?: LoadedTicketDocumentRecord[];
 } = {}): BoardFixture {
   const tasks      = contents.tasks ?? [];
   const tickets    = contents.tickets ?? [];
@@ -129,6 +131,7 @@ export function boardFixture(contents: {
     ...(contents.pipelineSetup === undefined ? {} : { pipelineSetup: contents.pipelineSetup }),
     ...(contents.gateProfiles === undefined ? {} : { gateProfiles: contents.gateProfiles }),
     ...(contents.constitutionSources === undefined ? {} : { constitutionSources: contents.constitutionSources }),
+    ...(contents.ticketDocumentRecords === undefined ? {} : { ticketDocumentRecords: contents.ticketDocumentRecords }),
   });
   return {
     board,

@@ -65,6 +65,8 @@ export interface FieldWords {
 
 const ROLE_TITLES: Readonly<Record<BoardPipelineAgentRole, string>> = Object.freeze({
   productOwner:       'Ticket creation',
+  specAgent:          'Spec',
+  planAgent:          'Plan',
   builder:            'Builder',
   reviewer:           'Review',
   reReviewer:         'Re-review',

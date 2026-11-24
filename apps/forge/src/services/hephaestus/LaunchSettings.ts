@@ -15,6 +15,10 @@ import {
   ASSISTANT_MODEL,
   PIPELINE_AGENT_EFFORT,
   PIPELINE_AGENT_MODEL,
+  PLAN_AGENT_EFFORT,
+  PLAN_AGENT_MODEL,
+  SPEC_AGENT_EFFORT,
+  SPEC_AGENT_MODEL,
   WORKER_EFFORT,
   WORKER_MODEL
 } from '../../shared/constants/HephaestusLimits.ts';
@@ -24,7 +28,8 @@ export interface SessionLaunchSettings {
   effort: AgentEffort;
 }
 
-const PIPELINE_ROLE_OF_JOB_ROLE: Readonly<Record<JobRole, PipelineAgentRole>> = Object.freeze({
+/** The effect reader is no pipeline role: it runs on its own fixed settings. */
+const PIPELINE_ROLE_OF_JOB_ROLE: Readonly<Record<Exclude<JobRole, 'effect-reader'>, PipelineAgentRole>> = Object.freeze({
   'builder':              'builder',
   'reviewer':             'reviewer',
   're-reviewer':          'reReviewer',
@@ -32,12 +37,16 @@ const PIPELINE_ROLE_OF_JOB_ROLE: Readonly<Record<JobRole, PipelineAgentRole>> = 
   'assistant':            'assistant',
   'product-owner':        'productOwner',
   'pipeline-agent':       'pipelineAgent',
+  'spec-agent':           'specAgent',
+  'plan-agent':           'planAgent',
 });
 
 const WORKER_SETTINGS: SessionLaunchSettings = Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT });
 
 const DEFAULT_SETTINGS_OF_ROLE: Readonly<Record<PipelineAgentRole, SessionLaunchSettings>> = Object.freeze({
   productOwner:       WORKER_SETTINGS,
+  specAgent:          Object.freeze({ model: SPEC_AGENT_MODEL, effort: SPEC_AGENT_EFFORT }),
+  planAgent:          Object.freeze({ model: PLAN_AGENT_MODEL, effort: PLAN_AGENT_EFFORT }),
   builder:            WORKER_SETTINGS,
   reviewer:           WORKER_SETTINGS,
   reReviewer:         WORKER_SETTINGS,
@@ -59,7 +68,7 @@ function defaultAgentPairOf(role: PipelineAgentRole): AgentPair {
 
 /** The pipeline step whose settings and instructions the job's sessions read; `null` for a merge or refresh job, which runs no agent. */
 function pipelineRoleOf(job: Readonly<Pick<Job, 'role'>>): PipelineAgentRole | null {
-  return job.role === null ? null : PIPELINE_ROLE_OF_JOB_ROLE[job.role];
+  return job.role === null || job.role === 'effect-reader' ? null : PIPELINE_ROLE_OF_JOB_ROLE[job.role];
 }
 
 /** The pipeline whose step settings a job reads: its entity's, with the forge's settings for the roles set once; the forge's own without one. */

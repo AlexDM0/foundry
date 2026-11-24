@@ -13,8 +13,9 @@ import type {
   TicketType,
   RowedTicketStatus
 } from './@types/Ticket.ts';
-import type { EntityRefusalReason } from './utils/EntityValidationUtil.ts';
-import type { OptionNotesProblem }  from './utils/OptionConsequencesUtil.ts';
+import type { DocumentMessageState, DocumentProposalState, TicketDocumentKind } from './@types/TicketDocument.ts';
+import type { EntityRefusalReason }                                             from './utils/EntityValidationUtil.ts';
+import type { OptionNotesProblem }                                              from './utils/OptionConsequencesUtil.ts';
 
 /** A ticket whose Brief names files that neither its entity nor a package it whitelists owns, outside its `reach` (E85). */
 export interface TicketWorkOutsideEntity {
@@ -207,7 +208,23 @@ export type BoardRefusalDetail =
   | { reason: 'several-open-incidents'; subject: string; move: string; incidentIds: readonly string[] }
   | { reason: 'worktree-in-use'; ticketId: string; jobIds: readonly string[] }
   | { reason: 'worktree-has-uncommitted-work'; ticketId: string; worktreePath: string }
-  | { reason: 'worktree-repair-failed'; ticketId: string; step: string; gitReason: string };
+  | { reason: 'worktree-repair-failed'; ticketId: string; step: string; gitReason: string }
+  | { reason: 'ticket-has-no-documents'; ticketId: string }
+  /** An agent picked the ticket up, or the document's review is off, which leaves it to its agent. */
+  | { reason: 'document-not-editable'; ticketId: string; document: TicketDocumentKind; status: TicketStatus }
+  /** `version` is what the command named, `headNumber` the head now; either is `null` for a document with no version. */
+  | { reason: 'document-version-moved'; ticketId: string; document: TicketDocumentKind; version: number | null; headNumber: number | null }
+  | { reason: 'document-merge-conflict'; ticketId: string; document: TicketDocumentKind; baseNumber: number; headNumber: number }
+  | { reason: 'document-too-long'; ticketId: string; document: TicketDocumentKind; characterCount: number; characterLimit: number }
+  | { reason: 'document-unknown-message'; ticketId: string; document: TicketDocumentKind; messageId: string }
+  | { reason: 'document-message-not-queued'; ticketId: string; document: TicketDocumentKind; messageId: string; state: DocumentMessageState }
+  | { reason: 'document-unknown-proposal'; ticketId: string; document: TicketDocumentKind; proposalId: string }
+  | { reason: 'document-proposal-not-open'; ticketId: string; document: TicketDocumentKind; proposalId: string; state: DocumentProposalState }
+  | { reason: 'document-review-is-off'; ticketId: string; document: TicketDocumentKind }
+  | { reason: 'plan-before-approved-spec'; ticketId: string }
+  | { reason: 'spec-acceptance-unnumbered'; ticketId: string }
+  | { reason: 'document-agent-not-live'; ticketId: string; document: TicketDocumentKind; jobId: string }
+  | { reason: 'document-snapshot-touched'; ticketId: string; document: TicketDocumentKind; jobId: string; checks: readonly string[] };
 
 export class BoardRefusal extends Error {
   readonly detail: BoardRefusalDetail;

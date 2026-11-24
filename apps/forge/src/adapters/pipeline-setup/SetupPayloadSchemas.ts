@@ -63,21 +63,22 @@ const ENTITY_DEFINITION_KEYS = ['kind', 'home', 'summary'] as const;
 
 /** The keys of each typed edit, by its target; a key outside them is malformed. */
 const TYPED_EDIT_KEYS = {
-  'gate':          ['target', 'name', 'value'],
-  'phase-order':   ['target', 'phase', 'names'],
-  'prepare':       ['target', 'name', 'value'],
-  'prepare-order': ['target', 'names'],
-  'review':        ['target', 'value'],
-  'constitution':  ['target', 'value'],
-  'role':          ['target', 'role', 'value'],
-  'airlock':       ['target', 'value'],
-  'approval':      ['target', 'approval', 'value'],
-  'entity':        ['target', 'entityKey', 'value'],
-  'within-entity': ['target', 'entityKey', 'edit'],
-  'whitelist':     ['target', 'value'],
-  'reach':         ['target', 'value'],
-  'depends-on':    ['target', 'value'],
-  'concurrency':   ['target', 'value'],
+  'gate':           ['target', 'name', 'value'],
+  'phase-order':    ['target', 'phase', 'names'],
+  'prepare':        ['target', 'name', 'value'],
+  'prepare-order':  ['target', 'names'],
+  'review':         ['target', 'value'],
+  'constitution':   ['target', 'value'],
+  'role':           ['target', 'role', 'value'],
+  'airlock':        ['target', 'value'],
+  'approval':       ['target', 'approval', 'value'],
+  'ticket-writing': ['target', 'value'],
+  'entity':         ['target', 'entityKey', 'value'],
+  'within-entity':  ['target', 'entityKey', 'edit'],
+  'whitelist':      ['target', 'value'],
+  'reach':          ['target', 'value'],
+  'depends-on':     ['target', 'value'],
+  'concurrency':    ['target', 'value'],
 } as const satisfies Readonly<Record<PipelineDraftEdit['target'] | EntityDraftEdit['target'], readonly string[]>>;
 
 type TypedEditTarget = keyof typeof TYPED_EDIT_KEYS;

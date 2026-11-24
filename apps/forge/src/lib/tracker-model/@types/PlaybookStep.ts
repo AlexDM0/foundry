@@ -4,6 +4,7 @@
  */
 import type { DecisionKind, DecisionQuestion }                              from './Decision.ts';
 import type { IncidentDefaultCause, IncidentDeliveryTurn, IncidentOpening } from './Incident.ts';
+import type { TicketDocumentKind }                                          from './TicketDocument.ts';
 
 export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 
@@ -65,7 +66,9 @@ export type PlaybookStep =
   | { kind: 'default-incident'; incidentId: string; cause: IncidentDefaultCause }
   | { kind: 'pause-hephaestus'; cause: 'outage' }
   // A ticket a board slot would launch now, which waits because no machine-wide agent slot is free; it changes nothing.
-  | { kind: 'await-machine-slot'; ticketId: string };
+  | { kind: 'await-machine-slot'; ticketId: string }
+  // A ticket in the spec-then-plan route whose document needs its agent: a first write, an out-of-date plan, or a queued message.
+  | { kind: 'launch-document-agent'; ticketId: string; document: TicketDocumentKind };
 
 /** What Hephaestus saw outside the board, passed in as values so the policy reaches no git, process or file. */
 export interface PlaybookObservations {

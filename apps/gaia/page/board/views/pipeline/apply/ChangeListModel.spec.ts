@@ -107,7 +107,7 @@ describe('while an applied pipeline is edited', () => {
     const benchmark = drawnEditingRows().find((row) => row.field === 'gate:a11y')?.benchmark ?? null;
     if (benchmark === null) throw new Error('a11y offers no benchmark');
     expect(ChangeListModel.benchmarkCommandOf('S2', benchmark)).toEqual({
-      boardCommandVersion: 1, kind: 'gate-profile-start', setupId: 'S2', gateName: 'a11y', phase: 'merge', entity: null,
+      boardCommandVersion: 2, kind: 'gate-profile-start', setupId: 'S2', gateName: 'a11y', phase: 'merge', entity: null,
     });
   });
 });
@@ -142,7 +142,7 @@ describe('the field words', () => {
 describe('Undo', () => {
   test('sends pipeline-draft-undo with the setup and the edit', () => {
     expect(ChangeListModel.undoCommandOf('S1', 'E2')).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E2', wholeBatch: false,
+      boardCommandVersion: 2, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E2', wholeBatch: false,
     });
   });
 });

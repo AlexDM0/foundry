@@ -149,6 +149,10 @@ export interface PipelineSetupFacts {
 export type PipelineNodeKind =
   | 'ticket-creation'
   | 'human-ticket-review'
+  | 'spec-writing'
+  | 'human-spec-review'
+  | 'plan-writing'
+  | 'human-plan-review'
   | 'builder'
   | 'gates'
   | 'review'

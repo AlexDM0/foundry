@@ -97,7 +97,7 @@ describe('the commands', () => {
   test('Continue is a command while the agent still researches, with attention only once it marked the research ready', () => {
     const researching = withRecord(researchSetup(), { readyToContinue: [] });
     expect(ResearchStepModel.continueCommandOf(researching)).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
+      boardCommandVersion: 2, kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
     });
     expect(ResearchStepModel.continueHasAttention(researching)).toBe(false);
     expect(ResearchStepModel.continueHasAttention(researchSetup())).toBe(true);
@@ -105,7 +105,7 @@ describe('the commands', () => {
 
   test('Stop stops the agent job, and has nothing to stop once it stopped', () => {
     expect(ResearchStepModel.stopCommandOf(researchSetup())).toEqual({
-      boardCommandVersion: 1, kind: 'job-stop', jobId: 'J4', mode: 'stop'
+      boardCommandVersion: 2, kind: 'job-stop', jobId: 'J4', mode: 'stop'
     });
     expect(ResearchStepModel.stopCommandOf({ ...researchSetup(), agentJobState: null })).toBeNull();
   });

@@ -57,9 +57,10 @@ import type {
   BoardTicket,
   BoardViewRange,
 } from '../../../shared/@types/board/BoardTicket.ts';
-import type { ForgeBoard }        from '../../../shared/@types/board/ForgeBoard.ts';
-import type { ResumeWaitsOfJobs } from '../@types/ResumeWaitsOfJobs.ts';
-import { VocabularyMapUtil }      from './VocabularyMapUtil.ts';
+import type { BoardPipelineAgentRole } from '../../../shared/@types/board/BoardVocabulary.ts';
+import type { ForgeBoard }             from '../../../shared/@types/board/ForgeBoard.ts';
+import type { ResumeWaitsOfJobs }      from '../@types/ResumeWaitsOfJobs.ts';
+import { VocabularyMapUtil }           from './VocabularyMapUtil.ts';
 
 const VOCABULARIES = VocabularyMapUtil.vocabularies;
 
@@ -81,6 +82,14 @@ function instructionOf(entry: InstructionEntryDocument): BoardInstruction {
   if (entry.kind === 'default-brief') return { kind: 'default-brief', role: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.pipelineAgentRole, entry.role) };
   if (entry.kind === 'file') return { kind: 'file', path: entry.path };
   return { kind: 'constitution' };
+}
+
+/** Lane E: a role the recorded forge leaves out reads no default instruction, until the recordings come from a forge that names every role. */
+function defaultInstructionsOfRoleOf(
+  defaultInstructions: Readonly<Partial<BoardLimitsDocument['defaultInstructionsOfRole']>>
+): Readonly<Record<BoardPipelineAgentRole, readonly BoardInstruction[]>> {
+  const mapped = VocabularyMapUtil.partiallyKeyedRecordOf(VOCABULARIES.pipelineAgentRole, defaultInstructions, (entries) => entries.map(instructionOf));
+  return VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, VOCABULARIES.pipelineAgentRole, (role) => mapped[role] ?? []);
 }
 
 function ticketOf(ticket: BoardTicketDocument): BoardTicket {
@@ -457,7 +466,7 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
     reworkRoundThresholdLines:  limits.reworkRoundThresholdLines,
     defaultTicketPriority:      VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketPriority, limits.defaultTicketPriority),
     firstRepeatReviewRound:     limits.firstRepeatReviewRound,
-    defaultInstructionsOfRole:  VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, limits.defaultInstructionsOfRole, (entries) => entries.map(instructionOf)),
+    defaultInstructionsOfRole:  defaultInstructionsOfRoleOf(limits.defaultInstructionsOfRole),
     reReviewThresholdStepLines: limits.reReviewThresholdStepLines,
   };
 }

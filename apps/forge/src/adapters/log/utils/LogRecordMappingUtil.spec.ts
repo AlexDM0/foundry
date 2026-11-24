@@ -5,16 +5,16 @@
  */
 import { expect, test } from 'bun:test';
 
-import { everyRecordKindTheBoardLogs } from '../../../testing/EveryBoardLogRecord.ts';
-import { LogUtil }                     from '../../utils/LogUtil.ts';
-import { LogRecordMappingUtil }        from './LogRecordMappingUtil.ts';
+import { everyRecordKindTheBoardLogs, ticketDocumentRecordsBeforeTheirMoves } from '../../../testing/EveryBoardLogRecord.ts';
+import { LogUtil }                                                            from '../../utils/LogUtil.ts';
+import { LogRecordMappingUtil }                                               from './LogRecordMappingUtil.ts';
 
 const { recordOf } = LogRecordMappingUtil;
 
 const RECORDED_AT = '2026-09-18T21:30:54+02:00';
 
 test('every record the Board logs maps back to the same line, key for key and in the same order', () => {
-  for (const record of everyRecordKindTheBoardLogs(RECORDED_AT)) {
+  for (const record of [...everyRecordKindTheBoardLogs(RECORDED_AT), ...ticketDocumentRecordsBeforeTheirMoves(RECORDED_AT)]) {
     const line = JSON.stringify(record);
     expect(JSON.stringify(recordOf(JSON.parse(line))), record.kind).toBe(line);
   }

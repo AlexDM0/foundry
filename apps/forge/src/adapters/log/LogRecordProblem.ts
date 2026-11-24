@@ -199,6 +199,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'file-paths':               (value, path) => listOfTextProblem(value, path, 'file paths'),
   'gate-phase':               (value, path) => vocabularyProblem(value, path, GATE_PHASES),
   'gate-names':               (value, path) => listOfTextProblem(value, path, 'gate names'),
+  'customs-checks':           (value, path) => listOfTextProblem(value, path, 'Customs checks'),
   'landing-kind':             (value, path) => vocabularyProblem(value, path, LANDING_KINDS),
   'flag':                     (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-flag':            (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),

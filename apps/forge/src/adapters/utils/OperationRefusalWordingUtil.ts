@@ -78,6 +78,11 @@ function legalSourcesText(targetStatus: TicketStatus): string {
 const READINESS_GAP_TEXT: Readonly<Record<ReadinessGap, string>> = {
   'acceptance-unnumbered': 'its `## Acceptance` holds no numbered item (acceptance-unnumbered)',
   'brief-missing':         'it has no `## Brief` with a non-blank line (brief-missing)',
+  'report-missing':        'it has no `## Report` with a non-blank line (report-missing)',
+  'wanted-missing':        'it has no `## Wanted` with a non-blank line (wanted-missing)',
+  'spec-unapproved':       'its spec is not approved (spec-unapproved)',
+  'plan-unapproved':       'its plan is not approved (plan-unapproved)',
+  'plan-out-of-date':      'its plan was approved on an older spec (plan-out-of-date)',
 };
 
 const NEED_GAP_TEXT: Readonly<Record<NeedGap, string>> = {
@@ -85,6 +90,11 @@ const NEED_GAP_TEXT: Readonly<Record<NeedGap, string>> = {
   'title-missing':         'it has no title (title-missing)',
   'acceptance-unnumbered': READINESS_GAP_TEXT['acceptance-unnumbered'],
   'brief-missing':         READINESS_GAP_TEXT['brief-missing'],
+  'report-missing':        READINESS_GAP_TEXT['report-missing'],
+  'wanted-missing':        READINESS_GAP_TEXT['wanted-missing'],
+  'spec-unapproved':       READINESS_GAP_TEXT['spec-unapproved'],
+  'plan-unapproved':       READINESS_GAP_TEXT['plan-unapproved'],
+  'plan-out-of-date':      READINESS_GAP_TEXT['plan-out-of-date'],
 };
 
 function incompleteTicketText(incompleteTicket: IncompleteTicket): string {
@@ -657,7 +667,46 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         + `was not recreated. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-repair-failed':
       return `Git refused the ${detail.step} repair of the worktree of #${detail.ticketId}: ${detail.gitReason} ${NOTHING_WAS_WRITTEN}`;
+    case 'ticket-has-no-documents':
+      return `Ticket #${detail.ticketId} has no spec or plan: only a ticket written as a spec, then a plan, has them. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-not-editable':
+      return `The ${detail.document} of #${detail.ticketId} cannot be changed: the ticket is ${StatusWordingUtil.statusTextFor(detail.status)}, `
+        + `or its review is off and its agent writes it. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-version-moved':
+      return `The ${detail.document} of #${detail.ticketId} is at ${documentVersionText(detail.headNumber)}, not `
+        + `${documentVersionText(detail.version)}: read it again first. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-merge-conflict':
+      return `The change to the ${detail.document} of #${detail.ticketId}, made on version ${detail.baseNumber}, overlaps a later change `
+        + `in version ${detail.headNumber}: read it again and make the change there. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-too-long':
+      return `The ${detail.document} of #${detail.ticketId} would hold ${detail.characterCount} characters, more than the `
+        + `${detail.characterLimit} a document holds. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-unknown-message':
+      return `The ${detail.document} of #${detail.ticketId} has no message ${detail.messageId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-message-not-queued':
+      return `Message ${detail.messageId} on the ${detail.document} of #${detail.ticketId} is ${detail.state}, so it can no longer be `
+        + `withdrawn. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-unknown-proposal':
+      return `The ${detail.document} of #${detail.ticketId} has no proposal ${detail.proposalId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-proposal-not-open':
+      return `Proposal ${detail.proposalId} on the ${detail.document} of #${detail.ticketId} is ${detail.state}, not open. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-review-is-off':
+      return `The review of the ${detail.document} is off, so its agent approves it when it is ready. ${NOTHING_WAS_WRITTEN}`;
+    case 'plan-before-approved-spec':
+      return `The plan of #${detail.ticketId} waits until its spec is approved. ${NOTHING_WAS_WRITTEN}`;
+    case 'spec-acceptance-unnumbered':
+      return `The spec of #${detail.ticketId} holds no numbered item under \`## Acceptance\`, so it cannot be approved. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-agent-not-live':
+      return `Job ${detail.jobId} is not the live agent of the ${detail.document} of #${detail.ticketId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-snapshot-touched':
+      return `The agent of the ${detail.document} of #${detail.ticketId} changed its read-only snapshot (${detail.checks.join(', ')}), `
+        + `so job ${detail.jobId} ended and its moves of this turn were refused. ${NOTHING_WAS_WRITTEN}`;
   }
+}
+
+/** `version 4`, or `no version` for a document that has none. */
+function documentVersionText(versionNumber: number | null): string {
+  return versionNumber === null ? 'no version' : `version ${versionNumber}`;
 }
 
 function legalJobSourcesText(targetState: JobMoveTarget): string {

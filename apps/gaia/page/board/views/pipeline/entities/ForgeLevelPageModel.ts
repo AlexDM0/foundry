@@ -19,15 +19,21 @@ export interface ApprovalView {
 const APPROVAL_TITLES: Readonly<Record<BoardPipelineApproval, string>> = Object.freeze({
   tickets: 'Human ticket review',
   merge:   'Human code review',
+  spec:    'Human spec review',
+  plan:    'Human plan review',
 });
 
 const APPROVAL_HINTS: Readonly<Record<BoardPipelineApproval, { readonly on: string; readonly off: string }>> = Object.freeze({
   tickets: { on: 'On: you ready each draft before it builds, in every entity.', off: 'Off: a complete draft builds at once.' },
   merge:   { on: 'On: you accept each reviewed ticket before its Airlock.', off: 'Off: a green review goes straight to the merge train.' },
+  spec:    { on: 'On: you approve each spec before its plan is written.', off: 'Off: the spec agent approves the spec when it is ready.' },
+  plan:    { on: 'On: you approve each plan before the ticket builds.', off: 'Off: the plan agent approves the plan when it is ready.' },
 });
 
-/** An absent `tickets` approval is on and an absent `merge` approval is off, as `pipeline.json` reads them. */
-const APPROVAL_DEFAULTS: Readonly<Record<BoardPipelineApproval, boolean>> = Object.freeze({ tickets: true, merge: false });
+/** An absent `tickets`, `spec` or `plan` approval is on and an absent `merge` approval is off, as `pipeline.json` reads them. */
+const APPROVAL_DEFAULTS: Readonly<Record<BoardPipelineApproval, boolean>> = Object.freeze({
+  tickets: true, merge: false, spec: true, plan: true
+});
 
 const APPROVALS: readonly BoardPipelineApproval[] = Object.freeze(['tickets', 'merge']);
 

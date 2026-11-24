@@ -438,6 +438,8 @@ function draftEditOut(edit: BoardDraftEdit): BoardDraftEditDocument {
       return { target: 'airlock', value: edit.value === null ? null : { reReview: reReviewOut(edit.value.reReview) } };
     case 'approval':
       return { target: 'approval', approval: edit.approval, value: edit.value };
+    case 'ticket-writing':
+      return { target: 'ticket-writing', value: edit.value };
     case 'entity':
       return {
         target:    'entity',

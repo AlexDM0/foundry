@@ -154,6 +154,25 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} needs work in entity ${record.fields.entity}, declared by job ${record.fields.byJob}: ${record.fields.title}`;
     case 'dependent-fix-filed':
       return `Ticket #${record.ticketId} breaks entity ${record.fields.entity}: ${TicketPhraseUtil.ticketReferencesText(record.fields.fixTicketIds)} filed in its group to fix it`;
+    case 'ticket-documents-opened':
+      return `Ticket #${record.ticketId} opened its spec and plan`;
+    case 'ticket-document-versioned':
+      return `The ${record.fields.document} of #${record.ticketId} is at version ${record.fields.number}, written by the ${record.fields.author}`;
+    case 'ticket-document-approved': {
+      const onSpecText = record.fields.onSpecNumber === undefined ? '' : ` on spec version ${record.fields.onSpecNumber}`;
+      return `The ${record.fields.document} of #${record.ticketId} approved at version ${record.fields.number} by the ${record.fields.by}${onSpecText}`;
+    }
+    case 'ticket-document-message-queued':
+      return `Message ${record.fields.messageId} queued for the agent of the ${record.fields.document} of #${record.ticketId}`;
+    case 'ticket-document-proposed':
+      return `The agent of the ${record.fields.document} of #${record.ticketId} proposed ${record.fields.proposalId}`;
+    case 'ticket-document-proposal-settled':
+      return `Proposal ${record.fields.proposalId} on the ${record.fields.document} of #${record.ticketId} ${record.fields.state}`;
+    case 'ticket-document-mode-set':
+      return `The agent of the ${record.fields.document} of #${record.ticketId} now works ${record.fields.mode}`;
+    case 'ticket-document-snapshot-touched':
+      return `Job ${record.fields.jobId}, the agent of the ${record.fields.document} of #${record.ticketId}, changed its read-only snapshot `
+        + `(${record.fields.checks.join(', ')}) and ended`;
     case 'stage-started':
       return `Ticket #${record.ticketId} started the stage ${record.fields.stage} of entity ${record.fields.entity}`;
     case 'seal-set':

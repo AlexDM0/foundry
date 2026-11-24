@@ -334,7 +334,7 @@ describe('the profile log', () => {
     fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('profile-running')} route={{ tab: 'pipeline', item: 'setup/design' }} {...services} />));
     await clickSettled(within(screen.getByRole('group', { name: 'Pipeline phases' })).getByRole('button', { name: /^Merge/ }));
     fireEvent.doubleClick(screen.getByRole('group', { name: /^Open the browser-tests / }));
-    const profileLineOf = (text: string): unknown => ({ boardVersion: 1, kind: 'line', line: { text } });
+    const profileLineOf = (text: string): unknown => ({ boardVersion: 2, kind: 'line', line: { text } });
     act(() => {
       relay.sources[0]?.fire('line', profileLineOf('Running 12 tests'), '1');
       relay.sources[0]?.fire('line', profileLineOf('6 passed'), '2');

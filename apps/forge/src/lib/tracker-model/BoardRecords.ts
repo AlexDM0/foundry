@@ -12,6 +12,7 @@ import type { Pipeline }                                         from './@types/
 import type { ConstitutionSourcesReading, PipelineSetupReading } from './@types/PipelineSetup.ts';
 import type { Task, TaskStatus }                                 from './@types/Task.ts';
 import type { Ticket, TicketStatus }                             from './@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord }                       from './@types/TicketDocument.ts';
 import type { TrackerProgress }                                  from './@types/TrackerProgress.ts';
 import { BoardRefusal }                                          from './BoardRefusal.ts';
 import type { Logger }                                           from './Logger.ts';
@@ -39,6 +40,9 @@ export class BoardRecords {
   readonly changedDraftRecords: Draft[] = [];
 
   readonly removedDraftRecords: Draft[] = [];
+
+  /** Opened or changed ticket documents records, in the order each was first changed, once each. */
+  readonly changedTicketDocumentRecords: LoadedTicketDocumentRecord[] = [];
 
   /** What this invocation logged, in order, after `storedLogRecords`: the readiness order reads both. */
   readonly loggedRecords: LogRecord[] = [];
@@ -78,6 +82,8 @@ export class BoardRecords {
     public gateProfilesReading: GateProfilesReading,
     /** A malformed file shows no source tags, and only an Apply writes over it. */
     public constitutionSourcesReading: ConstitutionSourcesReading,
+    /** One per ticket in the spec-then-plan route, each with the text of every version it names. */
+    readonly ticketDocumentRecords: LoadedTicketDocumentRecord[],
   ) {}
 
   markChanged(ticket: Ticket): void {
@@ -90,6 +96,14 @@ export class BoardRecords {
 
   markDraftChanged(draft: Draft): void {
     if (!this.changedDraftRecords.includes(draft)) this.changedDraftRecords.push(draft);
+  }
+
+  markTicketDocumentsChanged(loadedRecord: LoadedTicketDocumentRecord): void {
+    if (!this.changedTicketDocumentRecords.includes(loadedRecord)) this.changedTicketDocumentRecords.push(loadedRecord);
+  }
+
+  ticketDocumentRecordOf(ticketId: string): LoadedTicketDocumentRecord | undefined {
+    return this.ticketDocumentRecords.find((loadedRecord) => loadedRecord.record.ticketId === ticketId);
   }
 
   draftRecordById(draftId: string): Draft | undefined {

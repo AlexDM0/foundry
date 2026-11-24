@@ -18,7 +18,8 @@ import type {
   PipelineEntity,
   PipelineGate,
   PipelineReview,
-  PipelineStep
+  PipelineStep,
+  TicketWritingRoute
 } from './Pipeline.ts';
 
 /** `entities` is walked only by a record whose step states hold it: a forge over entities. */
@@ -146,6 +147,7 @@ export type PipelineDraftField =
   | `role:${PipelineAgentRole}`
   | 'airlock'
   | `approval:${PipelineApproval}`
+  | 'ticket-writing'
   | `entity:${EntityKey}`
   | `entity:${EntityKey}/${EntityDraftField}`;
 
@@ -417,6 +419,7 @@ export type PipelineDraftEdit =
   | { target: 'role'; role: PipelineAgentRole; value: AgentStepSettings | null }
   | { target: 'airlock'; value: PipelineAirlock | null }
   | { target: 'approval'; approval: PipelineApproval; value: boolean | null }
+  | { target: 'ticket-writing'; value: TicketWritingRoute | null }
   | { target: 'entity'; entityKey: EntityKey; value: PipelineEntityDefinition | null }
   | { target: 'within-entity'; entityKey: EntityKey; edit: EntityDraftEdit };
 

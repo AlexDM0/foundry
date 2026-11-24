@@ -309,3 +309,41 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.clearTracker({ ticketsSurvive: true }, at);
   return records;
 }
+
+/**
+ * One record of each ticket document kind, written by hand in the schema's key order, because the moves that log them are stubs that lane B
+ * builds; lane B then logs them through the Board and removes this list.
+ */
+export function ticketDocumentRecordsBeforeTheirMoves(at: string): LogRecord[] {
+  return [
+    {
+      at, kind: 'ticket-documents-opened', ticketId: '004', fields: {}
+    },
+    {
+      at, kind: 'ticket-document-versioned', ticketId: '004', fields: { document: 'spec', number: 1, author: 'agent' }
+    },
+    {
+      at,
+      kind:     'ticket-document-approved',
+      ticketId: '004',
+      fields:   {
+        document: 'plan', number: 2, by: 'person', onSpecNumber: 1
+      }
+    },
+    {
+      at, kind: 'ticket-document-message-queued', ticketId: '004', fields: { document: 'spec', messageId: 'M1' }
+    },
+    {
+      at, kind: 'ticket-document-proposed', ticketId: '004', fields: { document: 'spec', proposalId: 'P1' }
+    },
+    {
+      at, kind: 'ticket-document-proposal-settled', ticketId: '004', fields: { document: 'spec', proposalId: 'P1', state: 'applied' }
+    },
+    {
+      at, kind: 'ticket-document-mode-set', ticketId: '004', fields: { document: 'plan', mode: 'auto-apply' }
+    },
+    {
+      at, kind: 'ticket-document-snapshot-touched', ticketId: '004', fields: { document: 'plan', jobId: 'J9', checks: ['V16'] }
+    },
+  ];
+}

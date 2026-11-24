@@ -69,6 +69,7 @@ function editWithinAnEntityOf(edit: BoardDraftEditDocument): BoardEntityDraftEdi
   switch (edit.target) {
     case 'airlock':
     case 'approval':
+    case 'ticket-writing':
     case 'entity':
     case 'within-entity':
       return null;

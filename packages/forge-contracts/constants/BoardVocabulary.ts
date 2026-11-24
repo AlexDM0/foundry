@@ -69,11 +69,21 @@ export const GATE_PHASES = ['build', 'review', 'merge'] as const;
 export type GatePhase = (typeof GATE_PHASES)[number];
 
 /** The roles a pipeline sets, in the order the flow draws their steps. */
-export const PIPELINE_AGENT_ROLES = ['productOwner', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant'] as const;
+export const PIPELINE_AGENT_ROLES = [
+  'productOwner',
+  'specAgent',
+  'planAgent',
+  'builder',
+  'reviewer',
+  'reReviewer',
+  'conflictReReviewer',
+  'pipelineAgent',
+  'assistant',
+] as const;
 export type PipelineAgentRole = (typeof PIPELINE_AGENT_ROLES)[number];
 
 /** The roles set once for the whole forge, also when it holds entities. */
-export const FORGE_LEVEL_AGENT_ROLES = ['productOwner', 'pipelineAgent', 'assistant'] as const;
+export const FORGE_LEVEL_AGENT_ROLES = ['productOwner', 'specAgent', 'planAgent', 'pipelineAgent', 'assistant'] as const;
 export type ForgeLevelAgentRole = (typeof FORGE_LEVEL_AGENT_ROLES)[number];
 
 /** The roles an entity sets for its own tickets. */
@@ -92,3 +102,35 @@ export type AgentEffort = (typeof AGENT_EFFORTS)[number];
 
 /** The model tiers an agent runs on; the forge serves the choices in `pipelineChoices`. */
 export type AgentModel = 'haiku' | 'sonnet' | 'opus' | 'fable';
+
+/** How a ticket is written: `one-ticket` is the product owner's ticket body; `spec-then-plan` adds a spec and a plan, each with its agent. */
+export const TICKET_WRITING_ROUTES = ['one-ticket', 'spec-then-plan'] as const;
+export type TicketWritingRoute = (typeof TICKET_WRITING_ROUTES)[number];
+
+/** The documents of a ticket in the spec-then-plan route, in pipeline order: where two disagree, the later one wins. */
+export const TICKET_DOCUMENT_KINDS = ['spec', 'plan'] as const;
+export type TicketDocumentKind = (typeof TICKET_DOCUMENT_KINDS)[number];
+
+/** Which version of a document a builder or reviewer reads: the approved head, the version a person approved, or none. */
+export const DOCUMENT_READING_RULES = ['always', 'if-person-approved', 'never'] as const;
+export type DocumentReadingRule = (typeof DOCUMENT_READING_RULES)[number];
+
+/** Whether a document agent's edit waits for the user's Apply or applies on arrival. */
+export const PROPOSAL_MODES = ['ask-first', 'auto-apply'] as const;
+export type ProposalMode = (typeof PROPOSAL_MODES)[number];
+
+/** Where a document stands: `out-of-date` is a plan approved on a spec version that is no longer the spec's approved head. */
+export const DOCUMENT_STANDINGS = ['unwritten', 'drafting', 'awaiting-review', 'approved', 'changed-since-approval', 'out-of-date'] as const;
+export type DocumentStanding = (typeof DOCUMENT_STANDINGS)[number];
+
+/** A message to a document agent: `queued` until Hephaestus writes it to the session; only a queued one can be withdrawn. */
+export const DOCUMENT_MESSAGE_STATES = ['queued', 'sent', 'applied', 'withdrawn'] as const;
+export type DocumentMessageState = (typeof DOCUMENT_MESSAGE_STATES)[number];
+
+/** An agent's proposed edit: `conflicted` when its original lines no longer stand at the head. */
+export const DOCUMENT_PROPOSAL_STATES = ['proposed', 'applied', 'discarded', 'conflicted'] as const;
+export type DocumentProposalState = (typeof DOCUMENT_PROPOSAL_STATES)[number];
+
+/** What an effect reading says a plan does to a path of the main line's tree. */
+export const EFFECT_CHANGES = ['adds', 'changes', 'removes', 'unresolved'] as const;
+export type EffectChange = (typeof EFFECT_CHANGES)[number];

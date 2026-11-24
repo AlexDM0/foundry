@@ -156,6 +156,7 @@ import type {
   TicketSize,
   TicketStatus
 }                                                         from './@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord }                  from './@types/TicketDocument.ts';
 import type { TicketForecast }                              from './@types/TicketForecast.ts';
 import type { HephaestusState, TrackerProgress, ViewRange } from './@types/TrackerProgress.ts';
 import { AgentQuestions }                                   from './AgentQuestions.ts';
@@ -200,6 +201,7 @@ import { ReviewStatistics }                              from './ReviewStatistic
 import { TaskRows }                                      from './TaskRows.ts';
 import { TicketClaims }                                  from './TicketClaims.ts';
 import { TicketDependencies }                            from './TicketDependencies.ts';
+import { TicketDocuments }                               from './TicketDocuments.ts';
 import type { TicketEdit, TicketEdited }                 from './TicketEdits.ts';
 import { TicketEdits }                                   from './TicketEdits.ts';
 import { TicketForecasts }                               from './TicketForecasts.ts';
@@ -222,22 +224,24 @@ function launchStageOf(step: PlaybookLaunchStage): PlaybookLaunchStage {
 }
 
 export interface BoardInput {
-  progress:             TrackerProgress;
-  tickets:              Ticket[];
-  epics:                Epic[];
+  progress:               TrackerProgress;
+  tickets:                Ticket[];
+  epics:                  Epic[];
   /** Absent for a caller that reads no drafts, which reads as none. */
-  drafts?:              Draft[];
-  logger:               Logger;
+  drafts?:                Draft[];
+  logger:                 Logger;
   /** The log as stored, which orders the ready tickets by readiness; absent reads as an empty log. */
-  storedLogRecords?:    readonly LogRecord[];
+  storedLogRecords?:      readonly LogRecord[];
   /** The stored pipeline; absent or `null` when none is stored or it could not be read, which reads as no gates set. */
-  pipeline?:            Pipeline | null;
+  pipeline?:              Pipeline | null;
   /** `pipeline-setup.json` as read; absent reads as no open record. */
-  pipelineSetup?:       PipelineSetupReading;
+  pipelineSetup?:         PipelineSetupReading;
   /** `gate-profiles.json` as read; absent reads as no run. */
-  gateProfiles?:        GateProfilesReading;
+  gateProfiles?:          GateProfilesReading;
   /** `constitution-sources.json` as read; absent reads as none stored. */
-  constitutionSources?: ConstitutionSourcesReading;
+  constitutionSources?:   ConstitutionSourcesReading;
+  /** The tickets' documents records, each with its version texts; absent reads as none. */
+  ticketDocumentRecords?: LoadedTicketDocumentRecord[];
 }
 
 export class Board {
@@ -301,6 +305,8 @@ export class Board {
 
   private readonly incidentMoves: IncidentMoves;
 
+  private readonly ticketDocumentRules: TicketDocuments;
+
   private readonly findings: Findings;
 
   private readonly ticketForecasts: TicketForecasts;
@@ -309,7 +315,9 @@ export class Board {
 
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
-      input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' });
+      input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' },
+      input.ticketDocumentRecords ?? []);
+    this.ticketDocumentRules = new TicketDocuments(this.records);
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);
@@ -945,6 +953,8 @@ export class Board {
         return this.setHephaestusState('paused', at).logged;
       case 'await-machine-slot':
         return [];
+      case 'launch-document-agent':
+        throw new Error('lane C');
       // Hephaestus acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
       case 'act-on-waiver-answer':
         return [];
@@ -1749,6 +1759,15 @@ export class Board {
 
   changedDrafts(): readonly Draft[] {
     return this.records.changedDraftRecords;
+  }
+
+  /** The spec and plan moves of the tickets in the spec-then-plan route. */
+  ticketDocuments(): TicketDocuments {
+    return this.ticketDocumentRules;
+  }
+
+  changedTicketDocumentRecords(): readonly LoadedTicketDocumentRecord[] {
+    return this.records.changedTicketDocumentRecords;
   }
 
   removedDrafts(): readonly Draft[] {

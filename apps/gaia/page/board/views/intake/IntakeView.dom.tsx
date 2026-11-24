@@ -42,7 +42,7 @@ import { IntakeView }             from './IntakeView.tsx';
 
 const TRACKER_FRAGMENT_START = `#forge/${FIXTURE_TRACKER_ID}/`;
 
-const COMMAND_VERSION = { boardCommandVersion: 1 } as const;
+const COMMAND_VERSION = { boardCommandVersion: 2 } as const;
 
 /** The view under the route it last went to, as the forge route gives it, starting on `initialItem`. */
 function RoutedIntakeView({ board, initialItem }: { readonly board: BoardDocument; readonly initialItem: string | null }) {

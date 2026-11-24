@@ -26,6 +26,8 @@ export const JOB_KINDS = [
   'assistant',
   'product-owner',
   'pipeline-agent',
+  'document-agent',
+  'effect-reading',
 ] as const satisfies readonly JobKind[];
 
 export const JOB_ROLES = [
@@ -36,6 +38,9 @@ export const JOB_ROLES = [
   'assistant',
   'product-owner',
   'pipeline-agent',
+  'spec-agent',
+  'plan-agent',
+  'effect-reader',
 ] as const satisfies readonly JobRole[];
 
 export const JOB_STATES = [

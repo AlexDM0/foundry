@@ -272,6 +272,7 @@ const TICKET_SHAPE = {
   acceptanceItems: { listOf: ACCEPTANCE_ITEM_SHAPE },
   facts:           { object: TICKET_FACTS_SHAPE },
   offers:          { object: TICKET_OFFERS_SHAPE },
+  documents:       'passed-over',
 } as const satisfies ShapeOf<BoardTicketDocument>;
 
 const TASK_PHASE_SHAPE = { status: vocabularyRule('taskStatus'), at: 'text' } as const satisfies ShapeOf<BoardTaskPhaseDocument>;
@@ -608,7 +609,8 @@ const LIMITS_SHAPE = {
   reworkRoundThresholdLines:  'whole-number',
   defaultTicketPriority:      vocabularyRule('ticketPriority'),
   firstRepeatReviewRound:     'whole-number',
-  defaultInstructionsOfRole:  { object: keyedByVocabularyShape('pipelineAgentRole', { eachOf: INSTRUCTION_RULE }) },
+  // Lane E: keyed by every role again once the recordings come from a forge that names the spec and plan agents.
+  defaultInstructionsOfRole:  { object: partiallyKeyedByVocabularyShape('pipelineAgentRole', { eachOf: INSTRUCTION_RULE }) },
   reReviewThresholdStepLines: 'whole-number',
 } as const satisfies ShapeOf<BoardLimitsDocument>;
 
@@ -633,6 +635,7 @@ const AGENT_STEP_SETTINGS_SHAPE = {
   model:        { optional: vocabularyRule('agentModel') },
   effort:       { optional: vocabularyRule('agentEffort') },
   instructions: { optional: { eachOf: INSTRUCTION_RULE } },
+  documents:    'passed-over',
 } as const satisfies ShapeOf<AgentStepSettingsDocument>;
 
 const RE_REVIEW_SHAPE = { thresholdLines: 'whole-number' } as const satisfies ShapeOf<ConditionalReReviewDocument>;
@@ -669,19 +672,20 @@ const PIPELINE_ENTITY_SHAPE = {
 } as const satisfies ShapeOf<PipelineEntityDocument>;
 
 const PIPELINE_DEFINITION_SHAPE = {
-  version:      'whole-number',
-  prepare:      { listOf: STEP_SHAPE },
-  gates:        { listOf: GATE_SHAPE },
-  phases:       { object: PHASE_ORDERS_SHAPE },
-  review:       { optional: { object: REVIEW_SHAPE } },
-  airlock:      { optional: { object: AIRLOCK_SHAPE } },
-  constitution: { optional: { object: CONSTITUTION_SHAPE } },
-  agents:       { optional: { object: partiallyKeyedByVocabularyShape('pipelineAgentRole', { object: AGENT_STEP_SETTINGS_SHAPE }) } },
-  approvals:    { optional: { object: partiallyKeyedByVocabularyShape('pipelineApproval', 'boolean') } },
-  billing:      { optional: BILLING_RULE },
-  reach:        OPTIONAL_TEXT_LIST,
-  entities:     { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
-  assistant:    { optional: 'boolean' },
+  version:       'whole-number',
+  prepare:       { listOf: STEP_SHAPE },
+  gates:         { listOf: GATE_SHAPE },
+  phases:        { object: PHASE_ORDERS_SHAPE },
+  review:        { optional: { object: REVIEW_SHAPE } },
+  airlock:       { optional: { object: AIRLOCK_SHAPE } },
+  constitution:  { optional: { object: CONSTITUTION_SHAPE } },
+  agents:        { optional: { object: partiallyKeyedByVocabularyShape('pipelineAgentRole', { object: AGENT_STEP_SETTINGS_SHAPE }) } },
+  approvals:     { optional: { object: partiallyKeyedByVocabularyShape('pipelineApproval', 'boolean') } },
+  billing:       { optional: BILLING_RULE },
+  reach:         OPTIONAL_TEXT_LIST,
+  entities:      { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
+  assistant:     { optional: 'boolean' },
+  ticketWriting: 'passed-over',
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {

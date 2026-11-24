@@ -60,19 +60,27 @@ import type {
   AgentEffort,
   AgentModel,
   DisplayState,
+  DocumentMessageState,
+  DocumentProposalState,
+  DocumentReadingRule,
+  DocumentStanding,
   DraftState,
+  EffectChange,
   EntityAgentRole,
   EntityKind,
   ForgeLevelAgentRole,
   GatePhase,
   JobState,
   PipelineAgentRole,
+  ProposalMode,
   TaskStatus,
+  TicketDocumentKind,
   TicketPriority,
   TicketSize,
   TicketStageName,
   TicketStatus,
   TicketType,
+  TicketWritingRoute,
 } from 'forge-contracts/BoardVocabulary';
 import type { HephaestusRuntimeState }   from 'forge-contracts/ForgeBoardDocument';
 import type { ForgeJobStopMode }         from 'forge-contracts/ForgeControlCommand';
@@ -158,6 +166,8 @@ const GATE_PHASE = { build: 'build', review: 'review', merge: 'merge' } as const
 
 const PIPELINE_AGENT_ROLE = {
   productOwner:       'productOwner',
+  specAgent:          'specAgent',
+  planAgent:          'planAgent',
   builder:            'builder',
   reviewer:           'reviewer',
   reReviewer:         'reReviewer',
@@ -168,6 +178,8 @@ const PIPELINE_AGENT_ROLE = {
 
 const FORGE_LEVEL_AGENT_ROLE = {
   productOwner:  'productOwner',
+  specAgent:     'specAgent',
+  planAgent:     'planAgent',
   pipelineAgent: 'pipelineAgent',
   assistant:     'assistant',
 } as const satisfies Record<ForgeLevelAgentRole, Gaia.BoardForgeLevelAgentRole>;
@@ -323,7 +335,42 @@ const OFFERED_COMMAND_KIND = {
   'tracker-clear':              'tracker-clear',
 } as const satisfies Record<ForgeBoardCommand['kind'], Gaia.BoardOfferedCommandKind>;
 
-const PIPELINE_APPROVAL = { tickets: 'tickets', merge: 'merge' } as const satisfies Record<PipelineApproval, Gaia.BoardPipelineApproval>;
+const PIPELINE_APPROVAL = {
+  tickets: 'tickets', merge: 'merge', spec: 'spec', plan: 'plan'
+} as const satisfies Record<PipelineApproval, Gaia.BoardPipelineApproval>;
+
+const TICKET_WRITING_ROUTE = { 'one-ticket': 'one-ticket', 'spec-then-plan': 'spec-then-plan' } as const satisfies Record<TicketWritingRoute, Gaia.BoardTicketWritingRoute>;
+
+const TICKET_DOCUMENT_KIND = { spec: 'spec', plan: 'plan' } as const satisfies Record<TicketDocumentKind, Gaia.BoardTicketDocumentKind>;
+
+const DOCUMENT_READING_RULE = {
+  'always':             'always',
+  'if-person-approved': 'if-person-approved',
+  'never':              'never',
+} as const satisfies Record<DocumentReadingRule, Gaia.BoardDocumentReadingRule>;
+
+const PROPOSAL_MODE = { 'ask-first': 'ask-first', 'auto-apply': 'auto-apply' } as const satisfies Record<ProposalMode, Gaia.BoardProposalMode>;
+
+const DOCUMENT_STANDING = {
+  'unwritten':              'unwritten',
+  'drafting':               'drafting',
+  'awaiting-review':        'awaiting-review',
+  'approved':               'approved',
+  'changed-since-approval': 'changed-since-approval',
+  'out-of-date':            'out-of-date',
+} as const satisfies Record<DocumentStanding, Gaia.BoardDocumentStanding>;
+
+const DOCUMENT_MESSAGE_STATE = {
+  queued: 'queued', sent: 'sent', applied: 'applied', withdrawn: 'withdrawn'
+} as const satisfies Record<DocumentMessageState, Gaia.BoardDocumentMessageState>;
+
+const DOCUMENT_PROPOSAL_STATE = {
+  proposed: 'proposed', applied: 'applied', discarded: 'discarded', conflicted: 'conflicted'
+} as const satisfies Record<DocumentProposalState, Gaia.BoardDocumentProposalState>;
+
+const EFFECT_CHANGE = {
+  adds: 'adds', changes: 'changes', removes: 'removes', unresolved: 'unresolved'
+} as const satisfies Record<EffectChange, Gaia.BoardEffectChange>;
 
 const BILLING_MODE = { subscription: 'subscription', api: 'api' } as const satisfies Record<PipelineBillingDocument['mode'], Gaia.BoardBillingMode>;
 
@@ -423,6 +470,10 @@ const ENTITY_REFUSAL_REASON = {
 const PIPELINE_NODE_KIND = {
   'ticket-creation':      'ticket-creation',
   'human-ticket-review':  'human-ticket-review',
+  'spec-writing':         'spec-writing',
+  'human-spec-review':    'human-spec-review',
+  'plan-writing':         'plan-writing',
+  'human-plan-review':    'human-plan-review',
   'builder':              'builder',
   'gates':                'gates',
   'review':               'review',
@@ -563,6 +614,14 @@ const BOARD_VOCABULARIES = {
   mergePrediction:          MERGE_PREDICTION,
   offeredCommandKind:       OFFERED_COMMAND_KIND,
   pipelineApproval:         PIPELINE_APPROVAL,
+  ticketWritingRoute:       TICKET_WRITING_ROUTE,
+  ticketDocumentKind:       TICKET_DOCUMENT_KIND,
+  documentReadingRule:      DOCUMENT_READING_RULE,
+  proposalMode:             PROPOSAL_MODE,
+  documentStanding:         DOCUMENT_STANDING,
+  documentMessageState:     DOCUMENT_MESSAGE_STATE,
+  documentProposalState:    DOCUMENT_PROPOSAL_STATE,
+  effectChange:             EFFECT_CHANGE,
   billingMode:              BILLING_MODE,
   setupStep:                SETUP_STEP,
   setupStepState:           SETUP_STEP_STATE,

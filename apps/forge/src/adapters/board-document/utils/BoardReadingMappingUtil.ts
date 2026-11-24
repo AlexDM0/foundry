@@ -125,6 +125,8 @@ function defaultInstructionsOfRoleOf(): BoardLimitsDocument['defaultInstructions
   const instructionsOf = (role: PipelineAgentRole) => DEFAULT_INSTRUCTIONS_OF_ROLE[role].map(BoardPipelineMappingUtil.instructionEntryOf);
   return {
     productOwner:       instructionsOf('productOwner'),
+    specAgent:          instructionsOf('specAgent'),
+    planAgent:          instructionsOf('planAgent'),
     builder:            instructionsOf('builder'),
     reviewer:           instructionsOf('reviewer'),
     reReviewer:         instructionsOf('reReviewer'),

@@ -7,9 +7,12 @@ import type { BoardBillingDocument, BoardConstitutionSourcesDocument, BoardDraft
 import type {
   BoardGatePhase,
   BoardJobStopMode,
+  BoardProposalMode,
   BoardSetupStep,
+  BoardTicketDocumentKind,
   BoardTicketPriority,
 } from './BoardVocabulary.ts';
+import type { BoardCommentAnchorDocument } from './TicketDocumentsDocument.ts';
 
 /** A chart axis: each bound a timestamp, `start`, `now` or a signed offset from now. */
 export type BoardChartRangeDocument =
@@ -102,3 +105,38 @@ export type BoardCommandDocument = { readonly boardCommandVersion: typeof PAGE_C
 );
 
 export type BoardCommandDocumentKind = BoardCommandDocument['kind'];
+
+/**
+ * User's moves on a ticket's spec and plan, each under the forge's own kind name. They join the board's commands with their ingestion and
+ * their mapping into the forge's contract.
+ */
+export type BoardTicketDocumentCommandDocument = { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
+  | {
+    readonly kind:        'ticket-document-save';
+    readonly ticketId:    string;
+    readonly document:    BoardTicketDocumentKind;
+    readonly baseVersion: number | null;
+    readonly markdown:    string;
+  }
+  | {
+    readonly kind:     'ticket-document-comment';
+    readonly ticketId: string;
+    readonly document: BoardTicketDocumentKind;
+    readonly anchor:   BoardCommentAnchorDocument | null;
+    readonly text:     string;
+  }
+  | { readonly kind: 'ticket-document-comment-withdraw'; readonly ticketId: string; readonly document: BoardTicketDocumentKind; readonly messageId: string }
+  | {
+    readonly kind:             'ticket-document-proposal-apply';
+    readonly ticketId:         string;
+    readonly document:         BoardTicketDocumentKind;
+    readonly proposalId:       string;
+    /** User's own replacement lines, one list per edit; `null` applies the agent's. */
+    readonly replacementLines: readonly (readonly string[])[] | null;
+  }
+  | { readonly kind: 'ticket-document-proposal-discard'; readonly ticketId: string; readonly document: BoardTicketDocumentKind; readonly proposalId: string }
+  | { readonly kind: 'ticket-document-mode-set'; readonly ticketId: string; readonly document: BoardTicketDocumentKind; readonly mode: BoardProposalMode }
+  | { readonly kind: 'ticket-document-approve'; readonly ticketId: string; readonly document: BoardTicketDocumentKind; readonly version: number }
+  | { readonly kind: 'ticket-document-effect-read'; readonly ticketId: string; readonly document: BoardTicketDocumentKind; readonly version: number }
+  | { readonly kind: 'ticket-document-turn-stop'; readonly ticketId: string; readonly document: BoardTicketDocumentKind }
+);

@@ -12,7 +12,7 @@ import { ProfileStreamClient, type ProfileOutputLine } from './ProfileStreamClie
 const PROFILE_STREAM_PATH = `/api/v${GAIA_ENDPOINT_VERSIONS.forgeProfileStream}/forges/example-tracker/profiles/P3/stream`;
 
 function lineOf(text: string): unknown {
-  return { boardVersion: 1, kind: 'line', line: { text } };
+  return { boardVersion: 2, kind: 'line', line: { text } };
 }
 
 describe('the profile stream client', () => {
@@ -22,9 +22,9 @@ describe('the profile stream client', () => {
     const stream = ProfileStreamClient.follow('example-tracker', 'P3', { onLines: (lines) => received.push(...lines) }, relay.surroundings);
     const [source] = relay.sources;
     source?.fire('line', lineOf('Running 12 tests'), '1');
-    source?.fire('line', { boardVersion: 1, kind: 'line', line: { output: 'no text field' } }, '2');
+    source?.fire('line', { boardVersion: 2, kind: 'line', line: { output: 'no text field' } }, '2');
     source?.fire('line', lineOf('no line number'), 'not-a-number');
-    source?.fire('line', { boardVersion: 2, kind: 'line', line: { text: 'another version' } }, '3');
+    source?.fire('line', { boardVersion: 3, kind: 'line', line: { text: 'another version' } }, '3');
     source?.fire('line', lineOf('12 passed'), '4');
     expect(relay.sources.map(({ path }) => path)).toEqual([PROFILE_STREAM_PATH]);
     expect(received).toEqual([{ lineNumber: 1, text: 'Running 12 tests' }, { lineNumber: 4, text: '12 passed' }]);

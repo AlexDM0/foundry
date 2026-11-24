@@ -9,7 +9,12 @@
 import type { EndedJob, JobLiveFactsWithSilence } from '../../adapters/@types/BoardStateParts.ts';
 import type { BoardState }                        from './BoardState.ts';
 
-export type HephaestusEventKind = 'board' | 'job' | 'decision' | 'incident' | 'hephaestus' | 'usage' | 'profile' | 'pipeline';
+/** `documents` names a ticket whose documents record or effect reading changed, so a reader fetches its documents again. */
+export type HephaestusEventKind = 'board' | 'job' | 'decision' | 'incident' | 'hephaestus' | 'usage' | 'profile' | 'pipeline' | 'documents';
+
+export interface TicketDocumentsEventData {
+  ticketId: string;
+}
 
 export interface HephaestusEvent {
   id:   string;

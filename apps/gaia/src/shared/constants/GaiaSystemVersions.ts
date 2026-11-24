@@ -9,7 +9,7 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
  * Raised in its minor when a route or the fleet stream only adds, so every page and launcher of this major keeps
  * working; in its major when one changes in a way a client built for the older major cannot read.
  */
-export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 4, minor: 0 };
+export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 4, minor: 1 };
 
 /**
  * The oldest Gaia a page or a launcher may have been built for and still be served: Gaia 4.0 serves no client of Gaia 3.
@@ -28,18 +28,19 @@ export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 4, minor: 
  * interrupted work (4), no Open in new tab of a forge's own Bridge (5), and, in Gaia 2.0, no start or stop of Flint's brain (6).
  */
 export const GAIA_ENDPOINT_VERSIONS = {
-  health:             1,
-  sessionCodes:       1,
-  session:            1,
-  fleet:              12,
-  events:             12,
-  commands:           6,
-  forgeBoard:         1,
-  forgeBoardEvents:   1,
-  forgeJobStream:     1,
-  forgeProfileStream: 1,
-  forgePictureUpload: 1,
-  forgePicture:       1,
-  forgeCommands:      1,
-  forgeCrashLog:      1,
+  health:               1,
+  sessionCodes:         1,
+  session:              1,
+  fleet:                12,
+  events:               12,
+  commands:             6,
+  forgeBoard:           1,
+  forgeBoardEvents:     1,
+  forgeJobStream:       1,
+  forgeProfileStream:   1,
+  forgePictureUpload:   1,
+  forgePicture:         1,
+  forgeCommands:        1,
+  forgeCrashLog:        1,
+  forgeTicketDocuments: 1,
 } as const;

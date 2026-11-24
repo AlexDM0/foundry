@@ -25,8 +25,9 @@ names no client.
 | `forge-contracts/BoardMergeQueueDocument` | the board document's merge queue, per target |
 | `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart, and the bounds and defaults forge's rules apply |
 | `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts, each ticket's and job's offered commands and the hold each stop mode leaves |
+| `forge-contracts/TicketDocumentsDocument` | `GET /api/v1/tickets/{ticketId}/documents` from forge 4.1: a ticket's spec and plan with their versions, approvals, messages and proposals, and the newest effect reading of each |
 | `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
-| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v3/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`') |
+| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v3/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`'); `ForgeTicketDocumentCommand`, the user's moves on a ticket's documents from forge 4.1 |
 | `forge-contracts/BoardStreamHandshake` | the first event of `GET /api/v4/events`, `/api/v1/jobs/<jobId>/stream` and `/api/v1/profiles/<profileRunId>/stream` from forge 1.22, with the forge's system version and no id |
 | `forge-contracts/HephaestusContractVersions` | the integer version each document carries in its own key, which a reader checks before it maps the document |
 

@@ -9,6 +9,7 @@ import { AIRLOCK_CONTROLS }                                          from './Air
 import { BOARD_LIFETIME_CONTROLS }                                   from './BoardLifetimeControls.ts';
 import { BY_HAND_BOARD_CONTROLS }                                    from './ByHandBoardControls.ts';
 import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
+import { DOCUMENT_AGENT_CONTROLS }                                   from './DocumentAgentControls.ts';
 import { EPIC_BY_HAND_CONTROLS }                                     from './EpicByHandControls.ts';
 import { FILING_CONTROLS }                                           from './FilingControls.ts';
 import { GATE_PROFILE_CONTROLS }                                     from './GateProfileControls.ts';
@@ -23,6 +24,7 @@ import { SETTING_CONTROLS }                                          from './Set
 import { TASK_CONTROLS }                                             from './TaskControls.ts';
 import { TICKET_BY_HAND_CONTROLS }                                   from './TicketByHandControls.ts';
 import { TICKET_CONTROLS }                                           from './TicketControls.ts';
+import { TICKET_DOCUMENT_CONTROLS }                                  from './TicketDocumentControls.ts';
 
 const CONTROL_APPLIERS = {
   ...TICKET_CONTROLS,
@@ -40,6 +42,8 @@ const CONTROL_APPLIERS = {
   ...PIPELINE_AGENT_CONTROLS,
   ...BOARD_LIFETIME_CONTROLS,
   ...TASK_CONTROLS,
+  ...TICKET_DOCUMENT_CONTROLS,
+  ...DOCUMENT_AGENT_CONTROLS,
   ...BY_HAND_BOARD_CONTROLS,
   ...TICKET_BY_HAND_CONTROLS,
   ...EPIC_BY_HAND_CONTROLS,

@@ -29,14 +29,48 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'illegal-ticket-move':      {
     reason: 'illegal-ticket-move', ticketId: '004', status: 'committed', targetStatus: 'delivered'
   },
-  'move-to-draft':                                   { reason: 'move-to-draft', ticketId: '004', status: 'committed' },
-  'unready-of-a-ticket-not-committed':               { reason: 'unready-of-a-ticket-not-committed', ticketId: '004', status: 'in-progress' },
-  'unready-of-a-ticket-with-a-job':                  { reason: 'unready-of-a-ticket-with-a-job', ticketId: '004', jobId: 'J7' },
-  'move-of-a-draft':                                 { reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'committed' },
-  'move-to-ready-for-review':                        { reason: 'move-to-ready-for-review', ticketId: '004', status: 'draft' },
-  'move-of-a-ticket-ready-for-review':               { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'committed' },
-  'ready-of-a-ticket-not-in-draft':                  { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'committed' },
-  'incomplete-tickets':                              { reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps: ['acceptance-unnumbered', 'brief-missing'] }] },
+  'move-to-draft':                     { reason: 'move-to-draft', ticketId: '004', status: 'committed' },
+  'unready-of-a-ticket-not-committed': { reason: 'unready-of-a-ticket-not-committed', ticketId: '004', status: 'in-progress' },
+  'unready-of-a-ticket-with-a-job':    { reason: 'unready-of-a-ticket-with-a-job', ticketId: '004', jobId: 'J7' },
+  'move-of-a-draft':                   { reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'committed' },
+  'move-to-ready-for-review':          { reason: 'move-to-ready-for-review', ticketId: '004', status: 'draft' },
+  'move-of-a-ticket-ready-for-review': { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'committed' },
+  'ready-of-a-ticket-not-in-draft':    { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'committed' },
+  'incomplete-tickets':                { reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps: ['acceptance-unnumbered', 'brief-missing'] }] },
+  'ticket-has-no-documents':           { reason: 'ticket-has-no-documents', ticketId: '004' },
+  'document-not-editable':             {
+    reason: 'document-not-editable', ticketId: '004', document: 'spec', status: 'in-progress'
+  },
+  'document-version-moved': {
+    reason: 'document-version-moved', ticketId: '004', document: 'spec', version: 3, headNumber: 4
+  },
+  'document-merge-conflict': {
+    reason: 'document-merge-conflict', ticketId: '004', document: 'spec', baseNumber: 3, headNumber: 4
+  },
+  'document-too-long': {
+    reason: 'document-too-long', ticketId: '004', document: 'plan', characterCount: 200_001, characterLimit: 200_000
+  },
+  'document-unknown-message': {
+    reason: 'document-unknown-message', ticketId: '004', document: 'spec', messageId: 'M9'
+  },
+  'document-message-not-queued': {
+    reason: 'document-message-not-queued', ticketId: '004', document: 'spec', messageId: 'M2', state: 'sent'
+  },
+  'document-unknown-proposal': {
+    reason: 'document-unknown-proposal', ticketId: '004', document: 'plan', proposalId: 'P9'
+  },
+  'document-proposal-not-open': {
+    reason: 'document-proposal-not-open', ticketId: '004', document: 'plan', proposalId: 'P2', state: 'applied'
+  },
+  'document-review-is-off':     { reason: 'document-review-is-off', ticketId: '004', document: 'plan' },
+  'plan-before-approved-spec':  { reason: 'plan-before-approved-spec', ticketId: '004' },
+  'spec-acceptance-unnumbered': { reason: 'spec-acceptance-unnumbered', ticketId: '004' },
+  'document-agent-not-live':    {
+    reason: 'document-agent-not-live', ticketId: '004', document: 'spec', jobId: 'J7'
+  },
+  'document-snapshot-touched': {
+    reason: 'document-snapshot-touched', ticketId: '004', document: 'spec', jobId: 'J7', checks: ['V16']
+  },
   'ticket-without-entity':                           { reason: 'ticket-without-entity', ticketIds: ['004', '005'] },
   'work-outside-entity':                             { reason: 'work-outside-entity', ticketsOutside: [{ ticketId: '004', entity: 'shop', paths: ['/apps/admin/Example.ts'] }] },
   'abandon-without-reason':                          { reason: 'abandon-without-reason', ticketId: '004' },

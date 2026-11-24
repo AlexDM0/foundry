@@ -35,6 +35,12 @@ import type {
   TicketStatus,
   TicketType
 } from '../../lib/tracker-model/@types/Ticket.ts';
+import type {
+  CommentAnchor,
+  LineEdit,
+  ProposalMode,
+  TicketDocumentKind
+} from '../../lib/tracker-model/@types/TicketDocument.ts';
 
 export type ListEdit = 'replace' | 'add' | 'remove';
 
@@ -274,6 +280,20 @@ export type ControlCommand =
    * Hephaestus is live; the live Hephaestus applies this command in its own hold. Never relayed from a job.
    */
   | { kind: 'ticket-deliver-by-hand'; ticketReference: string; branch?: string; commit?: string }
+  /**
+   * User's moves on a ticket's documents, sent only from a client: no verb builds them. A save names the version it was made on, `null` for
+   * the first; an approval the version approved; an applied proposal may carry User's own replacement lines, one list per edit.
+   */
+  | { kind: 'ticket-document-save'; ticketReference: string; document: TicketDocumentKind; baseVersion: number | null; markdown: string }
+  | { kind: 'ticket-document-comment'; ticketReference: string; document: TicketDocumentKind; anchor: CommentAnchor | null; text: string }
+  | { kind: 'ticket-document-comment-withdraw'; ticketReference: string; document: TicketDocumentKind; messageId: string }
+  | { kind: 'ticket-document-proposal-apply'; ticketReference: string; document: TicketDocumentKind; proposalId: string; replacementLines?: string[][] }
+  | { kind: 'ticket-document-proposal-discard'; ticketReference: string; document: TicketDocumentKind; proposalId: string }
+  | { kind: 'ticket-document-mode-set'; ticketReference: string; document: TicketDocumentKind; mode: ProposalMode }
+  | { kind: 'ticket-document-approve'; ticketReference: string; document: TicketDocumentKind; version: number }
+  | { kind: 'ticket-document-effect-read'; ticketReference: string; document: TicketDocumentKind; version: number }
+  /** Ends the document agent's running turn and keeps its session; its queued messages then go on in order. */
+  | { kind: 'ticket-document-turn-stop'; ticketReference: string; document: TicketDocumentKind }
   /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */
   | {
     kind:               'task-add';
@@ -311,3 +331,12 @@ export type ControlCommand =
 export type ControlCommandKind = ControlCommand['kind'];
 
 export type ControlCommandOf<Kind extends ControlCommandKind> = Extract<ControlCommand, { kind: Kind }>;
+
+/**
+ * A document agent's moves through its Hatch, relayed without `jobId`: Bouncer stamps its own job, whose role and ticket name the document.
+ * They join `ControlCommand` with their verbs and appliers.
+ */
+export type DocumentAgentHatchCommand =
+  | { kind: 'ticket-document-agent-propose'; jobId?: string; baseVersion: number | null; edits: LineEdit[]; summary: string; answers?: string }
+  | { kind: 'ticket-document-agent-ready'; jobId?: string }
+  | { kind: 'ticket-document-agent-effect-read'; jobId?: string; version: number };

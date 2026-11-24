@@ -53,8 +53,10 @@ export interface PipelineChangedFieldNames {
 
 const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
 
-/** An absent `tickets` approval is on; an absent `merge` approval is off. */
-const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({ tickets: true, merge: false });
+/** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
+const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({
+  tickets: true, merge: false, spec: true, plan: true
+});
 
 function approvalIsOn(pipeline: Readonly<Pipeline>, approval: PipelineApproval): boolean {
   return pipeline.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];

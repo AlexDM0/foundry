@@ -35,6 +35,7 @@ import type {
   BoardOccupantKind,
   BoardHephaestusSetting,
   BoardPipelineAgentRole,
+  BoardDocumentReadingRule,
   BoardPipelineApproval,
   BoardPipelineNodeKind,
   BoardPipelineNodeMark,
@@ -48,6 +49,8 @@ import type {
   BoardStepEnding,
   BoardStepKind,
   BoardSwitchState,
+  BoardTicketDocumentKind,
+  BoardTicketWritingRoute,
 } from './BoardVocabulary.ts';
 
 export interface BoardAgentPair {
@@ -83,6 +86,8 @@ export interface BoardAgentStepSettings {
   readonly model:        BoardAgentModel | null;
   readonly effort:       BoardAgentEffort | null;
   readonly instructions: readonly BoardInstruction[] | null;
+  /** On the builder and the reviewer only; absent is the role's default. */
+  readonly documents?:   Readonly<Partial<Record<BoardTicketDocumentKind, BoardDocumentReadingRule>>>;
 }
 
 export interface BoardConditionalReReview {
@@ -134,6 +139,8 @@ export interface BoardPipelineDefinition {
   readonly reach:            readonly string[];
   /** `null` for a forge over no entities. */
   readonly entities:         Readonly<Record<string, BoardPipelineEntity>> | null;
+  /** Absent is `one-ticket`. */
+  readonly ticketWriting?:   BoardTicketWritingRoute;
 }
 
 export interface BoardPipelineApplication {
@@ -344,6 +351,7 @@ export type BoardDraftEdit =
   | { readonly target: 'role'; readonly role: BoardPipelineAgentRole; readonly value: BoardAgentStepSettings | null }
   | { readonly target: 'airlock'; readonly value: BoardPipelineAirlock | null }
   | { readonly target: 'approval'; readonly approval: BoardPipelineApproval; readonly value: boolean | null }
+  | { readonly target: 'ticket-writing'; readonly value: BoardTicketWritingRoute | null }
   | { readonly target: 'entity'; readonly entityKey: string; readonly value: BoardPipelineEntityDefinition | null }
   | { readonly target: 'within-entity'; readonly entityKey: string; readonly edit: BoardEntityDraftEdit };
 

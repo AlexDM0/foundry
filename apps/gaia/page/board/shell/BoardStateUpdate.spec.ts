@@ -12,13 +12,13 @@ import { BoardStateUpdate }        from './BoardStateUpdate.ts';
 
 /** The update never looks inside a board, so a stand-in carries only its version and a mark to tell two apart. */
 function boardMarked(project: string): BoardDocument {
-  return { boardVersion: 1, project } as unknown as BoardDocument;
+  return { boardVersion: 2, project } as unknown as BoardDocument;
 }
 
 describe('the board after an event', () => {
   test('board-changed asks for a read of the board, and no part\'s event does', () => {
-    expect(BoardStateUpdate.readIsDueAfter({ boardVersion: 1, kind: 'board-changed' })).toBe(true);
-    const partEvents: BoardEventDocument[] = BOARD_PART_NAMES.map((part) => ({ boardVersion: 1, kind: 'part-changed', part }));
+    expect(BoardStateUpdate.readIsDueAfter({ boardVersion: 2, kind: 'board-changed' })).toBe(true);
+    const partEvents: BoardEventDocument[] = BOARD_PART_NAMES.map((part) => ({ boardVersion: 2, kind: 'part-changed', part }));
     expect(partEvents.map(BoardStateUpdate.readIsDueAfter)).toEqual(BOARD_PART_NAMES.map(() => false));
   });
 });

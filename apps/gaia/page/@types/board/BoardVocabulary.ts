@@ -50,12 +50,22 @@ export const BOARD_GATE_PHASES = ['build', 'review', 'merge'] as const;
 export type BoardGatePhase = (typeof BOARD_GATE_PHASES)[number];
 
 /** In the order a view lists the roles. */
-export const BOARD_PIPELINE_AGENT_ROLES = ['productOwner', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant'] as const;
+export const BOARD_PIPELINE_AGENT_ROLES = [
+  'productOwner',
+  'specAgent',
+  'planAgent',
+  'builder',
+  'reviewer',
+  'reReviewer',
+  'conflictReReviewer',
+  'pipelineAgent',
+  'assistant',
+] as const;
 
 export type BoardPipelineAgentRole = (typeof BOARD_PIPELINE_AGENT_ROLES)[number];
 
 /** The roles a forge runs once for all its entities. */
-export const BOARD_FORGE_LEVEL_AGENT_ROLES = ['productOwner', 'pipelineAgent', 'assistant'] as const satisfies readonly BoardPipelineAgentRole[];
+export const BOARD_FORGE_LEVEL_AGENT_ROLES = ['productOwner', 'specAgent', 'planAgent', 'pipelineAgent', 'assistant'] as const satisfies readonly BoardPipelineAgentRole[];
 
 export type BoardForgeLevelAgentRole = (typeof BOARD_FORGE_LEVEL_AGENT_ROLES)[number];
 
@@ -156,7 +166,7 @@ export type BoardOfferedCommandKind =
   | 'ticket-unhold'
   | 'tracker-clear';
 
-export type BoardPipelineApproval = 'tickets' | 'merge';
+export type BoardPipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
 
 export type BoardBillingMode = 'subscription' | 'api';
 
@@ -210,6 +220,10 @@ export type BoardEntityRefusalReason =
 export type BoardPipelineNodeKind =
   | 'ticket-creation'
   | 'human-ticket-review'
+  | 'spec-writing'
+  | 'human-spec-review'
+  | 'plan-writing'
+  | 'human-plan-review'
   | 'builder'
   | 'gates'
   | 'review'
@@ -273,3 +287,41 @@ export type BoardPipelineHistoryKind =
   | 'pipeline-draft-discarded'
   | 'pipeline-setup-discarded'
   | 'hephaestus-set';
+
+/** In the order a view offers them. */
+export const BOARD_TICKET_WRITING_ROUTES = ['one-ticket', 'spec-then-plan'] as const;
+
+export type BoardTicketWritingRoute = (typeof BOARD_TICKET_WRITING_ROUTES)[number];
+
+/** In pipeline order: where two documents disagree, the later one wins. */
+export const BOARD_TICKET_DOCUMENT_KINDS = ['spec', 'plan'] as const;
+
+export type BoardTicketDocumentKind = (typeof BOARD_TICKET_DOCUMENT_KINDS)[number];
+
+/** In the order a view offers them. */
+export const BOARD_DOCUMENT_READING_RULES = ['always', 'if-person-approved', 'never'] as const;
+
+export type BoardDocumentReadingRule = (typeof BOARD_DOCUMENT_READING_RULES)[number];
+
+export type BoardProposalMode = 'ask-first' | 'auto-apply';
+
+export type BoardDocumentStanding = 'unwritten' | 'drafting' | 'awaiting-review' | 'approved' | 'changed-since-approval' | 'out-of-date';
+
+export type BoardDocumentMessageState = 'queued' | 'sent' | 'applied' | 'withdrawn';
+
+export type BoardDocumentProposalState = 'proposed' | 'applied' | 'discarded' | 'conflicted';
+
+export type BoardDocumentAuthor = 'person' | 'agent';
+
+export type BoardDocumentApprover = 'person' | 'pipeline';
+
+/** `board`: the forge itself told the agent, such as an effect reading's result or an edit that conflicted. */
+export type BoardDocumentMessageSender = 'person' | 'board';
+
+export type BoardCommentView = 'preview' | 'code';
+
+export type BoardEffectChange = 'adds' | 'changes' | 'removes' | 'unresolved';
+
+export type BoardEffectReadingState = 'reading' | 'read' | 'failed';
+
+export type BoardEffectUnresolvedReason = 'ambiguous' | 'no-match';

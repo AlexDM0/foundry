@@ -84,7 +84,9 @@ const RESUME_EVERYTHING_TARGET = 'all';
 const AGENT_MODELS = {
   haiku: true, sonnet: true, opus: true, fable: true
 } as const satisfies Record<BoardAgentModel, true>;
-const PIPELINE_APPROVALS = { tickets: true, merge: true } as const satisfies Record<BoardPipelineApproval, true>;
+const PIPELINE_APPROVALS = {
+  tickets: true, merge: true, spec: true, plan: true
+} as const satisfies Record<BoardPipelineApproval, true>;
 const ENTITY_KINDS = { app: true, package: true, root: true } as const satisfies Record<BoardEntityKind, true>;
 const JOB_STOP_MODES = { 'stop': true, 'wind-down': true } as const satisfies Record<BoardJobStopMode, true>;
 const TICKET_PRIORITIES = { low: true, normal: true, high: true } as const satisfies Record<BoardTicketPriority, true>;
@@ -135,6 +137,7 @@ const AGENT_STEP_SETTINGS_SHAPE = {
   model:        { nullable: oneOfRecord(AGENT_MODELS) },
   effort:       { nullable: { oneOf: BOARD_AGENT_EFFORTS } },
   instructions: { nullable: { eachOf: INSTRUCTION_RULE } },
+  documents:    'passed-over',
 } as const satisfies ShapeOf<BoardAgentStepSettingsDocument>;
 
 const STEPS_DRAFT_EDIT_SHAPES: readonly DocumentShape[] = [
@@ -446,6 +449,8 @@ function draftEditIn(edit: BoardDraftEditDocument): BoardDraftEdit {
       return { target: 'airlock', value: edit.value === null ? null : { reReview: reReviewIn(edit.value.reReview) } };
     case 'approval':
       return { target: 'approval', approval: edit.approval, value: edit.value };
+    case 'ticket-writing':
+      return { target: 'ticket-writing', value: edit.value };
     case 'entity':
       return {
         target:    'entity',

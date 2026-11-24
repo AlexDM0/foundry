@@ -5,6 +5,7 @@
  */
 import type {
   BoardDisplayState,
+  BoardDocumentStanding,
   BoardDraftState,
   BoardOfferedCommandKind,
   BoardHephaestusSetting,
@@ -42,6 +43,20 @@ export interface BoardTicketFactsDocument {
 export interface BoardTicketOffersDocument {
   readonly kinds:           readonly BoardOfferedCommandKind[];
   readonly priorityChoices: readonly BoardTicketPriority[];
+}
+
+/** Where one ticket document stands; a `null` number while it has no version, or no approval. */
+export interface BoardTicketDocumentSummaryDocument {
+  readonly standing:       BoardDocumentStanding;
+  readonly headNumber:     number | null;
+  readonly approvedNumber: number | null;
+}
+
+/** `buildHeld` while the documents keep a committed ticket from its build. */
+export interface BoardTicketDocumentsSummaryDocument {
+  readonly spec:      BoardTicketDocumentSummaryDocument;
+  readonly plan:      BoardTicketDocumentSummaryDocument;
+  readonly buildHeld: boolean;
 }
 
 export interface BoardTicketDocument {
@@ -82,6 +97,8 @@ export interface BoardTicketDocument {
   readonly acceptanceItems: readonly BoardAcceptanceItemDocument[];
   readonly facts:           BoardTicketFactsDocument;
   readonly offers:          BoardTicketOffersDocument;
+  /** Present only on a ticket in the spec-then-plan route. */
+  readonly documents?:      BoardTicketDocumentsSummaryDocument;
 }
 
 export interface BoardTaskPhaseDocument {

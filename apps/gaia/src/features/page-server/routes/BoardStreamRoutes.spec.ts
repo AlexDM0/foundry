@@ -104,12 +104,12 @@ describe('the board\'s events', () => {
     const events = relayEventReaderOf(answer);
     const handshake = await events.nextEvent();
     expect([handshake.eventName, handshake.lastEventId, JSON.parse(handshake.data)]).toEqual(['handshake', '', {
-      boardStreamVersion: 1,
+      boardStreamVersion: 2,
       systemVersion:      { major: GAIA_SYSTEM_VERSION.major, minor: GAIA_SYSTEM_VERSION.minor },
       forgeSystemVersion: { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor },
     }]);
     const boardEvent = await events.nextEvent();
-    expect([boardEvent.eventName, boardEvent.lastEventId, JSON.parse(boardEvent.data)]).toEqual(['board', EXAMPLE_LAST_EVENT_ID, { boardVersion: 1, kind: 'board-changed' }]);
+    expect([boardEvent.eventName, boardEvent.lastEventId, JSON.parse(boardEvent.data)]).toEqual(['board', EXAMPLE_LAST_EVENT_ID, { boardVersion: 2, kind: 'board-changed' }]);
     await events.leave();
   });
 
@@ -164,7 +164,7 @@ describe('a job\'s stream', () => {
     expect((await events.nextEvent()).eventName).toBe('handshake');
     const history = await events.nextEvent();
     expect([history.eventName, history.lastEventId]).toEqual(['history', '1.2']);
-    expect(JSON.parse(history.data)).toMatchObject({ boardVersion: 1, kind: 'history', entries: [{ cursor: '1.2', role: 'hephaestus' }] });
+    expect(JSON.parse(history.data)).toMatchObject({ boardVersion: 2, kind: 'history', entries: [{ cursor: '1.2', role: 'hephaestus' }] });
     await events.leave();
   });
 
@@ -186,7 +186,7 @@ describe('a profile run\'s stream', () => {
     const events = relayEventReaderOf(answer);
     await events.nextEvent();
     const line = await events.nextEvent();
-    expect([line.eventName, line.lastEventId, JSON.parse(line.data)]).toEqual(['line', '1', { boardVersion: 1, kind: 'line', line: { text: 'Example gate passed\n' } }]);
+    expect([line.eventName, line.lastEventId, JSON.parse(line.data)]).toEqual(['line', '1', { boardVersion: 2, kind: 'line', line: { text: 'Example gate passed\n' } }]);
     await events.leave();
   });
 });

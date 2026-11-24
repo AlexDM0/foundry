@@ -82,6 +82,6 @@ describe('show on the flow', () => {
 
 describe('Discard proposal', () => {
   test('sends pipeline-draft-discard for the setup', () => {
-    expect(DesignStepModel.discardCommandOf('S1')).toEqual({ boardCommandVersion: 1, kind: 'pipeline-draft-discard', setupId: 'S1' });
+    expect(DesignStepModel.discardCommandOf('S1')).toEqual({ boardCommandVersion: 2, kind: 'pipeline-draft-discard', setupId: 'S1' });
   });
 });

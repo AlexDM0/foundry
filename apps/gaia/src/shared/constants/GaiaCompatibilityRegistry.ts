@@ -17,23 +17,26 @@ const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
 const COMMANDS_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
 /** Gaia 4.0 names a restarting forge's condition `restarting` and the look of a failed restart `restart-failed` in the fleet document. */
 const FLEET_NAMING_THE_RESTART_IN: SystemVersion = { major: 4, minor: 0 };
+/** Gaia 4.1 relays a ticket's spec and plan. */
+const TICKET_DOCUMENTS_ADDED_IN: SystemVersion = { major: 4, minor: 1 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {
-  health:             'health',
-  sessionCodes:       'session-codes',
-  session:            'session',
-  fleet:              'fleet',
-  events:             'events',
-  commands:           'commands',
-  forgeBoard:         'forges/<trackerId>/board',
-  forgeBoardEvents:   'forges/<trackerId>/board/events',
-  forgeJobStream:     'forges/<trackerId>/jobs/<jobId>/stream',
-  forgeProfileStream: 'forges/<trackerId>/profiles/<profileRunId>/stream',
-  forgePictureUpload: 'forges/<trackerId>/pictures',
-  forgePicture:       'forges/<trackerId>/pictures/<pictureId>',
-  forgeCommands:      'forges/<trackerId>/commands',
-  forgeCrashLog:      'forges/<trackerId>/crash-logs/<number>',
+  health:               'health',
+  sessionCodes:         'session-codes',
+  session:              'session',
+  fleet:                'fleet',
+  events:               'events',
+  commands:             'commands',
+  forgeBoard:           'forges/<trackerId>/board',
+  forgeBoardEvents:     'forges/<trackerId>/board/events',
+  forgeJobStream:       'forges/<trackerId>/jobs/<jobId>/stream',
+  forgeProfileStream:   'forges/<trackerId>/profiles/<profileRunId>/stream',
+  forgePictureUpload:   'forges/<trackerId>/pictures',
+  forgePicture:         'forges/<trackerId>/pictures/<pictureId>',
+  forgeCommands:        'forges/<trackerId>/commands',
+  forgeCrashLog:        'forges/<trackerId>/crash-logs/<number>',
+  forgeTicketDocuments: 'forges/<trackerId>/tickets/<ticketId>/documents',
 } as const satisfies Readonly<Record<keyof typeof GAIA_ENDPOINT_VERSIONS, string>>;
 
 function currentEndpointOf(endpointName: keyof typeof GAIA_ENDPOINT_VERSIONS, introducedIn: SystemVersion = FIRST_VERSIONED_GAIA): CompatibilityEntry {
@@ -61,4 +64,5 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('forgePicture', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeCommands', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeCrashLog', CRASH_LOG_ADDED_IN),
+  currentEndpointOf('forgeTicketDocuments', TICKET_DOCUMENTS_ADDED_IN),
 ];

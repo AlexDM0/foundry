@@ -13,7 +13,7 @@ import type { BoardCommandAnswerDocument, BoardForgeRefusalDocument } from '../.
 import { fakeRelayRequests, headersOf }                               from '../testing/FakeRelay.ts';
 import { BoardCommandClient, type CommandOutcome }                    from './BoardCommandClient.ts';
 
-const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 1, kind: 'hephaestus-pause' };
+const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 2, kind: 'hephaestus-pause' };
 
 const FORGE_REFUSAL: BoardForgeRefusalDocument = {
   refusedBy: 'forge', code: 'ticket-not-found', fields: { ticketId: 'T9' }, text: 'No ticket T9 on this board. Run `forge tickets` to list them.'

@@ -3,14 +3,21 @@
  * kinds: each kind with the payload types the contract declares itself. A draft edit is typed, addressed by its target as the forge's
  * draft names it, never as a field string.
  */
-import type { EntityKey, GatePhase, TicketPriority } from '../constants/BoardVocabulary.ts';
+import type {
+  EntityKey,
+  GatePhase,
+  ProposalMode,
+  TicketDocumentKind,
+  TicketPriority
+} from '../constants/BoardVocabulary.ts';
 import type {
   ConstitutionSourcesDocument,
   PipelineBillingDocument,
   PipelineDraftEditDocument,
   PipelineSetupStep
 } from './BoardPipelineDocuments.ts';
-import type { ForgeJobStopMode } from './ForgeControlCommand.ts';
+import type { ForgeJobStopMode }      from './ForgeControlCommand.ts';
+import type { CommentAnchorDocument } from './TicketDocumentsDocument.ts';
 
 /** `tasks-and-log` keeps the tickets; `everything` also deletes the tickets, the epics and the pictures. */
 export type TrackerClearScope = 'tasks-and-log' | 'everything';
@@ -30,6 +37,39 @@ export interface PictureReferenceDocument {
   readonly pictureId: string;
   readonly name:      string;
 }
+
+/**
+ * The user's moves on a ticket's documents, from forge 4.1. A save names the version it was made on, `null` for the first; an approval
+ * names the version approved; an applied proposal may carry the user's own replacement lines, one list per edit.
+ */
+export type ForgeTicketDocumentCommand =
+  | {
+    readonly kind:            'ticket-document-save';
+    readonly ticketReference: string;
+    readonly document:        TicketDocumentKind;
+    readonly baseVersion:     number | null;
+    readonly markdown:        string;
+  }
+  | {
+    readonly kind:            'ticket-document-comment';
+    readonly ticketReference: string;
+    readonly document:        TicketDocumentKind;
+    readonly anchor:          CommentAnchorDocument | null;
+    readonly text:            string;
+  }
+  | { readonly kind: 'ticket-document-comment-withdraw'; readonly ticketReference: string; readonly document: TicketDocumentKind; readonly messageId: string }
+  | {
+    readonly kind:              'ticket-document-proposal-apply';
+    readonly ticketReference:   string;
+    readonly document:          TicketDocumentKind;
+    readonly proposalId:        string;
+    readonly replacementLines?: readonly (readonly string[])[];
+  }
+  | { readonly kind: 'ticket-document-proposal-discard'; readonly ticketReference: string; readonly document: TicketDocumentKind; readonly proposalId: string }
+  | { readonly kind: 'ticket-document-mode-set'; readonly ticketReference: string; readonly document: TicketDocumentKind; readonly mode: ProposalMode }
+  | { readonly kind: 'ticket-document-approve'; readonly ticketReference: string; readonly document: TicketDocumentKind; readonly version: number }
+  | { readonly kind: 'ticket-document-effect-read'; readonly ticketReference: string; readonly document: TicketDocumentKind; readonly version: number }
+  | { readonly kind: 'ticket-document-turn-stop'; readonly ticketReference: string; readonly document: TicketDocumentKind };
 
 export type ForgeBoardCommand =
   | { readonly kind: 'chart-range-set'; readonly range: ChartRangeRequest }

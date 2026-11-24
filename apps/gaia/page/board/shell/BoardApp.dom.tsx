@@ -54,7 +54,7 @@ const AGENTS_MOVED: BoardTabViewTable = stubTabViewsWith({
   agents: ({ route }) => (
     <section aria-label={MOVED_VIEW_TEXT}>
       <span>{`${MOVED_VIEW_TEXT} at ${route.item ?? 'no item'}`}</span>
-      <CommandButton label="Pause" command={{ boardCommandVersion: 1, kind: 'hephaestus-pause' }} />
+      <CommandButton label="Pause" command={{ boardCommandVersion: 2, kind: 'hephaestus-pause' }} />
     </section>
   ),
 });
@@ -257,9 +257,9 @@ describe('the connection', () => {
     expect(fake.reads()).toBe(1);
     await fake.answerReads(servingBoard({ project: 'Example Agency at first' }));
     liveWith(fake);
-    act(() => fake.stream().onEvent({ boardVersion: 1, kind: 'part-changed', part: 'job' }));
+    act(() => fake.stream().onEvent({ boardVersion: 2, kind: 'part-changed', part: 'job' }));
     expect(fake.reads()).toBe(1);
-    act(() => fake.stream().onEvent({ boardVersion: 1, kind: 'board-changed' }));
+    act(() => fake.stream().onEvent({ boardVersion: 2, kind: 'board-changed' }));
     expect(fake.reads()).toBe(2);
     await fake.answerReads(servingBoard({ project: 'Example Agency renamed' }));
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Example Agency renamed');

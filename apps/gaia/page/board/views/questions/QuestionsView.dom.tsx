@@ -146,10 +146,10 @@ describe('the Questions inbox', () => {
     await clickSettled(answer);
     expect(controls.sent).toEqual([
       {
-        boardCommandVersion: 1, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['b'] }
+        boardCommandVersion: 2, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['b'] }
       },
       {
-        boardCommandVersion: 1, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'text', text: 'Disk, but bounded' }
+        boardCommandVersion: 2, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'text', text: 'Disk, but bounded' }
       },
     ]);
   });
@@ -165,7 +165,7 @@ describe('the Questions inbox', () => {
     fireEvent.click(within(card).getByLabelText('a. main'));
     await clickSettled(answer);
     expect(controls.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'decision-answer', decisionId: 'E3', answer: { form: 'letters', choices: ['a', 'ab'] }
+      boardCommandVersion: 2, kind: 'decision-answer', decisionId: 'E3', answer: { form: 'letters', choices: ['a', 'ab'] }
     }]);
   });
 

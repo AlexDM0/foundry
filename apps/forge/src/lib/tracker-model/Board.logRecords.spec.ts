@@ -6,13 +6,13 @@
  */
 import { expect, test } from 'bun:test';
 
-import { everyRecordKindTheBoardLogs }                 from '../../testing/EveryBoardLogRecord.ts';
-import type { LogRecord }                              from './@types/LogRecord.ts';
-import { LOG_RECORD_SCHEMA, RETIRED_LOG_RECORD_KINDS } from './constants/LogRecordSchema.ts';
+import { everyRecordKindTheBoardLogs, ticketDocumentRecordsBeforeTheirMoves } from '../../testing/EveryBoardLogRecord.ts';
+import type { LogRecord }                                                     from './@types/LogRecord.ts';
+import { LOG_RECORD_SCHEMA, RETIRED_LOG_RECORD_KINDS }                        from './constants/LogRecordSchema.ts';
 
 const LOGGED_AT = '2026-09-26T10:15:00+02:00';
 
-const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length;
+const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length - ticketDocumentRecordsBeforeTheirMoves(LOGGED_AT).length;
 
 /**
  * Six kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,

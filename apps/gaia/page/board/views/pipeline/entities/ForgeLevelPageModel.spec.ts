@@ -38,7 +38,7 @@ describe('the approvals', () => {
 
 describe('the board limit', () => {
   test('is sent only when it changed and stays in its bounds', () => {
-    expect(ForgeLevelPageModel.boardLimitCommandOf(3, 2, BOUNDS)).toEqual({ boardCommandVersion: 1, kind: 'concurrency-set', limit: 3 });
+    expect(ForgeLevelPageModel.boardLimitCommandOf(3, 2, BOUNDS)).toEqual({ boardCommandVersion: 2, kind: 'concurrency-set', limit: 3 });
     expect(ForgeLevelPageModel.boardLimitCommandOf(2, 2, BOUNDS)).toBeNull();
     expect(ForgeLevelPageModel.boardLimitCommandOf(BOUNDS.ceiling + 1, 2, BOUNDS)).toBeNull();
     expect(ForgeLevelPageModel.boardLimitCommandOf(BOUNDS.lowest - 1, 2, BOUNDS)).toBeNull();
@@ -48,7 +48,7 @@ describe('the board limit', () => {
     const narrowForge = { lowest: 2, ceiling: 3, defaultLimit: 2 };
     expect(ForgeLevelPageModel.boardLimitCommandOf(4, 2, narrowForge)).toBeNull();
     expect(ForgeLevelPageModel.boardLimitCommandOf(1, 2, narrowForge)).toBeNull();
-    expect(ForgeLevelPageModel.boardLimitCommandOf(3, 2, narrowForge)).toEqual({ boardCommandVersion: 1, kind: 'concurrency-set', limit: 3 });
+    expect(ForgeLevelPageModel.boardLimitCommandOf(3, 2, narrowForge)).toEqual({ boardCommandVersion: 2, kind: 'concurrency-set', limit: 3 });
   });
 
   test('and every entity cap are worded in jobs', () => {

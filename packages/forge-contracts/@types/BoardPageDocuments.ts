@@ -4,6 +4,7 @@
  */
 import type {
   DisplayState,
+  DocumentStanding,
   DraftState,
   EntityKey,
   TaskStatus,
@@ -27,6 +28,20 @@ export interface BoardAcceptanceItemDocument {
   readonly label:  string;
   readonly text:   string;
   readonly waived: boolean;
+}
+
+/** Where one ticket document stands; `null` numbers while it has no version, or no approval. */
+export interface TicketDocumentSummaryDocument {
+  readonly standing:       DocumentStanding;
+  readonly headNumber:     number | null;
+  readonly approvedNumber: number | null;
+}
+
+/** The documents of a ticket in the spec-then-plan route; `buildHeld` while they keep a committed ticket from its build. */
+export interface BoardTicketDocumentsSummaryDocument {
+  readonly spec:      TicketDocumentSummaryDocument;
+  readonly plan:      TicketDocumentSummaryDocument;
+  readonly buildHeld: boolean;
 }
 
 /** A ticket as filed. An optional field is absent where the ticket names nothing; an absent `priority` reads as `normal`. */
@@ -77,6 +92,8 @@ export interface BoardTicketDocument {
   readonly acceptanceItems: readonly BoardAcceptanceItemDocument[];
   readonly facts:           BoardTicketFactsDocument;
   readonly offers:          BoardTicketOffersDocument;
+  /** Present only on a ticket with a documents record. */
+  readonly documents?:      BoardTicketDocumentsSummaryDocument;
 }
 
 /** One status a row reached, and when. */

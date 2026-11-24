@@ -107,8 +107,8 @@ describe('the commands and the note', () => {
   test('Resume and Start over name the record', () => {
     const setup = setupOf('A0b-running');
     expect(ResumeSummaryModel.resumeLabelOf(setup)).toBe('Resume pipeline design');
-    expect(ResumeSummaryModel.resumeCommandOf(setup)).toEqual({ boardCommandVersion: 1, kind: 'pipeline-setup-resume', setupId: 'S1' });
-    expect(ResumeSummaryModel.startOverCommandOf(setup)).toEqual({ boardCommandVersion: 1, kind: 'pipeline-setup-start-over', setupId: 'S1' });
+    expect(ResumeSummaryModel.resumeCommandOf(setup)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-setup-resume', setupId: 'S1' });
+    expect(ResumeSummaryModel.startOverCommandOf(setup)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-setup-start-over', setupId: 'S1' });
   });
 
   test('the main-moved note shows only while main moved', () => {

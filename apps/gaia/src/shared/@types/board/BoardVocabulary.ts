@@ -46,9 +46,18 @@ export type BoardJobState =
 
 export type BoardGatePhase = 'build' | 'review' | 'merge';
 
-export type BoardPipelineAgentRole = 'productOwner' | 'builder' | 'reviewer' | 'reReviewer' | 'conflictReReviewer' | 'pipelineAgent' | 'assistant';
+export type BoardPipelineAgentRole =
+  | 'productOwner'
+  | 'specAgent'
+  | 'planAgent'
+  | 'builder'
+  | 'reviewer'
+  | 'reReviewer'
+  | 'conflictReReviewer'
+  | 'pipelineAgent'
+  | 'assistant';
 
-export type BoardForgeLevelAgentRole = Extract<BoardPipelineAgentRole, 'productOwner' | 'pipelineAgent' | 'assistant'>;
+export type BoardForgeLevelAgentRole = Extract<BoardPipelineAgentRole, 'productOwner' | 'specAgent' | 'planAgent' | 'pipelineAgent' | 'assistant'>;
 
 export type BoardEntityAgentRole = Exclude<BoardPipelineAgentRole, BoardForgeLevelAgentRole>;
 
@@ -144,7 +153,7 @@ export type BoardOfferedCommandKind =
   | 'ticket-unhold'
   | 'tracker-clear';
 
-export type BoardPipelineApproval = 'tickets' | 'merge';
+export type BoardPipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
 
 export type BoardBillingMode = 'subscription' | 'api';
 
@@ -198,6 +207,10 @@ export type BoardEntityRefusalReason =
 export type BoardPipelineNodeKind =
   | 'ticket-creation'
   | 'human-ticket-review'
+  | 'spec-writing'
+  | 'human-spec-review'
+  | 'plan-writing'
+  | 'human-plan-review'
   | 'builder'
   | 'gates'
   | 'review'
@@ -261,3 +274,33 @@ export type BoardPipelineHistoryKind =
   | 'pipeline-draft-discarded'
   | 'pipeline-setup-discarded'
   | 'hephaestus-set';
+
+export type BoardTicketWritingRoute = 'one-ticket' | 'spec-then-plan';
+
+/** In pipeline order: where two documents disagree, the later one wins. */
+export type BoardTicketDocumentKind = 'spec' | 'plan';
+
+export type BoardDocumentReadingRule = 'always' | 'if-person-approved' | 'never';
+
+export type BoardProposalMode = 'ask-first' | 'auto-apply';
+
+export type BoardDocumentStanding = 'unwritten' | 'drafting' | 'awaiting-review' | 'approved' | 'changed-since-approval' | 'out-of-date';
+
+export type BoardDocumentMessageState = 'queued' | 'sent' | 'applied' | 'withdrawn';
+
+export type BoardDocumentProposalState = 'proposed' | 'applied' | 'discarded' | 'conflicted';
+
+export type BoardDocumentAuthor = 'person' | 'agent';
+
+export type BoardDocumentApprover = 'person' | 'pipeline';
+
+/** `board`: the forge itself told the agent, such as an effect reading's result or an edit that conflicted. */
+export type BoardDocumentMessageSender = 'person' | 'board';
+
+export type BoardCommentView = 'preview' | 'code';
+
+export type BoardEffectChange = 'adds' | 'changes' | 'removes' | 'unresolved';
+
+export type BoardEffectReadingState = 'reading' | 'read' | 'failed';
+
+export type BoardEffectUnresolvedReason = 'ambiguous' | 'no-match';

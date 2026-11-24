@@ -83,7 +83,8 @@ export type LogFieldShape =
   | 'gate-profile-ending'
   | 'flint-brain-starter'
   | 'flint-brain-ended-reason'
-  | 'entity-assigner';
+  | 'entity-assigner'
+  | 'customs-checks';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -162,34 +163,50 @@ export const LOG_RECORD_SCHEMA = {
   'need-declared':                  { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
   // E26: Hephaestus filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
   'dependent-fix-filed':            { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
+  // The ticket's spec and plan opened: from now on its documents, not its body, judge its readiness.
+  'ticket-documents-opened':        { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-document-versioned':      { subject: 'ticket', fields: { document: 'text', number: 'count', author: 'text' } },
+  // `onSpecNumber` is set only on a plan's approval.
+  'ticket-document-approved':       {
+    subject: 'ticket',
+    fields:  {
+      document: 'text', number: 'count', by: 'text', onSpecNumber: 'optional-count'
+    }
+  },
+  'ticket-document-message-queued':   { subject: 'ticket', fields: { document: 'text', messageId: 'text' } },
+  'ticket-document-proposed':         { subject: 'ticket', fields: { document: 'text', proposalId: 'text' } },
+  'ticket-document-proposal-settled': { subject: 'ticket', fields: { document: 'text', proposalId: 'text', state: 'text' } },
+  'ticket-document-mode-set':         { subject: 'ticket', fields: { document: 'text', mode: 'text' } },
+  // A document agent's turn changed its read-only snapshot: `checks` are the Customs checks that failed, and the job ended `failed`.
+  'ticket-document-snapshot-touched': { subject: 'ticket', fields: { document: 'text', jobId: 'text', checks: 'customs-checks' } },
   // A crossing ticket's row moved into `stage`, run by the agents of `entity`; a stage job never moves the ticket's status.
-  'stage-started':                  { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
+  'stage-started':                    { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
   // A package review sealed the ticket's own change to package `entity`; `seal` is its hash, as the row stores it.
-  'seal-set':                       { subject: 'ticket', fields: { entity: 'text', seal: 'text' } },
-  'seal-lifted':                    { subject: 'ticket', fields: { entity: 'text' } },
+  'seal-set':                         { subject: 'ticket', fields: { entity: 'text', seal: 'text' } },
+  'seal-lifted':                      { subject: 'ticket', fields: { entity: 'text' } },
   // The ticket went back from `fromStage` to the package build of `entity`; `returns` counts every package return of the ticket.
-  'package-return':                 { subject: 'ticket', fields: { entity: 'text', fromStage: 'text', returns: 'count' } },
-  'ticket-check-command-restamped': { subject: 'ticket', fields: { command: 'check-command' } },
-  'epic-added':                     { subject: 'epic', fields: { title: 'text' } },
-  'epic-edited':                    { subject: 'epic', fields: { title: 'text' } },
-  'epic-removed':                   { subject: 'epic', fields: NO_FIELDS },
-  'draft-opened':                   { subject: 'draft', fields: { title: 'text', owner: 'text' } },
+  'package-return':                   { subject: 'ticket', fields: { entity: 'text', fromStage: 'text', returns: 'count' } },
+  'ticket-check-command-restamped':   { subject: 'ticket', fields: { command: 'check-command' } },
+  'epic-added':                       { subject: 'epic', fields: { title: 'text' } },
+  'epic-edited':                      { subject: 'epic', fields: { title: 'text' } },
+  'epic-removed':                     { subject: 'epic', fields: NO_FIELDS },
+  'draft-opened':                     { subject: 'draft', fields: { title: 'text', owner: 'text' } },
   // `takenFrom` is set only when a forced claim took the draft from another owner.
-  'draft-claimed':                  { subject: 'draft', fields: { owner: 'text', takenFrom: 'optional-text' } },
-  'draft-released':                 { subject: 'draft', fields: { owner: 'text' } },
-  'draft-closed':                   { subject: 'draft', fields: { ticketIds: 'ticket-ids' } },
-  'draft-abandoned':                { subject: 'draft', fields: { reason: 'text' } },
-  'draft-note-added':               { subject: 'draft', fields: { noteId: 'text', noteKind: 'text' } },
-  'draft-question-asked':           { subject: 'draft', fields: { questionId: 'text', underQuestionId: 'optional-text' } },
+  'draft-claimed':                    { subject: 'draft', fields: { owner: 'text', takenFrom: 'optional-text' } },
+  'draft-released':                   { subject: 'draft', fields: { owner: 'text' } },
+  'draft-closed':                     { subject: 'draft', fields: { ticketIds: 'ticket-ids' } },
+  'draft-abandoned':                  { subject: 'draft', fields: { reason: 'text' } },
+  'draft-note-added':                 { subject: 'draft', fields: { noteId: 'text', noteKind: 'text' } },
+  'draft-question-asked':             { subject: 'draft', fields: { questionId: 'text', underQuestionId: 'optional-text' } },
   // `answer` is the option letters joined by commas, or the free text: the log keeps every answer, the draft only the current one.
-  'draft-question-answered':        { subject: 'draft', fields: { questionId: 'text', answer: 'text' } },
+  'draft-question-answered':          { subject: 'draft', fields: { questionId: 'text', answer: 'text' } },
   // A dropped question's follow-ups are dropped too, one record each after it.
-  'draft-item-dropped':             { subject: 'draft', fields: { itemId: 'text' } },
-  'pipeline-setup-opened':          { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
+  'draft-item-dropped':               { subject: 'draft', fields: { itemId: 'text' } },
+  'pipeline-setup-opened':            { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
   // `maxBudgetUsd` is set only on API billing with a cap.
-  'pipeline-setup-billing-set':     { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
+  'pipeline-setup-billing-set':       { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
   // `step` took `state`; `currentStep` is where the setup now stands; `needsRecheck` the later steps a reopening sent back.
-  'pipeline-setup-step-moved':      {
+  'pipeline-setup-step-moved':        {
     subject: 'pipeline-setup',
     fields:  {
       step: 'setup-step', state: 'setup-step-state', currentStep: 'setup-step', needsRecheck: 'setup-steps'

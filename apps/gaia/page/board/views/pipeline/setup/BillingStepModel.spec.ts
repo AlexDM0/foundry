@@ -26,25 +26,25 @@ describe('the start command', () => {
   test('a subscription start sends the subscription', () => {
     expect(startCommandOf({ mode: 'subscription', capText: '25' }, false))
       .toEqual({
-        boardCommandVersion: 1, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false
+        boardCommandVersion: 2, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false
       });
   });
 
   test('an API key start sends the cap as typed, or none when the field is empty', () => {
     expect(startCommandOf({ mode: 'api', capText: ' 12.5 ' }, false))
       .toEqual({
-        boardCommandVersion: 1, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 12.5 }, replacesUnreadablePipeline: false
+        boardCommandVersion: 2, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 12.5 }, replacesUnreadablePipeline: false
       });
     expect(startCommandOf({ mode: 'api', capText: '' }, true))
       .toEqual({
-        boardCommandVersion: 1, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: null }, replacesUnreadablePipeline: true
+        boardCommandVersion: 2, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: null }, replacesUnreadablePipeline: true
       });
   });
 
   test('a cap that is not positive is still sent, so Hephaestus\'s refusal shows', () => {
     expect(startCommandOf({ mode: 'api', capText: '0' }, false))
       .toEqual({
-        boardCommandVersion: 1, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 0 }, replacesUnreadablePipeline: false
+        boardCommandVersion: 2, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 0 }, replacesUnreadablePipeline: false
       });
   });
 
@@ -65,7 +65,7 @@ describe('a reopened billing step', () => {
     expect(billingChangeCommandOf(record, { mode: 'subscription', capText: '' })).toBeNull();
     expect(billingChangeCommandOf(record, { mode: 'api', capText: '8' }))
       .toEqual({
-        boardCommandVersion: 1, kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maximumBudgetDollars: 8 }
+        boardCommandVersion: 2, kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maximumBudgetDollars: 8 }
       });
   });
 
@@ -76,7 +76,7 @@ describe('a reopened billing step', () => {
 
   test('a record still at billing continues to the research, and a record past it has no Continue here', () => {
     expect(continueCommandOf(setupRecordOf('A0b-at-billing'))).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
+      boardCommandVersion: 2, kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
     });
     expect(continueCommandOf(setupRecordOf('A1'))).toBeNull();
     expect(continueCommandOf(setupRecordOf('A0b-running'))).toBeNull();

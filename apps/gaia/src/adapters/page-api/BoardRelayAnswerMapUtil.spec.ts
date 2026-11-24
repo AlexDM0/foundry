@@ -40,7 +40,7 @@ describe('a refusal of Gaia\'s', () => {
 describe('a relayed stream\'s handshake', () => {
   test('names its contract version, Gaia\'s system version and the forge\'s', () => {
     expect(BoardRelayAnswerMapUtil.handshakeDocumentOf({ major: 1, minor: 22 })).toEqual({
-      boardStreamVersion: 1,
+      boardStreamVersion: 2,
       systemVersion:      { major: GAIA_SYSTEM_VERSION.major, minor: GAIA_SYSTEM_VERSION.minor },
       forgeSystemVersion: { major: 1, minor: 22 },
     });

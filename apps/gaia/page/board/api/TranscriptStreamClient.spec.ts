@@ -36,11 +36,11 @@ function entryOf(cursor: string, part: number, role: string, text: string): Boar
 }
 
 function historyOf(entries: readonly unknown[]): unknown {
-  return { boardVersion: 1, kind: 'history', entries };
+  return { boardVersion: 2, kind: 'history', entries };
 }
 
 function messageOf(entry: unknown): unknown {
-  return { boardVersion: 1, kind: 'message', entry };
+  return { boardVersion: 2, kind: 'message', entry };
 }
 
 describe('the transcript client', () => {
@@ -66,7 +66,7 @@ describe('the transcript client', () => {
     const [source] = relay.sources;
     source?.fire('history', historyOf([entryOf('1.5', 0, 'assistant', 'Reading the ticket.'), { cursor: 'broken' }]));
     source?.fire('message', messageOf(entryOf('2.1', 0, 'tool-call', 'Bash')));
-    source?.fire('message', { boardVersion: 2, kind: 'message', entry: entryOf('2.2', 0, 'assistant', 'Of another version.') });
+    source?.fire('message', { boardVersion: 3, kind: 'message', entry: entryOf('2.2', 0, 'assistant', 'Of another version.') });
     expect(source?.path).toBe(`${JOB_STREAM_PATH}?after=1.4`);
     expect(received).toEqual(['1.5', '2.1']);
     expect(stream.lastCursor()).toBe('2.1');

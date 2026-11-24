@@ -30,8 +30,8 @@ describe('Gaia\'s compatibility registry', () => {
     }
   });
 
-  test('Gaia 4.0 supports no client of Gaia 3: the minimum supported is 4.0', () => {
-    expect(GAIA_VERSIONS).toEqual({ current: { major: 4, minor: 0 }, minimumSupported: { major: 4, minor: 0 } });
+  test('Gaia 4.1 supports no client of Gaia 3: the minimum supported is 4.0', () => {
+    expect(GAIA_VERSIONS).toEqual({ current: { major: 4, minor: 1 }, minimumSupported: { major: 4, minor: 0 } });
   });
 
   test('holds routes only, each still needed, with no compatibility path, so nothing is removable', () => {

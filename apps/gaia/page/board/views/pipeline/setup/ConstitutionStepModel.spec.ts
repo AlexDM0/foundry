@@ -54,7 +54,7 @@ describe('the agent state', () => {
 describe('the commands', () => {
   test('a SOURCES tick flips that one choice at the facts revision, with no markdown', () => {
     expect(ConstitutionStepModel.sourcesCommandOf(constitutionSetup(), 'installedDefault')).toEqual({
-      boardCommandVersion: 1,
+      boardCommandVersion: 2,
       kind:                'pipeline-constitution-edit',
       setupId:             'S1',
       revision:            3,
@@ -66,7 +66,7 @@ describe('the commands', () => {
 
   test('Continue moves the constitution step', () => {
     expect(ConstitutionStepModel.continueCommandOf(constitutionSetup())).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-step', setupId: 'S1', step: 'constitution', move: 'continue',
+      boardCommandVersion: 2, kind: 'pipeline-setup-step', setupId: 'S1', step: 'constitution', move: 'continue',
     });
   });
 

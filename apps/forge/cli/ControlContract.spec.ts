@@ -1,7 +1,8 @@
 /**
- * Design section 9.1's rule over the control contract: every kind names a verb `cli/CommandTable.ts` has, every mutating verb is either a
- * kind's or on the exact list of verbs User runs by hand, and every verb of the table is placed once. What matters: a kind without a verb
- * and a relayable verb without a kind are both named, and each list is exact both ways, so a stale entry fails as loudly as a missing one.
+ * Design section 9.1's rule over the control contract: every kind but a client-only one names a verb `cli/CommandTable.ts` has, every
+ * mutating verb is either a kind's or on the exact list of verbs User runs by hand, and every verb of the table is placed once. What
+ * matters: a kind without a verb and a relayable verb without a kind are both named, and each list is exact both ways, so a stale entry
+ * fails as loudly as a missing one.
  */
 import { describe, expect, test } from 'bun:test';
 import type { ForgeResumeTarget } from 'forge-contracts/ForgeControlCommand';
@@ -11,6 +12,8 @@ import type { ControlCommandKind, ResumeTarget } from '../src/shared/@types/Cont
 import { COMMAND_NAMES }                         from './CommandTable.ts';
 import {
   BY_HAND_VERB_OF_CONTROL_KIND,
+  CLIENT_ONLY_CONTROL_KINDS,
+  type ClientOnlyControlCommandKind,
   OTHER_VERBS_OF_CONTROL_KIND,
   READ_ONLY_VERBS_UNDER_A_JOB,
   RELAYED_VERB_OF_CONTROL_KIND,
@@ -35,7 +38,7 @@ type IsTheSameTypeAs<Left, Right> = [Left] extends [Right] ? ([Right] extends [L
 
 const RESUME_TARGET_IS_THE_CONTRACTS: IsTheSameTypeAs<ResumeTarget, ForgeResumeTarget> = true;
 
-const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = {
+const VERB_OF_KIND: { readonly [Kind in Exclude<ControlCommandKind, ClientOnlyControlCommandKind>]: string } = {
   ...RELAYED_VERB_OF_CONTROL_KIND,
   ...UNRELAYED_VERB_OF_CONTROL_KIND,
   ...BY_HAND_VERB_OF_CONTROL_KIND,
@@ -151,8 +154,10 @@ describe('the control contract', () => {
     expect(CONTRACT.tableVerbs.length).toBeGreaterThan(Object.keys(VERB_OF_KIND).length);
   });
 
-  test('every kind the service applies has a verb here, and every verb here a kind the service applies', () => {
-    expect([...CONTROL_COMMAND_KINDS].sort() as string[]).toEqual(Object.keys(VERB_OF_KIND).sort());
+  test('every kind the service applies has a verb here but a client-only kind, and every verb here a kind the service applies', () => {
+    const kindsWithAVerb = CONTROL_COMMAND_KINDS.filter((kind) => !(CLIENT_ONLY_CONTROL_KINDS as readonly string[]).includes(kind));
+    expect([...kindsWithAVerb].sort() as string[]).toEqual(Object.keys(VERB_OF_KIND).sort());
+    expect(CLIENT_ONLY_CONTROL_KINDS.filter((kind) => !CONTROL_COMMAND_KINDS.includes(kind))).toEqual([]);
   });
 
   test('no kind without a verb, no relayable verb without a kind, and every list exact both ways', () => {

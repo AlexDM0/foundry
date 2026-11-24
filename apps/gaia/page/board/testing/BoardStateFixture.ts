@@ -276,7 +276,7 @@ export function examplePageTicketFacts(ticket: Pick<BoardTicketDocument, 'id' | 
 
 export function boardStateFixture(changes: Partial<BoardDocument> = {}): BoardDocument {
   return {
-    boardVersion: 1,
+    boardVersion: 2,
     trackerId:    FIXTURE_TRACKER_ID,
     project:      'Example Agency',
     hephaestus:   { state: 'serving', paused: false, codeVersion: 'code-1' },

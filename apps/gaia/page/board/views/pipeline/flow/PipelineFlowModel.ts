@@ -127,6 +127,10 @@ type GatesFixer = 'the builder' | 'the reviewer' | 'the last worker' | 'none';
 const NODE_TITLES: Readonly<Record<BoardPipelineNodeKind, string>> = Object.freeze({
   'ticket-creation':      'Ticket creation',
   'human-ticket-review':  'Human ticket review',
+  'spec-writing':         'Spec',
+  'human-spec-review':    'Human spec review',
+  'plan-writing':         'Plan',
+  'human-plan-review':    'Human plan review',
   'builder':              'Builder',
   'gates':                'Gates',
   'review':               'Review',
@@ -166,6 +170,8 @@ const DERIVED_WITHOUT_REVIEW_NOTE = Object.freeze({
 const SWITCH_SENTENCES: Readonly<Record<BoardPipelineApproval, Readonly<Record<'on' | 'off', string>>>> = Object.freeze({
   tickets: { on: 'You ready each draft before it builds.', off: 'Off: a complete draft builds at once.' },
   merge:   { on: 'You review the change and press Merge. Your presses set the order.', off: 'Off: a green review goes straight to the merge train.' },
+  spec:    { on: 'You approve each spec before its plan is written.', off: 'Off: the spec agent approves the spec when it is ready.' },
+  plan:    { on: 'You approve each plan before the ticket builds.', off: 'Off: the plan agent approves the plan when it is ready.' },
 });
 
 const INSERT_CHOICE_WORDS: Readonly<Record<BoardInsertableStep, { readonly label: string; readonly description: string }>> = Object.freeze({

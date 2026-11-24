@@ -106,10 +106,10 @@ describe('the question cards', () => {
     const [card] = PipelineAgentPanelModel.questionCardsOf(record.questions, 'research', record.findings);
     if (card === undefined) throw new Error('no card');
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['a'], '')).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
+      boardCommandVersion: 2, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
     });
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['c'], ' Run them nightly ')).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'text', text: 'Run them nightly' }
+      boardCommandVersion: 2, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'text', text: 'Run them nightly' }
     });
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['c'], '  ')).toBeNull();
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, [], '')).toBeNull();
@@ -134,7 +134,7 @@ describe('the question cards', () => {
     const withAAgain = PipelineAgentPanelModel.choiceAfterChoosing(card, withoutA, 'a');
     expect([card.isMultiple, initial, withoutA, withAAgain]).toEqual([true, ['a', 'b'], ['b'], ['a', 'b']]);
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, withAAgain, '')).toEqual({
-      boardCommandVersion: 1, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a', 'b'] }
+      boardCommandVersion: 2, kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a', 'b'] }
     });
     expect(PipelineAgentPanelModel.answeredTextAfterSending(card, withAAgain, '')).toBe('Answered: Yes, in the merge phase, No, leave them out');
   });
@@ -154,7 +154,7 @@ describe('the question cards', () => {
 describe('the message', () => {
   test('goes to the agent\'s job, and nothing goes with no job or an empty text', () => {
     expect(PipelineAgentPanelModel.messageCommandOf('J4', ' the tests also need Redis ')).toEqual({
-      boardCommandVersion: 1, kind: 'job-message', jobId: 'J4', text: 'the tests also need Redis', pictures: [], incidentId: null,
+      boardCommandVersion: 2, kind: 'job-message', jobId: 'J4', text: 'the tests also need Redis', pictures: [], incidentId: null,
     });
     expect(PipelineAgentPanelModel.messageCommandOf(null, 'hello')).toBeNull();
     expect(PipelineAgentPanelModel.messageCommandOf('J4', ' ')).toBeNull();

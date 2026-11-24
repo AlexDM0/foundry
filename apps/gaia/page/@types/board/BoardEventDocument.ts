@@ -5,7 +5,8 @@
  */
 import type { PAGE_CONTRACT_VERSIONS } from '../../../src/shared/constants/PageContractVersions.ts';
 
-export const BOARD_PART_NAMES = ['job', 'decision', 'incident', 'hephaestus', 'usage', 'profile', 'pipeline'] as const;
+/** `documents`: a ticket's spec or plan, or an effect reading of one, changed; a view showing a ticket's documents reads them anew. */
+export const BOARD_PART_NAMES = ['job', 'decision', 'incident', 'hephaestus', 'usage', 'profile', 'pipeline', 'documents'] as const;
 
 export type BoardPartName = typeof BOARD_PART_NAMES[number];
 

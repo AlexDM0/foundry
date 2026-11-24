@@ -14,7 +14,7 @@ import { fakeRelayStreams, type FakeRelayStreams }                             f
 import { BoardEventStreamClient, type BoardEventStream, type ConnectionState } from './BoardEventStreamClient.ts';
 import { STREAM_REOPEN_DELAY_MILLISECONDS }                                    from './constants/StreamReopening.ts';
 
-const HANDSHAKE = { boardStreamVersion: 1, systemVersion: { major: 1, minor: 2 }, forgeSystemVersion: { major: 1, minor: 22 } };
+const HANDSHAKE = { boardStreamVersion: 2, systemVersion: { major: 1, minor: 2 }, forgeSystemVersion: { major: 1, minor: 22 } };
 
 interface OpenedStream {
   readonly relay:           FakeRelayStreams;
@@ -58,16 +58,16 @@ describe('the board\'s event-stream client', () => {
     const [source] = relay.sources;
     source?.fire('open');
     source?.fire('handshake', HANDSHAKE);
-    source?.fire('job', { boardVersion: 1, kind: 'part-changed', part: 'job' }, '3-1');
-    source?.fire('board', { boardVersion: 1, kind: 'board-changed' }, '3-2');
-    source?.fire('pipeline', { boardVersion: 1, kind: 'part-changed', part: 'pipeline' }, '3-3');
-    source?.fire('board', { boardVersion: 1, kind: 'no-such-kind' }, '3-4');
+    source?.fire('job', { boardVersion: 2, kind: 'part-changed', part: 'job' }, '3-1');
+    source?.fire('board', { boardVersion: 2, kind: 'board-changed' }, '3-2');
+    source?.fire('pipeline', { boardVersion: 2, kind: 'part-changed', part: 'pipeline' }, '3-3');
+    source?.fire('board', { boardVersion: 2, kind: 'no-such-kind' }, '3-4');
     source?.fire('error');
     expect(source?.path).toBe(`/api/v${GAIA_ENDPOINT_VERSIONS.forgeBoardEvents}/forges/example-tracker/board/events`);
     expect(received).toEqual([
-      { boardVersion: 1, kind: 'part-changed', part: 'job' },
-      { boardVersion: 1, kind: 'board-changed' },
-      { boardVersion: 1, kind: 'part-changed', part: 'pipeline' },
+      { boardVersion: 2, kind: 'part-changed', part: 'job' },
+      { boardVersion: 2, kind: 'board-changed' },
+      { boardVersion: 2, kind: 'part-changed', part: 'pipeline' },
     ]);
     expect(stream.lastEventId()).toBe('3-3');
     expect(states).toEqual(['connecting', 'live', 'down']);
@@ -79,7 +79,7 @@ describe('the board\'s event-stream client', () => {
     const { relay, states } = openedStream();
     const [source] = relay.sources;
     source?.fire('open');
-    source?.fire('handshake', { ...HANDSHAKE, boardStreamVersion: 2 });
+    source?.fire('handshake', { ...HANDSHAKE, boardStreamVersion: 3 });
     expect([source?.closed, states.at(-1), relay.pendingWaits()]).toEqual([true, 'down', []]);
   });
 
@@ -87,8 +87,8 @@ describe('the board\'s event-stream client', () => {
     const { relay, received, states } = openedStream();
     const [source] = relay.sources;
     source?.fire('open');
-    source?.fire('board', { boardVersion: 2, kind: 'board-changed' }, '3-1');
-    source?.fire('board', { boardVersion: 1, kind: 'board-changed' }, '3-2');
+    source?.fire('board', { boardVersion: 3, kind: 'board-changed' }, '3-1');
+    source?.fire('board', { boardVersion: 2, kind: 'board-changed' }, '3-2');
     expect([source?.closed, states.at(-1), received, relay.pendingWaits()]).toEqual([true, 'down', [], []]);
   });
 

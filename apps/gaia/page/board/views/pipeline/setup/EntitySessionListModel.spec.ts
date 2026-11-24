@@ -90,16 +90,16 @@ describe('the rows', () => {
     const rows = EntitySessionListModel.rowsOf(researchFacts(), FORGE_LEVEL);
     expect(rows.map((row) => row.stopCommand)).toEqual([
       {
-        boardCommandVersion: 1, kind: 'job-stop', jobId: 'J4', mode: 'stop'
+        boardCommandVersion: 2, kind: 'job-stop', jobId: 'J4', mode: 'stop'
       }, {
-        boardCommandVersion: 1, kind: 'job-stop', jobId: 'J5', mode: 'stop'
+        boardCommandVersion: 2, kind: 'job-stop', jobId: 'J5', mode: 'stop'
       }, null, null,
     ]);
     expect(EntitySessionListModel.stopEveryCommandsOf(rows)).toEqual([
       {
-        boardCommandVersion: 1, kind: 'job-stop', jobId: 'J4', mode: 'stop'
+        boardCommandVersion: 2, kind: 'job-stop', jobId: 'J4', mode: 'stop'
       }, {
-        boardCommandVersion: 1, kind: 'job-stop', jobId: 'J5', mode: 'stop'
+        boardCommandVersion: 2, kind: 'job-stop', jobId: 'J5', mode: 'stop'
       },
     ]);
     expect(rows[1]?.stopName).toBe('Stop web\'s session');

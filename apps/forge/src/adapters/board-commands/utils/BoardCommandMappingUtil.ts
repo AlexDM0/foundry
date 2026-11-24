@@ -132,6 +132,8 @@ function draftEditOf(edit: PipelineDraftEditDocument): PipelineDraftEdit {
       return { target: 'airlock', value: edit.value === null ? null : { ...(edit.value.reReview === undefined ? {} : { reReview: { ...edit.value.reReview } }) } };
     case 'approval':
       return { target: 'approval', approval: edit.approval, value: edit.value };
+    case 'ticket-writing':
+      return { target: 'ticket-writing', value: edit.value };
     case 'entity':
       return { target: 'entity', entityKey: edit.entityKey, value: entityDefinitionOf(edit.value) };
     case 'within-entity':

@@ -207,7 +207,38 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'ticket-deliver-by-hand': {
     kind: 'ticket-deliver-by-hand', ticketReference: '1', branch: 'ticket-001', commit: 'abc1234'
   },
-  'task-add': {
+  'ticket-document-save': {
+    kind: 'ticket-document-save', ticketReference: '3', document: 'spec', baseVersion: 4, markdown: '# Example spec\n'
+  },
+  'ticket-document-comment': {
+    kind:            'ticket-document-comment',
+    ticketReference: '3',
+    document:        'spec',
+    anchor:          {
+      view: 'code', versionNumber: 4, lines: { from: 2, to: 3 }, sectionPath: ['Example spec'], quote: 'Alex Example', surroundingLines: { from: 1, to: 5 }
+    },
+    text: 'Name the basket total here.',
+  },
+  'ticket-document-comment-withdraw': {
+    kind: 'ticket-document-comment-withdraw', ticketReference: '3', document: 'spec', messageId: 'M2'
+  },
+  'ticket-document-proposal-apply': {
+    kind: 'ticket-document-proposal-apply', ticketReference: '3', document: 'plan', proposalId: 'P1', replacementLines: [['Example line.']]
+  },
+  'ticket-document-proposal-discard': {
+    kind: 'ticket-document-proposal-discard', ticketReference: '3', document: 'plan', proposalId: 'P1'
+  },
+  'ticket-document-mode-set': {
+    kind: 'ticket-document-mode-set', ticketReference: '3', document: 'plan', mode: 'auto-apply'
+  },
+  'ticket-document-approve': {
+    kind: 'ticket-document-approve', ticketReference: '3', document: 'spec', version: 4
+  },
+  'ticket-document-effect-read': {
+    kind: 'ticket-document-effect-read', ticketReference: '3', document: 'plan', version: 2
+  },
+  'ticket-document-turn-stop': { kind: 'ticket-document-turn-stop', ticketReference: '3', document: 'spec' },
+  'task-add':                  {
     kind:              'task-add',
     name:              'Review the basket page',
     reviewOfReference: '#3',

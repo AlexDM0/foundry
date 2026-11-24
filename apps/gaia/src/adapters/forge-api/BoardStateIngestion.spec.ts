@@ -133,7 +133,8 @@ describe('boardOf, on the board of a forge at work', () => {
       minimumBarWidthPercent:     0.6,
     });
     expect(limits.defaultInstructionsOfRole.builder).toEqual([{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }]);
-    expect(Object.keys(limits.defaultInstructionsOfRole)).toHaveLength(7);
+    expect(Object.keys(limits.defaultInstructionsOfRole)).toHaveLength(9);
+    expect([limits.defaultInstructionsOfRole.specAgent, limits.defaultInstructionsOfRole.planAgent]).toEqual([[], []]);
   });
 
   test('keeps the applied pipeline with each entity\'s effective pipeline', async () => {

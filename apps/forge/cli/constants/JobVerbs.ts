@@ -70,7 +70,25 @@ export type ByHandControlCommandKind = keyof typeof BY_HAND_VERB_OF_CONTROL_KIND
 
 export const BY_HAND_COMMAND_KINDS = Object.freeze(Object.keys(BY_HAND_VERB_OF_CONTROL_KIND)) as readonly ByHandControlCommandKind[];
 
-export type RelayedControlCommandKind = Exclude<ControlCommandKind, keyof typeof UNRELAYED_VERB_OF_CONTROL_KIND | ByHandControlCommandKind>;
+/** Kinds only a client sends, which no verb builds: User's moves on a ticket's documents. Never relayed from a job. */
+export const CLIENT_ONLY_CONTROL_KINDS = [
+  'ticket-document-save',
+  'ticket-document-comment',
+  'ticket-document-comment-withdraw',
+  'ticket-document-proposal-apply',
+  'ticket-document-proposal-discard',
+  'ticket-document-mode-set',
+  'ticket-document-approve',
+  'ticket-document-effect-read',
+  'ticket-document-turn-stop',
+] as const satisfies readonly ControlCommandKind[];
+
+export type ClientOnlyControlCommandKind = (typeof CLIENT_ONLY_CONTROL_KINDS)[number];
+
+export type RelayedControlCommandKind = Exclude<
+  ControlCommandKind,
+  keyof typeof UNRELAYED_VERB_OF_CONTROL_KIND | ByHandControlCommandKind | ClientOnlyControlCommandKind
+>;
 
 /** The verb each relayed control command is typed as; under a job the verb parses its arguments as usual and relays the command it built. */
 export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommandKind, string>> = {

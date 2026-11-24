@@ -30,6 +30,8 @@ export const EXAMPLE_BOARD_LIMITS: BoardLimitsDocument = {
   firstRepeatReviewRound:     2,
   defaultInstructionsOfRole:  {
     productOwner:       [{ kind: 'default-brief', role: 'productOwner' }],
+    specAgent:          [{ kind: 'constitution' }, { kind: 'default-brief', role: 'specAgent' }],
+    planAgent:          [{ kind: 'constitution' }, { kind: 'default-brief', role: 'planAgent' }],
     builder:            [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }],
     reviewer:           [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }],
     reReviewer:         [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reReviewer' }],

@@ -32,6 +32,7 @@ import type {
   GatePhase,
   PipelineAgentRole,
   TicketPriority,
+  TicketWritingRoute,
 } from 'forge-contracts/BoardVocabulary';
 import type { ForgeControlCommand, ForgeJobStopMode, ForgeResumeTarget } from 'forge-contracts/ForgeControlCommand';
 
@@ -80,6 +81,8 @@ const ENTITY_AGENT_ROLE = {
 const PIPELINE_AGENT_ROLE = {
   ...ENTITY_AGENT_ROLE,
   productOwner:  'productOwner',
+  specAgent:     'specAgent',
+  planAgent:     'planAgent',
   pipelineAgent: 'pipelineAgent',
   assistant:     'assistant',
 } as const satisfies Record<Gaia.BoardPipelineAgentRole, PipelineAgentRole>;
@@ -99,7 +102,11 @@ const AGENT_EFFORT = {
   max:    'max',
 } as const satisfies Record<Gaia.BoardAgentEffort, AgentEffort>;
 
-const PIPELINE_APPROVAL = { tickets: 'tickets', merge: 'merge' } as const satisfies Record<Gaia.BoardPipelineApproval, PipelineApproval>;
+const PIPELINE_APPROVAL = {
+  tickets: 'tickets', merge: 'merge', spec: 'spec', plan: 'plan'
+} as const satisfies Record<Gaia.BoardPipelineApproval, PipelineApproval>;
+
+const TICKET_WRITING_ROUTE = { 'one-ticket': 'one-ticket', 'spec-then-plan': 'spec-then-plan' } as const satisfies Record<Gaia.BoardTicketWritingRoute, TicketWritingRoute>;
 
 const ENTITY_KIND = { app: 'app', package: 'package', root: 'root' } as const satisfies Record<Gaia.BoardEntityKind, EntityKind>;
 
@@ -229,6 +236,8 @@ function draftEditOut(edit: BoardDraftEdit): PipelineDraftEditDocument {
       return { target: 'airlock', value: edit.value === null ? null : reReviewOut(edit.value.reReview) };
     case 'approval':
       return { target: 'approval', approval: PIPELINE_APPROVAL[edit.approval], value: edit.value };
+    case 'ticket-writing':
+      return { target: 'ticket-writing', value: edit.value === null ? null : TICKET_WRITING_ROUTE[edit.value] };
     case 'entity':
       return {
         target:    'entity',

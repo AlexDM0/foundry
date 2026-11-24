@@ -171,6 +171,8 @@ describe('the files a reading takes', () => {
     expect(builtInBriefPathOf('conflictReReviewer').endsWith(join('resources', 'prompts', 'BuiltInBriefConflictReReviewer.md'))).toBe(true);
     const roleWordOfRole: Readonly<Record<PipelineAgentRole, string>> = {
       productOwner:       'product owner',
+      specAgent:          'spec agent',
+      planAgent:          'plan agent',
       builder:            'builder',
       reviewer:           'reviewer',
       reReviewer:         're-reviewer',

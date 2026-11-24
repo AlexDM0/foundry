@@ -359,6 +359,8 @@ function draftEditOf(edit: PipelineDraftEditDocument): BoardDraftEdit {
       };
     case 'approval':
       return { target: 'approval', approval: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.pipelineApproval, edit.approval), value: edit.value };
+    case 'ticket-writing':
+      return { target: 'ticket-writing', value: VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.ticketWritingRoute, edit.value) };
     case 'entity':
       return {
         target:    'entity',

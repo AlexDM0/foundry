@@ -7,12 +7,15 @@
 import type {
   AgentEffort,
   AgentModel,
+  DocumentReadingRule,
   EntityAgentRole,
   EntityKey,
   EntityKind,
   GatePhase,
   JobState,
-  PipelineAgentRole
+  PipelineAgentRole,
+  TicketDocumentKind,
+  TicketWritingRoute
 } from '../constants/BoardVocabulary.ts';
 import type { ForgeRefusalDocument } from './ForgeRefusalDocument.ts';
 
@@ -59,6 +62,8 @@ export interface AgentStepSettingsDocument {
   readonly effort?:       AgentEffort;
   /** Read top to bottom; absent is the role's default list. */
   readonly instructions?: readonly InstructionEntryDocument[];
+  /** On the builder and the reviewer only: which version of each ticket document the role reads; absent is the role's default. */
+  readonly documents?:    Readonly<Partial<Record<TicketDocumentKind, DocumentReadingRule>>>;
 }
 
 /** Present means on: a re-review runs when the fixes change more than `thresholdLines` lines. */
@@ -79,8 +84,11 @@ export interface PipelineConstitutionDocument {
   readonly path: string;
 }
 
-/** A human gate: `tickets` is the ticket review before an agent can pick a ticket up; `merge` the user's accept before the Airlock. */
-export type PipelineApproval = 'tickets' | 'merge';
+/**
+ * A human gate: `tickets` is the ticket review before an agent can pick a ticket up; `merge` the user's accept before the Airlock; `spec`
+ * and `plan` the user's review of each ticket document in the spec-then-plan route.
+ */
+export type PipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
 
 /** How the agents are billed: by the login, or by an API key's account, `maxBudgetUsd` capping each launch of a session. */
 export type PipelineBillingDocument =
@@ -113,24 +121,26 @@ export interface PipelineEntityDocument {
 
 /** A pipeline as the forge holds it; beside `entities` the top-level steps are empty and each entity's own run instead. */
 export interface PipelineDefinitionDocument {
-  readonly version:       number;
-  readonly prepare:       readonly PipelineStepDocument[];
+  readonly version:        number;
+  readonly prepare:        readonly PipelineStepDocument[];
   /** Every gate, defined once; an empty list is no gates on purpose. */
-  readonly gates:         readonly PipelineGateDocument[];
-  readonly phases:        PipelinePhaseOrdersDocument;
-  readonly review?:       PipelineReviewDocument;
-  readonly airlock?:      PipelineAirlockDocument;
-  readonly constitution?: PipelineConstitutionDocument;
-  readonly agents?:       Readonly<Partial<Record<PipelineAgentRole, AgentStepSettingsDocument>>>;
-  /** An absent `tickets` approval is on; an absent `merge` approval is off. */
-  readonly approvals?:    Readonly<Partial<Record<PipelineApproval, boolean>>>;
+  readonly gates:          readonly PipelineGateDocument[];
+  readonly phases:         PipelinePhaseOrdersDocument;
+  readonly review?:        PipelineReviewDocument;
+  readonly airlock?:       PipelineAirlockDocument;
+  readonly constitution?:  PipelineConstitutionDocument;
+  readonly agents?:        Readonly<Partial<Record<PipelineAgentRole, AgentStepSettingsDocument>>>;
+  /** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
+  readonly approvals?:     Readonly<Partial<Record<PipelineApproval, boolean>>>;
   /** Absent bills by subscription. */
-  readonly billing?:      PipelineBillingDocument;
-  readonly reach?:        readonly string[];
+  readonly billing?:       PipelineBillingDocument;
+  readonly reach?:         readonly string[];
   /** Present: a forge at the repository's root over these entities. */
-  readonly entities?:     Readonly<Record<EntityKey, PipelineEntityDocument>>;
+  readonly entities?:      Readonly<Record<EntityKey, PipelineEntityDocument>>;
   /** Present: the board turned the Assistant on; absent is off. */
-  readonly assistant?:    true;
+  readonly assistant?:     true;
+  /** Absent is `one-ticket`. */
+  readonly ticketWriting?: TicketWritingRoute;
 }
 
 /** The newest Apply. */
@@ -287,6 +297,7 @@ export type PipelineDraftField =
   | `role:${PipelineAgentRole}`
   | 'airlock'
   | `approval:${PipelineApproval}`
+  | 'ticket-writing'
   | `entity:${EntityKey}`
   | `entity:${EntityKey}/${EntityDraftField}`;
 
@@ -507,6 +518,7 @@ export type PipelineDraftEditDocument =
   | { readonly target: 'role'; readonly role: PipelineAgentRole; readonly value: AgentStepSettingsDocument | null }
   | { readonly target: 'airlock'; readonly value: PipelineAirlockDocument | null }
   | { readonly target: 'approval'; readonly approval: PipelineApproval; readonly value: boolean | null }
+  | { readonly target: 'ticket-writing'; readonly value: TicketWritingRoute | null }
   | { readonly target: 'entity'; readonly entityKey: EntityKey; readonly value: PipelineEntityDefinitionDocument | null }
   | { readonly target: 'within-entity'; readonly entityKey: EntityKey; readonly edit: EntityDraftEditDocument };
 
@@ -550,6 +562,10 @@ export interface BoardDraftEntityFactsDocument {
 export type PipelineNodeKind =
   | 'ticket-creation'
   | 'human-ticket-review'
+  | 'spec-writing'
+  | 'human-spec-review'
+  | 'plan-writing'
+  | 'human-plan-review'
   | 'builder'
   | 'gates'
   | 'review'

@@ -98,6 +98,7 @@ function fieldOf(edit: PipelineDraftEdit): PipelineDraftField {
     case 'approval':
       return `approval:${edit.approval}`;
     case 'airlock':
+    case 'ticket-writing':
       return edit.target;
     case 'entity':
       return `${ENTITY_FIELD_PREFIX}${edit.entityKey}`;
@@ -278,6 +279,10 @@ function pipelineWithEdit(pipeline: Readonly<Pipeline>, edit: PipelineDraftEdit)
     case 'airlock':
       if (edit.value === null) Reflect.deleteProperty(draft, 'airlock');
       else draft.airlock = structuredClone(edit.value);
+      return draft;
+    case 'ticket-writing':
+      if (edit.value === null) Reflect.deleteProperty(draft, 'ticketWriting');
+      else draft.ticketWriting = edit.value;
       return draft;
     case 'entity':
       writeEntityDefinition(draft, edit.entityKey, edit.value);

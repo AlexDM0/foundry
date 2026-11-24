@@ -38,6 +38,16 @@ export const WORKER_MODEL = 'opus';
 
 export const WORKER_EFFORT = 'medium' as const;
 
+/** The spec agent's model and effort where the pipeline names none. */
+export const SPEC_AGENT_MODEL = 'sonnet';
+
+export const SPEC_AGENT_EFFORT = 'medium' as const;
+
+/** The plan agent's model and effort where the pipeline names none. */
+export const PLAN_AGENT_MODEL = 'opus';
+
+export const PLAN_AGENT_EFFORT = 'high' as const;
+
 /** The newest `incident-*` log records an Assistant's first message carries, so the board is its memory. */
 export const ASSISTANT_HISTORY_RECORDS = 20;
 

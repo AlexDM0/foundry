@@ -10,6 +10,8 @@ import type { EntityKey }           from './Pipeline.ts';
 /**
  * `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket.
  * `constitution-commit` commits an Apply's `CONSTITUTION.md` and lands it on the main line through the Airlock, with no gate.
+ * `document-agent` writes one ticket document, its role naming which, in a read-only snapshot of the main line; `effect-reading` reads
+ * what a document version names in the main line's tree, outside the agent slots.
  */
 export type JobKind =
   | 'build'
@@ -20,13 +22,25 @@ export type JobKind =
   | 'constitution-commit'
   | 'assistant'
   | 'product-owner'
-  | 'pipeline-agent';
+  | 'pipeline-agent'
+  | 'document-agent'
+  | 'effect-reading';
 
 /**
  * A `merge-agent` job runs as its ticket's last worker (`builder`, `reviewer` or `re-reviewer`), resumed into the Airlock, or as a
  * `conflict-re-reviewer`, a fresh session. A review past its first round runs as a `re-reviewer`.
  */
-export type JobRole = 'builder' | 'reviewer' | 're-reviewer' | 'conflict-re-reviewer' | 'assistant' | 'product-owner' | 'pipeline-agent';
+export type JobRole =
+  | 'builder'
+  | 'reviewer'
+  | 're-reviewer'
+  | 'conflict-re-reviewer'
+  | 'assistant'
+  | 'product-owner'
+  | 'pipeline-agent'
+  | 'spec-agent'
+  | 'plan-agent'
+  | 'effect-reader';
 
 export type JobState =
   | 'launching'

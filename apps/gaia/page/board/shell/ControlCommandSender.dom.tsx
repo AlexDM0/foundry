@@ -33,7 +33,7 @@ import {
   type SentCommands
 } from './ControlCommandSender.ts';
 
-const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 1, kind: 'hephaestus-pause' };
+const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 2, kind: 'hephaestus-pause' };
 const NOTHING_STARTED: BoardCommandResult = { startedJobId: null };
 const APPLIED: CommandOutcome = { verdict: 'applied', outcome: 'done', result: NOTHING_STARTED };
 /** A forge's sentence as its command line prints it, naming a command, shown as it is. */
@@ -184,7 +184,7 @@ describe('when the sender is enabled', () => {
     renderedProbe({ command: PAUSE_COMMAND }, { availability: 'install-held' });
     expect(sendButton().disabled).toBe(true);
     cleanup();
-    renderedProbe({ command: { boardCommandVersion: 1, kind: 'hephaestus-restart', now: false }, answeredWhileInstallHeld: true }, { availability: 'install-held' });
+    renderedProbe({ command: { boardCommandVersion: 2, kind: 'hephaestus-restart', now: false }, answeredWhileInstallHeld: true }, { availability: 'install-held' });
     expect(sendButton().disabled).toBe(false);
   });
 
@@ -205,10 +205,10 @@ describe('when the sender is enabled', () => {
 
 describe('several commands', () => {
   const firstStop: BoardCommandDocument = {
-    boardCommandVersion: 1, kind: 'job-stop', jobId: 'J5', mode: 'stop'
+    boardCommandVersion: 2, kind: 'job-stop', jobId: 'J5', mode: 'stop'
   };
   const secondStop: BoardCommandDocument = {
-    boardCommandVersion: 1, kind: 'job-stop', jobId: 'J6', mode: 'stop'
+    boardCommandVersion: 2, kind: 'job-stop', jobId: 'J6', mode: 'stop'
   };
 
   test('go in order, and the last one\'s result reaches onApplied once every one was applied', async () => {

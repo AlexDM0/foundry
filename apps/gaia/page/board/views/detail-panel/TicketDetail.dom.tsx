@@ -266,19 +266,19 @@ describe('the Overview', () => {
   test('a draft leads with Ready, which posts ticket-ready; a held ticket leads with Unhold', async () => {
     const draft = renderTicket({ form: 'ticket', ticketId: '013' });
     await clicked(screen.getByRole('button', { name: 'Ready' }));
-    expect(draft.sent).toEqual([{ boardCommandVersion: 1, kind: 'ticket-ready', ticketIds: ['013'] }]);
+    expect(draft.sent).toEqual([{ boardCommandVersion: 2, kind: 'ticket-ready', ticketIds: ['013'] }]);
     cleanup();
     const held = renderTicket({ form: 'ticket', ticketId: '015' });
     expect(screen.getByText('Held: waiting on the example vendor')).toBeTruthy();
     await clicked(screen.getByRole('button', { name: 'Unhold' }));
-    expect(held.sent).toEqual([{ boardCommandVersion: 1, kind: 'ticket-unhold', ticketId: '015' }]);
+    expect(held.sent).toEqual([{ boardCommandVersion: 2, kind: 'ticket-unhold', ticketId: '015' }]);
   });
 
   test('a ticket waiting for merge leads with Accept, disabled while the forge does not offer it, and offers Update branch under Other moves', async () => {
     const clean = renderTicket({ form: 'ticket', ticketId: '020' });
     await clicked(screen.getByRole('button', { name: 'Accept' }));
     await clicked(region('Other moves').getByRole('button', { name: 'Update branch' }));
-    expect(clean.sent).toEqual([{ boardCommandVersion: 1, kind: 'merge-accept', ticketId: '020' }, { boardCommandVersion: 1, kind: 'merge-update', ticketId: '020' }]);
+    expect(clean.sent).toEqual([{ boardCommandVersion: 2, kind: 'merge-accept', ticketId: '020' }, { boardCommandVersion: 2, kind: 'merge-update', ticketId: '020' }]);
     cleanup();
     renderTicket({ form: 'ticket', ticketId: '021' });
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Accept' }).disabled).toBe(true);
@@ -300,7 +300,7 @@ describe('the Overview', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Park' }));
     expect(panel.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-park', ticketId: '004', reason: 'waiting on the example vendor', incidentId: null
+      boardCommandVersion: 2, kind: 'ticket-park', ticketId: '004', reason: 'waiting on the example vendor', incidentId: null
     }]);
   });
 
@@ -312,7 +312,7 @@ describe('the Overview', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Record delivered' }));
     expect(reviewed.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-deliver-by-hand', ticketId: '020', branch: 'ticket-020', commit: null
+      boardCommandVersion: 2, kind: 'ticket-deliver-by-hand', ticketId: '020', branch: 'ticket-020', commit: null
     }]);
     cleanup();
     renderTicket(BUILDING);
@@ -328,7 +328,7 @@ describe('the Overview', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Hold' }));
     expect(draft.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-hold', ticketId: '013', reason: 'waiting on the example vendor'
+      boardCommandVersion: 2, kind: 'ticket-hold', ticketId: '013', reason: 'waiting on the example vendor'
     }]);
   });
 
@@ -336,14 +336,14 @@ describe('the Overview', () => {
     const board = exampleDetailBoard({ tickets: [exampleDetailTicket('016', { status: 'ready-for-review' }), exampleDetailTicket('017', { status: 'committed' })], });
     const forReview = renderTicket({ form: 'ticket', ticketId: '016' }, { board });
     await clicked(screen.getByRole('button', { name: 'Ready' }));
-    expect(forReview.sent).toEqual([{ boardCommandVersion: 1, kind: 'ticket-ready', ticketIds: ['016'] }]);
+    expect(forReview.sent).toEqual([{ boardCommandVersion: 2, kind: 'ticket-ready', ticketIds: ['016'] }]);
     cleanup();
     const pending = renderTicket({ form: 'ticket', ticketId: '017' }, { board });
     expect(screen.queryByRole('button', { name: 'Ready' })).toBeNull();
     await clicked(region('Other moves').getByRole('button', { name: 'Hold…' }));
     await clicked(screen.getByRole('button', { name: 'Hold' }));
     expect(pending.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-hold', ticketId: '017', reason: ''
+      boardCommandVersion: 2, kind: 'ticket-hold', ticketId: '017', reason: ''
     }]);
   });
 
@@ -356,7 +356,7 @@ describe('the Overview', () => {
     expect(row.getAllByRole('button').map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual(['Priority high', 'Priority normal', 'Cancel']);
     await clicked(row.getByRole('button', { name: 'Priority high' }));
     expect(pending.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-priority', ticketId: '018', priority: 'high'
+      boardCommandVersion: 2, kind: 'ticket-priority', ticketId: '018', priority: 'high'
     }]);
     expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
   });
@@ -371,7 +371,7 @@ describe('the Overview', () => {
     await clicked(within(screen.getByRole('group', { name: 'Priority' })).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
     expect(pending.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'ticket-priority', ticketId: '019', priority: 'low'
+      boardCommandVersion: 2, kind: 'ticket-priority', ticketId: '019', priority: 'low'
     }]);
   });
 
@@ -455,7 +455,7 @@ describe('the live job\'s controls', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Send message' }));
     expect(panel.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'job-message', jobId: 'J4', text: 'Rebase onto main first', pictures: [], incidentId: null
+      boardCommandVersion: 2, kind: 'job-message', jobId: 'J4', text: 'Rebase onto main first', pictures: [], incidentId: null
     }]);
     expect(box.value).toBe('');
   });
@@ -473,7 +473,7 @@ describe('the live job\'s controls', () => {
     expect(panel.sent).toEqual([]);
     await clicked(within(confirmation).getByRole('button', { name: 'Stop J4' }));
     expect(panel.sent).toEqual([{
-      boardCommandVersion: 1, kind: 'job-stop', jobId: 'J4', mode: 'stop'
+      boardCommandVersion: 2, kind: 'job-stop', jobId: 'J4', mode: 'stop'
     }]);
     expect(stopMenu()).toBeNull();
   });
@@ -488,10 +488,10 @@ describe('the live job\'s controls', () => {
     await clicked(within(screen.getByRole('group', { name: 'Confirm a fresh agent for J4' })).getByRole('button', { name: 'Start fresh agent' }));
     expect(panel.sent).toEqual([
       {
-        boardCommandVersion: 1, kind: 'job-stop', jobId: 'J4', mode: 'wind-down'
+        boardCommandVersion: 2, kind: 'job-stop', jobId: 'J4', mode: 'wind-down'
       },
       {
-        boardCommandVersion: 1, kind: 'job-fresh', jobId: 'J4', incidentId: null
+        boardCommandVersion: 2, kind: 'job-fresh', jobId: 'J4', incidentId: null
       },
     ]);
   });
