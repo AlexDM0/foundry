@@ -116,6 +116,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'talos-restart':             { kind: 'talos-restart' },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
   'machine-agent-limit-set':   { kind: 'machine-agent-limit-set', limit: 2 },
+  'machine-agent-program-set': { kind: 'machine-agent-program-set', vendor: 'example-agent', programPath: '/opt/example/bin/agent' },
   'pipeline-prepare-step-set': { kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install' } },
   'pipeline-gate-add':         { kind: 'pipeline-gate-add', gate: { name: 'test', run: 'bun test', definedBy: ['bunfig.toml'] } },
   'pipeline-gate-order':       { kind: 'pipeline-gate-order', phase: 'merge', names: ['test'] },
@@ -123,12 +124,18 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-gate-remove':      { kind: 'pipeline-gate-remove', name: 'test' },
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
   'pipeline-assistant-set':    { kind: 'pipeline-assistant-set', on: true },
+  'pipeline-agent-set':        { kind: 'pipeline-agent-set', agent: { vendor: 'example-agent', program: { follows: 'machine' } } },
+  'pipeline-tools-set':        { kind: 'pipeline-tools-set', tools: [{ name: 'bun', path: '/opt/example/bin/bun' }] },
+  'agent-look-again':          { kind: 'agent-look-again' },
   'pipeline-reach-set':        { kind: 'pipeline-reach-set', paths: ['/packages/shared'] },
   'merge-accept':              { kind: 'merge-accept', ticketReference: '1' },
   'merge-update':              { kind: 'merge-update', ticketReference: '1' },
-  'pipeline-setup-start':      { kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 20 }, replacesUnreadablePipeline: false },
-  'pipeline-setup-billing':    { kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'subscription' } },
-  'pipeline-setup-step':       {
+  'pipeline-setup-start':      {
+    kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 20 }, replacesUnreadablePipeline: false, agent: { vendor: 'example-agent', program: { follows: 'machine' } }
+  },
+  'pipeline-setup-billing': { kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'subscription' } },
+  'pipeline-setup-agent':   { kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: 'example-agent', program: { follows: 'machine' } } },
+  'pipeline-setup-step':    {
     kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
   },
   'pipeline-setup-start-over': { kind: 'pipeline-setup-start-over', setupId: 'S1' },

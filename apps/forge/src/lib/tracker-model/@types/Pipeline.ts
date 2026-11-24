@@ -104,6 +104,21 @@ export type PipelineBilling =
   | { mode: 'subscription' }
   | { mode: 'api'; maxBudgetUsd?: number };
 
+/** How a forge names its agent's program: the machine's program of its vendor, or a path for this forge alone, kept as found. */
+export type AgentProgramChoice = { follows: 'machine' } | { pinned: string };
+
+/** The agent every job of the forge runs: its vendor, as the agent adapter names itself, and the program that vendor's sessions start. */
+export interface PipelineAgent {
+  vendor:  string;
+  program: AgentProgramChoice;
+}
+
+/** A program the forge's agents may run, by its name and the absolute path it was found at, kept as found and never resolved. */
+export interface PipelineTool {
+  name: string;
+  path: string;
+}
+
 /** An entity's stable name: tickets, jobs, log records and the monitor store the key, never a path. */
 export type EntityKey = string;
 
@@ -161,4 +176,11 @@ export interface Pipeline {
   entities?:     Record<EntityKey, PipelineEntity>;
   /** Present: the board turned the Assistant on. Absent is off; not part of the pipeline hash, as `approvals` is not. */
   assistant?:    true;
+  /** Absent: no agent is chosen, and no job launches. Not part of the pipeline hash, as `billing` is not. */
+  agent?:        PipelineAgent;
+  /**
+   * The programs whose folders an agent's search path holds; absent follows the pipeline, each program its gates, prepare steps and
+   * merge train run, found at each launch. Not part of the pipeline hash, as `billing` is not.
+   */
+  tools?:        PipelineTool[];
 }

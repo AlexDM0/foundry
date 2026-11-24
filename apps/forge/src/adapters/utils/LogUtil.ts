@@ -73,6 +73,11 @@ function reviewRecordedTextOf(ticketId: string, review: LogRecordFieldsOf<'revie
     + `${review.totalReworkedCodeLines} lines of code reworked (${review.fixReworkedCodeLines} fixing, ${review.rebaseReworkedCodeLines} rebasing)`;
 }
 
+/** A stored `program` field: `machine`, or the path the forge alone runs. */
+function agentProgramPhraseOf(program: string): string {
+  return program === 'machine' ? 'the machine\'s program' : `the program ${program}`;
+}
+
 function epicsText(epicKeys: readonly string[]): string {
   if (epicKeys.length === 0) return 'no epic';
   return `${epicKeys.length === 1 ? 'epic' : 'epics'} ${epicKeys.join(', ')}`;
@@ -200,6 +205,8 @@ function sentenceOf(record: LogRecordContent): string {
     case 'pipeline-setup-billing-set':
       return `Pipeline setup ${record.setupId} billing set to ${record.fields.mode}`
         + `${record.fields.maxBudgetUsd === undefined ? '' : `, at most $${record.fields.maxBudgetUsd} a launch`}`;
+    case 'pipeline-setup-agent-set':
+      return `Pipeline setup ${record.setupId} agent set to ${record.fields.vendor}, ${agentProgramPhraseOf(record.fields.program)}`;
     case 'pipeline-setup-step-moved':
       return `Pipeline setup ${record.setupId} step ${record.fields.step} ${record.fields.state}, now at ${record.fields.currentStep}`
         + `${record.fields.needsRecheck.length === 0 ? '' : `; ${record.fields.needsRecheck.join(', ')} need a recheck`}`;
@@ -277,6 +284,10 @@ function sentenceOf(record: LogRecordContent): string {
       return `Approval ${record.fields.approval} set ${record.fields.state}`;
     case 'pipeline-assistant-set':
       return `Assistant set ${record.fields.state}`;
+    case 'pipeline-agent-set':
+      return `Agent set to ${record.fields.vendor}, ${agentProgramPhraseOf(record.fields.program)}`;
+    case 'pipeline-tools-set':
+      return record.fields.paths.length === 0 ? 'Tools follow the pipeline' : `Tools set to ${record.fields.paths.join(' ')}`;
     case 'pipeline-reach-set':
       return record.fields.paths.length === 0 ? 'Reach cleared' : `Reach set to ${record.fields.paths.join(' ')}`;
     case 'branch-namespace-set':
@@ -329,6 +340,10 @@ function sentenceOf(record: LogRecordContent): string {
       return jobEndedTextOf(record.jobId, record.fields);
     case 'job-stop-requested':
       return `User asked job ${record.jobId} to ${JOB_STOP_MODE_PHRASES[record.fields.mode]}`;
+    case 'job-not-launched':
+      return `Job ${record.jobId} not launched: ${record.fields.cause}${record.fields.programPath === null ? '' : ` (${record.fields.programPath})`}`;
+    case 'job-launch-retried':
+      return `Job ${record.jobId} launches again`;
     case 'job-messaged':
       return `Message for job ${record.jobId}: ${record.fields.text}`;
     case 'job-reopened': {

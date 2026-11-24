@@ -10,6 +10,7 @@ import {
   taskFixture,
   ticketFixture
 } from './BoardFixtures.ts';
+import { EXAMPLE_PIPELINE_AGENT }                  from './ExamplePipelineAgent.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
@@ -21,10 +22,11 @@ const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
  */
 function logEverySetupRecordKind(board: Board, at: string): void {
   const { setup } = board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, at);
   const { setupId } = setup;
   board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 5 }, at);
+  board.setSetupAgent(setupId, EXAMPLE_PIPELINE_AGENT, at);
   board.recordFinding(setupId, {
     topic: 'scripts', label: 'Type check', value: 'bun run typecheck', sourcePaths: ['package.json'], script: null
   }, at);
@@ -61,7 +63,7 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.cancelApply(setupId, at);
   board.startOverSetup(setupId, at);
   const applied = board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, at);
   board.requestApply(applied.setup.setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, at);
 }
@@ -163,6 +165,8 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.setNoGates(at);
   board.setApproval('tickets', false, at);
   board.setAssistant(true, at);
+  board.setAgent(EXAMPLE_PIPELINE_AGENT, at);
+  board.setTools([{ name: 'bun', path: '/opt/example/bin/bun' }], at);
   board.setReach(['/packages/shared'], at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);
   board.recordPipelineStepsRan([{
@@ -259,6 +263,8 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordUsageLimitHit(job.id, { window: 'five_hour', resetsAt: '2026-09-26T13:00:34.000Z' }, at);
   board.moveJob(job.id, 'running', at, { instructed: true });
   board.messageJob(job.id, 'Keep the example export small.', [], at);
+  board.recordNotLaunched(job.id, { cause: 'not-there', programPath: '/opt/example/bin/agent' }, at);
+  board.retryNotLaunched(at);
   board.requestJobStop(job.id, 'wind-down', at);
   board.endJob(job.id, { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch'] }, at);
   const intake = board.startIntake('File the example export ticket.', [{ pictureId: EXAMPLE_PICTURE_ID, name: 'export-mockup.png' }], at);

@@ -30,6 +30,7 @@ import {
   type BoardFixture
 } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
+import { EXAMPLE_PIPELINE_AGENT }                               from '../../testing/ExamplePipelineAgent.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
 import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                    from '../tracker/Workspace.ts';
@@ -104,11 +105,13 @@ function withWebTestGate(pipeline: Pipeline): Pipeline {
 /** A first setup S1 at the `entities` step whose draft holds the root entity, `web` and `design-system`; its forge session is J1. */
 function boardAtEntitiesStep(tickets: Ticket[] = []): BoardFixture {
   const opened = boardFixture();
-  apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+  apply(opened, {
+    kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: EXAMPLE_PIPELINE_AGENT
+  });
   const setup: PipelineSetup = {
     ...structuredClone(setupOf(opened)),
     stepStates: {
-      billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     },
     currentStep: 'entities',
     draft:       entityPipelineFixture(),

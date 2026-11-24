@@ -75,15 +75,16 @@ function partWith(constitution: ConstitutionDraft | null): PipelineSetupEntity {
 /** A record at Apply whose draft is the three-entity pipeline: `web` drafted, the others with no draft of their own. */
 function recordOver(stored: Pipeline | null, draft: Pipeline = entityPipelineFixture()): PipelineSetup {
   return {
-    formatVersion:   2,
+    formatVersion:   3,
     setupId:         SETUP_ID,
     mode:            stored === null ? 'setup' : 'update',
     baseContentHash: stored === null ? null : PipelineUtil.contentHashOf(stored),
     stepStates:      {
-      billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
     },
     currentStep:                'design',
     billing:                    { mode: 'subscription' },
+    agent:                      { vendor: 'example-agent', program: { follows: 'machine' } },
     agentJobId:                 null,
     snapshotCommit:             null,
     readyToContinue:            [],

@@ -2,6 +2,7 @@
  * The board document: everything a view of one forge's board reads, from its tickets and jobs to its pipeline, as forge's own types. Its
  * parts are in the files beside it, and the values of its unions in `constants/BoardVocabulary.ts`.
  */
+import type { BoardAgentDocument }    from './BoardAgentDocuments.ts';
 import type {
   BoardDecisionDocument,
   BoardIncidentDocument,
@@ -119,6 +120,8 @@ export interface ForgeBoardDocument {
   readonly entityAssignment:      BoardEntityAssignmentDocument | null;
   /** `null` while no picture can be sent. */
   readonly pictureLimits:         BoardPictureLimitsDocument | null;
+  /** The forge's agent, its program and its tools. From forge 4.1. */
+  readonly agent:                 BoardAgentDocument;
   readonly limits:                BoardLimitsDocument;
   /** The forge's open notices, each worded. */
   readonly notices:               readonly BoardNoticeDocument[];

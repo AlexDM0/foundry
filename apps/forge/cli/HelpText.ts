@@ -550,6 +550,12 @@ never carries it.
                               with nothing written, and lowering it stops no job in flight. --json
                               prints {answerVersion, limit, ceiling, agentsInFlight}, or after a set
                               {answerVersion, outcome, limit, ceiling}.
+  machine agent [<path>] [--json]
+                              Print this machine's program of the agent, which every board that
+                              follows the machine starts, and the places its installers use. With
+                              <path>, run that program once with its version arguments and store
+                              it in the monitor folder's config.json, kept as the path names it;
+                              one that does not run is refused at exit 1 with nothing written.
 
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints
@@ -603,6 +609,19 @@ never carries it.
                               change, stored as reach: each starts with /, as /bun.lock or
                               /packages/shared; none clears them. One log line. Refused at exit 1
                               while no pipeline is stored: set the gates first.
+  gate agent machine|<path> [--json]
+                              Set the board's agent, stored as agent: the machine's program, or
+                              the program at <path> for this board alone. The program runs once
+                              with its version arguments first; one that does not run is refused
+                              at exit 1. An open setup record follows it. Every job that stood
+                              not launched launches again.
+  gate tools <name>[=<path>]…|pipeline [--json]
+                              Set the programs whose folders an agent's search path holds, stored
+                              as tools: a name alone is found in the places installers use;
+                              pipeline removes the list, so the tools follow the pipeline's
+                              programs. git is always one. Refused while no pipeline is stored.
+  gate look-again [--json]    Launch again every job that stood not launched because its agent's
+                              program did not run.
 
   range --from <when>         The stored default axis of the chart; a bound may also be \`start\`, the
                               earliest visible row. A relative bound is stored as
@@ -824,9 +843,11 @@ never carries it.
                               draft. Nothing starts one by itself; job stop closes it and job
                               message opens it again.
 
-  pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]
+  pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--agent machine|<path>]
+                 [--replace-unreadable] [--json]
   pipeline update [--json]
   pipeline billing <S> subscription|api [--max-budget-usd <n>] [--json]
+  pipeline agent <S> machine|<path> [--json]
   pipeline continue <S> <step> [--json]
   pipeline answer <S> <Q> <letters>... | -- <text> [--json]
   pipeline constitution <S> --revision <n> [--file <path>|-] [--sources <source>,…|none] [--json]
@@ -839,16 +860,20 @@ never carries it.
   pipeline apply <S> --revision <n> [--resume] [--json]
   pipeline apply-cancel <S> [--json]
                               The pipeline setup record, <data>/pipeline-setup.json, one open at a
-                              time (setup-in-progress): setup opens a first one and starts its
-                              pipeline agent (--replace-unreadable lets its Apply write over an
-                              unreadable pipeline.json), update one on the stored pipeline.
-                              continue completes the current step (billing, research,
-                              constitution, design); answer answers a setup question;
+                              time (setup-in-progress): setup opens a first one at the agent step,
+                              or with --agent past it with its pipeline agent started
+                              (--replace-unreadable lets its Apply write over an unreadable
+                              pipeline.json), update one on the stored pipeline. agent chooses
+                              the program the record's pipeline agent runs, the machine's or a
+                              path, run once first; continue completes the current step
+                              (billing, agent, research, constitution, design), and the agent
+                              step's continue starts the pipeline agent; answer answers a setup
+                              question;
                               constitution stores the whole text from a file or standard input and
                               the SOURCES ticks (contributing, research, installed-default); edit
                               sets draft fields in one move, --set repeating (gate:<name>,
                               phase-order:<phase>, prepare:<name>, prepare-order, role:<role>,
-                              review, airlock, approval:<approval>, constitution), each to a JSON
+                              review, airlock, tools, approval:<approval>, constitution), each to a JSON
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
                               every proposed change; check has Hephaestus run the gates the

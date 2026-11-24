@@ -44,7 +44,7 @@ const STORED_WEB_AND_API: Pipeline = {
 };
 
 const UPDATE_OPENING: PipelineSetupOpening = {
-  mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
 };
 
 const repositoryDirectory = createScratchDirectory('board-state-apply-refusal');

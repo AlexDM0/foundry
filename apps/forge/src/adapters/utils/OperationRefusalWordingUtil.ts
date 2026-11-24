@@ -20,6 +20,7 @@ import type { OperationRefusal }                             from '../../shared/
 import type { OperationRefusalDetail }                       from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
 import { ROOT_OVERRIDE_VARIABLE }                            from '../../shared/constants/RootOverrideVariable.ts';
+import { AgentProgramWordingUtil }                           from '../../shared/utils/AgentProgramWordingUtil.ts';
 import { StatusWordingUtil }                                 from './StatusWordingUtil.ts';
 import { TicketPhraseUtil }                                  from './TicketPhraseUtil.ts';
 
@@ -344,6 +345,12 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return 'No gate pipeline is stored, so the Assistant was not switched: set the gates first'
         + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
         + `. ${NOTHING_WAS_WRITTEN}`;
+    case 'agent-without-pipeline':
+      return `No gate pipeline is stored and no pipeline setup is open, so the agent was not set: start the pipeline setup first. ${NOTHING_WAS_WRITTEN}`;
+    case 'tools-without-pipeline':
+      return 'No gate pipeline is stored, so the tools were not set: set the gates first'
+        + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
+        + `. ${NOTHING_WAS_WRITTEN}`;
     case 'reach-without-pipeline':
       return 'No gate pipeline is stored, so the reach was not set: set the gates first'
         + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
@@ -419,6 +426,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     }
     case 'billing-cap-not-positive':
       return `A budget cap of ${detail.maxBudgetUsd} USD is not above 0: give a positive cap, or none. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-agent-not-chosen':
+      return `Pipeline setup ${detail.setupId} has no agent yet, so the agent step was not continued: choose the agent's program first. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-current':
       return `Pipeline setup ${detail.setupId} is at the ${detail.currentStep} step, not ${detail.step}, so ${detail.step} was not continued. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-reached':
@@ -900,6 +909,13 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       );
     case 'main-constitution-unreadable':
       return `CONSTITUTION.md on the main line could not be read: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
+    case 'agent-program-does-not-run':
+      return `The program was not kept: ${AgentProgramWordingUtil.programClauseOf(detail.cause, detail.agentName, detail.programPath)}. ${NOTHING_WAS_WRITTEN}`;
+    case 'tool-not-found':
+      return `No program ${detail.name} is in ${detail.searchedFolders.length === 0 ? 'any place installers use' : detail.searchedFolders.join(', ')}: `
+        + `name the tool with its path. ${NOTHING_WAS_WRITTEN}`;
+    case 'machine-config-unwritable':
+      return `This machine's config ${detail.filePath} was not written over: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'picture-unknown':
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':

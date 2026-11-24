@@ -33,6 +33,7 @@ export const CONTROL_CONTRACT_KINDS = [
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',
+  'machine-agent-program-set',
 ] as const satisfies readonly ForgeControlCommand['kind'][];
 
 /**
@@ -41,6 +42,7 @@ export const CONTROL_CONTRACT_KINDS = [
  * `cli/hephaestus/routes/CommandRoute.boardContract.spec.ts`.
  */
 export const BOARD_COMMAND_CONTRACT_KINDS = [
+  'agent-look-again',
   'chart-range-set',
   'decision-answer',
   'gate-profile-start',
@@ -53,6 +55,7 @@ export const BOARD_COMMAND_CONTRACT_KINDS = [
   'merge-accept',
   'merge-update',
   'pipeline-agent-advise',
+  'pipeline-agent-set',
   'pipeline-apply',
   'pipeline-apply-cancel',
   'pipeline-assistant-set',
@@ -61,12 +64,14 @@ export const BOARD_COMMAND_CONTRACT_KINDS = [
   'pipeline-draft-discard',
   'pipeline-draft-edit',
   'pipeline-draft-undo',
+  'pipeline-setup-agent',
   'pipeline-setup-answer',
   'pipeline-setup-billing',
   'pipeline-setup-resume',
   'pipeline-setup-start',
   'pipeline-setup-start-over',
   'pipeline-setup-step',
+  'pipeline-tools-set',
   'pipeline-update-start',
   'ticket-deliver-by-hand',
   'ticket-hold',

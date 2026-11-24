@@ -17,7 +17,12 @@ import { GitProcess }                                      from '../../lib/git/G
 import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
 import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { EntityKey, Pipeline, PipelineBilling }       from '../../lib/tracker-model/@types/Pipeline.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgent,
+  PipelineBilling
+} from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ApplyMainReading,
   ConstitutionSources,
@@ -90,6 +95,20 @@ function billingFieldOf(command: SentCommand): PipelineBilling {
   if (maxBudgetUsd === undefined) return { mode };
   if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd)) refuseMalformedSetupCommand(command.kind, 'billing');
   return { mode, maxBudgetUsd };
+}
+
+const AGENT_KEYS = ['vendor', 'program'];
+
+/** A vendor and its program, `{follows: "machine"}` or `{pinned: <path>}`; whether the program runs was checked before the hold. */
+export function agentFieldOf(command: SentCommand): PipelineAgent {
+  const value = fieldOf(command, 'agent');
+  if (!JsonRecordUtil.valueIsAPlainObject(value) || Object.keys(value).some((key) => !AGENT_KEYS.includes(key))) refuseMalformedSetupCommand(command.kind, 'agent');
+  const { vendor, program } = value;
+  if (typeof vendor !== 'string' || vendor.trim() === '' || !JsonRecordUtil.valueIsAPlainObject(program)) refuseMalformedSetupCommand(command.kind, 'agent');
+  const { follows, pinned } = program;
+  if (Object.keys(program).length === 1 && follows === 'machine') return { vendor, program: { follows } };
+  if (Object.keys(program).length !== 1 || typeof pinned !== 'string' || pinned.trim() === '') refuseMalformedSetupCommand(command.kind, 'agent');
+  return { vendor, program: { pinned } };
 }
 
 function stepFieldOf(command: SentCommand): PipelineSetupStep {
@@ -264,15 +283,19 @@ function openingConstitutionOf(change: BoardTransaction, context: ControlContext
   return { mainConstitution, storedAnnotations };
 }
 
-/** A first setup opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and never writes over a file unseen. */
+/**
+ * A first setup opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and never writes over a file unseen.
+ * With an agent its pipeline agent launches at once; with none the record opens at the agent step, and the step's Continue launches it.
+ */
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const billing = billingFieldOf(command);
   const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
   if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
+  const agent = fieldOf(command, 'agent') === undefined ? null : agentFieldOf(command);
   const opened = change.board.openSetup({
-    mode: 'setup', billing, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
+    mode: 'setup', billing, agent, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
   }, change.at);
-  return startedAgentOf(opened, change);
+  return agent === null ? opened : startedAgentOf(opened, change);
 }
 
 /**
@@ -284,9 +307,10 @@ function updateOpeningOf(mode: 'update' | 'advise', change: BoardTransaction, co
   requireReadablePipeline(change);
   requireEntityLevel(change.board.pipeline(), entityKey);
   const billing = change.board.pipeline()?.billing ?? { mode: 'subscription' };
+  const agent = change.board.pipeline()?.agent ?? null;
   const constitutionOpening = change.board.pipeline() === null ? { mainConstitution: null, storedAnnotations: [] } : openingConstitutionOf(change, context);
   return {
-    mode, billing, replacesUnreadablePipeline: false, ...constitutionOpening
+    mode, billing, agent, replacesUnreadablePipeline: false, ...constitutionOpening
   };
 }
 
@@ -315,11 +339,20 @@ function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: BoardT
   return change.board.setSetupBilling(textFieldOf(command, 'setupId'), billingFieldOf(command), change.at);
 }
 
+function setAgent(command: CommandOf<'pipeline-setup-agent'>, change: BoardTransaction): PipelineSetupChanged {
+  return change.board.setSetupAgent(textFieldOf(command, 'setupId'), agentFieldOf(command), change.at);
+}
+
+/** The agent step's Continue launches the record's pipeline agent, which runs on the agent the step chose. */
+function startedAgentAfterTheAgentStep(changed: PipelineSetupChanged, change: BoardTransaction, step: PipelineSetupStep): PipelineSetupChanged {
+  return step === 'agent' && changed.setup.agentJobId === null && changed.setup.mode === 'setup' ? startedAgentOf(changed, change) : changed;
+}
+
 function moveStep(command: CommandOf<'pipeline-setup-step'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const step    = stepFieldOf(command);
   if (fieldOf(command, 'move') !== 'continue') refuseMalformedSetupCommand(command.kind, 'move');
-  const changed = change.board.continueSetupStep(setupId, step, change.at);
+  const changed = startedAgentAfterTheAgentStep(change.board.continueSetupStep(setupId, step, change.at), change, step);
   const messaged = messagedToEveryAgent(changed, change, context, {
     kind: 'step-continued', setupId, mode: changed.setup.mode, step, currentStep: changed.setup.currentStep
   });
@@ -643,6 +676,7 @@ function cancelApply(command: CommandOf<'pipeline-apply-cancel'>, change: BoardT
 export const PIPELINE_SETUP_CONTROLS = {
   'pipeline-setup-start':       startSetup,
   'pipeline-setup-billing':     setBilling,
+  'pipeline-setup-agent':       setAgent,
   'pipeline-setup-step':        moveStep,
   'pipeline-setup-start-over':  startOver,
   'pipeline-setup-resume':      resumeSetup,

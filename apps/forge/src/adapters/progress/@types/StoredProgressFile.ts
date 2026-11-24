@@ -9,6 +9,7 @@ import type {
   InterruptionCause,
   JobIntake,
   JobKind,
+  JobNotLaunched,
   JobOutcome,
   JobRole,
   JobState,
@@ -101,6 +102,7 @@ export interface StoredJob {
   outcome?:            JobOutcome;
   entity?:             string;
   stage?:              number;
+  notLaunched?:        JobNotLaunched;
 }
 
 export interface StoredProgressFile {

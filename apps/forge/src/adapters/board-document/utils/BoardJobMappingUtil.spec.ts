@@ -50,11 +50,13 @@ function jobWith(changes: Partial<JobWithLiveFacts>): JobWithLiveFacts {
   };
 }
 
+const AGENT_NAME = 'Example Agent';
+
 const OFFERS = { stopModes: ['stop', 'wind-down'], takesFresh: true, takesMessage: true } as const;
 
 describe('BoardJobMappingUtil.jobOf', () => {
   test('maps a job field by field, an absent interruption, stop request, intake and entity as null, and leaves its bookkeeping out', () => {
-    expect(BoardJobMappingUtil.jobOf(jobWith({}), OFFERS)).toEqual({
+    expect(BoardJobMappingUtil.jobOf(jobWith({}), OFFERS, AGENT_NAME)).toEqual({
       id:            'J1',
       kind:          'build',
       role:          'builder',
@@ -70,6 +72,7 @@ describe('BoardJobMappingUtil.jobOf', () => {
       stopRequest:   null,
       intake:        null,
       entity:        null,
+      notLaunched:   null,
       live:          {
         calls:        4,
         callBudget:   null,
@@ -91,7 +94,7 @@ describe('BoardJobMappingUtil.jobOf', () => {
   });
 
   test('names the interruption and the lost line by the monitor\'s causes', () => {
-    const document = BoardJobMappingUtil.jobOf(jobWith({ interruption: 'talos-lost', lostLine: { line: 'gate', cause: 'forge-crashed' } }), OFFERS);
+    const document = BoardJobMappingUtil.jobOf(jobWith({ interruption: 'talos-lost', lostLine: { line: 'gate', cause: 'forge-crashed' } }), OFFERS, AGENT_NAME);
     expect([document.interruption, document.lostLine]).toEqual(['child-lost', { line: 'gate', cause: 'forge-crashed' }]);
   });
 
@@ -103,7 +106,7 @@ describe('BoardJobMappingUtil.jobOf', () => {
       intake:      { text: 'Export the orders.', proposedDraftSets: [['D1']] },
       stopRequest: 'wind-down',
       entity:      'web',
-    }), OFFERS);
+    }), OFFERS, AGENT_NAME);
     expect([document.airlock, document.intake, document.stopRequest, document.entity])
       .toEqual([{ phase: 'landing' }, { text: 'Export the orders.', title: null }, 'wind-down', 'web']);
   });
@@ -146,5 +149,10 @@ describe('BoardJobMappingUtil.ticketForecastOf', () => {
       steps:      forecast.steps.map((step) => ('gateNames' in step ? { ...step, gateNames: [...step.gateNames] } : step)),
       dependents: [{ ticketId: '002', stillWaitingOnTicketIds: ['003'] }],
     })).toEqual(forecast);
+  });
+
+  test('carries a refused launch with its cause, its program and the sentence naming the agent and the path', () => {
+    const document = BoardJobMappingUtil.jobOf(jobWith({ notLaunched: { cause: 'not-there', programPath: '/opt/example/bin/agent' } }), OFFERS, AGENT_NAME);
+    expect(document.notLaunched).toEqual({ cause: 'not-there', programPath: '/opt/example/bin/agent', sentence: 'the Example Agent at /opt/example/bin/agent is not there' });
   });
 });

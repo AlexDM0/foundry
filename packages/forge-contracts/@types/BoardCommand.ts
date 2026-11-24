@@ -3,7 +3,8 @@
  * kinds: each kind with the payload types the contract declares itself. A draft edit is typed, addressed by its target as the forge's
  * draft names it, never as a field string.
  */
-import type { EntityKey, GatePhase, TicketPriority } from '../constants/BoardVocabulary.ts';
+import type { EntityKey, GatePhase, TicketPriority }               from '../constants/BoardVocabulary.ts';
+import type { PipelineAgentDocument, PipelineToolRequestDocument } from './BoardAgentDocuments.ts';
 import type {
   ConstitutionSourcesDocument,
   PipelineBillingDocument,
@@ -32,6 +33,8 @@ export interface PictureReferenceDocument {
 }
 
 export type ForgeBoardCommand =
+  /** The forge runs its agent's program once again and launches every job that stood not launched. From forge 4.1. */
+  | { readonly kind: 'agent-look-again' }
   | { readonly kind: 'chart-range-set'; readonly range: ChartRangeRequest }
   | { readonly kind: 'decision-answer'; readonly decisionId: string; readonly answer: DecisionAnswerFormDocument }
   | {
@@ -56,6 +59,8 @@ export type ForgeBoardCommand =
   | { readonly kind: 'merge-accept'; readonly ticketReference: string }
   | { readonly kind: 'merge-update'; readonly ticketReference: string }
   | { readonly kind: 'pipeline-agent-advise'; readonly entity?: EntityKey }
+  /** The forge's agent, kept only once its program runs; the open setup record follows it. From forge 4.1. */
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: PipelineAgentDocument }
   | { readonly kind: 'pipeline-apply'; readonly setupId: string; readonly draftRevision: number; readonly resumesBoard: boolean }
   | { readonly kind: 'pipeline-apply-cancel'; readonly setupId: string }
   /** The board's switch for the Assistant; off also winds a live Assistant down at the end of its turn. */
@@ -79,11 +84,21 @@ export type ForgeBoardCommand =
   }
   | { readonly kind: 'pipeline-draft-undo'; readonly setupId: string; readonly editId: string; readonly wholeBatch?: true }
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: DecisionAnswerFormDocument }
+  /** The record's agent, kept only once its program runs. From forge 4.1. */
+  | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: PipelineAgentDocument }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: PipelineBillingDocument }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  | { readonly kind: 'pipeline-setup-start'; readonly billing: PipelineBillingDocument; readonly replacesUnreadablePipeline: boolean }
+  /** With no `agent` the record opens at the agent step; `agent` from forge 4.1. */
+  | {
+    readonly kind:                       'pipeline-setup-start';
+    readonly billing:                    PipelineBillingDocument;
+    readonly replacesUnreadablePipeline: boolean;
+    readonly agent?:                     PipelineAgentDocument;
+  }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: PipelineSetupStep; readonly move: 'continue' }
+  /** The stored pipeline's tools, a tool named alone found by forge; `null` follows the pipeline's programs again. From forge 4.1. */
+  | { readonly kind: 'pipeline-tools-set'; readonly tools: readonly PipelineToolRequestDocument[] | null }
   | { readonly kind: 'pipeline-update-start'; readonly entity?: EntityKey }
   | { readonly kind: 'ticket-deliver-by-hand'; readonly ticketReference: string; readonly branch?: string; readonly commit?: string }
   | { readonly kind: 'ticket-hold'; readonly ticketReference: string; readonly reason: string }

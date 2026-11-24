@@ -21,11 +21,16 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
 import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineBilling }                                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup, PipelineSetupMode }                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                                                                  from '../../shared/constants/ProductNames.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgent,
+  PipelineBilling
+} from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, PipelineSetupMode } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                            from '../../lib/tracker-model/Board.ts';
+import type { BranchNames }                      from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
 import {
   clearCustoms,
   launchSnapshotOf,
@@ -120,6 +125,11 @@ function firstSessionOf(setup: Readonly<PipelineSetup>): { agentJobId: string; e
 /** A record's agents share the record's snapshot; an agent no record names has one of its own. */
 function snapshotDirectoryOf(worktreesRoot: string, board: Board, job: Readonly<Job>): string {
   return join(worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER, servedSetupOf(board, job)?.setupId ?? job.id);
+}
+
+/** The agent a job launches on: a pipeline agent's record's, which the setup chose before any pipeline exists, else the forge's. */
+function launchAgentOf(board: Board, job: Readonly<Job>): PipelineAgent | null {
+  return (isPipelineAgentJob(job) ? servedSetupOf(board, job)?.agent : null) ?? board.agentOfForge();
 }
 
 /** The billing a pipeline agent launches under: its record's, which the setup chose before any pipeline exists. */
@@ -335,6 +345,7 @@ export const PipelineAgentSessions = Object.freeze({
   isPipelineAgentJob,
   servedLevelOf,
   launchBillingOf,
+  launchAgentOf,
   pinSnapshotCommit,
   prepareSnapshot,
   pipelineAgentProfileOf,

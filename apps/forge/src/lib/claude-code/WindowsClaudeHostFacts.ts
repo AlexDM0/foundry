@@ -11,6 +11,8 @@ import { claudeConfigFolderOf }                         from './ClaudeConfigFold
 const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '_netrc', '.netrc', '.git-credentials'] as const;
 const CLAUDE_CREDENTIALS_FILE_NAME = '.credentials.json';
 const ANTHROPIC_PROFILE_FOLDER = ['.config', 'anthropic'] as const;
+/** The native installer's program; the npm shim is a batch target, which no launch takes. */
+const NATIVE_PROGRAM_PLACE = ['.local', 'bin', 'claude.exe'] as const;
 const DRIVE_PATH = /^([A-Za-z]):[\\/]*(.*)$/s;
 const BACKSLASHES = /\\/g;
 
@@ -47,4 +49,5 @@ export const WINDOWS_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHost
   credentialPathsOf,
   sandboxSettingsApply: false,
   sandboxDenyShape:     'path-rules',
+  programPlacesOf:      (homeDirectory) => [win32.join(homeDirectory, ...NATIVE_PROGRAM_PLACE)],
 });

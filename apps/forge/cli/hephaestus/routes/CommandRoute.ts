@@ -3,28 +3,36 @@
  * `{controlVersion, outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an
  * install change, each `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints.
  * `hephaestus-stop`, `hephaestus-restart` and `talos-restart` are runtime only and go to Hephaestus itself, held or not;
- * `machine-agent-limit-set` writes the machine's limit, in no hold.
+ * `machine-agent-limit-set` writes the machine's limit, and `machine-agent-program-set` the machine's agent program once it ran, in no hold.
+ * A command about the forge's agent runs its program, or finds its tools, before the hold, and is refused when they do not.
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import { BoardCommandMappingUtil }               from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
-import { BoardCommandReadingUtil }               from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
-import { RefusalDocumentUtil }                   from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
-import { CONTROL_COMMAND_KINDS }                 from '../../../src/services/control/ControlService.ts';
-import type { RouteAnswer }                      from '../../../src/services/hephaestus/HephaestusServer.ts';
-import { MachineAgentLimit }                     from '../../../src/services/hephaestus/MachineAgentLimit.ts';
-import type { BoardStore }                       from '../../../src/services/store/BoardStore.ts';
-import type { Workspace }                        from '../../../src/services/tracker/Workspace.ts';
-import type { ControlCommand, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }              from '../../../src/shared/constants/HephaestusApiContracts.ts';
-import type { CommandContext }                   from '../../CommandContext.ts';
-import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }     from '../../CommandControlContext.ts';
-import { registerWrittenTracker }                from '../../RegisterWrittenTracker.ts';
-import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
-import { BY_HAND_COMMAND_KINDS }                 from '../../constants/JobVerbs.ts';
-import { OptionValueUtil }                       from '../../utils/OptionValueUtil.ts';
-import { OutputUtil }                            from '../../utils/OutputUtil.ts';
+import { BoardCommandMappingUtil }                                      from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
+import { BoardCommandReadingUtil }                                      from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
+import { MachineConfigFile }                                            from '../../../src/adapters/machine-config/MachineConfigFile.ts';
+import { RefusalDocumentUtil }                                          from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
+import { type AgentCommandPreparationContext, AgentCommandPreparation } from '../../../src/services/control/AgentCommandPreparation.ts';
+import { AgentPrograms }                                                from '../../../src/services/control/AgentPrograms.ts';
+import { CONTROL_COMMAND_KINDS }                                        from '../../../src/services/control/ControlService.ts';
+import type { AgentProgramChecks }                                      from '../../../src/services/hephaestus/AgentProgramChecks.ts';
+import type { RouteAnswer }                                             from '../../../src/services/hephaestus/HephaestusServer.ts';
+import { MachineAgentLimit }                                            from '../../../src/services/hephaestus/MachineAgentLimit.ts';
+import type { BoardStore }                                              from '../../../src/services/store/BoardStore.ts';
+import { readingBoardOfContents }                                       from '../../../src/services/tracker/BoardOfContents.ts';
+import { projectLocationOf }                                            from '../../../src/services/tracker/ProjectLocation.ts';
+import type { Workspace }                                               from '../../../src/services/tracker/Workspace.ts';
+import type { ControlCommand, ControlCommandOf }                        from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                             from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }                                     from '../../../src/shared/constants/HephaestusApiContracts.ts';
+import { agentCommandPreparationContextOf }                             from '../../AgentCommandContext.ts';
+import type { CommandContext }                                          from '../../CommandContext.ts';
+import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../../CommandControlContext.ts';
+import { registerWrittenTracker }                                       from '../../RegisterWrittenTracker.ts';
+import type { ArgumentParser }                                          from '../../arguments/ArgumentParser.ts';
+import { BY_HAND_COMMAND_KINDS }                                        from '../../constants/JobVerbs.ts';
+import { OptionValueUtil }                                              from '../../utils/OptionValueUtil.ts';
+import { OutputUtil }                                                   from '../../utils/OutputUtil.ts';
 
 export type RuntimeHephaestusCommand =
   | { kind: 'hephaestus-stop' | 'hephaestus-restart'; now: boolean }
@@ -45,6 +53,8 @@ export interface CommandRouteRequest {
   wake:                 () => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
   machineAgentCeiling?: number;
+  /** Hephaestus's newest run of each agent program, which a command's own run of a program updates. */
+  agentProgramChecks?:  AgentProgramChecks;
 }
 
 const HTTP_STATUS = {
@@ -134,6 +144,39 @@ function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: Comma
   }
 }
 
+function preparationContextOf(request: CommandRouteRequest, forbiddenRoots: readonly string[]): AgentCommandPreparationContext {
+  const { agentProgramChecks } = request;
+  return agentCommandPreparationContextOf(request.context, forbiddenRoots, agentProgramChecks === undefined ? undefined : (check) => agentProgramChecks.record(check));
+}
+
+/** The machine's program of a vendor, kept only once it runs; every forge that follows it reads it at its next launch. */
+async function machineAgentProgramAnswerOf(body: Record<string, unknown>, request: CommandRouteRequest): Promise<RouteAnswer> {
+  const { vendor, programPath } = body;
+  if (typeof vendor !== 'string' || typeof programPath !== 'string') return MALFORMED;
+  try {
+    await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, []));
+    const monitorFolder = request.context.platformPorts.dataFolders.monitorFolderOf(request.context.homeDirectory);
+    const written = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
+    if (written !== 'written') {
+      const reason = written.verdict === 'newer-version' ? `its version ${written.version} is newer than this program reads` : written.reason;
+      throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), reason });
+    }
+    request.wake();
+    return appliedAnswerOf({ outcome: 'done', result: { kind: 'machine-agent-program-set', vendor, programPath } });
+  } catch (thrown) {
+    if (thrown instanceof OperationRefusal) return refusedAnswerOf(thrown);
+    throw thrown;
+  }
+}
+
+/** The program the forge names now, which User's look again runs before every refused launch is tried again. */
+function namedProgramPathOf(request: CommandRouteRequest): string | null {
+  const agent = readingBoardOfContents(request.boardStore.reads.requireBoard()).agentOfForge();
+  if (agent === null) return null;
+  const monitorFolder = request.context.platformPorts.dataFolders.monitorFolderOf(request.context.homeDirectory);
+  return AgentPrograms.chosenPathOf(agent.program, MachineConfigFile.programPathOf(MachineConfigFile.read(monitorFolder), agent.vendor));
+}
+
 function isRuntimeKind(kind: string): kind is RuntimeHephaestusCommand['kind'] {
   return (RUNTIME_COMMAND_KINDS as readonly string[]).includes(kind);
 }
@@ -161,6 +204,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     }
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
+  if (kind === 'machine-agent-program-set') return machineAgentProgramAnswerOf(body, request);
   if (!fieldsAreWellTyped(kind, body)) return MALFORMED;
   const command = controlCommandOfBody(kind, body);
   if (command === null) return MALFORMED;
@@ -172,8 +216,11 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   }
   const { context, workspace, boardStore } = request;
   try {
+    const preparationContext = preparationContextOf(request, [projectLocationOf(workspace.rootDirectory).repositoryRoot]);
+    if (command.kind === 'agent-look-again') await AgentCommandPreparation.lookAgain(namedProgramPathOf(request), preparationContext);
+    const prepared = await AgentCommandPreparation.preparedCommandOf(command, preparationContext);
     const at      = OptionValueUtil.atStampFrom(request.commandArguments, context.now());
-    const written = await boardStore.commands.apply({ command, at, context: INSIDE_HEPHAESTUS_CONTROL_CONTEXT });
+    const written = await boardStore.commands.apply({ command: prepared, at, context: INSIDE_HEPHAESTUS_CONTROL_CONTEXT });
     OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
     OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
     await registerWrittenTracker(context, workspace);

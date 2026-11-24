@@ -1,10 +1,15 @@
 /**
  * A launched agent's environment is an allowlist, never an inheritance: a Hephaestus started from inside another agent session carries that
- * session's variables, which would change the child's tools. These cases hold the allowlist and that nothing else crosses.
+ * session's variables, which would change the child's tools. These cases hold the allowlist and that nothing else crosses, and where a
+ * tool is looked for by its name.
  */
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
+
 import { describe, expect, test } from 'bun:test';
 
-import { POSIX_LAUNCH_ENVIRONMENT } from './PosixLaunchEnvironment.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { POSIX_LAUNCH_ENVIRONMENT }                       from './PosixLaunchEnvironment.ts';
 
 const { inheritedVariableNames, launchEnvironmentOf } = POSIX_LAUNCH_ENVIRONMENT;
 
@@ -35,5 +40,36 @@ describe('launchEnvironmentOf', () => {
   test('adds the job variables, which win over an inherited one of the same name, and leaves out an allowlisted variable that is unset', () => {
     const environment = launchEnvironmentOf({ HOME: '/Users/example', PATH: '/bin' }, { EXAMPLE_JOB_ID: 'J1', PATH: '/opt/bin' });
     expect(environment).toEqual({ HOME: '/Users/example', PATH: '/opt/bin', EXAMPLE_JOB_ID: 'J1' });
+  });
+});
+
+describe('toolFoldersOf', () => {
+  test('looks in the installers\' folders, then nvm\'s newest node, then the system folders', () => {
+    const home = createScratchDirectory('tool-folders');
+    try {
+      for (const version of ['v9.11.2', 'v22.22.0', 'v22.3.1', 'not-a-version']) mkdirSync(join(home, '.nvm', 'versions', 'node', version, 'bin'), { recursive: true });
+      expect(POSIX_LAUNCH_ENVIRONMENT.toolFoldersOf(home)).toEqual([
+        join(home, '.bun', 'bin'),
+        '/opt/homebrew/bin',
+        '/usr/local/bin',
+        join(home, '.local', 'bin'),
+        join(home, '.nvm', 'versions', 'node', 'v22.22.0', 'bin'),
+        '/usr/bin',
+        '/bin',
+        '/usr/sbin',
+        '/sbin',
+      ]);
+    } finally {
+      removeScratchDirectory(home);
+    }
+  });
+
+  test('a home without nvm adds no node folder', () => {
+    const home = createScratchDirectory('tool-folders-no-nvm');
+    try {
+      expect(POSIX_LAUNCH_ENVIRONMENT.toolFoldersOf(home).some((folder) => folder.includes('.nvm'))).toBe(false);
+    } finally {
+      removeScratchDirectory(home);
+    }
   });
 });

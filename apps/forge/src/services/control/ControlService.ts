@@ -5,6 +5,7 @@
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                                       from '../../shared/@types/ControlContext.ts';
 import type { BoardTransaction }                                     from '../tracker/BoardTransaction.ts';
+import { AGENT_CONTROLS }                                            from './AgentControls.ts';
 import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
 import { BOARD_LIFETIME_CONTROLS }                                   from './BoardLifetimeControls.ts';
 import { BY_HAND_BOARD_CONTROLS }                                    from './ByHandBoardControls.ts';
@@ -34,6 +35,7 @@ const CONTROL_APPLIERS = {
   ...HEPHAESTUS_CONTROLS,
   ...RESUME_CONTROLS,
   ...SETTING_CONTROLS,
+  ...AGENT_CONTROLS,
   ...AIRLOCK_CONTROLS,
   ...PIPELINE_SETUP_CONTROLS,
   ...GATE_PROFILE_CONTROLS,

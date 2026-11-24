@@ -3,6 +3,7 @@
  * the wrong shape. A key the kind does not name is left behind. Whether a value fits the board (a ticket that exists, a revision still
  * current) is the applier's.
  */
+import type { PipelineAgentDocument, PipelineToolRequestDocument } from 'forge-contracts/BoardAgentDocuments';
 import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
@@ -131,6 +132,38 @@ function billingOf(value: unknown): PipelineBillingDocument {
   return { mode: 'api', maxBudgetUsd };
 }
 
+const AGENT_KEYS: readonly string[] = ['vendor', 'program'];
+
+const TOOL_REQUEST_KEYS: readonly string[] = ['name', 'path'];
+
+/** A vendor and its program, `{follows: "machine"}` or `{pinned: <path>}`, and nothing else. */
+function agentOf(value: unknown): PipelineAgentDocument {
+  const agent = recordOf(value);
+  if (Object.keys(agent).some((key) => !AGENT_KEYS.includes(key))) malformed();
+  const program = recordOf(valueAt(agent, 'program'));
+  if (Object.keys(program).length !== 1) malformed();
+  const vendor = textAt(agent, 'vendor');
+  if (Object.hasOwn(program, 'pinned')) return { vendor, program: { pinned: textAt(program, 'pinned') } };
+  if (valueAt(program, 'follows') !== 'machine') malformed();
+  return { vendor, program: { follows: 'machine' } };
+}
+
+/** The key with its agent when the body carries one; an absent key stays absent. */
+function optionalAgentAt(record: BodyRecord): { agent?: PipelineAgentDocument } {
+  return Object.hasOwn(record, 'agent') ? { agent: agentOf(record['agent']) } : {};
+}
+
+/** Each tool by its name, with its path or without, and `null` for the list removed. */
+function toolRequestsOf(value: unknown): PipelineToolRequestDocument[] | null {
+  if (value === null) return null;
+  if (!Array.isArray(value)) malformed();
+  return value.map((item: unknown) => {
+    const tool = recordOf(item);
+    if (Object.keys(tool).some((key) => !TOOL_REQUEST_KEYS.includes(key))) malformed();
+    return { name: textAt(tool, 'name'), ...optionalTextAt(tool, 'path') };
+  });
+}
+
 /** The three ticks, each a boolean, and nothing else. */
 function constitutionSourcesOf(record: BodyRecord): { draftedFrom?: ConstitutionSourcesDocument } {
   if (!Object.hasOwn(record, 'draftedFrom')) return {};
@@ -155,6 +188,7 @@ function draftSetsOf(value: unknown): string[][] {
 }
 
 const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
+  'agent-look-again':   () => ({ kind: 'agent-look-again' }),
   'chart-range-set':    (body) => ({ kind: 'chart-range-set', range: chartRangeOf(valueAt(body, 'range')) }),
   'decision-answer':    (body) => ({ kind: 'decision-answer', decisionId: textAt(body, 'decisionId'), answer: answerOf(valueAt(body, 'answer')) }),
   'gate-profile-start': (body) => {
@@ -180,6 +214,7 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   }),
   'pipeline-apply-cancel':      (body) => ({ kind: 'pipeline-apply-cancel', setupId: textAt(body, 'setupId') }),
   'pipeline-assistant-set':     (body) => ({ kind: 'pipeline-assistant-set', on: booleanAt(body, 'on') }),
+  'pipeline-agent-set':         (body) => ({ kind: 'pipeline-agent-set', agent: agentOf(valueAt(body, 'agent')) }),
   'pipeline-check':             (body) => ({ kind: 'pipeline-check', setupId: textAt(body, 'setupId') }),
   'pipeline-constitution-edit': (body) => ({
     kind:     'pipeline-constitution-edit',
@@ -203,12 +238,14 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   'pipeline-setup-answer': (body) => ({
     kind: 'pipeline-setup-answer', setupId: textAt(body, 'setupId'), questionId: textAt(body, 'questionId'), answer: answerOf(valueAt(body, 'answer'))
   }),
+  'pipeline-setup-agent':   (body) => ({ kind: 'pipeline-setup-agent', setupId: textAt(body, 'setupId'), agent: agentOf(valueAt(body, 'agent')) }),
   'pipeline-setup-billing': (body) => ({ kind: 'pipeline-setup-billing', setupId: textAt(body, 'setupId'), billing: billingOf(valueAt(body, 'billing')) }),
   'pipeline-setup-resume':  (body) => ({ kind: 'pipeline-setup-resume', setupId: textAt(body, 'setupId') }),
   'pipeline-setup-start':   (body) => ({
     kind:                       'pipeline-setup-start',
     billing:                    billingOf(valueAt(body, 'billing')),
     replacesUnreadablePipeline: booleanAt(body, 'replacesUnreadablePipeline'),
+    ...optionalAgentAt(body),
   }),
   'pipeline-setup-start-over': (body) => ({ kind: 'pipeline-setup-start-over', setupId: textAt(body, 'setupId') }),
   'pipeline-setup-step':       (body) => {
@@ -217,6 +254,7 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
       kind: 'pipeline-setup-step', setupId: textAt(body, 'setupId'), step: oneOf(PIPELINE_SETUP_STEPS, body, 'step'), move: 'continue'
     };
   },
+  'pipeline-tools-set':     (body) => ({ kind: 'pipeline-tools-set', tools: toolRequestsOf(valueAt(body, 'tools')) }),
   'pipeline-update-start':  (body) => ({ kind: 'pipeline-update-start', ...optionalTextAt(body, 'entity') }),
   'ticket-deliver-by-hand': (body) => ({
     kind: 'ticket-deliver-by-hand', ticketReference: textAt(body, 'ticketReference'), ...optionalTextAt(body, 'branch'), ...optionalTextAt(body, 'commit')

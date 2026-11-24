@@ -156,3 +156,6 @@ export const PICTURES_PER_MESSAGE_LIMIT = 4;
 
 /** The picture types Hephaestus stores, each known by its first bytes, never by a name or a header. */
 export const ACCEPTED_PICTURE_MEDIA_TYPES: readonly string[] = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
+/** How long a chosen agent program may take to print its version before it counts as one that does not run. */
+export const AGENT_PROGRAM_CHECK_TIMEOUT_MILLISECONDS = 10_000;

@@ -25,6 +25,7 @@ import {
 } from 'bun:test';
 import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { OperationRefusal, refusalIsOperationRefusal }    from '../../shared/OperationRefusal.ts';
+import { EXAMPLE_PIPELINE_AGENT }                         from '../../testing/ExamplePipelineAgent.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
@@ -488,7 +489,7 @@ describe('the pipeline a hold hands the Board', () => {
 
 describe('the setup record a hold reads and writes', () => {
   const FIRST_SETUP = {
-    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   } as const;
 
   test('a setup move writes pipeline-setup.json after log.jsonl, and a start over removes it', async () => {
@@ -507,7 +508,7 @@ describe('the setup record a hold reads and writes', () => {
     const layout = localStoreLayoutOf(workspace);
     expect(writtenPaths).toEqual([layout.progressRecordPath, layout.logRecordPath, layout.pipelineSetupRecordPath]);
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
-    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8'))).toMatchObject({ formatVersion: 2, setupId: 'S1', currentStep: 'research' });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8'))).toMatchObject({ formatVersion: 3, setupId: 'S1', currentStep: 'research' });
     const written = await writeTracker({
       lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
@@ -568,7 +569,7 @@ describe('the setup record a hold reads and writes', () => {
 
   test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, '{ "formatVersion": 2 }\n');
+    writeFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, '{ "formatVersion": 3 }\n');
 
     await writeTracker({
       lockTaker: LIVE_HOLDERS_LOCK_TAKER,
@@ -588,7 +589,7 @@ describe('the setup record a hold reads and writes', () => {
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
     const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
-    expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe('{ "formatVersion": 2 }\n');
+    expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe('{ "formatVersion": 3 }\n');
   });
 });
 

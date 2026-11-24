@@ -64,6 +64,7 @@ import {
   startScratchBoardTalos
 } from '../../testing/DrivePassHarness.ts';
 import { ECHOED_CONTROL_CONTEXT }   from '../../testing/EchoedControlContext.ts';
+import { EXAMPLE_PIPELINE_AGENT }   from '../../testing/ExamplePipelineAgent.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -1326,7 +1327,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       mutate:    (change) => {
         change.board.setHephaestusState('paused', change.at);
         const opening = {
-          mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+          mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
         } as const;
         openSetupId = change.board.openSetup(opening, change.at).setup.setupId;
       },

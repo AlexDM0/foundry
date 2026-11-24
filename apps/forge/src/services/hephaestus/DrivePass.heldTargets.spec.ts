@@ -107,7 +107,7 @@ function requestApply(board: Board, at: string): void {
   board.setAssistant(true, at);
   board.setHephaestusState('running', at);
   const { setupId } = board.openSetup({
-    mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, at).setup;
   board.editConstitution(setupId, { revision: 0, markdown: DRAFT_CONSTITUTION_TEXT }, at);
   board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, at);

@@ -1,3 +1,5 @@
+import { win32 } from 'node:path';
+
 import type { LaunchEnvironment } from './LaunchEnvironment.ts';
 
 const INHERITED_VARIABLE_NAMES = [
@@ -22,6 +24,9 @@ const INHERITED_VARIABLE_NAMES = [
 ] as const;
 const SEARCH_PATH_VARIABLE = 'PATH';
 const SEARCH_PATH_DELIMITER = ';';
+const SYSTEM_ROOT_VARIABLE = 'SYSTEMROOT';
+/** The folders of Windows's own programs under its system root, which every session searches after the forge's tools. */
+const SYSTEM_FOLDERS_UNDER_ROOT = [['System32'], [], ['System32', 'Wbem'], ['System32', 'WindowsPowerShell', 'v1.0']] as const;
 
 /** Windows compares variable names without case, so a name is only ever compared folded. */
 function foldedNameOf(name: string): string {
@@ -46,4 +51,13 @@ export const WINDOWS_LAUNCH_ENVIRONMENT: LaunchEnvironment = Object.freeze<Launc
     const searchPath = Object.entries(environment).find(([name]) => foldedNameOf(name) === SEARCH_PATH_VARIABLE)?.[1] ?? '';
     return searchPath.split(SEARCH_PATH_DELIMITER).filter((folder) => folder !== '');
   },
+  withSearchFolders: (environment, folders) => {
+    const systemRoot = Object.entries(environment).find(([name]) => foldedNameOf(name) === SYSTEM_ROOT_VARIABLE)?.[1];
+    const systemFolders = systemRoot === undefined ? [] : SYSTEM_FOLDERS_UNDER_ROOT.map((parts) => win32.join(systemRoot, ...parts));
+    const kept = Object.entries(environment).filter(([name]) => foldedNameOf(name) !== SEARCH_PATH_VARIABLE);
+    const searchPathName = Object.keys(environment).find((name) => foldedNameOf(name) === SEARCH_PATH_VARIABLE) ?? 'Path';
+    return { ...Object.fromEntries(kept), [searchPathName]: [...new Set([...folders, ...systemFolders])].join(SEARCH_PATH_DELIMITER) };
+  },
+  // No folder is known where Windows installers put tools, so a tool is found there only by a path User gives.
+  toolFoldersOf: () => [],
 });

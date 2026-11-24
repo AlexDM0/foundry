@@ -2,6 +2,7 @@
  * The contract's board command mapped into forge's own `ControlCommand` of the same kind, field by field, each readonly array copied into
  * the model's form. One branch per kind, so a kind the contract adds fails the typecheck until it is mapped here.
  */
+import type { PipelineAgentDocument, PipelineToolRequestDocument } from 'forge-contracts/BoardAgentDocuments';
 import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
@@ -18,9 +19,15 @@ import type {
   PipelineStepsDraftEditDocument
 } from 'forge-contracts/BoardPipelineDocuments';
 
-import type { DecisionAnswerForm }                                from '../../../lib/tracker-model/@types/Decision.ts';
-import type { PictureReference }                                  from '../../../lib/tracker-model/@types/Job.ts';
-import type { AgentStepSettings, InstructionEntry, PipelineGate } from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionAnswerForm } from '../../../lib/tracker-model/@types/Decision.ts';
+import type { PictureReference }   from '../../../lib/tracker-model/@types/Job.ts';
+import type {
+  AgentStepSettings,
+  InstructionEntry,
+  PipelineAgent,
+  PipelineGate,
+  PipelineTool
+} from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   EntityDraftEdit,
   PipelineDraftEdit,
@@ -130,6 +137,8 @@ function draftEditOf(edit: PipelineDraftEditDocument): PipelineDraftEdit {
       return { target: 'role', role: edit.role, value: agentSettingsOf(edit.value) };
     case 'airlock':
       return { target: 'airlock', value: edit.value === null ? null : { ...(edit.value.reReview === undefined ? {} : { reReview: { ...edit.value.reReview } }) } };
+    case 'tools':
+      return { target: 'tools', value: toolsOf(edit.value) };
     case 'approval':
       return { target: 'approval', approval: edit.approval, value: edit.value };
     case 'entity':
@@ -141,11 +150,21 @@ function draftEditOf(edit: PipelineDraftEditDocument): PipelineDraftEdit {
   }
 }
 
+/** A tool still named alone was not found before the command was mapped: its empty path is refused where the tools are checked. */
+function toolsOf(tools: readonly PipelineToolRequestDocument[] | null): PipelineTool[] | null {
+  return tools === null ? null : tools.map((tool) => ({ name: tool.name, path: tool.path ?? '' }));
+}
+
+function agentOf(agent: PipelineAgentDocument): PipelineAgent {
+  return { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
+}
+
 function optionalOf<Key extends string, Value>(key: Key, value: Value | undefined): { [Field in Key]?: Value } {
   return value === undefined ? {} : { [key]: value } as { [Field in Key]?: Value };
 }
 
 const MAPPER_OF_KIND: BoardCommandMappers = {
+  'agent-look-again':   () => ({ kind: 'agent-look-again' }),
   'chart-range-set':    (command) => ({ kind: 'chart-range-set', range: chartRangeOf(command.range) }),
   'decision-answer':    (command) => ({ kind: 'decision-answer', decisionId: command.decisionId, answer: answerOf(command.answer) }),
   'gate-profile-start': (command) => ({
@@ -166,6 +185,7 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
   'merge-accept':          (command) => ({ kind: 'merge-accept', ticketReference: command.ticketReference }),
   'merge-update':          (command) => ({ kind: 'merge-update', ticketReference: command.ticketReference }),
   'pipeline-agent-advise': (command) => ({ kind: 'pipeline-agent-advise', ...optionalOf('entity', command.entity) }),
+  'pipeline-agent-set':    (command) => ({ kind: 'pipeline-agent-set', agent: agentOf(command.agent) }),
   'pipeline-apply':        (command) => ({
     kind: 'pipeline-apply', setupId: command.setupId, draftRevision: command.draftRevision, resumesBoard: command.resumesBoard
   }),
@@ -194,13 +214,20 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
   'pipeline-setup-answer': (command) => ({
     kind: 'pipeline-setup-answer', setupId: command.setupId, questionId: command.questionId, answer: answerOf(command.answer)
   }),
-  'pipeline-setup-billing':    (command) => ({ kind: 'pipeline-setup-billing', setupId: command.setupId, billing: { ...command.billing } }),
-  'pipeline-setup-resume':     (command) => ({ kind: 'pipeline-setup-resume', setupId: command.setupId }),
-  'pipeline-setup-start':      (command) => ({ kind: 'pipeline-setup-start', billing: { ...command.billing }, replacesUnreadablePipeline: command.replacesUnreadablePipeline }),
+  'pipeline-setup-agent':   (command) => ({ kind: 'pipeline-setup-agent', setupId: command.setupId, agent: agentOf(command.agent) }),
+  'pipeline-setup-billing': (command) => ({ kind: 'pipeline-setup-billing', setupId: command.setupId, billing: { ...command.billing } }),
+  'pipeline-setup-resume':  (command) => ({ kind: 'pipeline-setup-resume', setupId: command.setupId }),
+  'pipeline-setup-start':   (command) => ({
+    kind:                       'pipeline-setup-start',
+    billing:                    { ...command.billing },
+    replacesUnreadablePipeline: command.replacesUnreadablePipeline,
+    ...optionalOf('agent', command.agent === undefined ? undefined : agentOf(command.agent)),
+  }),
   'pipeline-setup-start-over': (command) => ({ kind: 'pipeline-setup-start-over', setupId: command.setupId }),
   'pipeline-setup-step':       (command) => ({
     kind: 'pipeline-setup-step', setupId: command.setupId, step: command.step, move: command.move
   }),
+  'pipeline-tools-set':     (command) => ({ kind: 'pipeline-tools-set', tools: toolsOf(command.tools) }),
   'pipeline-update-start':  (command) => ({ kind: 'pipeline-update-start', ...optionalOf('entity', command.entity) }),
   'ticket-deliver-by-hand': (command) => ({
     kind: 'ticket-deliver-by-hand', ticketReference: command.ticketReference, ...optionalOf('branch', command.branch), ...optionalOf('commit', command.commit)

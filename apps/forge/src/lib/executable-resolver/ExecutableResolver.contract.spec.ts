@@ -5,6 +5,7 @@
 import { expect, test } from 'bun:test';
 
 import { type PortClause, runPortContract } from '../../testing/PortContract.ts';
+import type { ProgramFileKind }             from './ExecutableLookup.ts';
 import type { ExecutableResolver }          from './ExecutableResolver.ts';
 import { executableResolverFor }            from './ExecutableResolverFor.ts';
 import { createPosixExecutableResolver }    from './PosixExecutableResolver.ts';
@@ -22,9 +23,16 @@ const FAKE_SEARCH_PATH: Readonly<Record<string, string>> = {
 };
 const FAKE_LINKS: Readonly<Record<string, string>> = { '/opt/example/bin/linked-tool': '/repository/tools/linked-tool' };
 
+const FAKE_PROGRAM_KINDS: Readonly<Record<string, ProgramFileKind>> = {
+  '/opt/example/bin/example-tool': 'program',
+  '/opt/example/bin/linked-tool':  'program',
+  '/opt/example/notes.txt':        'not-executable',
+};
+
 const FAKE_PRIMITIVES = {
-  lookUp:     (name: string) => (Object.hasOwn(FAKE_SEARCH_PATH, name) ? FAKE_SEARCH_PATH[name] ?? null : null),
-  realPathOf: (path: string) => (Object.hasOwn(FAKE_LINKS, path) ? FAKE_LINKS[path] ?? path : path),
+  lookUp:        (name: string) => (Object.hasOwn(FAKE_SEARCH_PATH, name) ? FAKE_SEARCH_PATH[name] ?? null : null),
+  realPathOf:    (path: string) => (Object.hasOwn(FAKE_LINKS, path) ? FAKE_LINKS[path] ?? path : path),
+  programKindOf: (path: string): ProgramFileKind => (Object.hasOwn(FAKE_PROGRAM_KINDS, path) ? FAKE_PROGRAM_KINDS[path] ?? 'missing' : 'missing'),
 };
 
 const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
@@ -49,6 +57,22 @@ const CLAUSES: readonly PortClause<ExecutableResolver>[] = [
     },
   },
   {
+    claim: 'keeps a configured program as its path spells it, a link included',
+    check: (resolver) => {
+      expect(resolver.programAt('/opt/example/bin/example-tool', ['/repository'])).toEqual({ verdict: 'found', path: '/opt/example/bin/example-tool' });
+    },
+  },
+  {
+    claim: 'refuses a configured program that is relative, missing, not executable, or inside a forbidden root, directly or through a link',
+    check: (resolver) => {
+      expect(resolver.programAt('bin/example-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'relative-path' });
+      expect(resolver.programAt('/opt/example/bin/absent-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'not-there' });
+      expect(resolver.programAt('/opt/example/notes.txt', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'not-executable' });
+      expect(resolver.programAt('/repository/bin/planted-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
+      expect(resolver.programAt('/opt/example/bin/linked-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
+    },
+  },
+  {
     claim: 'names the repository root as the reason for a path inside it',
     check: (resolver) => {
       expect(resolver.absolutePathOf('planted-tool', ['/repository'])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
@@ -66,6 +90,7 @@ test('the native adapter finds a real program by its absolute path', () => {
   expect(resolution).toMatchObject({ verdict: 'found', path: expect.stringMatching(/^\/.*\/sh$/) });
 });
 
-test('a platform with no adapter refuses every name', () => {
+test('a platform with no adapter refuses every name and every configured program', () => {
   expect(executableResolverFor('example-platform').absolutePathOf('sh', [])).toMatchObject({ verdict: 'refused', cause: 'no-adapter' });
+  expect(executableResolverFor('example-platform').programAt('/bin/sh', [])).toMatchObject({ verdict: 'refused', cause: 'no-adapter' });
 });

@@ -9,6 +9,7 @@ import {
   INTERRUPTION_CAUSES,
   JOB_ID_PREFIX,
   JOB_KINDS,
+  JOB_NOT_LAUNCHED_CAUSES,
   JOB_OUTCOMES,
   JOB_ROLES,
   JOB_STATES,
@@ -97,6 +98,14 @@ function entityAndStageProblem(job: Record<string, unknown>, path: string): stri
   return null;
 }
 
+function notLaunchedProblem(value: unknown, path: string): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return `${path} is not an object`;
+  const { cause, programPath } = value as Record<string, unknown>;
+  const causeProblem = vocabularyProblem(cause, `${path}.cause`, JOB_NOT_LAUNCHED_CAUSES);
+  if (causeProblem !== null) return causeProblem;
+  return nullableText(programPath) ? null : `${path}.programPath is neither a path nor null`;
+}
+
 function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): string | null {
   if (job['interruption'] !== undefined) {
     const problem = vocabularyProblem(job['interruption'], `${path}.interruption`, INTERRUPTION_CAUSES);
@@ -108,6 +117,10 @@ function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): s
   }
   if (job['stopRequest'] !== undefined) {
     const problem = vocabularyProblem(job['stopRequest'], `${path}.stopRequest`, JOB_STOP_MODES);
+    if (problem !== null) return problem;
+  }
+  if (job['notLaunched'] !== undefined) {
+    const problem = notLaunchedProblem(job['notLaunched'], `${path}.notLaunched`);
     if (problem !== null) return problem;
   }
   if (job['intake'] !== undefined) {

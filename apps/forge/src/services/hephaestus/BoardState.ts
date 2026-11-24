@@ -36,6 +36,7 @@ import type { TrackerProgress }                                                 
 import type { BranchTreeOf, MergeTargetOf }                                                   from '../../lib/tracker-model/AirlockClaims.ts';
 import type { Board }                                                                         from '../../lib/tracker-model/Board.ts';
 import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }                          from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import type { AgentFacts }                                                                    from '../../shared/@types/AgentFacts.ts';
 import { SERVED_CONTRACT_VERSIONS }                                                           from '../../shared/constants/HephaestusApiContracts.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/HephaestusLimits.ts';
 import { boardFactsOf }                                                                       from '../render/BoardFacts.ts';
@@ -77,6 +78,7 @@ export interface BoardStateReading {
   /** The agent adapter's `capabilities.pictures`: without it no message carries a picture. */
   agentTakesPictures: boolean;
   pipelineSources:    PipelineSources;
+  agent:              AgentFacts;
 }
 
 /** The stored pipeline files as read, and what the main line holds, for the pipeline facts. */
@@ -109,6 +111,8 @@ export interface BoardState extends Omit<FullStatusDocument, 'jobs' | 'decisions
   launchSlots:     LaunchSlots;
   /** `null` when the agent adapter cannot send a session pictures. */
   pictureLimits:   PictureLimits | null;
+  /** The forge's agent, its program and its tools; never in `status --json`. */
+  agent:           AgentFacts;
 }
 
 /** The package's `BoardSummaryDocument`, with every key forge sends. */
@@ -300,6 +304,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     pictureLimits:   reading.agentTakesPictures
       ? { perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES, mediaTypes: [...ACCEPTED_PICTURE_MEDIA_TYPES] }
       : null,
+    agent: reading.agent,
   };
 }
 

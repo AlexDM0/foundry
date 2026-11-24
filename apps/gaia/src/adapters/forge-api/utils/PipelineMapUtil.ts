@@ -344,7 +344,8 @@ function entityDraftEditOf(edit: EntityDraftEditDocument): BoardEntityDraftEdit 
   }
 }
 
-function draftEditOf(edit: PipelineDraftEditDocument): BoardDraftEdit {
+/** Gaia reads no draft's tools yet (forge 4.1), so a tools edit never reaches this mapper. */
+function draftEditOf(edit: Exclude<PipelineDraftEditDocument, { target: 'tools' }>): BoardDraftEdit {
   switch (edit.target) {
     case 'role':
       return {
@@ -382,7 +383,7 @@ function entityRefusalOf(refusal: BoardEntityRefusalDocument): BoardEntityRefusa
     entityKeys: refusal.entityKeys,
     shownOn:    refusal.shownOn,
     sentence:   refusal.sentence,
-    fix:        refusal.fix === null ? null : { label: refusal.fix.label, edits: refusal.fix.edits.map(draftEditOf) },
+    fix:        refusal.fix === null ? null : { label: refusal.fix.label, edits: refusal.fix.edits.flatMap((edit) => (edit.target === 'tools' ? [] : [draftEditOf(edit)])) },
   };
 }
 

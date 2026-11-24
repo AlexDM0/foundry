@@ -157,7 +157,10 @@ export function fakeAgentAdapter(
     installer:              CLAUDE_CODE_INSTALLER,
     promptFills:            CLAUDE_CODE_PROMPT_FILLS,
     credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
-    programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
+    // The fake's program is the runtime, which prints its own version.
+    programPlacesOf:        () => [process.execPath],
+    versionArguments:       ['--version'],
+    versionOf:              (versionOutput) => (versionOutput.trim() === '' ? null : versionOutput.trim()),
     programRepairOf:        claudeProgramRepairOf,
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);

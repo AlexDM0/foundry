@@ -461,6 +461,8 @@ const JOB_SHAPE = {
   stopRequest:   { nullable: vocabularyRule('jobStopRequest') },
   intake:        { nullable: { object: JOB_INTAKE_SHAPE } },
   entity:        TEXT_OR_NULL,
+  // Read once Gaia shows the forge's agent (forge 4.1).
+  notLaunched:   'passed-over',
   live:          { object: JOB_LIVE_FACTS_SHAPE },
   stopHolds:     { object: JOB_STOP_HOLDS_SHAPE },
   offers:        { object: JOB_OFFERS_SHAPE },
@@ -682,6 +684,8 @@ const PIPELINE_DEFINITION_SHAPE = {
   reach:        OPTIONAL_TEXT_LIST,
   entities:     { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
   assistant:    { optional: 'boolean' },
+  agent:        'passed-over',
+  tools:        'passed-over',
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {
@@ -818,6 +822,8 @@ const SETUP_RECORD_SHAPE = {
   stepStates:                 { object: SETUP_STEP_STATES_SHAPE },
   currentStep:                vocabularyRule('setupStep'),
   billing:                    BILLING_RULE,
+  agent:                      'passed-over',
+  tools:                      'passed-over',
   agentJobId:                 TEXT_OR_NULL,
   snapshotCommit:             TEXT_OR_NULL,
   readyToContinue:            vocabularyListRule('setupStep'),
@@ -1156,6 +1162,7 @@ export const BOARD_DOCUMENT_SHAPE = {
   pipelineAgentDefaults: { object: AGENT_PAIR_SHAPE },
   entityAssignment:      { nullable: { object: ENTITY_ASSIGNMENT_SHAPE } },
   pictureLimits:         { nullable: { object: PICTURE_LIMITS_SHAPE } },
+  agent:                 'passed-over',
   limits:                { object: LIMITS_SHAPE },
   notices:               { listOf: NOTICE_SHAPE },
   warnings:              { listOf: NOTICE_SHAPE },

@@ -5,6 +5,7 @@ import type {
   JobOutcome,
   JobRole,
   JobState,
+  JobNotLaunchedCause,
   JobStopMode,
   LandingKind,
   LostLineKind,
@@ -109,6 +110,18 @@ export const START_KINDS = ['first-start', 'handover', 'stopped-on-purpose', 'ma
 export const START_ORIGINS = ['user', 'successor'] as const satisfies readonly StartOrigin[];
 
 export const JOB_STOP_MODES = ['stop', 'wind-down', 'fresh'] as const satisfies readonly JobStopMode[];
+
+export const JOB_NOT_LAUNCHED_CAUSES = [
+  'no-agent-chosen',
+  'other-vendor',
+  'no-machine-program',
+  'relative-path',
+  'inside-forbidden-root',
+  'batch-target',
+  'not-there',
+  'not-executable',
+  'no-adapter',
+] as const satisfies readonly JobNotLaunchedCause[];
 
 export const LANDING_KINDS = ['landed', 'integrated'] as const satisfies readonly LandingKind[];
 

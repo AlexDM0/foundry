@@ -22,6 +22,7 @@ names no client.
 | `forge-contracts/BoardJobDocuments` | the board document's jobs with their live facts, the jobs that left the board, and each open ticket's forecast |
 | `forge-contracts/BoardConversationDocuments` | the board document's open decisions and incidents, the records a settled one leaves, and the picture limits |
 | `forge-contracts/BoardPipelineDocuments` | the board document's pipeline facts: the stored pipeline, the open setup record with its entity refusals and its Apply refusal, the flow, the gates' runs and the pipeline's records; and `PipelineDraftEditDocument`, the typed draft edit a `pipeline-draft-edit` carries |
+| `forge-contracts/BoardAgentDocuments` | the board document's `agent` from forge 4.1: the vendors, the forge's choice of agent and program, this machine's program, where its installers put it, whether it runs, and the tools an agent's search path holds |
 | `forge-contracts/BoardMergeQueueDocument` | the board document's merge queue, per target |
 | `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart, and the bounds and defaults forge's rules apply |
 | `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts, each ticket's and job's offered commands and the hold each stop mode leaves |

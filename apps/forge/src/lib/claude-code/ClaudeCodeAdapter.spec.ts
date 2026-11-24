@@ -26,7 +26,8 @@ import {
   claudeSessionIdOf,
   createClaudeCodeAdapter
 } from './ClaudeCodeAdapter.ts';
-import { POSIX_CLAUDE_HOST_FACTS } from './PosixClaudeHostFacts.ts';
+import { POSIX_CLAUDE_HOST_FACTS }   from './PosixClaudeHostFacts.ts';
+import { WINDOWS_CLAUDE_HOST_FACTS } from './WindowsClaudeHostFacts.ts';
 
 const REPOSITORY = '/Users/example/development/example-repository';
 const CLAUDE_CODE_ADAPTER = claudeCodeAdapterFor('darwin');
@@ -585,17 +586,21 @@ describe('the program a plan spawns', () => {
     });
   }
 
-  test('the adapter asks the resolver for claude, under the forbidden roots it is given', () => {
-    const asked: unknown[] = [];
-    const answer = { verdict: 'found', path: CLAUDE_PROGRAM_PATH } as const;
-    const resolver: Parameters<AgentAdapter['programPathOf']>[0] = {
-      absolutePathOf: (name, forbiddenRoots) => {
-        asked.push([name, forbiddenRoots]);
-        return answer;
-      },
-    };
-    expect(CLAUDE_CODE_ADAPTER.programPathOf(resolver, [REPOSITORY])).toBe(answer);
-    expect(asked).toEqual([['claude', [REPOSITORY]]]);
+  test('the places offered are the native installer\'s link first, the older local install, then Homebrew\'s two prefixes, each as found', () => {
+    expect(createClaudeCodeAdapter(POSIX_CLAUDE_HOST_FACTS).programPlacesOf('/Users/example')).toEqual([
+      '/Users/example/.local/bin/claude',
+      '/Users/example/.claude/local/claude',
+      '/opt/homebrew/bin/claude',
+      '/usr/local/bin/claude',
+    ]);
+    expect(createClaudeCodeAdapter(WINDOWS_CLAUDE_HOST_FACTS).programPlacesOf('C:\\Users\\example')).toEqual(['C:\\Users\\example\\.local\\bin\\claude.exe']);
+  });
+
+  test('a program answers as Claude Code only with its version and the product\'s name, which `claude --version` prints', () => {
+    expect(CLAUDE_CODE_ADAPTER.versionArguments).toEqual(['--version']);
+    expect(CLAUDE_CODE_ADAPTER.versionOf('2.1.327 (Claude Code)\n')).toBe('2.1.327');
+    expect(CLAUDE_CODE_ADAPTER.versionOf('1.3.2\n')).toBeNull();
+    expect(CLAUDE_CODE_ADAPTER.versionOf('')).toBeNull();
   });
 });
 
@@ -622,8 +627,11 @@ describe('the credentials and the repair', () => {
     'not-a-program-name':     null,
     'not-on-search-path':     null,
     'relative-search-folder': null,
+    'relative-path':          null,
     'inside-forbidden-root':  null,
-    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and put its folder first on PATH',
+    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and choose that program',
+    'not-there':              null,
+    'not-executable':         null,
     'no-adapter':             null,
   };
   for (const [cause, repair] of Object.entries(REPAIR_BY_CAUSE)) {

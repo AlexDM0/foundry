@@ -46,8 +46,8 @@ describe('forge\'s compatibility registry', () => {
     expect(CompatibilityRegistryUtil.inconsistenciesOf(FORGE_COMPATIBILITY_REGISTRY, FORGE_SYSTEM_VERSIONS)).toEqual([]);
   });
 
-  test('forge 4.0 supports no client of forge 3: the minimum supported is 4.0', () => {
-    expect(FORGE_SYSTEM_VERSIONS).toEqual({ current: RESTARTING_FORGE, minimumSupported: RESTARTING_FORGE });
+  test('forge 4.1 only adds to 4.0 and supports no client of forge 3: the minimum supported is 4.0', () => {
+    expect(FORGE_SYSTEM_VERSIONS).toEqual({ current: { major: 4, minor: 1 }, minimumSupported: RESTARTING_FORGE });
   });
 
   test('holds endpoints only, each shipped and still needed, with no compatibility path', () => {

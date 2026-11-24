@@ -1,0 +1,9 @@
+{
+  "stamp": {
+    "boundary": "src/lib/claude-code/ClaudeCodeAdapter.ts",
+    "system": "bun",
+    "version": "1.4.2",
+    "os": "darwin"
+  },
+  "answers": []
+}

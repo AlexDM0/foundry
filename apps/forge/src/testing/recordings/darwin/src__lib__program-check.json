@@ -1,0 +1,46 @@
+{
+  "stamp": {
+    "boundary": "src/lib/program-check/",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "answers its version",
+      "answer": {
+        "kind": "answered",
+        "exitCode": 0,
+        "output": "1.2.3 (Example Agent)\n"
+      }
+    },
+    {
+      "callShape": "ends with a failing exit",
+      "answer": {
+        "kind": "answered",
+        "exitCode": 3,
+        "output": "unknown option\n"
+      }
+    },
+    {
+      "callShape": "is a plain file",
+      "answer": {
+        "kind": "did-not-start",
+        "code": "EACCES"
+      }
+    },
+    {
+      "callShape": "is not there",
+      "answer": {
+        "kind": "did-not-start",
+        "code": "ENOENT"
+      }
+    },
+    {
+      "callShape": "outlives the bound",
+      "answer": {
+        "kind": "timed-out"
+      }
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import type {
   EntityAgentRole,
   EntityKey,
   Pipeline,
+  PipelineAgent,
   PipelineAgentRole,
   PipelineAirlock,
   PipelineApproval,
@@ -18,11 +19,15 @@ import type {
   PipelineEntity,
   PipelineGate,
   PipelineReview,
-  PipelineStep
+  PipelineStep,
+  PipelineTool
 } from './Pipeline.ts';
 
+/** The setup record's stored format, the only one read: an older record is set up anew. */
+export const PIPELINE_SETUP_FORMAT_VERSION = 3;
+
 /** `entities` is walked only by a record whose step states hold it: a forge over entities. */
-export type PipelineSetupStep = 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+export type PipelineSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** A later `done` step becomes `needs-recheck` when an earlier one reopens, never `not-started`. */
 export type PipelineSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
@@ -145,6 +150,7 @@ export type PipelineDraftField =
   | PipelineStepsDraftField
   | `role:${PipelineAgentRole}`
   | 'airlock'
+  | 'tools'
   | `approval:${PipelineApproval}`
   | `entity:${EntityKey}`
   | `entity:${EntityKey}/${EntityDraftField}`;
@@ -276,7 +282,7 @@ export interface PipelineSetupEntity {
 }
 
 export interface PipelineSetup {
-  formatVersion:              2;
+  formatVersion:              typeof PIPELINE_SETUP_FORMAT_VERSION;
   /** `S1`, `S2`, …: never reused. */
   setupId:                    string;
   mode:                       PipelineSetupMode;
@@ -285,6 +291,8 @@ export interface PipelineSetup {
   stepStates:                 PipelineSetupStepStates;
   currentStep:                PipelineSetupStep;
   billing:                    PipelineBilling;
+  /** The agent the record's pipeline agent runs on and Apply stores; null until User chose one, while no pipeline agent launches. */
+  agent:                      PipelineAgent | null;
   agentJobId:                 string | null;
   /** The main commit the agent's snapshot holds; how far main moved since is computed, never stored. */
   snapshotCommit:             string | null;
@@ -383,6 +391,8 @@ export type ConstitutionSourcesReading =
 export interface PipelineSetupOpening {
   mode:                       PipelineSetupMode;
   billing:                    PipelineBilling;
+  /** A first setup with none opens at the agent step. */
+  agent:                      PipelineAgent | null;
   replacesUnreadablePipeline: boolean;
   /** Null when main holds no `CONSTITUTION.md`. */
   mainConstitution:           MainConstitution | null;
@@ -398,6 +408,12 @@ export type PipelineStepsDraftEdit =
   | { target: 'prepare-order'; names: string[] }
   | { target: 'review'; value: PipelineReview | null }
   | { target: 'constitution'; value: PipelineConstitution | null };
+
+/** The draft's tools; `null` removes the list, so the tools follow the pipeline's programs again. */
+export interface ToolsDraftEdit {
+  target: 'tools';
+  value:  PipelineTool[] | null;
+}
 
 /** An edit inside one entity; a `null` value removes the key, so a list is absent and the cap is the board's limit alone. */
 export type EntityDraftEdit =
@@ -416,6 +432,7 @@ export type PipelineDraftEdit =
   | PipelineStepsDraftEdit
   | { target: 'role'; role: PipelineAgentRole; value: AgentStepSettings | null }
   | { target: 'airlock'; value: PipelineAirlock | null }
+  | ToolsDraftEdit
   | { target: 'approval'; approval: PipelineApproval; value: boolean | null }
   | { target: 'entity'; entityKey: EntityKey; value: PipelineEntityDefinition | null }
   | { target: 'within-entity'; entityKey: EntityKey; edit: EntityDraftEdit };

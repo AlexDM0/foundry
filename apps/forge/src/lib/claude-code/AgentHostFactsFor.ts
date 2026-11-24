@@ -21,5 +21,6 @@ export function agentHostFactsFor(platform: string): AgentHostFacts {
     credentialPathsOf:    refuse,
     sandboxSettingsApply: false,
     sandboxDenyShape:     'path-rules',
+    programPlacesOf:      () => [],
   });
 }

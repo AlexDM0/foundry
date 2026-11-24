@@ -124,6 +124,8 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'unknown-gate':                      { reason: 'unknown-gate', gateName: 'lint', gateNames: ['test'] },
   'approval-without-pipeline':         { reason: 'approval-without-pipeline', approval: 'merge' },
   'assistant-without-pipeline':        { reason: 'assistant-without-pipeline' },
+  'agent-without-pipeline':            { reason: 'agent-without-pipeline' },
+  'tools-without-pipeline':            { reason: 'tools-without-pipeline' },
   'reach-without-pipeline':            { reason: 'reach-without-pipeline' },
   'pipeline-set-per-entity':           { reason: 'pipeline-set-per-entity', entityKeys: ['root', 'web'] },
   'unknown-draft':                     { reason: 'unknown-draft', draftId: 'D9' },
@@ -230,6 +232,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   },
   'entities-while-tickets-in-flight': { reason: 'entities-while-tickets-in-flight', setupId: 'S1', ticketIds: ['014'] },
   'billing-cap-not-positive':         { reason: 'billing-cap-not-positive', maxBudgetUsd: 0 },
+  'setup-agent-not-chosen':           { reason: 'setup-agent-not-chosen', setupId: 'S1' },
   'setup-step-not-current':           {
     reason: 'setup-step-not-current', setupId: 'S1', step: 'design', currentStep: 'research'
   },
@@ -350,10 +353,15 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', reason: 'Example reason' },
   'draft-copy-outside-entities':    { kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['gate:test'] },
   'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', reason: 'Example reason' },
-  'task-ticket-missing':            { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
-  'namespace-board-has-jobs':       { kind: 'namespace-board-has-jobs', jobCount: 2 },
-  'namespace-branch-list-failed':   { kind: 'namespace-branch-list-failed', reason: 'Example reason' },
-  'namespace-not-free':             { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
+  'agent-program-does-not-run':     {
+    kind: 'agent-program-does-not-run', cause: 'not-there', programPath: '/opt/example/bin/agent', agentName: 'Example Agent'
+  },
+  'tool-not-found':               { kind: 'tool-not-found', name: 'example-tool', searchedFolders: ['/opt/example/bin'] },
+  'machine-config-unwritable':    { kind: 'machine-config-unwritable', filePath: '/home/example/.example-monitor/config.json', reason: 'Example reason' },
+  'task-ticket-missing':          { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
+  'namespace-board-has-jobs':     { kind: 'namespace-board-has-jobs', jobCount: 2 },
+  'namespace-branch-list-failed': { kind: 'namespace-branch-list-failed', reason: 'Example reason' },
+  'namespace-not-free':           { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
 };
 
 /**

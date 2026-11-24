@@ -726,7 +726,7 @@ function fencedBlockOf(text: string, language: string): string {
 }
 
 /**
- * The step blocks a step works under: the research block also while billing is open, since the agent starts reading at once; the entities
+ * The step blocks a step works under: the research block also while billing or the agent is open, since the agent starts reading at once; the entities
  * block, which turns the layout the research found into entities; the design block also at Apply, so the agent still answers User's
  * changes there. An advise session reads the design rules too.
  */
@@ -734,6 +734,7 @@ function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): re
   if (mode === 'advise') return ['PipelineAgentAdvise.md', 'PipelineAgentDesign.md'];
   switch (step) {
     case 'billing':
+    case 'agent':
     case 'research':
       return ['PipelineAgentResearch.md'];
     case 'entities':

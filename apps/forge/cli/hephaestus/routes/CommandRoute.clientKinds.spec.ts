@@ -20,15 +20,16 @@ type ControlKindIngestion = {
 
 /** The route reads a control kind's body as forge's own command, field for field; a kind whose fields differ fails the typecheck. */
 const CONTROL_KIND_INGESTION: ControlKindIngestion = {
-  'hephaestus-pause':        (command) => command,
-  'hephaestus-unpause':      (command) => command,
-  'interrupted-work-resume': (command) => command,
-  'hephaestus-stop':         (command) => command,
-  'hephaestus-restart':      (command) => command,
-  'talos-restart':           (command) => command,
-  'concurrency-set':         (command) => command,
-  'job-stop-all':            (command) => command,
-  'machine-agent-limit-set': (command) => command,
+  'hephaestus-pause':          (command) => command,
+  'hephaestus-unpause':        (command) => command,
+  'interrupted-work-resume':   (command) => command,
+  'hephaestus-stop':           (command) => command,
+  'hephaestus-restart':        (command) => command,
+  'talos-restart':             (command) => command,
+  'concurrency-set':           (command) => command,
+  'job-stop-all':              (command) => command,
+  'machine-agent-limit-set':   (command) => command,
+  'machine-agent-program-set': (command) => command,
 };
 
 const INGESTION_OF_LISTED_KIND = {

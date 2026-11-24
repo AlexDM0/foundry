@@ -38,10 +38,10 @@ import { MachineLimitsFile }                                    from '../../src/
 import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { createWindowsExecutableResolver }                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
 import type { Job, StartKind }                                  from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
+import type { AgentProgramResolution }                          from '../../src/services/control/AgentPrograms.ts';
 import type { StartClassificationVerdict }                      from '../../src/services/hephaestus/@types/StartClassification.ts';
 import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                   from '../../src/services/hephaestus/BoardChildren.ts';
@@ -235,21 +235,29 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
   });
 
-  test('on Windows an npm claude.cmd first on PATH launches no session and is noticed in words naming the install command, with no spawn-failed end', async () => {
-    const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\claude.cmd';
-    const fakeFiles: Readonly<Record<string, string>> = { claude: shimPath };
-    const windowsResolver = createWindowsExecutableResolver({ lookUp: (name) => (Object.hasOwn(fakeFiles, name) ? fakeFiles[name] ?? null : null), realPathOf: (path) => path });
-    const adapter: AgentAdapter = { ...fakeAgentAdapter(), programPathOf: (_resolver, forbiddenRoots) => windowsResolver.absolutePathOf('claude', forbiddenRoots) };
-    const drivePass = await drivePassWith(adapter);
+  test('a job whose agent program does not run stands not launched, stored and noticed in words, and launches by itself once the program differs', async () => {
+    const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\example-agent.cmd';
+    let resolution: AgentProgramResolution = { verdict: 'not-launched', notLaunched: { cause: 'batch-target', programPath: shimPath } };
+    const adapter = fakeAgentAdapter();
+    const drivePass = await drivePassWith(adapter, undefined, undefined, { agentProgramOf: () => resolution });
     await passOnce(drivePass);
     await passOnce(drivePass);
 
+    const storedJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
+    expect(storedJob).toMatchObject({ state: 'running', notLaunched: { cause: 'batch-target', programPath: shimPath } });
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
       kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
     }));
     const noticeTexts = drivePass.state().notices.map(HephaestusWording.noticeTextOf);
-    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: ${shimPath} is a batch file`))).toContain('irm https://claude.ai/install.ps1 | iex');
+    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
+    const notLaunchedLines = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"job-not-launched"'));
+    expect(notLaunchedLines.filter((line) => line.includes(`"jobId":"${buildJobId()}"`))).toHaveLength(1);
+
+    resolution = { verdict: 'found', programPath: process.execPath };
+    await passUntilBuildSessionSpawned(drivePass);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())?.notLaunched).toBeUndefined();
+    expect(storedLogTextOf(repositoryDirectory)).toContain('"job-launch-retried"');
   });
 
   test('a launch no Talos takes leaves the job for the next pass, which launches it once Talos serves', async () => {

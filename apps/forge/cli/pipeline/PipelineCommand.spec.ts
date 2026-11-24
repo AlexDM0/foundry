@@ -66,7 +66,7 @@ function storedSetup(): PipelineSetup {
 }
 
 async function setupAtDesign(): Promise<void> {
-  await runSetup(['pipeline', 'setup']);
+  await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
   for (const step of ['research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
 }
 
@@ -82,7 +82,7 @@ afterEach(() => {
 
 describeWhenGitIsRecorded('the pipeline verbs', () => {
   test('pipeline setup opens S1 billed as named, launches its pipeline agent, prints the record under --json, and logs both', async () => {
-    const context = await runSetup(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
+    const context = await runSetup(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--agent', process.execPath, '--json']);
 
     const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
     expect(printed.setup).toMatchObject({
@@ -93,12 +93,14 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
   });
 
   test('pipeline billing and pipeline continue move the stored record', async () => {
-    await runSetup(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
 
     await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
     await run(['pipeline', 'continue', 'S1', 'research']);
 
-    const stepStates = { billing: 'done', research: 'done', constitution: 'in-progress' };
+    const stepStates = {
+      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress'
+    };
     expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'constitution', stepStates });
   });
 
@@ -237,7 +239,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
   });
 
   test('pipeline start-over removes the record, and pipeline update then refuses with no pipeline stored', async () => {
-    await runSetup(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
 
     await run(['pipeline', 'start-over', 'S1']);
     expect(existsSync(setupFilePath())).toBe(false);

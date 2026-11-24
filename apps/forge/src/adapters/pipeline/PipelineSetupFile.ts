@@ -6,22 +6,23 @@
 import { JsonRecordUtil }                        from '../../lib/json-record/JsonRecordUtil.ts';
 import type { DraftAnswer, DraftQuestionOption } from '../../lib/tracker-model/@types/Draft.ts';
 import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type {
-  ApplyRequest,
-  CheckedGate,
-  ConstitutionDraft,
-  PipelineCheck,
-  PipelineCheckResult,
-  PipelineSetup,
-  PipelineSetupEntity,
-  PipelineSetupReading,
-  PipelineSetupStepStates,
-  ResearchFinding,
-  ResearchScript,
-  SetupEdit,
-  SetupQuestion,
-  SetupQuestionSubject,
-  SourceAnnotation
+import {
+  type ApplyRequest,
+  type CheckedGate,
+  PIPELINE_SETUP_FORMAT_VERSION,
+  type ConstitutionDraft,
+  type PipelineCheck,
+  type PipelineCheckResult,
+  type PipelineSetup,
+  type PipelineSetupEntity,
+  type PipelineSetupReading,
+  type PipelineSetupStepStates,
+  type ResearchFinding,
+  type ResearchScript,
+  type SetupEdit,
+  type SetupQuestion,
+  type SetupQuestionSubject,
+  type SourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { GATE_OUTCOMES }    from '../../lib/tracker-model/constants/JobStates.ts';
 import {
@@ -31,7 +32,6 @@ import {
   FIRST_SETUP_ITEM_NUMBER,
   GATE_CANDIDACIES,
   PIPELINE_CHECK_STATES,
-  PIPELINE_SETUP_FORMAT_VERSION,
   PIPELINE_SETUP_MODES,
   PIPELINE_SETUP_STEP_STATES,
   PIPELINE_SETUP_STEPS,
@@ -55,6 +55,7 @@ const OWNED_KEYS = [
   'stepStates',
   'currentStep',
   'billing',
+  'agent',
   'agentJobId',
   'snapshotCommit',
   'readyToContinue',
@@ -417,6 +418,14 @@ function billingOf(value: unknown): Mapped<PipelineSetup['billing']> {
   return billing.value === undefined ? problemOf('billing is missing') : { value: billing.value };
 }
 
+/** `null` until User chose the agent, else the agent as `pipeline.json` stores it. */
+function setupAgentOf(value: unknown): Mapped<PipelineSetup['agent']> {
+  if (value === null) return { value: null };
+  const agent = PipelineFile.agentOf(value);
+  if ('problem' in agent) return agent;
+  return agent.value === undefined ? problemOf('agent is missing') : { value: agent.value };
+}
+
 function setupIdOf(value: unknown): Mapped<string> {
   if (typeof value === 'string' && SETUP_ID_PATTERN.test(value)) return { value };
   return problemOf(`setupId is ${JSON.stringify(value) ?? 'missing'}, and it has to be a setup id such as S1`);
@@ -443,6 +452,7 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
     stepStates:                 stepStatesOf(document['stepStates']),
     currentStep:                wordOf(document['currentStep'], 'currentStep', PIPELINE_SETUP_STEPS),
     billing:                    billingOf(document['billing']),
+    agent:                      setupAgentOf(document['agent']),
     agentJobId:                 nullableTextOf(document['agentJobId'], 'agentJobId'),
     snapshotCommit:             nullableTextOf(document['snapshotCommit'], 'snapshotCommit'),
     readyToContinue:            listOf(document['readyToContinue'], 'readyToContinue', (item, path) => wordOf(item, path, PIPELINE_SETUP_STEPS)),
@@ -513,6 +523,7 @@ function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
     }))],
     ['currentStep', setup.currentStep],
     ['billing', setup.billing],
+    ['agent', setup.agent],
     ['agentJobId', setup.agentJobId],
     ['snapshotCommit', setup.snapshotCommit],
     ['readyToContinue', setup.readyToContinue],

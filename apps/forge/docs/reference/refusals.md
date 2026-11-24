@@ -304,7 +304,7 @@ Words here: [decision](../glossary.md#decision), [incident](../glossary.md#incid
 Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 
 <details open>
-<summary>7 sentences</summary>
+<summary>9 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -317,6 +317,8 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `cannot hold entities: only a tracker at the repository's root holds them` | `entities-in-a-folder` | A write, such as an Apply, would store a pipeline with `entities` in a tracker in a folder of its repository: an entity's home is a folder of the repository, so only a tracker at its root holds entities. A stored `pipeline.json` with entities in such a tracker reads as malformed, with this code in its reason. | Remove the entities from the draft, or set the pipeline up in a tracker at the repository's root. | [pipeline.json](../cli.md#datapipelinejson) |
 | `No gate pipeline is stored, so approval <approval> was not set` | `approval-without-pipeline` | `gate approval` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `No gate pipeline is stored, so the Assistant was not switched` | `assistant-without-pipeline` | `gate assistant` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `No gate pipeline is stored and no pipeline setup is open, so the agent was not set` | `agent-without-pipeline` | `gate agent` or `pipeline-agent-set` on a board with neither a `pipeline.json` nor an open setup record. | Start the pipeline setup first; its agent step sets the agent. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `No gate pipeline is stored, so the tools were not set` | `tools-without-pipeline` | `gate tools` or `pipeline-tools-set` on a board with no `pipeline.json`. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `No gate pipeline is stored, so the reach was not set` | `reach-without-pipeline` | `gate reach` on a board with no `pipeline.json`: a file holding only the reach would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `each entity has its own prepare steps, gates and reach` | `pipeline-set-per-entity` | `gate prepare`, `add`, `order`, `none`, `remove` or `reach` on a pipeline with entities: beside `entities` the forge's own steps, gates and reach stay empty. | Set each entity's with `pipeline update`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 
@@ -325,7 +327,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 ### Pipeline setup
 
 <details open>
-<summary>40 sentences</summary>
+<summary>43 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -348,6 +350,9 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `The Apply would remove or rename entity <key>, and ticket #<id> names it` | `entity-named-by-tickets` | An Apply whose draft no longer holds an entity of the stored pipeline that a ticket neither delivered nor abandoned names (E91). | Give the ticket another entity with `ticket entity`, or let it land, then apply again. | [Apply](../cli.md#apply) |
 | `This pipeline cannot turn into entities yet` | `entities-while-tickets-in-flight` | An Apply of a draft with entities over a stored pipeline without them while a ticket is in progress, in review or reviewed (E94). | Apply once those tickets land. | [Apply](../cli.md#apply) |
 | `CONSTITUTION.md on the main line could not be read` | `main-constitution-unreadable` | An Apply, `pipeline update` or `advise` whose read of main's `CONSTITUTION.md` git could not answer; exit 2. | Check the repository with git, then run it again. | [Apply](../cli.md#apply) |
+| `has no agent yet, so the agent step was not continued` | `setup-agent-not-chosen` | `pipeline continue <S> agent` on a record that holds no agent. | Choose the agent's program with `pipeline agent`. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The program was not kept:` | `agent-program-does-not-run` | A chosen agent program (`machine agent`, `gate agent`, `pipeline agent`, `pipeline setup` with an agent, or the same commands from a client) did not run once with its version arguments: the tail names the program and why, such as `is not there`, `did not answer in time` or `did not answer as` the agent. | Choose a program that runs. | [Pipeline setup](../cli.md#pipeline-setup) |
+| `No program <name> is in` | `tool-not-found` | A tool named alone (`gate tools`, `pipeline-tools-set`, or a draft's `tools` edit) that none of the places installers use holds. | Name the tool with its path, `<name>=<path>`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `A budget cap of <n> USD is not above 0` | `billing-cap-not-positive` | A setup's API billing cap is 0 or below. | Give a positive cap, or none. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `so <step> was not continued` | `setup-step-not-current` | Continue, or the pipeline agent's `pipeline ready`, named a step other than the current one. | Name the current step. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `has not reached the <step> step` | `setup-step-not-reached` | A reopening named a step that never started, or one after the current step. Never printed: no verb reopens a step yet, and an edit reopens only an earlier step. | Go back only to a step at or before the current one. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
@@ -446,12 +451,13 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [Hephaestus lock](../glossa
 Words here: [Hephaestus](../glossary.md#hephaestus), [job](../glossary.md#job).
 
 <details open>
-<summary>4 sentences</summary>
+<summary>5 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `CPUs this machine has, so nothing was written` | `machine-agent-limit-above-cpus` | `machine limit <n>` or `machine-agent-limit-set` with a limit above the CPU count the runtime reports. | Set a limit from 1 to the CPU count. | [cli.md](../cli.md#concurrency-and-gates) |
 | `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [hephaestus-api.md](hephaestus-api.md#commands) |
+| `This machine's config <path> was not written over` | `machine-config-unwritable` | `machine agent <path>` or `machine-agent-program-set` on a `<monitor>/config.json` that is newer than this program reads, or malformed. | Update this program, or repair the file. | [cli.md](../cli.md#concurrency-and-gates) |
 | `newer than this program knows, so it was not written over` | `machine-limits-newer-version` | `<monitor>/machine-limits.json` holds a newer version. | Update this program. | [cli.md](../cli.md#concurrency-and-gates) |
 | `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [hephaestus-api.md](hephaestus-api.md#control-contract-3) |
 

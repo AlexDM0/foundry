@@ -6,6 +6,7 @@
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
 import type { MergeQueueFacts }                      from '../../adapters/@types/BoardStateParts.ts';
+import { BoardAgentMappingUtil }                     from '../../adapters/board-document/utils/BoardAgentMappingUtil.ts';
 import { BoardConversationMappingUtil }              from '../../adapters/board-document/utils/BoardConversationMappingUtil.ts';
 import { BoardJobMappingUtil }                       from '../../adapters/board-document/utils/BoardJobMappingUtil.ts';
 import { BoardMergeQueueMappingUtil }                from '../../adapters/board-document/utils/BoardMergeQueueMappingUtil.ts';
@@ -67,14 +68,14 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     usage:                 BoardPageMappingUtil.usageOf(state.usage),
     page:                  BoardPageMappingUtil.pageOf(state.page, ticketReadingsOf(source)),
     mergeQueue:            BoardMergeQueueMappingUtil.mergeQueueOf(state.mergeQueue),
-    jobs:                  state.jobs.map((job) => BoardJobMappingUtil.jobOf(job, BoardReadingMappingUtil.jobOffersOf(board.jobOffersOf(job.id)))),
+    jobs:                  state.jobs.map((job) => BoardJobMappingUtil.jobOf(job, BoardReadingMappingUtil.jobOffersOf(board.jobOffersOf(job.id)), state.agent.agentName)),
     endedJobs:             state.endedJobs.map(BoardJobMappingUtil.endedJobOf),
     decisions:             state.decisions.map(BoardConversationMappingUtil.decisionOf),
     incidents:             state.incidents.map(BoardConversationMappingUtil.incidentOf),
     questionHistory:       state.questionHistory.map(BoardConversationMappingUtil.questionHistoryEntryOf),
     ticketForecasts:       state.ticketForecasts.map(BoardJobMappingUtil.ticketForecastOf),
     pipeline:              BoardPipelineMappingUtil.appliedPipelineOf(state.pipeline),
-    pipelineSetup:         BoardPipelineMappingUtil.pipelineSetupOf(state.pipelineSetup),
+    pipelineSetup:         BoardPipelineMappingUtil.pipelineSetupOf(state.pipelineSetup, state.agent.setupTools),
     pipelineFlow:          BoardPipelineMappingUtil.pipelineFlowOf(state.pipelineFlow),
     profileRuns:           state.profileRuns.map(BoardPipelineMappingUtil.profileRunOf),
     gateCacheMarks:        state.gateCacheMarks.map(BoardPipelineMappingUtil.gateCacheMarkOf),
@@ -84,6 +85,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     pipelineAgentDefaults: BoardPipelineMappingUtil.agentPairOf(state.pipelineAgentDefaults),
     entityAssignment:      BoardPipelineMappingUtil.entityAssignmentOf(state.entityAssignment),
     pictureLimits:         BoardConversationMappingUtil.pictureLimitsOf(state.pictureLimits),
+    agent:                 BoardAgentMappingUtil.agentOf(state.agent),
     limits:                BoardPageMappingUtil.limitsOf(state.page.payload.limits),
     notices:               BoardReadingMappingUtil.noticesOf(state.notices),
     warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),

@@ -18,6 +18,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, refusalDetailOf } from '../../testing/BoardFixtures.ts';
+import { EXAMPLE_PIPELINE_AGENT }        from '../../testing/ExamplePipelineAgent.ts';
 import type { Pipeline }                 from './@types/Pipeline.ts';
 import type {
   PipelineDraftEdit,
@@ -33,7 +34,7 @@ import { PipelineUtil }            from './utils/PipelineUtil.ts';
 const AT = '2026-11-12T10:00:00+01:00';
 
 const FIRST_SETUP: PipelineSetupOpening = {
-  mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
 };
 
 const STORED_PIPELINE: Pipeline = {
@@ -70,7 +71,7 @@ describe('opening a record', () => {
 
     expect(setup.setupId).toBe('S1');
     expect(setup.stepStates).toEqual({
-      billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('research');
     expect([setup.constitution, setup.draft, setup.baseContentHash]).toEqual([null, null, null]);
@@ -94,7 +95,7 @@ describe('opening a record', () => {
 
     expect(setupId).toBe('S1');
     expect(setup.stepStates).toEqual({
-      billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('design');
     expect(setup.draft).toEqual(STORED_PIPELINE);
@@ -204,7 +205,7 @@ describe('the steps', () => {
     const { setup, logged } = board.reopenSetupStep(setupId, 'research', AT);
 
     expect(setup.stepStates).toEqual({
-      billing: 'done', research: 'in-progress', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'in-progress', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('research');
     expect(logged.map((record) => record.fields)).toEqual([{
@@ -321,7 +322,7 @@ describe('the entities step', () => {
     const { board } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
 
     expect(openSetupOf(board).stepStates).toEqual({
-      billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
     });
   });
 
@@ -357,6 +358,7 @@ describe('the entities step', () => {
 
     expect(Object.entries(setup.stepStates)).toEqual([
       ['billing', 'done'],
+      ['agent', 'done'],
       ['research', 'in-progress'],
       ['entities', 'not-started'],
       ['constitution', 'not-started'],

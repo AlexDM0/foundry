@@ -8,6 +8,7 @@ import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
+import { MachineConfigFile } from '../../adapters/machine-config/MachineConfigFile.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -16,23 +17,28 @@ import {
   PACKAGE_REVIEWER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
-import type { JsonSchema }                                   from '../../adapters/reports/ReportValidation.ts';
-import { type UsageMarkerReading, UsageMarkerFile }          from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { UsageWindowObservation }                       from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter, AgentEndingName }                from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentConfinement, AgentLaunchRequest }         from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                                from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
-import { type ConfinedLine, confinedLineOf }                 from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEnd }                                     from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                             from '../../lib/talos/EndingPatterns.ts';
-import type { EventLogEntry }                                from '../../lib/talos/EventLog.ts';
-import type { DecisionAnswer }                               from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentDefaultCause, IncidentMove }           from '../../lib/tracker-model/@types/Incident.ts';
-import type { InterruptionCause, Job, JobKind }              from '../../lib/tracker-model/@types/Job.ts';
+import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
+import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
+import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEnd }                             from '../../lib/talos/ChildRecord.ts';
+import type { RecognisedEnding }                     from '../../lib/talos/EndingPatterns.ts';
+import type { EventLogEntry }                        from '../../lib/talos/EventLog.ts';
+import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
+import type { IncidentDefaultCause, IncidentMove }   from '../../lib/tracker-model/@types/Incident.ts';
+import type {
+  InterruptionCause,
+  Job,
+  JobKind,
+  JobNotLaunched,
+  JobNotLaunchedCause
+} from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineGate }            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                        from '../../lib/tracker-model/Board.ts';
@@ -53,6 +59,9 @@ import {
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
 import { LIFECYCLE_LIMITS }                           from '../../shared/constants/LifecycleLimits.ts';
+import { AgentProgramWordingUtil }                    from '../../shared/utils/AgentProgramWordingUtil.ts';
+import { type AgentProgramResolution, AgentPrograms } from '../control/AgentPrograms.ts';
+import { AgentTools }                                 from '../control/AgentTools.ts';
 import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun.ts';
 import { Landing }                                    from '../lifecycle/Landing.ts';
 import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
@@ -172,7 +181,13 @@ export interface JobLaunchFacts {
   confinement:            AgentConfinement;
 }
 
-type LaunchRefusal = Extract<HephaestusNotice, { kind: 'instructions-missing' | 'agent-program-refused' }>;
+type LaunchRefusal = Extract<HephaestusNotice, { kind: 'instructions-missing' }>;
+
+/** The agent's program did not resolve: the job stands not launched, which the pass records in a hold of its own. */
+interface AgentProgramRefused {
+  readonly notLaunchedJobId: string;
+  readonly notLaunched:      JobNotLaunched;
+}
 
 /** No Talos took the launch: nothing marks the instance launched, so the next pass tries it again. */
 interface TalosDidNotLaunch {
@@ -297,6 +312,10 @@ export interface DrivePassRequest {
   machineAgentCeiling?:          number;
   /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
   sessionStopGraceMilliseconds?: number;
+  /** The program a job's session starts, or why it is not launched; absent reads the forge's agent through the machine's config. */
+  agentProgramOf?:               (board: Board, job: Readonly<Job>) => AgentProgramResolution;
+  /** The program a launch starts when the forge names no agent: the fake agent's runtime in a scratch forge; absent in production. */
+  agentProgramWhenNoneIsChosen?: string;
   /** What kind of start the start gate judged this serving period's; the reconcile at start reads it. */
   startClassification?:          StartClassificationVerdict;
 }
@@ -318,8 +337,8 @@ export type HephaestusNotice =
   | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; reason: string }
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
-  // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
-  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string; repair: string | null }
+  // A job stands not launched, nothing spawned, because its agent's program does not run; read each pass from the job's stored fact.
+  | { kind: 'agent-program-refused'; jobId: string; cause: JobNotLaunchedCause; reason: string; repair: string | null }
   // Passes in a row abandoned on one of the tracker lock's expected conditions; the forge keeps running and tries at each wake-up.
   | { kind: 'passes-abandoned'; inARow: number; reason: AbandonedPass['reason'] };
 
@@ -893,24 +912,50 @@ function sessionConfinementRefusalOf(
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
  * marks its instance spawned, so the next pass tries it again.
  */
+/** The forge's agent read through this machine's config, kept as the choice names it and checked where it lies. */
+function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
+  if (request.agentProgramOf !== undefined) return request.agentProgramOf(board, job);
+  const agent = PipelineAgentSessions.launchAgentOf(board, job);
+  if (agent === null && request.agentProgramWhenNoneIsChosen !== undefined) return { verdict: 'found', programPath: request.agentProgramWhenNoneIsChosen };
+  return AgentPrograms.resolutionOf({
+    agent,
+    adapterVendor:      request.agentAdapter.vendor,
+    machineProgramPath: agent === null ? null : MachineConfigFile.programPathOf(MachineConfigFile.read(request.monitorFolder), agent.vendor),
+    resolver:           request.platformPorts.executableResolver,
+    // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
+    forbiddenRoots:     [projectLocationOf(request.workspace.rootDirectory).repositoryRoot],
+  });
+}
+
+/** Exactly the approved tools' folders, then the program's own, then the system's: nothing else of the inherited search path. */
+function agentSearchFoldersOf(request: DrivePassRequest, board: Board, programPath: string, repositoryRoot: string): string[] {
+  const { executableResolver, launchEnvironment, shellLine } = request.platformPorts;
+  const git = executableResolver.absolutePathOf('git', [repositoryRoot]);
+  const tools = AgentTools.launchToolsOf(
+    board.pipeline(),
+    shellLine,
+    launchEnvironment.toolFoldersOf(request.homeDirectory),
+    executableResolver,
+    git.verdict === 'found' ? git.path : null,
+  );
+  return [...tools.map((tool) => dirname(tool.path)), dirname(programPath)];
+}
+
 async function launchAgentChild(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
+): Promise<LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
   const location = projectLocationOf(workspace.rootDirectory);
-  // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
-  const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [location.repositoryRoot]);
-  if (program.verdict === 'refused') return {
-    kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason, repair: agentAdapter.programRepairOf(program.cause)
-  };
+  const program = agentProgramResolutionOf(request, board, job);
+  if (program.verdict === 'not-launched') return { notLaunchedJobId: job.id, notLaunched: program.notLaunched };
   const children         = request.boardChildren;
   const jobFolder        = children.jobFolderOf(job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
@@ -967,7 +1012,7 @@ async function launchAgentChild(
     : place;
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
-    programPath:   program.path,
+    programPath:   program.programPath,
     sessionId:     agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
     resume:        resumesASession,
     workingDirectory,
@@ -975,10 +1020,13 @@ async function launchAgentChild(
     firstMessage:  launchParts.firstMessage,
     roleBrief:     text.roleBrief,
     ...launchSettings,
-    environment:   launchEnvironment.launchEnvironmentOf(
-      request.inheritedEnvironment,
-      { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
-      agentAdapter.inheritedVariableNames
+    environment:   launchEnvironment.withSearchFolders(
+      launchEnvironment.launchEnvironmentOf(
+        request.inheritedEnvironment,
+        { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
+        agentAdapter.inheritedVariableNames
+      ),
+      agentSearchFoldersOf(request, board, program.programPath, location.repositoryRoot),
     ),
     profile:           launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
     confinement:       launchFacts.confinement,
@@ -1026,6 +1074,30 @@ function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Re
   return LaunchSettings.launchSettingsOf(board.pipeline(), job, lastWorkerJobId === null ? null : recordedOf(lastWorkerJobId));
 }
 
+/** The jobs standing not launched whose program now reads otherwise than at the refusal: it resolves, or names another path or cause. */
+function notLaunchedJobIdsWhoseProgramChanged(request: DrivePassRequest, board: Board): string[] {
+  return board.jobs().flatMap((job) => {
+    const { notLaunched } = job;
+    if (notLaunched === undefined) return [];
+    const now = agentProgramResolutionOf(request, board, job);
+    const unchanged = now.verdict === 'not-launched' && now.notLaunched.cause === notLaunched.cause && now.notLaunched.programPath === notLaunched.programPath;
+    return unchanged ? [] : [job.id];
+  });
+}
+
+/** One notice for each job that stands not launched, read from its stored fact so it outlasts a restart, this pass's refusals included. */
+function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedThisPass: readonly AgentProgramRefused[]): HephaestusNotice[] {
+  const standing = board.jobs().flatMap((job) => (job.notLaunched === undefined ? [] : [{ notLaunchedJobId: job.id, notLaunched: job.notLaunched }]));
+  const refusals = [...standing, ...refusedThisPass.filter((refused) => !standing.some((stood) => stood.notLaunchedJobId === refused.notLaunchedJobId))];
+  return refusals.map(({ notLaunchedJobId, notLaunched }) => ({
+    kind:   'agent-program-refused',
+    jobId:  notLaunchedJobId,
+    cause:  notLaunched.cause,
+    reason: AgentProgramWordingUtil.notLaunchedClauseOf(notLaunched.cause, request.agentAdapter.displayName, notLaunched.programPath),
+    repair: notLaunched.cause === 'batch-target' ? request.agentAdapter.programRepairOf('batch-target') : null,
+  }));
+}
+
 /**
  * A job launching, or resumed into `running`, whose current instance nobody claimed yet; spawning twice is harmless, since the claim is
  * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`.
@@ -1038,6 +1110,7 @@ function jobsNeedingAChild(
 ): readonly Readonly<Job>[] {
   return board.jobs().filter((job) => ((job.state === 'launching' && !JobLaunch.isWorktreeJob(job)) || job.state === 'running')
     && job.role !== null
+    && job.notLaunched === undefined
     && !job.ticketIds.some((ticketId) => heldTicketIds.includes(ticketId))
     && !spawnedInstances.has(`${job.id}:${job.childInstance}`)
     && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
@@ -1055,7 +1128,7 @@ function noticesOf(
   heldTargets: readonly HeldTarget[],
   declinedCleanups: readonly DeclinedCleanup[],
   defaultedIncidents: readonly DefaultedIncident[],
-  launchRefusals: readonly LaunchRefusal[],
+  launchRefusals: readonly HephaestusNotice[],
 ): HephaestusNotice[] {
   return [
     ...heldTargets.map((held): HephaestusNotice => (held.heldFiles.length > 0
@@ -1568,6 +1641,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     // A merge job a `job stop` ended in the Board never freed its slot through the Airlock, so its gate's lines are stopped here.
     mergedTreeGateRuns.stopRunsOfEndedJobs((jobId) => written.board.jobById(jobId) !== undefined);
     const launchRefusals: LaunchRefusal[] = [];
+    const agentProgramRefusals: AgentProgramRefused[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
     let apiBillingKeyIsMissing = false;
@@ -1580,6 +1654,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
+      else if ('notLaunchedJobId' in refusal) agentProgramRefusals.push(refusal);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
@@ -1587,9 +1662,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const apiKeyDecisionIsDue = apiBillingKeyIsMissing && openApiKeyDecisionIdsOf(written.board).length === 0;
     const apiKeyIsNotMissing = written.board.pipeline()?.billing?.mode !== 'api' || request.apiBillingKeyIsSet();
     const apiKeyDecisionIsStale = apiKeyIsNotMissing && openApiKeyDecisionIdsOf(written.board).length > 0;
-    const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale;
+    const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
+    const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
+      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0;
     if (holdIsDue) await holdTracker((hold) => {
-      for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+      for (const refused of agentProgramRefusals) {
+        if (hold.board.jobById(refused.notLaunchedJobId) !== undefined) hold.board.recordNotLaunched(refused.notLaunchedJobId, refused.notLaunched, hold.at);
+      }
+      hold.board.retryNotLaunched(hold.at, (job) => notLaunchedJobIdsToRetry.includes(job.id));
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
@@ -1623,7 +1703,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         heldTargets,
         stillDeclinedCleanups(),
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
-        launchRefusals,
+        [...launchRefusals, ...agentProgramNoticesOf(request, written.board, agentProgramRefusals)],
       ),
       ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
@@ -1632,7 +1712,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     lastFingerprint = settled.childObservations.some((childObservation) => childObservation.events.length > 0) ? null : settled.fingerprint;
     // A job the merge sweep launched after this pass launched children needs one more pass, which its settled fingerprint would skip.
     const jobIdsThisPassSaw = new Set(written.board.jobs().map((job) => job.id));
-    const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass;
+    const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass
+      || notLaunchedJobIdsToRetry.length > 0;
     if (passIsDue || settled.childObservations.some((childObservation) => !jobIdsThisPassSaw.has(childObservation.jobId))) {
       forcedNext = true;
       wokenAgain = true;

@@ -17,6 +17,7 @@ import {
   taskFixture,
   ticketFixture
 } from '../../../testing/BoardFixtures.ts';
+import { EXAMPLE_AGENT_FACTS }                 from '../../../testing/ExampleAgentFacts.ts';
 import type { BoardDocumentSource }            from '../BoardDocumentAssembly.ts';
 import { BoardStateAssembly, type BoardState } from '../BoardState.ts';
 import { liveJobFixture }                      from './LiveJobFixture.ts';
@@ -33,15 +34,16 @@ export const BOARD_STATE_FIXTURE_PIPELINE: Pipeline = {
 };
 
 const SETUP: PipelineSetup = {
-  formatVersion:   2,
+  formatVersion:   3,
   setupId:         'S1',
   mode:            'update',
   baseContentHash: 'example-content-hash',
   stepStates:      {
-    billing: 'done', research: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started'
+    billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started'
   },
   currentStep:     'design',
   billing:         { mode: 'api', maxBudgetUsd: 12 },
+  agent:           { vendor: 'example-agent', program: { follows: 'machine' } },
   agentJobId:      null,
   snapshotCommit:  '1'.repeat(40),
   readyToContinue: ['design'],
@@ -227,6 +229,7 @@ export function boardDocumentSourceFixture(): BoardDocumentSource {
     },
     mergeForecasting:   null,
     agentTakesPictures: true,
+    agent:              { ...EXAMPLE_AGENT_FACTS },
     pipelineSources:    {
       pipelineReading:      { verdict: 'readable', pipeline: BOARD_STATE_FIXTURE_PIPELINE },
       pipelineFileText:     `${JSON.stringify(BOARD_STATE_FIXTURE_PIPELINE)}\n`,

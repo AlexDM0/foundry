@@ -4,6 +4,7 @@
  * thrown from `src/` carries a detail, a reason code with its facts and no words, that the command line words; only `cli/` builds one from words.
  */
 import type { BoardRefusalDetail }       from '../lib/tracker-model/BoardRefusal.ts';
+import type { AgentProgramRefusalCause } from './@types/AgentProgramCheck.ts';
 import type { InstallVersionMismatch }   from './@types/InstallVersionMismatch.ts';
 import type { RoleCommandRefusalReason } from './@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }        from './@types/UnreadableTracker.ts';
@@ -62,6 +63,12 @@ export type OperationRefusalDetail =
   | { kind: 'draft-copy-outside-entities'; setupId: string; fields: readonly string[] }
   /** Git could not tell what main's `CONSTITUTION.md` holds; `reason` is git's own. */
   | { kind: 'main-constitution-unreadable'; reason: string }
+  /** A chosen agent program that does not run is not kept; `agentName` is the agent's name as a person knows it. */
+  | { kind: 'agent-program-does-not-run'; cause: AgentProgramRefusalCause; programPath: string | null; agentName: string }
+  /** A tool named alone that none of `searchedFolders` holds. */
+  | { kind: 'tool-not-found'; name: string; searchedFolders: readonly string[] }
+  /** This machine's config that is newer or malformed is never written over. */
+  | { kind: 'machine-config-unwritable'; filePath: string; reason: string }
   | { kind: 'picture-unknown'; pictureId: string }
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }

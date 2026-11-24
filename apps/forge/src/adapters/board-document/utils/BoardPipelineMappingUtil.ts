@@ -93,8 +93,10 @@ import type {
 import type { AgentPair }                from '../../../lib/tracker-model/@types/Ticket.ts';
 import { EntityOwnershipUtil }           from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { ToolFacts }                from '../../../shared/@types/AgentFacts.ts';
 import { OperationRefusal }              from '../../../shared/OperationRefusal.ts';
 import { RefusalDocumentUtil }           from '../../utils/RefusalDocumentUtil.ts';
+import { BoardAgentMappingUtil }         from './BoardAgentMappingUtil.ts';
 import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
 
 function stepOf(step: PipelineStep): PipelineStepDocument {
@@ -206,6 +208,8 @@ function pipelineDefinitionOf(pipeline: Pipeline): PipelineDefinitionDocument {
     ...(pipeline.reach === undefined ? {} : { reach: [...pipeline.reach] }),
     ...(pipeline.entities === undefined ? {} : { entities: byEntityOf(pipeline.entities, entityOf) }),
     ...(pipeline.assistant === undefined ? {} : { assistant: pipeline.assistant }),
+    ...(pipeline.agent === undefined ? {} : { agent: BoardAgentMappingUtil.pipelineAgentOf(pipeline.agent) }),
+    ...(pipeline.tools === undefined ? {} : { tools: pipeline.tools.map(BoardAgentMappingUtil.pipelineToolOf) }),
   };
 }
 
@@ -340,7 +344,7 @@ function setupEntityOf(entity: PipelineSetupEntity): PipelineSetupEntityDocument
   };
 }
 
-function setupRecordOf(record: PipelineSetup): PipelineSetupRecordDocument {
+function setupRecordOf(record: PipelineSetup, tools: readonly ToolFacts[]): PipelineSetupRecordDocument {
   const { stepStates } = record;
   return {
     setupId:         record.setupId,
@@ -348,6 +352,7 @@ function setupRecordOf(record: PipelineSetup): PipelineSetupRecordDocument {
     baseContentHash: record.baseContentHash,
     stepStates:      {
       billing:      stepStates.billing,
+      agent:        stepStates.agent,
       research:     stepStates.research,
       constitution: stepStates.constitution,
       design:       stepStates.design,
@@ -356,6 +361,8 @@ function setupRecordOf(record: PipelineSetup): PipelineSetupRecordDocument {
     },
     currentStep:     record.currentStep,
     billing:         billingOf(record.billing),
+    agent:           record.agent === null ? null : BoardAgentMappingUtil.pipelineAgentOf(record.agent),
+    tools:           tools.map(BoardAgentMappingUtil.toolOf),
     agentJobId:      record.agentJobId,
     snapshotCommit:  record.snapshotCommit,
     readyToContinue: [...record.readyToContinue],
@@ -430,10 +437,11 @@ function applyRefusalOf(refusal: ApplyRefusalFacts | null): ForgeRefusalDocument
   return RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal(refusal.kind === 'board-refusal' ? 'refused' : 'unrepaired', refusal));
 }
 
-function pipelineSetupOf(setup: PipelineSetupFacts | null): BoardPipelineSetupDocument | null {
+/** `tools` are the record's tools as Hephaestus found them, which the design step lists. */
+function pipelineSetupOf(setup: PipelineSetupFacts | null, tools: readonly ToolFacts[] = []): BoardPipelineSetupDocument | null {
   if (setup === null) return null;
   return {
-    record:               setupRecordOf(setup.record),
+    record:               setupRecordOf(setup.record, tools),
     summary:              { ...setupSummaryOf(setup.summary), userEditsKeptCount: setup.summary.userEditsKeptCount },
     openQuestionCount:    setup.openQuestionCount,
     agentJobState:        setup.agentJobState,

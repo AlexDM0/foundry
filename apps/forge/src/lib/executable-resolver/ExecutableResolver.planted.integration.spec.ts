@@ -19,6 +19,7 @@ import {
 
 import { jsonPrintedByAChildProcess }                              from '../../testing/JsonPrintedByAChildProcess.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { executableResolverFor }                                   from './ExecutableResolverFor.ts';
 import { createWindowsExecutableResolver }                         from './WindowsExecutableResolver.ts';
 
 const scratchDirectories: string[] = [];
@@ -120,7 +121,7 @@ function windowsResolverOn(searchFolders: readonly string[]): ReturnType<typeof 
     }
     return null;
   };
-  return createWindowsExecutableResolver({ lookUp, realPathOf: (path) => path });
+  return createWindowsExecutableResolver({ lookUp, realPathOf: (path) => path, programKindOf: (path) => (WINDOWS_FILES.has(path) ? 'program' : 'missing') });
 }
 
 describe('the Windows adapter over a fake filesystem table', () => {
@@ -140,5 +141,24 @@ describe('the Windows adapter over a fake filesystem table', () => {
     expect(resolver.absolutePathOf('claude', [WINDOWS_WORKTREE])).toMatchObject({ verdict: 'refused', cause: 'batch-target' });
     expect(resolver.absolutePathOf('claude-upper', [WINDOWS_WORKTREE])).toMatchObject({ verdict: 'refused', cause: 'batch-target' });
     expect(windowsResolverOn([WINDOWS_WORKTREE]).absolutePathOf('claude', [WINDOWS_WORKTREE])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
+  });
+});
+
+describe('a configured program on this machine', () => {
+  test('a planted program answers as its path spells it, through a link too, and a plain file, a folder or a missing path is refused', () => {
+    const { installedIn, worktree } = scratchMachine();
+    const resolver = executableResolverFor(process.platform);
+    const program = join(installedIn, 'claude');
+    const linkFolder = join(installedIn, 'versions-link');
+    mkdirSync(linkFolder);
+    symlinkSync(program, join(linkFolder, 'claude'));
+    const plainFile = join(installedIn, 'notes.txt');
+    writeFileSync(plainFile, 'not a program\n');
+    expect(resolver.programAt(program, [worktree])).toEqual({ verdict: 'found', path: program });
+    expect(resolver.programAt(join(linkFolder, 'claude'), [worktree])).toEqual({ verdict: 'found', path: join(linkFolder, 'claude') });
+    expect(resolver.programAt(plainFile, [worktree])).toMatchObject({ verdict: 'refused', cause: 'not-executable' });
+    expect(resolver.programAt(installedIn, [worktree])).toMatchObject({ verdict: 'refused', cause: 'not-executable' });
+    expect(resolver.programAt(join(installedIn, 'absent'), [worktree])).toMatchObject({ verdict: 'refused', cause: 'not-there' });
+    expect(resolver.programAt(join(worktree, 'claude'), [worktree])).toMatchObject({ verdict: 'refused', cause: 'inside-forbidden-root' });
   });
 });

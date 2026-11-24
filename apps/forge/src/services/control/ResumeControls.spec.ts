@@ -166,7 +166,7 @@ describe('all and network-outage', () => {
   test('all lets an Apply a start held interrupted wait for its constitution commit again', () => {
     const { board, records } = boardWithTickets([]);
     const { setupId } = board.openSetup({
-      mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+      mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
     }, AT).setup;
     board.editConstitution(setupId, { revision: 0, markdown: '# Rules\n- Name things in full.\n' }, AT);
     board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);

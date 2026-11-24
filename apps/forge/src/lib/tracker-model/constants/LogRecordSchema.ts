@@ -188,6 +188,8 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-setup-opened':          { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
   // `maxBudgetUsd` is set only on API billing with a cap.
   'pipeline-setup-billing-set':     { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
+  // `program` is `machine` for the machine's program of `vendor`, else the path this forge alone runs.
+  'pipeline-setup-agent-set':       { subject: 'pipeline-setup', fields: { vendor: 'text', program: 'text' } },
   // `step` took `state`; `currentStep` is where the setup now stands; `needsRecheck` the later steps a reopening sent back.
   'pipeline-setup-step-moved':      {
     subject: 'pipeline-setup',
@@ -283,6 +285,10 @@ export const LOG_RECORD_SCHEMA = {
   // `state` is `on` or `off`: whether User approves what `approval` names, such as `tickets`, before it moves on.
   'pipeline-approval-set':       { subject: 'board', fields: { approval: 'text', state: 'text' } },
   'pipeline-assistant-set':      { subject: 'board', fields: { state: 'text' } },
+  // `program` is `machine` for the machine's program of `vendor`, else the path this forge alone runs.
+  'pipeline-agent-set':          { subject: 'board', fields: { vendor: 'text', program: 'text' } },
+  // `paths` are the tools' paths as found; empty is the list removed, so the tools follow the pipeline again.
+  'pipeline-tools-set':          { subject: 'board', fields: { paths: 'file-paths' } },
   // An empty `paths` is the reach cleared.
   'pipeline-reach-set':          { subject: 'board', fields: { paths: 'file-paths' } },
   'branch-namespace-set':        { subject: 'board', fields: { namespace: 'text' } },
@@ -361,6 +367,10 @@ export const LOG_RECORD_SCHEMA = {
   'usage-limit-hit':       { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
   // User's stop, wind-down or fresh agent, recorded whether or not its child is up; Hephaestus sends the frames from the job record.
   'job-stop-requested':    { subject: 'job', fields: { mode: 'job-stop-mode' } },
+  // The launch was refused for the agent's program, nothing spawned: `cause` as the job stores it, `programPath` the program named.
+  'job-not-launched':      { subject: 'job', fields: { cause: 'text', programPath: 'nullable-text' } },
+  // The agent's program changed, or User looked again: the next pass launches the job.
+  'job-launch-retried':    { subject: 'job', fields: NO_FIELDS },
   // A chat turn for the session, which Hephaestus writes from the log in order; `pictures` is set only when User sent some.
   // `byHephaestus` is set only on Hephaestus's own wording of User's setup move, so the transcript never reads it as User's.
   'job-messaged':          { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byHephaestus: 'optional-flag' } },

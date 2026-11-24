@@ -16,7 +16,7 @@ async function recordedDocument(): Promise<ForgeBoardDocument> {
 }
 
 describe('draftEditOf', () => {
-  const EDITS: readonly { readonly edit: PipelineDraftEditDocument; readonly expected: BoardDraftEdit }[] = [
+  const EDITS: readonly { readonly edit: Exclude<PipelineDraftEditDocument, { target: 'tools' }>; readonly expected: BoardDraftEdit }[] = [
     {
       edit:     { target: 'gate', name: 'unit', value: { name: 'unit', run: 'bun test', in: 'apps/web' } },
       expected: {

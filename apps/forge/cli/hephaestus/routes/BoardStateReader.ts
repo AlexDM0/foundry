@@ -9,6 +9,8 @@ import { GitProcess }                       from '../../../src/lib/git/GitProces
 import { predictMerges }                    from '../../../src/lib/git/MergeTree.ts';
 import type { LogRecord }                   from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                       from '../../../src/lib/tracker-model/Board.ts';
+import { AgentFactsReading }                from '../../../src/services/hephaestus/AgentFactsReading.ts';
+import type { AgentProgramChecks }          from '../../../src/services/hephaestus/AgentProgramChecks.ts';
 import type { BoardChildren }               from '../../../src/services/hephaestus/BoardChildren.ts';
 import {
   BoardStateAssembly,
@@ -43,6 +45,8 @@ export interface BoardStateSource {
   mergeForecastCache?: MergeForecastCache;
   /** Held across reads, so a read whose main tip has not moved runs no `git show`; without it every read asks git afresh. */
   mainLineReads?:      MainLineReads;
+  /** Hephaestus's newest run of each agent program; without it the agent's program reads as not run. */
+  agentProgramChecks?: AgentProgramChecks;
 }
 
 /** One target's last forecasts, kept while its tip and every candidate's tip stay where they were; a failed prediction is never kept. */
@@ -163,7 +167,15 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
       source.mergeForecastCache ?? null,
     ),
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
-    pipelineSources:    {
+    agent:              AgentFactsReading.agentFactsOf({
+      board,
+      adapter:       context.agentAdapter,
+      platformPorts: context.platformPorts,
+      homeDirectory: context.homeDirectory,
+      monitorFolder: context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
+      ...(source.agentProgramChecks === undefined ? {} : { checkOf: (programPath: string) => source.agentProgramChecks?.checkOf(programPath) ?? null }),
+    }),
+    pipelineSources: {
       pipelineReading,
       pipelineFileText: boardReads.storedPipelineText(),
       pipelineSetupReading,

@@ -20,7 +20,8 @@ import {
   refusalDetailOf,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
-import type { Pipeline } from './@types/Pipeline.ts';
+import { EXAMPLE_PIPELINE_AGENT } from '../../testing/ExamplePipelineAgent.ts';
+import type { Pipeline }          from './@types/Pipeline.ts';
 import type {
   ApplyMainReading,
   MainConstitution,
@@ -39,7 +40,7 @@ const CONSTITUTION_TEXT = '# Example Agency\n\n## Rules\n- Keep the basket page 
 const MAIN_CONSTITUTION: MainConstitution = { path: 'CONSTITUTION.md', markdown: CONSTITUTION_TEXT, blob: 'c'.repeat(40) };
 
 const FIRST_SETUP: PipelineSetupOpening = {
-  mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
 };
 
 const STORED_PIPELINE: Pipeline = {
@@ -371,6 +372,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
       gates:        [{ name: 'types', run: 'bun run typecheck' }],
       phases:       { build: ['types'], review: [], merge: [] },
       constitution: { path: 'CONSTITUTION.md' },
+      agent:        EXAMPLE_PIPELINE_AGENT,
     });
     expect(board.constitutionSourcesWrite()).toEqual({
       write:   'sources',
@@ -407,7 +409,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
     const { setupId } = board.openSetup(FIRST_SETUP, AT).setup;
 
     expect(board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT).outcome).toBe('applied');
-    expect(board.pipeline()).toEqual(PipelineUtil.minimalPipelineOf());
+    expect(board.pipeline()).toEqual({ ...PipelineUtil.minimalPipelineOf(), agent: EXAMPLE_PIPELINE_AGENT });
     expect(board.constitutionSourcesWrite()).toEqual({ write: 'unchanged' });
   });
 });

@@ -7,6 +7,8 @@ const INHERIT_NOTHING: LaunchEnvironment = Object.freeze<LaunchEnvironment>({
   inheritedVariableNames: [],
   launchEnvironmentOf:    (_inherited, jobVariables) => ({ ...jobVariables }),
   searchFoldersOf:        () => [],
+  withSearchFolders:      (environment) => ({ ...environment }),
+  toolFoldersOf:          () => [],
 });
 
 export function launchEnvironmentFor(platform: string): LaunchEnvironment {

@@ -12,6 +12,7 @@ import type {
   JobIntake,
   JobLaunch,
   JobMoveTarget,
+  JobNotLaunched,
   JobOutcome,
   JobState,
   JobStopMode,
@@ -212,6 +213,22 @@ export class Jobs {
     const job       = this.requireLiveJob(jobId);
     job.stopRequest = mode;
     return { job, logged: [this.records.logger.log({ kind: 'job-stop-requested', jobId, fields: { mode } }, at)] };
+  }
+
+  /** A launch refused for its agent's program stands on the job, so no pass tries it again; a second refusal of the same kind logs nothing. */
+  recordNotLaunched(jobId: string, notLaunched: JobNotLaunched, at: string): JobChanged {
+    const job = this.requireLiveJob(jobId);
+    const unchanged = job.notLaunched?.cause === notLaunched.cause && job.notLaunched.programPath === notLaunched.programPath;
+    job.notLaunched = { cause: notLaunched.cause, programPath: notLaunched.programPath };
+    if (unchanged) return { job, logged: [] };
+    return { job, logged: [this.records.logger.log({ kind: 'job-not-launched', jobId, fields: { ...notLaunched } }, at)] };
+  }
+
+  /** Each job whose launch stood refused, or each of them `isDue` picks, is launched again by the next pass. */
+  retryNotLaunched(at: string, isDue: (job: Readonly<Job>) => boolean = () => true): Logged {
+    const refused = this.liveJobRecords().filter((job) => job.notLaunched !== undefined && isDue(job));
+    for (const job of refused) delete job.notLaunched;
+    return { logged: refused.map((job) => this.records.logger.log({ kind: 'job-launch-retried', jobId: job.id, fields: {} }, at)) };
   }
 
   /** The outcome and kind of a job that left the board, read from its log records; `undefined` for a live or unknown one. */

@@ -30,6 +30,7 @@ const PIPELINE: Pipeline = {
   agents:    { reviewer: { effort: 'max' }, builder: { model: 'opus', instructions: [{ kind: 'default-brief', role: 'builder' }, { kind: 'file', path: 'docs/brief.md' }] } },
   approvals: { merge: true },
   billing:   { mode: 'api' },
+  agent:     { vendor: 'example-agent', program: { follows: 'machine' } },
   entities:  {
     web: {
       kind:      'app',
@@ -94,15 +95,16 @@ describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
 describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
   const setup: PipelineSetupFacts = {
     record: {
-      formatVersion:   2,
+      formatVersion:   3,
       setupId:         'S2',
       mode:            'advise',
       baseContentHash: 'example-hash',
       stepStates:      {
-        billing: 'done', research: 'done', entities: 'needs-recheck', constitution: 'done', design: 'done', apply: 'in-progress'
+        billing: 'done', agent: 'done', research: 'done', entities: 'needs-recheck', constitution: 'done', design: 'done', apply: 'in-progress'
       },
       currentStep:                'apply',
       billing:                    { mode: 'subscription' },
+      agent:                      { vendor: 'example-agent', program: { follows: 'machine' } },
       agentJobId:                 null,
       snapshotCommit:             null,
       readyToContinue:            [],

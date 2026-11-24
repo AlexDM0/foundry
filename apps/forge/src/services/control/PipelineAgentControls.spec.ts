@@ -27,6 +27,7 @@ import type { ControlCommand, ControlCommandOf }                 from '../../sha
 import { OperationRefusal }                                      from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                       from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                from '../../testing/EchoedControlContext.ts';
+import { EXAMPLE_PIPELINE_AGENT }                                from '../../testing/ExamplePipelineAgent.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }  from '../../testing/FixtureRecordAllocation.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
@@ -82,7 +83,9 @@ function refusalDetailOf(attempt: () => unknown): unknown {
 /** A board whose open first setup S1 is at `step`, its agent J4. */
 function boardAt(step: 'research' | 'design'): BoardFixture {
   const opened = boardFixture();
-  apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+  apply(opened, {
+    kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: EXAMPLE_PIPELINE_AGENT
+  });
   const continued = step === 'research' ? [] : ['research', 'constitution'] as const;
   for (const doneStep of continued) {
     apply(opened, {

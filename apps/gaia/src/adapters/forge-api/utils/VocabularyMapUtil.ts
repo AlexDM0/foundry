@@ -286,6 +286,7 @@ const MERGE_PREDICTION = {
 } as const satisfies Record<BoardMergePrediction, Gaia.BoardMergePrediction>;
 
 const OFFERED_COMMAND_KIND = {
+  'agent-look-again':           'agent-look-again',
   'chart-range-set':            'chart-range-set',
   'decision-answer':            'decision-answer',
   'gate-profile-start':         'gate-profile-start',
@@ -298,6 +299,7 @@ const OFFERED_COMMAND_KIND = {
   'merge-accept':               'merge-accept',
   'merge-update':               'merge-update',
   'pipeline-agent-advise':      'pipeline-agent-advise',
+  'pipeline-agent-set':         'pipeline-agent-set',
   'pipeline-apply':             'pipeline-apply',
   'pipeline-apply-cancel':      'pipeline-apply-cancel',
   'pipeline-assistant-set':     'pipeline-assistant-set',
@@ -306,12 +308,14 @@ const OFFERED_COMMAND_KIND = {
   'pipeline-draft-discard':     'pipeline-draft-discard',
   'pipeline-draft-edit':        'pipeline-draft-edit',
   'pipeline-draft-undo':        'pipeline-draft-undo',
+  'pipeline-setup-agent':       'pipeline-setup-agent',
   'pipeline-setup-answer':      'pipeline-setup-answer',
   'pipeline-setup-billing':     'pipeline-setup-billing',
   'pipeline-setup-resume':      'pipeline-setup-resume',
   'pipeline-setup-start':       'pipeline-setup-start',
   'pipeline-setup-start-over':  'pipeline-setup-start-over',
   'pipeline-setup-step':        'pipeline-setup-step',
+  'pipeline-tools-set':         'pipeline-tools-set',
   'pipeline-update-start':      'pipeline-update-start',
   'ticket-deliver-by-hand':     'ticket-deliver-by-hand',
   'ticket-hold':                'ticket-hold',
@@ -329,6 +333,8 @@ const BILLING_MODE = { subscription: 'subscription', api: 'api' } as const satis
 
 const SETUP_STEP = {
   billing:      'billing',
+  // Gaia draws no agent step yet: forge's agent step reads as the billing step before it, until Gaia's setup view gains the step.
+  agent:        'billing',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',

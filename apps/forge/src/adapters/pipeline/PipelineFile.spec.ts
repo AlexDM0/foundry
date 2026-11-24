@@ -166,7 +166,8 @@ describe('a malformed file', () => {
 
   test('an unknown key at every level is refused with a reason naming it', () => {
     expect(reasonOf(minimalWith({ checks: 'bun test' })))
-      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, assistant');
+      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, '
+        + 'entities, assistant, agent, tools');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, cache: true }] }))).toContain('gates[0]."cache" is not a pipeline key');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', network: [] }] }))).toContain('prepare[0]."network" is not a pipeline key');
     expect(reasonOf(minimalWith({ phases: { ...NO_PHASES, deploy: [] } }))).toContain('phases."deploy" is not a pipeline key');
