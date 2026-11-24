@@ -21,7 +21,8 @@ import type {
   PipelineBilling,
   PipelineEntity,
   PipelineGate,
-  PipelineStep
+  PipelineStep,
+  PipelineTool
 } from './@types/Pipeline.ts';
 import {
   type ApplyFinishing,
@@ -343,6 +344,15 @@ export class PipelineSetups {
     const reading = this.records.pipelineSetupReading;
     if (reading.verdict !== 'readable') return;
     reading.setup.agent = agentCopyOf(agent);
+    this.store(reading.setup);
+  }
+
+  /** The open record's draft follows a change of the forge's tools, so its Apply never writes the older list back; nothing is logged twice. */
+  followToolsChange(tools: readonly PipelineTool[] | null): void {
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict !== 'readable' || reading.setup.draft === null) return;
+    if (tools === null) delete reading.setup.draft.tools;
+    else reading.setup.draft.tools = tools.map((tool) => ({ name: tool.name, path: tool.path }));
     this.store(reading.setup);
   }
 
@@ -690,6 +700,16 @@ export class PipelineSetups {
    * Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. A record that cannot be read is removed
    * whatever id the move names, since its own id cannot be read: starting over is the one way out of an unreadable record.
    */
+  /**
+   * The start over a new start runs first when the stored record cannot be read, so an old format never blocks a setup: `null` while the
+   * record reads or none is stored. The unreadable record is the newest one this board numbered.
+   */
+  discardUnreadableSetup(at: string): PipelineSetupStartedOver | null {
+    if (this.records.pipelineSetupReading.verdict !== 'malformed') return null;
+    const newestNumber = Math.max(FIRST_SETUP_NUMBER, (this.records.progress.nextSetupId ?? FIRST_SETUP_NUMBER) - 1);
+    return this.startOverSetup(`${SETUP_ID_PREFIX}${newestNumber}`, at);
+  }
+
   startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
     const discarded = this.records.pipelineSetupReading.verdict === 'malformed' ? null : this.requireMovableSetup(setupId);
     this.records.pipelineSetupReading = { verdict: 'absent' };

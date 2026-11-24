@@ -2,7 +2,8 @@
  * The forge's agent on the Board. What matters: a first setup with no agent opens at the agent step, which no Continue leaves until the
  * record holds one, and with one it opens past it; an update takes the stored pipeline's agent; Apply stores the record's agent; the
  * forge's agent goes into the stored pipeline and the open record alike, or into the record alone while no pipeline is stored; the tools
- * need a stored pipeline; and a launch refused for the agent's program stands on its job, logged once, until it is tried again.
+ * need a stored pipeline, and go into an open update's draft too, so its Apply keeps them; and a launch refused for the agent's program
+ * stands on its job, logged once, until it is tried again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -83,6 +84,15 @@ describe('the forge\'s agent and tools', () => {
     expect(board.pipeline()?.tools).toEqual([{ name: 'bun', path: '/opt/example/bin/bun' }]);
     const { logged } = board.setTools(null, AT);
     expect([board.pipeline()?.tools, logged.map((record) => record.fields)]).toEqual([undefined, [{ paths: [] }]]);
+  });
+
+  test('tools set while an update is open go into its draft too, so its Apply never writes the older list back', () => {
+    const { board } = boardFixture({ pipeline: { ...STORED_PIPELINE, tools: [{ name: 'bun', path: '/opt/example/bin/bun' }] } });
+    const { setupId } = board.openSetup({ ...WITHOUT_AGENT, mode: 'update', agent: EXAMPLE_PIPELINE_AGENT }, AT).setup;
+    const tools = [{ name: 'bun', path: '/opt/example/bin/bun' }, { name: 'gh', path: '/opt/example/bin/gh' }];
+    board.setTools(tools, AT);
+    board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);
+    expect(board.pipeline()?.tools).toEqual(tools);
   });
 });
 

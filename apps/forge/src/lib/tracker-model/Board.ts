@@ -1026,9 +1026,11 @@ export class Board {
     return { logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
   }
 
-  /** The tools whose folders an agent's search path holds; `null` follows the pipeline's programs again. */
+  /** The tools whose folders an agent's search path holds, in an open update's draft too; `null` follows the pipeline's programs again. */
   setTools(tools: readonly PipelineTool[] | null, at: string): PipelineChanged {
-    return this.trackerChanges.setTools(tools, at);
+    const changed = this.trackerChanges.setTools(tools, at);
+    this.pipelineSetups.followToolsChange(tools);
+    return changed;
   }
 
   /** The agent named in the stored pipeline, else in the open setup record; `null` when neither names one. */
@@ -1287,6 +1289,10 @@ export class Board {
 
   startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
     return this.pipelineSetups.startOverSetup(setupId, at);
+  }
+
+  discardUnreadableSetup(at: string): PipelineSetupStartedOver | null {
+    return this.pipelineSetups.discardUnreadableSetup(at);
   }
 
   /** Refuses `no-gate-to-check` and `pipeline-check-running`; Hephaestus runs the check, one per entity the draft touched. */

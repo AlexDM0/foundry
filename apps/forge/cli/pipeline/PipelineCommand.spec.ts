@@ -2,7 +2,8 @@
  * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
  * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
  * endings and all, while `--file -` in a terminal is refused rather than read as empty text; a draft edit sets several fields in one
- * move; outside a job the pipeline agent's verbs name the record and apply its moves; under a job a setup naming its agent is refused;
+ * move; a setup over a record of an older format starts that record over first; outside a job the pipeline agent's verbs name the record
+ * and apply its moves; under a job a setup naming its agent is refused;
  * and a usage mistake or a Board refusal exits 1 with the record, the progress file and the log as they were.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -252,6 +253,17 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     expect(context.errorText()).toContain('pipeline setup --agent` cannot run under job J4');
     expect(existsSync(hatchDirectory)).toBe(false);
     expect(storedFiles()).toEqual(before);
+  });
+
+  test('pipeline setup over a record of an older format starts it over first, then opens and launches the new one', async () => {
+    writeFileSync(setupFilePath(), `${JSON.stringify({
+      formatVersion: 2, setupId: 'S1', mode: 'setup', currentStep: 'research'
+    })}\n`);
+    const context = await runSetup(['pipeline', 'setup', '--agent', process.execPath, '--json']);
+
+    const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
+    expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-discarded', 'pipeline-setup-opened', 'job-launched']);
+    expect(storedSetup()).toMatchObject({ setupId: printed.setup.setupId, mode: 'setup', agentJobId: 'J1' });
   });
 
   test('pipeline start-over removes the record, and pipeline update then refuses with no pipeline stored', async () => {

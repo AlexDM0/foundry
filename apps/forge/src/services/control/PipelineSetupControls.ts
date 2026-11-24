@@ -286,16 +286,20 @@ function openingConstitutionOf(change: BoardTransaction, context: ControlContext
 /**
  * A first setup opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and never writes over a file unseen.
  * With an agent its pipeline agent launches at once; with none the record opens at the agent step, and the step's Continue launches it.
+ * A stored record that cannot be read, such as one of an older format, is started over first, as User's start over would.
  */
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const billing = billingFieldOf(command);
   const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
   if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
   const agent = fieldOf(command, 'agent') === undefined ? null : agentFieldOf(command);
+  const discarded = change.board.discardUnreadableSetup(change.at);
+  const discardLogged = discarded === null ? [] : withItsAgentsStopped(discarded, change).logged;
   const opened = change.board.openSetup({
     mode: 'setup', billing, agent, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
   }, change.at);
-  return agent === null ? opened : startedAgentOf(opened, change);
+  const started = agent === null ? opened : startedAgentOf(opened, change);
+  return { setup: started.setup, logged: [...discardLogged, ...started.logged] };
 }
 
 /**
@@ -364,7 +368,10 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: BoardTransa
  * pipeline agent runs. An unreadable record names no agent, so every pipeline agent on the board is stopped, none having a record to serve.
  */
 function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: BoardTransaction): PipelineSetupStartedOver {
-  const changed  = change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at);
+  return withItsAgentsStopped(change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at), change);
+}
+
+function withItsAgentsStopped(changed: PipelineSetupStartedOver, change: BoardTransaction): PipelineSetupStartedOver {
   const { setup } = changed;
   const agentJobIds = setup === null
     ? change.board.jobs().filter((job) => job.kind === 'pipeline-agent').map((job) => job.id)
