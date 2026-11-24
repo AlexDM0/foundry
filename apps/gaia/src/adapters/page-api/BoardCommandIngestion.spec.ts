@@ -1,7 +1,8 @@
 /**
  * The page's board command body read into Gaia's model. What matters: a valid body of each kind becomes its model command, every typed draft
- * edit included; a key the kind does not name never reaches the model; a missing key, a key of the wrong type, a value outside its union and
- * a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is refused as
+ * edit included; an agent's program is followed on the machine or pinned to a path, and a tool names its path or `null`; a key the kind does
+ * not name never reaches the model; a missing key, a key of the wrong type, a value outside its union, an agent's program of neither form
+ * and a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is refused as
  * unknown; a body at another version or no JSON object is malformed.
  */
 import { describe, expect, test } from 'bun:test';
@@ -31,6 +32,26 @@ describe('commandOf, on a valid body', () => {
     const switchOn = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-assistant-set'];
     expect(readingOf(switchOn)).toEqual({ verdict: 'readable', command: { kind: 'pipeline-assistant-set', on: true } });
     expect(readingOf({ ...switchOn, on: false })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-assistant-set', on: false } });
+  });
+
+  test('reads an agent followed on the machine or pinned to a path, and a setup started with its agent', () => {
+    const pinnedAgent = { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } };
+    const setupAgent = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-agent'];
+    expect(readingOf({ ...setupAgent, agent: pinnedAgent })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-setup-agent', setupId: 'S2', agent: pinnedAgent } });
+    const setupStart = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-start'];
+    expect(readingOf({ ...setupStart, agent: pinnedAgent })).toEqual({
+      verdict: 'readable',
+      command: {
+        kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: pinnedAgent
+      }
+    });
+  });
+
+  test('reads a tool list as found tools and names alone, and no list as following the pipeline\'s programs', () => {
+    const toolsSet = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-tools-set'];
+    const tools = [{ name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'gh', path: null }];
+    expect(readingOf({ ...toolsSet, tools })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-tools-set', tools } });
+    expect(readingOf({ ...toolsSet, tools: null })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-tools-set', tools: null } });
   });
 
   test('passes over a key the kind does not name, at the top and inside a draft edit', () => {
@@ -63,6 +84,16 @@ describe('commandOf, on a body it refuses', () => {
     expect(readingOf({ ...edit, edits: [gateWithoutItsRun] })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['edits[0]'] });
     const forgeLevelRoleInEntity = { target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'assistant', value: null } };
     expect(readingOf({ ...edit, edits: [forgeLevelRoleInEntity] })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['edits[0]'] });
+  });
+
+  test('names an agent\'s program that is neither followed on the machine nor pinned, and a setup start or a tool missing its null', () => {
+    const agentSet = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-agent-set'];
+    const followingTheForge = { ...agentSet, agent: { vendor: 'example-agent', program: { follows: 'forge' } } };
+    expect(readingOf(followingTheForge)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['agent.program'] });
+    const { agent: _agent, ...setupStartWithoutAgent } = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-start'];
+    expect(readingOf(setupStartWithoutAgent)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['agent'] });
+    const toolWithoutPath = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-tools-set'], tools: [{ name: 'gh' }] };
+    expect(readingOf(toolWithoutPath)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['tools[0].path'] });
   });
 
   test('names a resume target that is neither all, a job nor a ticket', () => {

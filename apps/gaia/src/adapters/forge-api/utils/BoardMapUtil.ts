@@ -59,6 +59,7 @@ import type {
 } from '../../../shared/@types/board/BoardTicket.ts';
 import type { ForgeBoard }        from '../../../shared/@types/board/ForgeBoard.ts';
 import type { ResumeWaitsOfJobs } from '../@types/ResumeWaitsOfJobs.ts';
+import { BoardAgentMapUtil }      from './BoardAgentMapUtil.ts';
 import { VocabularyMapUtil }      from './VocabularyMapUtil.ts';
 
 const VOCABULARIES = VocabularyMapUtil.vocabularies;
@@ -288,6 +289,7 @@ function jobOf(job: BoardJobDocument, resumeWaits: ResumeWaitsOfJobs): BoardJob 
     stopRequest: VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobStopRequest, job.stopRequest),
     intake:      job.intake === null ? null : { text: job.intake.text, title: job.intake.title },
     entity:      job.entity,
+    notLaunched: BoardAgentMapUtil.notLaunchedOf(job.notLaunched),
     live:        jobLiveFactsOf(job.live),
     stopHolds:   { stop: job.stopHolds.stop, windDown: job.stopHolds.windDown },
     offers:      {
@@ -506,6 +508,7 @@ function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: Boar
     ticketForecasts: document.ticketForecasts.map(ticketForecastOf),
     pipeline,
     assistantIsOn:   assistantIsOnIn(document.pipeline),
+    agent:           BoardAgentMapUtil.agentOf(document.agent),
     pictureLimits:   document.pictureLimits === null ? null : {
       perMessage:     document.pictureLimits.perMessage,
       sizeLimitBytes: document.pictureLimits.sizeLimitBytes,

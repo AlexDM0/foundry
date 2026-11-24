@@ -18,7 +18,10 @@ function clientOf(situation: BoardSituation): ForgeClient {
   return forgeClientOf({ hephaestusFetch: recordedHephaestusFetch(recordedBoardAnswersOf(situation)) });
 }
 
-type BoardDocumentSituation = Extract<BoardSituation, 'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on'>;
+type BoardDocumentSituation = Extract<
+  BoardSituation,
+  'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on' | 'setup-choosing-agent' | 'job-not-launched'
+>;
 
 /** The parsed board document the forge answered in one situation; a spec fails when it answered none. */
 export async function recordedBoardDocumentOf(situation: BoardDocumentSituation): Promise<unknown> {

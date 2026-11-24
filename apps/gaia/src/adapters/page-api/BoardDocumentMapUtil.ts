@@ -57,6 +57,7 @@ import type {
 } from '../../shared/@types/board/BoardTicket.ts';
 import type { BoardUsage, ForgeBoard } from '../../shared/@types/board/ForgeBoard.ts';
 import { PAGE_CONTRACT_VERSIONS }      from '../../shared/constants/PageContractVersions.ts';
+import { BoardAgentDocumentMapUtil }   from './BoardAgentDocumentMapUtil.ts';
 import { ForgeSentenceUtil }           from './ForgeSentenceUtil.ts';
 import { PipelineDocumentMapUtil }     from './PipelineDocumentMapUtil.ts';
 
@@ -211,6 +212,7 @@ function jobOut(job: BoardJob): BoardJobDocument {
     stopRequest:   job.stopRequest,
     intake:        job.intake === null ? null : { text: job.intake.text, title: job.intake.title },
     entity:        job.entity,
+    notLaunched:   BoardAgentDocumentMapUtil.notLaunchedOut(job.notLaunched),
     live:          {
       calls:        live.calls,
       callBudget:   live.callBudget,
@@ -469,8 +471,11 @@ function usageOut(usage: BoardUsage): BoardUsageDocument {
   };
 }
 
-/** Every Markdown the forge served leaves as the HTML field the page reads, rendered here on the server by `renderMarkdown`. */
-function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering): BoardDocument {
+/**
+ * Every Markdown the forge served leaves as the HTML field the page reads, rendered here on the server by `renderMarkdown`; the count of
+ * other forges that follow this machine's agent program is Gaia's own, none where no other forge was read.
+ */
+function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering, otherForgesFollowingMachine = 0): BoardDocument {
   return {
     ...BOARD_VERSION,
     trackerId:   board.trackerId,
@@ -493,6 +498,7 @@ function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering): 
     ticketForecasts: board.ticketForecasts.map(ticketForecastOut),
     pipeline:        PipelineDocumentMapUtil.pipelineFactsOut(board.pipeline, renderMarkdown),
     assistantIsOn:   board.assistantIsOn,
+    agent:           BoardAgentDocumentMapUtil.agentOut(board.agent, otherForgesFollowingMachine),
     pictureLimits:   board.pictureLimits === null ? null : {
       perMessage:     board.pictureLimits.perMessage,
       sizeLimitBytes: board.pictureLimits.sizeLimitBytes,

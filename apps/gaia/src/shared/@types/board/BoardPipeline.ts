@@ -4,6 +4,12 @@
  * marks and step run times, the pipeline history, and the choices a step may take. Values only: the forge words only its refusals and the
  * label of a refusal's fix.
  */
+import type {
+  BoardAgentTool,
+  BoardPipelineAgent,
+  BoardPipelineTool,
+  BoardToolRequest
+} from './BoardAgent.ts';
 import type { BoardRefusal }                             from './BoardRefusal.ts';
 import type { BoardQuestionAnswer, BoardQuestionOption } from './BoardTicket.ts';
 import type {
@@ -131,6 +137,10 @@ export interface BoardPipelineDefinition {
   readonly agents:           Readonly<Partial<Record<BoardPipelineAgentRole, BoardAgentStepSettings>>>;
   readonly approvals:        Readonly<Partial<Record<BoardPipelineApproval, boolean>>>;
   readonly billing:          BoardBilling | null;
+  /** `null`: no agent is chosen, and no job launches. */
+  readonly agent:            BoardPipelineAgent | null;
+  /** `null`: the tools follow the pipeline's programs. */
+  readonly tools:            readonly BoardPipelineTool[] | null;
   readonly reach:            readonly string[];
   /** `null` for a forge over no entities. */
   readonly entities:         Readonly<Record<string, BoardPipelineEntity>> | null;
@@ -261,6 +271,10 @@ export interface BoardSetupRecord {
   readonly stepStates:                 BoardSetupStepStates;
   readonly currentStep:                BoardSetupStep;
   readonly billing:                    BoardBilling;
+  /** `null` until the user chose one. */
+  readonly agent:                      BoardPipelineAgent | null;
+  /** The design's tools, each found now. */
+  readonly tools:                      readonly BoardAgentTool[];
   readonly agentJobId:                 string | null;
   readonly snapshotCommit:             string | null;
   readonly readyToContinue:            readonly BoardSetupStep[];
@@ -343,6 +357,8 @@ export type BoardDraftEdit =
   | BoardStepsDraftEdit
   | { readonly target: 'role'; readonly role: BoardPipelineAgentRole; readonly value: BoardAgentStepSettings | null }
   | { readonly target: 'airlock'; readonly value: BoardPipelineAirlock | null }
+  /** `null` follows the draft's programs again. */
+  | { readonly target: 'tools'; readonly value: readonly BoardToolRequest[] | null }
   | { readonly target: 'approval'; readonly approval: BoardPipelineApproval; readonly value: boolean | null }
   | { readonly target: 'entity'; readonly entityKey: string; readonly value: BoardPipelineEntityDefinition | null }
   | { readonly target: 'within-entity'; readonly entityKey: string; readonly edit: BoardEntityDraftEdit };

@@ -1,8 +1,9 @@
 /**
  * Gaia's board commands mapped to the forge's contract commands. What matters: each kind maps to the contract's command of the same kind,
  * every kind is one the forge takes from a client (`FORGE_CONTROL_COMMAND_KINDS`) and no kind only its command line runs; Gaia's names
- * reach the contract's (`ticketId` as `ticketReference`, `runsIn` as `in`); a key Gaia holds as `null` is absent from the contract; and
- * every typed draft edit maps to the contract's typed edit.
+ * reach the contract's (`ticketId` as `ticketReference`, `runsIn` as `in`); a key Gaia holds as `null` is absent from the contract, a tool
+ * named without a path and a setup started without an agent among them; an agent keeps its vendor and how it names its program; and every
+ * typed draft edit maps to the contract's typed edit.
  */
 import { describe, expect, test }      from 'bun:test';
 import { FORGE_CONTROL_COMMAND_KINDS } from 'forge-contracts/ForgeControlCommandKinds';
@@ -100,6 +101,8 @@ describe('contractCommandOf', () => {
         },
         { target: 'role', role: 'assistant', value: {} },
         { target: 'airlock', value: {} },
+        { target: 'tools', value: [{ name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'docker' }] },
+        { target: 'tools', value: null },
         { target: 'approval', approval: 'merge', value: true },
         { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'] } },
         { target: 'entity', entityKey: 'retired', value: null },
@@ -111,5 +114,30 @@ describe('contractCommandOf', () => {
         { target: 'within-entity', entityKey: 'web', edit: { target: 'constitution', value: null } },
       ],
     });
+  });
+
+  test('maps an agent by its vendor and its program, followed on the machine or pinned to a path', () => {
+    const programPath = '/Users/example/.local/bin/example-agent';
+    const followingAgent = { vendor: 'example-agent', program: { follows: 'machine' } } as const;
+    const pinnedAgent = { vendor: 'example-agent', program: { pinned: programPath } };
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-setup-agent'))).toEqual({ kind: 'pipeline-setup-agent', setupId: 'S2', agent: followingAgent });
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-agent-set'))).toEqual({ kind: 'pipeline-agent-set', agent: pinnedAgent });
+    const machineProgram = BoardCommandMapUtil.contractCommandOf(exampleCommandOf('machine-agent-program-set'));
+    expect(machineProgram).toEqual({ kind: 'machine-agent-program-set', vendor: 'example-agent', programPath });
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('agent-look-again'))).toEqual({ kind: 'agent-look-again' });
+  });
+
+  test('sends a setup start\'s agent only when one is chosen', () => {
+    const setupStart = exampleCommandOf('pipeline-setup-start');
+    expect(BoardCommandMapUtil.contractCommandOf(setupStart)).toEqual({ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    const agent = { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } } as const;
+    expect(BoardCommandMapUtil.contractCommandOf({ ...setupStart, agent })).toEqual({
+      kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent
+    });
+  });
+
+  test('sends a tool named without a path by its name alone, for the forge to find, and no list as null', () => {
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-tools-set'))).toEqual({ kind: 'pipeline-tools-set', tools: [{ name: 'gh' }] });
+    expect(BoardCommandMapUtil.contractCommandOf({ kind: 'pipeline-tools-set', tools: null })).toEqual({ kind: 'pipeline-tools-set', tools: null });
   });
 });

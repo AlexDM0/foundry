@@ -1,11 +1,11 @@
 /**
  * The real-system spec of hephaestus-fetch against a forge's presence and crash logs, run only by
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record hephaestus-fetch-presence`. It starts Example Storefront under a scratch home, its fake
- * agent playing every session, with a draft ticket, an empty gate list stored and the Assistant switched on, and records its presence while it
- * serves and a crash log it has none of; then, once the Assistant's job runs, kills its Hephaestus from outside, starts it as User does, and
- * records its presence after the crash and the crash log it wrote, which names the Assistant's job as active. Neither recorded presence
- * lists interrupted work: the Assistant's session outlives Hephaestus under Talos, so the waiting work rests on written documents. The
- * values the run draws are recorded as example values; the forge's install and code versions stamp it.
+ * agent playing every session, with a draft ticket, an empty gate list stored, the Assistant switched on and the agent its board offers
+ * chosen, and records its presence while it serves and a crash log it has none of; then, once the Assistant's job runs, kills its Hephaestus
+ * from outside, starts it as User does, and records its presence after the crash and the crash log it wrote, which names the Assistant's job
+ * as active. Neither recorded presence lists interrupted work: the Assistant's session outlives Hephaestus under Talos, so the waiting work
+ * rests on written documents. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
  */
 import { readFileSync } from 'node:fs';
 import {
@@ -23,7 +23,7 @@ import {
   situationCallShapeOf,
   type PresenceSituation,
 } from '../../testing/RecordedAnswers.ts';
-import { createScratchForge, type ScratchForge }                              from '../../testing/ScratchForge.ts';
+import { agentAtTheFoundPlaceOf, createScratchForge, type ScratchForge }      from '../../testing/ScratchForge.ts';
 import { scratchRoot }                                                        from '../../testing/ScratchRoot.ts';
 import { forgeEndpointPathOf }                                                from './ForgeClient.ts';
 import { realHephaestusFetch, type HephaestusAnswer, type HephaestusRequest } from './HephaestusFetch.ts';
@@ -136,6 +136,12 @@ beforeAll(async () => {
   await scratchForge.runForDocument(repository, ['gate', 'assistant', 'on', '--json']);
   await scratchForge.runForDocument(repository, ['start', '--json']);
   followTheLiveHephaestus();
+  // A forge with no agent chosen launches no job: the board's agent is the one it offers at a found place.
+  const board = await realHephaestusFetch().request(requestOf(forgeEndpointPathOf('board')));
+  if (board.verdict !== 'answered' || board.status !== SUCCESS_STATUS) throw new Error(`The board answered ${JSON.stringify(board)}`);
+  const agentChoice = { kind: 'pipeline-agent-set', agent: agentAtTheFoundPlaceOf(JSON.parse(board.bodyText) as Record<string, unknown>) };
+  const agentChosen = await realHephaestusFetch().request({ ...requestOf(forgeEndpointPathOf('commands')), method: 'POST', jsonBody: JSON.stringify(agentChoice) });
+  expect(agentChosen).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
   const resumed = await realHephaestusFetch().request({ ...requestOf(forgeEndpointPathOf('commands')), method: 'POST', jsonBody: JSON.stringify({ kind: 'hephaestus-unpause' }) });
   expect(resumed).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
   const { installVersion, codeVersion } = await scratchForge.runForDocument(repository, ['version', '--json']);

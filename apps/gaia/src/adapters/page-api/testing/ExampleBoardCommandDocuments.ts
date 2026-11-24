@@ -32,6 +32,8 @@ export const EXAMPLE_DRAFT_EDITS: readonly BoardDraftEditDocument[] = [
   },
   { target: 'role', role: 'assistant', value: { model: null, effort: null, instructions: null } },
   { target: 'airlock', value: { reReview: null } },
+  { target: 'tools', value: [{ name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'docker', path: null }] },
+  { target: 'tools', value: null },
   { target: 'approval', approval: 'merge', value: true },
   { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: null } },
   { target: 'entity', entityKey: 'retired', value: null },
@@ -112,7 +114,16 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   },
   'pipeline-setup-resume': { ...VERSION, kind: 'pipeline-setup-resume', setupId: 'S2' },
   'pipeline-setup-start':  {
-    ...VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false
+    ...VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: null
+  },
+  'pipeline-setup-agent': {
+    ...VERSION, kind: 'pipeline-setup-agent', setupId: 'S2', agent: { vendor: 'example-agent', program: { follows: 'machine' } }
+  },
+  'pipeline-agent-set':        { ...VERSION, kind: 'pipeline-agent-set', agent: { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } } },
+  'pipeline-tools-set':        { ...VERSION, kind: 'pipeline-tools-set', tools: [{ name: 'gh', path: null }] },
+  'agent-look-again':          { ...VERSION, kind: 'agent-look-again' },
+  'machine-agent-program-set': {
+    ...VERSION, kind: 'machine-agent-program-set', vendor: 'example-agent', programPath: '/Users/example/.local/bin/example-agent'
   },
   'pipeline-setup-start-over': { ...VERSION, kind: 'pipeline-setup-start-over', setupId: 'S2' },
   'pipeline-setup-step':       {

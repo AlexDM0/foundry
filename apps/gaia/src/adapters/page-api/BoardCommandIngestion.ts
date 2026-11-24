@@ -4,6 +4,7 @@
  * kind does not name is passed over and never reaches the forge. The page and the server ship together, so another version means a stale
  * page, refused as a malformed body.
  */
+import type { BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument, BoardToolRequestDocument } from '../../../page/@types/board/BoardAgentDocuments.ts';
 import type {
   BoardAnswerFormDocument,
   BoardChartRangeDocument,
@@ -42,7 +43,8 @@ import {
   type FieldRule,
   type ShapeOf,
 } from '../../lib/json-value/DocumentShapeUtil.ts';
-import { JsonValueUtil } from '../../lib/json-value/JsonValueUtil.ts';
+import { JsonValueUtil }                             from '../../lib/json-value/JsonValueUtil.ts';
+import type { BoardPipelineAgent, BoardToolRequest } from '../../shared/@types/board/BoardAgent.ts';
 import type {
   BoardAnswerForm,
   BoardChartRange,
@@ -91,6 +93,7 @@ const TICKET_PRIORITIES = { low: true, normal: true, high: true } as const satis
 const TRACKER_CLEAR_SCOPES = { 'tasks-and-log': true, 'everything': true } as const satisfies Record<BoardTrackerClearScope, true>;
 const SETUP_STEPS = {
   billing:      true,
+  agent:        true,
   research:     true,
   entities:     true,
   constitution: true,
@@ -136,6 +139,20 @@ const AGENT_STEP_SETTINGS_SHAPE = {
   effort:       { nullable: { oneOf: BOARD_AGENT_EFFORTS } },
   instructions: { nullable: { eachOf: INSTRUCTION_RULE } },
 } as const satisfies ShapeOf<BoardAgentStepSettingsDocument>;
+
+const PIPELINE_AGENT_RULE: FieldRule = {
+  object: {
+    vendor:  'text',
+    program: {
+      anyShapeOf: [
+        { follows: { oneOf: ['machine'] } } as const satisfies ShapeOf<Extract<BoardAgentProgramChoiceDocument, { follows: 'machine' }>>,
+        { pinned: 'text' } as const satisfies ShapeOf<Extract<BoardAgentProgramChoiceDocument, { pinned: string }>>,
+      ],
+    },
+  } as const satisfies ShapeOf<BoardPipelineAgentDocument>,
+};
+
+const TOOL_REQUESTS_RULE: FieldRule = { nullable: { listOf: { name: 'text', path: NULLABLE_TEXT } as const satisfies ShapeOf<BoardToolRequestDocument> } };
 
 const STEPS_DRAFT_EDIT_SHAPES: readonly DocumentShape[] = [
   {
@@ -184,6 +201,7 @@ const DRAFT_EDIT_RULE: FieldRule = {
       value:  { nullable: { object: AGENT_STEP_SETTINGS_SHAPE } },
     } as const satisfies ShapeOf<EditDocumentOf<BoardDraftEditDocument, 'role'>>,
     { target: { oneOf: ['airlock'] }, value: { nullable: { object: { reReview: RE_REVIEW_RULE } } } } as const satisfies ShapeOf<EditDocumentOf<BoardDraftEditDocument, 'airlock'>>,
+    { target: { oneOf: ['tools'] }, value: TOOL_REQUESTS_RULE } as const satisfies ShapeOf<EditDocumentOf<BoardDraftEditDocument, 'tools'>>,
     {
       target:   { oneOf: ['approval'] },
       approval: oneOfRecord(PIPELINE_APPROVALS),
@@ -231,15 +249,20 @@ const CHART_RANGE_RULE: FieldRule = {
 const PICTURES_RULE: FieldRule = { listOf: { pictureId: 'text', name: 'text' } as const satisfies ShapeOf<BoardPictureReferenceDocument> };
 
 const COMMAND_SHAPES = {
-  'hephaestus-pause':        { ...PASSED_OVER_HEAD },
-  'hephaestus-unpause':      { ...PASSED_OVER_HEAD },
-  'hephaestus-stop':         { ...PASSED_OVER_HEAD, now: 'boolean' },
-  'hephaestus-restart':      { ...PASSED_OVER_HEAD, now: 'boolean' },
-  'concurrency-set':         { ...PASSED_OVER_HEAD, limit: 'whole-number' },
-  'interrupted-work-resume': { ...PASSED_OVER_HEAD, target: 'json' },
-  'chart-range-set':         { ...PASSED_OVER_HEAD, range: CHART_RANGE_RULE },
-  'decision-answer':         { ...PASSED_OVER_HEAD, decisionId: 'text', answer: ANSWER_RULE },
-  'gate-profile-start':      {
+  'agent-look-again':          { ...PASSED_OVER_HEAD },
+  'machine-agent-program-set': { ...PASSED_OVER_HEAD, vendor: 'text', programPath: 'text' },
+  'pipeline-agent-set':        { ...PASSED_OVER_HEAD, agent: PIPELINE_AGENT_RULE },
+  'pipeline-setup-agent':      { ...PASSED_OVER_HEAD, setupId: 'text', agent: PIPELINE_AGENT_RULE },
+  'pipeline-tools-set':        { ...PASSED_OVER_HEAD, tools: TOOL_REQUESTS_RULE },
+  'hephaestus-pause':          { ...PASSED_OVER_HEAD },
+  'hephaestus-unpause':        { ...PASSED_OVER_HEAD },
+  'hephaestus-stop':           { ...PASSED_OVER_HEAD, now: 'boolean' },
+  'hephaestus-restart':        { ...PASSED_OVER_HEAD, now: 'boolean' },
+  'concurrency-set':           { ...PASSED_OVER_HEAD, limit: 'whole-number' },
+  'interrupted-work-resume':   { ...PASSED_OVER_HEAD, target: 'json' },
+  'chart-range-set':           { ...PASSED_OVER_HEAD, range: CHART_RANGE_RULE },
+  'decision-answer':           { ...PASSED_OVER_HEAD, decisionId: 'text', answer: ANSWER_RULE },
+  'gate-profile-start':        {
     ...PASSED_OVER_HEAD,
     setupId:  NULLABLE_TEXT,
     gateName: 'text',
@@ -298,9 +321,14 @@ const COMMAND_SHAPES = {
     questionId: 'text',
     answer:     ANSWER_RULE,
   },
-  'pipeline-setup-billing':    { ...PASSED_OVER_HEAD, setupId: 'text', billing: BILLING_RULE },
-  'pipeline-setup-resume':     { ...PASSED_OVER_HEAD, setupId: 'text' },
-  'pipeline-setup-start':      { ...PASSED_OVER_HEAD, billing: BILLING_RULE, replacesUnreadablePipeline: 'boolean' },
+  'pipeline-setup-billing': { ...PASSED_OVER_HEAD, setupId: 'text', billing: BILLING_RULE },
+  'pipeline-setup-resume':  { ...PASSED_OVER_HEAD, setupId: 'text' },
+  'pipeline-setup-start':   {
+    ...PASSED_OVER_HEAD,
+    billing:                    BILLING_RULE,
+    replacesUnreadablePipeline: 'boolean',
+    agent:                      { nullable: PIPELINE_AGENT_RULE },
+  },
   'pipeline-setup-start-over': { ...PASSED_OVER_HEAD, setupId: 'text' },
   'pipeline-setup-step':       {
     ...PASSED_OVER_HEAD,
@@ -438,12 +466,22 @@ function entityDraftEditIn(edit: BoardEntityDraftEditDocument): BoardEntityDraft
   }
 }
 
+function pipelineAgentIn(agent: BoardPipelineAgentDocument): BoardPipelineAgent {
+  return { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
+}
+
+function toolRequestsIn(tools: readonly BoardToolRequestDocument[] | null): readonly BoardToolRequest[] | null {
+  return tools === null ? null : tools.map((tool) => ({ name: tool.name, path: tool.path }));
+}
+
 function draftEditIn(edit: BoardDraftEditDocument): BoardDraftEdit {
   switch (edit.target) {
     case 'role':
       return { target: 'role', role: edit.role, value: agentStepSettingsIn(edit.value) };
     case 'airlock':
       return { target: 'airlock', value: edit.value === null ? null : { reReview: reReviewIn(edit.value.reReview) } };
+    case 'tools':
+      return { target: 'tools', value: toolRequestsIn(edit.value) };
     case 'approval':
       return { target: 'approval', approval: edit.approval, value: edit.value };
     case 'entity':
@@ -464,7 +502,16 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
   switch (document.kind) {
     case 'hephaestus-pause':
     case 'hephaestus-unpause':
+    case 'agent-look-again':
       return { kind: document.kind };
+    case 'machine-agent-program-set':
+      return { kind: document.kind, vendor: document.vendor, programPath: document.programPath };
+    case 'pipeline-agent-set':
+      return { kind: document.kind, agent: pipelineAgentIn(document.agent) };
+    case 'pipeline-setup-agent':
+      return { kind: document.kind, setupId: document.setupId, agent: pipelineAgentIn(document.agent) };
+    case 'pipeline-tools-set':
+      return { kind: document.kind, tools: toolRequestsIn(document.tools) };
     case 'hephaestus-stop':
     case 'hephaestus-restart':
       return { kind: document.kind, now: document.now };
@@ -560,7 +607,12 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
     case 'pipeline-setup-billing':
       return { kind: document.kind, setupId: document.setupId, billing: billingIn(document.billing) };
     case 'pipeline-setup-start':
-      return { kind: document.kind, billing: billingIn(document.billing), replacesUnreadablePipeline: document.replacesUnreadablePipeline };
+      return {
+        kind:                       document.kind,
+        billing:                    billingIn(document.billing),
+        replacesUnreadablePipeline: document.replacesUnreadablePipeline,
+        agent:                      document.agent === null ? null : pipelineAgentIn(document.agent),
+      };
     case 'pipeline-setup-step':
       return {
         kind:    document.kind,

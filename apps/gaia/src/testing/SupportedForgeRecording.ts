@@ -4,7 +4,8 @@
  * forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each endpoint at the
  * versioned path Gaia calls: as Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running
  * forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board
- * file it cannot read, suspended so it accepts and never answers, a restart, killed under an open stream, and starting. The values the
+ * file it cannot read, suspended so it accepts and never answers, a restart, killed under an open stream, and starting. Each forge runs on the
+ * agent its board offers, chosen in a setup record left at its agent step, since a forge with no agent chosen launches no job. The values the
  * run draws (paths, tracker ids, ports, process ids) are recorded as example values; the forge's install and code versions stamp the
  * recording. Test-only.
  */
@@ -38,8 +39,13 @@ import {
   type HephaestusSituation,
   type RecordedStreamAnswer,
 } from './RecordedAnswers.ts';
-import { createScratchForge, forgeProgramToRun, type ScratchForge } from './ScratchForge.ts';
-import { scratchRoot }                                              from './ScratchRoot.ts';
+import {
+  agentAtTheFoundPlaceOf,
+  createScratchForge,
+  forgeProgramToRun,
+  type ScratchForge,
+} from './ScratchForge.ts';
+import { scratchRoot } from './ScratchRoot.ts';
 
 const SETUP_TIMEOUT_MILLISECONDS = 180_000;
 const GENEROUS_BOUND_MILLISECONDS = 10_000;
@@ -67,6 +73,9 @@ const MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT = 64;
 const STARTING_LOOKS_PER_START = 20_000;
 const STARTS_TRIED_FOR_THE_STARTING_WINDOW = 10;
 const MONITOR_EVENT_PATTERN = /event: monitor\ndata: [^\n]*\n\n/g;
+/** How often, and how many times, the registry is looked at for the successor a restart starts once its predecessor let go. */
+const SUCCESSOR_LOOK_INTERVAL_MILLISECONDS = 100;
+const SUCCESSOR_LOOKS_AT_MOST = 100;
 const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The question Hephaestus's first pass opens on a board with no checks set. */
 const FIRST_PASS_QUESTION_KIND = 'question';
@@ -93,7 +102,28 @@ const PATHS = {
   monitor:       pathOf('monitor', 'monitor'),
   monitorEvents: pathOf('monitorEvents', 'monitor/events'),
   commands:      pathOf('commands', 'commands'),
+  board:         pathOf('board', 'board'),
 } as const;
+
+/**
+ * A forge with no agent chosen launches no job, and with no pipeline stored only a setup record takes one: the record is opened at its
+ * agent step and given the agent the board offers, which moves no step, so no pipeline agent launches beside the intake's product owner.
+ */
+async function chooseTheAgentInASetupRecord(hephaestusUrl: string, bearerToken: string): Promise<void> {
+  const requestOf = (method: HephaestusRequest['method'], path: string, jsonBody: string | null): HephaestusRequest => ({
+    hephaestusUrl, method, path, bearerToken, jsonBody, byteBody: null, answerAs: 'text', timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+  });
+  const bodyOf = (answer: HephaestusAnswer): Record<string, unknown> => {
+    if (answer.verdict !== 'answered' || answer.status !== SUCCESS_STATUS) throw new Error(`The forge answered ${JSON.stringify(answer)}`);
+    return JSON.parse(answer.bodyText) as Record<string, unknown>;
+  };
+  const board = bodyOf(await realHephaestusFetch().request(requestOf('GET', PATHS.board, null)));
+  const setupStart = { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false };
+  const opened = bodyOf(await realHephaestusFetch().request(requestOf('POST', PATHS.commands, JSON.stringify(setupStart))));
+  const { setupId } = ((opened['result'] as Record<string, unknown>)['setup'] as Record<string, unknown>);
+  const agentChoice = { kind: 'pipeline-setup-agent', setupId, agent: agentAtTheFoundPlaceOf(board) };
+  bodyOf(await realHephaestusFetch().request(requestOf('POST', PATHS.commands, JSON.stringify(agentChoice))));
+}
 
 export function describeSupportedForgeRecording(recordingName: string): void {
   const monitorVersion = CONTRACT_VERSIONS.forgeMonitor;
@@ -205,6 +235,16 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     }
   }
 
+  /** A start asked before the successor registered itself would start a Hephaestus of its own, so the registry is waited on first. */
+  async function successorHasTakenTheBoardFrom(predecessorProcessId: number): Promise<void> {
+    for (let look = 0; look < SUCCESSOR_LOOKS_AT_MOST; look += 1) {
+      const hephaestus = scratchForge.registryEntryOf(trackerIdDrawn)?.['hephaestus'] as { processId: number } | undefined;
+      if (hephaestus !== undefined && hephaestus.processId !== predecessorProcessId) return;
+      await Bun.sleep(SUCCESSOR_LOOK_INTERVAL_MILLISECONDS);
+    }
+    throw new Error(`No successor took the board within ${SUCCESSOR_LOOKS_AT_MOST} looks at the registry.`);
+  }
+
   function exampleAnswerOf({ answer, scratchForge: answeringForge }: KeptAnswer): HephaestusAnswer | RecordedStreamAnswer {
     if (answer.verdict === 'answered') return { ...answer, bodyText: answeringForge.exampleTextOf(answer.bodyText) };
     if (answer.verdict === 'streaming') return { ...answer, chunks: answer.chunks.map((chunk) => answeringForge.exampleTextOf(chunk)) };
@@ -224,6 +264,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     await scratchForge.runForDocument(repository, ['ticket', 'add', 'Search suggestions', '--type', 'ticket', '--json']);
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveHephaestus();
+    await chooseTheAgentInASetupRecord(hephaestusUrl, bearerToken);
     // A new board starts paused; a forge at work runs, here the product owner of an intake User started.
     expect(await sendCommand({ kind: 'hephaestus-unpause' })).toMatchObject({ verdict: 'answered', status: 200 });
     expect(await sendCommand({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] })).toMatchObject({ verdict: 'answered', status: 200 });
@@ -275,6 +316,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       if (hephaestus === undefined) throw new Error('the registry names no live Hephaestus of Example Project');
       projectHephaestusUrl = hephaestus.url;
       const projectToken = readFileSync(hephaestus.tokenPath, 'utf8').trim();
+      await chooseTheAgentInASetupRecord(projectHephaestusUrl, projectToken);
       // Its summary is recorded once the first pass opened its question and took up the intake User started, on a board still paused.
       const intake = projectRequestOf('POST', PATHS.commands, projectToken, JSON.stringify({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] }));
       expect(await realHephaestusFetch().request(intake)).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
@@ -429,6 +471,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       const ending = await chunksUntilTheEnd(stream, chunks);
       keep('restart', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending });
       expect(snapshotsIn(chunks).length).toBeGreaterThanOrEqual(1);
+      await successorHasTakenTheBoardFrom(hephaestusProcessId);
       const restarted = await scratchForge.runForDocument(repository, ['start', '--json']);
       expect(restarted).toMatchObject({ started: false });
       followTheLiveHephaestus();

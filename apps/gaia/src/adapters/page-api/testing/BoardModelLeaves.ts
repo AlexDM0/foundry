@@ -20,8 +20,8 @@ export function markdownLeftAsWritten(markdown: string): string {
   return markdown;
 }
 
-/** The keys only the page contract carries: its version, and who refused. */
-const PAGE_ONLY_KEYS: ReadonlySet<string> = new Set(['boardVersion', 'refusedBy']);
+/** The keys only the page contract carries: its version, who refused, and Gaia's own count of other forges following the machine's program. */
+const PAGE_ONLY_KEYS: ReadonlySet<string> = new Set(['boardVersion', 'refusedBy', 'otherForgesFollowingMachine']);
 
 const EMPTY_LIST_LEAF = '[]';
 const EMPTY_RECORD_LEAF = '{}';

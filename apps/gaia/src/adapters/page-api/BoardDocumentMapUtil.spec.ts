@@ -5,7 +5,8 @@
  * forge's sentence byte for byte, even one that names a command; a notice that names a command leaves in Gaia's words, its cause dropped;
  * each event and conversation entry carries the board's version; the ordered lists the views iterate keep the forge's order; and the Markdown
  * a forge serves (a ticket body, an epic description, a constitution) reaches the page as HTML rendered here, its raw HTML escaped and a
- * link with a script scheme dropped, since an agent wrote it.
+ * link with a script scheme dropped, since an agent wrote it. The forge's agent reaches the page with Gaia's own count of the other forges
+ * that follow this machine's program, none unless counted, and a job not launched keeps the forge's cause, program and sentence.
  */
 import { describe, expect, test } from 'bun:test';
 import {
@@ -151,6 +152,38 @@ describe('boardDocumentOf, on the recorded board', () => {
       text:      'incident I2 took its default, incident-escalate: its delivery turn closed',
       causeText: 'its delivery turn closed',
     }]);
+  });
+});
+
+describe('boardDocumentOf, on a forge\'s agent', () => {
+  test('carries the agent with the count of other forges that follow this machine\'s program, none unless counted', async () => {
+    const board = await recordedBoardModel();
+    const uncounted = BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten);
+    const { check: _modelCheck, ...agentWithoutCheck } = board.agent;
+    expect(uncounted.agent).toMatchObject({ ...agentWithoutCheck, otherForgesFollowingMachine: 0 });
+    const otherForgesFollowing = 2;
+    expect(BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten, otherForgesFollowing).agent.otherForgesFollowingMachine).toBe(otherForgesFollowing);
+  });
+
+  test('carries a first setup record at its agent step with no agent chosen, and the places the installers use', async () => {
+    const board = await recordedBoardModel('setup-choosing-agent');
+    const document = BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten);
+    expect(document.agent).toMatchObject({ choice: null, check: null, places: board.agent.places });
+    expect(document.pipeline.setup?.record).toMatchObject({
+      currentStep: 'agent', agent: null, stepStates: { agent: 'in-progress' }, tools: board.agent.tools
+    });
+  });
+
+  test('carries a job not launched with the forge\'s cause, program and sentence, and the check that does not run', async () => {
+    const board = await recordedBoardModel('job-not-launched');
+    const document = BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten);
+    expect(document.jobs.map((job) => job.notLaunched)).toEqual(board.jobs.map((job) => (job.notLaunched === null
+      ? null
+      : { cause: job.notLaunched.cause, programPath: job.notLaunched.programPath, text: job.notLaunched.sentence })));
+    expect(document.jobs.some((job) => job.notLaunched !== null)).toBe(true);
+    expect(document.agent.check).toEqual(board.agent.check?.verdict === 'does-not-run'
+      ? { verdict: 'does-not-run', cause: board.agent.check.cause, text: board.agent.check.sentence }
+      : board.agent.check);
   });
 });
 

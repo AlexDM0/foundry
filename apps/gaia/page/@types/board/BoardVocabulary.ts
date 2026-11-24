@@ -164,7 +164,26 @@ export type BoardPipelineApproval = 'tickets' | 'merge';
 
 export type BoardBillingMode = 'subscription' | 'api';
 
-export type BoardSetupStep = 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+export type BoardSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+
+/** Why an agent's program does not run: what the choice names, where the program lies, or how its run with its version arguments ended. */
+export type BoardAgentProgramRefusalCause =
+  | 'no-agent-chosen'
+  | 'other-vendor'
+  | 'no-machine-program'
+  | 'relative-path'
+  | 'inside-forbidden-root'
+  | 'batch-target'
+  | 'not-there'
+  | 'not-executable'
+  | 'no-adapter'
+  | 'did-not-start'
+  | 'timed-out'
+  | 'failed'
+  | 'not-this-agent';
+
+/** Where a pipeline runs a tool: a prepare step, a gate, or every job, as git is. */
+export type BoardAgentToolUseKind = 'prepare' | 'gate' | 'every-job';
 
 export type BoardSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
 

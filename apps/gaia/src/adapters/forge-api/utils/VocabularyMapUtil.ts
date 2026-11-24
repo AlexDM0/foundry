@@ -2,7 +2,8 @@
  * Maps each value list of a forge's board into Gaia's own union through a record typed `Record<forge value, Gaia value>`, so a value a forge
  * adds is a compile error here and nowhere else. The board's shapes check a value with `oneOf` over a record's keys.
  */
-import type { ForgeBoardCommand } from 'forge-contracts/BoardCommand';
+import type { AgentProgramRefusalCause, AgentToolUseDocument } from 'forge-contracts/BoardAgentDocuments';
+import type { ForgeBoardCommand }                              from 'forge-contracts/BoardCommand';
 import type {
   BoardInterruptionCause,
   BoardJobStopRequest,
@@ -333,14 +334,35 @@ const BILLING_MODE = { subscription: 'subscription', api: 'api' } as const satis
 
 const SETUP_STEP = {
   billing:      'billing',
-  // Gaia draws no agent step yet: forge's agent step reads as the billing step before it, until Gaia's setup view gains the step.
-  agent:        'billing',
+  agent:        'agent',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',
   design:       'design',
   apply:        'apply',
 } as const satisfies Record<PipelineSetupStep, Gaia.BoardSetupStep>;
+
+const AGENT_PROGRAM_REFUSAL_CAUSE = {
+  'no-agent-chosen':       'no-agent-chosen',
+  'other-vendor':          'other-vendor',
+  'no-machine-program':    'no-machine-program',
+  'relative-path':         'relative-path',
+  'inside-forbidden-root': 'inside-forbidden-root',
+  'batch-target':          'batch-target',
+  'not-there':             'not-there',
+  'not-executable':        'not-executable',
+  'no-adapter':            'no-adapter',
+  'did-not-start':         'did-not-start',
+  'timed-out':             'timed-out',
+  'failed':                'failed',
+  'not-this-agent':        'not-this-agent',
+} as const satisfies Record<AgentProgramRefusalCause, Gaia.BoardAgentProgramRefusalCause>;
+
+const AGENT_TOOL_USE_KIND = {
+  'prepare':   'prepare',
+  'gate':      'gate',
+  'every-job': 'every-job',
+} as const satisfies Record<AgentToolUseDocument['kind'], Gaia.BoardAgentToolUseKind>;
 
 const SETUP_STEP_STATE = {
   'not-started':   'not-started',
@@ -572,6 +594,8 @@ const BOARD_VOCABULARIES = {
   billingMode:              BILLING_MODE,
   setupStep:                SETUP_STEP,
   setupStepState:           SETUP_STEP_STATE,
+  agentProgramRefusalCause: AGENT_PROGRAM_REFUSAL_CAUSE,
+  agentToolUseKind:         AGENT_TOOL_USE_KIND,
   setupMode:                SETUP_MODE,
   findingTopic:             FINDING_TOPIC,
   gateCandidacy:            GATE_CANDIDACY,

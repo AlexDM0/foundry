@@ -161,7 +161,7 @@ with the system's version. Verify fails on a stale stamp and on a forge recordin
 for the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person can answer.
 `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
-(4.0): `hephaestus-fetch-supported-forge`, the forge in each situation;
+(4.1): `hephaestus-fetch-supported-forge`, the forge in each situation;
 `hephaestus-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
 `hephaestus-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
 system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are

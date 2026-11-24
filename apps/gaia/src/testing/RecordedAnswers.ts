@@ -57,8 +57,9 @@ export type HephaestusSituation = typeof HEPHAESTUS_SITUATIONS[number];
  * `board-at-work` the board document and its event stream, from its start and from the first event's id; both refused another's token;
  * a board command applied, refused, of an unknown kind and held for an install change, the board document read in that hold too; a picture
  * accepted and read back, refused as too large and refused as no picture; a product owner's conversation the fake agent plays, after a
- * picture was uploaded for it; a gate profile run's output; and the Assistant switched off and on again, each with the command's answer
- * and the board document read after it.
+ * picture was uploaded for it; a gate profile run's output; the Assistant switched off and on again, each with the command's answer
+ * and the board document read after it; a first setup record open at its agent step with no agent chosen; and an intake's product owner
+ * standing not launched once the program its agent was pinned to is gone, with User's look again and the board after it.
  */
 export const BOARD_SITUATIONS = [
   'board-at-work',
@@ -74,6 +75,8 @@ export const BOARD_SITUATIONS = [
   'gate-profile-run',
   'assistant-switched-off',
   'assistant-switched-on',
+  'setup-choosing-agent',
+  'job-not-launched',
 ] as const;
 
 export type BoardSituation = typeof BOARD_SITUATIONS[number];

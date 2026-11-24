@@ -2,6 +2,7 @@
  * The jobs of a forge's board as Gaia holds them: each live job with its facts, the stop holds and the offers the forge serves for it, the
  * jobs that left the board, each open ticket's forecast, and the merge queue.
  */
+import type { BoardJobNotLaunched } from './BoardAgent.ts';
 import type {
   BoardInterruptionCause,
   BoardJobState,
@@ -94,6 +95,8 @@ export interface BoardJob {
   readonly stopRequest:   BoardJobStopRequest | null;
   readonly intake:        BoardJobIntake | null;
   readonly entity:        string | null;
+  /** Set while the job's launch stands refused for its agent's program: the forge does not try it again until that changes. */
+  readonly notLaunched:   BoardJobNotLaunched | null;
   readonly live:          BoardJobLiveFacts;
   readonly stopHolds:     BoardJobStopHolds;
   readonly offers:        BoardJobOffers;

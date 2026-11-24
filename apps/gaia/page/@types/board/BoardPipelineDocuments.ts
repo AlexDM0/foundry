@@ -4,6 +4,12 @@
  * marks and step run times, the pipeline history, and the choices a step may take. Values only: the forge words only its refusals and the
  * label of a refusal's fix.
  */
+import type {
+  BoardAgentToolDocument,
+  BoardPipelineAgentDocument,
+  BoardPipelineToolDocument,
+  BoardToolRequestDocument
+} from './BoardAgentDocuments.ts';
 import type { BoardForgeRefusalDocument }                                from './BoardRelayDocuments.ts';
 import type { BoardQuestionAnswerDocument, BoardQuestionOptionDocument } from './BoardTicketDocuments.ts';
 import type {
@@ -131,6 +137,10 @@ export interface BoardPipelineDefinitionDocument {
   readonly agents:           Readonly<Partial<Record<BoardPipelineAgentRole, BoardAgentStepSettingsDocument>>>;
   readonly approvals:        Readonly<Partial<Record<BoardPipelineApproval, boolean>>>;
   readonly billing:          BoardBillingDocument | null;
+  /** `null`: no agent is chosen, and no job launches. */
+  readonly agent:            BoardPipelineAgentDocument | null;
+  /** `null`: the tools follow the pipeline's programs. */
+  readonly tools:            readonly BoardPipelineToolDocument[] | null;
   readonly reach:            readonly string[];
   /** `null` for a forge over no entities. */
   readonly entities:         Readonly<Record<string, BoardPipelineEntityDocument>> | null;
@@ -261,6 +271,10 @@ export interface BoardSetupRecordDocument {
   readonly stepStates:                 BoardSetupStepStatesDocument;
   readonly currentStep:                BoardSetupStep;
   readonly billing:                    BoardBillingDocument;
+  /** `null` until the user chose one. */
+  readonly agent:                      BoardPipelineAgentDocument | null;
+  /** The design's tools, each found now. */
+  readonly tools:                      readonly BoardAgentToolDocument[];
   readonly agentJobId:                 string | null;
   readonly snapshotCommit:             string | null;
   readonly readyToContinue:            readonly BoardSetupStep[];
@@ -343,6 +357,8 @@ export type BoardDraftEditDocument =
   | BoardStepsDraftEditDocument
   | { readonly target: 'role'; readonly role: BoardPipelineAgentRole; readonly value: BoardAgentStepSettingsDocument | null }
   | { readonly target: 'airlock'; readonly value: BoardPipelineAirlockDocument | null }
+  /** `null` follows the draft's programs again. */
+  | { readonly target: 'tools'; readonly value: readonly BoardToolRequestDocument[] | null }
   | { readonly target: 'approval'; readonly approval: BoardPipelineApproval; readonly value: boolean | null }
   | { readonly target: 'entity'; readonly entityKey: string; readonly value: BoardPipelineEntityDefinitionDocument | null }
   | { readonly target: 'within-entity'; readonly entityKey: string; readonly edit: BoardEntityDraftEditDocument };
