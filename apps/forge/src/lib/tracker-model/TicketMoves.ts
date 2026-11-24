@@ -252,7 +252,9 @@ export class TicketMoves {
 
   /** A ticket with documents is judged by them, its spec read for the Acceptance; any other by its body. */
   readinessGapsOfTicket(ticket: Readonly<Ticket>, readinessGapsOf: (body: string) => readonly ReadinessGap[]): ReadinessGap[] {
-    return TicketDocumentReadinessUtil.readinessGapsOf(ticket, this.records.ticketDocumentRecordOf(ticket.frontmatter.id), readinessGapsOf);
+    const ticketId     = ticket.frontmatter.id;
+    const loadedRecord = this.records.ticketDocumentsAreUnreadable(ticketId) ? 'unreadable' : this.records.ticketDocumentRecordOf(ticketId);
+    return TicketDocumentReadinessUtil.readinessGapsOf(ticket, loadedRecord, readinessGapsOf);
   }
 
   /** The body whose Brief says where the work belongs: for a ticket with documents, its approved plan read as the Brief. */

@@ -12,9 +12,12 @@ function fileNameOf(contentHash: string): string {
   return `${contentHash}${VERSION_FILE_EXTENSION}`;
 }
 
-/** Never throws. A file whose text does not hash to the hash it is kept under is no version: it was changed. */
+/**
+ * Never throws. A file whose text does not hash to the hash it is kept under is no version: it was changed. The text is read byte for
+ * byte, a leading byte order mark kept, since the hash was taken over it.
+ */
 function read(filePath: string, contentHash: string): TicketDocumentContentReading {
-  const stored = storedFileTextOf(filePath);
+  const stored = storedFileTextOf(filePath, true);
   if (stored.verdict === 'absent') return { verdict: 'unreadable', reason: `no text is kept under the hash ${contentHash}` };
   if (stored.verdict === 'unreadable') return { verdict: 'unreadable', reason: stored.reason };
   if (TicketDocumentVersionUtil.contentHashOf(stored.text) !== contentHash) return { verdict: 'unreadable', reason: `its text does not hash to ${contentHash}` };

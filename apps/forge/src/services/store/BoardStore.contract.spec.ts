@@ -184,6 +184,62 @@ const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
     },
   },
   {
+    claim: 'a clear of every ticket takes their documents with them, so a ticket that takes a cleared id opens documents of its own',
+    check: async (subject) => {
+      const { store, anotherClientOfTheSameBoard } = await subject();
+      const fileTicketWithDocuments = (): Promise<{ result: string }> => store.transactions.transact({
+        at:     CHANGED_AT,
+        mutate: (transaction) => {
+          const ticket = transaction.records.newTicket({
+            title: 'Example basket page', type: 'ticket', bodyFor: () => '## Report\n\nEmpty.\n', at: transaction.at
+          });
+          transaction.board.fileTicket(ticket, transaction.at);
+          transaction.board.ticketDocuments().open(ticket.frontmatter.id, transaction.at);
+          return ticket.frontmatter.id;
+        },
+      });
+      const first = await fileTicketWithDocuments();
+      await applyCommand(store, {
+        kind: 'ticket-document-save', ticketReference: first.result, document: 'spec', baseVersion: null, markdown: '## Acceptance\n\nA1. Shown.\n'
+      });
+
+      expect((await applyCommand(store, { kind: 'tracker-clear', scope: 'everything' })).outcome).toBe('done');
+      expect(anotherClientOfTheSameBoard().reads.requireBoard().ticketDocumentListing).toEqual({ records: [], unreadable: [] });
+
+      const second = await fileTicketWithDocuments();
+      expect(second.result).toBe(first.result);
+      const listing = anotherClientOfTheSameBoard().reads.requireBoard().ticketDocumentListing;
+      expect(listing.unreadable).toEqual([]);
+      expect(listing.records.map((loadedRecord) => loadedRecord.record.ticketId)).toEqual([first.result]);
+    },
+  },
+  {
+    claim: 'a document text that starts with a byte order mark is read back byte for byte, its record readable',
+    check: async (subject) => {
+      const { store, anotherClientOfTheSameBoard } = await subject();
+      const opened = await store.transactions.transact({
+        at:     CHANGED_AT,
+        mutate: (transaction) => {
+          const ticket = transaction.records.newTicket({
+            title: 'Example basket page', type: 'ticket', bodyFor: () => '## Report\n\nEmpty.\n', at: transaction.at
+          });
+          transaction.board.fileTicket(ticket, transaction.at);
+          transaction.board.ticketDocuments().open(ticket.frontmatter.id, transaction.at);
+          return ticket.frontmatter.id;
+        },
+      });
+      const specText = '\uFEFF## Acceptance\n\nA1. The basket shows.\n';
+
+      await applyCommand(store, {
+        kind: 'ticket-document-save', ticketReference: opened.result, document: 'spec', baseVersion: null, markdown: specText
+      });
+
+      const listing = anotherClientOfTheSameBoard().reads.requireBoard().ticketDocumentListing;
+      expect(listing.unreadable).toEqual([]);
+      expect(Object.values(listing.records[0]?.textOfContentHash ?? {})).toEqual([specText]);
+    },
+  },
+  {
     claim: 'a command\'s change is in the board it answers and in every later read',
     check: async (subject) => {
       const { store } = await subject();

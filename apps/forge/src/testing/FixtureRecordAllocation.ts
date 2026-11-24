@@ -11,7 +11,9 @@ import type { RecordAllocation }                     from '../services/tracker/B
 
 const FIXTURE_TRACKER_DIRECTORY = '/example-agency/storefront/.agent-progress';
 
-export const NO_UNREADABLE_RECORDS: UnreadableRecords = { tickets: [], epics: [], drafts: [] };
+export const NO_UNREADABLE_RECORDS: UnreadableRecords = {
+  tickets: [], epics: [], drafts: [], ticketDocuments: []
+};
 
 /** A hand-built hold of the local allocation that listed no ticket file. */
 export const NO_LISTED_TICKET_LOCATIONS: ReadonlyMap<string, string> = new Map();

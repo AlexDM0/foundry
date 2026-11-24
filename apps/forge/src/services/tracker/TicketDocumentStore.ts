@@ -2,8 +2,8 @@
  * The tickets' documents as a store: `ticket-documents/<ticketId>/record.json` beside one `<contentHash>.md` per version. A record that
  * cannot be read, or that names a version whose text is missing or changed, is a listing entry, never a throw.
  */
-import { readdirSync, type Dirent } from 'node:fs';
-import { join }                     from 'node:path';
+import { readdirSync, rmdirSync, type Dirent } from 'node:fs';
+import { join }                                from 'node:path';
 
 import { TicketDocumentContentFile }            from '../../adapters/tickets/TicketDocumentContentFile.ts';
 import { TicketDocumentsFileIngestion }         from '../../adapters/tickets/TicketDocumentsFileIngestion.ts';
@@ -26,6 +26,14 @@ function ticketFolderNamesIn(folder: string): string[] {
   return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
 }
 
+function folderIsEmpty(folder: string): boolean {
+  try {
+    return readdirSync(folder).length === 0;
+  } catch {
+    return false;
+  }
+}
+
 function ticketFolderOf(workspace: Workspace, ticketId: string): string {
   return join(localStoreLayoutOf(workspace).ticketDocumentRecordsFolder, ticketId);
 }
@@ -38,11 +46,15 @@ export function ticketDocumentVersionPathOf(workspace: Workspace, ticketId: stri
   return join(ticketFolderOf(workspace, ticketId), TicketDocumentContentFile.fileNameOf(contentHash));
 }
 
-/** A ticket's folder is its id: a record whose `ticketId` says otherwise is unreadable, as is one naming a version with no good text. */
+/**
+ * A ticket's folder is its id: a record whose `ticketId` says otherwise is unreadable, as is one naming a version with no good text. An empty
+ * folder holds no record: it is what a clear of every ticket leaves when it stops before the folder goes.
+ */
 export function listTicketDocuments(workspace: Workspace): TicketDocumentListing {
   const records: LoadedTicketDocumentRecord[] = [];
   const unreadable: UnreadableRecord[]        = [];
   for (const ticketId of ticketFolderNamesIn(localStoreLayoutOf(workspace).ticketDocumentRecordsFolder)) {
+    if (folderIsEmpty(ticketFolderOf(workspace, ticketId))) continue;
     const location = ticketDocumentRecordPathOf(workspace, ticketId);
     const unreadableEntry = (reason: string, entryLocation: string): UnreadableRecord => ({
       record: 'ticket-documents', key: ticketId, location: entryLocation, reason, line: 0
@@ -85,4 +97,17 @@ export function everyTicketDocumentFilePathIn(workspace: Workspace): string[] {
       return [];
     }
   });
+}
+
+/** After a clear of every ticket removed their files: each ticket's emptied folder, so a ticket id used again finds no folder in the way. */
+export function removeEmptyTicketDocumentFolders(workspace: Workspace): void {
+  for (const ticketId of ticketFolderNamesIn(localStoreLayoutOf(workspace).ticketDocumentRecordsFolder)) {
+    const folder = ticketFolderOf(workspace, ticketId);
+    if (!folderIsEmpty(folder)) continue;
+    try {
+      rmdirSync(folder);
+    } catch {
+      // A folder that cannot go stays: the listing passes over an empty one.
+    }
+  }
 }

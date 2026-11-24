@@ -44,6 +44,7 @@ export async function applyCommandOfVerb<Command extends ControlCommand>(
   // The store is already written, so a skipped file never fails the command: exit 0, named on standard error.
   OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
   OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
+  OutputUtil.reportIgnoredTicketDocumentRecords(context, written.unreadableRecords.ticketDocuments);
   await registerWrittenTracker(context, workspace);
   await nudgeHephaestus(context, workspace.trackerDirectory);
   return written;

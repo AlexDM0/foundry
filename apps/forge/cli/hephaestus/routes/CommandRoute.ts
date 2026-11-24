@@ -185,6 +185,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     const written = await boardStore.commands.apply({ command, at, context: controlContextOf(request) });
     OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
     OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
+    OutputUtil.reportIgnoredTicketDocumentRecords(context, written.unreadableRecords.ticketDocuments);
     await registerWrittenTracker(context, workspace);
     request.wake();
     return appliedAnswerOf({ outcome: written.outcome, result: written.result });

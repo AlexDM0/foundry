@@ -26,9 +26,10 @@ export interface UnreadableRecord {
 }
 
 export interface UnreadableRecords {
-  tickets: readonly UnreadableRecord[];
-  epics:   readonly UnreadableRecord[];
-  drafts:  readonly UnreadableRecord[];
+  tickets:         readonly UnreadableRecord[];
+  epics:           readonly UnreadableRecord[];
+  drafts:          readonly UnreadableRecord[];
+  ticketDocuments: readonly UnreadableRecord[];
 }
 
 /** The records a board holds one of; a ticket, an epic or a draft is never named by where it is kept. */

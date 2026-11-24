@@ -8,17 +8,18 @@ import type { BoardContents }        from './@types/BoardRecords.ts';
 
 export function boardOfContents(contents: BoardContents, logger: Logger): Board {
   return new Board({
-    progress:              contents.progress,
-    tickets:               contents.listing.tickets,
-    epics:                 contents.epicListing.epics,
-    drafts:                contents.draftListing.drafts,
+    progress:                    contents.progress,
+    tickets:                     contents.listing.tickets,
+    epics:                       contents.epicListing.epics,
+    drafts:                      contents.draftListing.drafts,
     logger,
-    storedLogRecords:      contents.storedLog.records,
-    pipeline:              contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
-    pipelineSetup:         contents.pipelineSetupReading,
-    gateProfiles:          contents.gateProfilesReading,
-    constitutionSources:   contents.constitutionSourcesReading,
-    ticketDocumentRecords: contents.ticketDocumentListing.records,
+    storedLogRecords:            contents.storedLog.records,
+    pipeline:                    contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
+    pipelineSetup:               contents.pipelineSetupReading,
+    gateProfiles:                contents.gateProfilesReading,
+    constitutionSources:         contents.constitutionSourcesReading,
+    ticketDocumentRecords:       contents.ticketDocumentListing.records,
+    unreadableTicketDocumentIds: contents.ticketDocumentListing.unreadable.flatMap((unreadable) => unreadable.key ?? []),
   });
 }
 

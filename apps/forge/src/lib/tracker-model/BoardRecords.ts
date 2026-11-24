@@ -84,6 +84,8 @@ export class BoardRecords {
     public constitutionSourcesReading: ConstitutionSourcesReading,
     /** One per ticket in the spec-then-plan route, each with the text of every version it names. */
     readonly ticketDocumentRecords: LoadedTicketDocumentRecord[],
+    /** The tickets whose documents record could not be read, which no record above stands for. */
+    readonly unreadableTicketDocumentIds: readonly string[] = [],
   ) {}
 
   markChanged(ticket: Ticket): void {
@@ -100,6 +102,11 @@ export class BoardRecords {
 
   markTicketDocumentsChanged(loadedRecord: LoadedTicketDocumentRecord): void {
     if (!this.changedTicketDocumentRecords.includes(loadedRecord)) this.changedTicketDocumentRecords.push(loadedRecord);
+  }
+
+  /** A ticket with an unreadable documents record is judged by no body: its documents exist, though they cannot be read. */
+  ticketDocumentsAreUnreadable(ticketId: string): boolean {
+    return this.unreadableTicketDocumentIds.includes(ticketId);
   }
 
   ticketDocumentRecordOf(ticketId: string): LoadedTicketDocumentRecord | undefined {

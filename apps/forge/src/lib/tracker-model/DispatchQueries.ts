@@ -57,10 +57,12 @@ export class DispatchQueries {
 
   /**
    * A committed ticket with documents is held while its spec, or a document its builder reads, is not approved at its head, or its plan
-   * was approved on an older spec. A builder whose rule never reads the plan is held by the spec alone.
+   * was approved on an older spec. A builder whose rule never reads the plan is held by the spec alone. One whose documents record cannot
+   * be read is held too, since nothing says its documents are in order.
    */
   ticketIsHeldByItsDocuments(ticket: Readonly<Ticket>): boolean {
     if (ticket.frontmatter.status !== 'committed') return false;
+    if (this.records.ticketDocumentsAreUnreadable(ticket.frontmatter.id)) return true;
     const loadedRecord = this.records.ticketDocumentRecordOf(ticket.frontmatter.id);
     if (loadedRecord === undefined) return false;
     const builderReadsPlan = TicketWritingUtil.documentReadingRuleOf(this.records.pipeline, 'builder', 'plan', ticket.frontmatter.entity) !== 'never';

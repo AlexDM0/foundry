@@ -1,10 +1,12 @@
 /**
  * A ticket's documents as the routes read them from a stored board. What matters: a reference that names no ticket, and a ticket with no
- * documents record, each answer 404 worded; a ticket whose record holds a saved spec answers 200 with that version's text and the effect
- * readings the source holds for that ticket alone; and a save through the command route changes the ticket's fingerprint, so the next
- * publish sends `documents` for it before `board`; and an effect read through the command route asks the serving pass's readings, and is
- * refused while no pass serves.
+ * documents record, each answer 404 worded, and one whose record cannot be read answers that, never that it has none; a ticket whose record
+ * holds a saved spec answers 200 with that version's text and the effect readings the source holds for that ticket alone; and a save
+ * through the command route changes the ticket's fingerprint, so the next publish sends `documents` for it before `board`; and an effect
+ * read through the command route asks the serving pass's readings, and is refused while no pass serves.
  */
+import { readdirSync, rmSync } from 'node:fs';
+import { join }                from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -17,6 +19,7 @@ import { EventBroker, type HephaestusEvent }                             from '.
 import type { HephaestusRoutes }                                         from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { TicketDocumentsAssembly }                                       from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
 import type { BoardStore }                                               from '../../../src/services/store/BoardStore.ts';
+import { localStoreLayoutOf }                                            from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                                              from '../../../src/services/tracker/Workspace.ts';
 import type { EffectReading, EffectReadingRequest, EffectReadingSource } from '../../../src/shared/@types/EffectReading.ts';
 import { useRecordedGit }                                                from '../../../src/testing/RecordedGit.ts';
@@ -144,6 +147,17 @@ describeWhenGitIsRecorded('a ticket\'s documents at the route', () => {
     const ticketId = boardStore.reads.listTickets().tickets[0]?.frontmatter.id ?? '';
 
     expect(routes.ticketDocuments('1')).toEqual({ status: 404, body: { refusal: 'ticket-has-no-documents', fields: { ticketId }, text: expect.any(String) } });
+  });
+
+  test('a ticket whose documents record cannot be read answers 404 unreadable-file-in-the-way, never as a ticket with no documents', async () => {
+    const { routes, boardStore } = routesOf();
+    const ticketId = await ticketWithOpenRecord(routes, boardStore);
+    await savedSpec(routes);
+    const recordFolder = join(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).ticketDocumentRecordsFolder, ticketId);
+    for (const fileName of readdirSync(recordFolder).filter((name) => name.endsWith('.md'))) rmSync(join(recordFolder, fileName));
+
+    const fields = expect.objectContaining({ record: 'ticket-documents' });
+    expect(routes.ticketDocuments('1')).toEqual({ status: 404, body: { refusal: 'unreadable-file-in-the-way', fields, text: expect.any(String) } });
   });
 
   test('a ticket whose record holds a saved spec answers 200 with its text and the effect readings of that ticket alone', async () => {

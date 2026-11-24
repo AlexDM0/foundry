@@ -32,11 +32,20 @@ function documentGapsOf(loadedRecord: Readonly<LoadedTicketDocumentRecord>, judg
   return [...specGapOf(standings.spec), ...(judgesPlan ? planGapOf(standings.plan) : [])];
 }
 
+/** A record that could not be read approves neither document, so a ticket that has one is never judged ready by its body. */
+const UNREADABLE_RECORD_GAPS: readonly ReadinessGap[] = Object.freeze(['spec-unapproved', 'plan-unapproved']);
+
 /**
  * A ticket without a record is judged by its body. With one, the spec's head must hold a numbered Acceptance (the Brief is the plan's, so
- * `brief-missing` is not judged), and both documents must be approved, the plan on the spec's approved head.
+ * `brief-missing` is not judged), and both documents must be approved, the plan on the spec's approved head. With an `unreadable` one,
+ * neither document stands approved.
  */
-function readinessGapsOf(ticket: Readonly<Ticket>, loadedRecord: Readonly<LoadedTicketDocumentRecord> | undefined, bodyGapsOf: BodyGapsOf): ReadinessGap[] {
+function readinessGapsOf(
+  ticket: Readonly<Ticket>,
+  loadedRecord: Readonly<LoadedTicketDocumentRecord> | 'unreadable' | undefined,
+  bodyGapsOf: BodyGapsOf
+): ReadinessGap[] {
+  if (loadedRecord === 'unreadable') return [...UNREADABLE_RECORD_GAPS];
   if (loadedRecord === undefined) return [...bodyGapsOf(ticket.body)];
   const specText    = specHeadTextOf(loadedRecord);
   const specGaps    = specText === null ? ['acceptance-unnumbered' as const] : bodyGapsOf(specText).filter((gap) => gap === 'acceptance-unnumbered');

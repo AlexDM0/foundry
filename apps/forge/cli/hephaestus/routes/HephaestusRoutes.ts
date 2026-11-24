@@ -107,13 +107,21 @@ interface TicketDocumentsReads {
   constitutionNumbers: ConstitutionNumbers;
 }
 
-/** `GET /api/tickets/<ticket>/documents`: the document, or 404 worded for a reference that names no ticket or a ticket with no documents. */
+/**
+ * `GET /api/tickets/<ticket>/documents`: the document, or 404 worded for a reference that names no ticket, a ticket with no documents, or
+ * one whose documents record cannot be read, which is named as unreadable, never as absent.
+ */
 function ticketDocumentsAnswerOf(boardReads: StoreReadFace, reads: TicketDocumentsReads, ticketReference: string): RouteAnswer {
-  const board  = readingBoardOfContents(boardReads.requireBoard());
-  const ticket = board.ticketByReference(ticketReference);
+  const contents = boardReads.requireBoard();
+  const board    = readingBoardOfContents(contents);
+  const ticket   = board.ticketByReference(ticketReference);
   try {
     if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
     const ticketId = ticket.frontmatter.id;
+    const unreadableRecord = contents.ticketDocumentListing.unreadable.find((unreadable) => unreadable.key === ticketId);
+    if (unreadableRecord !== undefined) {
+      throw new OperationRefusal('refused', { kind: 'unreadable-file-in-the-way', filePath: unreadableRecord.location, record: 'ticket-documents' });
+    }
     const document = TicketDocumentsAssembly.ticketDocumentsOf({
       ticket,
       loadedRecord:        board.ticketDocumentRecordOf(ticketId),

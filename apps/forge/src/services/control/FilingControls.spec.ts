@@ -43,7 +43,9 @@ function boardBesideUnreadableFilings(): { fixture: BoardFixture; change: BoardT
   mkdirSync(localStoreLayoutOf(workspace).draftRecordsFolder, { recursive: true });
   writeFileSync(join(localStoreLayoutOf(workspace).epicRecordsFolder, `${BROKEN_EPIC_KEY}.md`), HAND_EDIT_GONE_WRONG);
   writeFileSync(join(localStoreLayoutOf(workspace).draftRecordsFolder, `${BROKEN_DRAFT_ID}.json`), HAND_EDIT_GONE_WRONG);
-  const unreadableRecords: UnreadableRecords = { tickets: [], epics: listEpics(workspace).unreadable, drafts: listDrafts(workspace).unreadable };
+  const unreadableRecords: UnreadableRecords = {
+    tickets: [], epics: listEpics(workspace).unreadable, drafts: listDrafts(workspace).unreadable, ticketDocuments: []
+  };
   const fixture = boardFixture();
   const change  = {
     board:   fixture.board,

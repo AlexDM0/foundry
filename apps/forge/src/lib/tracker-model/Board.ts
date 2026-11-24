@@ -225,24 +225,26 @@ function launchStageOf(step: PlaybookLaunchStage): PlaybookLaunchStage {
 }
 
 export interface BoardInput {
-  progress:               TrackerProgress;
-  tickets:                Ticket[];
-  epics:                  Epic[];
+  progress:                     TrackerProgress;
+  tickets:                      Ticket[];
+  epics:                        Epic[];
   /** Absent for a caller that reads no drafts, which reads as none. */
-  drafts?:                Draft[];
-  logger:                 Logger;
+  drafts?:                      Draft[];
+  logger:                       Logger;
   /** The log as stored, which orders the ready tickets by readiness; absent reads as an empty log. */
-  storedLogRecords?:      readonly LogRecord[];
+  storedLogRecords?:            readonly LogRecord[];
   /** The stored pipeline; absent or `null` when none is stored or it could not be read, which reads as no gates set. */
-  pipeline?:              Pipeline | null;
+  pipeline?:                    Pipeline | null;
   /** `pipeline-setup.json` as read; absent reads as no open record. */
-  pipelineSetup?:         PipelineSetupReading;
+  pipelineSetup?:               PipelineSetupReading;
   /** `gate-profiles.json` as read; absent reads as no run. */
-  gateProfiles?:          GateProfilesReading;
+  gateProfiles?:                GateProfilesReading;
   /** `constitution-sources.json` as read; absent reads as none stored. */
-  constitutionSources?:   ConstitutionSourcesReading;
+  constitutionSources?:         ConstitutionSourcesReading;
   /** The tickets' documents records, each with its version texts; absent reads as none. */
-  ticketDocumentRecords?: LoadedTicketDocumentRecord[];
+  ticketDocumentRecords?:       LoadedTicketDocumentRecord[];
+  /** The tickets whose documents record could not be read: held and never ready, as their documents cannot be judged. */
+  unreadableTicketDocumentIds?: readonly string[];
 }
 
 export class Board {
@@ -317,7 +319,7 @@ export class Board {
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
       input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' },
-      input.ticketDocumentRecords ?? []);
+      input.ticketDocumentRecords ?? [], input.unreadableTicketDocumentIds ?? []);
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);

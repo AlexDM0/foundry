@@ -41,7 +41,7 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
       + 'Every write refuses until it is repaired or removed.');
   }
   const {
-    progress, pipelineReading, storedLog, listing, epicListing, draftListing
+    progress, pipelineReading, storedLog, listing, epicListing, draftListing, ticketDocumentListing
   } = store.reads.requireBoard();
   const wordedLog       = storedLog.records.map(LogUtil.wordedEntryOf);
   const logNewestFirst  = logNewestFirstOf(wordedLog);
@@ -50,6 +50,7 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
   OutputUtil.reportIgnoredEpicFiles(context, epicListing.unreadable);
   OutputUtil.reportIgnoredDraftFiles(context, draftListing.unreadable);
+  OutputUtil.reportIgnoredTicketDocumentRecords(context, ticketDocumentListing.unreadable);
 
   const showsEverything  = commandArguments.flag('full');
   const showsTicketsOnly = commandArguments.flag('tickets-only');

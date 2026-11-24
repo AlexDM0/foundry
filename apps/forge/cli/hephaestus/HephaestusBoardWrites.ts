@@ -16,6 +16,7 @@ export async function writeAsHephaestus<Result>(
   const written = await store.transactions.transact({ at: LocalTimeUtil.formatLocalIso(context.now()), mutate });
   OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
   OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
+  OutputUtil.reportIgnoredTicketDocumentRecords(context, written.unreadableRecords.ticketDocuments);
   await registerWrittenTracker(context, workspace);
   return written.result;
 }

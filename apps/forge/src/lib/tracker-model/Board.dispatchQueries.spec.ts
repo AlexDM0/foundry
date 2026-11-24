@@ -1,7 +1,8 @@
 /**
  * A review counts as in flight on any row storing `reviewOf`, as a claim counts it, and a ticket waits for review exactly while no
  * reviewer is at work; a ticket's linked row is the one its frontmatter `task` names. The free slots the concurrency figure shows are the
- * builds the Playbook launches on the same board, so the figure and the launch gate never disagree.
+ * builds the Playbook launches on the same board, so the figure and the launch gate never disagree. A committed ticket's documents hold it
+ * while they are not in order, and also while its documents record cannot be read, which is never judged by the body instead.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -497,6 +498,19 @@ describe('the hold a committed ticket\'s documents put on it', () => {
     expect(board.readyTickets()).toEqual([]);
     expect(board.heldTicketIds()).toEqual(['004']);
     expect(board.ticketByReference('004')?.frontmatter.hold).toBeUndefined();
+  });
+
+  test('a ticket whose documents record cannot be read is held and never ready, not judged by its body', () => {
+    const fixture = boardFixture({
+      tickets:                     [ticketFixture({ id: '004', status: 'committed', task: 1 }), ticketFixture({ id: '005', status: 'draft' })],
+      tasks:                       [taskFixture({ id: 1, status: 'committed', ticket: '004' })],
+      pipeline:                    { ...PipelineUtil.minimalPipelineOf(), ticketWriting: 'spec-then-plan' },
+      unreadableTicketDocumentIds: ['004', '005'],
+    });
+    expect(fixture.board.readyTickets()).toEqual([]);
+    expect(fixture.board.heldTicketIds()).toEqual(['004']);
+    const incompleteTickets = [{ ticketId: '005', gaps: ['spec-unapproved', 'plan-unapproved'] as const }];
+    expect(refusalDetailOf(() => fixture.board.readyDraftTickets(['005'], () => [], FIXTURE_AT))).toEqual({ reason: 'incomplete-tickets', incompleteTickets });
   });
 
   test('a plan the builder never reads holds nothing', () => {

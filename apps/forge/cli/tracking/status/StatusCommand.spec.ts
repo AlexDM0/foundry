@@ -3,8 +3,8 @@
  * left out; `--full` is the whole progress file plus the tickets. Both documents are the agent's contract, and both carry the concurrency block.
  * Hephaestus's process facts above the board are held by `cli/tracking/status/StatusCommand.processFacts.spec.ts`.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
 
 import {
   afterEach,
@@ -313,6 +313,22 @@ describeWhenGitIsRecorded('when a ticket file will not parse', () => {
     const document = JSON.parse(context.outputText()) as StatusDocument;
 
     expect(context.errorText()).toContain('004-broken.md');
+    expect(document.tickets).toHaveLength(1);
+  });
+});
+
+describeWhenGitIsRecorded('when a ticket\'s documents record will not read', () => {
+  test('it is reported on standard error, naming the ticket it holds, and both forms still answer', async () => {
+    const recordFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'ticket-documents', '001');
+    mkdirSync(recordFolder, { recursive: true });
+    writeFileSync(join(recordFolder, 'record.json'), '{ "version": 1, "ticketId": \n');
+
+    const context  = await run(['status', '--json']);
+    const document = JSON.parse(context.outputText()) as StatusDocument;
+
+    expect(context.errorText()).toContain('Ticket documents ignored: ');
+    expect(context.errorText()).toContain(join('ticket-documents', '001', 'record.json'));
+    expect(context.errorText()).toContain('Ticket #001 is held');
     expect(document.tickets).toHaveLength(1);
   });
 });

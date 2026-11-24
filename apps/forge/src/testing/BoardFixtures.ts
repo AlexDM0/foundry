@@ -97,16 +97,17 @@ export function entityPipelineFixture(): Pipeline {
 
 /** The next task id is one past the highest row handed in, as a tracker that filed those rows itself would hold. */
 export function boardFixture(contents: {
-  tasks?:                 Task[];
-  tickets?:               Ticket[];
-  epics?:                 Epic[];
-  drafts?:                Draft[];
-  concurrencyLimit?:      number;
-  pipeline?:              Pipeline;
-  pipelineSetup?:         PipelineSetupReading;
-  gateProfiles?:          GateProfilesReading;
-  constitutionSources?:   ConstitutionSourcesReading;
-  ticketDocumentRecords?: LoadedTicketDocumentRecord[];
+  tasks?:                       Task[];
+  tickets?:                     Ticket[];
+  epics?:                       Epic[];
+  drafts?:                      Draft[];
+  concurrencyLimit?:            number;
+  pipeline?:                    Pipeline;
+  pipelineSetup?:               PipelineSetupReading;
+  gateProfiles?:                GateProfilesReading;
+  constitutionSources?:         ConstitutionSourcesReading;
+  ticketDocumentRecords?:       LoadedTicketDocumentRecord[];
+  unreadableTicketDocumentIds?: readonly string[];
 } = {}): BoardFixture {
   const tasks      = contents.tasks ?? [];
   const tickets    = contents.tickets ?? [];
@@ -132,6 +133,7 @@ export function boardFixture(contents: {
     ...(contents.gateProfiles === undefined ? {} : { gateProfiles: contents.gateProfiles }),
     ...(contents.constitutionSources === undefined ? {} : { constitutionSources: contents.constitutionSources }),
     ...(contents.ticketDocumentRecords === undefined ? {} : { ticketDocumentRecords: contents.ticketDocumentRecords }),
+    ...(contents.unreadableTicketDocumentIds === undefined ? {} : { unreadableTicketDocumentIds: contents.unreadableTicketDocumentIds }),
   });
   return {
     board,

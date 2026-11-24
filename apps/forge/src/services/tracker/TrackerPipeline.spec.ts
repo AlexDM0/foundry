@@ -103,7 +103,9 @@ describe('writeTracker', () => {
     });
 
     expect(written.board.tasks().map((task) => task.name)).toEqual(['Example rendered row']);
-    expect(written.unreadableRecords).toEqual({ tickets: [], epics: [], drafts: [] });
+    expect(written.unreadableRecords).toEqual({
+      tickets: [], epics: [], drafts: [], ticketDocuments: []
+    });
   });
 
   test('a Board refusal arrives as a refused OperationRefusal carrying its detail, and every file stays byte for byte', async () => {
