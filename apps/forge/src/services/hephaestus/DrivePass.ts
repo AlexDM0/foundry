@@ -1220,6 +1220,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const endedJobIdsExamined = new Set<string>();
   let endedSessionsAwaitingQuit: EndedJobSession[] = [];
   const triedPipelineAgentSnapshots = new Set<string>();
+  const triedDocumentAgentSnapshots = new Set<string>();
 
   /**
    * A gate step Hephaestus runs itself, under the profile a gate line child gets, its own network and `writes`, in `worktreePath`; `pipeline`
@@ -1617,6 +1618,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
+    DocumentAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedDocumentAgentSnapshots, request.log);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.childInstance);
     await JobResumption.deliverFirstMessages(request.boardChildren, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({

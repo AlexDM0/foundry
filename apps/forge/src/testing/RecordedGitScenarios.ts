@@ -16,6 +16,7 @@ export const GIT_SCENARIOS = {
   PIPELINE_AGENT_SNAPSHOT_FILE_ADDED:   'a pipeline agent snapshot at <start>, pipeline.json untracked',
   PIPELINE_AGENT_SNAPSHOT_COMMITTED:    'a pipeline agent snapshot at <start>, the commit <moved> made on it',
   PIPELINE_AGENT_SNAPSHOT_BRANCH_ADDED: 'a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>',
+  DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED:    'a document agent snapshot of ticket 004 at <start>, untouched',
   BUILT:                                'a branch built from <start> to <head>, clean',
   BUILT_THEN_RESET:                     'a branch built from <start> to <rewritten>, reset to <start>',
   BUILT_WITH_AN_UNTRACKED_FILE:         'a branch built from <start> to <head>, left-behind.txt untracked',

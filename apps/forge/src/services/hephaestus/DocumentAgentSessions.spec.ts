@@ -4,11 +4,19 @@
  * for a newer spec with that spec's text, or a read of the head; one message goes out at a time, only while the agent is idle, oldest
  * first, never a withdrawn one; the line carries the comment's lines at the head, the version it was sent on and an orphan's quote; an idle
  * agent with nothing queued has its input closed and then waits, or ends `closed` once its document is approved; an instance resumed from
- * waiting opens with the next message; and a turn end whose snapshot fails Customs refuses the turn's requests, logs it, opens one
- * incident on the ticket and ends the job `failed`.
+ * waiting opens with the next message; a turn end whose snapshot Customs finds untouched applies the turn's requests, on recorded git;
+ * a turn end whose snapshot fails Customs refuses the turn's requests, logs it, opens one
+ * incident on the ticket and ends the job `failed`; and a ticket's snapshot is removed once no document agent of the ticket holds it, a
+ * waiting one included, and tried again after a later agent held it.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join }                                 from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import path, { join } from 'node:path';
+
 import {
   afterEach,
   describe,
@@ -18,6 +26,7 @@ import {
 
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
+import { REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives }             from '../../lib/git/GitWorktrees.ts';
 import type { ChildInput }                                                              from '../../lib/talos/@types/TalosFrame.ts';
 import type { Job }                                                                     from '../../lib/tracker-model/@types/Job.ts';
 import type { TicketStatus }                                                            from '../../lib/tracker-model/@types/Ticket.ts';
@@ -25,13 +34,19 @@ import type { LoadedTicketDocumentRecord }                                      
 import type { BoardRefusalDetail }                                                      from '../../lib/tracker-model/BoardRefusal.ts';
 import { boardFixture, ticketFixture, type BoardFixture }                               from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                                       from '../../testing/EchoedControlContext.ts';
+import { fakeAgentAdapter }                                                             from '../../testing/FakeAgentAdapter.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }                         from '../../testing/FixtureRecordAllocation.ts';
+import { useRecordedGit }                                                               from '../../testing/RecordedGit.ts';
+import { DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME }                                          from '../../testing/RecordedGitScenarioCalls.ts';
+import { GIT_SCENARIOS }                                                                from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
 import { documentAgentJobFixture, documentMessageFixture, ticketDocumentRecordFixture } from '../../testing/TicketDocumentFixtures.ts';
+import { testWhenGitIsRecorded }                                                        from '../../testing/ToolGuard.ts';
+import { launchSnapshotOf }                                                             from '../lifecycle/Customs.ts';
 import type { BoardTransaction }                                                        from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                                            from '../tracker/Workspace.ts';
 import type { BoardChildren }                                                           from './BoardChildren.ts';
-import { DocumentAgentSessions }                                                        from './DocumentAgentSessions.ts';
+import { DOCUMENT_AGENT_SNAPSHOT_FOLDER, DocumentAgentSessions }                        from './DocumentAgentSessions.ts';
 import { jobFolderIn }                                                                  from './HephaestusFiles.ts';
 
 const AT = '2026-11-24T12:00:00.000Z';
@@ -41,6 +56,10 @@ const SPEC_TEXT = '# Basket\n\n## Outcome\n\nAlex Example sees the total.\n\n## 
 const NEWER_SPEC_TEXT = `${SPEC_TEXT}2. The total updates.\n`;
 
 const PLAN_TEXT = '# Plan\n\nChange `src/Basket.ts`.\n';
+
+const START_COMMIT = '1'.repeat(40);
+
+const recordedGit = useRecordedGit();
 
 const scratchFolders: string[] = [];
 
@@ -231,31 +250,62 @@ describe('the messages', () => {
   });
 });
 
+function transactionOf(fixture: SessionFixture): BoardTransaction {
+  return {
+    board:                          fixture.board,
+    workspace:                      workspacePathsFor(fixture.rootDirectory),
+    at:                             AT,
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
+    unreadablePipeline:             null,
+    storedLogEntryCount:            0,
+    storedLogRecords:               [],
+    deleteAllTicketFilesAfterwards: () => undefined,
+  };
+}
+
+function turnEndContextOf(fixture: SessionFixture, worktreesRoot: string): Parameters<typeof DocumentAgentSessions.verifyTurnEnds>[1] {
+  return {
+    workspace:   workspacePathsFor(fixture.rootDirectory),
+    worktreesRoot,
+    branchNames: { ticketBranchOf: (ticketId: string) => `ticket/${ticketId}`, groupTargetPrefix: 'group/' },
+    mainLine:    'main',
+    pathStyle:   { pathModule: path, foldsCase: false },
+    agentNaming: fakeAgentAdapter(),
+  } as unknown as Parameters<typeof DocumentAgentSessions.verifyTurnEnds>[1];
+}
+
+describe('a turn end whose snapshot Customs finds untouched', () => {
+  testWhenGitIsRecorded('applies the turn\'s requests', () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT.replace('1. The', 'A1. The')] }]), [job]);
+    const repositoryDirectory = fixture.rootDirectory;
+    mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
+    mkdirSync(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME), { recursive: true });
+    recordedGit.enterScenario(GIT_SCENARIOS.DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED, { repositoryDirectory, commits: { '<start>': START_COMMIT } });
+    const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
+    mkdirSync(jobFolder, { recursive: true });
+    const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME));
+    writeFileSync(join(jobFolder, 'document-agent-start.json'), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
+
+    const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, repositoryDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
+
+    expect(replies.map((reply) => reply.reply.outcome)).toEqual(['done']);
+    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.readyAtNumber).toBe(1);
+    expect(fixture.board.incidents()).toEqual([]);
+    expect(fixture.board.jobById('J9')?.state).toBe('running');
+  });
+});
+
 describe('a turn end whose snapshot fails Customs', () => {
   test('refuses the turn\'s requests, logs it, opens one incident on the ticket and ends the job failed', () => {
     const job     = documentAgentJobFixture('004', 'spec');
     const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [job]);
-    const change: BoardTransaction = {
-      board:                          fixture.board,
-      workspace:                      workspacePathsFor(fixture.rootDirectory),
-      at:                             AT,
-      records:                        createFixtureRecordAllocation(fixture.board),
-      unreadableRecords:              NO_UNREADABLE_RECORDS,
-      unreadablePipeline:             null,
-      storedLogEntryCount:            0,
-      storedLogRecords:               [],
-      deleteAllTicketFilesAfterwards: () => undefined,
-    };
+    const change = transactionOf(fixture);
     mkdirSync(jobFolderIn(fixture.trackerDirectory, 'J9'), { recursive: true });
     const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
-    const context = {
-      workspace:     workspacePathsFor(fixture.rootDirectory),
-      worktreesRoot: join(fixture.rootDirectory, 'worktrees'),
-      branchNames:   { ticketBranchOf: (ticketId: string) => `ticket/${ticketId}`, groupTargetPrefix: 'group/' },
-      mainLine:      'main',
-      pathStyle:     { pathsCompareFolded: false },
-      agentNaming:   { configurationNames: { folderNames: [], fileNames: [] }, attributionPatterns: [] },
-    } as unknown as Parameters<typeof DocumentAgentSessions.verifyTurnEnds>[1];
+    const context = turnEndContextOf(fixture, join(fixture.rootDirectory, 'worktrees'));
 
     const replies = DocumentAgentSessions.verifyTurnEnds(change, context, ['J9', 'J9'], [request], ECHOED_CONTROL_CONTEXT);
 
@@ -270,5 +320,49 @@ describe('a turn end whose snapshot fails Customs', () => {
     }]);
     expect(fixture.board.incidents().map((incident) => [incident.kind, incident.ticketIds, incident.jobId])).toEqual([['document-snapshot-touched', ['004'], 'J9']]);
     expect(fixture.board.jobs()).toEqual([]);
+  });
+});
+
+describe('a ticket\'s snapshot', () => {
+  /** Git's removal as the primitives see it: the folder goes, and each removal is noted. */
+  function removalThatSucceeds(removed: string[]): WorktreeRemovalPrimitives {
+    return {
+      ...REAL_WORKTREE_REMOVAL_PRIMITIVES,
+      pause:  () => undefined,
+      runGit: (_directory, gitArguments) => {
+        const snapshot = gitArguments.at(-1) ?? '';
+        removed.push(snapshot);
+        rmSync(snapshot, { recursive: true, force: true });
+        return { exitCode: 0, standardOutput: '', standardError: '' };
+      },
+    };
+  }
+
+  test('is removed once no document agent of the ticket holds it, a waiting one included, and again after a later agent held it', () => {
+    const waiting  = documentAgentJobFixture('004', 'spec', { state: 'awaiting-answer' });
+    const fixture  = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [waiting]);
+    const context  = { workspace: workspacePathsFor(fixture.rootDirectory), worktreesRoot: join(fixture.rootDirectory, 'worktrees') };
+    const snapshot = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER, '004');
+    const removed: string[] = [];
+    const logged: string[] = [];
+    const tried = new Set<string>();
+    const removeUnheld = (): void => DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, tried, (line) => logged.push(line), removalThatSucceeds(removed));
+    mkdirSync(snapshot, { recursive: true });
+
+    removeUnheld();
+    expect(removed).toEqual([]);
+
+    fixture.board.endJob('J9', { outcome: 'closed' }, AT);
+    removeUnheld();
+    expect(removed).toEqual([snapshot]);
+    expect(existsSync(snapshot)).toBe(false);
+
+    mkdirSync(snapshot, { recursive: true });
+    fixture.progress.jobs = [documentAgentJobFixture('004', 'plan', { id: 'J10' })];
+    removeUnheld();
+    fixture.progress.jobs = [];
+    removeUnheld();
+    expect(removed).toEqual([snapshot, snapshot]);
+    expect(logged).toEqual([]);
   });
 });

@@ -199,8 +199,9 @@ function createEffectReadings(options: EffectReadingsOptions): EffectReadings {
     const duration = options.nowMilliseconds() - running.startedAt;
     const reading  = readingOf(running.request, reported === null ? 'failed' : 'read', duration, reported);
     end(board, jobId, reading, at);
-    if (running.request.requestedByAgent) {
-      board.ticketDocuments().queueBoardMessage(running.request.ticketId, running.request.document, boardMessageTextOf(reading), at);
+    const { ticketId, document } = running.request;
+    if (running.request.requestedByAgent && board.ticketDocuments().documentOf(ticketId, document) !== null) {
+      board.ticketDocuments().queueBoardMessage(ticketId, document, boardMessageTextOf(reading), at);
     }
   }
 

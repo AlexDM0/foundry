@@ -1,11 +1,13 @@
 /**
- * When the Playbook starts a ticket document's agent. What matters: the spec agent starts once the record opens with no spec; the plan
+ * When the Playbook starts a ticket document's agent. What matters: the spec agent starts once the record opens with no spec, as the
+ * Board's open move leaves it; the plan
  * agent once the spec is approved, and again for a newer approved spec while no edit for it is open, once per spec version; a queued
  * message starts the agent, or resumes the one waiting for it; nothing starts while an agent works the document, once an agent picked the
  * ticket up, or by itself after an agent failed; and a document agent's turn is first in line for a slot, before any build.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import {
   documentAgentJobFixture,
   documentMessageFixture,
@@ -73,6 +75,16 @@ const APPROVED_SPEC: DocumentFixture = { kind: 'spec', texts: [SPEC_TEXT], appro
 describe('the spec agent', () => {
   test('starts once the record opens with no spec', () => {
     expect(documentLaunchesOf(stepsOf({ documents: [] }))).toEqual([{ kind: 'launch-document-agent', ticketId: '004', document: 'spec' }]);
+  });
+
+  test('starts once the Board\'s open move made the record, its spec and plan both unwritten', () => {
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '004', status: 'draft' })] });
+    board.ticketDocuments().open('004', FIXTURE_AT);
+    const openedRecord = board.ticketDocumentRecordOf('004');
+    if (openedRecord === null) throw new Error('the open move made no record');
+    const ticketDocuments = Playbook.ticketDocumentFactsOf([openedRecord]);
+    const steps = Playbook.nextStepsOf(factsWith({ tickets: [ticketOf('004', 'draft')], jobs: [LIVE_ASSISTANT], ticketDocuments }), FIXTURE_LIMITS);
+    expect(documentLaunchesOf(steps)).toEqual([{ kind: 'launch-document-agent', ticketId: '004', document: 'spec' }]);
   });
 
   test('starts by itself only once: a spec agent launched before starts again only for a message', () => {

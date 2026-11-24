@@ -3,7 +3,7 @@
  * launch of an instance; a profile writing only its Hatch with no network; the facts of its first message; Customs at each turn end, before
  * the turn's Hatch requests apply; and its messages, written one at a time while it is idle, in the order User queued them. An idle agent
  * with nothing queued has its input closed and waits with no session, and the next message resumes it; an agent whose document is done
- * ends `closed`.
+ * ends `closed`. A ticket's snapshot is removed once no document agent of the ticket holds it.
  */
 import {
   existsSync,
@@ -14,18 +14,18 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import type { AgentAdapter }                                        from '../../lib/agent-launch/AgentAdapter.ts';
-import type { WorkerProfile }                                       from '../../lib/agent-launch/WorkerProfile.ts';
-import { writeFileAtomically }                                      from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                                               from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                             from '../../lib/git/GitWorktrees.ts';
-import type { Job }                                                 from '../../lib/tracker-model/@types/Job.ts';
-import type { DocumentMessage, TicketDocument, TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                                               from '../../lib/tracker-model/Board.ts';
-import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                   from '../../lib/tracker-model/constants/Statuses.ts';
-import { DocumentAgentJobUtil }                                     from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { TicketDocumentVersionUtil }                                from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
-import type { ControlContext }                                      from '../../shared/@types/ControlContext.ts';
+import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
+import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
+import { writeFileAtomically }                                                            from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
+import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
+import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { DocumentMessage, TicketDocument, TicketDocumentKind }                       from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                                         from '../../lib/tracker-model/constants/Statuses.ts';
+import { DocumentAgentJobUtil }                                                           from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { TicketDocumentVersionUtil }                                                      from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { ControlContext }                                                            from '../../shared/@types/ControlContext.ts';
 import {
   clearCustoms,
   launchSnapshotOf,
@@ -406,6 +406,34 @@ function verifyTurnEnds(
   return replies;
 }
 
+/**
+ * After the hold: each ticket's snapshot that no document agent of the ticket holds, a waiting one included, is removed; one the removal
+ * leaves is named through `log` as a leftover. A snapshot is tried once each time it falls unheld, since a later agent adds it again.
+ */
+function removeUnheldSnapshots(
+  board: Board,
+  context: Pick<SnapshotContext, 'workspace' | 'worktreesRoot'>,
+  triedSnapshots: Set<string>,
+  log: (line: string) => void,
+  removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
+): void {
+  const snapshotsFolder = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER);
+  if (!existsSync(snapshotsFolder)) return;
+  const heldSnapshots = new Set(board.jobs().filter(isDocumentAgentJob).map((job) => snapshotDirectoryOf(context.worktreesRoot, job)));
+  const { repositoryRoot } = projectLocationOf(context.workspace.rootDirectory);
+  for (const name of readdirSync(snapshotsFolder)) {
+    const snapshot = join(snapshotsFolder, name);
+    if (heldSnapshots.has(snapshot)) {
+      triedSnapshots.delete(snapshot);
+      continue;
+    }
+    if (triedSnapshots.has(snapshot)) continue;
+    triedSnapshots.add(snapshot);
+    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
+    if (removal.verdict === 'left') log(`The document agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
+  }
+}
+
 export const DocumentAgentSessions = Object.freeze({
   isDocumentAgentJob,
   snapshotDirectoryOf,
@@ -421,4 +449,5 @@ export const DocumentAgentSessions = Object.freeze({
   settleEndedSession,
   sendDeliveries,
   verifyTurnEnds,
+  removeUnheldSnapshots,
 });

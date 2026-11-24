@@ -16,6 +16,7 @@ import type { EffectReadingRequest }                           from '../../share
 import { OperationRefusal }                                    from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
 import { ticketIdOfReference }                                 from './ControlTicketLookup.ts';
+import { ticketDocumentMoveJudgesOf }                          from './TicketDocumentMoveJudges.ts';
 
 /** The live agent job and the ticket document it writes. */
 interface LiveDocumentAgent {
@@ -100,25 +101,19 @@ function forSpecNumberOf(board: Board, agent: LiveDocumentAgent): number | null 
   return spec === null ? null : TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? null;
 }
 
-/** What the move logged, read off the log the Board keeps, since a document move answers its own result. */
-function loggedBy<Result>(board: Board, move: () => Result): { result: Result; logged: readonly LogRecord[] } {
-  const loggedBefore = board.logRecordsSoFar().length;
-  const result       = move();
-  return { result, logged: board.logRecordsSoFar().slice(loggedBefore) };
-}
-
-function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, change: BoardTransaction): { proposal: DocumentProposal; logged: readonly LogRecord[] } {
+function propose(command: ControlCommandOf<'ticket-document-agent-propose'>, change: BoardTransaction): { proposal: Readonly<DocumentProposal>; logged: readonly LogRecord[] } {
   const agent      = liveDocumentAgentOf(change.board, command.jobId);
   const submission = submissionOf(command, forSpecNumberOf(change.board, agent));
   const commit     = stampedCommitOf(agent, command.constitutionCommit);
-  const { result, logged } = loggedBy(change.board, () => change.board.ticketDocuments().propose(agent.ticketId, agent.document, agent.job.id, submission, commit, change.at));
-  return { proposal: result, logged };
+  const judges     = ticketDocumentMoveJudgesOf(agent.document);
+  const { proposal, logged } = change.board.ticketDocuments().propose(agent.ticketId, agent.document, agent.job.id, submission, commit, judges, change.at);
+  return { proposal, logged };
 }
 
 function markReady(command: ControlCommandOf<'ticket-document-agent-ready'>, change: BoardTransaction): { jobId: string; logged: readonly LogRecord[] } {
   const agent  = liveDocumentAgentOf(change.board, command.jobId);
   const commit = stampedCommitOf(agent, command.constitutionCommit);
-  const { logged } = loggedBy(change.board, () => change.board.ticketDocuments().markReady(agent.ticketId, agent.document, agent.job.id, commit, change.at));
+  const { logged } = change.board.ticketDocuments().markReady(agent.ticketId, agent.document, commit, ticketDocumentMoveJudgesOf(agent.document), change.at);
   return { jobId: agent.job.id, logged };
 }
 

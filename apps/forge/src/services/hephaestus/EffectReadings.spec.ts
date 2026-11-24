@@ -8,6 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { WorkerProfile }                                    from '../../lib/agent-launch/WorkerProfile.ts';
+import type { DocumentMessage }                                  from '../../lib/tracker-model/@types/TicketDocument.ts';
 import { LaunchSlotUtil }                                        from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
 import type { EffectReadingRequest }                             from '../../shared/@types/EffectReading.ts';
 import { boardFixture, ticketFixture, type BoardFixture }        from '../../testing/BoardFixtures.ts';
@@ -33,7 +34,7 @@ interface ReadingsFixture extends BoardFixture {
   advance:        (milliseconds: number) => void;
   wakes:          () => number;
   changedTickets: string[];
-  boardMessages:  unknown[][];
+  boardMessages:  () => readonly DocumentMessage[];
 }
 
 function readingsFixture(): ReadingsFixture {
@@ -47,8 +48,8 @@ function readingsFixture(): ReadingsFixture {
   const readings = EffectReadings.createEffectReadings({ wake: () => { wakeCount += 1; }, nowMilliseconds: () => now, timeoutMilliseconds: 60_000 });
   const changedTickets: string[] = [];
   readings.onChanged((ticketId) => changedTickets.push(ticketId));
-  const boardMessages: unknown[][] = [];
-  Object.assign(fixture.board.ticketDocuments(), { queueBoardMessage: (...moveArguments: unknown[]) => boardMessages.push(moveArguments) });
+  const boardMessages = (): readonly DocumentMessage[] => (fixture.board.ticketDocuments().documentOf('004', 'plan')?.messages ?? [])
+    .filter((message) => message.from === 'board');
   return {
     ...fixture, readings, advance: (milliseconds) => { now += milliseconds; }, wakes: () => wakeCount, changedTickets, boardMessages
   };
@@ -141,7 +142,7 @@ describeWhenGitIsRecorded('a settled reading', () => {
       ['src/New.ts', 'adds', null],
     ]);
     expect(fixture.records.findLast((record) => record.kind === 'job-ended')).toMatchObject({ jobId: job.id, fields: { outcome: 'closed' } });
-    expect(fixture.boardMessages).toEqual([]);
+    expect(fixture.boardMessages()).toEqual([]);
   });
 
   test('goes to the agent that asked as a board message holding the reading as data', async () => {
@@ -154,8 +155,10 @@ describeWhenGitIsRecorded('a settled reading', () => {
 
     fixture.readings.settle(fixture.board, job.id, REPORT, AT);
 
-    expect(fixture.boardMessages.map(([ticketId, document]) => [ticketId, document])).toEqual([['004', 'plan']]);
-    expect(JSON.parse(String(fixture.boardMessages[0]?.[2]))).toMatchObject({ effectReading: { document: 'plan', version: 1, state: 'read' } });
+    const [message] = fixture.boardMessages();
+    expect(message).toMatchObject({ messageId: 'M1', state: 'queued', queuedAt: AT });
+    expect(JSON.parse(message?.text ?? '')).toMatchObject({ effectReading: { document: 'plan', version: 1, state: 'read' } });
+    expect(fixture.board.changedTicketDocumentRecords().map((loadedRecord) => loadedRecord.record.ticketId)).toEqual(['004']);
   });
 });
 

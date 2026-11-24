@@ -1,15 +1,17 @@
 /**
  * The moves on a ticket document's agent. What matters: a Hatch move is refused `document-agent-not-live` unless its job is the one
  * document agent on the board for its ticket's document, so a move from another job, another ticket's agent or a builder never reaches
- * the document; a proposal's untrusted payload is checked before the Board sees it, and reaches it with the plan's spec version and the
- * stamped snapshot commit; an effect reading needs a version the document holds and a live Hephaestus, and only the agent's own reading
- * is marked as asked by the agent; and a turn stop closes the input of a running agent only, keeping its job.
+ * the document; a proposal's untrusted payload is checked before the Board sees it, and lands as the document's open proposal with the
+ * plan's spec version; ready marks the head with the review on and approves it as the pipeline with the review off; an effect reading
+ * needs a version the document holds and a live Hephaestus, and only the agent's own reading is marked as asked by the agent; and a turn
+ * stop closes the input of a running agent only, keeping its job.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
 import type { LoadedTicketDocumentRecord } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { ProposalSubmission }         from '../../lib/tracker-model/TicketDocuments.ts';
+import { PipelineUtil }                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }       from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
 import type { EffectReadingRequest }       from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal }                from '../../shared/OperationRefusal.ts';
@@ -28,14 +30,15 @@ import { ControlService }                                                       
 
 const CHANGED_AT = '2026-11-24T11:00:00.000Z';
 
-const SPEC_TEXT = '# Basket\n\n## Acceptance\n\n1. Alex Example sees the total.\n';
+const SPEC_TEXT = '# Basket\n\n## Acceptance\n\nA1. Alex Example sees the total.\n';
 
 const PLAN_TEXT = '# Plan\n\nChange `src/Basket.ts`.\n';
 
-function documentsBoard(jobs: Job[], records: LoadedTicketDocumentRecord[] = [specAndPlanRecord('004')]): BoardFixture {
+function documentsBoard(jobs: Job[], records: LoadedTicketDocumentRecord[] = [specAndPlanRecord('004')], reviewIsOn = true): BoardFixture {
   const fixture = boardFixture({
     tickets:               [ticketFixture({ id: '004', status: 'draft' }), ticketFixture({ id: '005', status: 'draft' })],
     ticketDocumentRecords: records,
+    ...(reviewIsOn ? {} : { pipeline: { ...PipelineUtil.minimalPipelineOf(), approvals: { spec: false, plan: false } } }),
   });
   fixture.progress.jobs = jobs;
   return fixture;
@@ -77,16 +80,8 @@ function apply(fixture: BoardFixture, command: ControlCommand, context = ECHOED_
   return ControlService.apply(command, changeOf(fixture), context).result;
 }
 
-/** Stands in for the Board's own proposal move, which records what it was handed. */
-function proposalsHandedOver(fixture: BoardFixture): unknown[][] {
-  const handed: unknown[][] = [];
-  Object.assign(fixture.board.ticketDocuments(), {
-    propose: (...moveArguments: unknown[]) => {
-      handed.push(moveArguments);
-      return { proposalId: 'P1' };
-    },
-  });
-  return handed;
+function proposalsOf(fixture: BoardFixture, ticketId = '004'): readonly unknown[] {
+  return fixture.board.ticketDocuments().documentOf(ticketId, 'plan')?.proposals ?? [];
 }
 
 const PROPOSAL: ControlCommand = {
@@ -108,10 +103,9 @@ describe('the live agent check', () => {
     ['an effect reader of the ticket', [documentAgentJobFixture('004', 'plan', { kind: 'effect-reading', role: 'effect-reader' })], 'J9'],
   ] as const)('a proposal from %s is refused and reaches nothing', (_caseName, jobs, jobId) => {
     const fixture = documentsBoard([...jobs]);
-    const handed  = proposalsHandedOver(fixture);
     const detail  = refusalDetailOf(() => apply(fixture, { ...PROPOSAL, jobId }));
     expect(detail.reason).toBe('document-agent-not-live');
-    expect(handed).toEqual([]);
+    expect(proposalsOf(fixture)).toEqual([]);
   });
 
   test('another ticket\'s agent is refused for a ticket whose live agent is another job', () => {
@@ -131,13 +125,14 @@ describe('the live agent check', () => {
 });
 
 describe('a proposal', () => {
-  test('reaches the Board with its edits, the message it answers, the spec version a plan is written for and the snapshot commit', () => {
+  test('lands as the document\'s open proposal with its edits, the message it answers and the spec version a plan is written for', () => {
     const fixture = documentsBoard([documentAgentJobFixture('004', 'plan')]);
-    const handed  = proposalsHandedOver(fixture);
 
-    apply(fixture, PROPOSAL);
+    const result = apply(fixture, PROPOSAL) as { proposal: unknown; logged: readonly { kind: string }[] };
 
-    const submission: ProposalSubmission = {
+    const proposal = {
+      proposalId: 'P1',
+      jobId:      'J9',
       baseNumber: 1,
       edits:      [{
         fromLine: 3, toLine: 3, originalLines: ['Change `src/Basket.ts`.'], replacementLines: ['Change `src/basket/Basket.ts`.']
@@ -145,8 +140,13 @@ describe('a proposal', () => {
       summary:          'Name the basket folder',
       answersMessageId: 'M2',
       forSpecNumber:    2,
+      state:            'proposed',
+      at:               CHANGED_AT,
     };
-    expect(handed).toEqual([['004', 'plan', 'J9', submission, SNAPSHOT_COMMIT_FIXTURE, CHANGED_AT]]);
+    expect(proposalsOf(fixture)).toEqual([proposal]);
+    expect(result.proposal).toEqual(proposal);
+    expect(result.logged.map((record) => record.kind)).toEqual(['ticket-document-proposed']);
+    expect(fixture.board.ticketDocuments().documentOf('004', 'plan')?.versions).toHaveLength(1);
   });
 
   test.each([
@@ -166,7 +166,6 @@ describe('a proposal', () => {
     ['answers', { answers: 'C2' }],
   ] as const)('a malformed %s is refused before the Board sees it', (field, overrides) => {
     const fixture = documentsBoard([documentAgentJobFixture('004', 'plan')]);
-    const handed  = proposalsHandedOver(fixture);
     let thrown: unknown = null;
     try {
       apply(fixture, { ...PROPOSAL, ...overrides } as ControlCommand);
@@ -174,7 +173,37 @@ describe('a proposal', () => {
       thrown = error;
     }
     expect(thrown instanceof OperationRefusal && thrown.detail).toEqual({ kind: 'malformed-setup-command', commandKind: 'ticket-document-agent-propose', field });
-    expect(handed).toEqual([]);
+    expect(proposalsOf(fixture)).toEqual([]);
+  });
+});
+
+describe('ready', () => {
+  const READY: ControlCommand = { kind: 'ticket-document-agent-ready', jobId: 'J9', constitutionCommit: SNAPSHOT_COMMIT_FIXTURE };
+
+  function specOnlyRecord(specText: string): LoadedTicketDocumentRecord {
+    return ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [specText] }]);
+  }
+
+  test('with the review on, marks the head ready for User and approves nothing', () => {
+    const fixture = documentsBoard([documentAgentJobFixture('004', 'spec')], [specOnlyRecord(SPEC_TEXT)]);
+    expect(apply(fixture, READY)).toEqual({ jobId: 'J9', logged: [] });
+    const spec = fixture.board.ticketDocuments().documentOf('004', 'spec');
+    expect(spec?.readyAtNumber).toBe(1);
+    expect(spec?.approvals).toEqual([]);
+  });
+
+  test('with the review off, the pipeline approves the head on the stamped snapshot commit', () => {
+    const fixture = documentsBoard([documentAgentJobFixture('004', 'spec')], [specOnlyRecord(SPEC_TEXT)], false);
+    apply(fixture, READY);
+    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.approvals).toEqual([{
+      number: 1, contentHash: TicketDocumentVersionUtil.contentHashOf(SPEC_TEXT), by: 'pipeline', at: CHANGED_AT, constitutionCommit: SNAPSHOT_COMMIT_FIXTURE
+    }]);
+  });
+
+  test('a spec whose Acceptance is not numbered as A1. is refused and stays unready', () => {
+    const fixture = documentsBoard([documentAgentJobFixture('004', 'spec')], [specOnlyRecord('# Basket\n\n## Acceptance\n\n1. Alex Example sees the total.\n')]);
+    expect(refusalDetailOf(() => apply(fixture, READY))).toEqual({ reason: 'spec-acceptance-unnumbered', ticketId: '004' });
+    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.readyAtNumber).toBeUndefined();
   });
 });
 
