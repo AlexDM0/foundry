@@ -1855,6 +1855,10 @@ one refuses every request of the turn `document-snapshot-touched`, logs `ticket-
 incident `document-snapshot-touched` on the ticket and ends the job `failed`. Each move is refused
 `document-agent-not-live` unless its job is the one document agent on the board for its ticket's document.
 
+The snapshot belongs to the ticket: `<worktrees>/document-agent/<ticketId>/`, checked out at main's tip at each launch
+of an instance and shared by the ticket's spec and plan agents. Once no document agent of the ticket is on the board,
+a waiting one included, Hephaestus removes it, and names one the removal leaves in `hephaestus.log`.
+
 ### The board's lifetime
 
 | command | what it does |

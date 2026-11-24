@@ -607,12 +607,15 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedWith(GIT_CALL_SHAPES.SHORT_STATUS_OF_A_NEW_FILE, shortStatus)).toBe('?? planted-file.txt\n');
   });
 
-  test('a ticket\'s flow, stage by stage: the tracker ready, the pipeline agent worktree, the ticket worktree, the session\'s commit, the merge', () => {
+  test('a ticket\'s flow, stage by stage: the tracker ready, the pipeline and document agent worktrees, the ticket worktree, the session\'s commit, the merge', () => {
     const flow = flowRepository();
     recordFlowStage('tracker ready', flow);
     recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'pipeline agent worktree made'));
     recordFlowStage('pipeline agent worktree made', flow);
     recordFlowCall('pipeline agent worktree made', flow, requireTransitionTo('pipeline agent worktree made', 'tracker ready'));
+    recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'document agent worktree made'));
+    recordFlowStage('document agent worktree made', flow);
+    recordFlowCall('document agent worktree made', flow, requireTransitionTo('document agent worktree made', 'tracker ready'));
     recordFlowCall('tracker ready', flow, requireTransitionTo('tracker ready', 'worktree made'));
     recordFlowStage('worktree made', flow);
     recordSessionCommit(flow);
