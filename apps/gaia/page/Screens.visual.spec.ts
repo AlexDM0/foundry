@@ -54,6 +54,9 @@ import {
   SPLASH_SCREENS,
   SPLASH_SIZE_PIXELS,
   splashScreenAddressOf,
+  TICKET_DOCUMENT_SCREENS,
+  ticketDocumentScreenDocumentOf,
+  ticketDocumentScreenMarkupOf,
   VERSIONS_SCREENS,
   WHAT_NOTIFIES_SCREENS,
   whatNotifiesDocumentOf,
@@ -539,5 +542,40 @@ describe('C3, the launcher\'s splash, opened as the file it is', () => {
     const markRules = (STYLESHEETS[1] ?? '').split('\n').filter((line) => line.startsWith('.gaia-mark'));
     expect(markRules.length).toBeGreaterThan(0);
     for (const markRule of markRules) expect(splashText).toContain(markRule);
+  });
+});
+
+/** What each documents artboard shows that no other does, in the words the page draws. */
+const TICKET_DOCUMENT_SCREEN_STATES: Readonly<Record<number, readonly string[]>> = {
+  1: ['Reading package.json for C2', 'Approve spec · start Plan', 'Plan · after spec'],
+  2: ['C3 · § 2 Outcome · line 11 · Preview', 'The agent gets the quote, its section and lines 9–13.'],
+  3: ['C3 · lines 17–23 · Code', '§ 3 Behaviour › mermaid block Theme flow'],
+  4: ['Spec agent proposes · line 29 only', 'Waiting on you · 1 edit to review', 'spec · v4 · 1 edit proposed'],
+  5: ['Replying to C3 · started on v5', 'Queue ⌘↵', 'Queued for the agent', 'spec · v6 · editing'],
+  6: ['C3 · § 3 Behaviour · line 20 · Preview', 'The agent gets the node, its section and lines 18–22.'],
+  7: ['What the plan names', 'Unresolved · 2', 'Approve plan · start build', 'Waiting on you · 2 unresolved places'],
+  8: ['Approve plan again · start build', 'then Build · held', 'The spec changed after this plan was approved', 'Plan agent proposes, for spec v6'],
+};
+
+describe('the ticket document screens', () => {
+  test('artboards 1 to 8 are each painted once', () => {
+    expect(TICKET_DOCUMENT_SCREENS.map((screen) => screen.artboard)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  test('each screen shows the state its artboard draws', () => {
+    for (const screen of TICKET_DOCUMENT_SCREENS) {
+      const text = MarkupTree.textOf(MarkupTree.parse(ticketDocumentScreenMarkupOf(screen)));
+      for (const shown of TICKET_DOCUMENT_SCREEN_STATES[screen.artboard] ?? []) expect([screen.artboard, text.includes(shown)]).toEqual([screen.artboard, true]);
+    }
+  });
+
+  test('a screen holds no colour of its own, and its document names its theme and links the documents\' stylesheet', () => {
+    for (const screen of TICKET_DOCUMENT_SCREENS) {
+      for (const inlineStyle of inlineStylesOf(ticketDocumentScreenMarkupOf(screen))) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
+      for (const theme of SCREEN_THEMES) {
+        const screenDocument = ticketDocumentScreenDocumentOf(screen, theme);
+        expect([screenDocument.includes(`<html lang="en" data-theme="${theme}">`), screenDocument.includes('.board-document-page')]).toEqual([true, true]);
+      }
+    }
   });
 });

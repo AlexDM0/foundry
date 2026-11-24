@@ -88,6 +88,7 @@ function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
       <Button
         label={action.label}
         emphasis="primary"
+        compact
         disabled={!sender.enabled}
         onPress={() => void sender.send()}
         {...(action.lockReason === null ? {} : { accessibleName: `${action.label}. ${action.lockReason}` })}
@@ -129,8 +130,9 @@ function DocumentsHead({
             href={hrefOf(BoardRouter.documentsRouteOf(ticket.id, tab.document))}
           >
             {tab.label}
-            {tab.version === null ? null : <span className="board-document-mono">{` ${tab.version}`}</span>}
-            {tab.suffix === null ? null : <span className="board-document-tab-suffix">{` ${tab.suffix}`}</span>}
+            {/* A flex row drops the spaces between its items, which still part the tab's name. */}
+            {tab.version === null ? null : <>{' '}<span className="board-document-mono">{tab.version}</span></>}
+            {tab.suffix === null ? null : <>{' '}<span className="board-document-tab-suffix">{tab.suffix}</span></>}
           </a>
         ))}
       </div>
@@ -139,17 +141,21 @@ function DocumentsHead({
       <span className="board-document-mono board-document-note">{head.stateLine}</span>
       <span className="board-document-head-gap" />
       <SegmentedControl accessibleName="View" options={VIEW_OPTIONS} selected={view} onSelect={onView} size="standard" />
-      <Button label={`Comments ${head.commentCount}`} onPress={onShowComments} />
+      {head.commentCount === 0 ? null : <Button label={`Comments ${head.commentCount}`} compact onPress={onShowComments} />}
       <PrimaryAction action={head.primaryAction} />
     </header>
   );
 }
 
-/** "On spec v5, approved 13:40 · constitution v3": what the plan was written on. */
+/**
+ * "On spec v5, approved 13:40 · constitution v3": the spec approval the plan stands on, the one its own approval names once it has one,
+ * else the spec's newest.
+ */
 function planContextLineOf(documents: GaiaTicketDocumentsDocument): string | null {
   const spec = TicketDocumentsViewModel.documentOf(documents, 'spec');
   const plan = TicketDocumentsViewModel.documentOf(documents, 'plan');
-  const specApproval = TicketDocumentsViewModel.newestApprovalOf(spec);
+  const onSpecNumber = TicketDocumentsViewModel.newestApprovalOf(plan)?.onSpecNumber ?? null;
+  const specApproval = spec?.approvals.findLast((approval) => onSpecNumber === null || approval.number === onSpecNumber) ?? null;
   if (specApproval === null) return null;
   const approvedAt = TimeUtil.epochMillisecondsOf(specApproval.at);
   const constitution = plan?.head?.constitutionNumber ?? null;

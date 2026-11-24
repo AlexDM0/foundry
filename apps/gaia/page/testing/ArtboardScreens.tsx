@@ -9,10 +9,33 @@ import { join }                 from 'node:path';
 import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { CommandAnswerDocument, ForgeCommandBody }                                           from '../@types/CommandDocument.ts';
-import type { FleetDocument }                                                                     from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext, type CommandStates }                           from '../api/CommandSender.ts';
-import type { BoardServices }                                                                     from '../board/@types/BoardServices.ts';
+import { MarkdownBlocks }                                               from '../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { CommandAnswerDocument, ForgeCommandBody }                 from '../@types/CommandDocument.ts';
+import type { FleetDocument }                                           from '../@types/FleetDocument.ts';
+import type { BoardTicketDocument }                                     from '../@types/board/BoardTicketDocuments.ts';
+import type { BoardTicketDocumentKind }                                 from '../@types/board/BoardVocabulary.ts';
+import type { BoardTranscriptEntryDocument }                            from '../@types/board/ConversationDocument.ts';
+import type { GaiaTicketDocumentsDocument }                             from '../@types/board/TicketDocumentsDocument.ts';
+import { type CommandSender, CommandSenderContext, type CommandStates } from '../api/CommandSender.ts';
+import type { BoardServices }                                           from '../board/@types/BoardServices.ts';
+import { BoardGoToContext, BoardTrackerContext }                        from '../board/shell/BoardRouteLinks.ts';
+import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shell/ControlAvailability.ts';
+import {
+  DOCUMENT_STATES,
+  DOCUMENTS_PROJECT,
+  documentsTicketOf,
+  lineOf,
+  PLAN_OUT_OF_DATE_TRANSCRIPT,
+  PLAN_TRANSCRIPT,
+  SPEC_MARKDOWN,
+  SPEC_MARKDOWN_V6,
+  SPEC_TRANSCRIPT_IDLE,
+  SPEC_TRANSCRIPT_SPLIT,
+  SPEC_TRANSCRIPT_WORKING
+} from '../board/testing/TicketDocumentsFixture.ts';
+import type { CommentDraft }                                                                      from '../board/views/documents/CommentPopover.tsx';
+import { DocumentSelectionModel }                                                                 from '../board/views/documents/DocumentSelectionModel.ts';
+import { TicketDocumentsPage, type PageStateAtMount }                                             from '../board/views/documents/TicketDocumentsView.tsx';
 import { HashRouter }                                                                             from '../shared/HashRouter.ts';
 import { GaiaShell, viewPartsOf }                                                                 from '../shell/GaiaApp.tsx';
 import { ForgesLayout }                                                                           from '../views/forges/ForgesLayout.tsx';
@@ -689,4 +712,182 @@ export function splashScreenAddressOf(screen: SplashScreen, theme: ScreenTheme):
   splashAddress.search = new URLSearchParams({ address: SPLASH_SERVER_ADDRESS, theme }).toString();
   splashAddress.hash = new URLSearchParams({ step: screen.step }).toString();
   return splashAddress.href;
+}
+
+/** The ticket document artboards, 1 to 8 of the spec and plan design, each by its file among the owner's drawings. */
+export type TicketDocumentArtboard = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+export interface TicketDocumentScreen {
+  readonly artboard:   TicketDocumentArtboard;
+  readonly title:      string;
+  readonly designFile: string;
+  readonly documents:  GaiaTicketDocumentsDocument;
+  readonly shown:      BoardTicketDocumentKind;
+  readonly transcript: readonly BoardTranscriptEntryDocument[];
+  readonly ticket:     BoardTicketDocument;
+  readonly atMount:    PageStateAtMount;
+}
+
+const SPEC_BLOCKS = MarkdownBlocks.blocksOf(SPEC_MARKDOWN);
+
+const SPEC_LINE_COUNT = SPEC_MARKDOWN.split('\n').length;
+
+/** The spec version the idle screens show, which their comments are made on. */
+const SPEC_HEAD_NUMBER = DOCUMENT_STATES.specIdle.documents[0]?.head?.number ?? 1;
+
+const OUTCOME_QUOTE = 'with no white flash on load.';
+
+const OUTCOME_LINE = lineOf(SPEC_MARKDOWN, OUTCOME_QUOTE);
+
+const OUTCOME_COLUMN = (SPEC_MARKDOWN.split('\n')[OUTCOME_LINE - 1] ?? '').indexOf(OUTCOME_QUOTE) + 1;
+
+const OUTCOME_SELECTION = {
+  start: { line: OUTCOME_LINE, column: OUTCOME_COLUMN },
+  end:   { line: OUTCOME_LINE, column: OUTCOME_COLUMN + OUTCOME_QUOTE.length },
+  quote: OUTCOME_QUOTE,
+};
+
+/** Artboard 2's comment on the Outcome's last words, as a selection in Preview gives it. */
+const OUTCOME_COMMENT: CommentDraft = {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfPreviewSelection(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, OUTCOME_SELECTION),
+};
+
+/** The theme flow's mermaid block in the spec, fence to fence. */
+const THEME_FLOW_LINES = { from: lineOf(SPEC_MARKDOWN, '```mermaid'), to: lineOf(SPEC_MARKDOWN, 'Paint --> Account') + 1 };
+
+/** Artboard 3's comment on the theme flow's lines in Code. */
+const THEME_FLOW_COMMENT: CommentDraft = {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfLines(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW_LINES),
+};
+
+const THEME_FLOW = DocumentSelectionModel.diagramAtLine(SPEC_BLOCKS, THEME_FLOW_LINES.from);
+
+/** Artboard 6's comment on the diagram's Saved choice node, C5 of its payloads. */
+const SAVED_CHOICE_COMMENT: CommentDraft | null = THEME_FLOW === null ? null : {
+  commentNumber: 3,
+  anchor:        DocumentSelectionModel.anchorOfNode(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW, { nodeId: 'Stored', label: 'Saved choice' }),
+};
+
+export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
+  {
+    artboard:   1,
+    title:      'Spec in Preview with the spec agent',
+    designFile: 'Main.dc.html',
+    documents:  DOCUMENT_STATES.specWorking,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_WORKING,
+    ticket:     documentsTicketOf(),
+    atMount:    {},
+  },
+  {
+    artboard:   2,
+    title:      'Comment on a selection in Preview',
+    designFile: 'Comment-preview.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { draft: OUTCOME_COMMENT, draftText: 'Measurable? Say how a reviewer sees a flash.' },
+  },
+  {
+    artboard:   3,
+    title:      'Comment on lines in Code',
+    designFile: 'Comment-code.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { view: 'code', draft: THEME_FLOW_COMMENT, draftText: 'Server-rendered pages paint before the resolver runs. Put the server path in the flow.' },
+  },
+  {
+    artboard:   4,
+    title:      'The agent answers on the anchor',
+    designFile: 'Agent-proposal.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    {},
+  },
+  {
+    artboard:   5,
+    title:      'Edit freely while the agent works',
+    designFile: 'Split-edit.dc.html',
+    documents:  DOCUMENT_STATES.specSplit,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_SPLIT,
+    ticket:     documentsTicketOf(),
+    atMount:    { view: 'split', editedText: `${SPEC_MARKDOWN_V6}\n`, caretLine: lineOf(SPEC_MARKDOWN_V6, '#011') },
+  },
+  {
+    artboard:   6,
+    title:      'What a comment hands the agent',
+    designFile: 'Anchor-payload.dc.html',
+    documents:  DOCUMENT_STATES.specIdle,
+    shown:      'spec',
+    transcript: SPEC_TRANSCRIPT_IDLE,
+    ticket:     documentsTicketOf(),
+    atMount:    { draft: SAVED_CHOICE_COMMENT, draftText: 'Drop this if C4 finds nothing.' },
+  },
+  {
+    artboard:   7,
+    title:      'Plan with what it names',
+    designFile: 'Plan.dc.html',
+    documents:  DOCUMENT_STATES.plan,
+    shown:      'plan',
+    transcript: PLAN_TRANSCRIPT,
+    ticket:     documentsTicketOf(),
+    atMount:    { effectIsOpen: true },
+  },
+  {
+    artboard:   8,
+    title:      'Plan out of date',
+    designFile: 'Plan-out-of-date.dc.html',
+    documents:  DOCUMENT_STATES.planOutOfDate,
+    shown:      'plan',
+    transcript: PLAN_OUT_OF_DATE_TRANSCRIPT,
+    ticket:     documentsTicketOf('committed', true),
+    atMount:    {},
+  },
+];
+
+/** The documents artboards are drawn at this size. */
+export const TICKET_DOCUMENT_ARTBOARD_SIZE_PIXELS = { width: 1440, height: 900 } as const;
+
+/** Controls a painted screen offers live, which send nothing: a screen is painted, never used. */
+const PAINTED_CONTROLS: ControlSurroundings = {
+  availability:  'enabled',
+  commandClient: { send: () => Promise.reject(new Error('A screen of the visual pass sends no command.')) },
+  onInstallHeld: doNothing,
+};
+
+/** The documents page as the board's panel holds it, with every control live, painted from the screen's documents and transcript. */
+export function ticketDocumentScreenMarkupOf(screen: TicketDocumentScreen): string {
+  return renderToStaticMarkup(
+    <BoardTrackerContext value={TRACKER_IDS.exampleStorefront}>
+      <BoardGoToContext value={doNothing}>
+        <ControlSurroundingsContext value={PAINTED_CONTROLS}>
+          <div className="board-shell" style={{ height: `${TICKET_DOCUMENT_ARTBOARD_SIZE_PIXELS.height}px` }}>
+            <main className="board-panel" data-tab="documents">
+              <TicketDocumentsPage
+                project={DOCUMENTS_PROJECT}
+                ticket={screen.ticket}
+                documents={screen.documents}
+                shown={screen.shown}
+                transcript={screen.transcript}
+                atMount={screen.atMount}
+              />
+            </main>
+          </div>
+        </ControlSurroundingsContext>
+      </BoardGoToContext>
+    </BoardTrackerContext>,
+  );
+}
+
+/** A whole page for a browser, at the artboards' 1440 by 900, in the screen's theme. */
+export function ticketDocumentScreenDocumentOf(screen: TicketDocumentScreen, theme: ScreenTheme): string {
+  return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>`);
 }

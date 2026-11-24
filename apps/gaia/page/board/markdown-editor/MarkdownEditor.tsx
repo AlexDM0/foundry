@@ -172,81 +172,83 @@ export function MarkdownEditor({
   const selectionIsShown = gutter !== null && selection !== null && selection.start !== selection.end;
 
   return (
-    <div className="board-markdown-editor" data-gutter={gutter === null ? undefined : ''}>
-      {gutter === null
-        ? null
-        : (
-          <div ref={gutterColumn} className="board-markdown-editor-gutter">
-            {lines.map((line) => {
-              const marker = markerOf(line);
+    <div className="board-markdown-editor">
+      <div className="board-markdown-editor-lines">
+        {gutter === null
+          ? null
+          : (
+            <div ref={gutterColumn} className="board-markdown-editor-gutter">
+              {lines.map((line) => {
+                const marker = markerOf(line);
+                return (
+                  <div key={line.number} className="board-markdown-editor-gutter-line">
+                    <span className="board-markdown-editor-marker-place">{marker === null ? null : <GutterMarker marker={marker} />}</span>
+                    <span className="board-markdown-editor-line-number">{line.number}</span>
+                    <button
+                      type="button"
+                      className="board-markdown-editor-comment-button"
+                      aria-label={`Comment on line ${line.number}`}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => commentOn(line.number)}
+                    >
+                      +
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        <div className="board-markdown-editor-body">
+          <div ref={mirror} className="board-markdown-editor-mirror" aria-hidden="true">
+            {lines.map((line, i) => {
+              const marker = gutter === null ? markerOf(line) : null;
               return (
-                <div key={line.number} className="board-markdown-editor-gutter-line">
-                  <span className="board-markdown-editor-marker-place">{marker === null ? null : <GutterMarker marker={marker} />}</span>
-                  <span className="board-markdown-editor-line-number">{line.number}</span>
-                  <button
-                    type="button"
-                    className="board-markdown-editor-comment-button"
-                    aria-label={`Comment on line ${line.number}`}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => commentOn(line.number)}
-                  >
-                    +
-                  </button>
+                <div
+                  key={line.lineKey}
+                  className="board-markdown-editor-mirror-line"
+                  data-heading={line.heading ? '' : undefined}
+                  data-changed={changedLineKeys.has(line.lineKey) ? '' : undefined}
+                  data-selected={selectionIsShown && MarkdownEditorModel.lineIsIn(line.number, selectedLines) ? '' : undefined}
+                  onAnimationEnd={() => clearChange(line.lineKey)}
+                >
+                  <span className="board-markdown-editor-mirror-text">{line.text}</span>
+                  {marker === null ? null : <MarkerTag marker={marker} />}
+                  {drafting && i === lines.length - 1 ? <span className="board-markdown-editor-caret" /> : null}
                 </div>
               );
             })}
           </div>
-        )}
-      <div className="board-markdown-editor-body">
-        <div ref={mirror} className="board-markdown-editor-mirror" aria-hidden="true">
-          {lines.map((line, i) => {
-            const marker = gutter === null ? markerOf(line) : null;
-            return (
-              <div
-                key={line.lineKey}
-                className="board-markdown-editor-mirror-line"
-                data-heading={line.heading ? '' : undefined}
-                data-changed={changedLineKeys.has(line.lineKey) ? '' : undefined}
-                data-selected={selectionIsShown && MarkdownEditorModel.lineIsIn(line.number, selectedLines) ? '' : undefined}
-                onAnimationEnd={() => clearChange(line.lineKey)}
-              >
-                <span className="board-markdown-editor-mirror-text">{line.text}</span>
-                {marker === null ? null : <MarkerTag marker={marker} />}
-                {drafting && i === lines.length - 1 ? <span className="board-markdown-editor-caret" /> : null}
-              </div>
-            );
-          })}
-        </div>
-        <textarea
-          className="board-markdown-editor-input"
-          aria-label={label}
-          aria-describedby={markerListId}
-          wrap="off"
-          spellCheck={false}
-          readOnly={readOnly}
-          value={shownText}
-          onChange={(event) => setEditorText({ ...followedText, text: event.currentTarget.value })}
-          onSelect={(event) => setSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd })}
-          onBlur={save}
-          onKeyDown={(event) => {
-            if (commentKeyIsPressed(event) && gutter !== null) {
+          <textarea
+            className="board-markdown-editor-input"
+            aria-label={label}
+            aria-describedby={markerListId}
+            wrap="off"
+            spellCheck={false}
+            readOnly={readOnly}
+            value={shownText}
+            onChange={(event) => setEditorText({ ...followedText, text: event.currentTarget.value })}
+            onSelect={(event) => setSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd })}
+            onBlur={save}
+            onKeyDown={(event) => {
+              if (commentKeyIsPressed(event) && gutter !== null) {
+                event.preventDefault();
+                commentOn(null);
+                return;
+              }
+              if (!saveKeyIsPressed(event)) return;
               event.preventDefault();
-              commentOn(null);
-              return;
-            }
-            if (!saveKeyIsPressed(event)) return;
-            event.preventDefault();
-            save();
-          }}
-          onScroll={(event) => {
-            const { scrollTop, scrollLeft } = event.currentTarget;
-            if (mirror.current !== null) {
-              mirror.current.scrollTop = scrollTop;
-              mirror.current.scrollLeft = scrollLeft;
-            }
-            if (gutterColumn.current !== null) gutterColumn.current.scrollTop = scrollTop;
-          }}
-        />
+              save();
+            }}
+            onScroll={(event) => {
+              const { scrollTop, scrollLeft } = event.currentTarget;
+              if (mirror.current !== null) {
+                mirror.current.scrollTop = scrollTop;
+                mirror.current.scrollLeft = scrollLeft;
+              }
+              if (gutterColumn.current !== null) gutterColumn.current.scrollTop = scrollTop;
+            }}
+          />
+        </div>
       </div>
       <ul id={markerListId} className="board-markdown-editor-marker-list board-visually-hidden" aria-label={markerListLabel}>
         {markerItems.map((item) => <li key={item}>{item}</li>)}

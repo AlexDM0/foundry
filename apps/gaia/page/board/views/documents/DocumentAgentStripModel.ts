@@ -1,8 +1,8 @@
 /**
  * The document agent's head and Flint strip, pure: what the head says under the agent's name, the strip's status line, and Flint's cue in
- * the strip's slot. The agent reads or writes while a turn works, named by its running call and the comment it answers; it waits on User
- * while an edit of its own waits for review, or, on a plan, while the newest effect reading of the head left places unresolved; it is done
- * once its document is approved with nothing open; otherwise it idles and the strip says how to start.
+ * the strip's slot. While a turn works the agent reads the file its running call names, or writes between calls, for the comment it
+ * answers; it waits on User while an edit of its own waits for review, or, on a plan, while the newest effect reading of the head left
+ * places unresolved; it is done once its document is approved with nothing open; otherwise it idles and the strip says how to start.
  */
 import type { BoardTicketDocumentDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import type { ToolCall }                                                from '../../conversation/ChatThreadModel.ts';
@@ -30,10 +30,6 @@ export interface DocumentAgentReading {
   readonly view:          DocumentViewMode;
 }
 
-const READING_TOOLS: ReadonlySet<string> = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead']);
-
-const WRITING_TOOLS: ReadonlySet<string> = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
-
 const NAMED_PATH = /"(?:file_path|path|notebook_path|pattern)"\s*:\s*"([^"]+)"/u;
 
 function countText(count: number, one: string, many: string): string {
@@ -50,14 +46,15 @@ function namedFileOf(call: ToolCall): string | null {
   return path === null ? null : path.split('/').filter((segment) => segment !== '').at(-1) ?? path;
 }
 
+/**
+ * A document agent's snapshot is read-only, so a call it runs reads the repository, named by the file it names; between calls it writes
+ * its answer. Gaia names no tool of the agent's: the call's input alone says what it reads.
+ */
 function workingStatusOf(call: ToolCall | null, answeringComment: number | null): { readonly text: string; readonly cue: FlintSlotCue } {
   const forComment = answeringComment === null ? '' : ` for C${answeringComment}`;
-  if (call !== null && WRITING_TOOLS.has(call.toolName)) return { text: `Writing${forComment}`, cue: FLINT_SLOT_CUES.AGENT_WRITES };
-  if (call !== null && READING_TOOLS.has(call.toolName)) {
-    const file = namedFileOf(call);
-    return { text: file === null ? `Reading the repository${forComment}` : `Reading ${file}${forComment}`, cue: FLINT_SLOT_CUES.AGENT_READS };
-  }
-  return { text: answeringComment === null ? 'Working' : `Working on C${answeringComment}`, cue: FLINT_SLOT_CUES.AGENT_READS };
+  if (call === null) return { text: `Writing${forComment}`, cue: FLINT_SLOT_CUES.AGENT_WRITES };
+  const file = namedFileOf(call);
+  return { text: file === null ? `Reading the repository${forComment}` : `Reading ${file}${forComment}`, cue: FLINT_SLOT_CUES.AGENT_READS };
 }
 
 function readsTextOf({ document, spec }: DocumentAgentReading): string {

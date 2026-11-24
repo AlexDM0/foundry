@@ -3,7 +3,7 @@
    caret stays visible. A gutter, where the caller asks for one, keeps the same line height, so its numbers stand beside their lines. */
 .board-markdown-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 
-.board-markdown-editor[data-gutter] { flex-flow: row wrap; align-content: stretch; }
+.board-markdown-editor-lines { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 
 .board-markdown-editor-body { position: relative; display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; min-height: 0; }
 
@@ -38,11 +38,11 @@
 .board-markdown-editor-input:read-only { caret-color: var(--see-through); }
 
 .board-markdown-editor-gutter {
-  flex: none; overflow: hidden; padding-right: 0; color: var(--ink-4); background: var(--wash); border-right: 1px solid var(--line);
+  flex: none; align-self: stretch; overflow: hidden; padding-right: 0; padding-left: 8px; color: var(--ink-4); background: var(--wash); border-right: 1px solid var(--line);
   user-select: none;
 }
 
-.board-markdown-editor-gutter-line { display: grid; grid-template-columns: 52px 28px 20px; align-items: center; height: 22px; }
+.board-markdown-editor-gutter-line { display: grid; grid-template-columns: 46px 24px 22px; align-items: center; height: 22px; }
 
 .board-markdown-editor-marker-place { display: flex; justify-content: flex-end; padding-right: 6px; }
 
@@ -66,7 +66,7 @@
 .board-markdown-editor-marker-list { margin: 0; padding: 0; list-style: none; }
 
 .board-markdown-editor-refusal {
-  display: flex; flex: 1 0 100%; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px;
   border-top: 1px solid var(--line);
 }
 
