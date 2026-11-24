@@ -141,11 +141,19 @@ function instructionEntryOf(entry: InstructionEntry): InstructionEntryDocument {
   }
 }
 
+function documentsOf(documents: NonNullable<AgentStepSettings['documents']>): NonNullable<AgentStepSettingsDocument['documents']> {
+  return {
+    ...(documents.spec === undefined ? {} : { spec: documents.spec }),
+    ...(documents.plan === undefined ? {} : { plan: documents.plan }),
+  };
+}
+
 function agentSettingsOf(settings: AgentStepSettings): AgentStepSettingsDocument {
   return {
     ...(settings.model === undefined ? {} : { model: settings.model }),
     ...(settings.effort === undefined ? {} : { effort: settings.effort }),
     ...(settings.instructions === undefined ? {} : { instructions: settings.instructions.map(instructionEntryOf) }),
+    ...(settings.documents === undefined ? {} : { documents: documentsOf(settings.documents) }),
   };
 }
 
@@ -200,12 +208,15 @@ function pipelineDefinitionOf(pipeline: Pipeline): PipelineDefinitionDocument {
       approvals: {
         ...(approvals.tickets === undefined ? {} : { tickets: approvals.tickets }),
         ...(approvals.merge === undefined ? {} : { merge: approvals.merge }),
+        ...(approvals.spec === undefined ? {} : { spec: approvals.spec }),
+        ...(approvals.plan === undefined ? {} : { plan: approvals.plan }),
       }
     }),
     ...(pipeline.billing === undefined ? {} : { billing: billingOf(pipeline.billing) }),
     ...(pipeline.reach === undefined ? {} : { reach: [...pipeline.reach] }),
     ...(pipeline.entities === undefined ? {} : { entities: byEntityOf(pipeline.entities, entityOf) }),
     ...(pipeline.assistant === undefined ? {} : { assistant: pipeline.assistant }),
+    ...(pipeline.ticketWriting === undefined ? {} : { ticketWriting: pipeline.ticketWriting }),
   };
 }
 

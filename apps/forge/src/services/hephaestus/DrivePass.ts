@@ -903,7 +903,7 @@ async function launchAgentChild(
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
-  const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
+  const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job, board.pipelineSetup());
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
   const location = projectLocationOf(workspace.rootDirectory);
   // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.

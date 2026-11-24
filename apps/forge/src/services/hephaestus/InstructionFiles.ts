@@ -18,15 +18,15 @@ import {
   type Pipeline,
   type PipelineAgentRole
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { resourceFilePathOf }           from '../../shared/ResourceFilePath.ts';
-import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
-import { PathNestingUtil }              from '../../shared/utils/PathNestingUtil.ts';
-import { ProjectPathsUtil }             from '../../shared/utils/ProjectPathsUtil.ts';
-import { projectLocationOf }            from '../tracker/ProjectLocation.ts';
-import { AssistantBoot }                from './AssistantBoot.ts';
-import { LaunchSettings }               from './LaunchSettings.ts';
+import type { MainConstitutionReading, PipelineSetup } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { PipelineUtil }                                from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { resourceFilePathOf }                          from '../../shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
+import { PathNestingUtil }                             from '../../shared/utils/PathNestingUtil.ts';
+import { ProjectPathsUtil }                            from '../../shared/utils/ProjectPathsUtil.ts';
+import { projectLocationOf }                           from '../tracker/ProjectLocation.ts';
+import { AssistantBoot }                               from './AssistantBoot.ts';
+import { LaunchSettings }                              from './LaunchSettings.ts';
 
 export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/defaults`;
 
@@ -167,22 +167,52 @@ function pipelineOfJob(pipeline: Readonly<Pipeline> | null, job: Readonly<Job>):
   return PipelineUtil.pipelineOfEntity(pipeline, job.entity);
 }
 
+/** A setup record's draft constitution, which a pipeline agent the record serves reads in place of any file; `null`: none drafted yet. */
+interface DraftConstitution {
+  markdown: string | null;
+}
+
+/** The draft of the level whose session the job is: the record's own, or its entity's; `null` when the open record serves no such job. */
+function draftConstitutionOf(setup: Readonly<PipelineSetup> | null, job: Readonly<Job>): DraftConstitution | null {
+  if (setup === null) return null;
+  if (setup.agentJobId === job.id) return { markdown: setup.constitution?.markdown ?? null };
+  const servedEntity = Object.values(setup.entities ?? {}).find((part) => part.agentJobId === job.id);
+  return servedEntity === undefined ? null : { markdown: servedEntity.constitution?.markdown ?? null };
+}
+
+function lineEndedTextOf(text: string): string {
+  return text.endsWith('\n') ? text : `${text}\n`;
+}
+
 /**
  * Read whole at each launch, so a changed file, default or pipeline reaches the next launch or resume; one missing file refuses them all. An
  * empty list reads the role's built-in brief, so the agent still knows its job. A job of an entity reads that entity's list and constitution.
+ * A pipeline agent that the open setup record serves reads the record's draft constitution, never a file, and none while nothing is drafted.
  */
-function readingFor(projectDirectory: string, mainLine: string, pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): InstructionReading {
+function readingFor(
+  projectDirectory: string,
+  mainLine: string,
+  pipeline: Readonly<Pipeline> | null,
+  job: Readonly<Job>,
+  setup: Readonly<PipelineSetup> | null = null,
+): InstructionReading {
   const role = instructionRoleOf(job);
   if (role === null) return { verdict: 'read', text: '', files: [] };
   const jobPipeline = pipelineOfJob(pipeline, job);
   const entries = PipelineUtil.resolvedInstructionsOf(jobPipeline, role);
   if (entries.length === 0) return builtInBriefReadingOf(role);
+  const draftConstitution = role === 'pipelineAgent' ? draftConstitutionOf(setup, job) : null;
   const texts: string[] = [];
   const files: InstructionFileRead[] = [];
-  for (const path of entries.map((entry) => instructionPathOf(jobPipeline, entry))) {
+  for (const entry of entries) {
+    if (entry.kind === 'constitution' && draftConstitution !== null) {
+      if (draftConstitution.markdown !== null) texts.push(lineEndedTextOf(draftConstitution.markdown));
+      continue;
+    }
+    const path = instructionPathOf(jobPipeline, entry);
     const text = fileTextOf(projectDirectory, mainLine, path);
     if (text === null) return { verdict: 'instructions-missing', path };
-    texts.push(text.endsWith('\n') ? text : `${text}\n`);
+    texts.push(lineEndedTextOf(text));
     files.push({ path, contentHash: contentHashOf(text) });
   }
   return { verdict: 'read', text: texts.join('\n'), files };

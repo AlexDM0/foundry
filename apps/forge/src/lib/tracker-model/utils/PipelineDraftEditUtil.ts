@@ -36,7 +36,7 @@ type PipelineSteps = Pick<PipelineEntity, 'prepare' | 'gates' | 'phases' | 'revi
 
 type AgentSettingsHolder<Role extends PipelineAgentRole> = { agents?: Partial<Record<Role, AgentStepSettings>> };
 
-const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
+const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge', 'spec', 'plan'];
 
 const NAMED_FIELD_PREFIXES = ['gate:', 'prepare:'] as const;
 
@@ -142,7 +142,7 @@ function fieldIsWellFormed(text: string): text is PipelineDraftField {
     const scope = entityScopeOf(text);
     return scope !== null && scope.entityKey.trim() !== '';
   }
-  if (stepsFieldIsWellFormed(text) || text === 'airlock') return true;
+  if (stepsFieldIsWellFormed(text) || text === 'airlock' || text === 'ticket-writing') return true;
   const [kind, value = ''] = text.split(/:(.*)/su);
   if (kind === 'role') return roleIsKnown(value);
   if (kind === 'approval') return approvalIsKnown(value);
@@ -334,6 +334,7 @@ function baseEditOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, field: 
   const stepsEdit = stepsBaseEditOf(base, draft, field);
   if (stepsEdit !== null) return stepsEdit;
   if (field === 'airlock') return { target: 'airlock', value: base.airlock ?? null };
+  if (field === 'ticket-writing') return { target: 'ticket-writing', value: base.ticketWriting ?? null };
   const [kind = '', name = ''] = field.split(/:(.*)/su);
   if (kind === 'role' && roleIsKnown(name)) return { target: 'role', role: name, value: base.agents?.[name] ?? null };
   if (kind === 'approval' && approvalIsKnown(name)) return { target: 'approval', approval: name, value: base.approvals?.[name] ?? null };

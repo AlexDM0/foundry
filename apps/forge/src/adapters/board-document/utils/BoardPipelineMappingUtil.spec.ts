@@ -2,10 +2,11 @@
  * The board's pipeline facts against the contract's pipeline documents. What matters: a pipeline maps field by field, its optional fields
  * absent where the model leaves them absent, its entities and their agents included; the stored pipeline as read maps for each verdict; a
  * setup record with no check reads `null` and keeps no stored bookkeeping (next numbers, extra keys); each pipeline record the contract
- * declares maps to its history entry and a record of any other kind to none; no open setup, flow or entity assignment reads `null`. Each
- * entity carries the pipeline it runs, the forge's approvals and billing joined in; each draft entity names every entity that consumes it,
- * the root's dependents being every other; the Apply refusal is served as the command words it, or `null`; and the draft's entity
- * refusals are served as `BoardEntityRefusalMappingUtil` maps them, none for entities the validator takes.
+ * declares maps to its history entry and a record of any other kind to none; the ticket writing route, the spec and plan approvals and the
+ * documents a role reads map by name; no open setup, flow or entity assignment reads `null`. Each entity carries the pipeline it runs,
+ * the forge's approvals and billing joined in; each draft entity names every entity that consumes it, the root's dependents being every
+ * other; the Apply refusal is served as the command words it, or `null`; and the draft's entity refusals are served as
+ * `BoardEntityRefusalMappingUtil` maps them, none for entities the validator takes.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -43,6 +44,10 @@ const PIPELINE: Pipeline = {
   },
 };
 
+const MINIMAL_PIPELINE: Pipeline = {
+  version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+};
+
 /** The entity's own pipeline as the model joins it, which the mapper serves field for field. */
 function effectivePipelineOf(pipeline: Pipeline, entityKey: string): ReturnType<typeof BoardPipelineMappingUtil.pipelineDefinitionOf> {
   const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, entityKey);
@@ -53,6 +58,34 @@ function effectivePipelineOf(pipeline: Pipeline, entityKey: string): ReturnType<
 describe('BoardPipelineMappingUtil.pipelineDefinitionOf', () => {
   test('maps a pipeline field by field, its absent fields absent and its entities with their agents', () => {
     expect(BoardPipelineMappingUtil.pipelineDefinitionOf(PIPELINE)).toEqual(PIPELINE);
+  });
+
+  test('maps the ticket writing route, the spec and plan approvals, the document agents and the documents each role reads', () => {
+    const specThenPlan: Pipeline = {
+      ...PIPELINE,
+      agents: {
+        specAgent: { model: 'sonnet', effort: 'medium' },
+        planAgent: { instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'planAgent' }] },
+        builder:   { documents: { plan: 'never' } },
+        reviewer:  { documents: { spec: 'always', plan: 'if-person-approved' } },
+      },
+      approvals: {
+        tickets: true, merge: true, spec: false, plan: true
+      },
+      ticketWriting: 'spec-then-plan',
+    };
+
+    const entityReviewer: Pipeline = {
+      ...MINIMAL_PIPELINE,
+      entities: {
+        web: {
+          kind: 'app', home: ['/apps/web'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, agents: { reviewer: { documents: { plan: 'never' } } },
+        },
+      },
+    };
+
+    expect(BoardPipelineMappingUtil.pipelineDefinitionOf(specThenPlan)).toEqual(specThenPlan);
+    expect(BoardPipelineMappingUtil.pipelineDefinitionOf(entityReviewer)).toEqual(entityReviewer);
   });
 
   test('names no field the pipeline leaves absent', () => {

@@ -2,7 +2,8 @@
  * The change list between a base pipeline and a draft, and the field names Apply logs. What matters: each edit User or the pipeline
  * agent can make shows as exactly one row of the right kind on the field the edit addresses; a hand edit that only reorders keys, and a
  * default written out, is no change; a reorder of prepare steps is one order row, while an added or removed step is only its own row;
- * billing is never a row; the constitution is a row when its path or, as the caller says, its text changed. Over entities: an entity's
+ * billing is never a row; the constitution is a row when its path or, as the caller says, its text changed; the ticket writing route
+ * and the spec and plan approvals are rows like the other approvals, and the documents a role reads are part of its role's row. Over entities: an entity's
  * definition is its own row; a field inside an entity is a row scoped `entity:<key>/`, a forge-level role never among them; an entity
  * only one side holds lists each of its fields against an empty entity; an empty list equals an absent one; and a pipeline without
  * entities gets no entity row.
@@ -165,6 +166,46 @@ describe('the change list', () => {
     expect(fieldsAndKindsOf(BASE, { ...BASE, approvals: { tickets: false } })).toEqual([['approval:tickets', 'changed']]);
   });
 
+  test('approvalIsOn reads an absent spec or plan review as on, and a stored value as stored', () => {
+    expect(PipelineChangeUtil.approvalIsOn(BASE, 'spec')).toBe(true);
+    expect(PipelineChangeUtil.approvalIsOn(BASE, 'plan')).toBe(true);
+    expect(PipelineChangeUtil.approvalIsOn({ ...BASE, approvals: { spec: false, plan: false } }, 'spec')).toBe(false);
+    expect(PipelineChangeUtil.approvalIsOn({ ...BASE, approvals: { spec: false, plan: false } }, 'plan')).toBe(false);
+  });
+
+  test('names a spec or plan approval only when its effect changes, an absent one being on', () => {
+    expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, approvals: { spec: true, plan: true } }, false)).toEqual([]);
+    expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, approvals: { plan: false } }, false)).toEqual([
+      {
+        field: 'approval:plan', change: 'changed', before: true, after: false
+      },
+    ]);
+    expect(fieldsAndKindsOf(BASE, { ...BASE, approvals: { spec: false } })).toEqual([['approval:spec', 'changed']]);
+  });
+
+  test('names the ticket writing route as changed, from and to the route, an absent route being one-ticket', () => {
+    expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, ticketWriting: 'spec-then-plan' }, false)).toEqual([
+      {
+        field: 'ticket-writing', change: 'changed', before: 'one-ticket', after: 'spec-then-plan'
+      },
+    ]);
+    expect(fieldsAndKindsOf({ ...BASE, ticketWriting: 'spec-then-plan' }, BASE)).toEqual([['ticket-writing', 'changed']]);
+    expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, ticketWriting: 'one-ticket' }, false)).toEqual([]);
+  });
+
+  test('names the builder or the reviewer when the documents it reads change, and is empty when a default rule is written out', () => {
+    expect(fieldsAndKindsOf(BASE, { ...BASE, agents: { builder: { model: 'opus', documents: { plan: 'never' } } } })).toEqual([['role:builder', 'changed']]);
+    expect(fieldsAndKindsOf(BASE, { ...BASE, agents: { ...BASE.agents, reviewer: { documents: { plan: 'always' } } } })).toEqual([['role:reviewer', 'changed']]);
+    const defaultsWrittenOut: Pipeline = {
+      ...BASE,
+      agents: {
+        builder:  { model: 'opus', documents: { spec: 'always', plan: 'always' } },
+        reviewer: { documents: { spec: 'always', plan: 'if-person-approved' } },
+      },
+    };
+    expect(PipelineChangeUtil.changesBetween(BASE, defaultsWrittenOut, false)).toEqual([]);
+  });
+
   test('never names the billing', () => {
     expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, billing: { mode: 'api', maxBudgetUsd: 5 } }, false)).toEqual([]);
   });
@@ -191,9 +232,10 @@ describe('the change list', () => {
   test('lists a first setup against the minimal pipeline in the flow\'s order', () => {
     const draft: Pipeline = {
       ...BASE,
-      airlock:      { reReview: { thresholdLines: 300 } },
-      approvals:    { merge: true },
-      constitution: { path: 'CONSTITUTION.md' },
+      airlock:       { reReview: { thresholdLines: 300 } },
+      approvals:     { merge: true },
+      constitution:  { path: 'CONSTITUTION.md' },
+      ticketWriting: 'spec-then-plan',
     };
 
     expect(fieldsAndKindsOf(MINIMAL, draft, true)).toEqual([
@@ -208,6 +250,7 @@ describe('the change list', () => {
       ['airlock', 'new'],
       ['role:builder', 'changed'],
       ['approval:merge', 'changed'],
+      ['ticket-writing', 'changed'],
       ['constitution', 'new'],
     ]);
   });
