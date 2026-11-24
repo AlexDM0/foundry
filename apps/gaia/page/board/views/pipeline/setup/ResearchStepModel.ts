@@ -13,6 +13,7 @@ import type { BoardFindingTopic, BoardSetupStep }                               
 import { ChatTurnWordingUtil }                                                                       from '../../../conversation/ChatTurnWordingUtil.ts';
 import { ElapsedTimeUtil }                                                                           from '../../../utils/ElapsedTimeUtil.ts';
 import type { PanelStatus }                                                                          from '../PipelinePanel.tsx';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                                         from '../agent-panel/AgentSessionModel.ts';
 
 /** Scripts are rows of their own, and the layout belongs to the `entities` step. */
 export type CardTopic = Exclude<BoardFindingTopic, 'scripts' | 'layout'>;
@@ -31,7 +32,7 @@ const SHORT_COMMIT_LENGTH = 7;
 
 const SESSION_PER_ENTITY_TEXT = 'one session per entity';
 
-export type ResearchState = 'researching' | 'ready' | 'stopped';
+export type ResearchState = 'researching' | 'ready' | 'not-launched' | 'stopped';
 
 export interface FindingItem {
   readonly findingId:   string;
@@ -62,6 +63,7 @@ export interface ScriptRow {
 
 export interface ResearchFacts {
   readonly setup:           BoardPipelineSetupDocument;
+  readonly sessionState:    AgentSessionState;
   /** The stamp of the agent job's newest launch, only shown; `null` when the board does not carry it. */
   readonly agentLaunchedAt: string | null;
 }
@@ -121,15 +123,21 @@ function scriptCountTextOf(findings: readonly BoardResearchFindingDocument[]): s
   return `${scriptFindingsOf(findings).length} found`;
 }
 
-function researchStateOf(setup: BoardPipelineSetupDocument): ResearchState {
-  if (setup.agentJobState === null) return 'stopped';
+function researchStateOf(setup: BoardPipelineSetupDocument, sessionState: AgentSessionState): ResearchState {
+  if (sessionState === 'stopped' || sessionState === 'not-launched') return sessionState;
   return setup.record.readyToContinue.includes('research') ? 'ready' : 'researching';
 }
 
+/** Whether the research's agent is under way, so the time since its launch counts. */
+function researchIsUnderWay(state: ResearchState): boolean {
+  return state === 'researching' || state === 'ready';
+}
+
 const STATE_WORDS: Readonly<Record<ResearchState, string>> = {
-  researching: 'researching',
-  ready:       'research done',
-  stopped:     'stopped',
+  'researching':  'researching',
+  'ready':        'research done',
+  'not-launched': 'not launched',
+  'stopped':      'stopped',
 };
 
 function openResearchQuestionsOf(questions: readonly BoardSetupQuestionDocument[]): BoardSetupQuestionDocument[] {
@@ -137,16 +145,17 @@ function openResearchQuestionsOf(questions: readonly BoardSetupQuestionDocument[
 }
 
 /**
- * "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s"; the time only while the agent runs and its launch is known.
+ * "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s", or "· not launched" while forge refused its launch; the time only
+ * while the agent runs and its launch is known.
  * Once entities have sessions of their own, the line says so after the state.
  */
 function statusLineOf(facts: ResearchFacts, now: Date): string {
   const { record } = facts.setup;
-  const state = researchStateOf(facts.setup);
+  const state = researchStateOf(facts.setup, facts.sessionState);
   const agent = record.agentJobId === null ? 'Pipeline agent' : `Pipeline agent ${record.agentJobId}`;
   const perEntity = Object.keys(record.entities ?? {}).length === 0 ? [] : [SESSION_PER_ENTITY_TEXT];
   const snapshot = record.snapshotCommit === null ? [] : [`snapshot of main at ${record.snapshotCommit.slice(0, SHORT_COMMIT_LENGTH)}`];
-  const elapsed = state === 'stopped' ? null : ElapsedTimeUtil.elapsedSinceText(facts.agentLaunchedAt, now);
+  const elapsed = researchIsUnderWay(state) ? ElapsedTimeUtil.elapsedSinceText(facts.agentLaunchedAt, now) : null;
   return [agent, STATE_WORDS[state], ...perEntity, ...snapshot, ...(elapsed === null ? [] : [elapsed])].join(' · ');
 }
 
@@ -174,12 +183,11 @@ function continueStepOf(walkedSteps: readonly BoardSetupStep[]): BoardSetupStep 
 }
 
 const PANEL_STATUSES: Readonly<Record<ResearchState, PanelStatus>> = {
-  researching: { tone: 'working', text: 'Researching' },
-  ready:       { tone: 'ready', text: 'Research done' },
-  stopped:     { tone: 'idle', text: 'Stopped' },
+  'researching':  { tone: 'working', text: 'Researching' },
+  'ready':        { tone: 'ready', text: 'Research done' },
+  'not-launched': NOT_LAUNCHED_PANEL_STATUS,
+  'stopped':      { tone: 'idle', text: 'Stopped' },
 };
-
-const NOT_LAUNCHED_STATUS: PanelStatus = { tone: 'idle', text: 'Not launched' };
 
 /** Why the pipeline agent's job stands not launched, as forge words it; `null` while it launched or no job stands. */
 function notLaunchedOf(setup: BoardPipelineSetupDocument, jobs: readonly Pick<BoardJobDocument, 'id' | 'notLaunched'>[]): BoardJobNotLaunchedDocument | null {
@@ -187,13 +195,8 @@ function notLaunchedOf(setup: BoardPipelineSetupDocument, jobs: readonly Pick<Bo
 }
 
 /** The panel head's dot and word, and the footer's pill: "Researching", or "Not launched" while forge refused its launch. */
-function panelStatusOf(setup: BoardPipelineSetupDocument, notLaunched: BoardJobNotLaunchedDocument | null = null): PanelStatus {
-  return notLaunched === null ? PANEL_STATUSES[researchStateOf(setup)] : NOT_LAUNCHED_STATUS;
-}
-
-/** "Pipeline agent J1 · not launched", over the title while forge refused the launch. */
-function notLaunchedLineOf(jobId: string | null): string {
-  return jobId === null ? 'Pipeline agent · not launched' : `Pipeline agent ${jobId} · not launched`;
+function panelStatusOf(state: ResearchState): PanelStatus {
+  return PANEL_STATUSES[state];
 }
 
 /** "6 scripts found · 1 open question", after the footer's pill. */
@@ -240,8 +243,8 @@ export const ResearchStepModel = Object.freeze({
   layoutSourcePathsOf,
   continueStepOf,
   panelStatusOf,
+  researchIsUnderWay,
   notLaunchedOf,
-  notLaunchedLineOf,
   footerCountsOf,
   headingOf,
   continueCommandOf,

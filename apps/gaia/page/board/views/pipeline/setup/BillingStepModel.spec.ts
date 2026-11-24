@@ -119,10 +119,11 @@ describe('the pipeline agent\'s meter', () => {
 });
 
 describe('the panel head', () => {
-  test('is not started before a setup, then says whether the agent\'s job runs', () => {
-    expect(panelStatusOf(null, null)).toEqual({ tone: 'idle', text: 'Not started' });
-    expect(panelStatusOf(setupRecordOf('A1'), null)).toEqual({ tone: 'idle', text: 'Stopped' });
+  test('is not started before a setup, then says whether the agent\'s job runs, or that forge did not launch it rather than Running', () => {
+    expect(panelStatusOf(null, 'stopped')).toEqual({ tone: 'idle', text: 'Not started' });
+    expect(panelStatusOf(setupRecordOf('A1'), 'stopped')).toEqual({ tone: 'idle', text: 'Stopped' });
     expect(panelStatusOf(setupRecordOf('A1'), 'running')).toEqual({ tone: 'working', text: 'Running' });
+    expect(panelStatusOf(setupRecordOf('A1'), 'not-launched')).toEqual({ tone: 'failed', text: 'Not launched' });
   });
 });
 

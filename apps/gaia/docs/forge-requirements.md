@@ -8,7 +8,7 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 Forge 4.0 meets V1 to V5 and V9: it answers `/api/versions` with current 4.0 and minimum 4.0, serves identity 1, summary 3, monitor 6
 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
-documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.1, which adds each forge's agent. Since 2.0 forge serves no page of its own, so the
+documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.1, which adds each forge's agent and meets V11. Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
 
@@ -112,12 +112,12 @@ board document anew on each `board` event, and types the rest against its own co
 Declaring them in the contract, and carrying the board document in the `board` event, lets Gaia type every shape against the contract
 and skip the extra read.
 
-### V11. Name each agent vendor forge will run, with the ones it cannot run yet (Should)
+### V11. Name each agent vendor forge will run, with the ones it cannot run yet (Should, met by forge 4.1)
 
-The board document's `agent.vendors` lists the vendors forge knows, each with its `displayName` and whether it is `supported`; forge 4.1
-lists only the one it runs. Listing the vendors it plans to run too, unsupported, lets a client show them as coming later in their own
-names. Gaia names no vendor of its own (`src/AgentVendorNames.spec.ts`), so until then its agent step shows one card for the agents to
-come, worded without a name.
+The board document's `agent.vendors` lists the vendors forge knows, each with its `displayName` and whether it is `supported`. Forge 4.1
+lists the vendors it plans to run beside the one it runs, each `supported: false`, so a client shows them as coming later in their own
+names. Gaia names no vendor of its own (`src/AgentVendorNames.spec.ts`): its agent step draws each unsupported vendor as a disabled card,
+"Coming later", by the `displayName` forge sends.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
@@ -133,7 +133,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
-| V11 | One card, "More coding agents", stands for every vendor forge will run. |
+| V11 | Only the vendors forge lists: no card stands for one it does not name. |
 
 ## 4. Order for forge
 

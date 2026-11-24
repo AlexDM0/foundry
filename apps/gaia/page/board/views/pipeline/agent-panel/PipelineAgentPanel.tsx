@@ -16,6 +16,7 @@ import { useTranscript }                                   from '../../../conver
 import { PipelinePanelBody, PipelinePanelFoot }            from '../PipelinePanel.tsx';
 import { OtherLevelQuestionsStrip }                        from '../entities/OtherLevelQuestionsStrip.tsx';
 import type { PipelineLevel }                              from '../entities/PipelineLevelModel.ts';
+import type { SessionJob }                                 from './AgentSessionModel.ts';
 import { AgentStrip }                                      from './AgentStrip.tsx';
 import { PIPELINE_AGENT_SPEAKER, PipelineAgentPanelModel } from './PipelineAgentPanelModel.ts';
 import { SetupQuestionForm }                               from './SetupQuestionForm.tsx';
@@ -42,17 +43,17 @@ export interface PipelineAgentPanelProps {
   readonly showsAgentStrip?:    boolean;
   /** Absent in single mode: the record's one session. */
   readonly levelShown?:         AgentPanelLevel | null;
-  /** Forge refused the agent's launch for its program: the composer says not launched rather than Running. */
-  readonly agentIsNotLaunched?: boolean;
+  /** The board's jobs, which say whether forge refused the session's launch. */
+  readonly jobs:                readonly SessionJob[];
 }
 
 export function PipelineAgentPanel({
   setup, step, followTranscript, todayCalendarDate, composerPlaceholder, beforeChat = null, afterChat = null, showsAgentStrip = false,
-  levelShown = null, agentIsNotLaunched = false
+  levelShown = null, jobs
 }: PipelineAgentPanelProps) {
   const { record } = setup;
-  const session = PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null);
-  const { agentJobId, agentJobState } = session;
+  const session = PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null, jobs);
+  const { agentJobId, sessionState } = session;
   const { entries, historyKey } = useTranscript(agentJobId, followTranscript);
   const cards = PipelineAgentPanelModel.questionCardsOf(session.questions, step, session.findings);
   const stripQuestions = { questions: session.questions, readyToContinue: record.readyToContinue };
@@ -72,13 +73,13 @@ export function PipelineAgentPanel({
         {activityLine === null ? null : <TypingIndicator text={activityLine} accessibleName={`${PIPELINE_AGENT_SPEAKER} is working`} />}
         {cards.map((card) => <SetupQuestionForm key={card.questionId} setupId={record.setupId} card={card} layout="stack" />)}
       </PipelinePanelBody>
-      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, stripQuestions, agentJobState, shownEntityKey)} /> : null}
+      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, stripQuestions, sessionState, shownEntityKey)} /> : null}
       <PipelinePanelFoot>
         <Composer
           label="Message the pipeline agent"
           recipientLabel={PIPELINE_AGENT_SPEAKER}
           recipientJobId={agentJobId}
-          status={PipelineAgentPanelModel.composerTagOf(agentJobState, agentIsNotLaunched)}
+          status={PipelineAgentPanelModel.composerTagOf(sessionState)}
           placeholder={composerPlaceholder}
           sendLabel="Send"
           commandOf={(text) => PipelineAgentPanelModel.messageCommandOf(agentJobId, text)}

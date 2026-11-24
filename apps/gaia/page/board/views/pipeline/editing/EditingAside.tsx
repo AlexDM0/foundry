@@ -85,7 +85,7 @@ export function EditingAside({
       <PipelinePanel
         label="Changes"
         title={PipelineAgentPanelModel.panelTitleOf(levelShown?.level ?? null)}
-        status={PipelineEditingModel.agentStatusOf(PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null).agentJobState)}
+        status={PipelineEditingModel.agentStatusOf(PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null, facts.jobs).sessionState)}
         headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
         tabs={tabs}
         tabPanelLabel="Chat with the pipeline agent"
@@ -96,6 +96,7 @@ export function EditingAside({
           followTranscript={followTranscript}
           todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
           composerPlaceholder="For example: does the new gate need the network?"
+          jobs={facts.jobs}
           levelShown={levelShown}
         />
       </PipelinePanel>

@@ -43,10 +43,12 @@ function commandsOf(command: SentCommands | null): readonly BoardCommandDocument
 
 export interface ControlCommandSequenceSender {
   /** Whether the board lets a control act now and no send is on its way. */
-  readonly canSend:      boolean;
-  readonly refusal:      string | null;
+  readonly canSend:         boolean;
+  readonly refusal:         string | null;
+  /** The commands of the last send the forge applied, in order: every one, or those before the one it did not apply. */
+  readonly appliedCommands: readonly BoardCommandDocument[];
   /** Sends the commands in order, stopping at the first one the forge does not apply; `true` once every one was applied. */
-  readonly sendCommands: (commands: readonly BoardCommandDocument[]) => Promise<boolean>;
+  readonly sendCommands:    (commands: readonly BoardCommandDocument[]) => Promise<boolean>;
 }
 
 /** A sender whose commands are named at the moment they are sent, such as a program's path chosen in the system's dialog. */
@@ -57,23 +59,28 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [appliedCommands, setAppliedCommands] = useState<readonly BoardCommandDocument[]>([]);
   const canSend = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending;
 
-  const outcomeOfEvery = async (commands: readonly BoardCommandDocument[]): Promise<CommandOutcome> => {
+  const outcomeOfEvery = async (commands: readonly BoardCommandDocument[]): Promise<{ readonly outcome: CommandOutcome; readonly applied: BoardCommandDocument[] }> => {
     let outcome: CommandOutcome = { verdict: 'unreachable' };
+    const applied: BoardCommandDocument[] = [];
     for (const each of commands) {
       outcome = await commandClient.send(each);
-      if (outcome.verdict !== 'applied') return outcome;
+      if (outcome.verdict !== 'applied') return { outcome, applied };
+      applied.push(each);
     }
-    return outcome;
+    return { outcome, applied };
   };
 
   const sendCommands = async (commands: readonly BoardCommandDocument[]): Promise<boolean> => {
     if (!canSend || commands.length === 0) return false;
     setSending(true);
     setRefusal(null);
-    const outcome = await outcomeOfEvery(commands);
+    setAppliedCommands([]);
+    const { outcome, applied } = await outcomeOfEvery(commands);
     setSending(false);
+    setAppliedCommands(applied);
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
     if (outcome.verdict === 'refused') {
       setRefusal(outcome.refusal);
@@ -86,7 +93,9 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
     return outcome.verdict === 'applied';
   };
 
-  return { canSend, refusal, sendCommands };
+  return {
+    canSend, refusal, appliedCommands, sendCommands
+  };
 }
 
 /** `command` is `null` while the form behind it is not complete: the sender stays disabled. */

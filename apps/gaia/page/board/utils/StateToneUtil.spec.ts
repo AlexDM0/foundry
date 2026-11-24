@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardDisplayState, BoardJobState } from '../../@types/board/BoardVocabulary.ts';
+import { EXAMPLE_NOT_LAUNCHED }                  from '../testing/AgentFixture.ts';
 import { StateToneUtil }                         from './StateToneUtil.ts';
 
 const EVERY_DISPLAY_STATE: readonly BoardDisplayState[] = [
@@ -80,6 +81,15 @@ describe('the look of an interrupted job that waits', () => {
   test('a job interrupted by another cause, and one resumed after an outage, look as their job state', () => {
     expect(StateToneUtil.lookOfJob({ state: 'interrupted', interruption: 'agent-crashed' })).toEqual(StateToneUtil.lookOf('paused'));
     expect(StateToneUtil.lookOfJob({ state: 'running', interruption: 'network-outage' })).toEqual(StateToneUtil.lookOf('in-progress'));
+  });
+});
+
+describe('the look of a job whose launch forge refused', () => {
+  test('its look and its dot are the plain failure tone, never the pulse of a running job, whatever state it names', () => {
+    const job = { state: 'running', interruption: null, notLaunched: EXAMPLE_NOT_LAUNCHED } as const;
+    expect([StateToneUtil.lookOfJob(job).tone, StateToneUtil.lookOfJob(job).pulsing]).toEqual(['error', false]);
+    expect(StateToneUtil.dotOfJob(job)).toEqual({ tone: 'error', shape: 'solid' });
+    expect(StateToneUtil.dotOfJob({ ...job, notLaunched: null })).toEqual(StateToneUtil.dotOf('in-progress'));
   });
 });
 

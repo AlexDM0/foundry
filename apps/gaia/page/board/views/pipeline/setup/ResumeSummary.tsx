@@ -22,10 +22,13 @@ import type { BoardRoute }                     from '../../../shell/BoardRouter.
 import { CommandButton }                       from '../../../shell/CommandButton.tsx';
 import { ViewTitle }                           from '../../ViewTitle.tsx';
 import { PipelineViewModel }                   from '../PipelineViewModel.ts';
+import { AgentSessionModel, type SessionJob }  from '../agent-panel/AgentSessionModel.ts';
 import { ResumeSummaryModel, type ResumeStep } from './ResumeSummaryModel.ts';
 
 export interface ResumeSummaryProps {
   readonly setup: BoardPipelineSetupDocument;
+  /** The board's jobs, which say whether forge refused the pipeline agent's launch. */
+  readonly jobs:  readonly SessionJob[];
 }
 
 function StepDetail({ step }: { readonly step: ResumeStep }) {
@@ -55,7 +58,8 @@ function stepperStepOf(step: ResumeStep, hrefOf: (route: BoardRoute) => string):
   };
 }
 
-export function ResumeSummary({ setup }: ResumeSummaryProps) {
+export function ResumeSummary({ setup, jobs }: ResumeSummaryProps) {
+  const sessionState = AgentSessionModel.setupSessionStateOf(setup, jobs);
   const navigateTo = useBoardNavigation();
   const hrefOf = useBoardHrefOf();
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
@@ -68,10 +72,10 @@ export function ResumeSummary({ setup }: ResumeSummaryProps) {
           <Row paddingBottom="six">
             <Tag text="Setup in progress" tone="neutral" />
           </Row>
-          <ViewTitle title="Pick up where you left off" lead={ResumeSummaryModel.leadTextOf(setup)} />
+          <ViewTitle title="Pick up where you left off" lead={ResumeSummaryModel.leadTextOf(setup, sessionState)} />
         </View>
         <div className="board-pipeline-resume-steps">
-          <Stepper label="Setup steps" orientation="vertical" steps={ResumeSummaryModel.resumeStepsOf(setup).map((step) => stepperStepOf(step, hrefOf))} />
+          <Stepper label="Setup steps" orientation="vertical" steps={ResumeSummaryModel.resumeStepsOf(setup, sessionState).map((step) => stepperStepOf(step, hrefOf))} />
         </div>
         {mainMovedText === null ? null : <Text muted element="p">{mainMovedText}</Text>}
       </div>

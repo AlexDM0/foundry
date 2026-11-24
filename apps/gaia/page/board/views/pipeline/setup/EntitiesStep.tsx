@@ -28,6 +28,7 @@ import { PipelinePage }                                             from '../Pip
 import { PipelinePanel }                                            from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts }                from '../PipelineViewModel.ts';
 import { AgentMeter }                                               from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                                        from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanel }                                       from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                                  from '../agent-panel/PipelineAgentPanelModel.ts';
 import { CrossingDialog }                                           from '../entities/CrossingDialog.tsx';
@@ -308,7 +309,7 @@ export function EntitiesStep({
     <PipelinePanel
       label="Pipeline agent"
       title={PipelineAgentPanelModel.panelTitleOf(FORGE_LEVEL)}
-      status={EntitiesStepModel.panelStatusOf(setup)}
+      status={EntitiesStepModel.panelStatusOf(setup, AgentSessionModel.setupSessionStateOf(setup, facts.jobs))}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
     >
       <PipelineAgentPanel
@@ -317,6 +318,7 @@ export function EntitiesStep({
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder="Correct the layout, for example: apps/legacy is not used"
+        jobs={facts.jobs}
         showsAgentStrip
         levelShown={{ level: FORGE_LEVEL, hrefOf: (level) => hrefOf(PipelineLevelModel.routeAtLevel(level, ENTITIES_STEP_ITEM)) }}
       />

@@ -1,14 +1,21 @@
 /**
  * The count of other forges that follow this machine's program of an agent vendor. What matters: only a forge whose last read board follows
  * the machine's program of that vendor counts, never the forge asking, one that pins its own program, chose no agent or follows another
- * vendor; a forge not read yet is read once, and a read already on its way is shared; a newer board read replaces what an earlier one
- * noted; and a forge whose board cannot be read is left uncounted and read again at the next count. The agents are the recorded board's.
+ * vendor; a count never waits on another forge: a forge not read yet is read in the background, once, and counted from the next count; a
+ * newer board read replaces what an earlier one noted; and a forge whose board cannot be read is left uncounted and not asked again until
+ * the hold has passed on the injected clock. The agents are the recorded board's.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { recordedBoardModel }                                                   from '../../adapters/page-api/testing/BoardModelLeaves.ts';
-import type { BoardAgent }                                                      from '../../shared/@types/board/BoardAgent.ts';
-import { createMachineProgramFollowers, machineFollowingOf, type AgentReading } from './MachineProgramFollowers.ts';
+import { recordedBoardModel }    from '../../adapters/page-api/testing/BoardModelLeaves.ts';
+import type { BoardAgent }       from '../../shared/@types/board/BoardAgent.ts';
+import {
+  createMachineProgramFollowers,
+  FAILED_READ_HOLD_MILLISECONDS,
+  machineFollowingOf,
+  type AgentReading,
+  type MachineProgramFollowers
+} from './MachineProgramFollowers.ts';
 
 const ASKING_FORGE = 'example-storefront-7c41';
 const FOLLOWING_FORGE = 'example-project-1d2e';
@@ -46,6 +53,17 @@ function countedReadingOf(agentsByTrackerId: ReadonlyMap<string, BoardAgent>): {
   };
 }
 
+/** Followers over `reading` on a monotonic clock the spec moves by hand. */
+function followersOn(reading: AgentReading): { readonly followers: MachineProgramFollowers; readonly advanceClock: (milliseconds: number) => void } {
+  let monotonicMilliseconds = 0;
+  return {
+    followers:    createMachineProgramFollowers({ readAgentOf: reading, monotonicNow: () => monotonicMilliseconds }),
+    advanceClock: (milliseconds) => {
+      monotonicMilliseconds += milliseconds;
+    },
+  };
+}
+
 describe('machineFollowingOf', () => {
   test('names the vendor of an agent that follows the machine, and none for one pinned or not chosen', async () => {
     const {
@@ -63,53 +81,78 @@ describe('otherFollowersOf', () => {
       vendor, pinned, following, unchosen
     } = await recordedAgents();
     const { reading, readsOf } = countedReadingOf(new Map());
-    const followers = createMachineProgramFollowers(reading);
+    const { followers } = followersOn(reading);
     followers.noteBoardRead(ASKING_FORGE, following);
     followers.noteBoardRead(FOLLOWING_FORGE, following);
     followers.noteBoardRead(PINNING_FORGE, pinned);
     followers.noteBoardRead(UNCHOSEN_FORGE, unchosen);
     const readableForges = [ASKING_FORGE, FOLLOWING_FORGE, PINNING_FORGE, UNCHOSEN_FORGE];
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(1);
-    expect(await followers.otherFollowersOf(ASKING_FORGE, OTHER_VENDOR, readableForges)).toBe(0);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(1);
+    expect(followers.otherFollowersOf(ASKING_FORGE, OTHER_VENDOR, readableForges)).toBe(0);
     expect(readableForges.map(readsOf)).toEqual([0, 0, 0, 0]);
   });
 
   test('counts no forge that is not among the readable ones, whatever it last followed', async () => {
     const { vendor, following } = await recordedAgents();
-    const followers = createMachineProgramFollowers(countedReadingOf(new Map()).reading);
+    const { followers } = followersOn(countedReadingOf(new Map()).reading);
     followers.noteBoardRead(FOLLOWING_FORGE, following);
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE])).toBe(0);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE])).toBe(0);
   });
 
-  test('reads a forge not read yet once, sharing a read on its way, and asks it no more once noted', async () => {
+  test('never waits on a forge not read yet: it counts it once its read in the background is in, which a second count shares', async () => {
     const { vendor, following } = await recordedAgents();
-    const { reading, readsOf } = countedReadingOf(new Map([[FOLLOWING_FORGE, following]]));
-    const followers = createMachineProgramFollowers(reading);
+    let answerRead: (agent: BoardAgent | null) => void = () => undefined;
+    let readCount = 0;
+    const { followers } = followersOn(() => {
+      readCount += 1;
+      return new Promise((resolve) => {
+        answerRead = resolve;
+      });
+    });
     const readableForges = [ASKING_FORGE, FOLLOWING_FORGE];
-    const counts = await Promise.all([
-      followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges),
-      followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges),
-    ]);
-    expect(counts).toEqual([1, 1]);
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(1);
-    expect(readsOf(FOLLOWING_FORGE)).toBe(1);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
+    answerRead(following);
+    await followers.readsSettled();
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(1);
+    expect(readCount).toBe(1);
   });
 
   test('takes a newer board read over what an earlier one noted', async () => {
     const { vendor, pinned, following } = await recordedAgents();
-    const followers = createMachineProgramFollowers(countedReadingOf(new Map()).reading);
+    const { followers } = followersOn(countedReadingOf(new Map()).reading);
     followers.noteBoardRead(FOLLOWING_FORGE, following);
     followers.noteBoardRead(FOLLOWING_FORGE, pinned);
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE, FOLLOWING_FORGE])).toBe(0);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE, FOLLOWING_FORGE])).toBe(0);
   });
 
-  test('leaves a forge whose board cannot be read uncounted, and reads it again at the next count', async () => {
+  test('leaves a forge whose board cannot be read uncounted, and asks it again only once the hold has passed', async () => {
     const { vendor } = await recordedAgents();
     const { reading, readsOf } = countedReadingOf(new Map());
-    const followers = createMachineProgramFollowers(reading);
+    const { followers, advanceClock } = followersOn(reading);
     const readableForges = [ASKING_FORGE, FOLLOWING_FORGE];
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
-    expect(await followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
+    await followers.readsSettled();
+    advanceClock(FAILED_READ_HOLD_MILLISECONDS - 1);
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges)).toBe(0);
+    await followers.readsSettled();
+    expect(readsOf(FOLLOWING_FORGE)).toBe(1);
+    advanceClock(1);
+    followers.otherFollowersOf(ASKING_FORGE, vendor, readableForges);
+    await followers.readsSettled();
     expect(readsOf(FOLLOWING_FORGE)).toBe(2);
+  });
+
+  test('takes a read that throws as one that failed, holding the forge off rather than failing the count', async () => {
+    const { vendor } = await recordedAgents();
+    let readCount = 0;
+    const { followers } = followersOn(() => {
+      readCount += 1;
+      return Promise.reject(new Error('the forge went away'));
+    });
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE, FOLLOWING_FORGE])).toBe(0);
+    await followers.readsSettled();
+    expect(followers.otherFollowersOf(ASKING_FORGE, vendor, [ASKING_FORGE, FOLLOWING_FORGE])).toBe(0);
+    expect(readCount).toBe(1);
   });
 });

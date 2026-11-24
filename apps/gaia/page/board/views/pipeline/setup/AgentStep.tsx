@@ -36,10 +36,10 @@ function VendorCards({ cards, chosenVendor }: { readonly cards: readonly VendorC
     <div className="board-agent-vendor-cards">
       {cards.map((card) => (
         <ChoiceOption
-          key={card.vendor ?? card.label}
+          key={card.vendor}
           label={card.label}
           description={card.description}
-          chosen={card.vendor !== null && card.vendor === chosenVendor}
+          chosen={card.vendor === chosenVendor}
           variant="card"
           tone="question"
           marks={<Tag text={card.tag.text} tone={card.tag.tone} />}
@@ -47,7 +47,7 @@ function VendorCards({ cards, chosenVendor }: { readonly cards: readonly VendorC
             <ChoiceInput
               type="radio"
               name={groupName}
-              checked={card.vendor !== null && card.vendor === chosenVendor}
+              checked={card.vendor === chosenVendor}
               accessibleName={card.label}
               disabled={!card.selectable}
               onChange={() => undefined}

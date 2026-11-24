@@ -345,7 +345,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   const context: RouteContext = {
     broker,
     boardStreams,
-    boardStateRoute: createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay),
+    boardStateRoute: createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay, options.monotonicNow ?? monotonicMillisecondsOfNow),
     crashLogRoute:   createForgeCrashLogRoute(options.forgeAccessSources, options.logBoardRelay),
     sessionCodes:    createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
     token:           tokenWrite.token,

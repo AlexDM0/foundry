@@ -21,8 +21,8 @@ export interface EntitySessionListProps {
   readonly onSelect:  (level: PipelineLevel) => void;
 }
 
-/** The palette row each state's tag takes; a session that has not started has no state colour. */
-const STATE_LOOKS: Readonly<Record<Exclude<ResearchSessionState, 'not-started'>, BoardDisplayState>> = Object.freeze({
+/** The palette row each state's tag takes; a session that has not started has no state colour, and one forge did not start reads as a failure. */
+const STATE_LOOKS: Readonly<Record<Exclude<ResearchSessionState, 'not-started' | 'not-launched'>, BoardDisplayState>> = Object.freeze({
   'researching':   'in-progress',
   'research-done': 'delivered',
   'stopping':      'paused',
@@ -31,6 +31,7 @@ const STATE_LOOKS: Readonly<Record<Exclude<ResearchSessionState, 'not-started'>,
 
 function StateTag({ row }: { readonly row: EntitySessionRowView }) {
   if (row.state === 'not-started') return <Tag text={row.stateText} tone="neutral" dashed />;
+  if (row.state === 'not-launched') return <Tag text={row.stateText} tone="error" />;
   return <Tag text={row.stateText} {...StateToneUtil.tagLookOf(STATE_LOOKS[row.state])} dot={row.state === 'researching'} />;
 }
 

@@ -29,6 +29,7 @@ import { PipelinePage }                              from '../PipelinePage.tsx';
 import { PipelinePanel, PipelinePanelBody }          from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
 import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                         from '../agent-panel/AgentSessionModel.ts';
 import { PIPELINE_AGENT_FLINT_LABEL }                from '../agent-panel/AgentStrip.tsx';
 import {
   BILLING_CARDS,
@@ -214,7 +215,8 @@ function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBack
 }
 
 export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepProps) {
-  const record = facts.pipeline.setup?.record ?? null;
+  const setup = facts.pipeline.setup ?? null;
+  const record = setup?.record ?? null;
   const [choice, setChoice] = useState<BillingChoice>(() => BillingStepModel.billingChoiceOf(record?.billing ?? null));
   const pendingTicketCount = BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? []);
   const footerLines = BillingStepModel.footerLinesOf(choice);
@@ -247,7 +249,7 @@ export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepPr
     <PipelinePanel
       label="Pipeline agent"
       title="Pipeline agent"
-      status={BillingStepModel.panelStatusOf(record, facts.pipeline.setup?.agentJobState ?? null)}
+      status={BillingStepModel.panelStatusOf(record, setup === null ? 'stopped' : AgentSessionModel.setupSessionStateOf(setup, facts.jobs))}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
     >
       <PipelinePanelBody>

@@ -41,11 +41,12 @@ function boardHoldsWaitingWork(board: ForgeBoard): boolean {
   return board.jobs.some((job) => job.state === 'interrupted' || job.lostLine !== null);
 }
 
-export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog): BoardStateRoute {
+/** `monotonicNow` holds off another forge whose board could not be read, while counting who follows this machine's program. */
+export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog, monotonicNow: () => number): BoardStateRoute {
   const readsByTrackerId = new Map<string, ForgeBoardReads>();
   const ingestion = new BoardStateIngestion();
   const { renderMarkdown } = createMarkdownRenderer();
-  const machineProgramFollowers = createMachineProgramFollowers(agentReadOf);
+  const machineProgramFollowers = createMachineProgramFollowers({ readAgentOf: agentReadOf, monotonicNow });
 
   /** Another forge's agent, read only to count who follows this machine's program; `null` while its board cannot be read. */
   async function agentReadOf(trackerId: string): Promise<BoardAgent | null> {
@@ -55,7 +56,7 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
     return answer.verdict === 'answered' ? ingestion.boardOf(trackerId, answer.document).board?.agent ?? null : null;
   }
 
-  async function otherFollowersOf(board: ForgeBoard): Promise<number> {
+  function otherFollowersOf(board: ForgeBoard): number {
     machineProgramFollowers.noteBoardRead(board.trackerId, board.agent);
     const vendor = vendorOf(board.agent);
     if (vendor === null) return 0;
@@ -85,7 +86,7 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
     const board = boardHoldsWaitingWork(reading.board)
       ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId)).board ?? reading.board
       : reading.board;
-    const boardDocument = BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown, await otherFollowersOf(board));
+    const boardDocument = BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown, otherFollowersOf(board));
     return { verdict: 'read', boardDocumentJson: JSON.stringify(boardDocument) };
   }
 

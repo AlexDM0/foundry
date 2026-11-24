@@ -16,7 +16,8 @@ const FOLLOWED_END_SLACK_PIXELS = 24;
 
 
 /** `working` pulses in the signal colour, `ready` is the merge green, `idle` the quiet grey. */
-export type PanelStatusTone = 'working' | 'ready' | 'idle';
+/** `failed` for an agent forge could not start, in the failure colour. */
+export type PanelStatusTone = 'working' | 'ready' | 'idle' | 'failed';
 
 /** The state the panel's head shows beside its name: "Researching", "Proposal ready", "Not started". */
 export interface PanelStatus {

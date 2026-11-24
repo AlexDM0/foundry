@@ -21,7 +21,6 @@ import { FLINT_SLOT_HABITATS }                        from '../../flint/FlintSlo
 import { useCoveringPanelHoldsTheFlintSlot }          from '../../shell/CoveringPanel.ts';
 import { ElapsedTimeUtil }                            from '../../utils/ElapsedTimeUtil.ts';
 import { FlintSlotCueUtil }                           from '../../utils/FlintSlotCueUtil.ts';
-import { JobStateUtil }                               from '../../utils/JobStateUtil.ts';
 import { StateToneUtil }                              from '../../utils/StateToneUtil.ts';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
 import { AgentsModel }                                from './AgentsModel.ts';
@@ -60,7 +59,7 @@ function JobPanelHead({ job, now }: { readonly job: AgentJobDocument; readonly n
     <Row gap="eight" centerY>
       <Text typeRole="title" bold element="h2">Job</Text>
       <MonoId text={job.id} />
-      <StateDot {...StateToneUtil.dotOf(JobStateUtil.displayStateOfJob(job))} />
+      <StateDot {...StateToneUtil.dotOfJob(job)} />
       <Text typeRole="tab" muted>{AgentsModel.panelStateTextOf(job, launchedText)}</Text>
     </Row>
   );

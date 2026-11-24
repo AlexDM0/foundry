@@ -397,7 +397,7 @@ function ScreenContent({
   }
   const constitutionIsShown = (screen.screen === 'setup-step' && screen.step === 'constitution') || screen.screen === 'constitution-edit';
   if (constitutionIsShown && setup !== null) return <ConstitutionStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} route={route} />;
-  if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
+  if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} jobs={facts.jobs} />;
   if (screen.screen === 'forge-settings') return <ForgeSettings facts={facts} />;
   if (screen.screen === 'setup-step' && screen.step === 'design' && setup !== null) {
     return (

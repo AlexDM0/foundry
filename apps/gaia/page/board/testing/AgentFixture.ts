@@ -1,11 +1,12 @@
 /**
- * A forge's agent as the board serves it, for the board's specs and screens: a vendor the forge runs, its program found and running, the
- * places its installers use, and the tools of a designed pipeline, one of them missing. Test-only; the vendor is an example, never a real
- * one.
+ * A forge's agent as the board serves it, for the board's specs and screens: a vendor the forge runs and two it will run later, its
+ * program found and running, the places its installers use, and the tools of a designed pipeline, one of them missing. Test-only; every
+ * vendor is an example, never a real one.
  */
 import type {
   BoardAgentDocument,
   BoardAgentToolDocument,
+  BoardAgentVendorDocument,
   BoardJobNotLaunchedDocument,
   BoardPipelineAgentDocument
 } from '../../@types/board/BoardAgentDocuments.ts';
@@ -40,10 +41,19 @@ export const EXAMPLE_NOT_LAUNCHED: BoardJobNotLaunchedDocument = {
   text:        `the Example Agent at ${EXAMPLE_AGENT_PROGRAM_PATH} is not there`,
 };
 
+/** The vendors forge names and cannot run yet, each by its own display name. */
+export const LATER_EXAMPLE_VENDORS: readonly BoardAgentVendorDocument[] = [
+  { vendor: 'second-example-agent', displayName: 'Second Example Agent', supported: false },
+  { vendor: 'third-example-agent', displayName: 'Third Example Agent', supported: false },
+];
+
 /** A forge whose agent follows this machine's program, which runs; the changes say otherwise. */
 export function exampleBoardAgent(changes: Partial<BoardAgentDocument> = {}): BoardAgentDocument {
   return {
-    vendors:            [{ vendor: EXAMPLE_AGENT_VENDOR, displayName: 'Example Agent', supported: true }],
+    vendors: [
+      { vendor: EXAMPLE_AGENT_VENDOR, displayName: 'Example Agent', supported: true },
+      ...LATER_EXAMPLE_VENDORS,
+    ],
     choice:             EXAMPLE_PIPELINE_AGENT,
     machineProgramPath: EXAMPLE_AGENT_PROGRAM_PATH,
     programPath:        EXAMPLE_AGENT_PROGRAM_PATH,

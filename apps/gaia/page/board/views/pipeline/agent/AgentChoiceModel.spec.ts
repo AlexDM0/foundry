@@ -1,8 +1,8 @@
 /**
- * The agent choice's model. What matters: every vendor card comes from what the forge sends, one it cannot run is never selectable, and a
- * card stands for the agents to come while the forge names none; this machine's program is the one kept, else the first place found; a
- * program chosen for every forge is kept as this machine's before it is followed, and pinned otherwise; changing a program other forges
- * follow asks first and names how many; and Continue waits until the record's program runs.
+ * The agent choice's model. What matters: every vendor card comes from what the forge sends, one it cannot run is drawn by its own name
+ * as coming later and never selectable, and no card of Gaia's own stands for agents the forge does not name; this machine's program is the
+ * one kept, else the first place found; a program chosen for every forge is kept as this machine's before it is followed, and pinned
+ * otherwise; changing a program other forges follow asks first and names how many; and Continue waits until the record's program runs.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -11,6 +11,7 @@ import {
   EXAMPLE_AGENT_VENDOR,
   EXAMPLE_PIPELINE_AGENT,
   exampleBoardAgent,
+  LATER_EXAMPLE_VENDORS,
   nothingFoundBoardAgent
 } from '../../../testing/AgentFixture.ts';
 import { AgentChoiceModel } from './AgentChoiceModel.ts';
@@ -19,25 +20,24 @@ const VERSION = { boardCommandVersion: 1 } as const;
 const SETUP = { kind: 'setup', setupId: 'S1' } as const;
 
 describe('the vendor cards', () => {
-  test('a supported vendor is selectable and found, and a card stands for the agents to come', () => {
+  test('a supported vendor is selectable and found, and each vendor forge cannot run yet is its own card by its name, coming later', () => {
     expect(AgentChoiceModel.vendorCardsOf(exampleBoardAgent())).toEqual([
       {
         vendor: EXAMPLE_AGENT_VENDOR, label: 'Example Agent', description: 'Runs every job of this forge.', selectable: true, tag: { text: 'Found', tone: 'neutral' }
       },
-      {
-        vendor:      null,
-        label:       'More coding agents',
-        description: 'Forge runs more coding agents in a later version.',
+      ...LATER_EXAMPLE_VENDORS.map((vendor) => ({
+        vendor:      vendor.vendor,
+        label:       vendor.displayName,
+        description: 'Forge runs it in a later version.',
         selectable:  false,
-        tag:         { text: 'Coming later', tone: 'neutral' },
-      },
+        tag:         { text: 'Coming later', tone: 'neutral' as const },
+      })),
     ]);
   });
 
-  test('a vendor the forge cannot run yet is shown coming later, never selectable, and no card stands in for it', () => {
-    const agent = exampleBoardAgent({ vendors: [...exampleBoardAgent().vendors, { vendor: 'other-example-agent', displayName: 'Other Example Agent', supported: false }] });
-    expect(AgentChoiceModel.vendorCardsOf(agent).map((card) => [card.label, card.selectable, card.tag.text]))
-      .toEqual([['Example Agent', true, 'Found'], ['Other Example Agent', false, 'Coming later']]);
+  test('a forge that names only the vendor it runs gets that one card, and no card of Gaia\'s own stands for others', () => {
+    const agent = exampleBoardAgent({ vendors: exampleBoardAgent().vendors.filter((vendor) => vendor.supported) });
+    expect(AgentChoiceModel.vendorCardsOf(agent).map((card) => card.label)).toEqual(['Example Agent']);
   });
 
   test('a program found nowhere marks the vendor not found', () => {

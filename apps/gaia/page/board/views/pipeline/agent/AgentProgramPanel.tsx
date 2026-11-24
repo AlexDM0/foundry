@@ -17,7 +17,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommandSequence }                                    from '../../../shell/ControlCommandSender.ts';
+import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shell/ControlCommandSender.ts';
 import { ProgramFileChooserContext }                                    from '../../../shell/ProgramFileChooser.ts';
 import { AgentChoiceModel, type AgentChoiceTarget, type ProgramStatus } from './AgentChoiceModel.ts';
 
@@ -40,23 +40,42 @@ export interface ProgramChoiceState {
   readonly clear:            () => void;
 }
 
-/** Shared by the agent step's footer and its panel, so both open the same chooser. */
+/**
+ * Shared by the agent step's footer and its panel, so both open the same chooser. Whether a chosen program is for every forge follows the
+ * current document until the box is ticked or unticked, so a machine program stored meanwhile turns the default to this forge only.
+ */
 export function useProgramChoice(agent: BoardAgentDocument): ProgramChoiceState {
   const chooseProgramFile = useContext(ProgramFileChooserContext);
   const [chosenPath, setChosenPath] = useState<string | null>(null);
-  const [forEveryForge, setForEveryForge] = useState(() => AgentChoiceModel.forEveryForgeByDefault(agent));
+  const [forEveryForgeAsTicked, setForEveryForgeAsTicked] = useState<boolean | null>(null);
   return {
     chosenPath,
-    forEveryForge,
+    forEveryForge:    forEveryForgeAsTicked ?? AgentChoiceModel.forEveryForgeByDefault(agent),
     chooserIsOffered: chooseProgramFile !== null,
     choose:           async () => {
       if (chooseProgramFile === null) return;
       const path = await chooseProgramFile();
       if (path !== null) setChosenPath(path);
     },
-    setForEveryForge,
-    clear: () => setChosenPath(null),
+    setForEveryForge: setForEveryForgeAsTicked,
+    clear:            () => {
+      setChosenPath(null);
+      setForEveryForgeAsTicked(null);
+    },
   };
+}
+
+/** The forge's refusal verbatim, and what forge stored before it refused, if anything. */
+function SequenceRefusal({ sender, displayName }: { readonly sender: ControlCommandSequenceSender; readonly displayName: string }) {
+  if (sender.refusal === null) return null;
+  const storedText = AgentChoiceModel.storedBeforeRefusalTextOf(sender.appliedCommands, displayName);
+  return (
+    <span className="board-agent-program-refusal" role="status">
+      <Tag text="Refused" tone="error" />
+      <span className="board-refusal">{sender.refusal}</span>
+      {storedText === null ? null : <Text>{storedText}</Text>}
+    </span>
+  );
 }
 
 export function ProgramStatusTag({ status }: { readonly status: ProgramStatus | null }) {
@@ -127,14 +146,7 @@ function ChosenProgram({
               disabled={!sender.canSend}
               onPress={() => (asksFirst ? setIsAsking(true) : void keep())}
             />
-            {sender.refusal === null
-              ? null
-              : (
-                <span className="board-agent-program-refusal" role="status">
-                  <Tag text="Refused" tone="error" />
-                  <span className="board-refusal">{sender.refusal}</span>
-                </span>
-              )}
+            <SequenceRefusal sender={sender} displayName={displayName} />
           </span>
         )}
     </div>
@@ -212,14 +224,7 @@ export function AgentProgramPanel({
             <span className="board-agent-program-choose">{chooseButton}</span>
           </div>
         )}
-      {sender.refusal === null
-        ? null
-        : (
-          <span className="board-agent-program-refusal" role="status">
-            <Tag text="Refused" tone="error" />
-            <span className="board-refusal">{sender.refusal}</span>
-          </span>
-        )}
+      <SequenceRefusal sender={sender} displayName={displayName} />
       {programChoice.chosenPath === null
         ? null
         : <ChosenProgram agent={agent} displayName={displayName} project={project} programChoice={programChoice} commands={chosenCommands} />}
@@ -235,8 +240,12 @@ export function WhereForgeLooked({ agent }: { readonly agent: BoardAgentDocument
         {AgentChoiceModel.placeRowsOf(agent).map((place) => (
           <li key={place.path} className="board-agent-place" data-found={place.found}>
             <span className="board-agent-place-dot" aria-hidden="true" />
-            <Text mono {...(place.found ? {} : { subtle: true })}>{place.path}</Text>
-            <Text typeRole="small" subtle>{place.word}</Text>
+            <span className="board-agent-place-path" title={place.path}>
+              <Text mono {...(place.found ? {} : { subtle: true })}>{place.path}</Text>
+            </span>
+            <span className="board-agent-place-word">
+              <Text typeRole="small" subtle>{place.word}</Text>
+            </span>
           </li>
         ))}
       </ul>

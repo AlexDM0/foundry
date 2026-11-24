@@ -48,6 +48,11 @@ function displayStateOfJob(job: Pick<BoardJobDocument, 'state' | 'interruption'>
   return interruptionWaitStateOf(job) ?? displayStateOf(job.state);
 }
 
+/** The one reading of a refused launch: forge refused the job's launch for its agent's program, so it never reached the state it names. */
+function launchIsRefused(job: Partial<Pick<BoardJobDocument, 'notLaunched'>>): boolean {
+  return job.notLaunched !== undefined && job.notLaunched !== null;
+}
+
 export const JobStateUtil = Object.freeze({
-  isUp, displayStateOf, interruptionWaitStateOf, displayStateOfJob
+  isUp, displayStateOf, interruptionWaitStateOf, displayStateOfJob, launchIsRefused
 });

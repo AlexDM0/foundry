@@ -34,6 +34,7 @@ import { PipelineViewModel, type PipelineViewFacts }           from '../Pipeline
 import { ToolListDialog }                                      from '../agent/ToolListDialog.tsx';
 import { ToolListModel }                                       from '../agent/ToolListModel.ts';
 import { AgentMeter }                                          from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                                   from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanel }                                  from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                             from '../agent-panel/PipelineAgentPanelModel.ts';
 import { ApplyDialog }                                         from '../apply/ApplyDialog.tsx';
@@ -150,6 +151,7 @@ function DesignPage({
   const entityKey: string | null = level?.kind === 'entity' ? level.key : null;
   const levelFacts = entityKey === null ? facts : EntityLevelFactsModel.factsAtEntityOf(facts, entityKey);
   const levelSetup = levelFacts.pipeline.setup ?? setup;
+  const agentState = DesignStepModel.agentStateOf(levelSetup, AgentSessionModel.setupSessionStateOf(levelSetup, facts.jobs));
   const changeCount = level === null ? facts.pipeline.flow?.changeList.length ?? 0 : levelChangeCountOf(facts, level);
   const apply = DesignStepModel.applyAvailabilityOf(level === null ? setup.openQuestionCount : DesignStepModel.openQuestionCountOfEveryLevel(setup));
   const words = level === null ? PipelineViewModel.flowPageWordsOf('proposal', facts.pipeline.flow ?? null, null) : DesignStepModel.levelPageWordsOf(level);
@@ -159,7 +161,7 @@ function DesignPage({
     <PipelinePanel
       label="Pipeline agent"
       title={PipelineAgentPanelModel.panelTitleOf(level)}
-      status={DesignStepModel.panelStatusOf(levelSetup)}
+      status={DesignStepModel.panelStatusOf(agentState)}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
       tabs={(
         <Tabs
@@ -189,6 +191,7 @@ function DesignPage({
             followTranscript={followTranscript}
             todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
             composerPlaceholder="Ask for a change, or ask why"
+            jobs={facts.jobs}
             afterChat={<NewestAgentChange facts={levelFacts} setup={setup} selection={selection} level={level} />}
             showsAgentStrip
             levelShown={level === null ? null : { level, hrefOf: levelHrefOf }}
@@ -266,7 +269,7 @@ function DesignPage({
     />
   );
   return (
-    <div className="board-pipeline-design" data-state={DesignStepModel.agentStateOf(levelSetup)}>
+    <div className="board-pipeline-design" data-state={agentState}>
       {shown === null
         ? workspace
         : <MonorepoLevelContext.Provider value={scopeOf(shown.level, levelHrefOf(FORGE_LEVEL), setup)}>{workspace}</MonorepoLevelContext.Provider>}

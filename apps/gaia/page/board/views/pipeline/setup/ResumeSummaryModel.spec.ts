@@ -8,6 +8,7 @@ import { describe, expect, test }                         from 'bun:test';
 import type { BoardPipelineSetupDocument }                from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { entitiesStepBoardOf }                            from '../../../testing/EntitiesStepFixture.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { AgentSessionModel, type AgentSessionState }      from '../agent-panel/AgentSessionModel.ts';
 import { ResumeSummaryModel }                             from './ResumeSummaryModel.ts';
 
 function setupOf(name: PipelineFixtureName): BoardPipelineSetupDocument {
@@ -16,15 +17,20 @@ function setupOf(name: PipelineFixtureName): BoardPipelineSetupDocument {
   return setup;
 }
 
+function sessionStateOf(setup: BoardPipelineSetupDocument): AgentSessionState {
+  return AgentSessionModel.setupSessionStateOf(setup, []);
+}
+
 function stepOf(setup: BoardPipelineSetupDocument, step: string) {
-  const found = ResumeSummaryModel.resumeStepsOf(setup).find((candidate) => candidate.step === step);
+  const found = ResumeSummaryModel.resumeStepsOf(setup, sessionStateOf(setup)).find((candidate) => candidate.step === step);
   if (found === undefined) throw new Error(`no step ${step}`);
   return found;
 }
 
 describe('each step\'s row', () => {
   test('shows the status and summary from the facts, and Open on a done step', () => {
-    expect(ResumeSummaryModel.resumeStepsOf(setupOf('A0b-running')).map((step) => [step.step, step.status, step.summary, step.openRoute?.item ?? null])).toEqual([
+    const setup = setupOf('A0b-running');
+    expect(ResumeSummaryModel.resumeStepsOf(setup, sessionStateOf(setup)).map((step) => [step.step, step.status, step.summary, step.openRoute?.item ?? null])).toEqual([
       ['billing', 'done', 'Subscription', 'setup/billing'],
       ['agent', 'done', 'This machine\'s program', 'setup/agent'],
       ['research', 'done', '1 stack item, 2 scripts, 1 question answered', 'setup/research'],
@@ -37,7 +43,8 @@ describe('each step\'s row', () => {
   test('in monorepo mode the entities step follows the research and counts the draft\'s entities with the root', () => {
     const { setup } = entitiesStepBoardOf().pipeline;
     if (setup === undefined || setup === null) throw new Error('the entities board has a setup');
-    expect(ResumeSummaryModel.resumeStepsOf(setup).map((step) => step.step)).toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(ResumeSummaryModel.resumeStepsOf(setup, sessionStateOf(setup)).map((step) => step.step))
+      .toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
     expect(stepOf(setup, 'entities')).toMatchObject({ status: 'current', summary: '6 entities: 2 apps, 3 packages and the root' });
     expect(ResumeSummaryModel.doneStepsTextOf(setup)).toBe('3 of 7 steps done');
   });
@@ -79,7 +86,15 @@ describe('the current step\'s chips', () => {
 
   test('a stopped pipeline agent resumes with its conversation', () => {
     expect(stepOf(setupOf('A0b-stopped'), 'design').chips).toEqual([{ text: 'Pipeline agent J4 stopped · resumes with its conversation', tone: 'neutral' }]);
-    expect(ResumeSummaryModel.leadTextOf(setupOf('A0b-stopped'))).toBe('Every step was saved as it happened. Setup stopped during the pipeline design.');
+    const stopped = setupOf('A0b-stopped');
+    expect(ResumeSummaryModel.leadTextOf(stopped, sessionStateOf(stopped))).toBe('Every step was saved as it happened. Setup stopped during the pipeline design.');
+  });
+
+  test('a pipeline agent forge did not launch reads not launched, never as starting', () => {
+    const setup = setupOf('A0b-running');
+    const design = ResumeSummaryModel.resumeStepsOf(setup, 'not-launched').find((step) => step.step === 'design');
+    expect(design?.chips.at(-1)).toEqual({ text: 'Pipeline agent J4 not launched', tone: 'neutral' });
+    expect(ResumeSummaryModel.leadTextOf(setup, 'not-launched')).toBe('Every step was saved as it happened. The pipeline agent of the pipeline design is not launched.');
   });
 });
 

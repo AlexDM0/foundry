@@ -6,6 +6,7 @@
  * until the record's program runs; and with nothing found the footer's primary action opens the chooser.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   screen,
@@ -17,13 +18,14 @@ import {
   expect,
   test
 } from 'bun:test';
+import { useState } from 'react';
 
-import { ProgramFileChooserContext }                                              from '../../../shell/ProgramFileChooser.ts';
-import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR }                       from '../../../testing/AgentFixture.ts';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
-import { onBoard }                                                                from '../../../testing/OnBoard.ts';
-import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import { PipelineView }                                                           from '../PipelineView.tsx';
+import { ProgramFileChooserContext }                                               from '../../../shell/ProgramFileChooser.ts';
+import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR, LATER_EXAMPLE_VENDORS } from '../../../testing/AgentFixture.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                        from '../../../testing/FakeControls.ts';
+import { onBoard }                                                                 from '../../../testing/OnBoard.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName }  from '../../../testing/PipelineFixture.ts';
+import { PipelineView }                                                            from '../PipelineView.tsx';
 
 afterEach(() => {
   cleanup();
@@ -44,20 +46,23 @@ function renderAgentStep(name: PipelineFixtureName, chosenPath: string | null = 
 }
 
 describe('the agent cards', () => {
-  test('show the forge\'s vendor chosen and the agents to come as coming later, which cannot be chosen', () => {
+  test('show the forge\'s vendor chosen and each vendor it cannot run yet as its own card, coming later, which cannot be chosen', () => {
     renderAgentStep('agent-step-found');
     expect((screen.getByLabelText('Example Agent') as HTMLInputElement).checked).toBe(true);
-    const later = screen.getByLabelText('More coding agents') as HTMLInputElement;
-    expect([later.checked, later.disabled]).toEqual([false, true]);
-    expect(screen.getByText('Coming later')).toBeDefined();
+    const later = LATER_EXAMPLE_VENDORS.map((vendor) => screen.getByLabelText(vendor.displayName) as HTMLInputElement);
+    expect(later.map((input) => [input.checked, input.disabled])).toEqual([[false, true], [false, true]]);
+    expect(screen.getAllByText('Coming later')).toHaveLength(LATER_EXAMPLE_VENDORS.length);
+    expect(screen.queryByText('More coding agents')).toBeNull();
     expect(screen.getByText('Step 2 of 6')).toBeDefined();
   });
 });
 
 describe('this machine\'s program', () => {
-  test('one forge found is kept as this machine\'s, then followed, in one press', async () => {
+  test('one forge found while the machine keeps none is selectable, kept as this machine\'s, then followed, in one press', async () => {
     const controls = renderAgentStep('agent-step-found');
-    await clickSettled(screen.getByLabelText('This machine\'s Example Agent'));
+    const machineProgram = screen.getByLabelText('This machine\'s Example Agent') as HTMLInputElement;
+    expect(machineProgram.disabled).toBe(false);
+    await clickSettled(machineProgram);
     expect(controls.sent).toEqual([
       {
         ...SENT_COMMAND_VERSION, kind: 'machine-agent-program-set', vendor: EXAMPLE_AGENT_VENDOR, programPath: EXAMPLE_AGENT_PROGRAM_PATH
@@ -125,6 +130,50 @@ describe('a program chosen in the file chooser', () => {
     expect(screen.getByText(refusal)).toBeDefined();
     expect(screen.getByText('Refused')).toBeDefined();
     expect(screen.getByLabelText('The chosen program')).toBeDefined();
+  });
+
+  test('a refusal of the forge\'s choice after the machine\'s program was stored says both, so nothing reads as unchanged', async () => {
+    const controls = renderAgentStep('agent-step-nothing-found');
+    const refusal = 'pipeline agent refused: the setup is not at its agent step';
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: null } });
+    controls.answerNextWith({ verdict: 'refused', refusal });
+    await clickSettled(screen.getByRole('button', { name: 'Choose program…' }));
+    await clickSettled(screen.getByRole('button', { name: 'Use this program' }));
+    expect(controls.sent.map((command) => command.kind)).toEqual(['machine-agent-program-set', 'pipeline-setup-agent']);
+    expect(screen.getByText(refusal)).toBeDefined();
+    expect(screen.getByText(`This machine's Example Agent is now ${CHOSEN_PATH}, but this forge's agent did not change.`)).toBeDefined();
+  });
+
+  test('a refusal of the machine\'s program itself says only the refusal: nothing was stored', async () => {
+    const controls = renderAgentStep('agent-step-nothing-found');
+    controls.answerNextWith({ verdict: 'refused', refusal: 'agent program refused: not a program' });
+    await clickSettled(screen.getByRole('button', { name: 'Choose program…' }));
+    await clickSettled(screen.getByRole('button', { name: 'Use this program' }));
+    expect(controls.sent.map((command) => command.kind)).toEqual(['machine-agent-program-set']);
+    expect(screen.queryByText(/is now/u)).toBeNull();
+  });
+
+  test('the box follows the current board: once the machine keeps a program, a chosen one is for this forge only by default', async () => {
+    const facts = pipelineBoardStateOf('agent-step-nothing-found');
+    const controls = fakeControls();
+    const viewOf = (shown: typeof facts) => (
+      <ProgramFileChooserContext value={() => Promise.resolve(CHOSEN_PATH)}>
+        {onBoard(<PipelineView facts={shown} route={AGENT_ROUTE} {...pipelineViewServicesOf()} />)}
+      </ProgramFileChooserContext>
+    );
+    let showFacts: (shown: typeof facts) => void = () => undefined;
+
+    function BoardThatChanges() {
+      const [shown, setShown] = useState(facts);
+      showFacts = setShown;
+      return viewOf(shown);
+    }
+    controls.render(<BoardThatChanges />);
+    await clickSettled(screen.getByRole('button', { name: 'Choose program…' }));
+    const everyForgeBox = () => screen.getByRole('checkbox', { name: /Use it for every forge on this machine/u }) as HTMLInputElement;
+    expect(everyForgeBox().checked).toBe(true);
+    act(() => showFacts({ ...facts, agent: { ...facts.agent, machineProgramPath: EXAMPLE_AGENT_PROGRAM_PATH } }));
+    expect(everyForgeBox().checked).toBe(false);
   });
 
   test('a cancelled chooser chooses nothing', async () => {

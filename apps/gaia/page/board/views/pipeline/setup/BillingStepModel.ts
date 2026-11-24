@@ -8,9 +8,9 @@ import { PAGE_CONTRACT_VERSIONS }                              from '../../../..
 import type { BoardCommandDocument }                           from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDocument }                                  from '../../../../@types/board/BoardDocument.ts';
 import type { BoardBillingDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardJobState }                                  from '../../../../@types/board/BoardVocabulary.ts';
 import type { PanelStatus }                                    from '../PipelinePanel.tsx';
 import { SETUP_STEP_LABELS }                                   from '../PipelineViewModel.ts';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }   from '../agent-panel/AgentSessionModel.ts';
 import type { PipelinePhase }                                  from '../flow/PipelinePhaseModel.ts';
 
 export type BillingMode = BoardBillingDocument['mode'];
@@ -135,10 +135,11 @@ function pipelineAgentMeterOf(record: BoardSetupRecordDocument | null, facts: Pi
   };
 }
 
-/** The panel head's dot and word: not started before the setup, then whether the agent's job runs. */
-function panelStatusOf(record: BoardSetupRecordDocument | null, agentJobState: BoardJobState | null): PanelStatus {
+/** The panel head's dot and word: not started before the setup, then whether the agent's job runs, or that forge did not start it. */
+function panelStatusOf(record: BoardSetupRecordDocument | null, sessionState: AgentSessionState): PanelStatus {
   if (record === null) return { tone: 'idle', text: 'Not started' };
-  return agentJobState === null ? { tone: 'idle', text: 'Stopped' } : { tone: 'working', text: 'Running' };
+  if (sessionState === 'not-launched') return NOT_LAUNCHED_PANEL_STATUS;
+  return sessionState === 'stopped' ? { tone: 'idle', text: 'Stopped' } : { tone: 'working', text: 'Running' };
 }
 
 /** "Subscription" with the login it runs on, or "API key" with its cap per launch as typed. */

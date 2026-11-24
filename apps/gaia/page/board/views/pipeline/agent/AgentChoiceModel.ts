@@ -1,8 +1,8 @@
 /**
  * The agent choice's model, pure, for the setup's agent step and the forge's settings alike: the vendor cards from the vendors the forge
- * knows (one it cannot run yet is shown, never chosen), this machine's program or the one forge found where installers put it, the
- * program's run as forge reports it, where forge looked, and the commands of each choice. A program chosen for every forge is kept as this
- * machine's first and then followed; Gaia names no vendor of its own and words every card from what the forge sends.
+ * knows (one it cannot run yet is shown by its own name as coming later, never chosen), this machine's program or the one forge found where
+ * installers put it, the program's run as forge reports it, where forge looked, and the commands of each choice. A program chosen for every
+ * forge is kept as this machine's first and then followed; Gaia names no vendor of its own and words every card from what the forge sends.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -10,14 +10,15 @@ import type { BoardCommandDocument }                                            
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 
+type MachineProgramCommand = Extract<BoardCommandDocument, { readonly kind: 'machine-agent-program-set' }>;
+
 /** The setup record's agent while a setup is open, else the forge's stored one. */
 export type AgentChoiceTarget = { readonly kind: 'setup'; readonly setupId: string } | { readonly kind: 'forge' };
 
 export type VendorCardTag = { readonly text: string; readonly tone: 'neutral' | 'warn' };
 
 export interface VendorCard {
-  /** `null` for the card that stands for the agents forge does not name yet. */
-  readonly vendor:      string | null;
+  readonly vendor:      string;
   readonly label:       string;
   readonly description: string;
   readonly selectable:  boolean;
@@ -40,15 +41,6 @@ export interface PlaceRow {
 
 const COMING_LATER: VendorCardTag = { text: 'Coming later', tone: 'neutral' };
 
-/** Stands for the agents forge will run, while the forge names none of them itself. */
-const LATER_AGENTS_CARD: VendorCard = {
-  vendor:      null,
-  label:       'More coding agents',
-  description: 'Forge runs more coding agents in a later version.',
-  selectable:  false,
-  tag:         COMING_LATER,
-};
-
 function machineProgramOf(agent: BoardAgentDocument): MachineProgram | null {
   if (agent.machineProgramPath !== null) return { path: agent.machineProgramPath, isKept: true };
   const found = agent.places.find((place) => place.found);
@@ -57,7 +49,7 @@ function machineProgramOf(agent: BoardAgentDocument): MachineProgram | null {
 
 function vendorCardsOf(agent: BoardAgentDocument): readonly VendorCard[] {
   const programIsKnown = machineProgramOf(agent) !== null || agent.programPath !== null;
-  const cards = agent.vendors.map((vendor): VendorCard => (vendor.supported
+  return agent.vendors.map((vendor): VendorCard => (vendor.supported
     ? {
       vendor:      vendor.vendor,
       label:       vendor.displayName,
@@ -68,7 +60,6 @@ function vendorCardsOf(agent: BoardAgentDocument): readonly VendorCard[] {
     : {
       vendor: vendor.vendor, label: vendor.displayName, description: 'Forge runs it in a later version.', selectable: false, tag: COMING_LATER
     }));
-  return agent.vendors.some((vendor) => !vendor.supported) ? cards : [...cards, LATER_AGENTS_CARD];
 }
 
 /** The vendor shown chosen: the choice's, else the first one the forge can run. */
@@ -130,6 +121,16 @@ function chosenProgramCommandsOf(target: AgentChoiceTarget, vendor: string, prog
   return [machineProgramCommandOf(vendor, programPath), agentCommandOf(target, vendor, { follows: 'machine' })];
 }
 
+/**
+ * A refusal part-way through a choice for every forge: the machine's program forge stored before it refused the forge's choice, said so the
+ * page stays honest about what changed; `null` when nothing was stored first. The machine's program goes first since forge checks it there,
+ * and a forge cannot follow a machine program that is not stored yet.
+ */
+function storedBeforeRefusalTextOf(appliedCommands: readonly BoardCommandDocument[], displayName: string): string | null {
+  const stored = appliedCommands.find((command): command is MachineProgramCommand => command.kind === 'machine-agent-program-set');
+  return stored === undefined ? null : `This machine's ${displayName} is now ${stored.programPath}, but this forge's agent did not change.`;
+}
+
 /** A program is kept for every forge by default only while the machine names none: changing the machine's program is a deliberate act. */
 function forEveryForgeByDefault(agent: BoardAgentDocument): boolean {
   return agent.machineProgramPath === null;
@@ -175,6 +176,7 @@ export const AgentChoiceModel = Object.freeze({
   agentCommandOf,
   machineChoiceCommandsOf,
   chosenProgramCommandsOf,
+  storedBeforeRefusalTextOf,
   forEveryForgeByDefault,
   machineChangeAsksFirst,
   machineChangeQuestionOf,

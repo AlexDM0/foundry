@@ -13,18 +13,23 @@ import type {
   BoardResearchFindingDocument,
   BoardSetupQuestionDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardEntityKind, BoardJobState }                 from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                                 from '../../../conversation/ChatTurnWordingUtil.ts';
-import type { PanelStatus }                                    from '../PipelinePanel.tsx';
-import { PipelineAgentPanelModel }                             from '../agent-panel/PipelineAgentPanelModel.ts';
-import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
+import type { BoardEntityKind }                                               from '../../../../@types/board/BoardVocabulary.ts';
+import { ChatTurnWordingUtil }                                                from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }                                                   from '../PipelinePanel.tsx';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState, type SessionJob } from '../agent-panel/AgentSessionModel.ts';
+import { PipelineAgentPanelModel }                                            from '../agent-panel/PipelineAgentPanelModel.ts';
+import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }                from '../entities/PipelineLevelModel.ts';
 
-export type ResearchSessionState = 'not-started' | 'researching' | 'research-done' | 'stopping' | 'stopped';
+export type ResearchSessionState = 'not-started' | 'researching' | 'research-done' | 'not-launched' | 'stopping' | 'stopped';
 
-/** The facts the list reads: the setup record with each entity's part and job state, and the entities the draft or the pipeline holds. */
+/**
+ * The facts the list reads: the setup record with each entity's part and job state, the entities the draft or the pipeline holds, and the
+ * board's jobs, which say whether forge refused a session's launch.
+ */
 export interface EntitySessionFacts {
   readonly setup:         Pick<BoardPipelineSetupDocument, 'record' | 'agentJobState' | 'entities'>;
   readonly shownEntities: Readonly<Record<string, Pick<BoardPipelineEntityDocument, 'kind' | 'home'>>>;
+  readonly jobs:          readonly SessionJob[];
 }
 
 export interface EntitySessionRowView {
@@ -77,12 +82,13 @@ const STATE_TEXTS: Readonly<Record<ResearchSessionState, string>> = Object.freez
   'not-started':   'Not started',
   'researching':   'Researching',
   'research-done': 'Research done',
+  'not-launched':  'Not launched',
   'stopping':      'Stopping',
   'stopped':       'Stopped',
 });
 
 /** The footer counts the entities' sessions in this order. */
-const COUNTED_STATES: readonly ResearchSessionState[] = ['researching', 'research-done', 'stopping', 'stopped', 'not-started'];
+const COUNTED_STATES: readonly ResearchSessionState[] = ['researching', 'research-done', 'not-launched', 'stopping', 'stopped', 'not-started'];
 
 const FORGE_SCOPE_TEXT = 'What every entity shares, kept apart from each entity\'s own findings.';
 
@@ -92,6 +98,7 @@ const EMPTY_TEXTS: Readonly<Record<ResearchSessionState, string | null>> = Objec
   'not-started':   'No session has started for it yet.',
   'researching':   null,
   'research-done': 'The research found nothing here.',
+  'not-launched':  'Not launched: forge refused to start its agent, and starts it once the agent\'s program runs.',
   'stopping':      'Stopping before it found anything.',
   'stopped':       'Stopped before it found anything. You can still set up this entity by hand in the next steps.',
 });
@@ -107,17 +114,16 @@ function groupOf(entityKey: string, facts: EntitySessionFacts): EntityGroup {
   return Object.hasOwn(facts.shownEntities, entityKey) ? facts.shownEntities[entityKey]?.kind ?? 'unknown' : 'unknown';
 }
 
-function sessionStateOf(agentJobId: string | null, agentJobState: BoardJobState | null, researchIsDone: boolean): ResearchSessionState {
+function researchStateOf(agentJobId: string | null, sessionState: AgentSessionState, researchIsDone: boolean): ResearchSessionState {
   if (agentJobId === null) return 'not-started';
-  if (agentJobState === null) return 'stopped';
-  if (agentJobState === 'stopping') return 'stopping';
-  return researchIsDone ? 'research-done' : 'researching';
+  if (sessionState === 'running') return researchIsDone ? 'research-done' : 'researching';
+  return sessionState;
 }
 
 function stateOfLevel(facts: EntitySessionFacts, level: PipelineLevel): ResearchSessionState {
-  const session = PipelineAgentPanelModel.levelSessionOf(facts.setup, level);
+  const session = PipelineAgentPanelModel.levelSessionOf(facts.setup, level, facts.jobs);
   const researchIsDone = PipelineLevelModel.isForgeLevel(level) && facts.setup.record.readyToContinue.includes('research');
-  return sessionStateOf(session.agentJobId, session.agentJobState, researchIsDone);
+  return researchStateOf(session.agentJobId, session.sessionState, researchIsDone);
 }
 
 function openResearchQuestionCountOf(questions: readonly BoardSetupQuestionDocument[]): number {
@@ -129,8 +135,11 @@ function researchFindingsOf(findings: readonly BoardResearchFindingDocument[]): 
   return findings.filter((finding) => finding.topic !== 'layout');
 }
 
+/** A session whose launch forge refused still holds a job on the board, which a stop ends. */
+const STOPPABLE_STATES: readonly ResearchSessionState[] = ['researching', 'research-done', 'not-launched'];
+
 function stopCommandOf(agentJobId: string | null, state: ResearchSessionState): BoardCommandDocument | null {
-  if (agentJobId === null || (state !== 'researching' && state !== 'research-done')) return null;
+  if (agentJobId === null || !STOPPABLE_STATES.includes(state)) return null;
   return {
     boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'job-stop', jobId: agentJobId, mode: 'stop'
   };
@@ -146,7 +155,7 @@ function accessibleNameOf(row: Omit<EntitySessionRowView, 'accessibleName'>): st
 function rowOf(
   facts: EntitySessionFacts, level: PipelineLevel, selectedLevel: PipelineLevel, kindText: string, groupLabel: string | null
 ): EntitySessionRowView {
-  const session = PipelineAgentPanelModel.levelSessionOf(facts.setup, level);
+  const session = PipelineAgentPanelModel.levelSessionOf(facts.setup, level, facts.jobs);
   const state = stateOfLevel(facts, level);
   const name = PipelineLevelModel.levelNameOf(level);
   const row = {
@@ -212,7 +221,7 @@ function scopeTextOf(facts: EntitySessionFacts, level: PipelineLevel): string {
 }
 
 function selectedSessionOf(facts: EntitySessionFacts, level: PipelineLevel): SelectedSessionView {
-  const findings = researchFindingsOf(PipelineAgentPanelModel.levelSessionOf(facts.setup, level).findings);
+  const findings = researchFindingsOf(PipelineAgentPanelModel.levelSessionOf(facts.setup, level, facts.jobs).findings);
   const state = stateOfLevel(facts, level);
   return {
     level,
@@ -234,6 +243,7 @@ const PANEL_STATUSES: Readonly<Record<ResearchSessionState, PanelStatus>> = Obje
   'not-started':   { tone: 'idle', text: STATE_TEXTS['not-started'] },
   'researching':   { tone: 'working', text: STATE_TEXTS.researching },
   'research-done': { tone: 'ready', text: STATE_TEXTS['research-done'] },
+  'not-launched':  NOT_LAUNCHED_PANEL_STATUS,
   'stopping':      { tone: 'idle', text: STATE_TEXTS.stopping },
   'stopped':       { tone: 'idle', text: STATE_TEXTS.stopped },
 });

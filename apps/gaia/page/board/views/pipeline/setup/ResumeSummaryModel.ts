@@ -10,6 +10,7 @@ import type { BoardJobState, BoardSetupStep }                                   
 import type { StepperStatus }                                                                     from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardRoute }                                                                        from '../../../shell/BoardRouter.ts';
 import { PipelineViewModel, SETUP_STEP_LABELS }                                                   from '../PipelineViewModel.ts';
+import type { AgentSessionState }                                                                 from '../agent-panel/AgentSessionModel.ts';
 import { ApplyPendingStateModel }                                                                 from '../apply/ApplyPendingStateModel.ts';
 
 export type ResumeChipTone = 'question' | 'neutral';
@@ -103,21 +104,23 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
   }
 }
 
-function agentChipTextOf(facts: BoardPipelineSetupDocument): string {
+/** A job whose launch forge refused reads as not launched, never as the starting its state names. */
+function agentChipTextOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): string {
   const agent = facts.record.agentJobId === null ? 'Pipeline agent' : `Pipeline agent ${facts.record.agentJobId}`;
+  if (sessionState === 'not-launched') return `${agent} not launched`;
   return facts.agentJobState === null
     ? `${agent} stopped · resumes with its conversation`
     : `${agent} ${JOB_STATE_WORDS[facts.agentJobState]}`;
 }
 
-function currentChipsOf(facts: BoardPipelineSetupDocument): ResumeChip[] {
+function currentChipsOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): ResumeChip[] {
   const questionChips: ResumeChip[] = facts.openQuestionCount === 0
     ? []
     : [{ text: `${countText(facts.openQuestionCount, 'question', 'questions')} open`, tone: 'question' }];
-  return [...questionChips, { text: agentChipTextOf(facts), tone: 'neutral' }];
+  return [...questionChips, { text: agentChipTextOf(facts, sessionState), tone: 'neutral' }];
 }
 
-function resumeStepsOf(facts: BoardPipelineSetupDocument): ResumeStep[] {
+function resumeStepsOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): ResumeStep[] {
   return PipelineViewModel.setupStepsOf(facts.record).map((step) => {
     const status = PipelineViewModel.setupStepStatusOf(facts.record, step);
     const reopens = status === 'done' || status === 'recheck';
@@ -127,7 +130,7 @@ function resumeStepsOf(facts: BoardPipelineSetupDocument): ResumeStep[] {
       status,
       recheck:   status === 'recheck',
       summary:   summaryOf(facts, step),
-      chips:     status === 'current' ? currentChipsOf(facts) : [],
+      chips:     status === 'current' ? currentChipsOf(facts, sessionState) : [],
       openRoute: reopens ? PipelineViewModel.setupStepRouteOf(step) : null,
     };
   });
@@ -137,10 +140,15 @@ function stepWordsOf(step: BoardSetupStep): string {
   return SETUP_STEP_LABELS[step].toLowerCase();
 }
 
-function leadTextOf(facts: BoardPipelineSetupDocument): string {
-  const where = facts.agentJobState === null
-    ? `Setup stopped during the ${stepWordsOf(facts.record.currentStep)}.`
-    : `The pipeline agent works on the ${stepWordsOf(facts.record.currentStep)}.`;
+const LEAD_PLACES: Readonly<Record<AgentSessionState, (stepWords: string) => string>> = {
+  'running':      (stepWords) => `The pipeline agent works on the ${stepWords}.`,
+  'stopping':     (stepWords) => `The pipeline agent works on the ${stepWords}.`,
+  'not-launched': (stepWords) => `The pipeline agent of the ${stepWords} is not launched.`,
+  'stopped':      (stepWords) => `Setup stopped during the ${stepWords}.`,
+};
+
+function leadTextOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): string {
+  const where = LEAD_PLACES[sessionState](stepWordsOf(facts.record.currentStep));
   return `Every step was saved as it happened. ${where}`;
 }
 
@@ -158,8 +166,8 @@ function startOverCommandOf(facts: BoardPipelineSetupDocument): BoardCommandDocu
 
 /** "3 of 5 steps done", for the footer; a step to recheck was done. */
 function doneStepsTextOf(facts: BoardPipelineSetupDocument): string {
-  const steps = resumeStepsOf(facts);
-  const doneCount = steps.filter((step) => step.status === 'done' || step.status === 'recheck').length;
+  const steps = PipelineViewModel.setupStepsOf(facts.record);
+  const doneCount = steps.map((step) => PipelineViewModel.setupStepStatusOf(facts.record, step)).filter((status) => status === 'done' || status === 'recheck').length;
   return `${doneCount} of ${steps.length} steps done`;
 }
 

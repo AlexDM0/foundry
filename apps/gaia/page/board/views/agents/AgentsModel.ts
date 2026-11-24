@@ -306,7 +306,7 @@ function resumeWaitTextOf(waitsFor: BoardResumeWait): string {
  * forge refused reads as not launched, never as the running its state names.
  */
 function stateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'> & Partial<Pick<AgentJobDocument, 'notLaunched'>>): string {
-  if (job.notLaunched !== undefined && job.notLaunched !== null) return 'not launched';
+  if (JobStateUtil.launchIsRefused(job)) return 'not launched';
   const waitState = JobStateUtil.interruptionWaitStateOf(job);
   return waitState === null ? job.state : DisplayStateWordingUtil.labelOf(waitState);
 }

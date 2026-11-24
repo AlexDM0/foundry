@@ -2,8 +2,8 @@
  * The agent's tools at the design step and a launch forge refused, against fake controls. What matters: the design step's footer counts
  * the tools and the missing ones and opens their list, whose kept list is a draft edit of the record's draft at its revision; the research
  * step of a pipeline agent forge did not launch says "Not launched" with forge's own reason instead of Researching, and offers choosing the
- * program at the agent step and Look again; and the board's notice names each job not launched, or a forge with no agent, with where to
- * choose it.
+ * program at the agent step and Look again; no setup step reads Running or the agent's work for such a job; and the board's notice names
+ * each job not launched, or a forge with no agent, with where to choose it.
  */
 import {
   cleanup,
@@ -19,13 +19,13 @@ import {
   test
 } from 'bun:test';
 
-import { AgentNotice }                                      from '../../../shell/AgentNotice.tsx';
-import { AgentNoticeModel, type AgentNoticeView }           from '../../../shell/AgentNoticeModel.ts';
-import { EXAMPLE_NOT_LAUNCHED }                             from '../../../testing/AgentFixture.ts';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
-import { onBoard }                                          from '../../../testing/OnBoard.ts';
-import { pipelineBoardStateOf, pipelineViewServicesOf }     from '../../../testing/PipelineFixture.ts';
-import { PipelineView }                                     from '../PipelineView.tsx';
+import { AgentNotice }                                                            from '../../../shell/AgentNotice.tsx';
+import { AgentNoticeModel, type AgentNoticeView }                                 from '../../../shell/AgentNoticeModel.ts';
+import { EXAMPLE_NOT_LAUNCHED }                                                   from '../../../testing/AgentFixture.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
+import { onBoard }                                                                from '../../../testing/OnBoard.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { PipelineView }                                                           from '../PipelineView.tsx';
 
 afterEach(() => {
   cleanup();
@@ -62,12 +62,42 @@ describe('a pipeline agent forge did not launch', () => {
     expect(screen.queryByText('Researching')).toBeNull();
     expect(screen.queryByText('Running')).toBeNull();
     expect(screen.getAllByText('Not launched').length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Waiting for the first findings')).toBeNull();
     const job = screen.getByRole('region', { name: 'J4 not launched' });
     expect(within(job).getByText(EXAMPLE_NOT_LAUNCHED.text)).toBeDefined();
     expect(within(job).getByRole('link', { name: 'Choose the Example Agent program…' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/agent');
     await clickSettled(within(job).getByRole('button', { name: 'Look again' }));
     expect(controls.sent).toEqual([{ ...SENT_COMMAND_VERSION, kind: 'agent-look-again' }]);
   });
+});
+
+/** The fixture with its setup's pipeline agent job standing not launched, as `A1-not-launched` holds it. */
+function notLaunchedAt(name: PipelineFixtureName): ReturnType<typeof pipelineBoardStateOf> {
+  const facts = pipelineBoardStateOf(name);
+  const agentJobId = facts.pipeline.setup?.record.agentJobId ?? null;
+  const notLaunchedJob = pipelineBoardStateOf('A1-not-launched').jobs.find((job) => job.id === agentJobId);
+  if (agentJobId === null || notLaunchedJob === undefined) throw new Error(`the fixture ${name} has no pipeline agent job`);
+  return { ...facts, jobs: [...facts.jobs.filter((job) => job.id !== agentJobId), notLaunchedJob] };
+}
+
+const WORKING_WORDS = ['Running', 'Researching', 'Drafting', 'Designing', 'Reading the repository', 'Drafting the constitution', 'Designing the pipeline'];
+
+describe('a pipeline agent forge did not launch, on every setup step', () => {
+  const stepsWithTheAgent: readonly (readonly [PipelineFixtureName, string | null])[] = [
+    ['A0b-at-billing', 'setup/billing'],
+    ['A1', 'setup/research'],
+    ['A3b', 'setup/constitution'],
+    ['A2-designing', 'setup/design'],
+    ['A0b-running', null],
+  ];
+
+  for (const [name, item] of stepsWithTheAgent) {
+    test(`${item ?? 'the resume summary'} reads Not launched, never Running or the agent's work`, () => {
+      fakeControls().render(onBoard(<PipelineView facts={notLaunchedAt(name)} route={{ tab: 'pipeline', item }} {...pipelineViewServicesOf()} />));
+      for (const word of WORKING_WORDS) expect(screen.queryByText(word)).toBeNull();
+      expect(screen.getAllByText(/not launched/iu).length).toBeGreaterThan(0);
+    });
+  }
 });
 
 describe('the board\'s agent notice', () => {

@@ -17,11 +17,12 @@ import type {
 import type { BoardEntityAgentRole, BoardPipelineAgentRole, BoardSetupMode } from '../../../../@types/board/BoardVocabulary.ts';
 import { ChatTurnWordingUtil }                                               from '../../../conversation/ChatTurnWordingUtil.ts';
 import type { PanelStatus }                                                  from '../PipelinePanel.tsx';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                 from '../agent-panel/AgentSessionModel.ts';
 import type { ConstitutionState }                                            from '../entities/ConstitutionStateTagModel.ts';
 
 export type ConstitutionStepMode = 'setup' | 'update';
 
-export type ConstitutionAgentState = 'drafting' | 'ready' | 'not-running';
+export type ConstitutionAgentState = 'drafting' | 'ready' | 'not-launched' | 'not-running';
 
 /** The roles' words as READ BY names them; both re-reviewers read as one Re-review. */
 const READER_LABELS: Readonly<Record<BoardPipelineAgentRole, string>> = {
@@ -76,31 +77,37 @@ function stepModeOf(recordMode: BoardSetupMode): ConstitutionStepMode {
   return recordMode === 'setup' ? 'setup' : 'update';
 }
 
-/** Drafting while the agent runs and has not said the constitution is ready; with no agent job on the board, not running. */
-function agentStateOf(setup: BoardPipelineSetupDocument): ConstitutionAgentState {
-  if (setup.agentJobState === null) return 'not-running';
+/**
+ * Drafting while the agent runs and has not said the constitution is ready; not launched while forge refused its launch; with no agent job
+ * on the board, not running.
+ */
+function agentStateOf(setup: BoardPipelineSetupDocument, sessionState: AgentSessionState): ConstitutionAgentState {
+  if (sessionState === 'not-launched') return 'not-launched';
+  if (sessionState === 'stopped') return 'not-running';
   return setup.record.readyToContinue.includes('constitution') ? 'ready' : 'drafting';
 }
 
 const STATUS_LINES: Readonly<Record<ConstitutionAgentState, string>> = {
-  'drafting':    'Pipeline agent · drafting from the research',
-  'ready':       'Pipeline agent · draft ready',
-  'not-running': 'Pipeline agent · not running',
+  'drafting':     'Pipeline agent · drafting from the research',
+  'ready':        'Pipeline agent · draft ready',
+  'not-launched': 'Pipeline agent · not launched',
+  'not-running':  'Pipeline agent · not running',
 };
 
-function statusLineOf(setup: BoardPipelineSetupDocument): string {
-  return STATUS_LINES[agentStateOf(setup)];
+function statusLineOf(agentState: ConstitutionAgentState): string {
+  return STATUS_LINES[agentState];
 }
 
 const PANEL_STATUSES: Readonly<Record<ConstitutionAgentState, PanelStatus>> = {
-  'drafting':    { tone: 'working', text: 'Drafting' },
-  'ready':       { tone: 'ready', text: 'Draft ready' },
-  'not-running': { tone: 'idle', text: 'Not running' },
+  'drafting':     { tone: 'working', text: 'Drafting' },
+  'ready':        { tone: 'ready', text: 'Draft ready' },
+  'not-launched': NOT_LAUNCHED_PANEL_STATUS,
+  'not-running':  { tone: 'idle', text: 'Not running' },
 };
 
 /** The panel head's dot and word: "Drafting". */
-function panelStatusOf(setup: BoardPipelineSetupDocument): PanelStatus {
-  return PANEL_STATUSES[agentStateOf(setup)];
+function panelStatusOf(agentState: ConstitutionAgentState): PanelStatus {
+  return PANEL_STATUSES[agentState];
 }
 
 /** Builder, Review, Re-review: each word once, in the order the facts list the roles. */
@@ -249,13 +256,14 @@ function entityPreviewNoteOf(state: ConstitutionState, fileName: string, entityK
 }
 
 const ENTITY_STATUS_LINES: Readonly<Record<ConstitutionAgentState, (entityKey: string) => string>> = {
-  'drafting':    (entityKey) => `Pipeline agent · drafting ${entityKey}’s constitution`,
-  'ready':       () => 'Pipeline agent · draft ready',
-  'not-running': () => 'Pipeline agent · not running',
+  'drafting':     (entityKey) => `Pipeline agent · drafting ${entityKey}’s constitution`,
+  'ready':        () => STATUS_LINES.ready,
+  'not-launched': () => STATUS_LINES['not-launched'],
+  'not-running':  () => STATUS_LINES['not-running'],
 };
 
-function entityStatusLineOf(entitySetup: BoardPipelineSetupDocument, entityKey: string): string {
-  return ENTITY_STATUS_LINES[agentStateOf(entitySetup)](entityKey);
+function entityStatusLineOf(agentState: ConstitutionAgentState, entityKey: string): string {
+  return ENTITY_STATUS_LINES[agentState](entityKey);
 }
 
 function continueCommandOf(setup: BoardPipelineSetupDocument): BoardCommandDocument {

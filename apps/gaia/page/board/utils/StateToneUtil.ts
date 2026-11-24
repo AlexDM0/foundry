@@ -106,8 +106,13 @@ function lookOfJobState(jobState: BoardJobState): StateLook {
 
 /** The look of a job as it waits or works: an interruption the board words by its cause looks as that wait, and a refused launch as a failure. */
 function lookOfJob(job: Pick<BoardJobDocument, 'state' | 'interruption'> & Partial<Pick<BoardJobDocument, 'notLaunched'>>): StateLook {
-  if (job.notLaunched !== undefined && job.notLaunched !== null) return NOT_LAUNCHED_LOOK;
+  if (JobStateUtil.launchIsRefused(job)) return NOT_LAUNCHED_LOOK;
   return lookOf(JobStateUtil.displayStateOfJob(job));
+}
+
+function dotOfJob(job: Pick<BoardJobDocument, 'state' | 'interruption'> & Partial<Pick<BoardJobDocument, 'notLaunched'>>): StateDotLook {
+  const look = lookOfJob(job);
+  return { tone: look.tone, shape: look.dotShape };
 }
 
 function readyLook(): StateLook {
@@ -115,5 +120,5 @@ function readyLook(): StateLook {
 }
 
 export const StateToneUtil = Object.freeze({
-  lookOf, toneOf, optionalToneOf, dotOf, pillLookOf, tagLookOf, lookOfJobState, lookOfJob, readyLook
+  lookOf, toneOf, optionalToneOf, dotOf, pillLookOf, tagLookOf, lookOfJobState, lookOfJob, dotOfJob, readyLook
 });
