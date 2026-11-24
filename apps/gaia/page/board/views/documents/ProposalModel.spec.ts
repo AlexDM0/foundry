@@ -50,14 +50,14 @@ describe('a settled proposal', () => {
 
 describe('Apply and Discard', () => {
   test('Apply sends the agent\'s lines, and after Edit first User\'s own, one list per edit', () => {
-    expect<unknown>(ProposalModel.applyCommandOf(PLACE, 'P3', null)).toEqual({
+    expect(ProposalModel.applyCommandOf(PLACE, 'P3', null)).toEqual({
       ...SENT_COMMAND_VERSION, kind: 'ticket-document-proposal-apply', ticketId: '004', document: 'spec', proposalId: 'P3', replacementLines: null,
     });
     expect(ProposalModel.applyCommandOf(PLACE, 'P3', ['- [ ] **A3** One.\n- [ ] **A5** Two.'])).toMatchObject({ replacementLines: [['- [ ] **A3** One.', '- [ ] **A5** Two.']] });
   });
 
   test('Discard names the proposal', () => {
-    expect<unknown>(ProposalModel.discardCommandOf(PLACE, 'P3')).toEqual({
+    expect(ProposalModel.discardCommandOf(PLACE, 'P3')).toEqual({
       ...SENT_COMMAND_VERSION, kind: 'ticket-document-proposal-discard', ticketId: '004', document: 'spec', proposalId: 'P3',
     });
   });

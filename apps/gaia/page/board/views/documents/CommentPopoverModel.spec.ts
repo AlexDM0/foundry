@@ -53,7 +53,7 @@ describe('the comment popover', () => {
 
   test('sends the comment with its anchor, and nothing while the text is empty', () => {
     expect(CommentPopoverModel.commandOf(PLACE, SPEC_ANCHOR_OF_C2, '  ')).toBeNull();
-    expect<unknown>(CommentPopoverModel.commandOf(PLACE, SPEC_ANCHOR_OF_C2, ' Name the check. ')).toEqual({
+    expect(CommentPopoverModel.commandOf(PLACE, SPEC_ANCHOR_OF_C2, ' Name the check. ')).toEqual({
       ...SENT_COMMAND_VERSION,
       kind:     'ticket-document-comment',
       ticketId: '004',

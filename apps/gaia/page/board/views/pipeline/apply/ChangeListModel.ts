@@ -109,6 +109,12 @@ function fieldWordsOf(field: string): FieldWords {
       return { title: 'Human ticket review', place: 'switch' };
     case 'approval:merge':
       return { title: 'Human code review', place: 'switch' };
+    case 'approval:spec':
+      return { title: 'Human spec review', place: 'switch' };
+    case 'approval:plan':
+      return { title: 'Human plan review', place: 'switch' };
+    case 'ticket-writing':
+      return { title: 'How a ticket is written', place: 'Ticket phase' };
     default:
       return { title: 'Constitution', place: 'CONSTITUTION.md' };
   }

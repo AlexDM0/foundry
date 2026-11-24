@@ -65,7 +65,7 @@ describe('the state line', () => {
 
 describe('the primary button', () => {
   test('approves the spec\'s head and starts the plan', () => {
-    expect<unknown>(headOf(DOCUMENT_STATES.specWorking, 'spec').primaryAction).toEqual({
+    expect(headOf(DOCUMENT_STATES.specWorking, 'spec').primaryAction).toEqual({
       kind:    'approve',
       label:   'Approve spec · start Plan',
       command: {

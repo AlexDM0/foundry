@@ -123,6 +123,10 @@ describe('the field words', () => {
       'airlock',
       'approval:tickets',
       'approval:merge',
+      'approval:spec',
+      'approval:plan',
+      'ticket-writing',
+      'role:specAgent',
       'constitution',
     ];
     expect(fields.map((field) => ChangeListModel.fieldWordsOf(field))).toEqual([
@@ -134,6 +138,10 @@ describe('the field words', () => {
       { title: 'Merge train', place: 're-review' },
       { title: 'Human ticket review', place: 'switch' },
       { title: 'Human code review', place: 'switch' },
+      { title: 'Human spec review', place: 'switch' },
+      { title: 'Human plan review', place: 'switch' },
+      { title: 'How a ticket is written', place: 'Ticket phase' },
+      { title: 'Spec', place: 'agent step' },
       { title: 'Constitution', place: 'CONSTITUTION.md' },
     ]);
   });
