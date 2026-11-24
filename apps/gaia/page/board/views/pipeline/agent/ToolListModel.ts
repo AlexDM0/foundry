@@ -2,11 +2,13 @@
  * The agent tools' model, pure: each tool as a row (where forge found it, or that this machine lacks it, and which job, prepare step or gate
  * runs it), the list a person edits (the approved tools and the ones added by name), and the command that keeps it: a draft edit while a
  * setup designs the pipeline, else the stored pipeline's tools. Git every job runs is always approved, and a tool the machine lacks cannot
- * be approved until it is installed. The list is not what keeps agents inside the repository; the sandbox is.
+ * be approved until it is installed. An added tool forge does not find is kept at the program User chooses for it. The list is not what
+ * keeps agents inside the repository; the sandbox is.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                           from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentToolDocument, BoardAgentToolUseDocument, BoardToolRequestDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                        from '../../../../@types/board/BoardCommandDocument.ts';
+import type { ForgeRefusalFacts }                                                           from '../../../api/RefusalOf.ts';
 import { ChatTurnWordingUtil }                                                              from '../../../conversation/ChatTurnWordingUtil.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
@@ -23,11 +25,13 @@ export interface ToolRow {
   readonly isLocked:  boolean;
 }
 
-/** What the person edits: the names ticked, and the names added that forge finds when the list is kept. */
+/** What the person edits: the names ticked, and the tools added, which forge finds when the list is kept unless User chose a program. */
 export interface ToolListEdit {
   readonly approvedNames: readonly string[];
-  readonly addedNames:    readonly string[];
+  readonly addedTools:    readonly BoardToolRequestDocument[];
 }
+
+const TOOL_NOT_FOUND_CODE = 'tool-not-found';
 
 /** Drops the forge's own list: the tools follow the pipeline's programs again. */
 export const TOOLS_FOLLOW_THE_PIPELINE_COMMAND: BoardCommandDocument = { ...COMMAND_VERSION, kind: 'pipeline-tools-set', tools: null };
@@ -58,7 +62,7 @@ function rowsOf(tools: readonly BoardAgentToolDocument[]): readonly ToolRow[] {
 }
 
 function editOf(tools: readonly BoardAgentToolDocument[]): ToolListEdit {
-  return { approvedNames: tools.filter((tool) => tool.approved).map((tool) => tool.name), addedNames: [] };
+  return { approvedNames: tools.filter((tool) => tool.approved).map((tool) => tool.name), addedTools: [] };
 }
 
 function withApproval(edit: ToolListEdit, name: string, approved: boolean): ToolListEdit {
@@ -69,18 +73,30 @@ function withApproval(edit: ToolListEdit, name: string, approved: boolean): Tool
 /** A name already listed or added, or no name at all, adds nothing. */
 function withAdded(edit: ToolListEdit, tools: readonly BoardAgentToolDocument[], typedName: string): ToolListEdit {
   const name = typedName.trim();
-  if (name === '' || tools.some((tool) => tool.name === name) || edit.addedNames.includes(name)) return edit;
-  return { ...edit, addedNames: [...edit.addedNames, name] };
+  if (name === '' || tools.some((tool) => tool.name === name) || edit.addedTools.some((added) => added.name === name)) return edit;
+  return { ...edit, addedTools: [...edit.addedTools, { name, path: null }] };
 }
 
-/** The tools as the command names them: each approved one at the path forge found it, then each added name for forge to find. */
+/** The added tool named, at the program User chose for it. */
+function withChosenPath(edit: ToolListEdit, name: string, path: string): ToolListEdit {
+  return { ...edit, addedTools: edit.addedTools.map((added) => (added.name === name ? { name, path } : added)) };
+}
+
+/** The added tool forge's refusal says it did not find, `null` for any other refusal. */
+function unfoundAddedToolOf(edit: ToolListEdit, forgeRefusal: ForgeRefusalFacts | null): string | null {
+  if (forgeRefusal?.code !== TOOL_NOT_FOUND_CODE) return null;
+  const { name } = forgeRefusal.fields;
+  return typeof name === 'string' && edit.addedTools.some((added) => added.name === name) ? name : null;
+}
+
+/** The tools as the command names them: each approved one at its found path, then each added one at its chosen program or for forge to find. */
 function requestsOf(tools: readonly BoardAgentToolDocument[], edit: ToolListEdit): readonly BoardToolRequestDocument[] {
   const approved = tools.filter((tool) => isLocked(tool) || (tool.path !== null && edit.approvedNames.includes(tool.name)));
-  return [...approved.map((tool) => ({ name: tool.name, path: tool.path })), ...edit.addedNames.map((name) => ({ name, path: null }))];
+  return [...approved.map((tool) => ({ name: tool.name, path: tool.path })), ...edit.addedTools];
 }
 
 function editsAreEqual(first: ToolListEdit, second: ToolListEdit): boolean {
-  return first.addedNames.length === second.addedNames.length && first.addedNames.every((name) => second.addedNames.includes(name))
+  return first.addedTools.length === second.addedTools.length && first.addedTools.every((added) => second.addedTools.includes(added))
     && first.approvedNames.length === second.approvedNames.length && first.approvedNames.every((name) => second.approvedNames.includes(name));
 }
 
@@ -120,6 +136,8 @@ export const ToolListModel = Object.freeze({
   editOf,
   withApproval,
   withAdded,
+  withChosenPath,
+  unfoundAddedToolOf,
   requestsOf,
   keepCommandOf,
   summaryOf,

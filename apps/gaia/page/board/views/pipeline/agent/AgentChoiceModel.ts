@@ -136,14 +136,23 @@ function forEveryForgeByDefault(agent: BoardAgentDocument): boolean {
   return agent.machineProgramPath === null;
 }
 
-/** Changing a program the machine already names, while other forges follow it, asks first. */
+/** Changing a program the machine already names asks first while other forges follow it, or while Gaia does not know whether any do. */
 function machineChangeAsksFirst(agent: BoardAgentDocument, forEveryForge: boolean): boolean {
-  return forEveryForge && agent.machineProgramPath !== null && agent.otherForgesFollowingMachine > 0;
+  const count = agent.otherForgesFollowingMachine;
+  return forEveryForge && agent.machineProgramPath !== null && (count === null || count > 0);
+}
+
+/** "3 other forges follow", or `null` while Gaia has not read every other forge. */
+function followersTextOf(count: number | null): string | null {
+  if (count === null) return null;
+  return count === 1 ? '1 other forge follows' : `${count} other forges follow`;
 }
 
 function machineChangeQuestionOf(agent: BoardAgentDocument, displayName: string): string {
-  const count = agent.otherForgesFollowingMachine;
-  const followers = count === 1 ? '1 other forge follows' : `${count} other forges follow`;
+  const followers = followersTextOf(agent.otherForgesFollowingMachine);
+  if (followers === null) {
+    return `Other forges may follow this machine's ${displayName}: Gaia could not read every forge now. Change it for every one that follows it?`;
+  }
   return `${followers} this machine's ${displayName}. Change it for every one of them?`;
 }
 
@@ -180,6 +189,7 @@ export const AgentChoiceModel = Object.freeze({
   forEveryForgeByDefault,
   machineChangeAsksFirst,
   machineChangeQuestionOf,
+  followersTextOf,
   continueCommandOf,
   lookAgainCommand,
   footerTextOf,

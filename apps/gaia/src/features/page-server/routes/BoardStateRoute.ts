@@ -56,7 +56,7 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
     return answer.verdict === 'answered' ? ingestion.boardOf(trackerId, answer.document).board?.agent ?? null : null;
   }
 
-  function otherFollowersOf(board: ForgeBoard): number {
+  function otherFollowersOf(board: ForgeBoard): number | null {
     machineProgramFollowers.noteBoardRead(board.trackerId, board.agent);
     const vendor = vendorOf(board.agent);
     if (vendor === null) return 0;

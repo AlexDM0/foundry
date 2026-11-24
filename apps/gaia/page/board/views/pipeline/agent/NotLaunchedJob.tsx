@@ -4,28 +4,27 @@
  * have forge look again.
  */
 import type { BoardAgentDocument, BoardJobNotLaunchedDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
-import type { BoardSetupMode }                                  from '../../../../@types/board/BoardVocabulary.ts';
 import {
   Button,
   Row,
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }    from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }     from '../../../shell/CommandButton.tsx';
-import { PipelineViewModel } from '../PipelineViewModel.ts';
-import { AgentChoiceModel }  from './AgentChoiceModel.ts';
+import { useBoardHrefOf }   from '../../../shell/BoardRouteLinks.ts';
+import type { BoardRoute }  from '../../../shell/BoardRouter.ts';
+import { CommandButton }    from '../../../shell/CommandButton.tsx';
+import { AgentChoiceModel } from './AgentChoiceModel.ts';
 
 export interface NotLaunchedJobProps {
   readonly jobId:       string | null;
   readonly notLaunched: BoardJobNotLaunchedDocument;
   readonly agent:       BoardAgentDocument;
-  /** The open setup's mode, which says where the program is chosen; `null` with no setup open. */
-  readonly choiceMode:  BoardSetupMode | null;
+  /** Where the program is chosen (`PipelineViewModel.agentChoiceRouteOf`). */
+  readonly choiceRoute: BoardRoute;
 }
 
 export function NotLaunchedJob({
-  jobId, notLaunched, agent, choiceMode
+  jobId, notLaunched, agent, choiceRoute
 }: NotLaunchedJobProps) {
   const hrefOf = useBoardHrefOf();
   const displayName = AgentChoiceModel.displayNameOf(agent, AgentChoiceModel.chosenVendorOf(agent, agent.choice));
@@ -39,7 +38,7 @@ export function NotLaunchedJob({
       </Row>
       <Text>{notLaunched.text}</Text>
       <Row centerY gap="eight" wrap>
-        <Button label={`Choose the ${displayName} program…`} href={hrefOf(PipelineViewModel.agentChoiceRouteOf(choiceMode))} />
+        <Button label={`Choose the ${displayName} program…`} href={hrefOf(choiceRoute)} />
         <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} />
       </Row>
     </section>

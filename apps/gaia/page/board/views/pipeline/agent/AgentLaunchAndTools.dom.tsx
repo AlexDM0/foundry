@@ -1,9 +1,11 @@
 /**
  * The agent's tools at the design step and a launch forge refused, against fake controls. What matters: the design step's footer counts
- * the tools and the missing ones and opens their list, whose kept list is a draft edit of the record's draft at its revision; the research
+ * the tools and the missing ones and opens their list, whose kept list is a draft edit of the record's draft at its revision; an added tool
+ * forge did not find offers choosing its program in the system's file chooser and is sent again at that path; the research
  * step of a pipeline agent forge did not launch says "Not launched" with forge's own reason instead of Researching, and offers choosing the
  * program at the agent step and Look again; no setup step reads Running or the agent's work for such a job; and the board's notice names
- * each job not launched, or a forge with no agent, with where to choose it.
+ * each job not launched, or a forge with no agent, with where to choose it: the setup landing on a forge with no pipeline and no setup, where
+ * forge keeps no agent outside a setup.
  */
 import {
   cleanup,
@@ -21,6 +23,7 @@ import {
 
 import { AgentNotice }                                                            from '../../../shell/AgentNotice.tsx';
 import { AgentNoticeModel, type AgentNoticeView }                                 from '../../../shell/AgentNoticeModel.ts';
+import { ProgramFileChooserContext }                                              from '../../../shell/ProgramFileChooser.ts';
 import { EXAMPLE_NOT_LAUNCHED }                                                   from '../../../testing/AgentFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
 import { onBoard }                                                                from '../../../testing/OnBoard.ts';
@@ -52,6 +55,33 @@ describe('the design step\'s tools', () => {
       edits:   [{ target: 'tools', value: [{ name: 'git', path: '/usr/bin/git' }, { name: 'gh', path: '/opt/homebrew/bin/gh' }] }],
       isACopy: false,
     }]);
+  });
+});
+
+describe('an added tool forge did not find', () => {
+  test('offers choosing its program, and sends the list again with the tool at the program chosen', async () => {
+    const chosenPath = '/Users/example/tools/pnpm';
+    const controls = fakeControls();
+    const facts = pipelineBoardStateOf('A2');
+    controls.render(
+      <ProgramFileChooserContext value={() => Promise.resolve(chosenPath)}>
+        {onBoard(<PipelineView facts={facts} route={{ tab: 'pipeline', item: 'setup/design' }} {...pipelineViewServicesOf()} />)}
+      </ProgramFileChooserContext>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Agent tools: 4 tools · 1 missing' }));
+    const dialog = screen.getByRole('dialog', { name: 'The tools Example Agency\'s agents use' });
+    fireEvent.change(within(dialog).getByLabelText('Tool name'), { target: { value: 'pnpm' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
+    const refusalText = 'No program pnpm is in /usr/bin: name the tool with its path. Nothing was written.';
+    controls.answerNextWith({ verdict: 'refused', refusal: refusalText, forgeRefusal: { code: 'tool-not-found', fields: { name: 'pnpm', searchedFolders: ['/usr/bin'] } } });
+    await clickSettled(within(dialog).getByRole('button', { name: 'Keep these tools' }));
+    expect(within(dialog).getByText(refusalText)).toBeDefined();
+    await clickSettled(within(dialog).getByRole('button', { name: 'Choose the pnpm program…' }));
+    const foundTools = [{ name: 'git', path: '/usr/bin/git' }, { name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'gh', path: '/opt/homebrew/bin/gh' }];
+    expect(controls.sent.map((command) => (command.kind === 'pipeline-draft-edit' ? command.edits : null))).toEqual([
+      [{ target: 'tools', value: [...foundTools, { name: 'pnpm', path: null }] }],
+      [{ target: 'tools', value: [...foundTools, { name: 'pnpm', path: chosenPath }] }],
+    ]);
   });
 });
 
@@ -112,6 +142,13 @@ describe('the board\'s agent notice', () => {
     expect(notice.textContent).toContain(`Job J4 is not launched: ${EXAMPLE_NOT_LAUNCHED.text}.`);
     expect(within(notice).getByRole('link', { name: 'Choose the Example Agent program…' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/agent');
     expect(within(notice).getByRole('button', { name: 'Look again' })).toBeDefined();
+  });
+
+  test('leads a job not launched on a forge with no pipeline and no setup to the setup landing, where its agent is chosen', () => {
+    const notLaunchedJobs = pipelineBoardStateOf('A1-not-launched').jobs.filter((job) => job.notLaunched !== null);
+    const notice = noticeOf(AgentNoticeModel.agentNoticeOf({ ...pipelineBoardStateOf('A0'), jobs: notLaunchedJobs }));
+    expect(notice.textContent).toContain(`Job J4 is not launched: ${EXAMPLE_NOT_LAUNCHED.text}.`);
+    expect(within(notice).getByRole('link', { name: 'Set up the pipeline' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline');
   });
 
   test('says a forge with a pipeline and no agent launches nothing, and leads to its settings', () => {

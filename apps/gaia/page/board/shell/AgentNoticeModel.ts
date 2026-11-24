@@ -1,6 +1,7 @@
 /**
  * The board's notice about its agent, pure: a job whose launch forge refused, worded with forge's own reason, or a forge with a pipeline
- * and no agent, which launches nothing; each with where the agent is chosen. `null` while every job launched and the forge has an agent.
+ * and no agent, which launches nothing; each with where the agent is chosen, the setup landing on a forge with no pipeline and no setup.
+ * `null` while every job launched and the forge has an agent.
  */
 import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
 import { PipelineViewModel }  from '../views/pipeline/PipelineViewModel.ts';
@@ -26,7 +27,7 @@ function notLaunchedTextOf(jobIds: readonly string[], reason: string): string {
 function agentNoticeOf(facts: AgentNoticeFacts): AgentNoticeView | null {
   const { agent, pipeline } = facts;
   const setupMode = pipeline.setup?.record.mode ?? null;
-  const actionRoute = PipelineViewModel.agentChoiceRouteOf(setupMode);
+  const actionRoute = PipelineViewModel.agentChoiceRouteOf(facts);
   const notLaunchedJobs = facts.jobs.filter((job) => job.notLaunched !== null);
   const [firstNotLaunched] = notLaunchedJobs;
   if (firstNotLaunched?.notLaunched !== undefined && firstNotLaunched.notLaunched !== null) {
@@ -34,7 +35,7 @@ function agentNoticeOf(facts: AgentNoticeFacts): AgentNoticeView | null {
     return {
       tone:            'error',
       text:            notLaunchedTextOf(notLaunchedJobs.map((job) => job.id), firstNotLaunched.notLaunched.text),
-      actionLabel:     `Choose the ${displayName} program…`,
+      actionLabel:     actionRoute === PipelineViewModel.setupLandingRoute ? 'Set up the pipeline' : `Choose the ${displayName} program…`,
       actionRoute,
       offersLookAgain: true,
     };

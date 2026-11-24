@@ -475,7 +475,7 @@ function usageOut(usage: BoardUsage): BoardUsageDocument {
  * Every Markdown the forge served leaves as the HTML field the page reads, rendered here on the server by `renderMarkdown`; the count of
  * other forges that follow this machine's agent program is Gaia's own, none where no other forge was read.
  */
-function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering, otherForgesFollowingMachine = 0): BoardDocument {
+function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering, otherForgesFollowingMachine: number | null = 0): BoardDocument {
   return {
     ...BOARD_VERSION,
     trackerId:   board.trackerId,

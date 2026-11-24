@@ -32,7 +32,7 @@ function AgentCard({ facts }: ForgeSettingsProps) {
   const vendor = AgentChoiceModel.chosenVendorOf(agent, agent.choice);
   const displayName = AgentChoiceModel.displayNameOf(agent, vendor);
   const choiceKind = AgentChoiceModel.programChoiceKindOf(agent.choice);
-  const followers = agent.otherForgesFollowingMachine;
+  const followers = AgentChoiceModel.followersTextOf(agent.otherForgesFollowingMachine);
   return (
     <Card gap="twelve">
       <Row centerY gap="eight" wrap>
@@ -48,8 +48,8 @@ function AgentCard({ facts }: ForgeSettingsProps) {
         <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} />
         <Text muted>Forge runs the program again and launches every job that stood not launched.</Text>
       </Row>
-      {choiceKind === 'machine' && followers > 0
-        ? <Text subtle>{`Changing this machine's ${displayName} here asks first: ${followers === 1 ? '1 other forge follows' : `${followers} other forges follow`} it.`}</Text>
+      {choiceKind === 'machine' && agent.otherForgesFollowingMachine !== 0
+        ? <Text subtle>{`Changing this machine's ${displayName} here asks first: ${followers ?? 'other forges may follow'} it.`}</Text>
         : null}
     </Card>
   );

@@ -38,7 +38,7 @@ function toolRequestOut(request: BoardToolRequest): BoardToolRequestDocument {
   return { name: request.name, path: request.path };
 }
 
-function agentOut(agent: BoardAgent, otherForgesFollowingMachine: number): BoardAgentDocument {
+function agentOut(agent: BoardAgent, otherForgesFollowingMachine: number | null): BoardAgentDocument {
   return {
     vendors:            agent.vendors.map((vendor) => ({ vendor: vendor.vendor, displayName: vendor.displayName, supported: vendor.supported })),
     choice:             agent.choice === null ? null : pipelineAgentOut(agent.choice),

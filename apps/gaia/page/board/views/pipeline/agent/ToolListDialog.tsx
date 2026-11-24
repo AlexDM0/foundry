@@ -1,21 +1,24 @@
 /**
  * The tools the forge's agents may run, as a dialog over the design step or the forge's settings: each tool with where forge found it or
  * that this machine lacks it, what runs it, a box that keeps it on the list and a missing mark; an Add field names another tool for forge
- * to find. Keeping the list sends it whole, as a draft edit while a setup designs the pipeline, else as the stored pipeline's tools.
+ * to find. Keeping the list sends it whole, as a draft edit while a setup designs the pipeline, else as the stored pipeline's tools. An added
+ * tool forge does not find offers choosing its program in the system's file chooser, and the list is sent again with the tool at that path.
  */
-import { useId, useState }             from 'react';
+import { useContext, useId, useState } from 'react';
 import type { BoardAgentToolDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import {
   Button,
   ChoiceInput,
   DataTable,
   Dialog,
+  Row,
   Tag,
   Text,
   TextField,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton } from '../../../shell/CommandButton.tsx';
+import { useControlCommandSequence } from '../../../shell/ControlCommandSender.ts';
+import { ProgramFileChooserContext } from '../../../shell/ProgramFileChooser.ts';
 import {
   SANDBOX_NOTE,
   ToolListModel,
@@ -47,6 +50,22 @@ export function ToolListDialog({
   const groupName = useId();
   const [edit, setEdit] = useState<ToolListEdit>(() => ToolListModel.editOf(tools));
   const [typedName, setTypedName] = useState('');
+  const chooseProgramFile = useContext(ProgramFileChooserContext);
+  const sender = useControlCommandSequence({ onApplied: onClose });
+  const keepCommand = ToolListModel.keepCommandOf(target, tools, edit);
+  const unfoundToolName = ToolListModel.unfoundAddedToolOf(edit, sender.forgeRefusal);
+  const keep = async (keptEdit: ToolListEdit): Promise<void> => {
+    const command = ToolListModel.keepCommandOf(target, tools, keptEdit);
+    if (command !== null) await sender.sendCommands([command]);
+  };
+  const chooseUnfoundProgram = async (name: string): Promise<void> => {
+    if (chooseProgramFile === null) return;
+    const path = await chooseProgramFile();
+    if (path === null) return;
+    const chosenEdit = ToolListModel.withChosenPath(edit, name, path);
+    setEdit(chosenEdit);
+    await keep(chosenEdit);
+  };
   const missingNote = ToolListModel.missingNoteOf(tools);
   const toolRows = ToolListModel.rowsOf(tools).map((row) => ({
     key:   row.name,
@@ -67,12 +86,12 @@ export function ToolListDialog({
       mark:    row.isMissing ? <Tag text="missing" tone="warn" /> : null,
     },
   }));
-  const addedRows = edit.addedNames.map((name) => ({
-    key:   `added-${name}`,
+  const addedRows = edit.addedTools.map((added) => ({
+    key:   `added-${added.name}`,
     cells: {
       approved: null,
-      tool:     <Text mono>{name}</Text>,
-      foundAt:  <Text subtle>Forge finds it when the list is kept</Text>,
+      tool:     <Text mono>{added.name}</Text>,
+      foundAt:  added.path === null ? <Text subtle>Forge finds it when the list is kept</Text> : <Text mono muted>{added.path}</Text>,
       usedBy:   <Text muted>added by hand</Text>,
       mark:     <Tag text="new" tone="neutral" />,
     },
@@ -92,7 +111,10 @@ export function ToolListDialog({
       foot={(
         <>
           <Button label="Cancel" onPress={onClose} />
-          <CommandButton label="Keep these tools" command={ToolListModel.keepCommandOf(target, tools, edit)} primary onApplied={onClose} />
+          <span className="board-control">
+            <Button label="Keep these tools" emphasis="primary" disabled={!sender.canSend || keepCommand === null} onPress={() => void keep(edit)} />
+            {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
+          </span>
         </>
       )}
     >
@@ -108,6 +130,19 @@ export function ToolListDialog({
           <TextField label="Tool name" labelHidden mono value={typedName} placeholder="pnpm" onChange={setTypedName} />
           <Button label="Add" compact disabled={typedName.trim() === ''} onPress={add} />
         </form>
+        {unfoundToolName === null || chooseProgramFile === null
+          ? null
+          : (
+            <Row centerY gap="eight" wrap>
+              <Text>{`Forge did not find ${unfoundToolName}. Choose its program, and the list names ${unfoundToolName} at that path.`}</Text>
+              <Button
+                label="Choose the program…"
+                accessibleName={`Choose the ${unfoundToolName} program…`}
+                disabled={!sender.canSend}
+                onPress={() => void chooseUnfoundProgram(unfoundToolName)}
+              />
+            </Row>
+          )}
         {missingNote === null ? null : <Text muted>{missingNote}</Text>}
         <Text subtle>{SANDBOX_NOTE}</Text>
       </View>

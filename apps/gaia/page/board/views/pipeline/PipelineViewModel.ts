@@ -42,6 +42,9 @@ const FORGE_SETTINGS_ITEM = 'settings';
 
 const FORGE_SETTINGS_ROUTE: BoardRoute = Object.freeze({ tab: 'pipeline', item: FORGE_SETTINGS_ITEM });
 
+/** The bare `#pipeline` of a forge with no record and no readable pipeline: the setup landing. */
+const SETUP_LANDING_ROUTE: BoardRoute = Object.freeze({ tab: 'pipeline', item: null });
+
 /** The facts the Pipeline view reads; its screens read the pipeline's, the jobs, the tickets in flight, the board's limit and its stamp slices. */
 export type PipelineViewFacts = Pick<BoardDocument, 'project' | 'jobs' | 'pipeline' | 'page' | 'concurrency' | 'limits' | 'agent'>;
 
@@ -149,9 +152,15 @@ function setupStepRouteOf(step: BoardSetupStep, level: PipelineLevel | null = nu
   return level === null ? { tab: 'pipeline', item } : PipelineLevelModel.routeAtLevel(level, item);
 }
 
-/** Where the forge's agent is chosen: the setup's agent step while a first setup is open, else the forge's settings. */
-function agentChoiceRouteOf(mode: BoardSetupMode | null): BoardRoute {
-  return mode === 'setup' ? setupStepRouteOf('agent') : FORGE_SETTINGS_ROUTE;
+/**
+ * Where the forge's agent is chosen: the setup's agent step while a first setup is open, the setup landing while the forge has neither a
+ * record nor a readable pipeline, since forge keeps no agent outside both, else the forge's settings.
+ */
+function agentChoiceRouteOf(facts: Pick<BoardDocument, 'pipeline'>): BoardRoute {
+  const record = facts.pipeline.setup?.record ?? null;
+  if (record?.mode === 'setup') return setupStepRouteOf('agent');
+  if (record === null && facts.pipeline.applied.readingVerdict !== 'readable') return SETUP_LANDING_ROUTE;
+  return FORGE_SETTINGS_ROUTE;
 }
 
 /** Where the constitution is edited: its setup step in a first setup, else `pipeline/edit/constitution` (an update, advise or a live board). */
@@ -241,6 +250,7 @@ export const PipelineViewModel = Object.freeze({
   constitutionRouteOf,
   agentChoiceRouteOf,
   forgeSettingsRoute: FORGE_SETTINGS_ROUTE,
+  setupLandingRoute:  SETUP_LANDING_ROUTE,
   flowPageWordsOf,
   screenTitleOf,
   unreadableTextOf,

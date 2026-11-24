@@ -91,6 +91,13 @@ describe('a chosen program', () => {
     expect(AgentChoiceModel.machineChangeQuestionOf(exampleBoardAgent({ otherForgesFollowingMachine: 1 }), 'Example Agent'))
       .toBe('1 other forge follows this machine\'s Example Agent. Change it for every one of them?');
   });
+
+  test('changing the machine\'s program asks first while Gaia has not read every other forge, saying it does not know how many follow', () => {
+    const uncounted = exampleBoardAgent({ otherForgesFollowingMachine: null });
+    expect(AgentChoiceModel.machineChangeAsksFirst(uncounted, true)).toBe(true);
+    expect(AgentChoiceModel.machineChangeQuestionOf(uncounted, 'Example Agent'))
+      .toBe('Other forges may follow this machine\'s Example Agent: Gaia could not read every forge now. Change it for every one that follows it?');
+  });
 });
 
 describe('the program\'s run and Continue', () => {

@@ -8,6 +8,7 @@ import { useContext, useState } from 'react';
 
 import type { BoardCommandDocument }                           from '../../@types/board/BoardCommandDocument.ts';
 import type { BoardCommandResult, CommandOutcome }             from '../api/BoardCommandClient.ts';
+import type { ForgeRefusalFacts }                              from '../api/RefusalOf.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
 export const UNREACHABLE_WORDING = 'Hephaestus could not be reached. Try again.';
@@ -45,6 +46,8 @@ export interface ControlCommandSequenceSender {
   /** Whether the board lets a control act now and no send is on its way. */
   readonly canSend:         boolean;
   readonly refusal:         string | null;
+  /** The code and facts of the last send's refusal when the forge refused it, `null` otherwise. */
+  readonly forgeRefusal:    ForgeRefusalFacts | null;
   /** The commands of the last send the forge applied, in order: every one, or those before the one it did not apply. */
   readonly appliedCommands: readonly BoardCommandDocument[];
   /** Sends the commands in order, stopping at the first one the forge does not apply; `true` once every one was applied. */
@@ -58,6 +61,7 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
     availability, commandClient, onInstallHeld, onSessionLost, onRefused
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [forgeRefusal, setForgeRefusal] = useState<ForgeRefusalFacts | null>(null);
   const [sending, setSending] = useState(false);
   const [appliedCommands, setAppliedCommands] = useState<readonly BoardCommandDocument[]>([]);
   const canSend = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending;
@@ -77,6 +81,7 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
     if (!canSend || commands.length === 0) return false;
     setSending(true);
     setRefusal(null);
+    setForgeRefusal(null);
     setAppliedCommands([]);
     const { outcome, applied } = await outcomeOfEvery(commands);
     setSending(false);
@@ -84,6 +89,7 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
     if (outcome.verdict === 'refused') {
       setRefusal(outcome.refusal);
+      setForgeRefusal(outcome.forgeRefusal ?? null);
       onRefused?.(outcome.refusal);
     }
     if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
@@ -94,7 +100,7 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
   };
 
   return {
-    canSend, refusal, appliedCommands, sendCommands
+    canSend, refusal, forgeRefusal, appliedCommands, sendCommands
   };
 }
 

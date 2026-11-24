@@ -1,7 +1,8 @@
 /**
  * How many other forges of this machine follow its program of an agent vendor, counted across the forges Gaia reads: each forge's agent
  * choice as its last board read named it. A count never waits on another forge: a forge not read yet is read in the background, its
- * choice counted from the next count on, and a forge whose read failed is left alone for a while before it is read again.
+ * choice counted from the next count on, and a forge whose read failed, such as a stopped one, is left alone for a while before it is read
+ * again. While any other forge's choice is not read, the count is unknown rather than a 0 that would let a change skip its question.
  */
 import type { BoardAgent } from '../../shared/@types/board/BoardAgent.ts';
 
@@ -14,8 +15,11 @@ export type MachineFollowing = string | null;
 export interface MachineProgramFollowers {
   /** Notes what the forge's board just read names. */
   readonly noteBoardRead:    (trackerId: string, agent: BoardAgent) => void;
-  /** The other forges among `readableTrackerIds` that follow this machine's program of `vendor`, as noted now; starts reading those not noted. */
-  readonly otherFollowersOf: (trackerId: string, vendor: string, readableTrackerIds: readonly string[]) => number;
+  /**
+   * The other forges among `readableTrackerIds` that follow this machine's program of `vendor`, as noted now, or `null` while one of them is
+   * not noted; starts reading those.
+   */
+  readonly otherFollowersOf: (trackerId: string, vendor: string, readableTrackerIds: readonly string[]) => number | null;
   /** Settles once every read on its way has, for a caller that wants the count after them. */
   readonly readsSettled:     () => Promise<void>;
 }
@@ -61,9 +65,11 @@ export function createMachineProgramFollowers({ readAgentOf, monotonicNow }: Mac
     readsInFlight.set(trackerId, read);
   }
 
-  function otherFollowersOf(trackerId: string, vendor: string, readableTrackerIds: readonly string[]): number {
+  function otherFollowersOf(trackerId: string, vendor: string, readableTrackerIds: readonly string[]): number | null {
     const otherTrackerIds = readableTrackerIds.filter((other) => other !== trackerId);
-    for (const other of otherTrackerIds.filter((candidate) => !followingByTrackerId.has(candidate))) readInBackground(other);
+    const unnotedTrackerIds = otherTrackerIds.filter((candidate) => !followingByTrackerId.has(candidate));
+    for (const other of unnotedTrackerIds) readInBackground(other);
+    if (unnotedTrackerIds.length > 0) return null;
     return otherTrackerIds.filter((other) => followingByTrackerId.get(other) === vendor).length;
   }
 

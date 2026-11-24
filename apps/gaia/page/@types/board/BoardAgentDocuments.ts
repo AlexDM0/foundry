@@ -64,8 +64,8 @@ export interface BoardAgentDocument {
   /** `false` while the tools follow the pipeline's programs. */
   readonly toolsListed:                 boolean;
   readonly tools:                       readonly BoardAgentToolDocument[];
-  /** The other forges of this machine whose agent follows this machine's program of the vendor. */
-  readonly otherForgesFollowingMachine: number;
+  /** The other forges of this machine whose agent follows this machine's program of the vendor; `null` while one of them is not read. */
+  readonly otherForgesFollowingMachine: number | null;
 }
 
 export interface BoardJobNotLaunchedDocument {
