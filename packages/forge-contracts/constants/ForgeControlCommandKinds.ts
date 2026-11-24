@@ -1,11 +1,12 @@
 /**
  * Every command kind a client may send to `POST /api/v3/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
- * `ForgeBoardCommand`, each in its contract's order. A kind the forge takes only from its own command line is in neither.
+ * `ForgeBoardCommand`, then the ticket document kinds of `ForgeTicketDocumentCommand` from forge 4.1, each in its contract's order. A kind
+ * the forge takes only from its own command line is in none of them.
  */
-import type { ForgeBoardCommand }   from '../@types/BoardCommand.ts';
-import type { ForgeControlCommand } from '../@types/ForgeControlCommand.ts';
+import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from '../@types/BoardCommand.ts';
+import type { ForgeControlCommand }                           from '../@types/ForgeControlCommand.ts';
 
-export type ForgeClientCommandKind = (ForgeControlCommand | ForgeBoardCommand)['kind'];
+export type ForgeClientCommandKind = (ForgeControlCommand | ForgeBoardCommand | ForgeTicketDocumentCommand)['kind'];
 
 export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Object.freeze([
   'hephaestus-pause',
@@ -52,4 +53,13 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'ticket-ready',
   'ticket-unhold',
   'tracker-clear',
+  'ticket-document-save',
+  'ticket-document-comment',
+  'ticket-document-comment-withdraw',
+  'ticket-document-proposal-apply',
+  'ticket-document-proposal-discard',
+  'ticket-document-mode-set',
+  'ticket-document-approve',
+  'ticket-document-effect-read',
+  'ticket-document-turn-stop',
 ]);

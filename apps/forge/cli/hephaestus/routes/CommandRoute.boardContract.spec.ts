@@ -1,9 +1,10 @@
 /**
  * The board's command kinds of the contract a view sends to `POST /api/v3/commands`, under `controlVersion` 3. What
- * matters: `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` kinds, both ways, which the typecheck and a
- * runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route answers 200
- * `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit inside an
- * entity lands, and an edit written as a field string is malformed.
+ * matters: `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` and `ForgeTicketDocumentCommand` kinds, both
+ * ways, which the typecheck and a runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route
+ * answers 200 `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit
+ * inside an entity lands, and an edit written as a field string is malformed; a ticket document command whose anchor holds a key it does
+ * not name answers 400 and writes nothing.
  */
 import { readFileSync } from 'node:fs';
 
@@ -13,7 +14,7 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { ForgeBoardCommand } from 'forge-contracts/BoardCommand';
+import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from 'forge-contracts/BoardCommand';
 
 import type { PipelineSetup }                                                  from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { localStoreLayoutOf }                                                  from '../../../src/services/tracker/LocalStoreLayout.ts';
@@ -32,7 +33,7 @@ import { COMMAND_ROUTE_KINDS, answerControlCommand, type CommandRouteRequest } f
 const FROZEN_NOW = new Date('2026-11-19T10:00:00+01:00');
 
 
-type BoardCommandKind = ForgeBoardCommand['kind'];
+type BoardCommandKind = (ForgeBoardCommand | ForgeTicketDocumentCommand)['kind'];
 
 type ListedBoardKind = (typeof BOARD_COMMAND_CONTRACT_KINDS)[number];
 
@@ -41,41 +42,50 @@ type KindsAreTheSame = [ListedBoardKind] extends [BoardCommandKind] ? ([BoardCom
 const LIST_COVERS_THE_CONTRACT_BOTH_WAYS: KindsAreTheSame = true;
 
 const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
-  'chart-range-set':            true,
-  'decision-answer':            true,
-  'gate-profile-start':         true,
-  'gate-profile-stop':          true,
-  'intake-close':               true,
-  'intake-start':               true,
-  'job-fresh':                  true,
-  'job-message':                true,
-  'job-stop':                   true,
-  'merge-accept':               true,
-  'merge-update':               true,
-  'pipeline-agent-advise':      true,
-  'pipeline-apply':             true,
-  'pipeline-apply-cancel':      true,
-  'pipeline-assistant-set':     true,
-  'pipeline-check':             true,
-  'pipeline-constitution-edit': true,
-  'pipeline-draft-discard':     true,
-  'pipeline-draft-edit':        true,
-  'pipeline-draft-undo':        true,
-  'pipeline-setup-answer':      true,
-  'pipeline-setup-billing':     true,
-  'pipeline-setup-resume':      true,
-  'pipeline-setup-start':       true,
-  'pipeline-setup-start-over':  true,
-  'pipeline-setup-step':        true,
-  'pipeline-update-start':      true,
-  'ticket-deliver-by-hand':     true,
-  'ticket-hold':                true,
-  'ticket-network':             true,
-  'ticket-park':                true,
-  'ticket-priority':            true,
-  'ticket-ready':               true,
-  'ticket-unhold':              true,
-  'tracker-clear':              true,
+  'chart-range-set':                  true,
+  'decision-answer':                  true,
+  'gate-profile-start':               true,
+  'gate-profile-stop':                true,
+  'intake-close':                     true,
+  'intake-start':                     true,
+  'job-fresh':                        true,
+  'job-message':                      true,
+  'job-stop':                         true,
+  'merge-accept':                     true,
+  'merge-update':                     true,
+  'pipeline-agent-advise':            true,
+  'pipeline-apply':                   true,
+  'pipeline-apply-cancel':            true,
+  'pipeline-assistant-set':           true,
+  'pipeline-check':                   true,
+  'pipeline-constitution-edit':       true,
+  'pipeline-draft-discard':           true,
+  'pipeline-draft-edit':              true,
+  'pipeline-draft-undo':              true,
+  'pipeline-setup-answer':            true,
+  'pipeline-setup-billing':           true,
+  'pipeline-setup-resume':            true,
+  'pipeline-setup-start':             true,
+  'pipeline-setup-start-over':        true,
+  'pipeline-setup-step':              true,
+  'pipeline-update-start':            true,
+  'ticket-deliver-by-hand':           true,
+  'ticket-hold':                      true,
+  'ticket-network':                   true,
+  'ticket-park':                      true,
+  'ticket-priority':                  true,
+  'ticket-ready':                     true,
+  'ticket-unhold':                    true,
+  'tracker-clear':                    true,
+  'ticket-document-save':             true,
+  'ticket-document-comment':          true,
+  'ticket-document-comment-withdraw': true,
+  'ticket-document-proposal-apply':   true,
+  'ticket-document-proposal-discard': true,
+  'ticket-document-mode-set':         true,
+  'ticket-document-approve':          true,
+  'ticket-document-effect-read':      true,
+  'ticket-document-turn-stop':        true,
 };
 
 const MALFORMED_ANSWER = {
@@ -169,5 +179,17 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
     };
     expect(await answerOf(fieldStringEdit)).toEqual(MALFORMED_ANSWER);
     expect(storedSetup().draft?.entities?.['web']?.concurrency).toBe(2);
+  });
+
+  test('a ticket document comment whose anchor holds a key it does not name answers 400 malformed-body and writes nothing', async () => {
+    const progressBefore = progressText();
+    const anchor = {
+      view: 'preview', versionNumber: 1, lines: { from: 2, to: 2 }, sectionPath: ['Outcome'], surroundingLines: { from: 1, to: 3 }, rendered: '<p>'
+    };
+
+    expect(await answerOf({
+      kind: 'ticket-document-comment', ticketReference: '1', document: 'spec', anchor, text: 'Name the page.'
+    })).toEqual(MALFORMED_ANSWER);
+    expect(progressText()).toBe(progressBefore);
   });
 });

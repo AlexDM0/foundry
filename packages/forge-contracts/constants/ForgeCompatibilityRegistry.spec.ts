@@ -2,9 +2,9 @@
  * Forge's compatibility registry against forge's versions. What matters: the guard holds today, with nothing kept below the minimum and no
  * entry contradicting itself; the registry holds endpoints only, every one shipped and still needed, since forge 4.0 keeps nothing for a
  * client of forge 3; a client built for 4.0 calls each endpoint at the listed version, the summary, the monitor, its stream, the board and
- * its event stream at the version 4.0 introduced; a client built for forge 3 is served none of those five; nothing is removable at 4.0,
- * nor at a raise of the minimum to the next minor; and the guard names an entry kept below the minimum, planted here, until it is
- * removed.
+ * its event stream at the version 4.0 introduced; a client built for forge 3 is served none of those five; a ticket's documents are served
+ * from 4.1, to no client built for 4.0; nothing is removable at 4.0, nor at a raise of the minimum to the next minor; and the guard names
+ * an entry kept below the minimum, planted here, until it is removed.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,7 +36,14 @@ const ENDPOINT_VERSIONS_OF_RESTARTING_FORGE: readonly (readonly [string, number]
 
 const ENDPOINTS_RESTARTING_FORGE_CHANGED = ['summary', 'monitor', 'monitor/events', 'board', 'events'];
 
-const CURRENT_ENDPOINT_LABELS = ENDPOINT_VERSIONS_OF_RESTARTING_FORGE.map(([endpoint, version]) => `endpoint ${endpoint} at v${version}`);
+const TICKET_DOCUMENTS_ENDPOINT = 'tickets/{ticketId}/documents';
+
+const ENDPOINT_VERSIONS_OF_TICKET_DOCUMENTS_FORGE: readonly (readonly [string, number])[] = [
+  ...ENDPOINT_VERSIONS_OF_RESTARTING_FORGE,
+  [TICKET_DOCUMENTS_ENDPOINT, 1],
+];
+
+const CURRENT_ENDPOINT_LABELS = ENDPOINT_VERSIONS_OF_TICKET_DOCUMENTS_FORGE.map(([endpoint, version]) => `endpoint ${endpoint} at v${version}`);
 
 function endpointVersionsAt(endpoints: readonly string[], clientVersion: SystemVersion): (number | null)[] {
   return endpoints.map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, clientVersion));
@@ -57,10 +64,18 @@ describe('forge\'s compatibility registry', () => {
     expect(FORGE_COMPATIBILITY_REGISTRY.filter((entry) => !isKeptEndpoint(entry))).toEqual([]);
   });
 
-  test('a client built for 4.0 calls each endpoint at the listed version', () => {
+  test('a client built for 4.0 calls each endpoint at the listed version, and one built for 4.1 also a ticket\'s documents', () => {
     const endpoints = ENDPOINT_VERSIONS_OF_RESTARTING_FORGE.map(([endpoint]) => endpoint);
     expect(endpointVersionsAt(endpoints, RESTARTING_FORGE)).toEqual(ENDPOINT_VERSIONS_OF_RESTARTING_FORGE.map(([, version]) => version));
-    expect(endpointVersionsAt(endpoints, FORGE_SYSTEM_VERSIONS.current)).toEqual(ENDPOINT_VERSIONS_OF_RESTARTING_FORGE.map(([, version]) => version));
+    const currentEndpoints = ENDPOINT_VERSIONS_OF_TICKET_DOCUMENTS_FORGE.map(([endpoint]) => endpoint);
+    expect(endpointVersionsAt(currentEndpoints, FORGE_SYSTEM_VERSIONS.current))
+      .toEqual(ENDPOINT_VERSIONS_OF_TICKET_DOCUMENTS_FORGE.map(([, version]) => version));
+  });
+
+  test('a ticket\'s documents are dated 4.1, so a client built for 4.0 is not served them', () => {
+    const entry = FORGE_COMPATIBILITY_REGISTRY.find((candidate) => candidate.kind === 'endpoint' && candidate.endpoint === TICKET_DOCUMENTS_ENDPOINT);
+    expect(entry?.introducedIn).toEqual(TICKET_DOCUMENTS_FORGE);
+    expect(endpointVersionsAt([TICKET_DOCUMENTS_ENDPOINT], RESTARTING_FORGE)).toEqual([null]);
   });
 
   test('the summary, the monitor, its stream, the board and its event stream are dated 4.0, so a client built for forge 3 is served none of them', () => {
