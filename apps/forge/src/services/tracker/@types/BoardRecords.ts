@@ -7,10 +7,11 @@ import type { GateProfilesReading }                              from '../../../
 import type { LogRecord }                                        from '../../../lib/tracker-model/@types/LogRecord.ts';
 import type { ConstitutionSourcesReading, PipelineSetupReading } from '../../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Ticket, TicketPriority, TicketType }               from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord }                       from '../../../lib/tracker-model/@types/TicketDocument.ts';
 import type { TrackerProgress }                                  from '../../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { UnreadableTracker }                                from '../../../shared/@types/UnreadableTracker.ts';
 
-export type RecordKind = 'ticket' | 'epic' | 'draft';
+export type RecordKind = 'ticket' | 'epic' | 'draft' | 'ticket-documents';
 
 /** A record the store holds and cannot read; it is no part of the Board. */
 export interface UnreadableRecord {
@@ -56,6 +57,8 @@ export interface BoardContents {
   listing:                    TicketListing;
   epicListing:                { epics: Epic[]; unreadable: UnreadableRecord[] };
   draftListing:               { drafts: Draft[]; unreadable: UnreadableRecord[] };
+  /** Each ticket's documents record with the text of every version it names; one that cannot be read is an unreadable entry, keyed by ticket. */
+  ticketDocumentListing:      { records: LoadedTicketDocumentRecord[]; unreadable: UnreadableRecord[] };
 }
 
 export type UnfinishedWriteReading =

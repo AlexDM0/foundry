@@ -25,16 +25,17 @@ interface BoundaryReport {
 
 const RECORD_FILE_NAMES = 'progress\\.json|pipeline\\.json|pipeline-setup\\.json|gate-profiles\\.json|constitution-sources\\.json|log\\.jsonl|hold-journal\\.json'
   + '|filing-cabinet';
-const RECORD_PATH_HELPER_NAMES = 'epicFilePathOf|draftFilePathOf|everyTicketFilePathIn|everyEpicFilePathIn';
+const RECORD_PATH_HELPER_NAMES = 'epicFilePathOf|draftFilePathOf|everyTicketFilePathIn|everyEpicFilePathIn|ticketDocumentRecordPathOf|ticketDocumentVersionPathOf'
+  + '|everyTicketDocumentFilePathIn';
 const STORE_MODULE_NAMES = 'TrackerPipeline|TrackerReader|TicketStore|EpicStore|DraftStore|StoreFolderListing|TrackerLock|HoldJournal|TrackerCreation'
   + '|LocalRecordAllocation|LocalStoreLayout|LocalStoreFiles|LocalFilesBoardStore|ProgressFileIngestion|ProgressFileWriter|LogFileIngestion'
   + '|LogFileWriter|TicketFileIngestion|TicketFileWriter|EpicFileIngestion|EpicFileWriter|DraftFileIngestion|DraftFileWriter|HoldJournalIngestion'
-  + '|HoldJournalWriter';
+  + '|HoldJournalWriter|TicketDocumentStore|TicketDocumentsFileIngestion|TicketDocumentsFileWriter|TicketDocumentContentFile';
 
 const STORE_FORM_PATTERNS: Readonly<Record<StoreForm, readonly RegExp[]>> = {
   // Prose in a template literal is longer than the name, so help text and wording do not match.
   'record-file-name':   [new RegExp(`(['"\`])(?:${RECORD_FILE_NAMES})\\1`)],
-  'record-folder-join': [/\bjoin\([^)]*(['"`])(?:tickets|epics|filing-cabinet)\1/],
+  'record-folder-join': [/\bjoin\([^)]*(['"`])(?:tickets|epics|filing-cabinet|ticket-documents)\1/],
   'record-path-name':   [
     new RegExp(`\\b(?:${RECORD_PATH_HELPER_NAMES})\\b`),
     /\b(?:localStoreLayoutOf|LocalStoreLayout|boardIsStoredAt)\b/,
@@ -57,6 +58,7 @@ const STORE_ADAPTER_FILES: readonly string[] = [
   'src/services/tracker/LocalRecordAllocation.ts',
   'src/services/tracker/LocalStoreLayout.ts',
   'src/services/tracker/StoreFolderListing.ts',
+  'src/services/tracker/TicketDocumentStore.ts',
   'src/services/tracker/TicketStore.ts',
   'src/services/tracker/TrackerCreation.ts',
   'src/services/tracker/TrackerLock.ts',
@@ -207,6 +209,8 @@ describe('the guard names each form, planted in memory', () => {
     ['the hold journal\'s name', 'const name = \'hold-journal.json\';', ['record-file-name']],
     ['a record folder joined', 'const folder = join(trackerDirectory, \'tickets\');', ['record-folder-join']],
     ['the epics folder joined', 'const folder = join(root, ".forge", "epics");', ['record-folder-join']],
+    ['the ticket documents folder joined', 'const folder = join(dataFolder, \'ticket-documents\', ticketId);', ['record-folder-join']],
+    ['a ticket documents path helper', 'const path = ticketDocumentRecordPathOf(workspace, ticketId);', ['record-path-name']],
     ['a record path helper', 'const path = epicFilePathOf(workspace, epicKey);', ['record-path-name']],
     ['the local store\'s layout', 'const layout = localStoreLayoutOf(workspace);', ['record-path-name']],
     ['the layout\'s type', 'let layout: LocalStoreLayout;', ['record-path-name']],

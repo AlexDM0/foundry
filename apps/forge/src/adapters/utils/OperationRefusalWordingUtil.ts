@@ -704,6 +704,12 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
   }
 }
 
+const UNREADABLE_RECORD_TEXT: Readonly<Record<Extract<OperationRefusalDetail, { kind: 'unreadable-file-in-the-way' }>['record'], string>> = {
+  'epic':             'an epic',
+  'draft':            'a draft',
+  'ticket-documents': 'a ticket\'s spec and plan',
+};
+
 /** `version 4`, or `no version` for a document that has none. */
 function documentVersionText(versionNumber: number | null): string {
   return versionNumber === null ? 'no version' : `version ${versionNumber}`;
@@ -864,7 +870,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'malformed-ticket-file':
       return `Ticket file ignored: ${detail.filePath}${detail.line > 0 ? ` (line ${detail.line})` : ''}: ${detail.reason}`;
     case 'unreadable-file-in-the-way':
-      return `${detail.filePath} already exists but cannot be read as ${detail.record === 'epic' ? 'an epic' : 'a draft'}, so it is not overwritten. `
+      return `${detail.filePath} already exists but cannot be read as ${UNREADABLE_RECORD_TEXT[detail.record]}, so it is not overwritten. `
         + 'Nothing was written; repair or delete it first.';
     case 'malformed-pipeline':
       return `${detail.filePath} cannot be read as a pipeline (${detail.reason}), so it is not overwritten. Nothing was written; repair `

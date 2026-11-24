@@ -10,6 +10,7 @@ export const LOCAL_STORE_FILES = {
   EPICS_DIRECTORY_NAME:             'epics',
   DRAFTS_DIRECTORY_NAME:            'filing-cabinet',
   COMMITTED_CONTENT_DIRECTORY_NAME: 'committed-content',
+  TICKET_DOCUMENTS_DIRECTORY_NAME:  'ticket-documents',
   LOCK_DIRECTORY_NAME:              '.lock',
   HOLD_JOURNAL_FILE_NAME:           'hold-journal.json',
 } as const;

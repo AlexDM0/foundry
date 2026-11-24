@@ -34,7 +34,7 @@ describe('localStoreLayoutOf', () => {
   const recordPaths = Object.values(localStoreLayoutOf(workspace));
 
   test('every path is absolute and directly inside the data folder', () => {
-    expect(recordPaths.length).toBe(12);
+    expect(recordPaths.length).toBe(13);
     for (const recordPath of recordPaths) {
       expect(isAbsolute(recordPath)).toBe(true);
       expect(dirname(recordPath)).toBe(workspace.trackerDirectory);
@@ -57,6 +57,7 @@ describe('localStoreLayoutOf', () => {
       epicRecordsFolder:             `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/epics`,
       draftRecordsFolder:            `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/filing-cabinet`,
       committedContentFolder:        `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/committed-content`,
+      ticketDocumentRecordsFolder:   `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/ticket-documents`,
       storeLockFolder:               `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/.lock`,
       holdJournalPath:               `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/hold-journal.json`,
     });

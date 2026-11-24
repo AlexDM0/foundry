@@ -4,7 +4,8 @@
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
  * `ready-for-review` while ticket review is on and to `committed` while it is off, and in a forge with entities refuses one without an
  * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
- * child is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
+ * child is live; in the spec-then-plan route closing leaves a draft with its Report and Wanted a draft and opens its documents; only
+ * User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
  * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
  * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
  * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
@@ -23,6 +24,7 @@ import { TicketAcceptanceUtil }                  from '../../adapters/tickets/ut
 import { OperationRefusalWordingUtil }           from '../../adapters/utils/OperationRefusalWordingUtil.ts';
 import type { Ticket }                           from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                            from '../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                          from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }            from '../../shared/constants/HephaestusLimits.ts';
@@ -282,6 +284,23 @@ describe('intake', () => {
     board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
     expect(loggedKindsOf(apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] }))).toContain('ticket-submitted-for-review');
     expect(board.tickets()[0]?.frontmatter.status).toBe('ready-for-review');
+  });
+
+  test('in the spec-then-plan route, intake-close leaves each draft with a Report and a Wanted a draft and opens its documents', () => {
+    const reportAndWanted = '## Report\nThe basket is empty.\n\n## Wanted\nThe basket shows its items.\n';
+    const { board } = boardFixture({
+      pipeline: { ...PipelineUtil.minimalPipelineOf(), ticketWriting: 'spec-then-plan', approvals: { tickets: false } },
+      tickets:  [draftFiledBy('004', 'J1', reportAndWanted), draftFiledBy('005', 'J1', '## Report\nThe basket is empty.\n')],
+    });
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+
+    const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
+
+    expect(loggedKindsOf(closed)).toContain('ticket-documents-opened');
+    expect(loggedKindsOf(closed)).not.toContain('ticket-committed');
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['draft', 'draft']);
+    expect(board.ticketDocuments().standingOf('004', 'spec')).toBe('unwritten');
+    expect(board.ticketDocuments().standingOf('005', 'spec')).toBeNull();
   });
 
   test('User\'s ticket ready moves a ticket ready for review to committed; a draft-only ready refuses it', () => {

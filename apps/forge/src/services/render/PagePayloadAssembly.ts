@@ -9,6 +9,8 @@ import type { Epic }                              from '../../lib/tracker-model/
 import type { LogRecord }                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Ticket }                            from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }                   from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { Board }                             from '../../lib/tracker-model/Board.ts';
+import { TicketDocumentReadingUtil }              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import type { PageConcurrency, PageDraftRequest } from '../../shared/@types/PagePayload.ts';
 import type { PagePayload, PageTicket }           from '../../shared/@types/PagePayload.ts';
 import { LIMITS }                                 from '../../shared/constants/Limits.ts';
@@ -26,6 +28,8 @@ export interface PagePayloadInput {
   boardFacts:        PagePayload['boardFacts'];
   /** Absent reads as no open draft. */
   draftRequests?:    PageDraftRequest[];
+  /** Where a ticket with documents keeps its spec, whose approved head holds its Acceptance items; absent reads as no ticket with documents. */
+  documentRecords?:  Pick<Board, 'ticketDocumentRecordOf'>;
 }
 
 export interface AssembledPagePayload {
@@ -53,12 +57,18 @@ function pageLimits(): PagePayload['limits'] {
   };
 }
 
-function pageTicketsFor(tickets: readonly Ticket[]): PageTicket[] {
+/** A ticket with documents takes its Acceptance items from its approved spec; any other from its body. */
+function acceptanceSourceOf(ticket: Readonly<Ticket>, documentRecords: PagePayloadInput['documentRecords']): string {
+  const loadedRecord = documentRecords?.ticketDocumentRecordOf(ticket.frontmatter.id) ?? null;
+  return loadedRecord === null ? ticket.body : TicketDocumentReadingUtil.approvedHeadOf(loadedRecord, 'spec')?.text ?? '';
+}
+
+function pageTicketsFor(tickets: readonly Ticket[], documentRecords: PagePayloadInput['documentRecords']): PageTicket[] {
   return tickets.map((ticket) => ({
     ...ticket.frontmatter,
     bodyMarkdown:    TicketAcceptanceUtil.withAcceptanceItemsSeparated(ticket.body),
     sections:        TicketAcceptanceUtil.sectionsOf(ticket.body),
-    acceptanceItems: TicketAcceptanceUtil.acceptanceItemsOf(ticket.body)
+    acceptanceItems: TicketAcceptanceUtil.acceptanceItemsOf(acceptanceSourceOf(ticket, documentRecords))
       .map(({ label, text, waivedReason }) => ({ label, text, waived: waivedReason !== null })),
   }));
 }
@@ -74,6 +84,7 @@ export function assemblePagePayload(input: PagePayloadInput): AssembledPagePaylo
     concurrency,
     boardFacts,
     draftRequests = [],
+    documentRecords,
   } = input;
   const payload: PagePayload = {
     progress:                     ProgressFileMappingUtil.wordedDocumentOf(progress, logRecords.map(LogUtil.identifiedEntryOf)),
@@ -86,5 +97,5 @@ export function assemblePagePayload(input: PagePayloadInput): AssembledPagePaylo
     // Last, so every byte of the island before it stays where it was.
     boardFacts,
   };
-  return { payload, tickets: pageTicketsFor(tickets) };
+  return { payload, tickets: pageTicketsFor(tickets, documentRecords) };
 }

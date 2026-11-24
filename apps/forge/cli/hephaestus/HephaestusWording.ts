@@ -20,13 +20,14 @@ import type {
   ResearchFinding,
   SetupQuestion
 } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import { ENTITY_DECISION_ANSWERS }             from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { DEFAULT_CONSTITUTION_SOURCES }        from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { ROOT_ENTITY_KEY }                     from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                 from '../../src/services/hephaestus/AssistantBoot.ts';
-import type { AssistantChatFacts }             from '../../src/services/hephaestus/AssistantSession.ts';
+import type { DecisionDraft, DecisionWording }       from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import type { DocumentApprover, TicketDocumentKind } from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import { ENTITY_DECISION_ANSWERS }                   from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
+import { DEFAULT_CONSTITUTION_SOURCES }              from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { ROOT_ENTITY_KEY }                           from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }            from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import type { AssistantFacts }                       from '../../src/services/hephaestus/AssistantBoot.ts';
+import type { AssistantChatFacts }                   from '../../src/services/hephaestus/AssistantSession.ts';
 import type {
   CrossedPackageResult,
   CrossingStageFacts,
@@ -515,7 +516,24 @@ function projectFolderLinesOf(facts: JobLaunchFacts): string {
   ].join('\n');
 }
 
-/** A builder's instruction files, filled for its ticket and attempt. */
+const DOCUMENT_TITLE: Readonly<Record<TicketDocumentKind, string>> = { spec: 'Spec', plan: 'Plan' };
+
+const DOCUMENT_APPROVER_TEXT: Readonly<Record<DocumentApprover, string>> = { person: 'User', pipeline: 'the pipeline' };
+
+/** The ticket's spec and plan as the role reads them, after the filled brief; nothing for a ticket without documents. */
+function ticketDocumentsSectionOf(ticket: LaunchTicket): string {
+  const documents = ticket.documents ?? [];
+  if (documents.length === 0) return '';
+  const documentParts = documents.map((reading) => [
+    `### ${DOCUMENT_TITLE[reading.document]}, version ${reading.versionNumber}, approved by ${DOCUMENT_APPROVER_TEXT[reading.approvedBy]}`,
+    '',
+    reading.text.trim(),
+  ].join('\n'));
+  const section = filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'TicketDocumentsSection.md'), 'utf8'), { documents: documentParts.join('\n\n'), });
+  return `\n\n${section.trim()}\n`;
+}
+
+/** A builder's instruction files, filled for its ticket and attempt, then the ticket's documents it reads. */
 function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts): string {
   return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
@@ -530,10 +548,13 @@ function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
     program:        PRODUCT_NAMES.PROGRAM,
     sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
     entityScope:    builderEntityScopeOf(job, facts),
-  });
+  }) + ticketDocumentsSectionOf(ticket);
 }
 
-/** A reviewer's instruction files, filled for its ticket and round; `mergeApprovalStep` is empty where no approval step applies. */
+/**
+ * A reviewer's instruction files, filled for its ticket and round, then the ticket's documents it reads; `mergeApprovalStep` is empty where
+ * no approval step applies.
+ */
 function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, mergeApprovalStep: string): string {
   return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
@@ -548,7 +569,7 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
     mergeApprovalStep,
     sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
     reviewScope:    reviewerEntityScopeOf(job, facts.crossingStage ?? null),
-  });
+  }) + ticketDocumentsSectionOf(ticket);
 }
 
 /**

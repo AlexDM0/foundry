@@ -15,6 +15,11 @@ import { ConcurrencyUtil }                    from './utils/ConcurrencyUtil.ts';
 import { LaunchSlotUtil }                     from './utils/LaunchSlotUtil.ts';
 import { TicketDefaultsUtil }                 from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }               from './utils/TicketDependencyUtil.ts';
+import { TicketDocumentReadinessUtil }        from './utils/TicketDocumentReadinessUtil.ts';
+import { TicketWritingUtil }                  from './utils/TicketWritingUtil.ts';
+
+/** The hold a committed ticket's documents put on it while they are not in order; derived, never written to the ticket's `hold`. */
+export const DOCUMENTS_HOLD_REASON = 'documents-not-in-order';
 
 export class DispatchQueries {
   constructor(
@@ -46,7 +51,20 @@ export class DispatchQueries {
   /** In the order to take them: by priority, then by readiness, then by id. */
   readyTickets(): readonly Readonly<Ticket>[] {
     const readyTicketIds = TicketDependencyUtil.readyTicketIdsOf(this.records.ticketRecords.map((ticket) => ticket.frontmatter), this.readinessPositionByTicketId());
-    return this.withoutGroupRunTickets(readyTicketIds.flatMap((ticketId) => this.records.ticketRecordById(ticketId) ?? []));
+    const readyTickets   = readyTicketIds.flatMap((ticketId) => this.records.ticketRecordById(ticketId) ?? []);
+    return this.withoutGroupRunTickets(readyTickets.filter((ticket) => !this.ticketIsHeldByItsDocuments(ticket)));
+  }
+
+  /**
+   * A committed ticket with documents is held while its spec, or a document its builder reads, is not approved at its head, or its plan
+   * was approved on an older spec. A builder whose rule never reads the plan is held by the spec alone.
+   */
+  ticketIsHeldByItsDocuments(ticket: Readonly<Ticket>): boolean {
+    if (ticket.frontmatter.status !== 'committed') return false;
+    const loadedRecord = this.records.ticketDocumentRecordOf(ticket.frontmatter.id);
+    if (loadedRecord === undefined) return false;
+    const builderReadsPlan = TicketWritingUtil.documentReadingRuleOf(this.records.pipeline, 'builder', 'plan', ticket.frontmatter.entity) !== 'never';
+    return TicketDocumentReadinessUtil.documentGapsOf(loadedRecord, builderReadsPlan).length > 0;
   }
 
   /** The log position of each ticket's latest `ticket-committed` or `ticket-reopened` record; a clearing forgets every earlier one. */
@@ -71,10 +89,10 @@ export class DispatchQueries {
     }));
   }
 
-  /** Every held ticket Hephaestus could still start a step of, in progress or in review as much as ready. */
+  /** Every held ticket Hephaestus could still start a step of, in progress or in review as much as ready, its documents' hold included. */
   heldTicketIds(): string[] {
     return this.records.ticketRecords
-      .filter((ticket) => ticket.frontmatter.hold !== undefined && !SETTLED_TICKET_STATUSES.includes(ticket.frontmatter.status))
+      .filter((ticket) => (ticket.frontmatter.hold !== undefined && !SETTLED_TICKET_STATUSES.includes(ticket.frontmatter.status)) || this.ticketIsHeldByItsDocuments(ticket))
       .map((ticket) => ticket.frontmatter.id);
   }
 

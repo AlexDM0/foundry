@@ -1,7 +1,8 @@
 /**
  * The ticket and its row move together, the legality table holds unless the caller skips it, and every move except one to review ends the
  * reviewer's bar. Refusals are asserted by reason code, never by wording. The moves a ticket offers follow its status and its hold, for
- * every status held and unheld, a live job keeps it from delivery by hand, and the merge accept waits for a clean prediction.
+ * every status held and unheld, a live job keeps it from delivery by hand, and the merge accept waits for a clean prediction. In the
+ * spec-then-plan route a ticket without documents, a need's or a fix's, is still readied from its body, and one with documents by them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,13 +14,14 @@ import {
   ticketFixture,
   ticketInStatusFixture
 } from '../../testing/BoardFixtures.ts';
-import type { Job }                             from './@types/Job.ts';
-import type { RowedTicketStatus, TicketStatus } from './@types/Ticket.ts';
-import type { TicketOfferKind }                 from './MoveOffers.ts';
-import { TICKET_STATUSES }                      from './constants/Statuses.ts';
-import { PipelineUtil }                         from './utils/PipelineUtil.ts';
-import { TicketBodyHashUtil }                   from './utils/TicketBodyHashUtil.ts';
-import { TicketMoveUtil }                       from './utils/TicketMoveUtil.ts';
+import { loadedRecordFixture }                                from '../../testing/TicketDocumentRecordFixtures.ts';
+import type { Job }                                           from './@types/Job.ts';
+import type { ReadinessGap, RowedTicketStatus, TicketStatus } from './@types/Ticket.ts';
+import type { TicketOfferKind }                               from './MoveOffers.ts';
+import { TICKET_STATUSES }                                    from './constants/Statuses.ts';
+import { PipelineUtil }                                       from './utils/PipelineUtil.ts';
+import { TicketBodyHashUtil }                                 from './utils/TicketBodyHashUtil.ts';
+import { TicketMoveUtil }                                     from './utils/TicketMoveUtil.ts';
 
 const FILED_AT     = '2026-09-18T09:00:00+02:00';
 const STARTED_AT   = '2026-09-18T10:00:00+02:00';
@@ -602,5 +604,28 @@ describe('the moves a ticket offers', () => {
     expect(board.ticketOffersOf('001', 'clean').kinds).toContain('merge-accept');
     expect(board.ticketOffersOf('001', 'conflicting').kinds).not.toContain('merge-accept');
     expect(ticketInStatusFixture('reviewed', null).board.ticketOffersOf('001', 'clean').kinds).not.toContain('merge-accept');
+  });
+});
+
+describe('the spec-then-plan route', () => {
+  const COMPLETE_BODY = '## Acceptance\nA1. The basket shows.\n\n## Brief\nWork in the basket page.\n';
+  const bodyGapsOf = (body: string): ReadinessGap[] => (body.includes('## Brief') ? [] : ['brief-missing']);
+
+  test('a need\'s or a fix\'s ticket, with no documents, is submitted from its body as before', () => {
+    const draft = ticketFixture({ id: '004', status: 'draft' });
+    draft.body = COMPLETE_BODY;
+    const { board } = boardFixture({ tickets: [draft], pipeline: { ...PipelineUtil.minimalPipelineOf(), ticketWriting: 'spec-then-plan', approvals: { tickets: false } } });
+
+    expect(board.submitDraftTickets(['004'], bodyGapsOf, FILED_AT).logged.map((record) => record.kind)).toEqual(['ticket-committed']);
+    expect(board.ticketDocuments().standingOf('004', 'spec')).toBeNull();
+  });
+
+  test('a ticket with documents is readied by its documents, not its body', () => {
+    const draft = ticketFixture({ id: '004', status: 'draft' });
+    draft.body = COMPLETE_BODY;
+    const { board } = boardFixture({ tickets: [draft], ticketDocumentRecords: [loadedRecordFixture('004', { spec: { texts: [] }, plan: { texts: [] } })] });
+
+    const gaps: ReadinessGap[] = ['acceptance-unnumbered', 'spec-unapproved', 'plan-unapproved'];
+    expect(refusalDetailOf(() => board.readyDraftTickets(['004'], bodyGapsOf, FILED_AT))).toEqual({ reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps }] });
   });
 });

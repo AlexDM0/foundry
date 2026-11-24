@@ -40,6 +40,7 @@ import { Playbook }                                          from '../../lib/tra
 import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../lib/tracker-model/constants/JobStates.ts';
 import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
+import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';
@@ -137,7 +138,8 @@ export interface JobLaunchText {
 
 /** What the launch text is filled from: the job's tickets as stored, and the checks line its work is gated by. */
 export interface JobLaunchFacts {
-  tickets:                readonly { id: string; title: string; body: string; branch: string }[];
+  /** `documents`: the ticket's spec and plan as the job's role reads them, absent for a ticket without documents. */
+  tickets:                readonly { id: string; title: string; body: string; branch: string; documents?: readonly DocumentReading[] }[];
   /** The gates as the shell line's display render, which an agent reads and nothing spawns; `null` with no pipeline stored. */
   checksLine:             string | null;
   /** The stored gates in run order, which a builder is briefed on, each folder from where the session starts; `null` with no pipeline stored. */
@@ -853,9 +855,16 @@ export function launchFactsOf(
     airlock,
     tickets:      board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
-      .map((ticket) => ({
-        id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body, branch: request.branchNames.ticketBranchOf(ticket.frontmatter.id)
-      })),
+      .map((ticket) => {
+        const documents = JobLaunch.ticketDocumentReadingsOf(board, job, ticket.frontmatter.id);
+        return {
+          id:     ticket.frontmatter.id,
+          title:  ticket.frontmatter.title,
+          body:   ticket.body,
+          branch: request.branchNames.ticketBranchOf(ticket.frontmatter.id),
+          ...(documents.length === 0 ? {} : { documents }),
+        };
+      }),
     checksLine:             checksLineOf(gates, request.platformPorts.shellLine),
     gates,
     ...place.projectFolderFromStart === '' ? {} : { projectFolder: place.projectFolderFromStart },

@@ -29,6 +29,8 @@ import { FIRST_REPEAT_REVIEW_ROUND }         from './constants/ReviewRounds.ts';
 import { TICKET_STATUSES_USER_READIES }      from './constants/Statuses.ts';
 import { EntityOwnershipUtil }               from './utils/EntityOwnershipUtil.ts';
 import { TicketBodyHashUtil }                from './utils/TicketBodyHashUtil.ts';
+import { TicketDocumentReadinessUtil }       from './utils/TicketDocumentReadinessUtil.ts';
+import { TicketDocumentReadingUtil }         from './utils/TicketDocumentReadingUtil.ts';
 import { TicketMoveUtil }                    from './utils/TicketMoveUtil.ts';
 
 type TicketMoveFields = Pick<TicketMoveRequest, 'branch' | 'commit' | 'reason' | 'byHand'>;
@@ -144,7 +146,7 @@ export class TicketMoves {
     this.refuseTicketsWithoutAnEntity(readiedTickets);
     this.refuseWorkOutsideTheEntity(readiedTickets, workFilesOf);
     const incompleteTickets = readiedTickets.flatMap((ticket) => {
-      const gaps = readinessGapsOf(ticket.body);
+      const gaps = this.readinessGapsOfTicket(ticket, readinessGapsOf);
       return gaps.length === 0 ? [] : [{ ticketId: ticket.frontmatter.id, gaps }];
     });
     if (incompleteTickets.length > 0) throw new BoardRefusal({ reason: 'incomplete-tickets', incompleteTickets });
@@ -178,7 +180,7 @@ export class TicketMoves {
       throw new BoardRefusal({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: notADraft.frontmatter.id, status: notADraft.frontmatter.status });
     }
     const incompleteTickets = namedTickets.flatMap((ticket) => {
-      const gaps = readinessGapsOf(ticket.body);
+      const gaps = this.readinessGapsOfTicket(ticket, readinessGapsOf);
       return gaps.length === 0 ? [] : [{ ticketId: ticket.frontmatter.id, gaps }];
     });
     const completeTickets = namedTickets.filter((ticket) => !incompleteTickets.some((incomplete) => incomplete.ticketId === ticket.frontmatter.id));
@@ -201,7 +203,7 @@ export class TicketMoves {
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     workFilesOf: WorkFilesOf,
   ): void {
-    this.refuseWorkOutsideTheEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0), workFilesOf);
+    this.refuseWorkOutsideTheEntity(tickets.filter((ticket) => this.readinessGapsOfTicket(ticket, readinessGapsOf).length === 0), workFilesOf);
   }
 
   /**
@@ -213,7 +215,7 @@ export class TicketMoves {
     ticketReviewIsOn: boolean,
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
   ): void {
-    if (!ticketReviewIsOn) this.refuseTicketsWithoutAnEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0));
+    if (!ticketReviewIsOn) this.refuseTicketsWithoutAnEntity(tickets.filter((ticket) => this.readinessGapsOfTicket(ticket, readinessGapsOf).length === 0));
   }
 
   /**
@@ -239,12 +241,25 @@ export class TicketMoves {
   private refuseWorkOutsideTheEntity(tickets: readonly Readonly<Ticket>[], workFilesOf: WorkFilesOf | undefined): void {
     const entities = this.records.pipeline?.entities;
     if (entities === undefined || workFilesOf === undefined) return;
-    const ticketsOutside = tickets.flatMap(({ frontmatter, body }) => {
+    const ticketsOutside = tickets.flatMap((ticket) => {
+      const { frontmatter } = ticket;
       if (frontmatter.entity === undefined) return [];
-      const paths = EntityOwnershipUtil.pathsOutsideEntityOf(entities, frontmatter.entity, workFilesOf(body));
+      const paths = EntityOwnershipUtil.pathsOutsideEntityOf(entities, frontmatter.entity, workFilesOf(this.briefBodyOfTicket(ticket)));
       return paths.length === 0 ? [] : [{ ticketId: frontmatter.id, entity: frontmatter.entity, paths }];
     });
     if (ticketsOutside.length > 0) throw new BoardRefusal({ reason: 'work-outside-entity', ticketsOutside });
+  }
+
+  /** A ticket with documents is judged by them, its spec read for the Acceptance; any other by its body. */
+  readinessGapsOfTicket(ticket: Readonly<Ticket>, readinessGapsOf: (body: string) => readonly ReadinessGap[]): ReadinessGap[] {
+    return TicketDocumentReadinessUtil.readinessGapsOf(ticket, this.records.ticketDocumentRecordOf(ticket.frontmatter.id), readinessGapsOf);
+  }
+
+  /** The body whose Brief says where the work belongs: for a ticket with documents, its approved plan read as the Brief. */
+  private briefBodyOfTicket(ticket: Readonly<Ticket>): string {
+    const loadedRecord = this.records.ticketDocumentRecordOf(ticket.frontmatter.id);
+    if (loadedRecord === undefined) return ticket.body;
+    return TicketDocumentReadingUtil.bodyWithPlanAsBriefOf(TicketDocumentReadingUtil.briefTextOf(loadedRecord) ?? '');
   }
 
   /**

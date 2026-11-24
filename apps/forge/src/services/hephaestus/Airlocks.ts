@@ -1312,7 +1312,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       // Only a review accounts for the Acceptance: a pipeline without a review phase lands on its gates alone.
       const pipeline = hold.board.pipeline();
       const acceptanceIsReviewed = pipeline === null || PipelineUtil.ticketReviewIsSet(pipeline, ticket?.frontmatter.entity);
-      const ticketRefusal = ticket === undefined || !acceptanceIsReviewed ? null : Landing.ticketRefusalOf([ticket]);
+      const ticketRefusal = ticket === undefined || !acceptanceIsReviewed ? null : Landing.ticketRefusalOf([ticket], hold.board);
       if (ticketRefusal !== null) return ticketRefusal;
       const verdict = Landing.landOnTarget({
         target:            { branch: slot.target, directory },

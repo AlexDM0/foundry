@@ -11,6 +11,8 @@ import { GitWorktrees }                                    from '../../lib/git/G
 import type { CheckoutWritePrimitives }                    from '../../lib/git/HeldCheckout.ts';
 import { RepositoryLandings, type RepositoryLandingFiles } from '../../lib/git/RepositoryLandings.ts';
 import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                      from '../../lib/tracker-model/Board.ts';
+import { TicketDocumentReadingUtil }                       from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                          from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
@@ -200,11 +202,24 @@ function sharedRepositoryLandingOf(
   };
 }
 
-/** The ticket-level check a landing makes before git moves: the Acceptance, each ticket on its own. */
-function ticketRefusalOf(tickets: readonly Readonly<Ticket>[]): LandingVerdict | null {
-  for (const { frontmatter, body } of tickets) {
-    const ticketId = frontmatter.id;
-    switch (TicketAcceptanceUtil.acceptanceVerdictOf(body).verdict) {
+/** The documents records a landing reads a ticket's Acceptance from; a board without them reads every Acceptance from the body. */
+export type TicketDocumentRecords = Pick<Board, 'ticketDocumentRecordOf'>;
+
+/** The text whose first `## Acceptance` holds the items: a ticket with documents takes them from its approved spec, before its body. */
+function acceptanceTextOf(ticket: Readonly<Ticket>, documentRecords: TicketDocumentRecords | null): string {
+  const loadedRecord = documentRecords?.ticketDocumentRecordOf(ticket.frontmatter.id) ?? null;
+  const specText     = loadedRecord === null ? null : TicketDocumentReadingUtil.approvedHeadOf(loadedRecord, 'spec')?.text ?? '';
+  return specText === null ? ticket.body : `${specText}\n\n${ticket.body}`;
+}
+
+/**
+ * The ticket-level check a landing makes before git moves: the Acceptance, each ticket on its own. A ticket with documents has its items
+ * in its spec and its review's lines in its body.
+ */
+function ticketRefusalOf(tickets: readonly Readonly<Ticket>[], documentRecords: TicketDocumentRecords | null = null): LandingVerdict | null {
+  for (const ticket of tickets) {
+    const ticketId = ticket.frontmatter.id;
+    switch (TicketAcceptanceUtil.acceptanceVerdictOf(acceptanceTextOf(ticket, documentRecords)).verdict) {
       case 'accounted-for':
         continue;
       case 'unnumbered':
