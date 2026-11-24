@@ -55,7 +55,12 @@ function ticketSessionPlaceOf(workspace: Workspace, location: ProjectLocation, j
     };
   }
   // Preparing a ticket's worktree is a later step of the chain; until it exists the session works in a folder of its own.
-  const sessionFolder = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), 'sessions', job.id);
+  return sessionFolderPlaceOf(workspace, job.id);
+}
+
+/** An empty folder of the job's own, outside every checkout: an effect reader's, which reads nothing of the repository. */
+function sessionFolderPlaceOf(workspace: Workspace, jobId: string): SessionPlace {
+  const sessionFolder = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), 'sessions', jobId);
   mkdirSync(sessionFolder, { recursive: true });
   return {
     checkout: sessionFolder, workingDirectory: sessionFolder, holdsRepository: false, projectFolderFromStart: ''
@@ -110,5 +115,5 @@ function gatesFromStartOf(place: SessionPlace, gates: readonly Readonly<Pipeline
 }
 
 export const SessionPlaces = Object.freeze({
-  snapshotSessionPlaceOf, ticketSessionPlaceOf, resumedSessionPlaceOf, gatesFromStartOf
+  snapshotSessionPlaceOf, ticketSessionPlaceOf, sessionFolderPlaceOf, resumedSessionPlaceOf, gatesFromStartOf
 });

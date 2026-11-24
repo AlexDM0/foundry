@@ -1583,6 +1583,9 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | `decide <decision> <letters>... \| -- <text> [--json]` | Answer an open decision through the write pipeline, with Hephaestus up or down: one choice of option letters per question (`decide E7 b`; `decide E7 b ac` when the second question is multi-select, its labels joined by `, `), or free text after `--` for a decision asking one question. The first answer wins; [the refusals and delivery](#decide) are below. |
 | `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with Hephaestus up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: Hephaestus stamps its own. [What the notes hold and where they go](#question-options) is below. |
 | `need declare <J> "<title>" --entity <key> --body <text> \| --body-file <path> [--json]` | Keep a build job's need for another entity in `progress.json`'s `needs`, through the write pipeline and logged nothing, with Hephaestus up or down; Hephaestus files it as that entity's ticket. Under the declaring job it names no job: Hephaestus stamps its own. [What a need holds and its refusals](#need-declare) are below. |
+| `document propose [-- <json>] [--json]` | A spec or plan agent's edit of the document its job writes, `{baseVersion, edits, summary, answers}`, as JSON after `--` or on standard input; only under its own job. [The document verbs](#document-verbs) are below. |
+| `document ready [--json]` | A spec or plan agent tells that the head version of its document is complete; only under its own job. |
+| `document effect <version> [--json]` | A spec or plan agent asks what a version of its document names in the main line's tree; only under its own job. The reading reaches it as a message from the board. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
 | `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session. A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
@@ -1825,6 +1828,36 @@ The `intake` verb takes no picture. An `intake-start` control command from a cli
 `POST /api/pictures`, kept on the job as `intake.pictures` and logged as `intakePictures`; with a picture its text may
 be blank, and without one a blank request is refused `intake-empty`. The pictures go with the first message of each
 session of the intake, a fresh one after a replacement included.
+
+#### Document verbs
+
+```
+document propose [-- <json>] [--json]
+document ready [--json]
+document effect <version> [--json]
+```
+
+A spec or plan agent's moves on the document its job writes, in the spec-then-plan route. They run only in the agent's
+own session, where they are relayed through its Hatch and stamped with its job and the commit of its snapshot; outside
+a job each is refused at exit 1. A job's role names the document: `spec-agent` the spec, `plan-agent` the plan.
+
+- `document propose` sends an edit as JSON after `--` or on standard input: `{baseVersion, edits, summary, answers?}`.
+  `baseVersion` is the version the agent read, `null` for the first write; each edit is `{fromLine, toLine,
+  originalLines, replacementLines}`, lines `fromLine` to `toLine` of that version, `toLine` one before `fromLine` to
+  insert; `answers` is the message it answers, as `M3`. A field not of its shape is refused `malformed-setup-command`.
+- `document ready` tells that the head version is complete.
+- `document effect <version>` asks what a version names in the main line's tree. The answer reaches the agent as a
+  message from the board once the reading ends.
+
+Hephaestus holds a document agent's requests until the end of its turn, the turn's `result` or its session's end, and
+runs Customs on its snapshot there (V16, V4, V5, V13, V14). A clean snapshot applies the requests in order; a changed
+one refuses every request of the turn `document-snapshot-touched`, logs `ticket-document-snapshot-touched`, opens the
+incident `document-snapshot-touched` on the ticket and ends the job `failed`. Each move is refused
+`document-agent-not-live` unless its job is the one document agent on the board for its ticket's document.
+
+The snapshot belongs to the ticket: `<worktrees>/document-agent/<ticketId>/`, checked out at main's tip at each launch
+of an instance and shared by the ticket's spec and plan agents. Once no document agent of the ticket is on the board,
+a waiting one included, Hephaestus removes it, and names one the removal leaves in `hephaestus.log`.
 
 ### The board's lifetime
 
@@ -2244,6 +2277,8 @@ variables](#environment-variables)).
 - **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
 - **Needs:** an admitted `need declare` is stamped with the declaring job; only a builder of an entity's stage relays
   one.
+- **Documents:** an admitted `document` verb is stamped with the agent's job and its snapshot's commit; only a spec or
+  plan agent relays one ([Document verbs](#document-verbs)).
 
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
 > terminal.

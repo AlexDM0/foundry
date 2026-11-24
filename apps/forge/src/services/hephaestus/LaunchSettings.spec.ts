@@ -1,9 +1,11 @@
 /**
  * The model and effort each role's session launches on. What matters: every role reads its own pipeline step and falls back field by field
  * to its default, the pipeline agent defaulting to opus and high; every value of both vocabularies reaches the launch unchanged; and an
- * Airlock agent takes the pair its last worker recorded, its own role's only when none was recorded, while a conflict re-reviewer reads its
- * own step. A job of an entity reads its entity's step, and the forge's for the roles a forge sets once; a job of an entity the pipeline
- * no longer holds takes its role's default. That a resume keeps the recorded pair is held by `cli/hephaestus/HephaestusBuildJob.spec.ts`.
+ * Airlock agent takes the pair its last worker recorded, its own role's only when none was recorded, while a conflict re-reviewer reads
+ * its own step. The spec and plan agents read their own steps, sonnet and medium and opus and high by default; the effect reader is no
+ * pipeline role and launches on haiku and low. A job of an entity reads its entity's step, and the forge's for the roles a forge sets
+ * once; a job of an entity the pipeline no longer holds takes its role's default. That a resume keeps the recorded pair is held by
+ * `cli/hephaestus/HephaestusBuildJob.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -29,6 +31,8 @@ const PIPELINE_WITH_EVERY_STEP = pipelineWith({
   conflictReReviewer: { model: 'haiku', effort: 'xhigh' },
   pipelineAgent:      { model: 'fable', effort: 'medium' },
   assistant:          { model: 'opus', effort: 'low' },
+  specAgent:          { model: 'opus', effort: 'max' },
+  planAgent:          { model: 'sonnet', effort: 'high' },
 });
 
 describe('one row per role', () => {
@@ -41,6 +45,8 @@ describe('one row per role', () => {
     ['product-owner', 'product-owner', 'opus', 'medium', 'sonnet', 'low'],
     ['pipeline-agent', 'pipeline-agent', 'opus', 'high', 'fable', 'medium'],
     ['assistant', 'assistant', 'sonnet', 'medium', 'opus', 'low'],
+    ['document-agent', 'spec-agent', 'sonnet', 'medium', 'opus', 'max'],
+    ['document-agent', 'plan-agent', 'opus', 'high', 'sonnet', 'high'],
   ];
 
   test.each(rows)('a %s job as %s launches on %s %s with no pipeline', (kind, role, model, effort) => {
@@ -60,6 +66,11 @@ describe('one row per role', () => {
 
     expect(LaunchSettings.launchSettingsOf(pipeline, { kind: 'review', role: 'reviewer' }, null)).toEqual({ model: 'opus', effort: 'max' });
     expect(LaunchSettings.launchSettingsOf(pipeline, { kind: 'pipeline-agent', role: 'pipeline-agent' }, null)).toEqual({ model: 'sonnet', effort: 'high' });
+  });
+
+  test('the effect reader launches on haiku and low whatever the pipeline names, being no pipeline role', () => {
+    expect(LaunchSettings.launchSettingsOf(PIPELINE_WITH_EVERY_STEP, { kind: 'effect-reading', role: 'effect-reader' }, null)).toEqual({ model: 'haiku', effort: 'low' });
+    expect(LaunchSettings.pipelineRoleOf({ role: 'effect-reader' })).toBeNull();
   });
 
   test('every role the pipeline names has a default, and the pipeline agent\'s is opus and high', () => {

@@ -111,6 +111,15 @@ export const PIPELINE_AGENT_SCENARIO_CALLS: RecordedScenarioCalls = {
   calls:  CUSTOMS_CALLS,
 };
 
+/** The folder of ticket 004's detached document agent snapshot, inside the repository, which a spec takes as its worktrees root. */
+export const DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME = join('document-agent', '004');
+
+/** The same calls, asked in the document agent's snapshot. */
+export const DOCUMENT_AGENT_SCENARIO_CALLS: RecordedScenarioCalls = {
+  folder: join(SCENARIO_REPOSITORY_PLACEHOLDER, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME),
+  calls:  CUSTOMS_CALLS,
+};
+
 function reviewPassReads(reviewStart: string, reviewHead: string): RecordedScenarioCall[] {
   const range = `${reviewStart}..${reviewHead}`;
   return [

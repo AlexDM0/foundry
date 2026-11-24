@@ -120,6 +120,9 @@ refuses one without either.
 **Read the Acceptance back against itself before filing.** Two items that cannot both be true cost an agent a pass:
 say in the ticket which wins and what bounded deviation the other tolerates.
 
+**With `"ticketWriting": "spec-then-plan"` in `{{dataFolder}}/pipeline.json`**, write only `## Report` and `## Wanted`:
+the spec and plan agents write the rest.
+
 ## The mechanics
 
 - Record a dependency with `--depends-on`, later with `ticket depends <id> --add <ids>`.

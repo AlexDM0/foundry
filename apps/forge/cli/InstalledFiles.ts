@@ -20,6 +20,8 @@ export interface InstalledFilePaths {
   reReviewerDefault:         string;
   conflictReReviewerDefault: string;
   productOwnerDefault:       string;
+  specAgentDefault:          string;
+  planAgentDefault:          string;
   pipelineAgentDefault:      string;
   assistantDefault:          string;
   /** What the agent's session-start entry prints to each session User opens; its presence marks the files installed. */
@@ -36,6 +38,8 @@ export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths 
     reReviewerDefault:         join(rootDirectory, defaultInstructionPathOf('reReviewer')),
     conflictReReviewerDefault: join(rootDirectory, defaultInstructionPathOf('conflictReReviewer')),
     productOwnerDefault:       join(rootDirectory, defaultInstructionPathOf('productOwner')),
+    specAgentDefault:          join(rootDirectory, defaultInstructionPathOf('specAgent')),
+    planAgentDefault:          join(rootDirectory, defaultInstructionPathOf('planAgent')),
     pipelineAgentDefault:      join(rootDirectory, defaultInstructionPathOf('pipelineAgent')),
     assistantDefault:          join(rootDirectory, defaultInstructionPathOf('assistant')),
     sessionInstructions:       join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, SESSION_INSTRUCTIONS_FILE_NAME),

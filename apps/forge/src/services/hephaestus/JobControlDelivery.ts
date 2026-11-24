@@ -28,7 +28,7 @@ export interface JobControlDeliveryRequest {
 
 const MARKERS_FOLDER = 'control-frames';
 
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent', 'document-agent'];
 
 /** What one control asks of the job's session: its input, or a stop after the grace. */
 type ControlAct = { kind: 'input'; inputs: readonly ChildInput[] } | { kind: 'stop'; graceMilliseconds: number };
@@ -101,7 +101,8 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
       sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.childInstance}`, () => ({ kind: 'input', inputs: [{ act: 'quit-at-turn-end' }] })));
-      if (job.stopRequest === 'stop') {
+      // A document agent's stop ends its running turn: its session stops after the grace, and the session stays to be resumed.
+      if (job.stopRequest === 'stop' || job.kind === 'document-agent') {
         sends.push(async () => await sendOnce(
           children, jobFolder, job, `stop-${job.childInstance}`, () => ({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })
         ));

@@ -48,6 +48,17 @@ export const PLAN_AGENT_MODEL = 'opus';
 
 export const PLAN_AGENT_EFFORT = 'high' as const;
 
+/** The effect reader's fixed model and effort: it is no pipeline role, so no pipeline names them. */
+export const EFFECT_READER_MODEL = 'haiku';
+
+export const EFFECT_READER_EFFORT = 'low' as const;
+
+/** How long an effect reading may run before it ends `failed`: a reading User waits on must answer in real time. */
+export const EFFECT_READING_TIMEOUT_MILLISECONDS = 60_000;
+
+/** The most main-line paths an effect reader is given; a longer tree is cut, and the reading says so. */
+export const EFFECT_READING_PATH_LIMIT = 20_000;
+
 /** The newest `incident-*` log records an Assistant's first message carries, so the board is its memory. */
 export const ASSISTANT_HISTORY_RECORDS = 20;
 

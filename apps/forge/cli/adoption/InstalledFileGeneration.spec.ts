@@ -46,11 +46,13 @@ describe('the installed texts', () => {
       'conflictReReviewerDefault',
       'constitutionDefault',
       'pipelineAgentDefault',
+      'planAgentDefault',
       'productOwnerDefault',
       'reReviewerDefault',
       'reference',
       'reviewerDefault',
       'sessionInstructions',
+      'specAgentDefault',
     ]);
     expect(TEXTS.reference).not.toContain('{{');
     expect(TEXTS.sessionInstructions).not.toContain('{{');
@@ -60,6 +62,9 @@ describe('the installed texts', () => {
     expect([...(TEXTS.reReviewerDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder)).toEqual(['{{round}}']);
     expect([...(TEXTS.assistantDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder).sort())
       .toEqual(PLACEHOLDERS_HEPHAESTUS_FILLS);
+    for (const documentAgentDefault of [TEXTS.specAgentDefault, TEXTS.planAgentDefault]) {
+      expect([...new Set([...(documentAgentDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder))].sort()).toEqual(['{{jobId}}', '{{ticketId}}']);
+    }
     expect(TEXTS.builderDefault).toContain('{{ticketBody}}');
     expect(TEXTS.builderDefault).not.toContain('{{program}}');
     expect(TEXTS.sessionInstructions).toContain(`\`${PRODUCT_NAMES.PROGRAM} status --json\``);

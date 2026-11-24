@@ -57,6 +57,7 @@ export const RECORDED_FLOW_PLACES = {
   SESSION_FOLDER:          'session folder',
   TICKET_WORKTREE:         'ticket worktree',
   PIPELINE_AGENT_WORKTREE: 'pipeline agent worktree',
+  DOCUMENT_AGENT_WORKTREE: 'document agent worktree',
   PROJECT_FOLDER:          'project folder',
   PROJECT_TICKET_WORKTREE: 'project ticket worktree',
   PROJECT_SESSION_FOLDER:  'project session folder',
@@ -68,6 +69,8 @@ const WORKTREES = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, PRODUCT_NAMES.WORK
 const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
 /** Setup S1's snapshot, which its pipeline agent reads. */
 const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'S1');
+/** Ticket 001's snapshot, which its spec and plan agents read. */
+const DOCUMENT_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'document-agent', '001');
 
 /** The tracker of the folder flow: its project folder below the repository and its branch namespace. */
 export const RECORDED_FOLDER_FLOW_PROJECT = { prefix: 'apps/example', namespace: 'example' } as const;
@@ -84,6 +87,7 @@ export const RECORDED_FLOW_PLACE_FOLDERS: readonly (readonly [RecordedFlowPlace,
   [RECORDED_FLOW_PLACES.PROJECT_FOLDER, PROJECT_FOLDER],
   [RECORDED_FLOW_PLACES.TICKET_WORKTREE, TICKET_WORKTREE_FOLDER],
   [RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE, PIPELINE_AGENT_WORKTREE_FOLDER],
+  [RECORDED_FLOW_PLACES.DOCUMENT_AGENT_WORKTREE, DOCUMENT_AGENT_WORKTREE_FOLDER],
   [RECORDED_FLOW_PLACES.SESSION_FOLDER, join(WORKTREES, 'sessions')],
   [RECORDED_FLOW_PLACES.MAIN_CHECKOUT, RECORDED_FLOW_PLACEHOLDERS.REPOSITORY],
 ];
@@ -93,6 +97,7 @@ export type GitHookPolicyName = 'hooks-off' | 'repository-hooks';
 export type RecordedFlowStageName =
   | 'tracker ready'
   | 'pipeline agent worktree made'
+  | 'document agent worktree made'
   | 'worktree made'
   | 'tree changed'
   | 'tree changed with trailer'
@@ -246,14 +251,37 @@ const LANDING_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   ['diff', '--name-only', '--no-renames', '-z', 'HEAD', TICKET_TIP, '--'],
 ]);
 
-const PIPELINE_AGENT_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE, [
-  ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-  { gitArguments: ['config', '--get', 'core.hooksPath'], exitCode: NEGATIVE, hookPolicy: 'repository-hooks' },
-  resolved('HEAD'),
-  ['for-each-ref', '--format=%(refname) %(objectname)'],
-  ['worktree', 'list', '--porcelain'],
-  ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'],
-]);
+/** What a launch and a turn end read in an agent's snapshot: its start, and the Customs checks of its turn. */
+function snapshotReadsIn(place: RecordedFlowPlace): RecordedFlowCall[] {
+  return callsIn(place, [
+    ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+    { gitArguments: ['config', '--get', 'core.hooksPath'], exitCode: NEGATIVE, hookPolicy: 'repository-hooks' },
+    resolved('HEAD'),
+    ['for-each-ref', '--format=%(refname) %(objectname)'],
+    ['worktree', 'list', '--porcelain'],
+    ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'],
+  ]);
+}
+
+const PIPELINE_AGENT_WORKTREE_READS = snapshotReadsIn(RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE);
+
+/** A document agent's turn end also reads the snapshot's status and the work since its start, which is the main line's tip. */
+const DOCUMENT_AGENT_WORKTREE_READS = [
+  ...snapshotReadsIn(RECORDED_FLOW_PLACES.DOCUMENT_AGENT_WORKTREE),
+  ...callsIn(RECORDED_FLOW_PLACES.DOCUMENT_AGENT_WORKTREE, [
+    ['status', '--porcelain=v1', '--untracked-files=all'],
+    ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'],
+    ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'],
+    ['ls-files', '-u'],
+    ['merge-base', RECORDED_FLOW_MAIN_LINE, 'HEAD'],
+    ['merge-base', '--is-ancestor', MAIN_TIP, 'HEAD'],
+    ['diff', '--name-only', '--no-renames', '-z', MAIN_TIP, 'HEAD', '--'],
+    ['log', '--name-only', '--no-renames', '-z', '--format=', `${MAIN_TIP}..HEAD`, '--'],
+    ['rev-list', `${MAIN_TIP}..HEAD`],
+    ['rev-list', '--merges', `${MAIN_TIP}..HEAD`],
+    ['rev-list', '--merges', '--reverse', `${MAIN_TIP}..HEAD`],
+  ]),
+];
 
 /** The ticket worktree added on a new branch off the main line, which leaves the repository in `nextStage`. */
 function ticketWorktreeAddTo(nextStage: RecordedFlowStageName): RecordedFlowCall[] {
@@ -272,6 +300,12 @@ const PIPELINE_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, 
   leavesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
 
+const DOCUMENT_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments: ['worktree', 'add', '--quiet', '--detach', DOCUMENT_AGENT_WORKTREE_FOLDER, MAIN_TIP],
+  nextStage:    'document agent worktree made',
+  leavesFolder: DOCUMENT_AGENT_WORKTREE_FOLDER,
+}]);
+
 /** A setup's start and its Apply read main's constitution: the main line holds none. */
 const MAIN_CONSTITUTION_READ = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:CONSTITUTION.md`], exitCode: NEGATIVE },
@@ -284,6 +318,12 @@ const PIPELINE_AGENT_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOU
   gitArguments:  ['worktree', 'remove', '--force', PIPELINE_AGENT_WORKTREE_FOLDER],
   nextStage:     'tracker ready',
   removesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
+}]);
+
+const DOCUMENT_AGENT_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments:  ['worktree', 'remove', '--force', DOCUMENT_AGENT_WORKTREE_FOLDER],
+  nextStage:     'tracker ready',
+  removesFolder: DOCUMENT_AGENT_WORKTREE_FOLDER,
 }]);
 
 const FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', TICKET_TIP], nextStage: 'branch merged' }]);
@@ -589,10 +629,19 @@ const FOLDER_FLOW_STAGES: Readonly<Record<RecordedFolderFlowStageName, readonly 
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready': [
-    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...MAIN_CONSTITUTION_READ, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD,
+    ...MAIN_CHECKOUT_READS,
+    ...SESSION_FOLDER_READS,
+    ...TICKET_BRANCH_MISSING,
+    ...MAIN_CONSTITUTION_READ,
+    ...PIPELINE_AGENT_WORKTREE_ADD,
+    ...DOCUMENT_AGENT_WORKTREE_ADD,
+    ...TICKET_WORKTREE_ADD,
   ],
   'pipeline agent worktree made': [
     ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...PIPELINE_SETUP_MAIN_READS, ...PIPELINE_AGENT_WORKTREE_REMOVE,
+  ],
+  'document agent worktree made': [
+    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...DOCUMENT_AGENT_WORKTREE_READS, ...DOCUMENT_AGENT_WORKTREE_REMOVE,
   ],
   'worktree made':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
   'tree changed':                 [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],

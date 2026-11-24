@@ -183,11 +183,14 @@ function mergeQueueOf(board: Board, forecasting: MergeForecasting | null): Merge
   return { queuedTicketIds, slots, targets: targets.map((target) => mergeTargetOf(board, target, forecasting)) };
 }
 
-const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner', 'pipeline-agent']);
+const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner', 'pipeline-agent', 'document-agent']);
+
+/** A ticket document's agent and an effect reading are no work the summary counts: `summaryVersion` 3 names neither kind. */
+const KINDS_THE_SUMMARY_LEAVES_OUT: ReadonlySet<string> = new Set(['document-agent', 'effect-reading']);
 
 /**
  * The log records a client's question, Assistant and intake views read: every decision and incident record, and every record of an
- * Assistant, product-owner or pipeline agent job, since an answered decision, a handled incident and a closed intake leave the board.
+ * Assistant, product-owner, pipeline agent or document agent job, since an answered decision, a handled incident and a closed intake leave the board.
  */
 function questionHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
   const sessionJobIds = new Set(logRecords.flatMap((record) => (record.kind === 'job-launched' && SESSION_JOB_KINDS.has(record.fields.kind) ? [record.jobId] : [])));
@@ -311,7 +314,7 @@ function summaryOf(state: BoardState, project: string, readyTicketIds: readonly 
     hephaestus:          { state: state.hephaestus.state, paused: state.hephaestus.paused, url: state.hephaestus.url },
     ticketCountByStatus: state.ticketCountByStatus,
     readyTicketIds:      [...readyTicketIds],
-    jobs:                state.jobs.map((job) => ({
+    jobs:                state.jobs.filter((job) => !KINDS_THE_SUMMARY_LEAVES_OUT.has(job.kind)).map((job) => ({
       id: job.id, kind: job.kind, ticketIds: [...job.ticketIds], state: job.state, role: job.role, tokens: job.live.tokens
     })),
     openDecisions: state.decisions.length,

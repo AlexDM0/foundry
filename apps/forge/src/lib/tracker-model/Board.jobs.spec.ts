@@ -269,7 +269,7 @@ describe('the legality table', () => {
       'merging-main':       ['interrupted', 'stopping', 'ended'],
       'merging':            ['gating', 'stopping', 'ended'],
       'landing':            ['stopping', 'ended'],
-      'stopping':           ['interrupted', 'ended'],
+      'stopping':           ['interrupted', 'awaiting-answer', 'ended'],
     };
     for (const state of JOB_STATES) {
       const allowedTargets = (Object.keys(LEGAL_SOURCE_STATES_FOR_JOB_MOVE) as JobMoveTarget[])

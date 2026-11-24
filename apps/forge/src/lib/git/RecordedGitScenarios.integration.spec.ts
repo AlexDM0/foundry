@@ -1,6 +1,7 @@
 /**
- * Records the git scenarios the Customs and review outcome specs replay (`src/services/lifecycle/Customs.pipelineAgent.spec.ts`,
- * `Customs.verification.spec.ts`, `Customs.provenance.spec.ts` and `ReviewOutcome.settled.spec.ts`): each case builds a scenario's state with
+ * Records the git scenarios the Customs, document agent and review outcome specs replay
+ * (`src/services/lifecycle/Customs.pipelineAgent.spec.ts`, `Customs.verification.spec.ts`, `Customs.provenance.spec.ts`,
+ * `src/services/hephaestus/DocumentAgentSessions.spec.ts` and `ReviewOutcome.settled.spec.ts`): each case builds a scenario's state with
  * real git and runs in it the calls `src/testing/RecordedGitScenarioCalls.ts` names, so each answer is recorded under the scenario. A call
  * the production code makes and the data does not name fails its replaying spec as unrecorded. `bun run record src/lib/git/GitProcess.ts`
  * runs this spec and writes the answers to `src/testing/recordings/<os>/`.
@@ -14,6 +15,8 @@ import { recordAnswer }        from '../../testing/RecordedAnswers.ts';
 import {
   CUSTOMS_MAIN_MERGE_SCENARIO_CALLS,
   CUSTOMS_SCENARIO_CALLS,
+  DOCUMENT_AGENT_SCENARIO_CALLS,
+  DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME,
   PIPELINE_AGENT_SCENARIO_CALLS,
   PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME,
   REVIEW_PASS_WITHOUT_CHANGES_CALLS,
@@ -184,6 +187,17 @@ describeWhenGitIsPresent('the git scenarios the Customs pipeline agent spec repl
     const movedCommit = commitFile(snapshotDirectory, 'turbo.json', '{}\n');
     const commits = { '<start>': startCommit, '<moved>': movedCommit };
     expect(recordScenario(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_COMMITTED, { repositoryDirectory: directory, commits }, PIPELINE_AGENT_SCENARIO_CALLS))
+      .toBeGreaterThan(0);
+  });
+});
+
+describeWhenGitIsPresent('the git scenario the document agent sessions spec replays', () => {
+  test(GIT_SCENARIOS.DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED, () => {
+    const directory = scratchRepository('customs-scenarios');
+    const startCommit = commitFile(directory, 'package.json', '{ "name": "example" }\n');
+    gitOutputIn(directory, ['worktree', 'add', '--detach', join(directory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME), startCommit]);
+    const commits = { '<start>': startCommit };
+    expect(recordScenario(GIT_SCENARIOS.DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED, { repositoryDirectory: directory, commits }, DOCUMENT_AGENT_SCENARIO_CALLS))
       .toBeGreaterThan(0);
   });
 });

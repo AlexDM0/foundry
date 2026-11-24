@@ -14,7 +14,8 @@ export type IncidentKind =
   | 'gate-cannot-run'
   | 'sandbox-unavailable'
   | 'quiet-job'
-  | 'setup-snapshot-touched';
+  | 'setup-snapshot-touched'
+  | 'document-snapshot-touched';
 
 /**
  * A move under an incident, named as its control command kind. `incident-note` records and never closes; `open-quiet-job-decision` is the

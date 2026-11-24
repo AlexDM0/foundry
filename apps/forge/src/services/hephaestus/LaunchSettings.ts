@@ -13,6 +13,8 @@ import { VocabularyUtil }                   from '../../lib/tracker-model/utils/
 import {
   ASSISTANT_EFFORT,
   ASSISTANT_MODEL,
+  EFFECT_READER_EFFORT,
+  EFFECT_READER_MODEL,
   PIPELINE_AGENT_EFFORT,
   PIPELINE_AGENT_MODEL,
   PLAN_AGENT_EFFORT,
@@ -42,6 +44,8 @@ const PIPELINE_ROLE_OF_JOB_ROLE: Readonly<Record<Exclude<JobRole, 'effect-reader
 });
 
 const WORKER_SETTINGS: SessionLaunchSettings = Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT });
+
+const EFFECT_READER_SETTINGS: SessionLaunchSettings = Object.freeze({ model: EFFECT_READER_MODEL, effort: EFFECT_READER_EFFORT });
 
 const DEFAULT_SETTINGS_OF_ROLE: Readonly<Record<PipelineAgentRole, SessionLaunchSettings>> = Object.freeze({
   productOwner:       WORKER_SETTINGS,
@@ -86,6 +90,7 @@ function launchSettingsOf(
   pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'kind' | 'role' | 'entity'>>, lastWorkerSettings: SessionLaunchSettings | null
 ): SessionLaunchSettings {
   if (job.kind === 'merge-agent' && job.role !== 'conflict-re-reviewer' && lastWorkerSettings !== null) return lastWorkerSettings;
+  if (job.role === 'effect-reader') return EFFECT_READER_SETTINGS;
   const role = pipelineRoleOf(job);
   if (role === null) return WORKER_SETTINGS;
   const stored   = settingsPipelineOf(pipeline, job)?.agents?.[role];

@@ -1,7 +1,8 @@
 /**
  * What the control service takes from its caller besides the command and the hold: the wording of the messages a User setup move sends to
  * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, the reading of main's `CONSTITUTION.md`,
- * which Hephaestus's instruction files own, and the live Hephaestus of a board, which only the caller's process can judge.
+ * which Hephaestus's instruction files own, the live Hephaestus of a board, which only the caller's process can judge, and the effect
+ * readings only a live Hephaestus runs.
  */
 import type {
   ConstitutionSources,
@@ -12,7 +13,8 @@ import type {
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { PipelineFieldValue } from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import type { PipelineFieldValue }  from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import type { EffectReadingSource } from './EffectReading.ts';
 
 /** One field a draft move changed, with the value the draft holds now; `null` when the draft holds none there. */
 export interface DraftFieldValue {
@@ -74,4 +76,6 @@ export interface ControlContext {
    * own commands in its own hold.
    */
   liveHephaestusOf:      (dataFolder: string) => LiveHephaestus | null;
+  /** The live Hephaestus's effect readings, which an effect read asks for; absent outside it, where an effect read is refused. */
+  effectReadings?:       EffectReadingSource;
 }

@@ -5,8 +5,9 @@
  * another entity (only from the builder of an entity's stage, only complete, stamped with its job; incomplete covering a field that is no
  * text; never for a package sealed for its ticket, E42), the pipeline agent's setup moves stamped with its job, its setup and, for an
  * entity's session, its entity (every other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's incident
- * moves, `talos-restart` refused for every role, and the planted forgeries (a `role`, a `jobId` or an admission in the command). Identity
- * is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
+ * moves, a spec or plan agent's document moves stamped with its job (every other kind refused, and no other role sends them),
+ * `talos-restart` refused for every role, and the planted forgeries (a `role`, a `jobId`, a snapshot commit or an admission in the
+ * command). Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -97,6 +98,38 @@ describe('builder and reviewer', () => {
         expect(Bouncer.verdictOf(jobOf(role), { kind, ticketReference: '7' }).verdict, `${role} ${kind}`).toBe('refused');
       }
     }
+  });
+});
+
+describe('spec and plan agents', () => {
+  const DOCUMENT_AGENT_COMMANDS: readonly ControlCommand[] = [
+    {
+      kind: 'ticket-document-agent-propose', baseVersion: 2, edits: [], summary: 'Name the basket total'
+    },
+    { kind: 'ticket-document-agent-ready' },
+    { kind: 'ticket-document-agent-effect-read', version: 2 },
+  ];
+
+  test.each(['spec-agent', 'plan-agent'] as const)('a %s\'s document moves are admitted, stamped with its own job', (role) => {
+    for (const command of DOCUMENT_AGENT_COMMANDS) {
+      const stamped = { ...command, jobId: 'J12' } as ControlCommand;
+      expect(Bouncer.verdictOf(jobOf(role), command), command.kind).toEqual({ verdict: 'admitted', command: stamped });
+    }
+  });
+
+  test('a document agent is refused every other move, a finding and a ticket edit among them', () => {
+    expect(Bouncer.verdictOf(jobOf('spec-agent'), lowFinding())).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
+    expect(Bouncer.verdictOf(jobOf('plan-agent'), EDIT_OF_TICKET_7)).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
+  });
+
+  test.each(['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', 'effect-reader'] as const)('a %s is refused every document move', (role) => {
+    for (const command of DOCUMENT_AGENT_COMMANDS) expect(Bouncer.verdictOf(jobOf(role, { setupId: 'S1' }), command).verdict, command.kind).toBe('refused');
+  });
+
+  test('a document move naming its own job or snapshot commit is a forgery', () => {
+    expect(Bouncer.verdictOf(jobOf('spec-agent'), { kind: 'ticket-document-agent-ready', jobId: 'J3' })).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+    expect(Bouncer.verdictOf(jobOf('spec-agent'), { kind: 'ticket-document-agent-ready', constitutionCommit: 'a'.repeat(40) }))
+      .toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 });
 
@@ -374,17 +407,18 @@ describe('the kinds only User\'s own surfaces send', () => {
 
 /** Design section 8.3's table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
-  'system-question':        ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
-  'malformed-ticket':       ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
-  'setup-failed':           ['worktree-repair', 'ticket-park', 'incident-note'],
-  'out-of-calls':           ['job-fresh', 'ticket-park', 'incident-note'],
-  'blocked':                ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
-  'job-lost':               ['job-fresh', 'ticket-park', 'incident-note'],
-  'resume-failed':          ['job-fresh', 'ticket-park'],
-  'gate-cannot-run':        ['gate-retry', 'worktree-repair', 'ticket-park'],
-  'sandbox-unavailable':    ['gate-retry', 'ticket-park'],
-  'quiet-job':              ['job-message', 'job-fresh', 'incident-note'],
-  'setup-snapshot-touched': ['job-message', 'incident-note'],
+  'system-question':           ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
+  'malformed-ticket':          ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
+  'setup-failed':              ['worktree-repair', 'ticket-park', 'incident-note'],
+  'out-of-calls':              ['job-fresh', 'ticket-park', 'incident-note'],
+  'blocked':                   ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
+  'job-lost':                  ['job-fresh', 'ticket-park', 'incident-note'],
+  'resume-failed':             ['job-fresh', 'ticket-park'],
+  'gate-cannot-run':           ['gate-retry', 'worktree-repair', 'ticket-park'],
+  'sandbox-unavailable':       ['gate-retry', 'ticket-park'],
+  'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
+  'setup-snapshot-touched':    ['job-message', 'incident-note'],
+  'document-snapshot-touched': ['incident-note'],
 };
 
 /** A command of each move kind the contract has so far; the repair and merge moves arrive with their commands. */

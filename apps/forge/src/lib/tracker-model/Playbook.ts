@@ -9,23 +9,33 @@ import type {
   InterruptionCause,
   Job,
   JobKind,
-  JobOutcome
+  JobOutcome,
+  JobRole
 } from './@types/Job.ts';
-import type { LifecycleLimits, LifecycleThresholds }                                             from './@types/LifecycleLimits.ts';
-import type { LogRecord }                                                                        from './@types/LogRecord.ts';
-import type { EntityKey }                                                                        from './@types/Pipeline.ts';
-import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
-import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
-import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
+import type { LifecycleLimits, LifecycleThresholds } from './@types/LifecycleLimits.ts';
+import type { LogRecord }                            from './@types/LogRecord.ts';
+import type { EntityKey }                            from './@types/Pipeline.ts';
+import type { PlaybookObservations, PlaybookStep }   from './@types/PlaybookStep.ts';
+import type { TicketStage, TicketStageName }         from './@types/Task.ts';
+import type { TicketPriority, TicketStatus }         from './@types/Ticket.ts';
+import type {
+  DocumentStanding,
+  LoadedTicketDocumentRecord,
+  TicketDocument,
+  TicketDocumentKind
+} from './@types/TicketDocument.ts';
 import type { HephaestusState }                                                                  from './@types/TrackerProgress.ts';
 import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
 import { RESUME_POLICY_OF_CAUSE, type ResumePolicy }                                             from './constants/ResumePolicy.ts';
-import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP, TICKET_STATUSES_THAT_CLOSE_A_TICKET }           from './constants/Statuses.ts';
 import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
+import { DocumentAgentJobUtil }                                                                  from './utils/DocumentAgentJobUtil.ts';
 import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
 import { LaunchSlotUtil }                                                                        from './utils/LaunchSlotUtil.ts';
 import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
+import { TicketDocumentStandingUtil }                                                            from './utils/TicketDocumentStandingUtil.ts';
+import { TicketDocumentVersionUtil }                                                             from './utils/TicketDocumentVersionUtil.ts';
 import { TicketStageUtil }                                                                       from './utils/TicketStageUtil.ts';
 
 export interface PlaybookTicket {
@@ -80,7 +90,27 @@ export interface PlaybookFacts {
   entitiesWithReview:          readonly string[];
   /** Each entity's cap: the most of its jobs that hold a slot at once, under `concurrencyLimit`. An entity without one has the board's limit alone. */
   concurrencyByEntity:         Readonly<Record<EntityKey, number>>;
+  /** The spec and plan of each ticket in the spec-then-plan route, as their agents' launches read them; absent reads as none. */
+  ticketDocuments?:            readonly PlaybookTicketDocuments[];
   observations:                PlaybookObservations;
+}
+
+/** What a document agent's launch reads of one document. */
+export interface PlaybookDocumentFacts {
+  hasVersion:                  boolean;
+  standing:                    DocumentStanding;
+  /** A message waits in its queue for the document's agent. */
+  messageWaits:                boolean;
+  /** For a plan: an edit its agent proposed for the spec's approved version is still open. */
+  openProposalForApprovedSpec: boolean;
+}
+
+export interface PlaybookTicketDocuments {
+  ticketId:           string;
+  spec:               PlaybookDocumentFacts;
+  plan:               PlaybookDocumentFacts;
+  /** The spec version approved at its head; `null` while none is. */
+  approvedSpecNumber: number | null;
 }
 
 /** The jobs whose spent red resumes park their ticket; an Airlock agent's Airlock parks its own, aborting the merge. */
@@ -127,6 +157,7 @@ interface Candidate {
 
 interface JobLaunch {
   kind:      JobKind;
+  role:      JobRole | null;
   ticketIds: readonly string[];
   attempt:   number;
   entity?:   string;
@@ -169,10 +200,10 @@ function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): JobLaunchesByJo
   for (const record of logRecords) {
     if (record.kind !== 'job-launched') continue;
     const {
-      kind, ticketIds, attempt, entity, stage
+      kind, role, ticketIds, attempt, entity, stage
     } = record.fields;
     launches.set(record.jobId, {
-      kind, ticketIds, attempt, ...(entity === undefined ? {} : { entity }), ...(stage === undefined ? {} : { stage })
+      kind, role, ticketIds, attempt, ...(entity === undefined ? {} : { entity }), ...(stage === undefined ? {} : { stage })
     });
   }
   return launches;
@@ -778,21 +809,101 @@ function candidatesWithinEntityCapsOf(candidates: readonly Candidate[], facts: P
   });
 }
 
+const DOCUMENT_AGENT_KIND: JobKind = 'document-agent';
+
+function documentFactsOf(document: Readonly<TicketDocument> | undefined, standing: DocumentStanding, approvedSpecNumber: number | null): PlaybookDocumentFacts {
+  return {
+    hasVersion:                  document !== undefined && document.versions.length > 0,
+    standing,
+    messageWaits:                document?.messages.some((message) => message.state === 'queued') ?? false,
+    openProposalForApprovedSpec: approvedSpecNumber !== null
+      && (document?.proposals.some((proposal) => proposal.state === 'proposed' && proposal.forSpecNumber === approvedSpecNumber) ?? false),
+  };
+}
+
+/** The documents of each record, as `PlaybookFacts.ticketDocuments` holds them. */
+function ticketDocumentFactsOf(records: readonly LoadedTicketDocumentRecord[]): PlaybookTicketDocuments[] {
+  return records.map(({ record }) => {
+    const documentOfKind     = (kind: TicketDocumentKind): Readonly<TicketDocument> | undefined => record.documents.find((document) => document.kind === kind);
+    const standings          = TicketDocumentStandingUtil.standingsOf(record);
+    const spec               = documentOfKind('spec');
+    const approvedSpecNumber = spec === undefined ? null : TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? null;
+    return {
+      ticketId: record.ticketId,
+      spec:     documentFactsOf(spec, standings.spec, null),
+      plan:     documentFactsOf(documentOfKind('plan'), standings.plan, approvedSpecNumber),
+      approvedSpecNumber,
+    };
+  });
+}
+
+/** The agents of a ticket's document launched so far, in launch order, each with the attempt it carried and how it ended. */
+function documentAgentLaunchesOf(ticketId: string, document: TicketDocumentKind, facts: IndexedPlaybookFacts): { jobId: string; attempt: number; outcome: JobOutcome | null }[] {
+  const role = DocumentAgentJobUtil.roleOf(document);
+  const launches = [...facts.launchesByJobId.entries()]
+    .filter(([, launch]) => launch.kind === DOCUMENT_AGENT_KIND && launch.role === role && launch.ticketIds[0] === ticketId);
+  return launches.map(([jobId, launch]) => {
+    const ended = facts.logRecords.findLast((record) => record.kind === 'job-ended' && record.jobId === jobId);
+    return { jobId, attempt: launch.attempt, outcome: ended?.kind === 'job-ended' ? ended.fields.outcome : null };
+  });
+}
+
 /**
- * Each entity's cap passes the launches first, then the board's free slots bound them; of those, the ones past the machine's free slots
- * wait as `await-machine-slot`.
+ * Whether a document's agent starts by itself: the spec's first write, the plan's first write once the spec is approved, or the plan again
+ * once a newer spec version is approved and no edit for it is open. Each starts once per spec version a plan is written for, and never
+ * after its agent failed: only a message User queues starts it then.
+ */
+function documentAgentIsDue(documents: PlaybookTicketDocuments, document: TicketDocumentKind, facts: IndexedPlaybookFacts): boolean {
+  const launches = documentAgentLaunchesOf(documents.ticketId, document, facts);
+  if (launches.at(-1)?.outcome === 'failed') return false;
+  if (document === 'spec') return !documents.spec.hasVersion && launches.length === 0;
+  const { approvedSpecNumber, plan } = documents;
+  if (documents.spec.standing !== 'approved' || approvedSpecNumber === null) return false;
+  if (launches.some((launch) => launch.attempt === approvedSpecNumber)) return false;
+  return !plan.hasVersion || (plan.standing === 'out-of-date' && !plan.openProposalForApprovedSpec);
+}
+
+/**
+ * A ticket no agent picked up whose document needs its agent: a queued message, or a first write or a newer spec, with no agent working it.
+ * A waiting agent is started again only by a message.
+ */
+function documentAgentCandidatesOf(facts: IndexedPlaybookFacts): PlaybookStep[] {
+  return (facts.ticketDocuments ?? []).flatMap((documents) => {
+    const status = facts.statusById.get(documents.ticketId);
+    if (status === undefined || !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(status)) return [];
+    return (['spec', 'plan'] as const).flatMap((document): PlaybookStep[] => {
+      const agent = DocumentAgentJobUtil.liveAgentOf(facts.jobs, documents.ticketId, document);
+      if (agent !== null && agent.state !== 'awaiting-answer') return [];
+      const due = documents[document].messageWaits || (agent === null && documentAgentIsDue(documents, document, facts));
+      return due ? [{ kind: 'launch-document-agent', ticketId: documents.ticketId, document }] : [];
+    });
+  });
+}
+
+/**
+ * A document agent's turn is first in line, before any build: it takes the free slots first, and past them it waits. Then each entity's
+ * cap passes the launches, then the board's free slots left bound them; of all of them, the ones past the machine's free slots wait as
+ * `await-machine-slot`.
  */
 function launchStepsOf(facts: IndexedPlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
+  const freeSlots     = freeSlotsOf(facts);
+  const documentSteps = documentAgentCandidatesOf(facts).slice(0, freeSlots);
   const candidates = facts.tickets
     .filter((ticket) => !ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && !ticketIsHeld(ticket, facts))
     .flatMap((ticket) => candidateOf(ticket, facts) ?? [])
     .sort(candidateOrder(facts));
   const launchable = candidatesWithinEntityCapsOf(candidates, facts)
-    .slice(0, freeSlotsOf(facts));
-  const machineSlotsFree = facts.observations.machineAgentSlotsFree ?? launchable.length;
-  return launchable.map((candidate, index): PlaybookStep => (
-    index < machineSlotsFree ? candidate.step : { kind: 'await-machine-slot', ticketId: candidate.ticket.id }
-  ));
+    .slice(0, freeSlots - documentSteps.length);
+  const steps = [...documentSteps, ...launchable.map((candidate) => candidate.step)];
+  const machineSlotsFree = facts.observations.machineAgentSlotsFree ?? steps.length;
+  return steps.map((step, index): PlaybookStep => {
+    if (index < machineSlotsFree) return step;
+    return { kind: 'await-machine-slot', ticketId: step.kind === 'launch-document-agent' ? step.ticketId : ticketIdOfLaunch(step) };
+  });
+}
+
+function ticketIdOfLaunch(step: PlaybookStep): string {
+  return step.kind === 'launch-build' || step.kind === 'launch-review' ? step.ticketId : '';
 }
 
 
@@ -891,6 +1002,7 @@ function nextLaunchNumbersOf(tickets: readonly Pick<PlaybookTicket, 'id' | 'stat
 
 export const Playbook = {
   nextStepsOf,
+  ticketDocumentFactsOf,
   resumePolicyOf,
   interruptionCauseOf,
   resumeWaitOf,

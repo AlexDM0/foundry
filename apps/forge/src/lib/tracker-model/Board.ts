@@ -575,6 +575,10 @@ export class Board {
     return this.jobRules.recordUsageLimitHit(jobId, limit, at);
   }
 
+  recordDocumentSnapshotTouched(ticketId: string, touched: LogRecordFieldsOf<'ticket-document-snapshot-touched'>, at: string): Logged {
+    return this.jobRules.recordDocumentSnapshotTouched(ticketId, touched, at);
+  }
+
   recordHatchApplied(jobId: string, applied: LogRecordFieldsOf<'hatch-applied'>, at: string): Logged {
     return this.jobRules.recordHatchApplied(jobId, applied, at);
   }
@@ -893,6 +897,7 @@ export class Board {
         .map(([entityKey]) => entityKey),
       concurrencyByEntity: Object.fromEntries(Object.entries(this.records.pipeline?.entities ?? {})
         .flatMap(([entityKey, entity]): [string, number][] => (entity.concurrency === undefined ? [] : [[entityKey, entity.concurrency]]))),
+      ticketDocuments: Playbook.ticketDocumentFactsOf(this.records.ticketDocumentRecords),
       observations,
     };
   }
@@ -969,7 +974,7 @@ export class Board {
       case 'await-machine-slot':
         return [];
       case 'launch-document-agent':
-        throw new Error('lane C');
+        return this.jobRules.launchOrResumeDocumentAgent(step.ticketId, step.document, at).logged;
       // Hephaestus acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
       case 'act-on-waiver-answer':
         return [];

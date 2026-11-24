@@ -93,7 +93,17 @@ const PIPELINE_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'pipeline-step-ready',
 ]);
 
-const FIELDS_ONLY_HEPHAESTUS_DECIDES = ['jobId', 'role', 'admission'] as const;
+/** A spec or plan agent's moves on the document its job writes, stamped with its job; the job names the ticket and the document. */
+const DOCUMENT_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
+  'ticket-document-agent-propose',
+  'ticket-document-agent-ready',
+  'ticket-document-agent-effect-read',
+]);
+
+const DOCUMENT_AGENT_ROLES: ReadonlySet<JobRole> = new Set(['spec-agent', 'plan-agent']);
+
+/** `constitutionCommit` is the commit of a document agent's snapshot, which Hephaestus stamps after the policy admits the move. */
+const FIELDS_ONLY_HEPHAESTUS_DECIDES = ['jobId', 'role', 'admission', 'constitutionCommit'] as const;
 
 /** Their `jobId` is the job the move acts on, not the sender's identity. */
 const JOB_TARGETING_KINDS: ReadonlySet<ControlCommandKind> = new Set(['job-fresh', 'job-message', 'gate-retry']);
@@ -190,6 +200,11 @@ function pipelineAgentVerdictOf(job: RelayingJob, command: ControlCommand): Boun
   };
 }
 
+function documentAgentVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
+  if (!DOCUMENT_AGENT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
+  return { verdict: 'admitted', command: { ...command, jobId: job.id } as ControlCommand };
+}
+
 function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   const incidentId = fieldOf(command, 'incidentId');
   const incident   = job.deliveredIncidents.find((delivered) => delivered.id === incidentId);
@@ -207,6 +222,7 @@ function verdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (job.role === 'product-owner') return productOwnerVerdictOf(job, command);
   if (job.role === 'assistant') return assistantVerdictOf(job, command);
   if (job.role === 'pipeline-agent') return pipelineAgentVerdictOf(job, command);
+  if (DOCUMENT_AGENT_ROLES.has(job.role)) return documentAgentVerdictOf(job, command);
   return refused('command-not-allowed-for-role');
 }
 

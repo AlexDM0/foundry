@@ -54,6 +54,7 @@ describe('the command table', () => {
       'crash-log',
       'decide',
       'decisions',
+      'document',
       'draft',
       'epic',
       'gate',

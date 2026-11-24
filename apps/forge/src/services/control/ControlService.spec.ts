@@ -237,8 +237,19 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'ticket-document-effect-read': {
     kind: 'ticket-document-effect-read', ticketReference: '3', document: 'plan', version: 2
   },
-  'ticket-document-turn-stop': { kind: 'ticket-document-turn-stop', ticketReference: '3', document: 'spec' },
-  'task-add':                  {
+  'ticket-document-turn-stop':     { kind: 'ticket-document-turn-stop', ticketReference: '3', document: 'spec' },
+  'ticket-document-agent-propose': {
+    kind:        'ticket-document-agent-propose',
+    baseVersion: 2,
+    edits:       [{
+      fromLine: 4, toLine: 4, originalLines: ['Alex Example sees the total.'], replacementLines: ['Alex Example sees the basket total.']
+    }],
+    summary: 'Name the basket total',
+    answers: 'M2',
+  },
+  'ticket-document-agent-ready':       { kind: 'ticket-document-agent-ready' },
+  'ticket-document-agent-effect-read': { kind: 'ticket-document-agent-effect-read', version: 3 },
+  'task-add':                          {
     kind:              'task-add',
     name:              'Review the basket page',
     reviewOfReference: '#3',

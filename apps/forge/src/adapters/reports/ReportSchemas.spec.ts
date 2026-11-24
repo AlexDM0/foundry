@@ -10,6 +10,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
+  EFFECT_READING_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   PACKAGE_BUILDER_REPORT_SCHEMA,
@@ -55,6 +56,13 @@ const RESOLVED = {
 const PACKAGE_RETURN = { ...BUILT, outcome: 'package-return', packageReturnReason: 'The package must export the price in cents.' };
 
 const ITEM_NAMED_BY_ITS_TEXT = { ...BUILT, acceptance: [{ item: 'A1. The palette names a colour.', state: 'met', evidence: 'palette.txt line 1' }] };
+
+const EFFECT_READ = {
+  references: [{ reference: 1, lines: { from: 4, to: 4 }, quote: 'Change the basket total.' }],
+  entries:    [{
+    reference: 1, path: 'src/Basket.ts', change: 'changes', detail: 'The total sums the lines.', candidates: []
+  }],
+};
 
 const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unknown, valid: boolean]> = [
   ['a built builder report', BUILDER_REPORT_SCHEMA, BUILT, true],
@@ -128,6 +136,9 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
   ['an adapt builder report refusing the change, which only a package build may', ADAPT_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'refused', refusedReason: 'No.' }, false],
   ['a builder report of any other stage sending the ticket back (E41)', BUILDER_REPORT_SCHEMA, PACKAGE_RETURN, false],
   ['a package builder report sending the ticket back (E41)', PACKAGE_BUILDER_REPORT_SCHEMA, { ...PACKAGE_RETURN, exposedSurfaceChanged: false }, false],
+  ['an effect reading report naming a reference and its places', EFFECT_READING_REPORT_SCHEMA, EFFECT_READ, true],
+  ['an effect reading report with a change no reading makes', EFFECT_READING_REPORT_SCHEMA, { ...EFFECT_READ, entries: [{ ...EFFECT_READ.entries[0], change: 'renames' }] }, false],
+  ['an effect reading report with a field of its own', EFFECT_READING_REPORT_SCHEMA, { ...EFFECT_READ, summary: 'Two files.' }, false],
 ];
 
 describe('the report table', () => {
@@ -137,7 +148,13 @@ describe('the report table', () => {
 
   test('each schema is a draft-07 document that survives JSON unchanged, as the command line receives it', () => {
     for (const schema of [
-      BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, PACKAGE_BUILDER_REPORT_SCHEMA, PACKAGE_REVIEWER_REPORT_SCHEMA, ADAPT_BUILDER_REPORT_SCHEMA
+      BUILDER_REPORT_SCHEMA,
+      REVIEWER_REPORT_SCHEMA,
+      AIRLOCK_AGENT_REPORT_SCHEMA,
+      PACKAGE_BUILDER_REPORT_SCHEMA,
+      PACKAGE_REVIEWER_REPORT_SCHEMA,
+      ADAPT_BUILDER_REPORT_SCHEMA,
+      EFFECT_READING_REPORT_SCHEMA,
     ]) {
       expect(schema.$schema).toBe('http://json-schema.org/draft-07/schema#');
       expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);

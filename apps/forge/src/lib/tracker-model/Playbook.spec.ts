@@ -552,7 +552,7 @@ const CLAIMS: PolicyClaim[] = [
     name:   'launches stop at the concurrency limit',
     facts:  factsWith({ tickets: [ticketOf('001', 'committed'), ticketOf('002', 'committed')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
-    mutant: policyLine('    .slice(0, freeSlotsOf(facts));\n', ';\n'),
+    mutant: policyLine('    .slice(0, freeSlots - documentSteps.length);\n', ';\n'),
   },
   {
     name:  'launches stop at the machine slots reserved, and each other launchable ticket waits for a machine slot',

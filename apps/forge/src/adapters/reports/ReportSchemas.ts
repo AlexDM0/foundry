@@ -192,3 +192,21 @@ export const AIRLOCK_AGENT_REPORT_SCHEMA: JsonSchema = {
   if:   { properties: { outcome: { const: 'resolved' } } },
   then: { properties: { reportKind: { const: null } } },
 };
+
+/** A line or reference number; that it is at least 1 is Hephaestus's check, which the schema type has no keyword for. */
+const LINE_NUMBER: JsonSchema = { type: 'integer' };
+
+/**
+ * An effect reader's report: each sentence of the document it resolved, numbered as its marks read, and each place in the tree such a
+ * sentence names. A path it cannot place is `unresolved`, with the candidates it found; Hephaestus checks every path against the tree.
+ */
+export const EFFECT_READING_REPORT_SCHEMA: JsonSchema = {
+  $schema: DRAFT_07,
+  title:   'effect reading report',
+  ...closedObject({
+    references: listOf(closedObject({ reference: LINE_NUMBER, lines: closedObject({ from: LINE_NUMBER, to: LINE_NUMBER }), quote: TEXT })),
+    entries:    listOf(closedObject({
+      reference: LINE_NUMBER, path: TEXT, change: { enum: ['adds', 'changes', 'removes', 'unresolved'] }, detail: TEXT, candidates: listOf(TEXT)
+    })),
+  }),
+};

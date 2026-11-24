@@ -53,6 +53,7 @@ import { DISPATCH_PROTOCOL }                                          from '../.
 import { ASSISTANT_TURN_CALL_BUDGET, RED_HANDOFF_RESUME_CALL_BUDGET } from '../../src/shared/constants/HephaestusLimits.ts';
 import { PRODUCT_NAMES }                                              from '../../src/shared/constants/ProductNames.ts';
 import { LINE_GRAMMAR_WORDING }                                       from '../LineGrammarWording.ts';
+import { documentLaunchTextOf }                                       from './DocumentLaunchText.ts';
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
@@ -892,6 +893,8 @@ function launchTextOf(job: Readonly<Job>, unfilledFacts: JobLaunchFacts, promptF
   const facts = { ...unfilledFacts, instructions: filledTemplateOf(unfilledFacts.instructions, promptFills) };
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
   if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement, promptFills);
+  const documentLaunchText = documentLaunchTextOf(job, facts);
+  if (documentLaunchText !== null) return documentLaunchText;
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
   const subject = ticketsPhraseOf(job.ticketIds);
   const roleBrief = `You are the ${job.role ?? job.kind} of job ${job.id}.`;

@@ -28,7 +28,7 @@ useRecordedGitOutsideAnyRepository();
 const HELP_TEXT      = helpText('posix-shell');
 const REFERENCE_TEXT = readFileSync(join(import.meta.dir, '..', 'docs', 'cli.md'), 'utf8');
 
-const COMMANDS_WITH_SUBCOMMANDS = new Set(['task', 'ticket', 'epic', 'draft', 'hook', 'job', 'intake', 'gate', 'pipeline']);
+const COMMANDS_WITH_SUBCOMMANDS = new Set(['task', 'ticket', 'epic', 'draft', 'hook', 'job', 'intake', 'gate', 'pipeline', 'document']);
 
 const JSON_OPTION_NAME = 'json';
 
