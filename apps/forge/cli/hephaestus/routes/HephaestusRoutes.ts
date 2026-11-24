@@ -22,8 +22,11 @@ import type {
 import { JobTranscript }                                                       from '../../../src/services/hephaestus/JobTranscript.ts';
 import { MonitorSnapshotAssembly, type MonitorHephaestusFacts }                from '../../../src/services/hephaestus/MonitorSnapshotAssembly.ts';
 import type { MonitorStream }                                                  from '../../../src/services/hephaestus/MonitorStream.ts';
+import { TicketDocumentsAssembly, type ConstitutionNumbers }                   from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
 import type { StoreReadFace }                                                  from '../../../src/services/store/BoardStore.ts';
+import { readingBoardOfContents }                                              from '../../../src/services/tracker/BoardOfContents.ts';
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
+import type { EffectReadingSource }                                            from '../../../src/shared/@types/EffectReading.ts';
 import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES }              from '../../../src/shared/constants/HephaestusLimits.ts';
 import { JOB_ID_PATTERN }                                                      from '../../constants/RecordIdPatterns.ts';
@@ -32,12 +35,14 @@ import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } f
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
 export interface HephaestusRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context'> {
-  token:         () => string | null;
-  started:       () => boolean;
-  broker:        () => EventBroker | null;
-  monitorStream: () => MonitorStream | null;
+  token:           () => string | null;
+  started:         () => boolean;
+  broker:          () => EventBroker | null;
+  monitorStream:   () => MonitorStream | null;
   /** `null` until Hephaestus took its generation. */
-  monitorFacts:  () => MonitorHephaestusFacts | null;
+  monitorFacts:    () => MonitorHephaestusFacts | null;
+  /** The effect readings Hephaestus holds in memory; absent, a ticket's documents carry none. */
+  effectReadings?: EffectReadingSource;
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
@@ -45,6 +50,7 @@ const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
   'forbidden':      'Hephaestus answers only programs on this machine that name it by 127.0.0.1 or localhost.',
   'read-failed':    'Hephaestus could not read the board\'s files: one of them is missing or cannot be read.',
   'malformed-body': MALFORMED_BODY_TEXT,
+  'body-too-large': 'The command body is larger than Hephaestus reads, so nothing was done.',
 };
 
 const MONITOR_STATUS = {
@@ -92,6 +98,40 @@ function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
   return { status: PICTURE_STATUS.STORED, body: { pictureId: storing.pictureId, bytes: storing.bytes, mediaType: storing.mediaType } };
 }
 
+const TICKET_DOCUMENTS_STATUS = {
+  ANSWERED:     200,
+  NO_DOCUMENTS: 404,
+} as const;
+
+/** What a ticket's documents are read from beside the board: the effect readings and the constitution numbers counted so far. */
+interface TicketDocumentsReads {
+  effectReadings:      EffectReadingSource | null;
+  constitutionNumbers: ConstitutionNumbers;
+}
+
+/** `GET /api/tickets/<ticket>/documents`: the document, or 404 worded for a reference that names no ticket or a ticket with no documents. */
+function ticketDocumentsAnswerOf(boardReads: StoreReadFace, reads: TicketDocumentsReads, ticketReference: string): RouteAnswer {
+  const board  = readingBoardOfContents(boardReads.requireBoard());
+  const ticket = board.ticketByReference(ticketReference);
+  try {
+    if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
+    const ticketId = ticket.frontmatter.id;
+    const document = TicketDocumentsAssembly.ticketDocumentsOf({
+      ticket,
+      loadedRecord:        board.ticketDocumentRecordOf(ticketId),
+      pipeline:            board.pipeline(),
+      jobs:                board.jobs(),
+      effectReadings:      reads.effectReadings?.readingsOf(ticketId) ?? [],
+      constitutionNumbers: reads.constitutionNumbers,
+    });
+    return { status: TICKET_DOCUMENTS_STATUS.ANSWERED, body: document };
+  } catch (thrown) {
+    if (!(thrown instanceof OperationRefusal)) throw thrown;
+    const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(thrown);
+    return { status: TICKET_DOCUMENTS_STATUS.NO_DOCUMENTS, body: { refusal: code, fields, text: sentence } };
+  }
+}
+
 export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusRoutes {
   const { context, workspace } = request;
   const boardReads = request.boardStore.reads;
@@ -99,19 +139,24 @@ export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusR
   const presenceSource = {
     ports: context.platformPorts, workspace, boardReads, files: hephaestusFilesIn(workspace.trackerDirectory)
   };
+  const ticketDocumentsReads: TicketDocumentsReads = {
+    effectReadings:      request.effectReadings ?? null,
+    constitutionNumbers: TicketDocumentsAssembly.constitutionNumbersIn(workspace.rootDirectory),
+  };
   const jobFolderOf = (jobId: string): string | null => {
     if (!JOB_ID_PATTERN.test(jobId)) return null;
     const jobFolder = request.boardChildren.jobFolderOf(jobId);
     return existsSync(jobFolder) ? jobFolder : null;
   };
   return {
-    token:   request.token,
-    started: request.started,
-    command: (body) => answerControlCommand(body, { ...request, context }),
-    onNudge: request.wake,
-    state:   () => readBoardState(boardStateSource).state,
-    board:   () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(boardStateSource), now: context.now() }),
-    summary: () => {
+    token:           request.token,
+    started:         request.started,
+    command:         (body) => answerControlCommand(body, { ...request, context }),
+    ticketDocuments: (ticketReference) => ticketDocumentsAnswerOf(boardReads, ticketDocumentsReads, ticketReference),
+    onNudge:         request.wake,
+    state:           () => readBoardState(boardStateSource).state,
+    board:           () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(boardStateSource), now: context.now() }),
+    summary:         () => {
       const { state, project, readyTicketIds } = readBoardState(boardStateSource);
       return BoardStateAssembly.summaryOf(state, project, readyTicketIds);
     },

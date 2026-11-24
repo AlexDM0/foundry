@@ -13,7 +13,9 @@
  * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one. Hephaestus
  * serves no page: `GET /` and every other path outside `/api/` is a 404. The bearer token is the only credential: the routes that once
  * gave a browser a session are a 404, and a data route answers a cookie with no token 401. Every answer carries the API's policy, which
- * lets nothing frame it, and a picture and a job file their sandbox.
+ * lets nothing frame it, and a picture and a job file their sandbox. A ticket's documents answer behind the token at their v1 path from
+ * forge 4.1, the reference reaching the route from the path, and the route's 404 refusal passes through as it is. A command body larger
+ * than the bound is refused 413 and never reaches the command route.
  */
 import {
   afterEach,
@@ -115,24 +117,25 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: HephaestusRoutes['
     throw new Error('a route the stream cases never call');
   };
   return {
-    token:         () => null,
-    started:       () => true,
-    command:       neverCalled,
-    onNudge:       neverCalled,
-    state:         neverCalled,
-    board:         neverCalled,
-    summary:       neverCalled,
-    monitor:       neverCalled,
-    presence:      neverCalled,
-    crashLog:      neverCalled,
-    monitorStream: () => null,
-    refusalTextOf: neverCalled,
-    events:        () => broker,
-    transcriptOf:  () => null,
+    token:           () => null,
+    started:         () => true,
+    command:         neverCalled,
+    ticketDocuments: neverCalled,
+    onNudge:         neverCalled,
+    state:           neverCalled,
+    board:           neverCalled,
+    summary:         neverCalled,
+    monitor:         neverCalled,
+    presence:        neverCalled,
+    crashLog:        neverCalled,
+    monitorStream:   () => null,
+    refusalTextOf:   neverCalled,
+    events:          () => broker,
+    transcriptOf:    () => null,
     profileOutputOf,
-    jobFileText:   () => null,
-    storePicture:  neverCalled,
-    picture:       () => null,
+    jobFileText:     () => null,
+    storePicture:    neverCalled,
+    picture:         () => null,
   };
 }
 
@@ -237,6 +240,7 @@ const VERSIONED_ENDPOINTS = [
   'profiles/{profileRunId}/stream',
   'pictures',
   'pictures/{pictureId}',
+  'tickets/{ticketId}/documents',
 ];
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
 
@@ -277,6 +281,9 @@ function versionedRoutesOf(started: () => boolean): HephaestusRoutes {
     profileOutputOf: (profileRunId, after) => (profileRunId === 'P1' ? () => [{ lineNumber: 1, text: `after ${after ?? 'nothing'}` }] : null),
     storePicture:    (upload) => ({ status: 200, body: { stored: upload.verdict === 'read' ? upload.bytes.length : null } }),
     picture:         (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: Uint8Array.from([1, 2, 3]) } : null),
+    ticketDocuments: (ticketReference) => (ticketReference === '004'
+      ? { status: 200, body: { ticketId: '004', documents: [], effectReadings: [] } }
+      : { status: 404, body: { refusal: 'ticket-has-no-documents', fields: { ticketId: ticketReference }, text: `Example sentence for #${ticketReference}` } }),
   } as Partial<HephaestusRoutes> as HephaestusRoutes;
 }
 
@@ -363,6 +370,7 @@ describe('the versioned paths', () => {
       { endpoint: 'profiles/{profileRunId}/stream', values: { profileRunId: 'P1' } },
       { endpoint: 'pictures', method: 'POST', body: [1, 2, 3] },
       { endpoint: 'pictures/{pictureId}', values: { pictureId: EXAMPLE_PICTURE_ID } },
+      { endpoint: 'tickets/{ticketId}/documents', values: { ticketId: '004' } },
     ];
     for (const {
       endpoint, values = {}, method, body
@@ -473,6 +481,57 @@ describe('the board document', () => {
   });
 });
 
+describe('a ticket\'s documents', () => {
+  test('answer at /api/v1/tickets/<ticket>/documents with the token, the route\'s refusal passing through as it is', async () => {
+    const handler = versionedHandlerOf();
+    const answered = await handler.answer(requestTo('/api/v1/tickets/004/documents'), PORT);
+    expect([answered.status, await answered.json()]).toEqual([200, { ticketId: '004', documents: [], effectReadings: [] }]);
+    const refused = await handler.answer(requestTo('/api/v1/tickets/007/documents'), PORT);
+    expect([refused.status, await refused.json()])
+      .toEqual([404, { refusal: 'ticket-has-no-documents', fields: { ticketId: '007' }, text: 'Example sentence for #007' }]);
+    const unauthorized = await handler.answer(requestTo('/api/v1/tickets/004/documents', { headers: HOST_HEADERS }), PORT);
+    expect(unauthorized.status).toBe(401);
+  });
+
+  test('a version the registry does not serve them at, or a path one segment longer, is a 404 not-found', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of ['/api/v2/tickets/004/documents', '/api/v1/tickets/004/documents/spec', '/api/v1/tickets//documents']) {
+      const answer = await handler.answer(requestTo(path), PORT);
+      expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
+    }
+  });
+});
+
+describe('the command body bound', () => {
+  test('a body larger than the bound answers 413 body-too-large with its size, and the command route never sees it', async () => {
+    const markdown = 'a'.repeat(HephaestusServer.COMMAND_BODY_BOUND_BYTES);
+    const answer = await versionedHandlerOf().answer(requestTo('/api/v3/commands', {
+      method: 'POST',
+      body:   {
+        kind: 'ticket-document-save', ticketReference: '004', document: 'spec', baseVersion: null, markdown
+      },
+    }), PORT);
+    const body = await answer.json() as Record<string, unknown>;
+    expect([answer.status, body['controlVersion'], body['refusal'], body['text']]).toEqual([413, 3, 'body-too-large', 'Example sentence for body-too-large']);
+    expect(body['fields']).toEqual({ bytes: expect.any(Number), boundBytes: HephaestusServer.COMMAND_BODY_BOUND_BYTES });
+    expect(body['received']).toBeUndefined();
+  });
+
+  test('a body within the bound reaches the command route whole, and one that is no JSON answers 400 malformed-body', async () => {
+    const markdown = 'a'.repeat(HephaestusServer.COMMAND_BODY_BOUND_BYTES / 2);
+    const command = {
+      kind: 'ticket-document-save', ticketReference: '004', document: 'spec', baseVersion: null, markdown
+    };
+    const answer = await versionedHandlerOf().answer(requestTo('/api/v3/commands', { method: 'POST', body: command }), PORT);
+    expect([answer.status, await answer.json()]).toEqual([200, { controlVersion: 3, received: command }]);
+    const notJson = await versionedHandlerOf().answer(new Request(`${EXAMPLE_API_ORIGIN}/api/commands`, { method: 'POST', headers: TOKEN_HEADERS, body: '{"kind":' }), PORT);
+    expect([notJson.status, await notJson.json()])
+      .toEqual([400, {
+        controlVersion: 3, refusal: 'malformed-body', fields: {}, text: 'Example sentence for malformed-body'
+      }]);
+  });
+});
+
 describe('the board streams at their versioned paths', () => {
   test('a job\'s and a profile\'s stream reach their routes with the id from the path', async () => {
     const handler = versionedHandlerOf();
@@ -515,6 +574,7 @@ const DATA_ROUTE_PATHS = [
   '/api/jobs/J1/files/report.json',
   '/api/profiles/P1/stream',
   `/api/pictures/${EXAMPLE_PICTURE_ID}`,
+  '/api/tickets/004/documents',
 ];
 /** A cookie named as a browser session of this server once was. */
 const COOKIE_HEADERS = { ...HOST_HEADERS, cookie: `forge-session-${PORT}=example-secret` };

@@ -4,7 +4,9 @@
  * published after a pass is diffed against the last one: `board` when anything changed, and one event per changed job, newly ended job,
  * decision or incident, and for Hephaestus and usage. A job first shown past `launching`, ended included, is published `launching` first.
  * A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` just before `board`, so the
- * flow can animate its marks from the slice before the whole state replaces it.
+ * flow can animate its marks from the slice before the whole state replaces it. A ticket whose documents record changed sends `documents`
+ * just before `board`, a `board` following also when nothing else changed; a ticket whose effect reading changed sends `documents` alone,
+ * between publishes.
  */
 import type { EndedJob, JobLiveFactsWithSilence } from '../../adapters/@types/BoardStateParts.ts';
 import type { BoardState }                        from './BoardState.ts';
@@ -25,13 +27,18 @@ export interface HephaestusEvent {
 export type EventReplay = { verdict: 'replayed'; events: HephaestusEvent[] } | { verdict: 'fresh' };
 
 export interface EventBroker {
-  /** Diffs the state against the last one published and sends what changed; the first state sends only `board`. */
-  publishState: (state: BoardState) => void;
+  /**
+   * Diffs the state and each ticket's documents fingerprint against the last ones published and sends what changed; the first state
+   * sends only `board`. A publish that changed only documents sends their events and `board`.
+   */
+  publishState:            (state: BoardState, ticketDocumentFingerprints?: ReadonlyMap<string, string>) => void;
+  /** Sends `documents` for a ticket whose effect reading changed, which no state carries. */
+  announceTicketDocuments: (ticketId: string) => void;
   /** The events a reconnect missed, or `fresh` when it must start from a whole `board`. */
-  replayAfter:  (lastEventId: string | null) => EventReplay;
+  replayAfter:             (lastEventId: string | null) => EventReplay;
   /** The newest state as a `board` event carrying the newest id, for a connect that starts fresh; `null` before the first state. */
-  snapshot:     () => HephaestusEvent | null;
-  subscribe:    (listener: (event: HephaestusEvent) => void) => () => void;
+  snapshot:                () => HephaestusEvent | null;
+  subscribe:               (listener: (event: HephaestusEvent) => void) => () => void;
 }
 
 const REPLAY_BUFFER_EVENTS = 256;
@@ -87,12 +94,20 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
   };
 }
 
+/** The tickets whose fingerprint differs, a record that appeared or left included, in the order of the newer map, then of the older. */
+function changedTicketIdsOf(previous: ReadonlyMap<string, string>, next: ReadonlyMap<string, string>): string[] {
+  const changed = [...next].filter(([ticketId, fingerprint]) => previous.get(ticketId) !== fingerprint).map(([ticketId]) => ticketId);
+  const left = [...previous.keys()].filter((ticketId) => !next.has(ticketId));
+  return [...changed, ...left];
+}
+
 function createEventBroker(generation: number): EventBroker {
   const replayBuffer: HephaestusEvent[] = [];
   const listeners = new Set<(event: HephaestusEvent) => void>();
   let sequence = 0;
   let lastState: BoardState | null = null;
   let lastStateText: string | null = null;
+  let lastTicketDocumentFingerprints: ReadonlyMap<string, string> = new Map();
 
   function send(kind: HephaestusEventKind, data: unknown): void {
     sequence += 1;
@@ -102,10 +117,17 @@ function createEventBroker(generation: number): EventBroker {
     for (const listener of listeners) listener(event);
   }
 
-  function publishState(state: BoardState): void {
+  function sendTicketDocuments(ticketId: string): void {
+    const data: TicketDocumentsEventData = { ticketId };
+    send('documents', data);
+  }
+
+  function publishState(state: BoardState, ticketDocumentFingerprints: ReadonlyMap<string, string> = new Map()): void {
+    const changedDocumentTicketIds = changedTicketIdsOf(lastTicketDocumentFingerprints, ticketDocumentFingerprints);
+    lastTicketDocumentFingerprints = ticketDocumentFingerprints;
     // The page's generation stamp moves with every reading, so it is no change of the board.
     const stateText = JSON.stringify({ ...state, page: { ...state.page, payload: { ...state.page.payload, generatedAtEpochMilliseconds: 0 } } });
-    if (stateText === lastStateText) return;
+    if (stateText === lastStateText && changedDocumentTicketIds.length === 0) return;
     const previous = lastState;
     lastState = state;
     lastStateText = stateText;
@@ -127,6 +149,7 @@ function createEventBroker(generation: number): EventBroker {
       for (const run of changedProfileRunsOf(previous, state)) send('profile', run);
       const pipelineSlice = pipelineSliceOf(state);
       if (JSON.stringify(pipelineSliceOf(previous)) !== JSON.stringify(pipelineSlice)) send('pipeline', pipelineSlice);
+      changedDocumentTicketIds.forEach(sendTicketDocuments);
     }
     send('board', state);
   }
@@ -140,9 +163,10 @@ function createEventBroker(generation: number): EventBroker {
 
   return {
     publishState,
+    announceTicketDocuments: sendTicketDocuments,
     replayAfter,
-    snapshot:  () => (lastState === null ? null : { id: `${generation}-${sequence}`, kind: 'board', data: lastState }),
-    subscribe: (listener) => {
+    snapshot:                () => (lastState === null ? null : { id: `${generation}-${sequence}`, kind: 'board', data: lastState }),
+    subscribe:               (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },

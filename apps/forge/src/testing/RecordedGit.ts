@@ -173,6 +173,8 @@ export const GIT_CALL_SHAPES = {
   NUL_STATUS_OF_A_MODIFIED_PATH:       'status --porcelain=v1 -z --untracked-files=all, <path> modified',
   TRACKED_STATUS_OF_A_MODIFIED_PATH:   'status --porcelain=v1 --untracked-files=no, <path> modified',
   FAST_FORWARD_BLOCKED_BY_A_PATH:      'merge --ff-only --quiet <commit>, a modified <path> in the way',
+  COMMITS_OF_A_PATH_TWO:               'rev-list --count --end-of-options <commit> -- <path>, two of three commits changed <path>',
+  COMMITS_OF_A_PATH_AT_NO_COMMIT:      'rev-list --count --end-of-options <commit> -- <path>, a commit the repository does not hold',
 } as const;
 
 const LONG_CONFLICTED_PATH_COUNT = 300;

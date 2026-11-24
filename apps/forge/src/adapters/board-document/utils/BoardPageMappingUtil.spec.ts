@@ -3,7 +3,8 @@
  * and an epic map field by field, their statuses as the model names them; an optional field the model leaves absent stays absent, and a
  * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Hephaestus setting
  * reads as paused and an absent draft list as none; a notice keeps its kind and its other fields as facts, and a value that is no notice is
- * dropped; a Hephaestus lock warning that does not read as one is `null`.
+ * dropped; a Hephaestus lock warning that does not read as one is `null`. A ticket with no documents record carries no `documents` key,
+ * and one with a record carries its summary as read.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -102,7 +103,14 @@ const TICKET_READINGS = {
   facts: {
     resolvedPriority: 'high', settlesADependency: false, isClosed: false, noAgentHasPickedItUp: true, reviewRound: null, isRepeatReview: false
   },
-  offers: { kinds: ['ticket-hold', 'ticket-park'], priorityChoices: ['normal', 'low'] },
+  offers:    { kinds: ['ticket-hold', 'ticket-park'], priorityChoices: ['normal', 'low'] },
+  documents: null,
+} as const;
+
+const DOCUMENTS_SUMMARY = {
+  spec:      { standing: 'approved', headNumber: 5, approvedNumber: 5 },
+  plan:      { standing: 'out-of-date', headNumber: 3, approvedNumber: 3 },
+  buildHeld: true,
 } as const;
 
 describe('BoardPageMappingUtil.pageOf', () => {
@@ -131,8 +139,13 @@ describe('BoardPageMappingUtil.pageOf', () => {
       facts:           TICKET_READINGS.facts,
       offers:          TICKET_READINGS.offers,
     }]);
-    const fieldsNoReaderNames = ['model', 'effort', 'extra', 'contentHash', 'filePath', 'size', 'group'];
+    const fieldsNoReaderNames = ['model', 'effort', 'extra', 'contentHash', 'filePath', 'size', 'group', 'documents'];
     expect(page.tickets[0] === undefined ? [] : Object.keys(page.tickets[0]).filter((field) => fieldsNoReaderNames.includes(field))).toEqual([]);
+  });
+
+  test('a ticket with a documents record carries its summary as read', () => {
+    const pageWithDocuments = BoardPageMappingUtil.pageOf({ payload: payloadWith({}), tickets: [PAGE_TICKET] }, () => ({ ...TICKET_READINGS, documents: DOCUMENTS_SUMMARY }));
+    expect(pageWithDocuments.tickets[0]?.documents).toEqual(DOCUMENTS_SUMMARY);
   });
 
   test('maps a row, its phases and its facts, leaving out the claim it was started by', () => {

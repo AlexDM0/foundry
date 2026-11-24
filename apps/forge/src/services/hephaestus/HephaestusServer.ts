@@ -49,8 +49,8 @@ export interface HephaestusIdentity extends Omit<IdentityDocument, 'application'
   contracts:            typeof SERVED_CONTRACT_VERSIONS;
 }
 
-/** What a 401, a 403 or a 500 refuses, which the routes word as `text` beside it. */
-export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'malformed-body';
+/** What a 401, a 403, a 413 or a 500 refuses, which the routes word as `text` beside it. */
+export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'malformed-body' | 'body-too-large';
 
 /** A route's answer: the status and the JSON body. */
 export interface RouteAnswer {
@@ -76,6 +76,8 @@ export interface HephaestusRoutes {
   started:         () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
   command:         (body: unknown) => Promise<RouteAnswer>;
+  /** `GET /api/tickets/<id>/documents`: 200 and the ticket's `ForgeTicketDocumentsDocument`, or 404 worded for a ticket with none. */
+  ticketDocuments: (ticketId: string) => RouteAnswer;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
   onNudge:         () => void;
   /** `GET /api/state`: the command line's own reading, served at no versioned path. */
@@ -145,6 +147,10 @@ const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
 const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
 const PICTURE_PATH    = /^\/api\/pictures\/([0-9a-f]{64})$/;
 const PROFILE_STREAM_PATH = /^\/api\/profiles\/([\w.-]+)\/stream$/;
+const TICKET_DOCUMENTS_PATH = /^\/api\/tickets\/([\w.-]+)\/documents$/;
+
+/** The largest command body read: a ticket document's save carries the document's whole text. */
+const COMMAND_BODY_BOUND_BYTES = 1_048_576;
 
 const API_PATH_PREFIX     = '/api/';
 const VERSIONS_PATH       = '/api/versions';
@@ -169,6 +175,7 @@ const STATUS_OF_SERVER_REFUSAL: Readonly<Record<ServerRefusal, number>> = {
   'forbidden':      HTTP_STATUS.FORBIDDEN,
   'read-failed':    HTTP_STATUS.SERVER_ERROR,
   'malformed-body': HTTP_STATUS.BAD_REQUEST,
+  'body-too-large': HTTP_STATUS.TOO_LARGE,
 };
 
 function refusalResponse(routes: HephaestusRoutes, refusal: ServerRefusal): Response {
@@ -207,18 +214,28 @@ function bearerTokenMatches(request: Request, expectedToken: string | null): boo
   return offered.length === expected.length && timingSafeEqual(offered, expected);
 }
 
+/** A command refusal before any route read the body, in the control contract's shape. */
+function commandRefusalResponse(routes: HephaestusRoutes, refusal: 'malformed-body' | 'body-too-large', fields: Record<string, number>): Response {
+  return jsonResponse({
+    status: STATUS_OF_SERVER_REFUSAL[refusal],
+    body:   {
+      controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal, fields, text: routes.refusalTextOf(refusal)
+    },
+  });
+}
+
+/** A body past `COMMAND_BODY_BOUND_BYTES` is read no further and answers 413. */
 async function answerCommand(request: Request, routes: HephaestusRoutes): Promise<Response> {
   if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
+  const boundedBody = await boundedBodyOf(request, COMMAND_BODY_BOUND_BYTES);
+  if (boundedBody.verdict === 'over-limit') {
+    return commandRefusalResponse(routes, 'body-too-large', { bytes: boundedBody.bytes, boundBytes: COMMAND_BODY_BOUND_BYTES });
+  }
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));
   } catch {
-    return jsonResponse({
-      status: HTTP_STATUS.BAD_REQUEST,
-      body:   {
-        controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal: 'malformed-body', fields: {}, text: routes.refusalTextOf('malformed-body')
-      },
-    });
+    return commandRefusalResponse(routes, 'malformed-body', {});
   }
   return jsonResponse(await routes.command(body));
 }
@@ -427,6 +444,8 @@ function dataRouteOf(request: Request, routes: HephaestusRoutes, eventStreams: E
   if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
   const pictureId = PICTURE_PATH.exec(pathname)?.[1];
   if (pictureId !== undefined) return () => pictureResponse(routes, pictureId);
+  const documentsTicketId = TICKET_DOCUMENTS_PATH.exec(pathname)?.[1];
+  if (documentsTicketId !== undefined) return () => jsonResponse(routes.ticketDocuments(documentsTicketId));
   return null;
 }
 
@@ -548,5 +567,5 @@ function start(serverRequest: HephaestusServerRequest): HephaestusServer {
 }
 
 export const HephaestusServer = Object.freeze({
-  API_CONTENT_SECURITY_POLICY, start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
+  API_CONTENT_SECURITY_POLICY, COMMAND_BODY_BOUND_BYTES, start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
 });

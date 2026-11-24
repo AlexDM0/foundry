@@ -12,6 +12,7 @@ import { LogUtil }                                  from '../../adapters/utils/L
 import { LocalTimeUtil }                            from '../../lib/local-time/LocalTimeUtil.ts';
 import type { Decision }                            from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                            from '../../lib/tracker-model/@types/Incident.ts';
+import type { JobKind }                             from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordKind }            from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                               from '../../lib/tracker-model/Board.ts';
@@ -210,6 +211,9 @@ const RUNNING_SUBAGENT_STATE = 'running';
 
 const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
+/** Jobs the monitor contract has no kind for: a ticket document's agent and an effect reading, both of forge 4.1. */
+const JOB_KINDS_THE_MONITOR_LEAVES_OUT: readonly JobKind[] = ['document-agent', 'effect-reading'];
+
 /** The subject a record is about: its decision, its job, its ticket, its draft or its incident, the first it names; `null` for the board's own. */
 function activityTargetOf(record: LogRecord): BoardTarget | null {
   if ('decisionId' in record) return { subject: 'decision', id: record.decisionId };
@@ -342,12 +346,14 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     readyTicketIds:      board.readyTicketEntries().map((ready) => ready.id),
     openIncidents:       state.incidents.length,
     attention:           attentionEntriesOf(state),
-    jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
-    notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
-    warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
-    today:               todayFiguresOf(state, todayCalendarDate),
-    usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
-    activity:            activityOf(source.logRecords),
+    jobs:                state.jobs
+      .filter((job) => !JOB_KINDS_THE_MONITOR_LEAVES_OUT.includes(job.kind))
+      .map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
+    notices:  notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
+    warnings: NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
+    today:    todayFiguresOf(state, todayCalendarDate),
+    usage:    { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
+    activity: activityOf(source.logRecords),
     ...snapshotEntityKeysOf(board),
   };
 }

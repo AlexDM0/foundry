@@ -1790,6 +1790,16 @@ export class Board {
     return this.records.changedTicketDocumentRecords;
   }
 
+  /** Every ticket's documents record, each with the text of every version it names. */
+  ticketDocumentRecords(): readonly Readonly<LoadedTicketDocumentRecord>[] {
+    return this.records.ticketDocumentRecords;
+  }
+
+  /** `null` for a ticket with no documents record. */
+  ticketDocumentRecordOf(ticketId: string): Readonly<LoadedTicketDocumentRecord> | null {
+    return this.records.ticketDocumentRecordOf(ticketId) ?? null;
+  }
+
   removedDrafts(): readonly Draft[] {
     return this.records.removedDraftRecords;
   }

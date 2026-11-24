@@ -45,6 +45,14 @@ import {
   type TicketType,
   type TicketWritingRoute
 } from 'forge-contracts/BoardVocabulary';
+import type {
+  CommentView,
+  DocumentApprover,
+  DocumentAuthor,
+  DocumentMessageSender,
+  EffectReadingState,
+  EffectUnresolvedReason
+} from 'forge-contracts/TicketDocumentsDocument';
 
 import type { DraftState as ModelDraftState }                                 from '../../lib/tracker-model/@types/Draft.ts';
 import { GATE_PHASES as MODEL_GATE_PHASES, type GatePhase as ModelGatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -72,6 +80,10 @@ import type {
 } from '../../lib/tracker-model/@types/Ticket.ts';
 import {
   TICKET_DOCUMENT_KINDS as MODEL_TICKET_DOCUMENT_KINDS,
+  type CommentView as ModelCommentView,
+  type DocumentApprover as ModelDocumentApprover,
+  type DocumentAuthor as ModelDocumentAuthor,
+  type DocumentMessageSender as ModelDocumentMessageSender,
   type DocumentMessageState as ModelDocumentMessageState,
   type DocumentProposalState as ModelDocumentProposalState,
   type DocumentStanding as ModelDocumentStanding,
@@ -87,63 +99,79 @@ import {
   TICKET_TYPES as MODEL_TICKET_TYPES
 } from '../../lib/tracker-model/constants/TicketFields.ts';
 import { TICKET_STAGE_NAMES as MODEL_TICKET_STAGE_NAMES } from '../../lib/tracker-model/constants/TicketStages.ts';
-import type { EffectChange as ModelEffectChange }         from '../../shared/@types/EffectReading.ts';
+import type {
+  EffectChange as ModelEffectChange,
+  EffectReadingState as ModelEffectReadingState,
+  EffectUnresolvedReason as ModelEffectUnresolvedReason
+} from '../../shared/@types/EffectReading.ts';
 
 /** `true` only when each union is assignable to the other; the brackets keep a union from being compared member by member. */
 type MutuallyAssignable<First, Second> = [First] extends [Second] ? ([Second] extends [First] ? true : false) : false;
 
 interface UnionAgreements {
-  readonly TicketStatus:          MutuallyAssignable<TicketStatus, ModelTicketStatus>;
-  readonly TaskStatus:            MutuallyAssignable<TaskStatus, ModelTaskStatus>;
-  readonly DisplayState:          MutuallyAssignable<DisplayState, ModelDisplayState>;
-  readonly TicketPriority:        MutuallyAssignable<TicketPriority, ModelTicketPriority>;
-  readonly TicketType:            MutuallyAssignable<TicketType, ModelTicketType>;
-  readonly TicketSize:            MutuallyAssignable<TicketSize, ModelTicketSize>;
-  readonly TicketStageName:       MutuallyAssignable<TicketStageName, ModelTicketStageName>;
-  readonly DraftState:            MutuallyAssignable<DraftState, ModelDraftState>;
-  readonly JobState:              MutuallyAssignable<JobState, ModelJobState>;
-  readonly GatePhase:             MutuallyAssignable<GatePhase, ModelGatePhase>;
-  readonly PipelineAgentRole:     MutuallyAssignable<PipelineAgentRole, ModelPipelineAgentRole>;
-  readonly ForgeLevelAgentRole:   MutuallyAssignable<ForgeLevelAgentRole, ModelForgeLevelAgentRole>;
-  readonly EntityAgentRole:       MutuallyAssignable<EntityAgentRole, ModelEntityAgentRole>;
-  readonly EntityKind:            MutuallyAssignable<EntityKind, ModelEntityKind>;
-  readonly AgentEffort:           MutuallyAssignable<AgentEffort, ModelAgentEffort>;
-  readonly AgentModel:            MutuallyAssignable<AgentModel, ModelAgentModel>;
-  readonly TicketWritingRoute:    MutuallyAssignable<TicketWritingRoute, ModelTicketWritingRoute>;
-  readonly TicketDocumentKind:    MutuallyAssignable<TicketDocumentKind, ModelTicketDocumentKind>;
-  readonly DocumentReadingRule:   MutuallyAssignable<DocumentReadingRule, ModelDocumentReadingRule>;
-  readonly ProposalMode:          MutuallyAssignable<ProposalMode, ModelProposalMode>;
-  readonly DocumentStanding:      MutuallyAssignable<DocumentStanding, ModelDocumentStanding>;
-  readonly DocumentMessageState:  MutuallyAssignable<DocumentMessageState, ModelDocumentMessageState>;
-  readonly DocumentProposalState: MutuallyAssignable<DocumentProposalState, ModelDocumentProposalState>;
-  readonly EffectChange:          MutuallyAssignable<EffectChange, ModelEffectChange>;
+  readonly TicketStatus:           MutuallyAssignable<TicketStatus, ModelTicketStatus>;
+  readonly TaskStatus:             MutuallyAssignable<TaskStatus, ModelTaskStatus>;
+  readonly DisplayState:           MutuallyAssignable<DisplayState, ModelDisplayState>;
+  readonly TicketPriority:         MutuallyAssignable<TicketPriority, ModelTicketPriority>;
+  readonly TicketType:             MutuallyAssignable<TicketType, ModelTicketType>;
+  readonly TicketSize:             MutuallyAssignable<TicketSize, ModelTicketSize>;
+  readonly TicketStageName:        MutuallyAssignable<TicketStageName, ModelTicketStageName>;
+  readonly DraftState:             MutuallyAssignable<DraftState, ModelDraftState>;
+  readonly JobState:               MutuallyAssignable<JobState, ModelJobState>;
+  readonly GatePhase:              MutuallyAssignable<GatePhase, ModelGatePhase>;
+  readonly PipelineAgentRole:      MutuallyAssignable<PipelineAgentRole, ModelPipelineAgentRole>;
+  readonly ForgeLevelAgentRole:    MutuallyAssignable<ForgeLevelAgentRole, ModelForgeLevelAgentRole>;
+  readonly EntityAgentRole:        MutuallyAssignable<EntityAgentRole, ModelEntityAgentRole>;
+  readonly EntityKind:             MutuallyAssignable<EntityKind, ModelEntityKind>;
+  readonly AgentEffort:            MutuallyAssignable<AgentEffort, ModelAgentEffort>;
+  readonly AgentModel:             MutuallyAssignable<AgentModel, ModelAgentModel>;
+  readonly TicketWritingRoute:     MutuallyAssignable<TicketWritingRoute, ModelTicketWritingRoute>;
+  readonly TicketDocumentKind:     MutuallyAssignable<TicketDocumentKind, ModelTicketDocumentKind>;
+  readonly DocumentReadingRule:    MutuallyAssignable<DocumentReadingRule, ModelDocumentReadingRule>;
+  readonly ProposalMode:           MutuallyAssignable<ProposalMode, ModelProposalMode>;
+  readonly DocumentStanding:       MutuallyAssignable<DocumentStanding, ModelDocumentStanding>;
+  readonly DocumentMessageState:   MutuallyAssignable<DocumentMessageState, ModelDocumentMessageState>;
+  readonly DocumentProposalState:  MutuallyAssignable<DocumentProposalState, ModelDocumentProposalState>;
+  readonly EffectChange:           MutuallyAssignable<EffectChange, ModelEffectChange>;
+  readonly DocumentAuthor:         MutuallyAssignable<DocumentAuthor, ModelDocumentAuthor>;
+  readonly DocumentApprover:       MutuallyAssignable<DocumentApprover, ModelDocumentApprover>;
+  readonly DocumentMessageSender:  MutuallyAssignable<DocumentMessageSender, ModelDocumentMessageSender>;
+  readonly CommentView:            MutuallyAssignable<CommentView, ModelCommentView>;
+  readonly EffectReadingState:     MutuallyAssignable<EffectReadingState, ModelEffectReadingState>;
+  readonly EffectUnresolvedReason: MutuallyAssignable<EffectUnresolvedReason, ModelEffectUnresolvedReason>;
 }
 
 const UNION_AGREEMENTS: UnionAgreements = {
-  TicketStatus:          true,
-  TaskStatus:            true,
-  DisplayState:          true,
-  TicketPriority:        true,
-  TicketType:            true,
-  TicketSize:            true,
-  TicketStageName:       true,
-  DraftState:            true,
-  JobState:              true,
-  GatePhase:             true,
-  PipelineAgentRole:     true,
-  ForgeLevelAgentRole:   true,
-  EntityAgentRole:       true,
-  EntityKind:            true,
-  AgentEffort:           true,
-  AgentModel:            true,
-  TicketWritingRoute:    true,
-  TicketDocumentKind:    true,
-  DocumentReadingRule:   true,
-  ProposalMode:          true,
-  DocumentStanding:      true,
-  DocumentMessageState:  true,
-  DocumentProposalState: true,
-  EffectChange:          true,
+  TicketStatus:           true,
+  TaskStatus:             true,
+  DisplayState:           true,
+  TicketPriority:         true,
+  TicketType:             true,
+  TicketSize:             true,
+  TicketStageName:        true,
+  DraftState:             true,
+  JobState:               true,
+  GatePhase:              true,
+  PipelineAgentRole:      true,
+  ForgeLevelAgentRole:    true,
+  EntityAgentRole:        true,
+  EntityKind:             true,
+  AgentEffort:            true,
+  AgentModel:             true,
+  TicketWritingRoute:     true,
+  TicketDocumentKind:     true,
+  DocumentReadingRule:    true,
+  ProposalMode:           true,
+  DocumentStanding:       true,
+  DocumentMessageState:   true,
+  DocumentProposalState:  true,
+  EffectChange:           true,
+  DocumentAuthor:         true,
+  DocumentApprover:       true,
+  DocumentMessageSender:  true,
+  CommentView:            true,
+  EffectReadingState:     true,
+  EffectUnresolvedReason: true,
 };
 
 function valuesOf(list: readonly string[]): string[] {

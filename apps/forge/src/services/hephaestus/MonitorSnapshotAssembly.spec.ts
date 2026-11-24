@@ -13,7 +13,8 @@
  * entities the snapshot adds its entities in the pipeline's order, each open ticket's entity and stage in board order (a delivered or
  * abandoned ticket left out, an unassigned or uncrossed one `null`), and each job's entity with its stage's name only where set; a forge
  * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture. A job's `interruption` is its cause, spelt as the
- * contract spells it, only while it is `interrupted`: a job that runs again after one serves `null`.
+ * contract spells it, only while it is `interrupted`: a job that runs again after one serves `null`. A ticket document's agent and an
+ * effect reading are no job of the monitor contract: the snapshot leaves both out, so `monitorVersion` stays 6.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -293,6 +294,21 @@ describe('a job\'s interruption in the monitor snapshot', () => {
       { id: 'J3', interruption: 'child-lost' },
       { id: 'J4', interruption: null },
     ]);
+  });
+});
+
+describe('the jobs of a ticket\'s documents in the monitor snapshot', () => {
+  test('a document agent and an effect reading are left out, every other job kept in order', () => {
+    const documentJobs: JobWithLiveFacts[] = [
+      jobWith({
+        id: 'J7', kind: 'document-agent', role: 'spec-agent', ticketIds: ['004'], state: 'running'
+      }, {}, '2026-11-12T10:00:00+01:00'),
+      jobWith({
+        id: 'J8', kind: 'effect-reading', role: 'effect-reader', ticketIds: ['004'], state: 'running'
+      }, {}, '2026-11-12T10:00:00+01:00'),
+    ];
+    const source: MonitorSnapshotSource = { ...SOURCE, state: { ...STATE, jobs: [...documentJobs, ...JOBS] } as unknown as BoardState };
+    expect(MonitorSnapshotAssembly.monitorSnapshotOf(source).jobs.map((job) => job.id)).toEqual(JOBS.map((job) => job.id));
   });
 });
 
