@@ -304,7 +304,7 @@ describe('the aside and the footer', () => {
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByText('Drafting')).toBeDefined();
     const flint = within(panel).getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['50', 'page']);
     expect(within(panel).getByText('Drafting the constitution')).toBeDefined();
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
   });

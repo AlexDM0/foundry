@@ -1,17 +1,18 @@
 /**
  * The open phase: its header (its number, name and purpose, when it leaves and the Next button, or for Merge the end on main and, on a
- * live board, the tickets in the merge train), its steps from left to right with an add card wherever the facts name a missing step, and
- * under them the phase's gates table, or for the Ticket phase what makes a draft ready. Its switches, add choices and gate edits go
- * through one draft edit sender, which opens an update first on a live board. At an entity's level of a monorepo screen the phases are
- * three, a switch the forge sets links there in place of the switch, an add choice the forge would set is not offered, and the gates table
- * offers to copy the phase's gates to another entity.
+ * live board, the tickets in the merge train), for the Ticket phase how a ticket is written, its steps from left to right with an add card
+ * wherever the facts name a missing step, and under them the phase's gates table, or for the Ticket phase what makes a draft ready. Its
+ * switches, the ticket-writing choice, add choices and gate edits go through one draft edit sender, which opens an update first on a
+ * live board. At an entity's level of a monorepo screen the phases are three, a switch the forge sets links there in place of the switch,
+ * an add choice the forge would set is not offered, and the gates table offers to copy the phase's gates to another entity.
  */
 
-import type { ReactNode }                 from 'react';
-import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useId, type ReactNode }                                           from 'react';
+import type { BoardPipelineDefinitionDocument, BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   Button,
   Row,
+  SegmentedControl,
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
@@ -28,7 +29,7 @@ import { FlowActivityPanelModel, type OccupantChipView }                    from
 import { FlowGlyph }                                                      from './FlowGlyph.tsx';
 import { selectedGateRowKeyOf, selectedStepNodeIdOf, type FlowSelection } from './FlowSelection.ts';
 import { InsertSlot }                                                     from './InsertSlot.tsx';
-import { usePipelineFlowEditSender }                                      from './PipelineFlowEditSender.ts';
+import { usePipelineFlowEditSender, type PipelineFlowEditSender }         from './PipelineFlowEditSender.ts';
 import { PipelineFlowModel, type FlowSlotView }                           from './PipelineFlowModel.ts';
 import {
   ENTITY_PHASES,
@@ -117,15 +118,48 @@ function PhaseHead({
   );
 }
 
-function TicketReadiness() {
+const TICKET_WRITING_TITLE = 'How a ticket is written';
+
+const TICKET_WRITING_LEAD = 'Each document gets its own agent, and its own review if you want one.';
+
+interface TicketWritingChoiceProps {
+  readonly draft:      Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null;
+  readonly editSender: PipelineFlowEditSender;
+}
+
+/** One ticket, or a spec, then a plan: a press sends the one `ticket-writing` edit, and the choice already made sends nothing. */
+function TicketWritingChoice({ draft, editSender }: TicketWritingChoiceProps) {
+  const titleId = useId();
+  const route = PipelineFlowModel.ticketWritingRouteOfDraft(draft);
+  return (
+    <section className="board-pipeline-ticket-writing" aria-labelledby={titleId}>
+      <Row centerY gap="ten" wrap>
+        <Text typeRole="lead" bold element="h3" id={titleId}>{TICKET_WRITING_TITLE}</Text>
+        <Text muted>{TICKET_WRITING_LEAD}</Text>
+      </Row>
+      <SegmentedControl
+        labelledBy={titleId}
+        options={PipelineFlowModel.TICKET_WRITING_CHOICES.map((choice) => ({ ...choice, disabled: !editSender.enabled }))}
+        selected={route}
+        size="standard"
+        onSelect={(chosen) => {
+          if (chosen !== route) editSender.sendEdits([PipelineFlowModel.ticketWritingEditOf(chosen)]);
+        }}
+      />
+    </section>
+  );
+}
+
+function TicketReadiness({ flow }: { readonly flow: BoardPipelineFlowDocument }) {
+  const readiness = PipelinePhaseModel.ticketReadinessOf(flow);
   return (
     <section className="board-pipeline-readiness" aria-label="What makes a draft ready">
       <Row centerY gap="ten" wrap>
         <Text typeRole="lead" bold element="h3">No gates in this phase</Text>
-        <Text muted>A draft is ready to build when it has both of these</Text>
+        <Text muted>{readiness.lead}</Text>
       </Row>
       <ul className="board-pipeline-readiness-lines">
-        {PipelinePhaseModel.TICKET_READINESS.map((line) => (
+        {readiness.lines.map((line) => (
           <li key={line.key} className="board-pipeline-readiness-line">
             <FlowGlyph glyph="check" />
             <Text bold>{line.title}</Text>
@@ -203,9 +237,10 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
     <section className="board-pipeline-phase" aria-label={PipelinePhaseModel.phaseLabelOf(phase, phases)} data-phase={phase} data-stage={flow.toolbarStage}>
       <PhaseHead flow={flow} phase={phase} phases={phases} onOpen={selection.openPhaseOf} />
       {editSender.refusal === null ? null : <span className="board-refusal" role="status">{editSender.refusal}</span>}
+      {phase === 'ticket' ? <TicketWritingChoice draft={draft} editSender={editSender} /> : null}
       {stepRow.length === 0 ? null : <div className="board-pipeline-phase-steps">{stepRow}</div>}
       {gatePhase === null
-        ? <TicketReadiness />
+        ? <TicketReadiness flow={flow} />
         : (
           <GatesTable
             phase={gatePhase}

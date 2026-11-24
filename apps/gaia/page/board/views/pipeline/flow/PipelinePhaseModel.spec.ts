@@ -3,7 +3,9 @@
  * add card right after its node and the merge train's queue, frame and end left to the Merge header; a step's phase is the one that holds
  * it; each tab says its steps and gates, and its pill says what waits there per stage (a question first, then the live tickets, the
  * editing changes or the smallest pipeline's word); the header words when a phase leaves, a phase with no step is skipped and Merge ends
- * on main; and a live step's state is a word.
+ * on main; and a live step's state is a word. The spec-then-plan route keeps its four writing and review steps in the Ticket phase, says
+ * the ticket is ready with a numbered Acceptance in the spec, an approved spec and an approved plan, and words who approves the spec by
+ * its switch.
  */
 import { describe, expect, test }         from 'bun:test';
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -138,5 +140,34 @@ describe('live steps', () => {
     const flow = flowOf('A2');
     expect(PipelinePhaseModel.trainNodeIdsOf(flow)).toEqual(['airlock', 'merge-in-airlock', 're-review-in-airlock', 'gates-merge', 'fast-forward-main']);
     expect(PipelinePhaseModel.queueNodeIdsOf(flow)).toEqual(['ready-for-airlock']);
+  });
+});
+
+describe('the Ticket phase by how a ticket is written', () => {
+  test('the spec-then-plan route draws its four steps in the Ticket phase, and the Builder still opens Build', () => {
+    const flow = flowOf('A2-spec-then-plan');
+    expect(cardIdsOf(flow, 'ticket')).toEqual(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review']);
+    expect(PipelinePhaseModel.phaseOfNode(flow, 'builder')).toBe('build');
+    expect(tabsOf(flow).find((tab) => tab.phase === 'ticket')?.subText).toBe('4 steps · no gates');
+    expect([PipelinePhaseModel.ticketWritingRouteOf(flow), PipelinePhaseModel.ticketWritingRouteOf(flowOf('A2'))]).toEqual(['spec-then-plan', 'one-ticket']);
+  });
+
+  test('one ticket is ready with an Acceptance and a Brief; a spec, then a plan, with the spec\'s Acceptance and both approved', () => {
+    expect(PipelinePhaseModel.ticketReadinessOf(flowOf('A2')).lines.map((line) => line.title)).toEqual(['A numbered Acceptance', 'A Brief']);
+    const readiness = PipelinePhaseModel.ticketReadinessOf(flowOf('A2-spec-then-plan'));
+    expect(readiness.lead).toBe('A ticket is ready to build when it has all of these');
+    expect(readiness.lines.map((line) => [line.title, line.text])).toEqual([
+      ['A numbered Acceptance', 'In the spec. Each line is one check the change must pass.'],
+      ['An approved spec', 'Approved by you, since Human spec review is on.'],
+      ['An approved plan', 'It takes the place of the Brief. The builder starts from it.'],
+    ]);
+    expect(PipelinePhaseModel.ticketReadinessOf(flowOf('A2-spec-then-plan-reviews-off')).lines[1]?.text)
+      .toBe('Approved by the pipeline when the spec agent calls it ready, since Human spec review is off.');
+  });
+
+  test('the Ticket header says how the request becomes a ticket, reviewed by User only while a document\'s review is on', () => {
+    expect(PipelinePhaseModel.headerOf(flowOf('A2'), 'ticket').purpose).toBe('A request becomes a ticket with a numbered Acceptance and a Brief.');
+    expect(PipelinePhaseModel.headerOf(flowOf('A2-spec-then-plan'), 'ticket').purpose).toBe('A request becomes a ticket: written, reviewed by you, then ready to build.');
+    expect(PipelinePhaseModel.headerOf(flowOf('A2-spec-then-plan-reviews-off'), 'ticket').purpose).toBe('A request becomes a ticket: a spec, then a plan, then ready to build.');
   });
 });

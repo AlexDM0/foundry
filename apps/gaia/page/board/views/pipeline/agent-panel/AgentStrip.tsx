@@ -1,5 +1,5 @@
 /**
- * The strip above the pipeline agent's composer: Flint's slot, the habitat of this step, and what the agent does on it; an entity's
+ * The strip above the pipeline agent's composer: Flint's 50px slot, the habitat of this step, and what the agent does on it; an entity's
  * research session names the entity it reads, in mono.
  */
 import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
@@ -22,6 +22,7 @@ export function AgentStrip({ strip }: { readonly strip: AgentStripView }) {
             habitat={strip.flintHabitat}
             cue={strip.flintCue}
             label={PIPELINE_AGENT_FLINT_LABEL}
+            size="50"
             ground="page"
           />
         )}

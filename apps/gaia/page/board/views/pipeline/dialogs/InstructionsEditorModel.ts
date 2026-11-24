@@ -10,7 +10,7 @@ import type { StepDialogRole }                                                  
 /** Before Apply the draft constitution is this file; Apply commits it under the path the pipeline then names. */
 const DRAFTED_CONSTITUTION_FILE_NAME = 'constitution.md';
 
-const ROLES_OFFERED_THE_CONSTITUTION: readonly StepDialogRole[] = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'];
+const ROLES_OFFERED_THE_CONSTITUTION: readonly StepDialogRole[] = ['specAgent', 'planAgent', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer'];
 
 /** A list's own brief where the role reads it alongside the reviewer's. */
 const OWN_BRIEF_NOTES: Readonly<Partial<Record<StepDialogRole, string>>> = Object.freeze({

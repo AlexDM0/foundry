@@ -91,7 +91,7 @@ function gateRowTargetOf(flow: BoardPipelineFlowDocument, rowKind: 'gate' | 'pre
 
 /**
  * Where a field stands on the flow: a gate or prepare step's row, a phase's gates table for an order, or the card of an agent step, a
- * switch or the merge train's merge, each in the phase that holds it.
+ * switch or the merge train's merge, each in the phase that holds it; how a ticket is written stands on the Ticket phase's first step.
  */
 function flowTargetOf(field: string | string, flow: BoardPipelineFlowDocument): FlowShowTarget | null {
   if (field.startsWith(GATE_PREFIX)) return gateRowTargetOf(flow, 'gate', field.slice(GATE_PREFIX.length));
@@ -101,7 +101,10 @@ function flowTargetOf(field: string | string, flow: BoardPipelineFlowDocument): 
   const node = flow.nodes.find((candidate) => {
     if (field === 'review') return candidate.nodeKind === 'review';
     if (field === 'airlock') return candidate.mergePlacement === 'airlock';
+    if (field === 'ticket-writing') return candidate.nodeKind === 'spec-writing' || candidate.nodeKind === 'ticket-creation';
     if (field === 'approval:tickets') return candidate.nodeKind === 'human-ticket-review';
+    if (field === 'approval:spec') return candidate.nodeKind === 'human-spec-review';
+    if (field === 'approval:plan') return candidate.nodeKind === 'human-plan-review';
     if (field === 'approval:merge') return candidate.nodeKind === 'human-code-review';
     return candidate.role !== null && field === `role:${candidate.role}`;
   });

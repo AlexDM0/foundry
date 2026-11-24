@@ -46,6 +46,11 @@ export interface GestureDefinition<Name extends string = string, Intent extends 
   /** True when `perform(intent, element)` aims the gesture at that element's centre, on each frame. */
   readonly aimsAtElement:         boolean;
   readonly verdict:               GestureVerdict<Variant> | null;
+  /**
+   * How far in front of the bottom tip its props reach at rest, in sprite units facing right; absent stays within the body. A copy in a
+   * box that keeps Flint inside stands where that reach fits.
+   */
+  readonly forwardReachUnits?:    number;
   targetPose(input: GestureInput<Variant>): PosePart;
 }
 

@@ -1,7 +1,7 @@
 /**
  * The Flint slot, in a happy-dom document. What matters: the box carries its size and ground as data attributes (100 and page by
- * default); it is empty, since the host places the sprite; `slotRef` gives the host the box's element; and a label makes an image of that
- * name while `null` hides the slot.
+ * default), 50 the smallest size; it is empty, since the host places the sprite; `slotRef` gives the host the box's element; and a
+ * label makes an image of that name while `null` hides the slot.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -24,11 +24,12 @@ describe('the Flint slot', () => {
       <>
         <FlintSlot label={null} />
         <FlintSlot label={null} size="112" ground="strip" />
+        <FlintSlot label={null} size="50" ground="plain" />
       </>,
     );
     const slots = [...container.querySelectorAll('.design-system-flint-slot')];
-    expect(slots.map((slot) => ['data-size', 'data-ground'].map((name) => slot.getAttribute(name)))).toEqual([['100', 'page'], ['112', 'strip']]);
-    expect(slots.map((slot) => slot.childElementCount)).toEqual([0, 0]);
+    expect(slots.map((slot) => ['data-size', 'data-ground'].map((name) => slot.getAttribute(name)))).toEqual([['100', 'page'], ['112', 'strip'], ['50', 'plain']]);
+    expect(slots.map((slot) => slot.childElementCount)).toEqual([0, 0, 0]);
   });
 
   test('the slot ref gives the host the box\'s element', () => {

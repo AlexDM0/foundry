@@ -1,7 +1,7 @@
 /**
  * The sensors on a happy-dom page with stubbed boxes. What matters: every box, the pointer and the target element are in overlay units,
  * measured from the overlay's corner and divided by the size of one unit, so Flint is placed alike at half size and at full size; a
- * habitat narrower or lower than 100 pixels is not roomy, so Flint never goes into it, is never stored there and never drops there; the
+ * habitat narrower or lower than 50 pixels is not roomy, so Flint never goes into it, is never stored there and never drops there; the
  * copy target is read only for the habitat Flint lives in, at the centre of the element the host names, and an intent off the fixed list
  * gives none; a drop lands on the innermost roomy habitat below the pointer, passing over a small one; a habitat that keeps Flint
  * inside is perceived so, every other habitat not; and sensors of a Flint that stays in its box read no pointer (no position, no click, no
@@ -127,11 +127,11 @@ describe('units', () => {
 });
 
 describe('the minimum habitat size', () => {
-  test('a habitat narrower or lower than 100 pixels is not roomy; one of exactly 100 by 100 is', () => {
+  test('a habitat narrower or lower than 50 pixels is not roomy; one of exactly 50 by 50 is', () => {
     const { sensors, habitat } = page(1);
-    habitat(habitatOf('narrow'), 10, 20, 99, 300);
-    habitat(habitatOf('low'), 10, 20, 300, 99);
-    habitat(habitatOf('square'), 10, 20, 100, 100);
+    habitat(habitatOf('narrow'), 10, 20, 49, 300);
+    habitat(habitatOf('low'), 10, 20, 300, 49);
+    habitat(habitatOf('square'), 10, 20, 50, 50);
     expect(sensors.perceive(NO_REQUEST).habitats.map((perceived) => [perceived.kind, perceived.isRoomy])).toEqual([
       ['narrow', false], ['low', false], ['square', true],
     ]);
@@ -143,7 +143,7 @@ describe('the minimum habitat size', () => {
     expect(roomy.sensors.perceive({ ...NO_REQUEST, storedHabitatKind: 'chat' }).storedHabitatId).not.toBeNull();
     document.body.replaceChildren();
     const small = page(1);
-    small.habitat(habitatOf('chat'), 210, 120, 400, 60);
+    small.habitat(habitatOf('chat'), 210, 120, 400, 40);
     expect(small.sensors.perceive({ ...NO_REQUEST, storedHabitatKind: 'chat' }).storedHabitatId).toBeNull();
   });
 
@@ -151,7 +151,7 @@ describe('the minimum habitat size', () => {
     const { sensors, habitat, body } = page(1);
     habitat(habitatOf('outer'), 10, 20, 800, 600);
     habitat(habitatOf('inner'), 110, 120, 300, 300);
-    habitat(habitatOf('small'), 610, 120, 80, 80);
+    habitat(habitatOf('small'), 610, 120, 40, 40);
     const dropAt = (clientX: number, clientY: number): unknown => {
       pointer('pointerdown', body, 0, 0);
       pointer('pointermove', document, clientX, clientY);
@@ -161,7 +161,7 @@ describe('the minimum habitat size', () => {
     const kindOf = (habitatId: string | null): string | null => sensors.perceive(NO_REQUEST).habitats.find((perceived) => perceived.id === habitatId)?.kind ?? null;
     const onInner = dropAt(200, 200) as { readonly habitatId: string | null };
     expect(kindOf(onInner.habitatId)).toBe('inner');
-    const onSmall = dropAt(650, 150) as { readonly habitatId: string | null };
+    const onSmall = dropAt(630, 140) as { readonly habitatId: string | null };
     expect(kindOf(onSmall.habitatId)).toBe('outer');
     const offEverything = dropAt(1100, 700);
     expect(offEverything).toEqual({ kind: 'dropped', habitatId: null });

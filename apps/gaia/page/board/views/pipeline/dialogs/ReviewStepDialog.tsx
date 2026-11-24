@@ -1,5 +1,6 @@
 /**
- * The review step dialog (A3cReviewModal), in two tabs: Review holds the reviewer's model, effort and brief; Re-review the conditional
+ * The review step dialog (A3cReviewModal), in two tabs: Review holds the reviewer's model, effort and brief, in the spec-then-plan route
+ * its pipeline documents with a read-only line on what the builder reads, and when it runs; Re-review the conditional
  * re-review after the review's fixes. Both tabs edit one form: Save sends the reviewer, the re-reviewer while the re-review is on, and the
  * review with or without its `reReview`. Remove review, after its confirmation, sends the review's removal. Opened from the re-review
  * node, it opens on the Re-review tab with its switch focused.
@@ -10,6 +11,7 @@ import type { BoardLimitsDocument }                                             
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   Button,
+  Card,
   ConfirmStrip,
   Dialog,
   ModelEffortMeter,
@@ -18,15 +20,19 @@ import {
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
+import { PipelineFlowModel }           from '../flow/PipelineFlowModel.ts';
 
 import { AgentStepDialogModel, type AgentStepForm }  from './AgentStepDialogModel.ts';
 import { InstructionsEditor }                        from './InstructionsEditor.tsx';
 import type { ConstitutionPlace }                    from './InstructionsEditorModel.ts';
 import { ModelEffortFields }                         from './ModelEffortFields.tsx';
+import { PipelineDocumentsSection }                  from './PipelineDocumentsSection.tsx';
+import { PipelineDocumentsSectionModel }             from './PipelineDocumentsSectionModel.ts';
 import { RereviewSettings }                          from './RereviewSettings.tsx';
 import { RereviewSettingsModel, type ReReviewForm }  from './RereviewSettingsModel.ts';
 import { ReviewStepDialogModel, type ReviewStepTab } from './ReviewStepDialogModel.ts';
 import { StepDialogFoot }                            from './StepDialogFoot.tsx';
+import { StepFact }                                  from './StepFact.tsx';
 
 export interface ReviewStepDialogProps {
   /** The Review node; its settings and instructions are the reviewer's. */
@@ -54,6 +60,8 @@ export function ReviewStepDialog({
   const [confirmsRemoval, setConfirmsRemoval] = useState(false);
   const reReviewSwitch = useRef<HTMLElement | null>(null);
   const words = ReviewStepDialogModel.WORDS;
+  const documentWords = PipelineDocumentsSectionModel.WORDS;
+  const readsDocuments = PipelineFlowModel.ticketWritingRouteOfDraft(draft) === 'spec-then-plan';
   const reset = (): void => {
     setReviewerForm(AgentStepDialogModel.resetFormOf('reviewer', limits));
     setReReviewForm(RereviewSettingsModel.resetFormOf('review', limits));
@@ -141,6 +149,24 @@ export function ReviewStepDialog({
                   constitution={constitution}
                   onChange={(entries) => setReviewerForm({ ...reviewerForm, entries })}
                 />
+                {reviewerForm.documents === null || !readsDocuments
+                  ? null
+                  : (
+                    <>
+                      <PipelineDocumentsSection
+                        role="reviewer"
+                        rules={reviewerForm.documents}
+                        onChange={(documents) => setReviewerForm({ ...reviewerForm, documents })}
+                      />
+                      <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
+                        <StepFact term={documentWords.runsTerm} description={documentWords.reviewerRuns} />
+                        <StepFact
+                          term={documentWords.builderTerm}
+                          description={PipelineDocumentsSectionModel.builderReadingTextOf(PipelineDocumentsSectionModel.rulesOf('builder', draft?.agents.builder?.documents))}
+                        />
+                      </Card>
+                    </>
+                  )}
               </View>
             </div>
           )

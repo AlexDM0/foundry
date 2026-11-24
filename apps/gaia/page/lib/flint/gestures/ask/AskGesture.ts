@@ -3,12 +3,17 @@
  * the two bob and the card sways around the hand, and Flint looks at it each 3 seconds. In `ask-knock` Flint faces the user, holds a
  * smaller, lower card in the far hand and knocks twice in each cycle with a square knuckle, with two arcs that fade after each knock.
  */
-import type { PosePart }                          from '../../SpritePose.ts';
-import { HAND_SHAPE }                             from '../../constants/HandShape.ts';
-import type { GestureInput }                      from '../GestureDefinition.ts';
-import { gestureDefinition }                      from '../GestureDefinition.ts';
-import { GestureTimelineUtil }                    from '../GestureTimelineUtil.ts';
-import { ASK_KNOCK_POSE, ASK_POSE, ASK_TIMELINE } from './constants/AskValues.ts';
+import type { PosePart }       from '../../SpritePose.ts';
+import { HAND_SHAPE }          from '../../constants/HandShape.ts';
+import type { GestureInput }   from '../GestureDefinition.ts';
+import { gestureDefinition }   from '../GestureDefinition.ts';
+import { GestureTimelineUtil } from '../GestureTimelineUtil.ts';
+import {
+  ASK_CARD_SHAPE,
+  ASK_KNOCK_POSE,
+  ASK_POSE,
+  ASK_TIMELINE
+} from './constants/AskValues.ts';
 
 type AskVariant = 'normal' | 'knock';
 
@@ -92,6 +97,7 @@ export const ASK_GESTURE = gestureDefinition({
   continuesWhileJumping: false,
   aimsAtElement:         false,
   verdict:               null,
+  forwardReachUnits:     ASK_CARD_SHAPE.X_UNITS + ASK_CARD_SHAPE.WIDTH_UNITS,
   targetPose:            (input: GestureInput<AskVariant>) => (input.variant === 'knock'
     ? askKnockPartOf(input.elapsedMilliseconds)
     : askPartOf(input.elapsedMilliseconds)),

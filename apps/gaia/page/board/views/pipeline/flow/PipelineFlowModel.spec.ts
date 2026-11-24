@@ -4,7 +4,9 @@
  * and a Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their state; an
  * editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal carries none; a gate pill
  * carries the cache mark of its gate's newest run in the step's phase; each add choice sends its edit or asks for the Gate dialog; the footer's removed
- * steps are worded from the facts; and a node asks while a question it names is open.
+ * steps are worded from the facts; and a node asks while a question it names is open. In the spec-then-plan route the Spec and Plan
+ * agents open the agent step dialog and name the document they write in place of their brief files, the spec's and the plan's reviews are
+ * User's switches, and the route's choice sends one `ticket-writing` edit, whose one-ticket value removes the key.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -286,5 +288,40 @@ describe('questions', () => {
     expect(PipelineFlowModel.openQuestionCountOf({ questionIds: ['Q3', 'Q4'] }, ['Q3', 'Q4', 'Q9'])).toBe(2);
     expect([1, 2].map(PipelineFlowModel.questionCountTextOf)).toEqual(['1 question', '2 questions']);
     expect(PipelineFlowModel.questionOpenLabelOf('Gates')).toBe('Answer the question on the Gates step');
+  });
+});
+
+describe('the spec-then-plan route', () => {
+  test('the Spec and Plan steps are agent steps that open the agent step dialog and name the document they write', () => {
+    const spec = viewOf('A2-spec-then-plan', 'spec-writing');
+    const plan = viewOf('A2-spec-then-plan', 'plan-writing');
+    expect([spec.kind, spec.title, spec.documentFileName, spec.briefText]).toEqual(['agent', 'Spec', 'spec.md', null]);
+    expect([plan.kind, plan.title, plan.documentFileName, plan.briefText]).toEqual(['agent', 'Plan', 'plan.md', null]);
+    expect(spec.sentence).toBe('Writes what and why with you, and the numbered Acceptance.');
+    expect(plan.sentence).toBe('Works out how: approach, changes and order, from the approved spec.');
+    expect([spec.meter?.model, spec.meter?.effort, plan.meter?.model, plan.meter?.effort]).toEqual(['sonnet', 'medium', 'opus', 'high']);
+    expect(spec.openAction).toEqual({ kind: 'dialog', dialog: 'agent-step', focusesReReview: false });
+    expect(viewOf('A2', 'builder').documentFileName).toBeNull();
+  });
+
+  test('the spec\'s and the plan\'s reviews are User\'s switches that word their state and flip their own approval', () => {
+    const specReview = viewOf('A2-spec-then-plan', 'human-spec-review');
+    const planReview = viewOf('A2-spec-then-plan', 'human-plan-review');
+    expect([specReview.kind, specReview.switchView, specReview.sentence]).toEqual([
+      'you', { accessibleName: 'Human spec review', checked: true, approval: 'spec' }, 'You approve the spec before the plan starts.',
+    ]);
+    expect([planReview.kind, planReview.sentence]).toEqual(['you', 'You approve the plan; approving starts the build.']);
+    expect(viewOf('A2-spec-then-plan-reviews-off', 'human-plan-review').sentence).toBe('Off: the plan agent approves the plan when it is ready.');
+    expect(planReview.switchView === null ? null : PipelineFlowModel.switchEditOf(planReview.switchView)).toEqual({ target: 'approval', approval: 'plan', value: false });
+    expect(specReview.highlighted).toBe(false);
+  });
+
+  test('the route reads one ticket where the draft names none, and each choice sends one edit, one ticket as the key removed', () => {
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2'))).toBe('one-ticket');
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2-spec-then-plan'))).toBe('spec-then-plan');
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(null)).toBe('one-ticket');
+    expect(PipelineFlowModel.TICKET_WRITING_CHOICES.map((choice) => choice.label)).toEqual(['One ticket', 'Spec, then plan']);
+    expect(PipelineFlowModel.ticketWritingEditOf('spec-then-plan')).toEqual({ target: 'ticket-writing', value: 'spec-then-plan' });
+    expect(PipelineFlowModel.ticketWritingEditOf('one-ticket')).toEqual({ target: 'ticket-writing', value: null });
   });
 });

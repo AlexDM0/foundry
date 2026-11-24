@@ -149,7 +149,7 @@ describe('the pipeline agent\'s panel', () => {
   test('the strip waits while a design question is open, and the proposal is ready once it is answered and the agent says so', () => {
     const { show } = renderDesign('A2-question-open');
     const flint = screen.getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['50', 'page']);
     expect(screen.getByText('Waiting for your answer')).toBeDefined();
     const answered = pipelineBoardStateOf('A2');
     const answeredSetup = answered.pipeline.setup;
