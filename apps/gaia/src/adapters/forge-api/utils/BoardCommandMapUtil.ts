@@ -7,6 +7,7 @@ import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
   ForgeBoardCommand,
+  ForgeTicketDocumentCommand,
   PictureReferenceDocument,
   TrackerClearScope,
 } from 'forge-contracts/BoardCommand';
@@ -27,14 +28,18 @@ import type {
 import type {
   AgentEffort,
   AgentModel,
+  DocumentReadingRule,
   EntityAgentRole,
   EntityKind,
   GatePhase,
   PipelineAgentRole,
+  ProposalMode,
+  TicketDocumentKind,
   TicketPriority,
   TicketWritingRoute,
 } from 'forge-contracts/BoardVocabulary';
 import type { ForgeControlCommand, ForgeJobStopMode, ForgeResumeTarget } from 'forge-contracts/ForgeControlCommand';
+import type { CommentAnchorDocument, LineRangeDocument }                 from 'forge-contracts/TicketDocumentsDocument';
 
 import type {
   BoardAnswerForm,
@@ -57,9 +62,10 @@ import type {
   BoardPipelineStep,
   BoardStepsDraftEdit,
 } from '../../../shared/@types/board/BoardPipeline.ts';
-import type * as Gaia from '../../../shared/@types/board/BoardVocabulary.ts';
+import type * as Gaia                              from '../../../shared/@types/board/BoardVocabulary.ts';
+import type { BoardCommentAnchor, BoardLineRange } from '../../../shared/@types/board/TicketDocuments.ts';
 
-export type ContractCommand = ForgeControlCommand | ForgeBoardCommand;
+export type ContractCommand = ForgeControlCommand | ForgeBoardCommand | ForgeTicketDocumentCommand;
 
 type BoardCommandOf<Kind extends BoardCommandKind> = Extract<BoardCommand, { readonly kind: Kind }>;
 
@@ -120,6 +126,16 @@ const SETUP_STEP = {
 } as const satisfies Record<Gaia.BoardSetupStep, PipelineSetupStep>;
 
 const TRACKER_CLEAR_SCOPE = { 'tasks-and-log': 'tasks-and-log', 'everything': 'everything' } as const satisfies Record<BoardTrackerClearScope, TrackerClearScope>;
+
+const TICKET_DOCUMENT_KIND = { spec: 'spec', plan: 'plan' } as const satisfies Record<Gaia.BoardTicketDocumentKind, TicketDocumentKind>;
+
+type DocumentReadingRules = Record<Gaia.BoardDocumentReadingRule, DocumentReadingRule>;
+
+const DOCUMENT_READING_RULE = { 'always': 'always', 'if-person-approved': 'if-person-approved', 'never': 'never' } as const satisfies DocumentReadingRules;
+
+const PROPOSAL_MODE = { 'ask-first': 'ask-first', 'auto-apply': 'auto-apply' } as const satisfies Record<Gaia.BoardProposalMode, ProposalMode>;
+
+const COMMENT_VIEW = { preview: 'preview', code: 'code' } as const satisfies Record<Gaia.BoardCommentView, CommentAnchorDocument['view']>;
 
 /** A contract key that is absent rather than `null`: present only when Gaia's value is. */
 function presentKeyOf<Key extends string, Value>(key: Key, value: Value | null): Partial<Record<Key, Value>> {
@@ -185,12 +201,42 @@ function instructionOut(instruction: BoardInstruction): InstructionEntryDocument
   }
 }
 
+function documentReadingRulesOut(rules: NonNullable<BoardAgentStepSettings['documents']>): NonNullable<AgentStepSettingsDocument['documents']> {
+  return {
+    ...rules.spec === undefined ? {} : { spec: DOCUMENT_READING_RULE[rules.spec] },
+    ...rules.plan === undefined ? {} : { plan: DOCUMENT_READING_RULE[rules.plan] },
+  };
+}
+
 function agentStepSettingsOut(settings: BoardAgentStepSettings | null): AgentStepSettingsDocument | null {
   if (settings === null) return null;
   return {
     ...presentKeyOf('model', settings.model === null ? null : AGENT_MODEL[settings.model]),
     ...presentKeyOf('effort', settings.effort === null ? null : AGENT_EFFORT[settings.effort]),
     ...presentKeyOf('instructions', settings.instructions === null ? null : settings.instructions.map(instructionOut)),
+    ...presentKeyOf('documents', settings.documents === undefined ? null : documentReadingRulesOut(settings.documents)),
+  };
+}
+
+function lineRangeOut(range: BoardLineRange): LineRangeDocument {
+  return { from: range.from, to: range.to };
+}
+
+function commentAnchorOut(anchor: BoardCommentAnchor): CommentAnchorDocument {
+  return {
+    view:             COMMENT_VIEW[anchor.view],
+    versionNumber:    anchor.versionNumber,
+    lines:            lineRangeOut(anchor.lines),
+    ...presentKeyOf('columns', anchor.columns === null ? null : { from: anchor.columns.from, to: anchor.columns.to }),
+    sectionPath:      anchor.sectionPath,
+    ...presentKeyOf('quote', anchor.quote),
+    surroundingLines: lineRangeOut(anchor.surroundingLines),
+    ...presentKeyOf('diagram', anchor.diagram === null ? null : {
+      lines:       lineRangeOut(anchor.diagram.lines),
+      diagramKind: anchor.diagram.diagramKind,
+      nodeId:      anchor.diagram.nodeId,
+      nodeLabel:   anchor.diagram.nodeLabel,
+    }),
   };
 }
 
@@ -348,10 +394,47 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
     reason:          command.reason,
     ...presentKeyOf('incidentId', command.incidentId),
   }),
-  'ticket-priority': (command) => ({ kind: command.kind, ticketReference: command.ticketId, priority: TICKET_PRIORITY[command.priority] }),
-  'ticket-ready':    (command) => ({ kind: command.kind, ticketReferences: command.ticketIds }),
-  'ticket-unhold':   (command) => ({ kind: command.kind, ticketReference: command.ticketId }),
-  'tracker-clear':   (command) => ({ kind: command.kind, scope: TRACKER_CLEAR_SCOPE[command.scope] }),
+  'ticket-priority':      (command) => ({ kind: command.kind, ticketReference: command.ticketId, priority: TICKET_PRIORITY[command.priority] }),
+  'ticket-ready':         (command) => ({ kind: command.kind, ticketReferences: command.ticketIds }),
+  'ticket-unhold':        (command) => ({ kind: command.kind, ticketReference: command.ticketId }),
+  'tracker-clear':        (command) => ({ kind: command.kind, scope: TRACKER_CLEAR_SCOPE[command.scope] }),
+  'ticket-document-save': (command) => ({
+    kind:            command.kind,
+    ticketReference: command.ticketId,
+    document:        TICKET_DOCUMENT_KIND[command.document],
+    baseVersion:     command.baseVersion,
+    markdown:        command.markdown,
+  }),
+  'ticket-document-comment': (command) => ({
+    kind:            command.kind,
+    ticketReference: command.ticketId,
+    document:        TICKET_DOCUMENT_KIND[command.document],
+    anchor:          command.anchor === null ? null : commentAnchorOut(command.anchor),
+    text:            command.text,
+  }),
+  'ticket-document-comment-withdraw': (command) => ({
+    kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document], messageId: command.messageId
+  }),
+  'ticket-document-proposal-apply': (command) => ({
+    kind:            command.kind,
+    ticketReference: command.ticketId,
+    document:        TICKET_DOCUMENT_KIND[command.document],
+    proposalId:      command.proposalId,
+    ...presentKeyOf('replacementLines', command.replacementLines),
+  }),
+  'ticket-document-proposal-discard': (command) => ({
+    kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document], proposalId: command.proposalId
+  }),
+  'ticket-document-mode-set': (command) => ({
+    kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document], mode: PROPOSAL_MODE[command.mode]
+  }),
+  'ticket-document-approve': (command) => ({
+    kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document], version: command.version
+  }),
+  'ticket-document-effect-read': (command) => ({
+    kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document], version: command.version
+  }),
+  'ticket-document-turn-stop': (command) => ({ kind: command.kind, ticketReference: command.ticketId, document: TICKET_DOCUMENT_KIND[command.document] }),
 };
 
 function contractCommandOf(command: BoardCommand): ContractCommand {

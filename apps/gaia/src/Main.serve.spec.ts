@@ -131,6 +131,7 @@ describe('gaia serve', () => {
       fleetStore:         createFleetStore(FLEET_SNAPSHOT_EMPTY),
       forgeCounts:        () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
       pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
+      diagramFrameFiles:  () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
       carryCommand:       () => Promise.resolve({ verdict: 'not-supported' }),
       forgeAccessSources: {
         readRegistry:            () => Promise.resolve({ verdict: 'absent' }),

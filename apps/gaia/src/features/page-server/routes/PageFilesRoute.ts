@@ -2,7 +2,9 @@
  * `GET /` and the page's files: the page is built by `Bun.build` on its first request, not at start, so the health route answers at once.
  * Every later request shares that one build; a failed build answers its refusal and the next request builds again. The built files stay
  * in memory, `index.html` at `/` and each chunk at its own name, so nothing generated lands in the repository. The design system's font
- * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again.
+ * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again. The diagram
+ * frame is built apart, as its hand-written `index.html` at `/diagram-frame/` and one classic script beside it with mermaid bundled in: a
+ * sandboxed frame has no origin of its own, and a module script would ask with `Origin: null`, which the Origin guard refuses.
  */
 import { join } from 'node:path';
 
@@ -39,6 +41,21 @@ export function pageIndexFilePath(): string {
   return join(repositoryRootFolder(), 'page', 'index.html');
 }
 
+export const DIAGRAM_FRAME_PATH = '/diagram-frame/';
+
+const DIAGRAM_FRAME_SCRIPT_FILE_NAME = 'DiagramFrameScript.ts';
+
+const HTML_FILE_TYPE = 'text/html;charset=utf-8';
+
+/** The diagram frame's folder in this repository: its `index.html` and its script. */
+export function diagramFrameFolderPath(): string {
+  return join(repositoryRootFolder(), 'page', 'diagram-frame');
+}
+
+function failureOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function buildPage(indexFilePath: string): Promise<PageBuildVerdict> {
   let built: Bun.BuildOutput;
   try {
@@ -50,7 +67,7 @@ async function buildPage(indexFilePath: string): Promise<PageBuildVerdict> {
       throw:       false,
     });
   } catch (error) {
-    return { verdict: 'unbuildable', failure: error instanceof Error ? error.message : String(error) };
+    return { verdict: 'unbuildable', failure: failureOf(error) };
   }
   if (!built.success) return { verdict: 'unbuildable', failure: built.logs.map((log) => log.message).join('\n') };
   const files = new Map<string, Blob>();
@@ -61,14 +78,47 @@ async function buildPage(indexFilePath: string): Promise<PageBuildVerdict> {
   return { verdict: 'built', files };
 }
 
-export function builtPageFilesOf(indexFilePath: string): PageFilesSource {
+/** One classic script, every module and every diagram kind mermaid loads lazily bundled in, so the frame loads no other file. */
+async function buildDiagramFrame(frameFolderPath: string): Promise<PageBuildVerdict> {
+  const indexFile = Bun.file(join(frameFolderPath, BUILT_INDEX_FILE_NAME));
+  let built: Bun.BuildOutput;
+  let indexText: string;
+  try {
+    indexText = await indexFile.text();
+    built = await Bun.build({
+      entrypoints: [join(frameFolderPath, DIAGRAM_FRAME_SCRIPT_FILE_NAME)],
+      target:      'browser',
+      format:      'iife',
+      splitting:   false,
+      minify:      true,
+      define:      { 'process.env.NODE_ENV': '"production"' },
+      throw:       false,
+    });
+  } catch (error) {
+    return { verdict: 'unbuildable', failure: failureOf(error) };
+  }
+  if (!built.success) return { verdict: 'unbuildable', failure: built.logs.map((log) => log.message).join('\n') };
+  const files = new Map<string, Blob>([[DIAGRAM_FRAME_PATH, new Blob([indexText], { type: HTML_FILE_TYPE })]]);
+  for (const output of built.outputs) files.set(`${DIAGRAM_FRAME_PATH}${output.path.replace(RELATIVE_OUTPUT_PREFIX, '')}`, output);
+  return { verdict: 'built', files };
+}
+
+function sharedBuildOf(build: () => Promise<PageBuildVerdict>): PageFilesSource {
   let building: Promise<PageBuildVerdict> | null = null;
   return async () => {
-    building ??= buildPage(indexFilePath);
+    building ??= build();
     const buildVerdict = await building;
     if (buildVerdict.verdict === 'unbuildable') building = null;
     return buildVerdict;
   };
+}
+
+export function builtPageFilesOf(indexFilePath: string): PageFilesSource {
+  return sharedBuildOf(() => buildPage(indexFilePath));
+}
+
+export function builtDiagramFrameFilesOf(frameFolderPath: string): PageFilesSource {
+  return sharedBuildOf(() => buildDiagramFrame(frameFolderPath));
 }
 
 export async function pageFileAnswerFor(pageFiles: PageFilesSource, pathname: string): Promise<Response> {

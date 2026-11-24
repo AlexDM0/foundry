@@ -3,36 +3,37 @@
  * its own guard, and every answer carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token,
  * then opens its routes; it refuses to start where Gaia already answers.
  */
-import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }            from '../../adapters/gaia-server/GaiaServerClient.ts';
-import type { ForgeCounts }                                                    from '../../adapters/gaia-server/HealthDocument.ts';
-import { ApiPathUtil, type EndpointOfPath }                                    from '../../lib/api-paths/ApiPathUtil.ts';
-import { pageContentSecurityPolicyFor, withContentSecurityPolicy }             from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
-import { hostGuardVerdictFor }                                                 from '../../lib/local-http-guards/HostGuard.ts';
-import { originGuardVerdictFor }                                               from '../../lib/local-http-guards/OriginGuard.ts';
-import { createSessionCodes, type SessionCodes }                               from '../../lib/local-http-guards/SessionCodes.ts';
-import { bearerTokenMatches }                                                  from '../../lib/local-http-guards/TokenCheck.ts';
-import { monotonicMillisecondsOfNow }                                          from '../../services/Clock.ts';
-import type { ClockTimers }                                                    from '../../services/Clock.ts';
-import type { FleetStore }                                                     from '../../services/FleetStore.ts';
-import { GAIA_ENDPOINT_VERSIONS }                                              from '../../shared/constants/GaiaSystemVersions.ts';
-import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                    from '../../shared/constants/Limits.ts';
-import type { BoardRelayLog }                                                  from './@types/BoardRelayLogEntry.ts';
-import { createBoardStreams, type BoardStreams }                               from './BoardStreams.ts';
-import { createFleetBroker, type FleetBroker }                                 from './FleetBroker.ts';
-import type { ForgeAccessSources }                                             from './ForgeAccess.ts';
-import { refusalAnswerOf }                                                     from './RefusalAnswer.ts';
-import { writeFreshServerToken }                                               from './ServerToken.ts';
-import { boardCommandAnswerFor }                                               from './routes/BoardCommandRoute.ts';
-import { pictureAnswerFor, pictureUploadAnswerFor }                            from './routes/BoardPictureRoutes.ts';
-import { createBoardStateRoute, type BoardStateRoute }                         from './routes/BoardStateRoute.ts';
-import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }    from './routes/BoardStreamRoutes.ts';
-import { commandAnswerFor, type CommandCarrier }                               from './routes/CommandsRoute.ts';
-import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                   from './routes/ForgeCrashLogRoute.ts';
-import { healthAnswerOf }                                                      from './routes/HealthRoute.ts';
-import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
-import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
-import { versionsAnswerOf }                                                    from './routes/VersionsRoute.ts';
-import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                 from './utils/BoardRelayEndpointUtil.ts';
+import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                   from '../../adapters/gaia-server/GaiaServerClient.ts';
+import type { ForgeCounts }                                                           from '../../adapters/gaia-server/HealthDocument.ts';
+import { ApiPathUtil, type EndpointOfPath }                                           from '../../lib/api-paths/ApiPathUtil.ts';
+import { pageContentSecurityPolicyFor, withContentSecurityPolicy }                    from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
+import { hostGuardVerdictFor }                                                        from '../../lib/local-http-guards/HostGuard.ts';
+import { originGuardVerdictFor }                                                      from '../../lib/local-http-guards/OriginGuard.ts';
+import { createSessionCodes, type SessionCodes }                                      from '../../lib/local-http-guards/SessionCodes.ts';
+import { bearerTokenMatches }                                                         from '../../lib/local-http-guards/TokenCheck.ts';
+import { monotonicMillisecondsOfNow }                                                 from '../../services/Clock.ts';
+import type { ClockTimers }                                                           from '../../services/Clock.ts';
+import type { FleetStore }                                                            from '../../services/FleetStore.ts';
+import { GAIA_ENDPOINT_VERSIONS }                                                     from '../../shared/constants/GaiaSystemVersions.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES, TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES } from '../../shared/constants/Limits.ts';
+import type { BoardRelayLog }                                                         from './@types/BoardRelayLogEntry.ts';
+import { createBoardStreams, type BoardStreams }                                      from './BoardStreams.ts';
+import { createFleetBroker, type FleetBroker }                                        from './FleetBroker.ts';
+import type { ForgeAccessSources }                                                    from './ForgeAccess.ts';
+import { refusalAnswerOf }                                                            from './RefusalAnswer.ts';
+import { writeFreshServerToken }                                                      from './ServerToken.ts';
+import { boardCommandAnswerFor }                                                      from './routes/BoardCommandRoute.ts';
+import { pictureAnswerFor, pictureUploadAnswerFor }                                   from './routes/BoardPictureRoutes.ts';
+import { createBoardStateRoute, type BoardStateRoute }                                from './routes/BoardStateRoute.ts';
+import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }           from './routes/BoardStreamRoutes.ts';
+import { commandAnswerFor, type CommandCarrier }                                      from './routes/CommandsRoute.ts';
+import { diagramFrameAnswerFor, isDiagramFramePath }                                  from './routes/DiagramFrameRoute.ts';
+import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                          from './routes/ForgeCrashLogRoute.ts';
+import { healthAnswerOf }                                                             from './routes/HealthRoute.ts';
+import { pageFileAnswerFor, type PageFilesSource }                                    from './routes/PageFilesRoute.ts';
+import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }        from './routes/SessionRoutes.ts';
+import { versionsAnswerOf }                                                           from './routes/VersionsRoute.ts';
+import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                        from './utils/BoardRelayEndpointUtil.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -41,6 +42,8 @@ export interface PageServerOptions {
   readonly fleetStore:                      FleetStore;
   readonly forgeCounts:                     () => ForgeCounts;
   readonly pageFiles:                       PageFilesSource;
+  /** The diagram frame's page and script, built apart from the page's and served under the frame's own policy. */
+  readonly diagramFrameFiles:               PageFilesSource;
   /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
   readonly carryCommand:                    CommandCarrier;
   /** What the board's relay reaches a forge's Hephaestus with: the registry, the forge watch's readings and the forge client. */
@@ -87,7 +90,10 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 
 const API_PATH_PREFIX = '/api/';
 
-/** The largest body a route reads but the picture upload; a session code or a command is a few hundred bytes. */
+/**
+ * The largest body a route reads but the picture upload and the board's commands: a session code or a Gaia command is a few hundred bytes.
+ * A board command may be a ticket document's save, which carries the whole document; its ingestion keeps every other kind to this bound.
+ */
 const ROUTE_BODY_BOUND_BYTES = 65_536;
 
 const NO_IDLE_TIMEOUT = 0;
@@ -176,7 +182,7 @@ function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
     }),
     relayRoute('POST', 'commands', GAIA_ENDPOINT_VERSIONS.forgeCommands, (request, endpoint, maximumBodyBytes) => {
       return boardCommandAnswerFor(request, relayValuesOf('commands', endpoint).trackerId, forgeAccess, maximumBodyBytes);
-    }),
+    }, { maximumBodyBytes: TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }),
     relayRoute('GET', 'crashLog', GAIA_ENDPOINT_VERSIONS.forgeCrashLog, (_request, endpoint) => {
       const { trackerId, itemId } = relayValuesOf('crashLog', endpoint);
       return crashLogRoute.answerFor(trackerId, itemId);
@@ -248,6 +254,10 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
   ];
 }
 
+function pageFileAnswerOf(options: PageServerOptions, pathname: string): Promise<Response> {
+  return isDiagramFramePath(pathname) ? diagramFrameAnswerFor(options.diagramFrameFiles, pathname) : pageFileAnswerFor(options.pageFiles, pathname);
+}
+
 /** A route answers at its own version alone, and the unversioned-only route at no version. */
 function routeServesPath(route: PageServerRoute, { endpoint, version }: EndpointOfPath): boolean {
   return route.matchesEndpoint(endpoint) && version === route.version;
@@ -271,7 +281,7 @@ async function routedAnswerFor(request: Request, server: Bun.Server<undefined>, 
   const { pathname } = new URL(request.url);
   const endpointOfPath = ApiPathUtil.endpointOfPath(pathname);
   const isPageFile = request.method === 'GET' && !pathname.startsWith(API_PATH_PREFIX);
-  if (endpointOfPath === null) return isPageFile ? pageFileAnswerFor(context.options.pageFiles, pathname) : refusalAnswerOf('not-found');
+  if (endpointOfPath === null) return isPageFile ? pageFileAnswerOf(context.options, pathname) : refusalAnswerOf('not-found');
   const routesOfPath = routes.filter((route) => routeServesPath(route, endpointOfPath));
   if (routesOfPath.length === 0) return refusalAnswerOf('not-found');
   const route = routesOfPath.find((candidate) => candidate.method === request.method);

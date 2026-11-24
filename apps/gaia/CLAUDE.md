@@ -53,7 +53,8 @@ the root's.
    kind, and otherwise for a neutral sentence.
 5. **Gaia starts a dormant forge with `forge start --json`.**
 6. **Tokens stay in the server.** No forge token reaches the page, an answer or a log line.
-7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.
+7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route. The diagram frame's files
+   alone carry a policy of their own, a sandbox with scripts and no origin of its own (`docs/architecture.md`, "The diagram frame").
 8. **Commits:** one plain, human-written subject line. No AI attribution of any kind: no `Co-Authored-By`, no "generated with" footer.
    Never `--no-verify`.
 9. **Verify** with `bun run verify` at the repository root, which runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and

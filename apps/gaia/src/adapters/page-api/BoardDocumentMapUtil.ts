@@ -26,6 +26,8 @@ import type {
   BoardProgressDocument,
   BoardTaskDocument,
   BoardTicketDocument,
+  BoardTicketDocumentSummaryDocument,
+  BoardTicketDocumentsSummaryDocument,
   BoardViewRangeDocument,
 } from '../../../page/@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptEntryDocument, ConversationDocument } from '../../../page/@types/board/ConversationDocument.ts';
@@ -53,6 +55,8 @@ import type {
   BoardProgress,
   BoardTask,
   BoardTicket,
+  BoardTicketDocumentSummary,
+  BoardTicketDocumentsSummary,
   BoardViewRange,
 } from '../../shared/@types/board/BoardTicket.ts';
 import type { BoardUsage, ForgeBoard } from '../../shared/@types/board/ForgeBoard.ts';
@@ -305,6 +309,14 @@ function mergeQueueOut(mergeQueue: BoardMergeQueue): BoardMergeQueueDocument {
   };
 }
 
+function ticketDocumentSummaryOut(summary: BoardTicketDocumentSummary): BoardTicketDocumentSummaryDocument {
+  return { standing: summary.standing, headNumber: summary.headNumber, approvedNumber: summary.approvedNumber };
+}
+
+function ticketDocumentsSummaryOut(summary: BoardTicketDocumentsSummary): BoardTicketDocumentsSummaryDocument {
+  return { spec: ticketDocumentSummaryOut(summary.spec), plan: ticketDocumentSummaryOut(summary.plan), buildHeld: summary.buildHeld };
+}
+
 function ticketOut(ticket: BoardTicket, renderMarkdown: MarkdownRendering): BoardTicketDocument {
   return {
     id:              ticket.id,
@@ -346,6 +358,7 @@ function ticketOut(ticket: BoardTicket, renderMarkdown: MarkdownRendering): Boar
       isRepeatReview:       ticket.facts.isRepeatReview,
     },
     offers: { kinds: ticket.offers.kinds, priorityChoices: ticket.offers.priorityChoices },
+    ...ticket.documents === undefined ? {} : { documents: ticketDocumentsSummaryOut(ticket.documents) },
   };
 }
 

@@ -2,7 +2,8 @@
  * Gaia's board commands mapped to the forge's contract commands. What matters: each kind maps to the contract's command of the same kind,
  * every kind is one the forge takes from a client (`FORGE_CONTROL_COMMAND_KINDS`) and no kind only its command line runs; Gaia's names
  * reach the contract's (`ticketId` as `ticketReference`, `runsIn` as `in`); a key Gaia holds as `null` is absent from the contract; and
- * every typed draft edit maps to the contract's typed edit.
+ * every typed draft edit maps to the contract's typed edit. A ticket document's command names the ticket by its reference and leaves out an
+ * anchor's absent columns, quote and diagram and an apply's absent replacement lines.
  */
 import { describe, expect, test }      from 'bun:test';
 import { FORGE_CONTROL_COMMAND_KINDS } from 'forge-contracts/ForgeControlCommandKinds';
@@ -99,8 +100,13 @@ describe('contractCommandOf', () => {
           value:  { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }, { kind: 'file', path: 'docs/brief.md' }] },
         },
         { target: 'role', role: 'assistant', value: {} },
+        { target: 'role', role: 'reviewer', value: { documents: { spec: 'always', plan: 'if-person-approved' } } },
+        { target: 'role', role: 'specAgent', value: { model: 'sonnet', effort: 'medium' } },
         { target: 'airlock', value: {} },
         { target: 'approval', approval: 'merge', value: true },
+        { target: 'approval', approval: 'plan', value: false },
+        { target: 'ticket-writing', value: 'spec-then-plan' },
+        { target: 'ticket-writing', value: null },
         { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'] } },
         { target: 'entity', entityKey: 'retired', value: null },
         { target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'reviewer', value: { model: 'sonnet' } } },
@@ -110,6 +116,64 @@ describe('contractCommandOf', () => {
         { target: 'within-entity', entityKey: 'web', edit: { target: 'concurrency', value: 2 } },
         { target: 'within-entity', entityKey: 'web', edit: { target: 'constitution', value: null } },
       ],
+    });
+  });
+});
+
+describe('contractCommandOf, on a ticket document\'s commands', () => {
+  test('names the ticket by its reference and keeps every key of a comment\'s anchor', () => {
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('ticket-document-comment'))).toEqual({
+      kind:            'ticket-document-comment',
+      ticketReference: '004',
+      document:        'spec',
+      anchor:          {
+        view:             'preview',
+        versionNumber:    4,
+        lines:            { from: 20, to: 20 },
+        columns:          { from: 5, to: 18 },
+        sectionPath:      ['Example spec', 'Behaviour'],
+        quote:            'Theme[Read theme]',
+        surroundingLines: { from: 17, to: 23 },
+        diagram:          {
+          lines: { from: 17, to: 23 }, diagramKind: 'flowchart', nodeId: 'Theme', nodeLabel: 'Read theme'
+        },
+      },
+      text: 'Name the theme tokens here.',
+    });
+  });
+
+  test('leaves out an anchor\'s absent columns, quote and diagram, and keeps a comment with no anchor as null', () => {
+    const comment = exampleCommandOf('ticket-document-comment');
+    if (comment.anchor === null) throw new Error('The example comment has an anchor.');
+    const bareAnchor = {
+      ...comment.anchor, columns: null, quote: null, diagram: null
+    };
+    expect(BoardCommandMapUtil.contractCommandOf({ ...comment, anchor: bareAnchor })).toEqual({
+      kind:            'ticket-document-comment',
+      ticketReference: '004',
+      document:        'spec',
+      anchor:          {
+        view: 'preview', versionNumber: 4, lines: { from: 20, to: 20 }, sectionPath: ['Example spec', 'Behaviour'], surroundingLines: { from: 17, to: 23 },
+      },
+      text: 'Name the theme tokens here.',
+    });
+    expect(BoardCommandMapUtil.contractCommandOf({ ...comment, anchor: null })).toHaveProperty('anchor', null);
+  });
+
+  test('sends User\'s own replacement lines, and none when the agent\'s apply', () => {
+    const apply = exampleCommandOf('ticket-document-proposal-apply');
+    expect(BoardCommandMapUtil.contractCommandOf(apply)).toEqual({
+      kind: 'ticket-document-proposal-apply', ticketReference: '004', document: 'plan', proposalId: 'P2', replacementLines: [['- Read the theme from tokens.'], []],
+    });
+    expect(BoardCommandMapUtil.contractCommandOf({ ...apply, replacementLines: null })).toEqual({
+      kind: 'ticket-document-proposal-apply', ticketReference: '004', document: 'plan', proposalId: 'P2',
+    });
+  });
+
+  test('keeps a first save\'s base version as null, which the contract names', () => {
+    const save = { ...exampleCommandOf('ticket-document-save'), baseVersion: null };
+    expect(BoardCommandMapUtil.contractCommandOf(save)).toEqual({
+      kind: 'ticket-document-save', ticketReference: '004', document: 'spec', baseVersion: null, markdown: '# Example spec\n\n## Outcome\n',
     });
   });
 });

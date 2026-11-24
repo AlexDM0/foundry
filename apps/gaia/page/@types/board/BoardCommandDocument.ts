@@ -35,7 +35,7 @@ export type BoardResumeTargetDocument = { readonly jobId: string } | { readonly 
 
 export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
-export type BoardCommandDocument = { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
+export type BoardCommandDocument = BoardTicketDocumentCommandDocument | { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
   | { readonly kind: 'hephaestus-pause' }
   | { readonly kind: 'hephaestus-unpause' }
   | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
@@ -106,10 +106,7 @@ export type BoardCommandDocument = { readonly boardCommandVersion: typeof PAGE_C
 
 export type BoardCommandDocumentKind = BoardCommandDocument['kind'];
 
-/**
- * User's moves on a ticket's spec and plan, each under the forge's own kind name. They join the board's commands with their ingestion and
- * their mapping into the forge's contract.
- */
+/** User's moves on a ticket's spec and plan, each under the forge's own kind name. */
 export type BoardTicketDocumentCommandDocument = { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
   | {
     readonly kind:        'ticket-document-save';

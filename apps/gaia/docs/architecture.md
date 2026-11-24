@@ -89,6 +89,26 @@ among the requests that come while it is on its way; `BoardStreams.ts` holds eve
 opened with Gaia's handshake, each event mapped once per forge and closed together at the server's stop; the picture and command routes
 read their body to their own bound and forward it. The page reads change signals from the stream and the board afresh from the route.
 
+A ticket in the spec-then-plan route has a spec and a plan, which the page reads from their own route,
+`GET /api/v1/forges/<trackerId>/tickets/<ticketId>/documents` (`routes/TicketDocumentsRoute.ts`), again after each `documents` signal.
+Their Markdown reaches the page as source text, never as HTML: the page parses it itself and draws every block as React elements, so no
+agent's HTML reaches the page. A ticket document's save carries the whole document, so the board's command route reads a body to
+`TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES`, and the command's ingestion keeps every other kind to the smaller bound.
+
+### The diagram frame
+
+A mermaid block of a document is drawn in a diagram frame: `<iframe sandbox="allow-scripts" src="/diagram-frame/">`, with an opaque
+origin, so it reaches neither the page, its cookie nor Gaia's API. Its files are page files, unversioned like `/` and served without a
+session: a hand-written `page/diagram-frame/index.html` and one classic script, `DiagramFrameScript.ts` bundled with mermaid
+(`routes/PageFilesRoute.ts`), under the frame's own policy (`routes/DiagramFrameRoute.ts`): `default-src 'none'; script-src 'self';
+style-src 'self' 'unsafe-inline'; img-src data:; sandbox allow-scripts`, the inline styles being the ones a drawn diagram carries. The
+script stays classic because a module script from an opaque origin asks with `Origin: null`, which the Origin guard refuses; a classic
+script asks with no Origin, so the guards and the page's own policy stay as they are. Mermaid runs at its `strict` level with no HTML
+labels, and its drawing is parsed as SVG, never set as markup. The page and the frame speak the `gaia-diagram-frame` protocol
+(`page/shared/@types/DiagramFrameMessages.ts`), each message carrying its version both ways: the page sends the source and the board's
+colour tokens as mermaid's theme variables, and the frame answers the drawing's height and nodes, the node the pointer is on, or why it
+could not draw. Each side takes a message only from the other's window and drops one of another version.
+
 ## Guards and sessions
 
 The server binds `127.0.0.1` only and checks Host and Origin on every request (`lib/local-http-guards/`); no route answers a cross-origin

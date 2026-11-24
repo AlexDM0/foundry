@@ -305,6 +305,7 @@ async function startGaia(): Promise<RunningGaia> {
     fleetStore,
     forgeCounts:        () => ({ forgesRegistered: watch.watchedForgeCount(), forgesAnswered: watch.readings().length }),
     pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
+    diagramFrameFiles:  () => Promise.resolve({ verdict: 'unbuildable', failure: 'the flow reads no page file' }),
     carryCommand:       forgeControl.carry,
     forgeAccessSources: {
       readRegistry, readings: watch.readings, presenceReadingAfterNow: watch.presenceReadingAfterNow, forgeClient

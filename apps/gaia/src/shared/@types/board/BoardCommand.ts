@@ -35,6 +35,7 @@ export type BoardResumeTarget = { readonly jobId: string } | { readonly ticketRe
 export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
 export type BoardCommand =
+  | BoardTicketDocumentCommand
   | { readonly kind: 'hephaestus-pause' }
   | { readonly kind: 'hephaestus-unpause' }
   | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
@@ -104,10 +105,7 @@ export type BoardCommand =
 
 export type BoardCommandKind = BoardCommand['kind'];
 
-/**
- * User's moves on a ticket's spec and plan, each under the forge's own kind name. They join the board's commands with their ingestion and
- * their mapping into the forge's contract.
- */
+/** User's moves on a ticket's spec and plan, each under the forge's own kind name. */
 export type BoardTicketDocumentCommand =
   | {
     readonly kind:        'ticket-document-save';

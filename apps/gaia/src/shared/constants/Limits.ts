@@ -6,3 +6,9 @@ export const LIMITS = {
 
 /** At least the forge's own picture bound (3,932,160 bytes), so a picture over it is refused by the forge, in the forge's words. */
 export const BOARD_PICTURE_UPLOAD_LIMIT_BYTES = 4_194_304;
+
+/** A board command the page posts: a few hundred bytes, but for a ticket document's save. */
+export const BOARD_COMMAND_BODY_BOUND_BYTES = 65_536;
+
+/** A ticket document's save carries the whole document: at most 200,000 characters, each a few bytes once encoded and escaped. */
+export const TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES = 1_048_576;

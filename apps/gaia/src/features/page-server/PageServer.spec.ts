@@ -3,11 +3,12 @@
  * token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request per guard, a command
  * carried through the command port and answered with its verdict, each route of a forge's board's relay routed behind the session guard and
  * no frame session route, a body over a route's bound refused but on the picture upload, and the CSP on every answer, refusals and failures
- * included, framing nothing but its own origin. Gaia's system version answers at `/api/versions`, unversioned only; every other route
- * answers at its versioned path alone, behind its guards, never at another version nor at its unversioned path. It refuses to start where Gaia
- * already answers, and a start that loses the port leaves the token as it was; a stop closes every relayed stream with the forge stream it
- * follows. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
- * forge-control, whose own spec carries every kind; the relay routes' own specs ask a forge; the heartbeat's timers are fired by hand.
+ * included, framing nothing but its own origin; the diagram frame's files alone carry the frame's own sandboxed policy. Gaia's system
+ * version answers at `/api/versions`, unversioned only; every other route answers at its versioned path alone, behind its guards, never
+ * at another version nor at its unversioned path. It refuses to start where Gaia already answers, and a start that loses the port leaves
+ * the token as it was; a stop closes every relayed stream with the forge stream it follows. The page's files are a stand-in for the
+ * build, whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the
+ * relay routes' own specs ask a forge; the heartbeat's timers are fired by hand.
  */
 import {
   mkdirSync,
@@ -24,25 +25,26 @@ import {
   test
 } from 'bun:test';
 
-import { serverTokenPathIn }                                        from '../../adapters/gaia-files/ServerTokenFile.ts';
-import { FleetDocumentMapUtil }                                     from '../../adapters/page-api/FleetDocumentMapUtil.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                     from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES }                               from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
-import { eventStreamParserOf, type ServerSentEvent }                from '../../lib/event-stream/EventStreamParser.ts';
-import { forgeClientOf }                                            from '../../lib/forge-client/ForgeClient.ts';
-import { pageContentSecurityPolicyFor }                             from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
-import { createFleetStore, type FleetStore }                        from '../../services/FleetStore.ts';
-import type { CommandVerdict }                                      from '../../shared/@types/CommandVerdict.ts';
-import type { FleetSnapshot }                                       from '../../shared/@types/FleetSnapshot.ts';
-import type { GaiaCommand }                                         from '../../shared/@types/GaiaCommand.ts';
-import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }      from '../../shared/constants/GaiaSystemVersions.ts';
-import { manualTimers, type ManualTimers }                          from '../../testing/ManualTimers.ts';
-import { recordedHephaestusFetch, type RecordedHephaestusFetch }    from '../../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
-import type { BoardRelayLogEntry }                                  from './@types/BoardRelayLogEntry.ts';
-import { startPageServer, type PageServer, type PageServerOptions } from './PageServer.ts';
-import type { PageFilesSource }                                     from './routes/PageFilesRoute.ts';
-import { boardAnswering, exampleRelayForgeOf, relaySourcesOver }    from './testing/ExampleRelayForge.ts';
+import { serverTokenPathIn }                                                  from '../../adapters/gaia-files/ServerTokenFile.ts';
+import { FleetDocumentMapUtil }                                               from '../../adapters/page-api/FleetDocumentMapUtil.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                               from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES }                                         from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
+import { eventStreamParserOf, type ServerSentEvent }                          from '../../lib/event-stream/EventStreamParser.ts';
+import { forgeClientOf }                                                      from '../../lib/forge-client/ForgeClient.ts';
+import { diagramFrameContentSecurityPolicyFor, pageContentSecurityPolicyFor } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
+import { createFleetStore, type FleetStore }                                  from '../../services/FleetStore.ts';
+import type { CommandVerdict }                                                from '../../shared/@types/CommandVerdict.ts';
+import type { FleetSnapshot }                                                 from '../../shared/@types/FleetSnapshot.ts';
+import type { GaiaCommand }                                                   from '../../shared/@types/GaiaCommand.ts';
+import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }                from '../../shared/constants/GaiaSystemVersions.ts';
+import { TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }                           from '../../shared/constants/Limits.ts';
+import { manualTimers, type ManualTimers }                                    from '../../testing/ManualTimers.ts';
+import { recordedHephaestusFetch, type RecordedHephaestusFetch }              from '../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath }                          from '../../testing/ScratchRoot.ts';
+import type { BoardRelayLogEntry }                                            from './@types/BoardRelayLogEntry.ts';
+import { startPageServer, type PageServer, type PageServerOptions }           from './PageServer.ts';
+import type { PageFilesSource }                                               from './routes/PageFilesRoute.ts';
+import { boardAnswering, exampleRelayForgeOf, relaySourcesOver }              from './testing/ExampleRelayForge.ts';
 
 const PAGE_POLICY = pageContentSecurityPolicyFor();
 
@@ -56,6 +58,17 @@ const PERMISSION_BITS = 0o777;
 
 const STAND_IN_PAGE = '<!doctype html><title>Gaia</title><script type="module" src="./chunk-example.js"></script>';
 const STAND_IN_CHUNK = 'document.title = "Gaia";';
+
+const STAND_IN_DIAGRAM_FRAME = '<!doctype html><title>Diagram</title><script src="DiagramFrameScript.js"></script>';
+const STAND_IN_DIAGRAM_FRAME_SCRIPT = 'document.title = "Diagram";';
+
+const standInDiagramFrameFiles: PageFilesSource = () => Promise.resolve({
+  verdict: 'built',
+  files:   new Map([
+    ['/diagram-frame/', new Blob([STAND_IN_DIAGRAM_FRAME], { type: 'text/html;charset=utf-8' })],
+    ['/diagram-frame/DiagramFrameScript.js', new Blob([STAND_IN_DIAGRAM_FRAME_SCRIPT], { type: 'text/javascript;charset=utf-8' })],
+  ]),
+});
 
 const standInPageFiles: PageFilesSource = () => Promise.resolve({
   verdict: 'built',
@@ -95,12 +108,13 @@ afterEach(async () => {
 
 function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOptions {
   return {
-    port:         0,
+    port:              0,
     homeDirectory,
     fleetStore,
-    forgeCounts:  () => ({ forgesRegistered: 5, forgesAnswered: 3 }),
-    pageFiles:    standInPageFiles,
-    carryCommand: (command) => {
+    forgeCounts:       () => ({ forgesRegistered: 5, forgesAnswered: 3 }),
+    pageFiles:         standInPageFiles,
+    diagramFrameFiles: standInDiagramFrameFiles,
+    carryCommand:      (command) => {
       carriedCommands.push(command);
       return Promise.resolve(nextCommandVerdict);
     },
@@ -118,6 +132,11 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
     healthProbeTimeoutMilliseconds: SHORT_PROBE_MILLISECONDS,
     ...overrides,
   };
+}
+
+/** The diagram frame's files carry the frame's own policy, so this asks without `answerOf`'s check for the page's. */
+function diagramFrameAnswerOf(pageServer: PageServer, path: string): Promise<Response> {
+  return fetch(new URL(path, pageServer.url));
 }
 
 async function servingPageServer(overrides: Partial<PageServerOptions> = {}): Promise<PageServer> {
@@ -276,6 +295,24 @@ describe('a headless start under a scratch home', () => {
     expect(policy.split('; ').filter((directive) => directive.startsWith('frame-'))).toEqual(['frame-ancestors \'none\'', 'frame-src \'self\'']);
   });
 
+  test('serves the diagram frame and its script to anyone under the frame\'s own sandboxed policy, never the page\'s', async () => {
+    const pageServer = await servingPageServer();
+    const frame = await diagramFrameAnswerOf(pageServer, '/diagram-frame/');
+    expect([frame.status, frame.headers.get('content-security-policy'), await frame.text()]).toEqual([200, diagramFrameContentSecurityPolicyFor(), STAND_IN_DIAGRAM_FRAME]);
+    const script = await diagramFrameAnswerOf(pageServer, '/diagram-frame/DiagramFrameScript.js');
+    const framePolicy = diagramFrameContentSecurityPolicyFor();
+    expect([script.status, script.headers.get('content-security-policy'), await script.text()]).toEqual([200, framePolicy, STAND_IN_DIAGRAM_FRAME_SCRIPT]);
+    const absent = await answerOf(pageServer, '/diagram-frame/absent.js');
+    expect([absent.status, absent.headers.get('content-security-policy')]).toEqual([404, PAGE_POLICY]);
+  });
+
+  test('keeps the Host and Origin guards on the diagram frame, which a classic script asks for with no Origin', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/diagram-frame/', { headers: { host: `rebound.example:${pageServer.port}` } })).status).toBe(403);
+    expect((await answerOf(pageServer, '/diagram-frame/DiagramFrameScript.js', { headers: { origin: 'null' } })).status).toBe(403);
+    expect((await answerOf(pageServer, '/diagram-frame/DiagramFrameScript.js', { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
+  });
+
   test('answers a page that cannot be built as a failure', async () => {
     const pageServer = await servingPageServer({ pageFiles: () => Promise.resolve({ verdict: 'unbuildable', failure: 'example failure' }) });
     expect((await answerOf(pageServer, '/')).status).toBe(500);
@@ -411,12 +448,13 @@ describe('the relay of a forge\'s board', () => {
     expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 
-  test('refuses a body one byte over the bound on the commands routes, and takes it on the picture route', async () => {
+  test('refuses a body one byte over the bound on Gaia\'s commands route, and over a ticket document\'s bound on a forge\'s, and takes it on the picture route', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
     const oversized = { method: 'POST', headers: { cookie }, body: new Uint8Array(OVER_ROUTE_BOUND_BYTES) };
     expect((await answerOf(pageServer, '/api/v6/commands', oversized)).status).toBe(413);
-    expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/commands', oversized)).status).toBe(413);
+    const overTheDocumentBound = { method: 'POST', headers: { cookie }, body: new Uint8Array(TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES + 1) };
+    expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/commands', overTheDocumentBound)).status).toBe(413);
     const picture = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/pictures', oversized);
     expect([picture.status, ((await picture.json()) as { readonly refusal: { readonly code: string } }).refusal.code]).toEqual([404, 'forge-not-registered']);
     expect(carriedCommands).toEqual([]);
