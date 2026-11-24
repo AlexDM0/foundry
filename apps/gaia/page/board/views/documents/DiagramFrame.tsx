@@ -5,7 +5,13 @@
  * version. The frame answers with its height and its nodes, and with the node under the pointer, which offers a comment on the node's line.
  * A diagram that fails to draw shows its source as text.
  */
-import { useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
 import {
@@ -16,6 +22,9 @@ import {
 } from '../../../shared/@types/DiagramFrameMessages.ts';
 
 export const DIAGRAM_FRAME_ADDRESS = '/diagram-frame/';
+
+/** Where the frame loads from; a DOM spec, which opens no diagram frame, hands `null` and the frame stays empty. */
+export const DiagramFrameAddressContext = createContext<string | null>(DIAGRAM_FRAME_ADDRESS);
 
 /** Mermaid's theme variables, each read from a board token of the current theme. */
 const THEME_VARIABLE_TOKENS: Readonly<Record<string, string>> = {
@@ -94,6 +103,7 @@ export function DiagramFrame({
   const [hovered, setHovered] = useState<HoveredNode | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const theme = useThemeName();
+  const address = useContext(DiagramFrameAddressContext);
 
   useEffect(() => {
     if (!loaded) return;
@@ -141,7 +151,7 @@ export function DiagramFrame({
         className="board-document-diagram-canvas"
         title={title}
         sandbox="allow-scripts"
-        src={DIAGRAM_FRAME_ADDRESS}
+        {...(address === null ? { srcDoc: '' } : { src: address })}
         data-failed={failure === null ? undefined : ''}
         style={heightPixels === null ? undefined : { height: `${heightPixels}px` }}
         onLoad={() => setLoaded(true)}

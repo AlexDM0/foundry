@@ -357,3 +357,10 @@ button.board-document-anchor:hover { background: var(--wash); }
 }
 
 .board-document-queued-withdraw:hover { color: var(--ink); background: var(--wash); }
+
+/* The ticket detail's Documents: each document's standing and the link to its page. */
+.board-detail-documents { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-detail-document { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+
+.board-detail-document-link { margin-left: auto; font-size: var(--fs-small); color: var(--link); }
