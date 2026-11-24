@@ -229,8 +229,11 @@ An `agent`, `{ vendor, program }`, names its program as `{ follows: 'machine' }`
 command that carries one (`pipeline-agent-set`, `pipeline-setup-agent`, `pipeline-setup-start`) runs that program once
 with the vendor's version arguments before the hold, bounded by 10 seconds, and answers 409
 `agent-program-does-not-run`, writing nothing, when it is not there, cannot run, fails, outlives the bound or answers as
-another program. A tool sent by its name alone, in `pipeline-tools-set` or a draft's `tools` edit, is found in the places
-installers put programs before the hold, and one found nowhere answers 409 `tool-not-found`.
+another program. That run searches what a launch searches: the folders of the forge's approved tools, the program's own
+folder and the system's; a run that fails names the first line it printed. A tool sent by its name alone, in
+`pipeline-tools-set` or a draft's `tools` edit, is found in the places installers put programs before the hold, and one
+found nowhere answers 409 `tool-not-found`. One sent with its path that is no program there, or that lies inside a
+registered forge's repository or this forge's worktrees, answers 409 `tool-refused`.
 
 `pipeline-draft-edit` carries typed edits, `PipelineDraftEditDocument`, each addressed by its `target`: `gate`
 `{name, value}`, `phase-order` `{phase, names}`, `prepare` `{name, value}`, `prepare-order` `{names}`, `review`,

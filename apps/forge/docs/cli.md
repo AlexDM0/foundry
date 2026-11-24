@@ -206,7 +206,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
-| `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. |
+| `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. No agent, gate, prepare step or fix runs on it: each gets the forge's [tools](#datapipelinejson)' folders instead. |
 
 - `FORGE_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
   naming a directory that has none is refused with a message saying the variable is set. `init` does not choose its
@@ -217,6 +217,11 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
 - A gate's environment also drops a `FORGE_GATE_REPORT` it would inherit and carries its own instead.
+- A gate, a prepare step and a gate's fix search exactly what an agent of the forge searches: the folders of the
+  [tools](#datapipelinejson) the pipeline names and approves, then the system's (`/usr/bin`, `/bin`, `/usr/sbin`,
+  `/sbin`), and nothing else of Hephaestus's own `PATH`. A pipeline check and a gate profile search the folders of the
+  programs their own steps run that the machine has. So what the design step shows as found is what the gates run, and
+  a Hephaestus started with a bare `PATH`, as from Finder, runs the same gates.
 
 > **As built.** The hook guard also needs the program on `PATH`.
 
@@ -878,7 +883,7 @@ before the first listing is out of reach, as it is on POSIX.
 | `gate assistant on\|off [--json]` | Switch the board's [Assistant](#the-assistant), stored as `assistant: true` in `pipeline.json` while on and as no key while off, with one log line (`Assistant set on`, kind `pipeline-assistant-set`). A new board has it off. On, the next pass boots an Assistant. Off, no pass boots one; a live one is asked to wind down in the same hold (`job-stop-requested`, mode `wind-down`), finishes its turn and ends `closed`, and every open incident takes its default with the cause `assistant-off`, one delivered in a turn still open once that turn closes. A wind-down once asked stands when the switch goes on again: that Assistant ends, and the next pass boots a fresh one. One that is interrupted or quiet while it winds down ends `closed` too, never a failed boot. Where the `assistant` key leaves `pipeline.json` another way, the next pass asks a live Assistant to wind down the same way. Any other switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`assistant-without-pipeline`). A pipeline with entities takes it. It prints what `gate approval` prints. No role an agent runs under may relay it. |
 | `gate reach <path>…\|none [--json]` | Store the repository paths besides the project that a ticket may change as `reach` in `pipeline.json`, with one log line (`Reach set to <paths>`, kind `pipeline-reach-set`). Each path starts with `/`, the repository's root, and holds no `..` or backslash; `none` clears the list. A path named twice is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`reach-without-pipeline`). No role an agent runs under may relay it. |
 | `gate agent machine\|<path> [--json]` | Set the board's agent, stored as `agent` in `pipeline.json` (`pipeline-agent-set`), with one log line (`Agent set to <vendor>, the machine's program`, kind `pipeline-agent-set`): `machine` follows this machine's program of the agent (`machine agent`), and a path pins that program to this board. The program runs once first, as `machine agent <path>` runs it, and one that does not run is refused `agent-program-does-not-run` at exit 1 with nothing written. An open setup record takes the same agent. With no `pipeline.json`, an open setup record alone takes it; with neither it is refused `agent-without-pipeline`. Every job that [stood not launched](#a-launch-that-is-not-launched) launches again. No role an agent runs under may run it. |
-| `gate tools <name>[=<path>]…\|pipeline [--json]` | Store the programs whose folders an agent's search path holds as `tools` in `pipeline.json` (`pipeline-tools-set`), with one log line (`Tools set to <paths>`, kind `pipeline-tools-set`). A name alone is found in the places installers put programs on the OS (the `ProgramFolders` port), in order. On macOS: `~/.bun/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, nvm's newest node, then `/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`. On Linux: `~/.bun/bin`, `/usr/local/bin`, `~/.local/bin`, `/home/linuxbrew/.linuxbrew/bin`, `/snap/bin`, nvm's newest node, then the same four. On Windows: `%USERPROFILE%\.local\bin`, `%USERPROFILE%\.bun\bin`, `%APPDATA%\npm`, `%LOCALAPPDATA%\Microsoft\WinGet\Links`, `%ProgramFiles%\nodejs`, `%ProgramFiles%\Git\cmd`, then `System32`, the system root, `System32\Wbem` and `System32\WindowsPowerShell\v1.0` under `%SystemRoot%`. One found nowhere is refused `tool-not-found`. `pipeline` removes the key, so the tools follow the pipeline again. Refused with no `pipeline.json` (`tools-without-pipeline`). No role an agent runs under may run it. |
+| `gate tools <name>[=<path>]…\|pipeline [--json]` | Store the programs whose folders an agent's search path holds as `tools` in `pipeline.json` (`pipeline-tools-set`), with one log line (`Tools set to <paths>`, kind `pipeline-tools-set`). A name alone is found in the places installers put programs on the OS (the `ProgramFolders` port), in order. On macOS: `~/.bun/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, nvm's newest node, then `/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`. On Linux: `~/.bun/bin`, `/usr/local/bin`, `~/.local/bin`, `/home/linuxbrew/.linuxbrew/bin`, `/snap/bin`, nvm's newest node, then the same four. On Windows: `%USERPROFILE%\.local\bin`, `%USERPROFILE%\.bun\bin`, `%APPDATA%\npm`, `%LOCALAPPDATA%\Microsoft\WinGet\Links`, `%ProgramFiles%\nodejs`, `%ProgramFiles%\Git\cmd`, then `System32`, the system root, `System32\Wbem` and `System32\WindowsPowerShell\v1.0` under `%SystemRoot%`. One found nowhere is refused `tool-not-found`. A `<path>` that is no program, or that lies inside a registered forge's repository or this forge's worktrees, is refused `tool-refused`. `pipeline` removes the key, so the tools follow the pipeline again. An open update's draft takes the same list, so its Apply keeps it. Refused with no `pipeline.json` (`tools-without-pipeline`). No role an agent runs under may run it. |
 | `gate look-again [--json]` | Launch again every job that stood not launched for its agent's program (`agent-look-again`), each logged `job-launch-retried`. From a client the forge also runs its program once more, so the views read whether it runs now. No role an agent runs under may run it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
@@ -1680,18 +1685,19 @@ nothing, so the ticket runs again as it stood.
 #### A launch that is not launched
 
 Each launch starts the program the forge's agent names, never one found on Hephaestus's search path: a pipeline agent's
-setup record's agent, else `pipeline.json`'s, through `<monitor>/config.json` when it follows the machine. A forge
-that names no agent, an agent of another vendor than this program runs, a machine that names no program of the vendor,
-and a program that is relative, inside the repository, a batch file on Windows, not there or not executable each
-refuse the launch, with nothing spawned. The job keeps its state, stores `notLaunched` `{ cause, programPath }`, logged
-`job-not-launched` once, and a notice words it (`job J1 is not launched: the Claude Code at ~/.local/bin/claude is not
-there`); the board document carries it on the job. No pass tries the job again until the program the forge names reads
-otherwise (it resolves, or names another path or cause: a change of the forge's agent or of the machine's config does
-this), or until User looks again (`gate look-again`, `agent-look-again`); `gate agent` and `pipeline agent` look again
-too. While a job stands not launched, every Hephaestus sweep runs a pass that reads the program again, so a program
-installed, or a machine program set by another forge or by `machine agent`, is seen without a change on the board. A
-refusal whose program resolved before the pass could record it is not recorded. Each retry is logged
-`job-launch-retried`.
+setup record's agent, else `pipeline.json`'s, through `<monitor>/config.json` when it follows the machine. A forge that
+names no agent, an agent of another vendor than this program runs, a machine that names no program of the vendor, and a
+program that is relative, inside the repository (the machine's program: inside any registered forge's repository), a
+batch file on Windows, not there or not executable each refuse the launch, with nothing spawned. The job keeps its
+state, stores `notLaunched` `{ cause, programPath }`, logged `job-not-launched` once, and a notice words it (`job J1 is
+not launched: the Claude Code at ~/.local/bin/claude is not there`); the board document carries it on the job. No pass
+tries the job again until the program the forge names reads otherwise (it resolves, or names another path or cause: a
+change of the forge's agent or of the machine's config does this), or until User looks again (`gate look-again`,
+`agent-look-again`); `gate agent` and `pipeline agent` look again too. While a job stands not launched, every Hephaestus
+sweep runs a pass that reads the program again, so a program installed, or a machine program set by another forge or by
+`machine agent`, is seen without a change on the board. A refusal whose program resolved before the pass could record it
+is not recorded. Each retry is logged `job-launch-retried`. A job that stands not launched has no session, so a `job
+stop`, `job wind-down` or `job fresh` ends it at once, freeing its slot, and no sweep counts it quiet.
 
 #### `job message`
 
@@ -2612,7 +2618,7 @@ is refused at exit 1 with nothing written, and a stored one reads as malformed, 
 | `billing` | no | How every agent Hephaestus starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 | `assistant` | no | `true` while the board's Assistant is on, as `gate assistant on` writes it; absent is off, and any other value makes the file malformed. It is not part of `pipelineHash`. |
 | `agent` | no | The agent every job of the forge runs: `{ "vendor": "<vendor>", "program": { "follows": "machine" } }`, this machine's program of that vendor in `<monitor>/config.json`, or `{ "program": { "pinned": "<absolute path>" } }`, a program for this forge alone, kept as found. An Apply stores the setup record's; `gate agent` sets it. Absent, no agent is chosen and no job launches: each [stands not launched](#a-launch-that-is-not-launched). Any other shape makes the file malformed. It is not part of `pipelineHash`. |
-| `tools` | no | The programs whose folders an agent's search path holds, `[{ "name": "bun", "path": "/Users/x/.bun/bin/bun" }]`, each name once, each path absolute and kept as found. Absent, the tools follow the pipeline: each program its prepare steps and gates run (a gate's `fix` too) is found at each launch in the places `gate tools` names. `git` is always one. A launch gives the agent exactly the folders of the tools that were found, then the agent program's own folder, then the system's (`/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`), and nothing else of Hephaestus's own search path. The list is no security boundary; the sandbox is. It is not part of `pipelineHash`. |
+| `tools` | no | The programs whose folders an agent's search path holds, `[{ "name": "bun", "path": "/Users/x/.bun/bin/bun" }]`, each name once, each path absolute and kept as found. Absent, the tools follow the pipeline: each program its prepare steps and gates run (a gate's `fix` too) is found at each launch in the places `gate tools` names. `git` is always one. A launch gives the agent exactly the folders of the tools that were found, then the agent program's own folder, then the system's (`/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`), and nothing else of Hephaestus's own search path; a gate, a prepare step and a fix get the same tools' folders, then the system's. A tool kept inside a registered forge's repository or this forge's worktrees is left off, and the launch logs why. Only User sets the list: a pipeline agent's proposal that edits it is refused `tools-set-by-user-only`. The list is no security boundary; the sandbox is. It is not part of `pipelineHash`. |
 | `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 | `entities` | no | each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
 
@@ -2771,9 +2777,11 @@ On a forge over entities the record also holds, each written only once set:
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move but
-  `pipeline start-over` refuses `pipeline-setup-unreadable` with the reason and nothing writes over the file, and every
-  other command runs as before. `pipeline start-over`, with any setup id, removes the unreadable record, logged
-  `pipeline-setup-discarded` with that id, and stops every pipeline agent on the board; nothing migrates a record.
+  `pipeline start-over` and `pipeline setup` refuses `pipeline-setup-unreadable` with the reason and nothing writes over
+  the file, and every other command runs as before. `pipeline start-over`, with any setup id, removes the unreadable
+  record, logged `pipeline-setup-discarded` with that id, and stops every pipeline agent on the board; `pipeline setup`
+  does the same first, logged with the newest setup id the board numbered, then opens its record. Nothing migrates a
+  record.
 
 ### `<data>/gate-profiles.json`
 
