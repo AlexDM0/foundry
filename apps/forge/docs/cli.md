@@ -1826,6 +1826,32 @@ The `intake` verb takes no picture. An `intake-start` control command from a cli
 be blank, and without one a blank request is refused `intake-empty`. The pictures go with the first message of each
 session of the intake, a fresh one after a replacement included.
 
+#### Document verbs
+
+```
+document propose [-- <json>] [--json]
+document ready [--json]
+document effect <version> [--json]
+```
+
+A spec or plan agent's moves on the document its job writes, in the spec-then-plan route. They run only in the agent's
+own session, where they are relayed through its Hatch and stamped with its job and the commit of its snapshot; outside
+a job each is refused at exit 1. A job's role names the document: `spec-agent` the spec, `plan-agent` the plan.
+
+- `document propose` sends an edit as JSON after `--` or on standard input: `{baseVersion, edits, summary, answers?}`.
+  `baseVersion` is the version the agent read, `null` for the first write; each edit is `{fromLine, toLine,
+  originalLines, replacementLines}`, lines `fromLine` to `toLine` of that version, `toLine` one before `fromLine` to
+  insert; `answers` is the message it answers, as `M3`. A field not of its shape is refused `malformed-setup-command`.
+- `document ready` tells that the head version is complete.
+- `document effect <version>` asks what a version names in the main line's tree. The answer reaches the agent as a
+  message from the board once the reading ends.
+
+Hephaestus holds a document agent's requests until the end of its turn, the turn's `result` or its session's end, and
+runs Customs on its snapshot there (V16, V4, V5, V13, V14). A clean snapshot applies the requests in order; a changed
+one refuses every request of the turn `document-snapshot-touched`, logs `ticket-document-snapshot-touched`, opens the
+incident `document-snapshot-touched` on the ticket and ends the job `failed`. Each move is refused
+`document-agent-not-live` unless its job is the one document agent on the board for its ticket's document.
+
 ### The board's lifetime
 
 | command | what it does |
@@ -2244,6 +2270,8 @@ variables](#environment-variables)).
 - **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
 - **Needs:** an admitted `need declare` is stamped with the declaring job; only a builder of an entity's stage relays
   one.
+- **Documents:** an admitted `document` verb is stamped with the agent's job and its snapshot's commit; only a spec or
+  plan agent relays one ([Document verbs](#document-verbs)).
 
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
 > terminal.

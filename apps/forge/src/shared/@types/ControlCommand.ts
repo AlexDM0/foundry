@@ -294,6 +294,22 @@ export type ControlCommand =
   | { kind: 'ticket-document-effect-read'; ticketReference: string; document: TicketDocumentKind; version: number }
   /** Ends the document agent's running turn and keeps its session; its queued messages then go on in order. */
   | { kind: 'ticket-document-turn-stop'; ticketReference: string; document: TicketDocumentKind }
+  /**
+   * A document agent's moves, relayed without `jobId`: Bouncer stamps its own job, whose role and ticket name the document, and Hephaestus
+   * the commit of the agent's snapshot as `constitutionCommit`. A proposal names the version its edits were made on, `null` for the first
+   * write, and `answers` the message it answers.
+   */
+  | {
+    kind:                'ticket-document-agent-propose';
+    jobId?:              string;
+    constitutionCommit?: string;
+    baseVersion:         number | null;
+    edits:               LineEdit[];
+    summary:             string;
+    answers?:            string;
+  }
+  | { kind: 'ticket-document-agent-ready'; jobId?: string; constitutionCommit?: string }
+  | { kind: 'ticket-document-agent-effect-read'; jobId?: string; version: number }
   /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */
   | {
     kind:               'task-add';
@@ -332,11 +348,5 @@ export type ControlCommandKind = ControlCommand['kind'];
 
 export type ControlCommandOf<Kind extends ControlCommandKind> = Extract<ControlCommand, { kind: Kind }>;
 
-/**
- * A document agent's moves through its Hatch, relayed without `jobId`: Bouncer stamps its own job, whose role and ticket name the document.
- * They join `ControlCommand` with their verbs and appliers.
- */
-export type DocumentAgentHatchCommand =
-  | { kind: 'ticket-document-agent-propose'; jobId?: string; baseVersion: number | null; edits: LineEdit[]; summary: string; answers?: string }
-  | { kind: 'ticket-document-agent-ready'; jobId?: string }
-  | { kind: 'ticket-document-agent-effect-read'; jobId?: string; version: number };
+/** A document agent's moves through its Hatch: they act on the ticket document its job writes. */
+export type DocumentAgentHatchCommand = ControlCommandOf<'ticket-document-agent-propose' | 'ticket-document-agent-ready' | 'ticket-document-agent-effect-read'>;

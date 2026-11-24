@@ -43,6 +43,7 @@ import { runCommandLine }                                                       
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND, type RelayedControlCommandKind } from './constants/JobVerbs.ts';
 import { QUESTION_SUBCOMMAND_NAMES }                                                                 from './decisions/QuestionCommand.ts';
 import { MACHINE_SUBCOMMAND_NAMES }                                                                  from './dispatch/machine/MachineCommand.ts';
+import { DOCUMENT_SUBCOMMAND_NAMES }                                                                 from './documents/DocumentCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }                                                                    from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }                                                                     from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }                                                                     from './gates/GateCommand.ts';
@@ -141,9 +142,14 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'pipeline-question-ask':      [
     'pipeline', 'ask', '--', '{"step": "research", "question": "Is the type check a gate?", "options": ["Yes", "No"], "recommended": ["a"]}'
   ],
-  'pipeline-constitution-draft': ['pipeline', 'draft-constitution', '--', JSON.stringify({ markdown: CONSTITUTION_TEXT, sources: [] })],
-  'pipeline-draft-propose':      ['pipeline', 'propose', '--', '{"edits": [{"field": "review", "value": {"name": "Review"}, "summary": "Review every ticket."}]}'],
-  'pipeline-step-ready':         ['pipeline', 'ready', 'research'],
+  'pipeline-constitution-draft':   ['pipeline', 'draft-constitution', '--', JSON.stringify({ markdown: CONSTITUTION_TEXT, sources: [] })],
+  'pipeline-draft-propose':        ['pipeline', 'propose', '--', '{"edits": [{"field": "review", "value": {"name": "Review"}, "summary": "Review every ticket."}]}'],
+  'pipeline-step-ready':           ['pipeline', 'ready', 'research'],
+  'ticket-document-agent-propose': [
+    'document', 'propose', '--', '{"baseVersion":1,"edits":[{"fromLine":3,"toLine":3,"originalLines":["Old line"],"replacementLines":["New line"]}],"summary":"Sharper line"}',
+  ],
+  'ticket-document-agent-ready':       ['document', 'ready'],
+  'ticket-document-agent-effect-read': ['document', 'effect', '2'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {
@@ -250,6 +256,7 @@ function everyVerb(): string[] {
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     if (command === 'question') return QUESTION_SUBCOMMAND_NAMES.map((subcommand) => `question ${subcommand}`);
     if (command === 'need') return NEED_SUBCOMMAND_NAMES.map((subcommand) => `need ${subcommand}`);
+    if (command === 'document') return DOCUMENT_SUBCOMMAND_NAMES.map((subcommand) => `document ${subcommand}`);
     if (command === 'pipeline') return PIPELINE_SUBCOMMAND_NAMES.map((subcommand) => `pipeline ${subcommand}`);
     if (command === 'machine') return MACHINE_SUBCOMMAND_NAMES.map((subcommand) => `machine ${subcommand}`);
     return [command];

@@ -21,6 +21,7 @@ import {
 } from './constants/JobVerbs.ts';
 import { QUESTION_SUBCOMMAND_NAMES } from './decisions/QuestionCommand.ts';
 import { MACHINE_SUBCOMMAND_NAMES }  from './dispatch/machine/MachineCommand.ts';
+import { DOCUMENT_SUBCOMMAND_NAMES } from './documents/DocumentCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }    from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }     from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }     from './gates/GateCommand.ts';
@@ -89,6 +90,7 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
     if (command === 'question') return subcommandVerbsOf(command, QUESTION_SUBCOMMAND_NAMES);
     if (command === 'need') return subcommandVerbsOf(command, NEED_SUBCOMMAND_NAMES);
+    if (command === 'document') return subcommandVerbsOf(command, DOCUMENT_SUBCOMMAND_NAMES);
     if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
     // The measurement events retire as `hook`; the guards a Hephaestus renders into a job's settings stay.
