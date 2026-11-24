@@ -112,6 +112,14 @@ describe('the documents page', () => {
     expect(screen.getByText('Reading package.json for C2')).toBeTruthy();
   });
 
+  test('Flint, the spec agent, stands in the one 50px slot of the page, on the page ground', async () => {
+    renderDocuments(DOCUMENT_STATES.specWorking);
+    await settled();
+    const flint = screen.getByRole('img', { name: 'Flint, the spec agent' });
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['50', 'page']);
+    expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+  });
+
   test('reads them again on the board stream\'s documents part, and not on another part', async () => {
     const { relay, fire } = renderDocuments(DOCUMENT_STATES.specWorking);
     await settled();

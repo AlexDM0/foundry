@@ -19,7 +19,7 @@ export function DocumentAgentStrip({ document, strip }: { readonly document: Boa
             habitat={HABITAT_OF_DOCUMENT[document]}
             cue={strip.cue}
             label={`Flint, the ${strip.agentName.toLowerCase()}`}
-            size="100"
+            size="50"
             ground="page"
           />
         )}
