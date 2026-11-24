@@ -227,9 +227,14 @@ describe('boardOf, on a forge\'s agent', () => {
       machineProgramPath: null,
       programPath:        null,
       check:              null,
-      places:             [{ path: '/Users/example/.bun/bin/bun', found: true }],
-      toolsListed:        false,
-      tools:              [{
+      places:             [
+        { path: '/Users/example/.bun/bin/bun', found: true },
+        { path: '/opt/homebrew/bin/bun', found: false },
+        { path: '/usr/local/bin/bun', found: false },
+        { path: '/Users/example/.local/bin/bun', found: false },
+      ],
+      toolsListed: false,
+      tools:       [{
         name: 'git', path: expect.any(String), approved: true, usedBy: [{ kind: 'every-job', name: null, entity: null }]
       }],
     });

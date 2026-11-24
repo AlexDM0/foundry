@@ -15,7 +15,7 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import {
   realProcessRun,
@@ -137,6 +137,9 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   const shortHomeLinkFolder = mkdtempSync(join(scratchForgeLinkRoot(), 'forge-'));
   const shortForgeHome = join(shortHomeLinkFolder, SHORT_HOME_LINK_NAME);
   symlinkSync(forgeHome, shortForgeHome);
+  // Bun's installer's folder under the forge's home holds the runtime, so the fake agent's program is found where installers put one.
+  mkdirSync(join(forgeHome, '.bun', 'bin'), { recursive: true });
+  symlinkSync(process.execPath, join(forgeHome, '.bun', 'bin', basename(process.execPath)));
   const repositories: string[]   = [];
   // The fake agent's program is the runtime the forge runs on, so the board's agent names this machine's runtime.
   const exampleValues: ExampleValue[] = [

@@ -649,7 +649,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
-        agent:         expect.objectContaining({ choice: null, check: null, places: [expect.objectContaining({ found: true })] }),
+        agent:         expect.objectContaining({ choice: null, check: null, places: expect.arrayContaining([expect.objectContaining({ found: true })]) }),
         pipelineSetup: expect.objectContaining({ record: expect.objectContaining({ currentStep: 'agent', agent: null }) }),
       }),
     },
