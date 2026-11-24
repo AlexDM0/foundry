@@ -4,11 +4,12 @@
  * Entities are mapped and validated in full, a whitelist that names a package included; a setup record's draft is read the same way but
  * for the entities' set check, so it may hold the refusals User has not resolved yet.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
-import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
+import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
+import type { GatePhase }   from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   type ConditionalReReview,
+  type DocumentReadingRule,
   type EntityAgentRole,
   type EntityKey,
   type InstructionEntry,
@@ -24,16 +25,19 @@ import {
   type PipelineGate,
   type PipelinePhaseOrders,
   type PipelineReview,
-  type PipelineStep
+  type PipelineStep,
+  TICKET_WRITING_ROUTES,
+  type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { EntityValidationUtil }           from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { VocabularyUtil }                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { JsonTextUtil }                   from '../../shared/utils/JsonTextUtil.ts';
-import { PathNestingUtil }                from '../../shared/utils/PathNestingUtil.ts';
-import { storedFileTextOf }               from '../StoredFileText.ts';
-import { OperationRefusalWordingUtil }    from '../utils/OperationRefusalWordingUtil.ts';
-import { StoredValueUtil }                from '../utils/StoredValueUtil.ts';
+import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind }                                      from '../../lib/tracker-model/@types/TicketDocument.ts';
+import { DEFAULT_DOCUMENTS_OF_ROLE, type DocumentReadingRole, RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { EntityValidationUtil }                                                                from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import { VocabularyUtil }                                                                      from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { JsonTextUtil }                                                                        from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }                                                                     from '../../shared/utils/PathNestingUtil.ts';
+import { storedFileTextOf }                                                                    from '../StoredFileText.ts';
+import { OperationRefusalWordingUtil }                                                         from '../utils/OperationRefusalWordingUtil.ts';
+import { StoredValueUtil }                                                                     from '../utils/StoredValueUtil.ts';
 
 /** Entities that are sound as stored but that this tracker cannot hold, which a refusal names instead of a repair. */
 export type UnsupportedEntities = { kind: 'entities-in-a-folder'; projectPrefix: string };
@@ -60,7 +64,8 @@ const PIPELINE_KEYS = [
   'billing',
   'reach',
   'entities',
-  'assistant'
+  'assistant',
+  'ticketWriting'
 ] as const satisfies readonly (keyof Pipeline)[];
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
 /** Each entity holds its own steps, gates, constitution and reach, so beside `entities` the forge's own stay empty. */
@@ -85,7 +90,7 @@ const ENTITY_KINDS         = ['app', 'package', 'root'] as const satisfies reado
 const REPOSITORY_ROOT_HOME = '/';
 const ENTITY_AGENT_ROLES   = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly EntityAgentRole[];
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
-const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
+const APPROVALS            = ['tickets', 'merge', 'spec', 'plan'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS            = ['name', 'run', 'in'] as const satisfies readonly (keyof PipelineStep)[];
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'forgeOnly'] as const satisfies readonly (keyof PipelineGate)[];
 const PHASE_KEYS           = ['build', 'review', 'merge'] as const satisfies readonly GatePhase[];
@@ -94,6 +99,8 @@ const AIRLOCK_KEYS         = ['reReview'] as const;
 const RE_REVIEW_KEYS       = ['thresholdLines'] as const;
 const CONSTITUTION_KEYS    = ['path'] as const;
 const AGENT_SETTING_KEYS   = ['model', 'effort', 'instructions'] as const;
+const DOCUMENT_READING_AGENT_SETTING_KEYS = [...AGENT_SETTING_KEYS, 'documents'] as const;
+const DOCUMENT_READING_RULES = ['always', 'if-person-approved', 'never'] as const satisfies readonly DocumentReadingRule[];
 const INSTRUCTION_KINDS    = ['constitution', 'default-brief', 'file'] as const satisfies readonly InstructionEntry['kind'][];
 const INSTRUCTION_KEYS_OF_KIND = {
   'constitution':  ['kind'],
@@ -102,6 +109,8 @@ const INSTRUCTION_KEYS_OF_KIND = {
 } as const satisfies Record<InstructionEntry['kind'], readonly string[]>;
 const AGENT_ROLES = [
   'productOwner',
+  'specAgent',
+  'planAgent',
   'builder',
   'reviewer',
   'reReviewer',
@@ -325,19 +334,49 @@ function instructionsOf(value: unknown, path: string): Mapped<InstructionEntry[]
   return repeated === undefined ? entries : problemOf(`${path} lists ${JSON.stringify(repeated)} twice`);
 }
 
-function agentSettingsOf(value: unknown, path: string): Mapped<AgentStepSettings> {
-  const record = closedRecordOf(value, path, AGENT_SETTING_KEYS);
+function documentReadingRuleIsKnown(value: unknown): value is DocumentReadingRule {
+  return (DOCUMENT_READING_RULES as readonly unknown[]).includes(value);
+}
+
+/** The builder's and the reviewer's rule per ticket document; the reviewer always reads the spec, so only `always` stands there. */
+function documentsOf(value: unknown, path: string, role: DocumentReadingRole): Mapped<AgentStepSettings['documents']> {
+  if (value === undefined) return { value: undefined };
+  const record = closedRecordOf(value, path, TICKET_DOCUMENT_KINDS);
+  if ('problem' in record) return record;
+  const documents: Partial<Record<TicketDocumentKind, DocumentReadingRule>> = {};
+  for (const document of TICKET_DOCUMENT_KINDS) {
+    const rule = record.value[document];
+    if (rule === undefined) continue;
+    if (!documentReadingRuleIsKnown(rule)) return problemOf(`${path}.${document} is not one of ${DOCUMENT_READING_RULES.join(', ')}`);
+    if (role === 'reviewer' && document === 'spec' && rule !== DEFAULT_DOCUMENTS_OF_ROLE.reviewer.spec) {
+      return problemOf(`${path}.spec is ${rule}; the reviewer always reads the spec`);
+    }
+    documents[document] = rule;
+  }
+  return { value: documents };
+}
+
+function documentReadingRoleOf(role: PipelineAgentRole): DocumentReadingRole | null {
+  return role === 'builder' || role === 'reviewer' ? role : null;
+}
+
+function agentSettingsOf(value: unknown, path: string, role: PipelineAgentRole): Mapped<AgentStepSettings> {
+  const documentReadingRole = documentReadingRoleOf(role);
+  const record = closedRecordOf(value, path, documentReadingRole === null ? AGENT_SETTING_KEYS : DOCUMENT_READING_AGENT_SETTING_KEYS);
   if ('problem' in record) return record;
   const { model, effort } = record.value;
   if (model !== undefined && !(typeof model === 'string' && VocabularyUtil.agentModelIsKnown(model))) return problemOf(`${path}.model is not a known model`);
   if (effort !== undefined && !(typeof effort === 'string' && VocabularyUtil.agentEffortIsKnown(effort))) return problemOf(`${path}.effort is not a known effort`);
   const instructions = instructionsOf(record.value['instructions'], `${path}.instructions`);
   if ('problem' in instructions) return instructions;
+  const documents = documentReadingRole === null ? { value: undefined } : documentsOf(record.value['documents'], `${path}.documents`, documentReadingRole);
+  if ('problem' in documents) return documents;
   return {
     value: {
       ...(model === undefined ? {} : { model }),
       ...(effort === undefined ? {} : { effort }),
       ...(instructions.value === undefined ? {} : { instructions: instructions.value }),
+      ...(documents.value === undefined ? {} : { documents: documents.value }),
     },
   };
 }
@@ -349,7 +388,7 @@ function agentsOf<Role extends PipelineAgentRole>(value: unknown, path: string, 
   const agents: Partial<Record<Role, AgentStepSettings>> = {};
   for (const role of roles) {
     if (record.value[role] === undefined) continue;
-    const settings = agentSettingsOf(record.value[role], `${path}.${role}`);
+    const settings = agentSettingsOf(record.value[role], `${path}.${role}`, role);
     if ('problem' in settings) return settings;
     agents[role] = settings.value;
   }
@@ -508,6 +547,12 @@ function entitiesProblemOf(document: Record<string, unknown>): { problem: string
  */
 type PipelineReadingPurpose = 'stored' | 'draft';
 
+function ticketWritingOf(value: unknown): Mapped<TicketWritingRoute | undefined> {
+  if (value === undefined) return { value: undefined };
+  const route = TICKET_WRITING_ROUTES.find((knownRoute) => knownRoute === value);
+  return route === undefined ? problemOf(`ticketWriting is not one of ${TICKET_WRITING_ROUTES.join(', ')}`) : { value: route };
+}
+
 /** The Assistant's switch is on while the key is present, so the file holds `true` or no key, never `false`. */
 function assistantOf(value: unknown): Mapped<true | undefined> {
   if (value === undefined || value === true) return { value };
@@ -532,6 +577,7 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
   const reach        = repositoryPathsOf(document['reach'], 'reach');
   const entities     = entitiesOf(document['entities']);
   const assistant    = assistantOf(document['assistant']);
+  const ticketWriting = ticketWritingOf(document['ticketWriting']);
   if ('problem' in review) return review;
   if ('problem' in airlock) return airlock;
   if ('problem' in constitution) return constitution;
@@ -541,6 +587,7 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
   if ('problem' in reach) return reach;
   if ('problem' in entities) return entities;
   if ('problem' in assistant) return assistant;
+  if ('problem' in ticketWriting) return ticketWriting;
   const entitySetProblem = purpose === 'stored' ? entitySetProblemOf(entities.value) : null;
   if (entitySetProblem !== null) return entitySetProblem;
   return {
@@ -556,6 +603,7 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
       ...(reach.value === undefined ? {} : { reach: reach.value }),
       ...(entities.value === undefined ? {} : { entities: entities.value }),
       ...(assistant.value === undefined ? {} : { assistant: assistant.value }),
+      ...(ticketWriting.value === undefined ? {} : { ticketWriting: ticketWriting.value }),
     },
   };
 }

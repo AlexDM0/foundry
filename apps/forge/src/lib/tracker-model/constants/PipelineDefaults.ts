@@ -17,7 +17,7 @@ export const DEFAULT_INSTRUCTIONS_OF_ROLE: Readonly<Record<PipelineAgentRole, re
   reviewer:           [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }],
   reReviewer:         [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'reReviewer' }],
   conflictReReviewer: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'conflictReReviewer' }],
-  pipelineAgent:      [{ kind: 'default-brief', role: 'pipelineAgent' }],
+  pipelineAgent:      [{ kind: 'constitution' }, { kind: 'default-brief', role: 'pipelineAgent' }],
   assistant:          [{ kind: 'default-brief', role: 'assistant' }],
 });
 

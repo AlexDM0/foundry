@@ -1,11 +1,11 @@
 /**
  * The draft edited one field at a time. What matters: each edit names the field the change list names; a removed gate leaves every
  * phase, so no phase names a gate that is gone; a `null` removes an optional key rather than storing a null; the edit never changes the
- * pipeline it was given; a stored field text reads back only when well formed; and Undo writes the base value back, a restored gate in
- * the place and phases the base gives it. Inside an entity the same holds on the entity's own steps and settings, under a field scoped
- * `entity:<key>/`, which never names a forge-level field; the entity's definition adds, changes or removes it without touching its
- * pipeline, and its Undo brings a removed entity back whole in its base place; and an edit inside an entity the draft lacks changes
- * nothing.
+ * pipeline it was given; a stored field text reads back only when well formed; the ticket writing route is a forge-level field like the
+ * merge train; and Undo writes the base value back, a restored gate in the place and phases the base gives it. Inside an entity the same
+ * holds on the entity's own steps and settings, under a field scoped `entity:<key>/`, which never names a forge-level field; the entity's
+ * definition adds, changes or removes it without touching its pipeline, and its Undo brings a removed entity back whole in its base
+ * place; and an edit inside an entity the draft lacks changes nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -55,6 +55,11 @@ describe('fieldOf', () => {
     [{ target: 'review', value: null }, 'review'],
     [{ target: 'airlock', value: null }, 'airlock'],
     [{ target: 'approval', approval: 'tickets', value: null }, 'approval:tickets'],
+    [{ target: 'approval', approval: 'spec', value: null }, 'approval:spec'],
+    [{ target: 'approval', approval: 'plan', value: null }, 'approval:plan'],
+    [{ target: 'ticket-writing', value: null }, 'ticket-writing'],
+    [{ target: 'role', role: 'specAgent', value: null }, 'role:specAgent'],
+    [{ target: 'role', role: 'planAgent', value: null }, 'role:planAgent'],
     [{ target: 'constitution', value: null }, 'constitution'],
   ])('%o names %s', (edit, field) => {
     expect(PipelineDraftEditUtil.fieldOf(edit)).toBe(field);
@@ -91,6 +96,9 @@ describe('fieldOf', () => {
     'entity:web/airlock',
     'entity:web/approval:merge',
     'entity:web/role:productOwner',
+    'entity:web/role:specAgent',
+    'entity:web/ticket-writing',
+    'ticket-writings',
     'entity:web/whitelists',
     'entity:web/entity:design',
   ])('%o is not a draft field', (text) => {
@@ -135,6 +143,33 @@ describe('pipelineWithEdit', () => {
     expect('approvals' in withoutApproval).toBe(false);
     expect(withRole.agents).toEqual({ builder: { model: 'opus' } });
     expect('agents' in PipelineDraftEditUtil.pipelineWithEdit(withRole, { target: 'role', role: 'builder', value: null })).toBe(false);
+  });
+});
+
+describe('the ticket writing route', () => {
+  test('is set by its edit and removed by null, and the given pipeline stays as it was', () => {
+    const routed = PipelineDraftEditUtil.pipelineWithEdit(BASE, { target: 'ticket-writing', value: 'spec-then-plan' });
+
+    expect(routed.ticketWriting).toBe('spec-then-plan');
+    expect('ticketWriting' in BASE).toBe(false);
+    expect('ticketWriting' in PipelineDraftEditUtil.pipelineWithEdit(routed, { target: 'ticket-writing', value: null })).toBe(false);
+  });
+
+  test('Undo takes the base route back, an absent one absent again', () => {
+    const routed = PipelineDraftEditUtil.pipelineWithEdit(BASE, { target: 'ticket-writing', value: 'spec-then-plan' });
+    const routedBase: Pipeline = { ...BASE, ticketWriting: 'spec-then-plan' };
+
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(BASE, routed, 'ticket-writing')).toEqual(BASE);
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(routedBase, BASE, 'ticket-writing')).toEqual(routedBase);
+  });
+
+  test('Undo of a spec or plan approval takes the base switch back', () => {
+    let draft = PipelineDraftEditUtil.pipelineWithEdit(BASE, { target: 'approval', approval: 'spec', value: false });
+    draft = PipelineDraftEditUtil.pipelineWithEdit(draft, { target: 'approval', approval: 'plan', value: false });
+
+    for (const field of ['approval:spec', 'approval:plan'] as const) draft = PipelineDraftEditUtil.pipelineWithBaseValueOf(BASE, draft, field);
+
+    expect(draft).toEqual(BASE);
   });
 });
 

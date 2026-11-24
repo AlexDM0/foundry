@@ -3,7 +3,9 @@
  * first and an optional key only once set, the Assistant's switch and a gate the forge alone runs included; the minimal pipeline is
  * readable; an empty gate list stays written, since it is "no gates on purpose", not "none set"; a file with no `version` or an earlier one,
  * version 2, 3 and 4 included, is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason naming the offending
- * part, one distinct reason per rule, never a throw; and no file is `absent`. A file with entities is `PipelineFile.entities.spec.ts`'s.
+ * part, one distinct reason per rule, never a throw; and no file is `absent`. The ticket writing keys are optional: a pipeline without
+ * them reads and writes as before, and only the builder and the reviewer read documents, the reviewer always the spec. A file with
+ * entities is `PipelineFile.entities.spec.ts`'s.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -166,7 +168,8 @@ describe('a malformed file', () => {
 
   test('an unknown key at every level is refused with a reason naming it', () => {
     expect(reasonOf(minimalWith({ checks: 'bun test' })))
-      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, assistant');
+      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, '
+        + 'assistant, ticketWriting');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, cache: true }] }))).toContain('gates[0]."cache" is not a pipeline key');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', network: [] }] }))).toContain('prepare[0]."network" is not a pipeline key');
     expect(reasonOf(minimalWith({ phases: { ...NO_PHASES, deploy: [] } }))).toContain('phases."deploy" is not a pipeline key');
@@ -230,7 +233,7 @@ describe('a malformed file', () => {
     expect(reasonOf(builderListing(['CLAUDE.md']))).toBe('agents.builder.instructions[0] is not an object');
     expect(reasonOf(builderListing([{ kind: 'skill' }]))).toBe('agents.builder.instructions[0].kind is not one of constitution, default-brief, file');
     expect(reasonOf(builderListing([{ kind: 'default-brief', role: 'tester' }])))
-      .toBe('agents.builder.instructions[0].role is not one of productOwner, builder, reviewer, reReviewer, conflictReReviewer, pipelineAgent, assistant');
+      .toBe('agents.builder.instructions[0].role is not one of productOwner, specAgent, planAgent, builder, reviewer, reReviewer, conflictReReviewer, pipelineAgent, assistant');
     for (const path of ['/etc/example.md', '~/example.md', '../example.md', 'docs\\example.md', 'C:example.md']) {
       expect(reasonOf(builderListing([{ kind: 'file', path }])), path).toBe('agents.builder.instructions[0].path is not a path inside the repository');
     }
@@ -294,6 +297,90 @@ describe('the Assistant\'s switch', () => {
 
   test('held as anything but true is a problem, false included', () => {
     for (const assistant of [false, 'on', 1, null]) expect(reasonOf(minimalWith({ assistant })), String(assistant)).toBe('assistant is present and is not true');
+  });
+});
+
+describe('the ticket writing keys', () => {
+  const SPEC_THEN_PLAN_PIPELINE: Pipeline = {
+    ...MINIMAL_PIPELINE,
+    agents: {
+      specAgent: { model: 'sonnet', effort: 'medium' },
+      planAgent: { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'planAgent' }] },
+      builder:   { documents: { spec: 'always', plan: 'never' } },
+      reviewer:  { documents: { spec: 'always', plan: 'if-person-approved' } },
+    },
+    approvals:     { spec: false, plan: true },
+    ticketWriting: 'spec-then-plan',
+  };
+
+  test('a pipeline that sets none of them reads and writes as before: no key added', () => {
+    const contents = PipelineFile.contentsOf(MINIMAL_PIPELINE);
+    const reading  = readingOfText(contents);
+
+    expect(reading).toEqual({ verdict: 'readable', pipeline: MINIMAL_PIPELINE });
+    expect(reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : '').toBe(contents);
+  });
+
+  test('the route, the spec and plan approvals, the two document agents and the documents each role reads read back and write byte for byte', () => {
+    const contents = PipelineFile.contentsOf(SPEC_THEN_PLAN_PIPELINE);
+    const reading  = readingOfText(contents);
+
+    expect(Object.keys(JSON.parse(contents) as object).at(-1)).toBe('ticketWriting');
+    expect(reading).toEqual({ verdict: 'readable', pipeline: SPEC_THEN_PLAN_PIPELINE });
+    expect(reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : '').toBe(contents);
+  });
+
+  test('the one-ticket route written out is kept as written', () => {
+    expect(readingOf(minimalWith({ ticketWriting: 'one-ticket' }))).toMatchObject({ verdict: 'readable', pipeline: { ticketWriting: 'one-ticket' } });
+  });
+
+  test('a route outside the two is refused', () => {
+    for (const ticketWriting of ['spec-only', true, null]) {
+      expect(reasonOf(minimalWith({ ticketWriting })), String(ticketWriting)).toBe('ticketWriting is not one of one-ticket, spec-then-plan');
+    }
+  });
+
+  test('a spec or plan approval switch that is not a boolean is refused', () => {
+    expect(reasonOf(minimalWith({ approvals: { spec: 'on' } }))).toBe('approvals.spec is not true or false');
+    expect(reasonOf(minimalWith({ approvals: { plan: 1 } }))).toBe('approvals.plan is not true or false');
+  });
+
+  test('a reviewer rule for the spec other than always is refused, since the reviewer always reads the spec', () => {
+    for (const rule of ['if-person-approved', 'never']) {
+      expect(reasonOf(minimalWith({ agents: { reviewer: { documents: { spec: rule } } } }))).toBe(`agents.reviewer.documents.spec is ${rule}; the reviewer always reads the spec`);
+    }
+  });
+
+  test('documents on any role but the builder and the reviewer are refused as an unknown key', () => {
+    for (const role of ['productOwner', 'specAgent', 'planAgent', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant']) {
+      expect(reasonOf(minimalWith({ agents: { [role]: { documents: { plan: 'always' } } } })), role)
+        .toBe(`agents.${role}."documents" is not a pipeline key; the keys are model, effort, instructions`);
+    }
+  });
+
+  test('an unknown document or an unknown rule is refused', () => {
+    expect(reasonOf(minimalWith({ agents: { builder: { documents: { architecture: 'always' } } } })))
+      .toBe('agents.builder.documents."architecture" is not a pipeline key; the keys are spec, plan');
+    expect(reasonOf(minimalWith({ agents: { builder: { documents: { plan: 'if-approved' } } } })))
+      .toBe('agents.builder.documents.plan is not one of always, if-person-approved, never');
+    expect(reasonOf(minimalWith({ agents: { builder: { documents: 'always' } } }))).toBe('agents.builder.documents is not an object');
+  });
+
+  test('an entity\'s builder and reviewer read their documents under the same rules', () => {
+    const entityWith = (agents: Record<string, unknown>): Record<string, unknown> => minimalWith({
+      entities: {
+        shared: {
+          kind: 'package', home: ['/packages/shared'], prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }, agents,
+        },
+      },
+    });
+
+    expect(readingOf(entityWith({ builder: { documents: { plan: 'never' } } })))
+      .toMatchObject({ verdict: 'readable', pipeline: { entities: { shared: { agents: { builder: { documents: { plan: 'never' } } } } } } });
+    expect(reasonOf(entityWith({ reviewer: { documents: { spec: 'never' } } })))
+      .toBe('entities.shared.agents.reviewer.documents.spec is never; the reviewer always reads the spec');
+    expect(reasonOf(entityWith({ reReviewer: { documents: { plan: 'always' } } })))
+      .toBe('entities.shared.agents.reReviewer."documents" is not a pipeline key; the keys are model, effort, instructions');
   });
 });
 

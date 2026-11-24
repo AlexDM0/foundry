@@ -2,9 +2,10 @@
  * The hashes of a pipeline, the gates of each phase and the instructions a role reads. What matters: a stored pipeline's hashes never
  * change, since a changed hash makes recorded greens stale; a phase hash moves only with the prepare steps and that phase's gates, so an
  * edit of agent settings, instructions, the constitution, re-review, approvals, the Assistant's switch, billing or reach never regates a
- * ticket; the content hash moves with every key but `billing`, the Assistant's switch included. The hashes were taken from the
- * implementation of the one format; retake them only in a change that means to invalidate every recorded row, by printing each hash for
- * each pipeline below.
+ * ticket; the content hash moves with every key but `billing`, the Assistant's switch, the ticket writing route, the spec and plan
+ * approvals and the documents a role reads included, while a pipeline that sets none of these last keeps its frozen hash. The hashes
+ * were taken from the implementation of the one format; retake them only in a change that means to invalidate every recorded row, by
+ * printing each hash for each pipeline below.
  * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
  * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none. A gate
  * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it. Whether a ticket's build goes on to a review
@@ -98,6 +99,11 @@ const EDITS_OUTSIDE_THE_GATES: readonly [string, Pipeline][] = [
   ['the Assistant\'s switch', { ...FULL_PIPELINE, assistant: true }],
   ['the billing', { ...FULL_PIPELINE, billing: { mode: 'subscription' } }],
   ['the reach', { ...FULL_PIPELINE, reach: ['/packages/shared'] }],
+  ['the ticket writing route', { ...FULL_PIPELINE, ticketWriting: 'spec-then-plan' }],
+  ['the spec approval', { ...FULL_PIPELINE, approvals: { tickets: true, merge: true, spec: false } }],
+  ['the plan approval', { ...FULL_PIPELINE, approvals: { tickets: true, merge: true, plan: true } }],
+  ['the documents a builder reads', { ...FULL_PIPELINE, agents: { builder: { model: 'opus', effort: 'high', documents: { plan: 'never' } }, reviewer: { instructions: [] } } }],
+  ['the documents a reviewer reads', { ...FULL_PIPELINE, agents: { builder: { model: 'opus', effort: 'high' }, reviewer: { instructions: [], documents: { plan: 'always' } } } }],
 ];
 
 describe('the phase hash', () => {

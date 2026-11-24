@@ -50,11 +50,14 @@ function canonicalInstructionOf(entry: Readonly<InstructionEntry>): object {
   return { kind: entry.kind, path: entry.path };
 }
 
+/** Settings with no `documents` hash as they did before a role could read ticket documents, so no stored hash moves. */
 function canonicalAgentSettingsOf(settings: Readonly<AgentStepSettings>): object {
+  const { documents } = settings;
   return {
     model:        settings.model ?? null,
     effort:       settings.effort ?? null,
     instructions: settings.instructions?.map(canonicalInstructionOf) ?? null,
+    ...(documents === undefined ? {} : { documents: { spec: documents.spec ?? null, plan: documents.plan ?? null } }),
   };
 }
 
@@ -154,13 +157,27 @@ function entitiesGateRunStampOf(pipeline: Readonly<Pipeline>, phase: GatePhase, 
   return { ...gateRunStampOf(pipeline, phase), entityPhaseHashes };
 }
 
-/** Every key but `billing`, in a fixed order: what tells Apply that someone changed the stored pipeline under it. */
+/** The `tickets` and `merge` switches always; `spec` and `plan` only once set, so a pipeline that sets neither keeps its hash. */
+function canonicalApprovalsOf(approvals: Readonly<Pipeline['approvals']>): object {
+  return {
+    tickets: approvals?.tickets ?? null,
+    merge:   approvals?.merge ?? null,
+    ...(approvals?.spec === undefined ? {} : { spec: approvals.spec }),
+    ...(approvals?.plan === undefined ? {} : { plan: approvals.plan }),
+  };
+}
+
+/**
+ * Every key but `billing`, in a fixed order: what tells Apply that someone changed the stored pipeline under it. `ticketWriting` only
+ * once set, so a pipeline that never sets it keeps its hash.
+ */
 function contentHashOf(pipeline: Readonly<Pipeline>): string {
   const canonical = {
     version:   PIPELINE_FORMAT_VERSION,
     shape:     canonicalShapeOf(pipeline),
-    approvals: { tickets: pipeline.approvals?.tickets ?? null, merge: pipeline.approvals?.merge ?? null },
+    approvals: canonicalApprovalsOf(pipeline.approvals),
     assistant: pipeline.assistant === true,
+    ...(pipeline.ticketWriting === undefined ? {} : { ticketWriting: pipeline.ticketWriting }),
   };
   return TicketBodyHashUtil.bodyHashOf(JSON.stringify(canonical));
 }
@@ -197,7 +214,7 @@ function agentsOfEntity(pipeline: Readonly<Pipeline>, entity: Readonly<PipelineE
 
 /**
  * The entity as an ordinary single pipeline: its own steps, gates, phases, review, constitution, reach and agents, with the forge's merge
- * train, approvals, billing and forge-level agents. Null when the pipeline has no entity of that key.
+ * train, approvals, billing, ticket writing route and forge-level agents. Null when the pipeline has no entity of that key.
  */
 function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): Pipeline | null {
   const { entities } = pipeline;
@@ -216,6 +233,7 @@ function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): P
     ...(pipeline.approvals === undefined ? {} : { approvals: pipeline.approvals }),
     ...(pipeline.billing === undefined ? {} : { billing: pipeline.billing }),
     ...(entity.reach === undefined ? {} : { reach: entity.reach }),
+    ...(pipeline.ticketWriting === undefined ? {} : { ticketWriting: pipeline.ticketWriting }),
   };
 }
 

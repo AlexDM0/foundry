@@ -4,8 +4,8 @@
  * names the first field that is missing, misshapen or not in the shape. Whether the value fits the record (a step reached, a line the
  * text holds) is the Board's.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }    from '../../lib/tracker-model/@types/GatePhase.ts';
+import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
+import { GATE_PHASES }      from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   ENTITY_AGENT_ROLES,
@@ -16,7 +16,9 @@ import {
   type PipelineConstitution,
   type PipelineGate,
   type PipelineReview,
-  type PipelineStep
+  type PipelineStep,
+  TICKET_WRITING_ROUTES,
+  type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSetting,
@@ -85,7 +87,7 @@ type TypedEditTarget = keyof typeof TYPED_EDIT_KEYS;
 
 const TYPED_EDIT_TARGETS = Object.keys(TYPED_EDIT_KEYS) as TypedEditTarget[];
 
-const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
+const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge', 'spec', 'plan'];
 
 /** An option that offers "Other" is the client's own free-text answer, so the agent never sends one. */
 const OTHER_OPTION_PATTERN = /^other\s*(?:$|[(:.,;-])/iu;
@@ -301,14 +303,23 @@ function entityEditAt(field: EntityDraftField, value: unknown, valuePath: string
   return { target: 'role', role, value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
 }
 
-/** A field of the pipeline itself: its steps, a role, an approval or the merge train. */
+/** One of the two routes, or `null` to remove the key, which reads as one ticket. */
+function ticketWritingRouteOrNullAt(value: unknown, valuePath: string): TicketWritingRoute | null {
+  if (value === null) return null;
+  const route = TICKET_WRITING_ROUTES.find((candidate) => candidate === value);
+  return route ?? malformed(valuePath);
+}
+
+/** A field of the pipeline itself: its steps, a role, an approval, the ticket writing route or the merge train. */
 function pipelineEditAt(field: PipelineDraftField, value: unknown, valuePath: string): PipelineDraftEdit {
   const stepsEdit = stepsEditAt(field, value, valuePath);
   if (stepsEdit !== null) return stepsEdit;
+  if (field === 'ticket-writing') return { target: 'ticket-writing', value: ticketWritingRouteOrNullAt(value, valuePath) };
   const [fieldKind = '', name = ''] = field.split(/:(.*)/su);
-  if (fieldKind === 'approval') {
+  const approval = PIPELINE_APPROVALS.find((candidate) => candidate === name);
+  if (fieldKind === 'approval' && approval !== undefined) {
     if (value !== null && typeof value !== 'boolean') malformed(valuePath);
-    return { target: 'approval', approval: name === 'merge' ? 'merge' : 'tickets', value };
+    return { target: 'approval', approval, value };
   }
   const role = PIPELINE_AGENT_ROLES.find((candidate) => candidate === name);
   if (fieldKind === 'role' && role !== undefined) return { target: 'role', role, value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
@@ -418,6 +429,8 @@ function typedDraftEditReadingOf(edit: unknown, index: number): PayloadReading<P
       case 'approval':
         if (value !== null && typeof value !== 'boolean') malformed(valuePath);
         return { target, approval: oneOf(PIPELINE_APPROVALS, record, path, 'approval'), value };
+      case 'ticket-writing':
+        return { target, value: ticketWritingRouteOrNullAt(value, valuePath) };
       case 'entity':
         return { target, entityKey: textAt(record, path, 'entityKey'), value: entityDefinitionAt(value, valuePath) };
       case 'within-entity':

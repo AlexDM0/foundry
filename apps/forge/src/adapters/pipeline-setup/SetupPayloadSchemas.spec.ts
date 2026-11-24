@@ -5,6 +5,7 @@
  * An entity's definition is a kind, its homes and an optional summary; a field inside an entity reads to the same edit on the entity, a
  * list of non-blank keys or paths, or a cap of at least one job, and a forge-level field never reads inside one. A person's typed edit reads
  * by its target to the same edit, and a missing key, a misshapen value, a key outside its target's and an unknown target are each named.
+ * The ticket writing route is one of its two words or `null`, at the forge level only, and the spec and plan approvals are switches.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -181,6 +182,43 @@ describe('a proposal', () => {
   });
 });
 
+describe('the ticket writing fields', () => {
+  test('the route, the spec and plan approvals and the two document agents read from a proposal', () => {
+    expect(SetupPayloadSchemas.proposalReadingOf({
+      edits: [
+        { field: 'ticket-writing', value: 'spec-then-plan', summary: 'Write a spec, then a plan.' },
+        { field: 'approval:spec', value: false, summary: 'The pipeline approves the spec.' },
+        { field: 'approval:plan', value: null, summary: 'User approves the plan.' },
+        { field: 'role:planAgent', value: { model: 'opus', effort: 'high' }, summary: 'Plan with Opus.' },
+        { field: 'ticket-writing', value: null, summary: 'One ticket.' },
+      ],
+    })).toEqual({
+      verdict: 'read',
+      value:   [
+        { edit: { target: 'ticket-writing', value: 'spec-then-plan' }, summary: 'Write a spec, then a plan.' },
+        { edit: { target: 'approval', approval: 'spec', value: false }, summary: 'The pipeline approves the spec.' },
+        { edit: { target: 'approval', approval: 'plan', value: null }, summary: 'User approves the plan.' },
+        { edit: { target: 'role', role: 'planAgent', value: { model: 'opus', effort: 'high' } }, summary: 'Plan with Opus.' },
+        { edit: { target: 'ticket-writing', value: null }, summary: 'One ticket.' },
+      ],
+    });
+  });
+
+  test('a route outside the two, or an approval that is not a switch, names the value', () => {
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'ticket-writing', value: 'spec-only' }, 0)).toEqual({ verdict: 'malformed', field: 'edits[0].value' });
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'ticket-writing', value: true }, 0)).toEqual({ verdict: 'malformed', field: 'edits[0].value' });
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'approval:plan', value: 'on' }, 0)).toEqual({ verdict: 'malformed', field: 'edits[0].value' });
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'approval:release', value: true }, 0)).toEqual({ verdict: 'malformed', field: 'edits[0].field' });
+  });
+
+  test('the route never reads inside an entity, and the document agents are forge-level roles', () => {
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'entity:api/ticket-writing', value: 'spec-then-plan' }, 0))
+      .toEqual({ verdict: 'malformed', field: 'edits[0].field' });
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'entity:api/role:specAgent', value: null }, 0))
+      .toEqual({ verdict: 'malformed', field: 'edits[0].field' });
+  });
+});
+
 describe('a ready step and a User field edit', () => {
   test('a ready step is one the agent works on', () => {
     expect(SetupPayloadSchemas.readyStepReadingOf({ step: 'constitution' })).toEqual({ verdict: 'read', value: 'constitution' });
@@ -254,6 +292,11 @@ describe('a typed edit', () => {
     { target: 'role', role: 'assistant', value: { model: 'opus', effort: 'high' } },
     { target: 'airlock', value: null },
     { target: 'approval', approval: 'merge', value: true },
+    { target: 'approval', approval: 'spec', value: false },
+    { target: 'approval', approval: 'plan', value: null },
+    { target: 'ticket-writing', value: 'spec-then-plan' },
+    { target: 'ticket-writing', value: null },
+    { target: 'role', role: 'specAgent', value: { model: 'sonnet', effort: 'medium' } },
     { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: 'The API.' } },
     { target: 'entity', entityKey: 'web', value: null },
     { target: 'within-entity', entityKey: 'api', edit: { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } } },
@@ -287,6 +330,9 @@ describe('a typed edit', () => {
     ['edits[1].value.home', { target: 'entity', entityKey: 'api', value: { kind: 'app' } }],
     ['edits[1].edit.value', { target: 'within-entity', entityKey: 'api', edit: { target: 'concurrency', value: 0 } }],
     ['edits[1].value', { target: 'review', value: 'review' }],
+    ['edits[1].value', { target: 'ticket-writing', value: 'spec-only' }],
+    ['edits[1].approval', { target: 'approval', approval: 'release', value: true }],
+    ['edits[1].edit.target', { target: 'within-entity', entityKey: 'api', edit: { target: 'ticket-writing', value: 'spec-then-plan' } }],
     ['edits[1].field', { target: 'review', value: null, field: 'review' }],
   ])('names %s', (field, edit) => {
     expect(SetupPayloadSchemas.typedDraftEditReadingOf(edit, 1)).toEqual({ verdict: 'malformed', field });

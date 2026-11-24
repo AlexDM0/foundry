@@ -16,12 +16,15 @@ import type {
   PipelineEntity,
   PipelineGate,
   PipelineReview,
-  PipelineStep
+  PipelineStep,
+  TicketWritingRoute
 } from '../@types/Pipeline.ts';
 import { ENTITY_AGENT_ROLES, PIPELINE_AGENT_ROLES }                            from '../@types/Pipeline.ts';
 import type { EntityDraftField, PipelineDraftField, PipelineEntityDefinition } from '../@types/PipelineSetup.ts';
+import { TICKET_DOCUMENT_KINDS }                                               from '../@types/TicketDocument.ts';
 import { PipelineDraftEditUtil }                                               from './PipelineDraftEditUtil.ts';
 import { PipelineUtil }                                                        from './PipelineUtil.ts';
+import { TicketWritingUtil }                                                   from './TicketWritingUtil.ts';
 
 export type PipelineChangeKind = 'changed' | 'new' | 'removed';
 
@@ -35,6 +38,7 @@ export type PipelineFieldValue =
   | boolean
   | PipelineConstitution
   | PipelineEntityDefinition
+  | TicketWritingRoute
   | number;
 
 /** `before` is null on a new field and `after` on a removed one. */
@@ -51,7 +55,7 @@ export interface PipelineChangedFieldNames {
   removedFields: PipelineDraftField[];
 }
 
-const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
+const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge', 'spec', 'plan'];
 
 /** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
 const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({
@@ -133,10 +137,24 @@ function phaseOrderChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>
   return GATE_PHASES.flatMap((phase) => changeOf(`phase-order:${phase}` as const, base.phases[phase], draft.phases[phase]));
 }
 
-/** The model and effort as stored, since their defaults are the app's; the instructions as read, since their defaults are the model's. */
+/** The documents the builder or the reviewer reads as read, each default filled in; no other role reads one. */
+function comparableDocumentsOf(pipeline: Readonly<Pipeline>, role: PipelineAgentRole): object | undefined {
+  if (role !== 'builder' && role !== 'reviewer') return undefined;
+  return Object.fromEntries(TICKET_DOCUMENT_KINDS.map((document) => [document, TicketWritingUtil.documentReadingRuleOf(pipeline, role, document)]));
+}
+
+/**
+ * The model and effort as stored, since their defaults are the app's; the instructions and the documents as read, since their defaults
+ * are the model's.
+ */
 function comparableSettingsOf(pipeline: Readonly<Pipeline>, role: PipelineAgentRole): object {
   const settings = pipeline.agents?.[role] ?? {};
-  return { model: settings.model, effort: settings.effort, instructions: PipelineUtil.resolvedInstructionsOf(pipeline, role) };
+  return {
+    model:        settings.model,
+    effort:       settings.effort,
+    instructions: PipelineUtil.resolvedInstructionsOf(pipeline, role),
+    documents:    comparableDocumentsOf(pipeline, role),
+  };
 }
 
 /** A role's step always exists, so its settings only change. */
@@ -156,6 +174,15 @@ function approvalChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>):
       field: `approval:${approval}` as const, change: 'changed' as const, before, after
     }];
   });
+}
+
+/** The route always exists, `one-ticket` where the file names none, so it only changes, and writing out the default is no change. */
+function ticketWritingChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange<'ticket-writing'>[] {
+  const before = TicketWritingUtil.routeOf(base);
+  const after  = TicketWritingUtil.routeOf(draft);
+  return before === after ? [] : [{
+    field: 'ticket-writing', change: 'changed', before, after
+  }];
 }
 
 /** The constitution text lives outside the pipeline, so the caller says whether it changed; a changed text alone is a changed row. */
@@ -220,7 +247,7 @@ function entityChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): P
 
 /**
  * Every field the draft changes, in the flow's order: prepare steps, gates, phase orders, review, merge train, roles, approvals, the
- * constitution, then each entity. Billing is never a change row, as it is no part of the content hash.
+ * ticket writing route, the constitution, then each entity. Billing is never a change row, as it is no part of the content hash.
  */
 function changesBetween(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, constitutionTextChanged: boolean): PipelineChange[] {
   return [
@@ -231,6 +258,7 @@ function changesBetween(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, con
     ...changeOf('airlock', base.airlock, draft.airlock),
     ...roleChangesOf(base, draft, PIPELINE_AGENT_ROLES),
     ...approvalChangesOf(base, draft),
+    ...ticketWritingChangesOf(base, draft),
     ...constitutionChangesOf(base, draft, constitutionTextChanged),
     ...entityChangesOf(base, draft),
   ];

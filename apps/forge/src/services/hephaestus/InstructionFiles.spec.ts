@@ -6,10 +6,11 @@
  * job of an entity reads its entity's list and constitution, a job without one the forge's own, a job of an entity with no constitution the
  * installed default even where the forge sets one (E28), and a job of an entity the pipeline no longer holds the installed defaults; and
  * V11 protects every tracked path any role's resolved list names, each entity's too, while V17 learns which entity owns each entity's
- * constitution. Main's `CONSTITUTION.md`, or an entity's constitution by its path, is read with its blob id from one commit of the main
- * line, absent when that commit holds none or when the main line is checked out with no commit yet, and unreadable, never absent, when any
- * other main line does not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers from the recorded
- * answers of `src/testing/RecordedGit.ts`.
+ * constitution. A pipeline agent reads the constitution too, but the one the open setup record serves reads the record's draft, of its own
+ * level, never the installed default, and none before a draft exists. Main's `CONSTITUTION.md`, or an entity's constitution by its
+ * path, is read with its blob id from one commit of the main line, absent when that commit holds none or when the main line is checked
+ * out with no commit yet, and unreadable, never absent, when any other main line does not resolve. Data-folder files are read from
+ * disk; a tracked path is asked of git, which answers from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -30,6 +31,7 @@ import {
 import type { Job }                                               from '../../lib/tracker-model/@types/Job.ts';
 import { PIPELINE_AGENT_ROLES, type Pipeline }                    from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineAgentRole }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { PRODUCT_NAMES }                                          from '../../shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
@@ -194,6 +196,57 @@ describe('the files a reading takes', () => {
 
     expect(InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, pipeline, jobOf('build', 'builder')))
       .toEqual({ verdict: 'instructions-missing', path: EXAMPLE_NOTES_PATH });
+  });
+});
+
+describe('a pipeline agent', () => {
+  const PIPELINE_AGENT_JOB = jobOf('pipeline-agent', 'pipeline-agent');
+
+  /** Only the fields the reading looks at: which session the record's levels hold, and each level's draft. */
+  function setupServing(
+    agentJobId: string | null,
+    constitution: string | null,
+    entities?: Record<string, { agentJobId: string | null; constitution: string | null }>,
+  ): Readonly<PipelineSetup> {
+    const draftOf = (markdown: string | null) => (markdown === null ? null : { markdown });
+    const parts = Object.entries(entities ?? {}).map(([entityKey, part]) => [entityKey, { agentJobId: part.agentJobId, constitution: draftOf(part.constitution) }]);
+    return {
+      agentJobId,
+      constitution: draftOf(constitution),
+      ...(entities === undefined ? {} : { entities: Object.fromEntries(parts) }),
+    } as unknown as Readonly<PipelineSetup>;
+  }
+
+  function readingOf(setup: Readonly<PipelineSetup> | null): ReturnType<typeof InstructionFiles.readingFor> {
+    return InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, null, PIPELINE_AGENT_JOB, setup);
+  }
+
+  test('reads the constitution, then its own default, where no setup record serves it', () => {
+    expect(readingOf(null)).toMatchObject({ verdict: 'read', text: 'constitution default\n\npipelineAgent default\n' });
+    expect(readingOf(setupServing('J99', 'Another session\'s draft.'))).toMatchObject({ text: 'constitution default\n\npipelineAgent default\n' });
+  });
+
+  test('served by the open record, reads the record\'s draft constitution in place of any file, and records no file for it', () => {
+    const reading = readingOf(setupServing(PIPELINE_AGENT_JOB.id, '# Draft constitution'));
+
+    expect(reading).toMatchObject({ verdict: 'read', text: '# Draft constitution\n\npipelineAgent default\n' });
+    expect(reading.verdict === 'read' ? reading.files.map((file) => file.path) : []).toEqual([defaultInstructionPathOf('pipelineAgent')]);
+  });
+
+  test('served by the open record with no draft yet, reads no constitution at all, not the installed default', () => {
+    expect(readingOf(setupServing(PIPELINE_AGENT_JOB.id, null))).toMatchObject({ verdict: 'read', text: 'pipelineAgent default\n' });
+  });
+
+  test('serving an entity, reads that entity\'s draft, not the forge\'s', () => {
+    const setup = setupServing('J98', 'Forge draft.', { gaia: { agentJobId: PIPELINE_AGENT_JOB.id, constitution: 'Gaia draft.' } });
+
+    expect(readingOf(setup)).toMatchObject({ verdict: 'read', text: 'Gaia draft.\n\npipelineAgent default\n' });
+  });
+
+  test('any other role reads its constitution file whatever the record holds', () => {
+    const reading = InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, null, jobOf('build', 'builder'), setupServing('J7', 'Draft.'));
+
+    expect(reading).toMatchObject({ verdict: 'read', text: 'constitution default\n\nbuilder default\n' });
   });
 });
 
