@@ -52,15 +52,17 @@ export class JobControls {
 
   /**
    * `stop` and `wind-down` hold the job's ticket "stopped by User (J<n>)" or "wound down by User (J<n>)", which the policy never undoes;
-   * a stopped product owner is finished, its open questions withdrawn. A job with no session to stop ends here; a pipeline agent with none
-   * ends `closed`, so a later message opens it again.
+   * a stopped product owner is finished, its open questions withdrawn. A job with no session to stop ends here, a job whose launch stands
+   * refused among them in every mode, since no session will ever end it; a pipeline agent with none ends `closed`, so a later message opens it
+   * again.
    */
   requestJobStop(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
     if (mode === 'fresh' && !JobControlRuleUtil.freshAgentIsOpenTo(job)) throw new BoardRefusal({ reason: 'job-has-no-ticket', jobId });
     const logged: LogRecord[] = [...this.jobRules.recordStopRequest(jobId, mode, at).logged];
     if (mode !== 'fresh') logged.push(...this.holdTicketsOf(job, jobStopHoldOf(mode, jobId), at));
-    if (mode === 'wind-down') return { job, logged };
+    const launchStandsRefused = job.notLaunched !== undefined;
+    if (mode === 'wind-down' && !launchStandsRefused) return { job, logged };
     if (job.kind === PRODUCT_OWNER_KIND) {
       for (const decision of this.decisionRules.decisions().filter((open) => open.jobId === jobId)) {
         logged.push(...this.decisionRules.withdrawDecision(decision.id, WITHDRAWN_BY_STOP_REASON, at).logged);
@@ -68,7 +70,7 @@ export class JobControls {
       if (job.state !== 'stopping') logged.push(...this.jobRules.moveJob(jobId, 'stopping', at).logged);
       return { job, logged };
     }
-    if (SESSIONLESS_STATES.includes(job.state)) {
+    if (launchStandsRefused || SESSIONLESS_STATES.includes(job.state)) {
       if (job.kind === PIPELINE_AGENT_KIND) return this.endJob(jobId, { outcome: 'closed' }, logged, at);
       const ending: JobEnding = mode === 'fresh' ? { outcome: 'replaced', cause: FRESH_AGENT_CAUSE } : { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE };
       return this.endJob(jobId, ending, logged, at);

@@ -15,7 +15,10 @@ export interface DefaultedIncident {
   at:         string;
 }
 
-/** The agents a sweep watches: a session that waits on an answer, or one an Assistant turn bounds, is quiet on purpose. */
+/**
+ * The agents a sweep watches: a session that waits on an answer, or one an Assistant turn bounds, is quiet on purpose, and a job whose
+ * launch stands refused has no session at all.
+ */
 const WATCHED_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
 export interface QuietJobWatch {
@@ -34,7 +37,7 @@ function createQuietJobWatch(quietSweeps: number): QuietJobWatch {
   return {
     sweep: (jobs) => {
       const due: string[] = [];
-      const watched = jobs.filter((job) => WATCHED_JOB_KINDS.includes(job.kind) && job.state === 'running');
+      const watched = jobs.filter((job) => WATCHED_JOB_KINDS.includes(job.kind) && job.state === 'running' && job.notLaunched === undefined);
       for (const jobId of [...standingByJobId.keys()]) {
         if (!watched.some((job) => job.id === jobId)) standingByJobId.delete(jobId);
       }
@@ -55,7 +58,7 @@ function createQuietJobWatch(quietSweeps: number): QuietJobWatch {
 function openQuietJobIncidents(board: Board, jobIds: readonly string[], quietSweeps: number, at: string): LogRecord[] {
   return jobIds.flatMap((jobId) => {
     const job = board.jobById(jobId);
-    if (job?.state !== 'running') return [];
+    if (job?.state !== 'running' || job.notLaunched !== undefined) return [];
     if (board.incidents().some((incident) => incident.kind === 'quiet-job' && incident.jobId === jobId)) return [];
     return [...board.openIncident({
       kind: 'quiet-job', ticketIds: job.ticketIds, jobId, facts: { sweeps: String(quietSweeps) }, defaultMove: 'open-quiet-job-decision'
