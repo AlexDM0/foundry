@@ -4,7 +4,7 @@
  * that holds it, selects its card or gate row and scrolls it into view. The selection also holds the screen's Apply dialog, asked for one
  * setup record: one modal dialog is open at a time, and an Apply asked for an earlier record never opens over a later one.
  */
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 import type { GatesOpenRequest }                  from '../gates/GatesAreaModel.ts';
 import type { FlowOpenRequest }                   from './PipelineFlowModel.ts';
@@ -46,14 +46,15 @@ export interface FlowSelection {
   readonly closeApply:      () => void;
 }
 
-/** The phase the boards open on. */
-const FIRST_OPEN_PHASE: PipelinePhase = 'build';
+/** The phase the boards open on; a painted screen of the visual pass sets the phase its artboard draws open. */
+export const FirstOpenPhaseContext = createContext<PipelinePhase>('build');
 
 /** `applyAskedFor` opens the Apply dialog at once, for a record whose Apply is still pending. */
 export function useFlowSelection(applyAskedFor: string | null = null): FlowSelection {
   const [openRequest, setOpenRequest] = useState<FlowWorkspaceOpenRequest | null>(null);
   const [applySetupId, setApplySetupId] = useState<string | null>(applyAskedFor);
-  const [openPhase, setOpenPhase] = useState<PipelinePhase>(FIRST_OPEN_PHASE);
+  const firstOpenPhase = useContext(FirstOpenPhaseContext);
+  const [openPhase, setOpenPhase] = useState<PipelinePhase>(firstOpenPhase);
   const [shownItem, setShownItem] = useState<FlowShownItem | null>(null);
   const [scrollRequest, setScrollRequest] = useState<FlowScrollRequest | null>(null);
   const scrollTo = (item: FlowShownItem): void => setScrollRequest({ item, serial: (scrollRequest?.serial ?? 0) + 1 });

@@ -45,6 +45,8 @@ import {
   MONITOR_WARNING_SCREENS,
   OUTAGE_ENDINGS_SCREENS,
   type PageArtboard,
+  pipelineDocumentScreenDocumentOf,
+  pipelineDocumentScreenMarkupOf,
   RESTART_PENDING_SCREENS,
   screenDocumentOf,
   SCREEN_THEMES,
@@ -65,6 +67,7 @@ import {
 import { DesignSystemStylesheet }         from './testing/DesignSystemStylesheet.ts';
 import { type MarkupElement, MarkupTree } from './testing/MarkupTree.ts';
 import { PackageStylesheet }              from './testing/PackageStylesheet.ts';
+import { PIPELINE_DOCUMENT_SCREENS }      from './testing/PipelineDocumentArtboards.tsx';
 
 const STYLESHEETS = ['tokens.css', 'gaia.css'].map((fileName) => readFileSync(join(import.meta.dir, 'styles', fileName), 'utf8'));
 
@@ -575,6 +578,36 @@ describe('the ticket document screens', () => {
       for (const theme of SCREEN_THEMES) {
         const screenDocument = ticketDocumentScreenDocumentOf(screen, theme);
         expect([screenDocument.includes(`<html lang="en" data-theme="${theme}">`), screenDocument.includes('.board-document-page')]).toEqual([true, true]);
+      }
+    }
+  });
+});
+
+/** What each pipeline documents artboard shows, in the words the page draws: 9 the Ticket phase open, 10 the reviewer's documents. */
+const PIPELINE_DOCUMENT_SCREEN_STATES: Readonly<Record<string, readonly string[]>> = {
+  9:  ['Phase 1 of 4', 'How a ticket is written', 'Human spec review', 'plan.md', 'An approved plan'],
+  10: ['Phase 3 of 4', 'Pipeline documents', 'Reads the spec and the plan, always.', 'Reset to default'],
+};
+
+describe('the pipeline document screens', () => {
+  test('artboards 9 and 10 are each painted once', () => {
+    expect(PIPELINE_DOCUMENT_SCREENS.map((screen) => screen.artboard)).toEqual(['9', '10']);
+  });
+
+  test('each screen shows the phase and the state its artboard draws', () => {
+    for (const screen of PIPELINE_DOCUMENT_SCREENS) {
+      const text = MarkupTree.textOf(MarkupTree.parse(pipelineDocumentScreenMarkupOf(screen, 'light')));
+      for (const shown of PIPELINE_DOCUMENT_SCREEN_STATES[screen.artboard] ?? []) expect([screen.artboard, text.includes(shown)]).toEqual([screen.artboard, true]);
+    }
+  });
+
+  test('a screen holds no colour of its own, its document names its theme, and only artboard 10 opens a dialog', () => {
+    for (const screen of PIPELINE_DOCUMENT_SCREENS) {
+      for (const theme of SCREEN_THEMES) {
+        for (const inlineStyle of inlineStylesOf(pipelineDocumentScreenMarkupOf(screen, theme))) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
+        const screenDocument = pipelineDocumentScreenDocumentOf(screen, theme);
+        expect([screen.artboard, screenDocument.includes(`<html lang="en" data-theme="${theme}">`), screenDocument.includes('showModal()')])
+          .toEqual([screen.artboard, true, screen.artboard === '10']);
       }
     }
   });
