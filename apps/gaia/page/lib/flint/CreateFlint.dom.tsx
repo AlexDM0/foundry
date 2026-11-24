@@ -6,7 +6,7 @@
  * shapes from that element's box until the element leaves the page; `steer` walks
  * Flint and takes only a steering of its list; reduced motion holds the hover still; the theme sets the
  * custom properties; a press that moves past the threshold carries Flint and a shorter one is a click; the habitat below a carried Flint
- * is marked as the drop target, and a drop there lands Flint and stores it; a habitat smaller than 100 by 100 pixels is never a drop
+ * is marked as the drop target, and a drop there lands Flint and stores it; a habitat smaller than 50 by 50 pixels is never a drop
  * target nor visited; Flint stops, hidden, while the tab is hidden or its place is off the screen, and a habitat with no box sends it home
  * instead; a brain answers in place of the rule director
  * for its maximum time only, never while Flint sleeps, never twice at once, and an answer off the list is answered by the rule director;
@@ -85,7 +85,7 @@ function madeOnPage(options: Partial<FlintOptions> = {}): MadeFlint & { readonly
   const badge = document.createElement('span');
   made.root.append(chat, badge);
   placeAt(chat, 200, 200, 400, 300);
-  placeAt(badge, 700, 200, 50, 50);
+  placeAt(badge, 700, 200, 40, 40);
   made.handle.registerHabitat(chat, CHAT_HABITAT);
   made.handle.registerHabitat(badge, SMALL_HABITAT);
   return { ...made, chat, badge };
@@ -359,7 +359,7 @@ describe('the pointer', () => {
     expect(figurePositionOf(root).y).toBeGreaterThan(500 - 10);
   });
 
-  test('a habitat smaller than 100 by 100 pixels is never the drop target: a drop there strands Flint, which goes home', () => {
+  test('a habitat smaller than 50 by 50 pixels is never the drop target: a drop there strands Flint, which goes home', () => {
     const storage = recordingStorage(null);
     const { root, frames, badge } = madeOnPage({ storage });
     frames.advance(16);
@@ -373,7 +373,7 @@ describe('the pointer', () => {
     expect(Math.abs(figurePositionOf(root).y - 694)).toBeLessThan(4);
   });
 
-  test('a habitat smaller than 100 by 100 pixels is never visited, nor taken from storage', () => {
+  test('a habitat smaller than 50 by 50 pixels is never visited, nor taken from storage', () => {
     const {
       handle, root, frames, badge
     } = madeOnPage({ storage: recordingStorage('1:badge') });

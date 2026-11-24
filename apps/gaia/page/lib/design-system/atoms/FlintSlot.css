@@ -2,6 +2,7 @@
 .design-system-flint-slot { flex: none; border: 1px solid transparent; }
 .design-system-flint-slot[data-size="112"] { width: 112px; height: 112px; }
 .design-system-flint-slot[data-size="100"] { width: 100px; height: 100px; }
+.design-system-flint-slot[data-size="50"] { width: 50px; height: 50px; }
 .design-system-flint-slot[data-ground="page"] { background: var(--bg); border-color: var(--line); border-radius: var(--r-3); }
 .design-system-flint-slot[data-ground="strip"] { background: var(--lane-bg); border-width: 0 1px 0 0; border-color: var(--line); border-radius: 0; }
 .design-system-flint-slot[data-ground="lane"] { background: var(--lane-bg); border-width: 0; border-radius: var(--r-2); }

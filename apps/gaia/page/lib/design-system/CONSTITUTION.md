@@ -78,7 +78,7 @@ design-system/
   `decision` flag of `Card`, and the tokens such as `--lane-bg` and `--pass-tint`.
 - **A place that the host fills is an empty box with a ref prop.** `FlintSlot` draws no sprite and says nothing of what
   the sprite does. It is the square box (its size, its ground and its accessible name), and it gives its element through
-  `slotRef`. The host puts its sprite there. Each size is at least 100px square.
+  `slotRef`. The host puts its sprite there. Each size is at least 50px square, the smallest place the sprite fits.
 - **Graphs, charts, Gantt charts, flow graphs and editors are not design system.** They stay in the host and compose
   the library. The owner's criticism of an earlier app was that "lib components and design system are mixed in there".
 - **A building block of the host that draws data** (a dependency graph, a Gantt chart, a markdown editor) is a lib

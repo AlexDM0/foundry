@@ -21,4 +21,4 @@ export const DEFAULT_PIXELS_FOR_ONE_UNIT = 1;
 export const REDUCED_MOTION_MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
 
 /** Flint never goes into a habitat whose box is narrower or lower than this. */
-export const HABITAT_MINIMUM_SIDE_PIXELS = 100;
+export const HABITAT_MINIMUM_SIDE_PIXELS = 50;

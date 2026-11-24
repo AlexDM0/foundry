@@ -100,7 +100,7 @@ export type AttendVerdict = 'attended' | 'unknown-attendant' | 'destroyed';
 
 export interface FlintHandle {
   readonly contractVersion: number;
-  /** Returns the function that removes the habitat. Flint ignores a habitat smaller than 100 by 100 pixels. */
+  /** Returns the function that removes the habitat. Flint ignores a habitat smaller than 50 by 50 pixels. */
   readonly registerHabitat: (element: HTMLElement, habitat: SpriteHabitat) => () => void;
   /** A cue on a habitat's element or an element inside it; any cue wakes Flint, and the habitat Flint lives in answers its own. */
   readonly cue:             (element: HTMLElement, cueName: SpriteCue) => void;
