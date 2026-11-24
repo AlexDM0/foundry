@@ -2912,6 +2912,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 |---|---|---|
 | `pipeline-setup-opened` | `setupId` | `mode` (`setup`, `update` or `advise`), `replacesUnreadablePipeline` |
 | `pipeline-setup-billing-set` | `setupId` | `mode` (`subscription` or `api`), `maxBudgetUsd` only for a cap |
+| `pipeline-setup-agent-set` | `setupId` | `vendor`, `program`: `machine` or the pinned path |
 | `pipeline-setup-step-moved` | `setupId` | `step`, its new `state`, the `currentStep`, and `needsRecheck`: the later steps a reopening sent back |
 | `pipeline-setup-resumed` | `setupId` | `snapshotCommit`, `changedPaths` (changed on main since the earlier snapshot) |
 | `pipeline-snapshot-touched` | `setupId` | `check` and `reason` of the Customs refusal at a turn end of the pipeline agent; Apply refuses `setup-snapshot-touched` until the next `pipeline-setup-resumed` |
@@ -2956,6 +2957,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-gates-ordered` | none | `phase` (`build`, `review` or `merge`), `names` (the phase's gates in their new run order) |
 | `pipeline-approval-set` | none | `approval`: `tickets`, `state`: `on` or `off` |
 | `pipeline-assistant-set` | none | `state`: `on` or `off` |
+| `pipeline-agent-set` | none | `vendor`, `program`: `machine` or the pinned path |
+| `pipeline-tools-set` | none | `paths`: the tools' paths; empty when the list was removed |
 | `pipeline-reach-set` | none | `paths`: the repository paths, an empty list when cleared |
 | `branch-namespace-set` | none | `namespace` |
 | `check-command-set` | none | `command` (the shell line, or `null` when cleared); retired: still read, never logged |
@@ -2989,6 +2992,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
+| `job-not-launched` | `jobId` | `cause`, `programPath` (`null` when none was named): the launch was refused for the agent's program |
+| `job-launch-retried` | `jobId` | none: the agent's program changed, or User looked again |
 | `job-messaged` | `jobId` | `text`: a chat turn Hephaestus writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byHephaestus` (`true`) only when the text is Hephaestus's wording of User's setup move |
 | `job-reopened` | `jobId` | `childInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byHephaestus` as on `job-messaged` |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |

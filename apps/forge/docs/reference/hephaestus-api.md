@@ -174,10 +174,13 @@ limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and write
 
 ### Control contract 3
 
-The control contract is what a monitor may send and what it gets back. It names nine kinds, `CONTROL_CONTRACT_KINDS` in
+The control contract is what a monitor may send and what it gets back. It names ten kinds, `CONTROL_CONTRACT_KINDS` in
 `src/shared/constants/HephaestusApiContracts.ts`: `hephaestus-pause`, `hephaestus-unpause`, `hephaestus-stop {now}`,
 `hephaestus-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
-forge 1.20, `interrupted-work-resume {target}`, and, from forge 1.23, `talos-restart`. Each answer carries
+forge 1.20, `interrupted-work-resume {target}`, from forge 1.23, `talos-restart`, and, from forge 4.1,
+`machine-agent-program-set {vendor, programPath}`: this machine's program of an agent vendor, which every forge that
+follows the machine starts, run once with its version arguments before it is stored in `<monitor>/config.json` and
+refused 409 `agent-program-does-not-run` when it does not run, as `machine agent <path>` does, in no hold. Each answer carries
 `controlVersion` 3. A 200 answers `outcome` `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
 and a 423 answer `refusal`, a code, `fields`, its facts (`{}` on a 400 and a 423), and `text`, from forge 1.21 the sentence the
 command line prints; a 401 answers `unauthorized`. A `concurrency-set` `limit`
@@ -202,13 +205,17 @@ client sends it only to a forge that new or newer.
 
 From forge 1.21 the contract also names the board's commands, the kinds a view sends: `ForgeBoardCommand` in
 `forge-contracts/BoardCommand`, listed as `BOARD_COMMAND_CONTRACT_KINDS` in `src/shared/constants/HephaestusApiContracts.ts`.
-They are part of the contract under `controlVersion` 3, with the answers of control contract 3. The 35 kinds are
-`chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
-`job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-apply`,
+They are part of the contract under `controlVersion` 3, with the answers of control contract 3. The 39 kinds are
+`agent-look-again` (from forge 4.1: the forge runs its agent's program once again, so the views read whether it runs,
+and launches every job that stood not launched, the `gate look-again` verb), `chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
+`job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-agent-set`
+(from forge 4.1, `{ agent }`, the forge's agent, the `gate agent` verb), `pipeline-apply`,
 `pipeline-apply-cancel`, `pipeline-assistant-set` (the Assistant's switch, `{ on }`, the `gate assistant` verb),
 `pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
-`pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-answer`, `pipeline-setup-billing`,
-`pipeline-setup-resume`, `pipeline-setup-start`, `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-agent` (from forge 4.1, `{ setupId, agent }`, the
+`pipeline agent` verb), `pipeline-setup-answer`, `pipeline-setup-billing`, `pipeline-setup-resume`,
+`pipeline-setup-start` (with an optional `agent` from forge 4.1), `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-tools-set` (from forge 4.1, `{ tools }`, each `{ name, path? }` or `null`, the `gate tools` verb),
 `pipeline-update-start`, `ticket-deliver-by-hand`, `ticket-hold`, `ticket-network`, `ticket-park`, `ticket-priority`,
 `ticket-ready`, `ticket-unhold` and `tracker-clear`. A kind in neither list may change without raising the system
 version.
@@ -218,9 +225,16 @@ The route reads a body of a board kind field by field into its `ForgeBoardComman
 (`BoardCommandMappingUtil.controlCommandOf`). A missing or misshapen field answers 400 `malformed-body`; a key the kind
 does not name is left behind.
 
+An `agent`, `{ vendor, program }`, names its program as `{ follows: 'machine' }` or `{ pinned: <absolute path> }`. A
+command that carries one (`pipeline-agent-set`, `pipeline-setup-agent`, `pipeline-setup-start`) runs that program once
+with the vendor's version arguments before the hold, bounded by 10 seconds, and answers 409
+`agent-program-does-not-run`, writing nothing, when it is not there, cannot run, fails, outlives the bound or answers as
+another program. A tool sent by its name alone, in `pipeline-tools-set` or a draft's `tools` edit, is found in the places
+installers put programs before the hold, and one found nowhere answers 409 `tool-not-found`.
+
 `pipeline-draft-edit` carries typed edits, `PipelineDraftEditDocument`, each addressed by its `target`: `gate`
 `{name, value}`, `phase-order` `{phase, names}`, `prepare` `{name, value}`, `prepare-order` `{names}`, `review`,
-`constitution` and `airlock` `{value}`, `role` `{role, value}`, `approval` `{approval, value}`, `entity`
+`constitution`, `airlock` and, from forge 4.1, `tools` `{value}`, `role` `{role, value}`, `approval` `{approval, value}`, `entity`
 `{entityKey, value}` (an entity's kind, homes and summary) and `within-entity` `{entityKey, edit}`, whose `edit` is a
 steps edit, `role` of an entity's own role, `whitelist`, `reach`, `depends-on` or `concurrency` `{value}`. A `null`
 value removes what the edit names. An edit written as a field string, `{field, value}`, is no typed edit: the route
@@ -597,7 +611,7 @@ session's last line from the board document.
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while Hephaestus starts too. This forge answers `4.0` and `4.0`.
+moment the server answers, while Hephaestus starts too. This forge answers `4.1` and `4.0`.
 
 Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no page, no browser
 session and no one-time code for one, no contract for a framed page and no record of framing origins; the monitor and
@@ -615,6 +629,12 @@ Forge 4.0 restarts Hephaestus after a preflight of the code on disk, with no han
 the process's state while it restarts is `restarting` in the summary, the monitor and the board document, the warning
 of a failed restart is `restart-failed`, and the board document carries that failure as `restartWarning`. The minimum is
 4.0 too: no client built for forge 3 is served, and the registry keeps nothing for one.
+
+Forge 4.1 adds each forge's agent, only adding: the board document's `agent` (the vendors, the forge's choice, this
+machine's program, the places its installers use, whether the program runs and the tools), a job's `notLaunched`, the
+pipeline's `agent` and `tools`, the setup step `agent` and the record's `agent` and `tools`, the draft field `tools`,
+the board commands `pipeline-setup-agent`, `pipeline-agent-set`, `pipeline-tools-set` and `agent-look-again`, and the
+control command `machine-agent-program-set`. No endpoint changes its version.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -808,6 +828,9 @@ The document serves as finished facts what a view would otherwise recompute with
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
 | The refusal an Apply of the current draft meets now, as `POST /api/v3/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
+| The forge's agent: the vendors with whether each can be chosen, the choice, this machine's program, the program a launch starts, where the installers put it (each found or not), whether it ran since Hephaestus started (`runs` with its version, or why not, worded), and the tools with where each was found, whether the forge's list holds it and which prepare step or gate runs it | `agent` | forge (the sentence of a program that does not run) |
+| Why a job stands not launched: its cause, the program the forge named and the sentence | `jobs[].notLaunched` | forge |
+| The design's tools: each program the draft runs, found now, the draft's own list where it keeps one | `pipelineSetup.record.tools` | a reader |
 | Each refusal the draft's entities hold, with the entities it names, the row that shows it, a sentence of what is wrong and that Continue and Apply wait for its fix, and the one gesture that resolves it as typed draft edits | `pipelineSetup.entityRefusals` | forge |
 | The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
 | A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |

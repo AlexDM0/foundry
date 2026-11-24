@@ -298,6 +298,29 @@ describe('the Assistant\'s switch', () => {
   });
 });
 
+describe('the agent and the tools', () => {
+  test('a pipeline keeps its agent, following the machine or pinned to a path, and its tools, written after every other key', () => {
+    const agent = { vendor: 'example-agent', program: { pinned: '/opt/example/bin/agent' } };
+    const tools = [{ name: 'bun', path: '/home/example/.bun/bin/bun' }, { name: 'make', path: 'C:\\Tools\\make.exe' }];
+    const reading = readingOf(minimalWith({ agent, tools }));
+    expect(reading).toEqual({ verdict: 'readable', pipeline: { ...MINIMAL_PIPELINE, agent, tools } });
+    expect(readingOf(minimalWith({ agent: { vendor: 'example-agent', program: { follows: 'machine' } } }))).toMatchObject({ verdict: 'readable' });
+    if (reading.verdict !== 'readable') throw new Error('the pipeline did not read');
+    expect(Object.keys(JSON.parse(PipelineFile.contentsOf(reading.pipeline)) as object).slice(-2)).toEqual(['agent', 'tools']);
+  });
+
+  test.each([
+    ['an agent naming both', { agent: { vendor: 'example-agent', program: { follows: 'machine', pinned: '/opt/agent' } } }, 'agent.program names neither follows nor pinned alone'],
+    ['an agent following another', { agent: { vendor: 'example-agent', program: { follows: 'elsewhere' } } }, 'agent.program.follows is not machine'],
+    ['a relative pinned program', { agent: { vendor: 'example-agent', program: { pinned: 'bin/agent' } } }, 'agent.program.pinned is not an absolute path'],
+    ['an agent with no vendor', { agent: { program: { follows: 'machine' } } }, 'agent.vendor is not a name'],
+    ['a tool named twice', { tools: [{ name: 'bun', path: '/a/bun' }, { name: 'bun', path: '/b/bun' }] }, 'tools names "bun" twice'],
+    ['a tool at a relative path', { tools: [{ name: 'bun', path: 'bin/bun' }] }, 'tools[0].path is not an absolute path'],
+  ])('%s is malformed with its reason', (_case, fields, reason) => {
+    expect(reasonOf(minimalWith(fields))).toBe(reason);
+  });
+});
+
 describe('folders and reach', () => {
   test('a prepare step and a gate run in a project folder, or in a repository folder that starts with /, which alone is the root', () => {
     for (const folder of ['packages/example', '/', '/apps/example', 'docs']) {

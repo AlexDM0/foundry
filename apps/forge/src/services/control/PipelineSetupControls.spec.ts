@@ -518,6 +518,28 @@ describe('the message to the pipeline agent', () => {
 });
 
 describe('the record\'s pipeline agent', () => {
+  test('a start with no agent launches none, and the agent step\'s Continue launches it once the record holds an agent', () => {
+    const fixture = boardFixture();
+    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    expect([fixture.board.jobs(), fixture.board.pipelineSetup()?.currentStep]).toEqual([[], 'agent']);
+
+    apply(fixture, { kind: 'pipeline-setup-agent', setupId: 'S1', agent: EXAMPLE_PIPELINE_AGENT });
+    apply(fixture, {
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'agent', move: 'continue'
+    });
+    expect(fixture.board.jobs().map((job) => [job.id, job.kind, job.state])).toEqual([['J1', 'pipeline-agent', 'launching']]);
+    expect([fixture.board.pipelineSetup()?.agentJobId, fixture.board.pipelineSetup()?.currentStep]).toEqual(['J1', 'research']);
+  });
+
+  test('an agent of the wrong shape is refused malformed-setup-command naming agent, with the Board untouched', () => {
+    const fixture = boardFixture();
+    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    const misshapen = { kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: 'example-agent', program: { follows: 'elsewhere' } } };
+    const refusal = thrownBy(() => apply(fixture, misshapen as unknown as ControlCommand));
+    expect(refusal instanceof OperationRefusal && refusal.detail).toEqual({ kind: 'malformed-setup-command', commandKind: 'pipeline-setup-agent', field: 'agent' });
+    expect(fixture.board.pipelineSetup()?.agent).toBeNull();
+  });
+
   test('pipeline-setup-start launches it, recorded launching with no ticket, and the record names it', () => {
     const fixture = boardFixture();
 
