@@ -5,7 +5,8 @@
  * monitor snapshot reaches it through the fleet document, its notices, warnings and activity entries among it. The frozen list of refusal
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
  * forge-program-refused` or a hephaestus-fetch recording.
- * The board's answers are left out: the board contract shows a forge's sentence as the forge serves it (decision 45).
+ * The board's answers and a ticket's documents are left out: the board contract shows a forge's sentence as the forge serves it (decision
+ * 45), and a document's Markdown is its author's text, no forge sentence.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -16,6 +17,7 @@ import {
   everyRecordedHephaestusAnswerOf,
   everyRecordedVersionsAnswerOf,
   situationCallShapeOf,
+  TICKET_DOCUMENTS_SITUATIONS,
   type RecordedStreamAnswer,
 } from '../../testing/RecordedAnswers.ts';
 import { recordedRunsOf }                         from '../../testing/RecordedRuns.ts';
@@ -72,7 +74,7 @@ function isStreamAnswer(answer: unknown): answer is Extract<RecordedStreamAnswer
 }
 
 function isBoardAnswer(callShape: string): boolean {
-  return BOARD_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')));
+  return [...BOARD_SITUATIONS, ...TICKET_DOCUMENTS_SITUATIONS].some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')));
 }
 
 /** Every JSON document the recorded Hephaestus processes answered outside the board: whole bodies, and each event of a stream. */

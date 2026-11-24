@@ -11,6 +11,8 @@ describe('a relay endpoint', () => {
     expect(BoardRelayEndpointUtil.valuesOf('board', 'forges/example%20storefront/board')).toEqual({ trackerId: 'example storefront', itemId: null });
     expect(BoardRelayEndpointUtil.valuesOf('jobStream', 'forges/example-storefront-7c41/jobs/J4/stream')).toEqual({ trackerId: 'example-storefront-7c41', itemId: 'J4' });
     expect(BoardRelayEndpointUtil.valuesOf('picture', `forges/example/pictures/${'a'.repeat(64)}`)).toEqual({ trackerId: 'example', itemId: 'a'.repeat(64) });
+    expect(BoardRelayEndpointUtil.valuesOf('ticketDocuments', 'forges/example/tickets/001/documents')).toEqual({ trackerId: 'example', itemId: '001' });
+    expect(BoardRelayEndpointUtil.valuesOf('ticketDocuments', 'forges/example/tickets/..%2F001/documents')).toBeNull();
   });
 
   test('names nothing for an item that would move the forge\'s path up a folder or that no path template takes', () => {

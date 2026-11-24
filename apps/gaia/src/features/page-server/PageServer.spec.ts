@@ -424,6 +424,7 @@ const RELAY_PATHS: readonly { readonly method: 'GET' | 'POST'; readonly endpoint
   { method: 'POST', endpoint: 'forges/example-storefront-7c41/pictures' },
   { method: 'GET', endpoint: 'forges/example-storefront-7c41/pictures/6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0' },
   { method: 'POST', endpoint: 'forges/example-storefront-7c41/commands' },
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/tickets/001/documents' },
 ];
 
 /** One byte over the bound of every route but the picture upload. */

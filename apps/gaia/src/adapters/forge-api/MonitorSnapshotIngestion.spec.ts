@@ -57,6 +57,8 @@ interface RecordedStorefrontFacts {
   readonly draftTicketFiledAt:  string;
   readonly questionOpenedAt:    string;
   readonly jobStartedAt:        string;
+  /** The forge orders attention by stamp, and the draft and the question are often stamped in one second. */
+  readonly attentionKeys:       readonly string[];
   readonly activity:            readonly { readonly logPosition: number; readonly at: string; readonly text: string }[];
 }
 
@@ -75,6 +77,7 @@ function recordedFactsOf(snapshot: Record<string, unknown>): RecordedStorefrontF
     draftTicketFiledAt:  attentionStampOf(snapshot, 'ticket:001'),
     questionOpenedAt:    attentionStampOf(snapshot, 'decision:E1'),
     jobStartedAt:        recordedJob.startedAt,
+    attentionKeys:       (snapshot['attention'] as { key: string }[]).map((attentionEntry) => attentionEntry.key),
     activity:            snapshot['activity'] as RecordedStorefrontFacts['activity'],
   };
 }
@@ -164,7 +167,7 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
     },
     readyTicketCount: 0,
     openIncidents:    0,
-    attention:        [
+    attention:        ([
       {
         key:                     'ticket:001',
         kind:                    'draft-ticket',
@@ -197,7 +200,7 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
         actionLabel:             'Answer',
         boardRoute:              { tab: 'questions', item: 'E1' },
       },
-    ],
+    ] satisfies ForgeReading['attention']).toSorted((a, b) => recorded.attentionKeys.indexOf(a.key) - recorded.attentionKeys.indexOf(b.key)),
     attentionCount: null,
     agents:         [
       {

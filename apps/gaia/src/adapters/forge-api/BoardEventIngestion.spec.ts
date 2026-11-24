@@ -1,11 +1,13 @@
 /**
  * The board stream's events read as change signals. What matters: the recorded stream's `board` event asks for the board document anew and
- * none of its data is read, each part event names its part, and the handshake and an event name Gaia does not know map to nothing.
+ * none of its data is read, each part event names its part, the recorded `documents` event of a document's save among them, and the
+ * handshake and an event name Gaia does not know map to nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { BoardEventIngestion }         from './BoardEventIngestion.ts';
-import { recordedBoardStreamEventsOf } from './testing/BoardDocuments.ts';
+import { BoardEventIngestion }             from './BoardEventIngestion.ts';
+import { recordedBoardStreamEventsOf }     from './testing/BoardDocuments.ts';
+import { recordedDocumentsStreamEventsOf } from './testing/TicketDocumentsRecordings.ts';
 
 const INGESTION = new BoardEventIngestion();
 
@@ -13,6 +15,13 @@ describe('eventOf', () => {
   test('reads the recorded stream: the handshake maps to nothing, the board event asks for the board anew', async () => {
     const events = await recordedBoardStreamEventsOf();
     expect(events.map((event) => INGESTION.eventOf(event.eventName))).toEqual([null, { kind: 'board-changed' }]);
+  });
+
+  test('reads the recorded save of a ticket document: the documents part changed, between two board events', async () => {
+    const events = await recordedDocumentsStreamEventsOf();
+    expect(events.map((event) => INGESTION.eventOf(event.eventName))).toEqual([
+      null, { kind: 'board-changed' }, { kind: 'part-changed', part: 'documents' }, { kind: 'board-changed' },
+    ]);
   });
 
   test('names the part each part event changed', () => {

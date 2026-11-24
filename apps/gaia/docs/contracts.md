@@ -131,7 +131,7 @@ version, major.minor.
 
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9. Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 4.0: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
+forge 4.1: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
 new board's Assistant is off; `hephaestus-fetch-board`, Example Storefront's board as the relay reads it:
 the board document (with a draft ticket and a committed one the product owner gives an entity; a pipeline applied over two app entities
 with the Assistant switched on; an agent's question with its
@@ -141,8 +141,11 @@ standing `equal-homes` refusal with its fix, which Apply refuses as `entity-refu
 another's token; the board's event stream from its start and from its first event's id; a board command applied,
 refused with its code, fields and sentence, of an unknown kind, and answered 423 while launches are held for an install change, with the
 board's notice in that hold; a picture accepted and read back, refused as too large and as no picture; a product owner job's stream (its handshake
-and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.1) and newer (5.1) through its
-test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a
+and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.2) and newer (5.1) through its
+test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`;
+`hephaestus-fetch-ticket-documents`, Example Bookshop with a pipeline stored in the spec-then-plan route and two drafts: the save of one
+draft's spec, which opens its documents, with the board's events up to the `documents` event, the documents and the board read after it,
+and the documents refused for the other draft and for no ticket. Every situation is a forge at a
 system version. Each answer keeps its content type, and an answer read as bytes, such as a picture, is recorded in base64.
 
 ## A forge's board, in Gaia's model
@@ -173,6 +176,13 @@ is a separate document Gaia serves.
   the read on its way; a presence that does not ingest, or a forge whose monitor the watch does not follow, leaves every wait `null`.
   `src/adapters/forge-api/PresenceIngestion.ts` is its one ingestion. A crash log is read by its number
   (`GET /api/v1/crash-log?number=<n>`, `CrashLogIngestion.ts`) only when User opens it.
+- **A ticket's documents** in the spec-then-plan route, from forge 4.1, are read afresh on each ask of the page's documents route
+  (`GET /api/v1/tickets/<ticketId>/documents`, `forge-contracts/TicketDocumentsDocument`), never held. The document carries no version
+  key: its version is the endpoint's. `src/adapters/forge-api/TicketDocumentsIngestion.ts` checks it against
+  `constants/TicketDocumentsShapes.ts` and maps it through `utils/TicketDocumentsMapUtil.ts`, the Markdown kept as source text; the
+  forge's 404 for a ticket with no documents, or for no ticket, keeps its code, fields and sentence. The board carries only each
+  ticket's documents summary, and the board stream's `documents` event asks the page to read them again. A stored pipeline's
+  `ticketWriting` and a builder's or reviewer's `documents` read only where the forge serves them, so a one-ticket pipeline gains no key.
 - **The jobs a network outage left waiting** are told from presence alone, by one rule (`src/features/fleet/utils/OutageEndingUtil.ts`):
   a job of the interrupted work whose cause is `network-outage` and which waits for an instruction. Each forge's count and the fleet's
   total are served in the fleet document, and `fleet-outage-resume` sends each forge whose API answers the forge's

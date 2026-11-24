@@ -1,16 +1,46 @@
 /**
- * A ticket's documents answered to the page, from hand-built reads until a recorded forge serves them. What matters: documents read are
- * answered as the page's contract at its version and never cached; a forge's refusal, a ticket with no documents among them, keeps the
- * forge's code, fields and sentence byte for byte under a conflict status, even a sentence that names a command; a refusal of Gaia's is
- * answered in Gaia's words under its own status; and the reader is asked for the forge and ticket the route names. The session guard on
- * the route is `PageServer.spec.ts`'s to hold.
+ * A ticket's documents answered to the page, read through the forge client from the recorded forge (`hephaestus-fetch-ticket-documents`)
+ * and from hand-built reads. What matters: documents read are answered as the page's contract at its version and never cached; a forge's
+ * refusal, a ticket with no documents among them, keeps the forge's code, fields and sentence byte for byte under a conflict status, even
+ * a sentence that names a command; a refusal of Gaia's is answered in Gaia's words under its own status, a forge that does not answer and
+ * a body that does not ingest among them, the latter logged with its keys; the reader is asked for the forge and ticket the route names;
+ * and no answer carries the token. The session guard on the route is `PageServer.spec.ts`'s to hold.
  */
-import { describe, expect, test } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
-import type { GaiaTicketDocumentsDocument }                   from '../../../../page/@types/board/TicketDocumentsDocument.ts';
-import { TicketDocumentsDocumentMapUtil }                     from '../../../adapters/page-api/TicketDocumentsDocumentMapUtil.ts';
-import { EXAMPLE_TICKET_DOCUMENTS }                           from '../../../adapters/page-api/testing/ExampleTicketDocuments.ts';
-import { ticketDocumentsAnswerFor, type TicketDocumentsRead } from './TicketDocumentsRoute.ts';
+import type { GaiaTicketDocumentsDocument }                     from '../../../../page/@types/board/TicketDocumentsDocument.ts';
+import { TicketDocumentsIngestion }                             from '../../../adapters/forge-api/TicketDocumentsIngestion.ts';
+import { RECORDED_TICKET_IDS, recordedTicketDocumentsAnswerOf } from '../../../adapters/forge-api/testing/TicketDocumentsRecordings.ts';
+import { TicketDocumentsDocumentMapUtil }                       from '../../../adapters/page-api/TicketDocumentsDocumentMapUtil.ts';
+import { EXAMPLE_TICKET_DOCUMENTS }                             from '../../../adapters/page-api/testing/ExampleTicketDocuments.ts';
+import {
+  recordedHephaestusFetch,
+  recordedTicketDocumentsAnswersOf,
+  type RecordedHephaestusAnswer,
+  type TicketDocumentsSituation,
+} from '../../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath } from '../../../testing/ScratchRoot.ts';
+import type { BoardRelayLogEntry }                   from '../@types/BoardRelayLogEntry.ts';
+import {
+  EXAMPLE_FORGE_TOKEN,
+  STOREFRONT_TRACKER_ID,
+  exampleRelayForgeOf,
+  exampleTokenFileIn,
+  relaySourcesOver,
+  stoppedForgeAnswering,
+} from '../testing/ExampleRelayForge.ts';
+import {
+  ticketDocumentsAnswerFor,
+  ticketDocumentsReaderOf,
+  type TicketDocumentsRead,
+  type TicketDocumentsReader,
+} from './TicketDocumentsRoute.ts';
 
 const NO_DOCUMENTS_SENTENCE = 'Ticket 007 has no documents. Run `forge pipeline` to see how this board writes tickets.';
 
@@ -44,5 +74,66 @@ describe('ticketDocumentsAnswerFor', () => {
     expect([unreachable.status, await unreachable.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
     const unregistered = await ticketDocumentsAnswerFor('example-absent', '004', readerAnswering({ verdict: 'refused-by-gaia', refusal: 'forge-not-registered' }));
     expect(unregistered.status).toBe(404);
+  });
+});
+
+let scratchFolder = '';
+let tokenPath = '';
+const loggedEntries: BoardRelayLogEntry[] = [];
+
+beforeEach(() => {
+  scratchFolder = createScratchDirectory('ticket-documents-route');
+  tokenPath     = exampleTokenFileIn(scratchFolder);
+  loggedEntries.splice(0);
+});
+
+afterEach(() => {
+  removeScratchPath(scratchFolder);
+});
+
+const DOCUMENTS_CALL_SHAPE = /^GET \/api\/v1\/tickets\/[^/]+\/documents with bearer$/;
+
+function documentsAnswersOf(situation: TicketDocumentsSituation): readonly RecordedHephaestusAnswer[] {
+  return recordedTicketDocumentsAnswersOf(situation).filter(({ callShape }) => DOCUMENTS_CALL_SHAPE.test(callShape));
+}
+
+function recordedReaderOf(answers: readonly RecordedHephaestusAnswer[]): TicketDocumentsReader {
+  const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), recordedHephaestusFetch(answers));
+  return ticketDocumentsReaderOf(sources, (entry) => loggedEntries.push(entry));
+}
+
+describe('ticketDocumentsAnswerFor, over the recorded forge', () => {
+  test('answers the recorded documents as the page reads them, with no token in the answer', async () => {
+    const answer = await ticketDocumentsAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_TICKET_IDS.withDocuments, recordedReaderOf(documentsAnswersOf('ticket-documents-saved')));
+    const { status, body } = await recordedTicketDocumentsAnswerOf('ticket-documents-saved');
+    const reading = new TicketDocumentsIngestion().ticketDocumentsOf(status, body);
+    if (reading.verdict !== 'read') throw new Error('the recorded documents do not ingest');
+    const answerText = await answer.text();
+    expect([answer.status, JSON.parse(answerText)]).toEqual([200, TicketDocumentsDocumentMapUtil.ticketDocumentsDocumentOf(reading.ticketDocuments)]);
+    expect(answerText).not.toContain(EXAMPLE_FORGE_TOKEN);
+  });
+
+  test('answers the forge\'s refusal of a ticket with no documents with its sentence unchanged', async () => {
+    const answer = await ticketDocumentsAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_TICKET_IDS.withoutDocuments, recordedReaderOf(documentsAnswersOf('ticket-documents-absent')));
+    const { body } = await recordedTicketDocumentsAnswerOf('ticket-documents-absent');
+    expect([answer.status, await answer.json()]).toEqual([409, {
+      refusedBy: 'forge', code: 'ticket-has-no-documents', fields: { ticketId: RECORDED_TICKET_IDS.withoutDocuments }, text: (body as { text: string }).text,
+    }]);
+  });
+
+  test('refuses a forge that does not answer, and a body that does not ingest, which it logs with its keys', async () => {
+    const [documentsAnswer] = documentsAnswersOf('ticket-documents-saved');
+    if (documentsAnswer === undefined) throw new Error('the recording holds no documents answer');
+    const stopped = await ticketDocumentsAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_TICKET_IDS.withDocuments, ticketDocumentsReaderOf(
+      relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), stoppedForgeAnswering([documentsAnswer.callShape])),
+      () => undefined,
+    ));
+    expect([stopped.status, await stopped.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
+    const unreadable = { ...documentsAnswer, answer: { ...documentsAnswer.answer, bodyText: JSON.stringify({ ticketId: RECORDED_TICKET_IDS.withDocuments }) } };
+    const answer = await ticketDocumentsAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_TICKET_IDS.withDocuments, recordedReaderOf([unreadable]));
+    expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'forge-document-unreadable', refusedBy: 'gaia' }]);
+    expect(loggedEntries).toEqual([{
+      kind: 'ticket-documents-unreadable', trackerId: STOREFRONT_TRACKER_ID, ticketId: RECORDED_TICKET_IDS.withDocuments, invalidKeys: ['documents', 'effectReadings'],
+    }]);
   });
 });

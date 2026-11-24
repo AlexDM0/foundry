@@ -1,15 +1,17 @@
 /**
  * The pipeline mapper against its own contract, on parts the recorded board does not hold. What matters: every typed draft edit a refusal's
  * fix may carry keeps its target and values, an edit within an entity included; a pipeline's absent parts stay absent rather than taking a
- * forge default; billing by an API key keeps its budget; every history entry keeps its kind and fields; and the recorded pipeline maps.
+ * forge default; billing by an API key keeps its budget; every history entry keeps its kind and fields; the recorded pipeline maps; and a
+ * pipeline in the spec-then-plan route keeps its route and the documents its builder reads, which a pipeline without them never gains.
  */
 import { describe, expect, test }         from 'bun:test';
 import type { PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';
 import type { ForgeBoardDocument }        from 'forge-contracts/ForgeBoardDocument';
 
-import type { BoardDraftEdit }     from '../../../shared/@types/board/BoardPipeline.ts';
-import { recordedBoardDocumentOf } from '../testing/BoardDocuments.ts';
-import { PipelineMapUtil }         from './PipelineMapUtil.ts';
+import type { BoardDraftEdit }               from '../../../shared/@types/board/BoardPipeline.ts';
+import { recordedBoardDocumentOf }           from '../testing/BoardDocuments.ts';
+import { recordedSpecThenPlanBoardDocument } from '../testing/TicketDocumentsRecordings.ts';
+import { PipelineMapUtil }                   from './PipelineMapUtil.ts';
 
 async function recordedDocument(): Promise<ForgeBoardDocument> {
   return structuredClone(await recordedBoardDocumentOf('board-at-work')) as ForgeBoardDocument;
@@ -171,5 +173,18 @@ describe('pipelineFactsOf', () => {
     }]);
     expect(facts.agentDefaults).toEqual({ model: 'opus', effort: 'high' });
     expect(facts.entityAssignment).toMatchObject({ jobId: 'J2', jobState: 'running' });
+  });
+});
+
+describe('a pipeline in the spec-then-plan route', () => {
+  test('keeps its route and the documents its builder reads, and a pipeline without them gains neither key', async () => {
+    const specThenPlan = PipelineMapUtil.pipelineFactsOf(await recordedSpecThenPlanBoardDocument() as ForgeBoardDocument);
+    if (specThenPlan.applied.readingVerdict !== 'readable') throw new Error('The spec-then-plan pipeline does not read.');
+    expect(specThenPlan.applied.pipeline.ticketWriting).toBe('spec-then-plan');
+    expect(specThenPlan.applied.pipeline.agents.builder?.documents).toEqual({ plan: 'if-person-approved' });
+    const oneTicket = PipelineMapUtil.pipelineFactsOf(await recordedDocument());
+    if (oneTicket.applied.readingVerdict !== 'readable') throw new Error('The recorded pipeline does not read.');
+    expect(Object.hasOwn(oneTicket.applied.pipeline, 'ticketWriting')).toBe(false);
+    expect(Object.values(oneTicket.applied.pipeline.agents).some((settings) => Object.hasOwn(settings, 'documents'))).toBe(false);
   });
 });

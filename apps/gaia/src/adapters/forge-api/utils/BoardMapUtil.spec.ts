@@ -3,15 +3,18 @@
  * `null` or empty and a held ready ticket as held; a task row's absent phases stay `null`, apart from a row with none; a note in the log
  * carries no id lists; every forecast step keeps its kind; an interrupted job keeps its cause and its lost line, and takes what it waits
  * for from presence, `null` where presence lists it not; a refusal and a question's
- * answer keep the forge's values unchanged; and the recorded board maps whole.
+ * answer keep the forge's values unchanged; the recorded board maps whole; and the board in the spec-then-plan route keeps a ticket's
+ * documents summary only on the ticket that has documents.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { ResumeWaitsOfJobs }  from '../@types/ResumeWaitsOfJobs.ts';
-import { recordedBoardDocumentOf } from '../testing/BoardDocuments.ts';
-import { BoardMapUtil }            from './BoardMapUtil.ts';
-import { PipelineMapUtil }         from './PipelineMapUtil.ts';
+import type { ResumeWaitsOfJobs }                                                               from '../@types/ResumeWaitsOfJobs.ts';
+import { BoardStateIngestion }                                                                  from '../BoardStateIngestion.ts';
+import { recordedBoardDocumentOf }                                                              from '../testing/BoardDocuments.ts';
+import { RECORDED_BOOKSHOP_TRACKER_ID, RECORDED_TICKET_IDS, recordedSpecThenPlanBoardDocument } from '../testing/TicketDocumentsRecordings.ts';
+import { BoardMapUtil }                                                                         from './BoardMapUtil.ts';
+import { PipelineMapUtil }                                                                      from './PipelineMapUtil.ts';
 
 const EXAMPLE_TRACKER_ID = 'example-tracker';
 
@@ -111,5 +114,24 @@ describe('refusalOf and questionAnswerOf', () => {
     expect(BoardMapUtil.questionAnswerOf({ letters: ['a', 'c'], answeredAt })).toEqual({ form: 'letters', letters: ['a', 'c'], answeredAt });
     expect(BoardMapUtil.questionAnswerOf({ text: 'Example', answeredAt })).toEqual({ form: 'text', text: 'Example', answeredAt });
     expect(BoardMapUtil.questionAnswerOf(null)).toBeNull();
+  });
+});
+
+describe('the board in the spec-then-plan route', () => {
+  test('keeps the documents summary of the ticket that has documents, and adds no key to a ticket that has none', async () => {
+    const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedSpecThenPlanBoardDocument());
+    if (reading.board === null) throw new Error(`The spec-then-plan board does not ingest: ${reading.reason.invalidKeys.join(', ')}`);
+    const ticketsById = new Map(reading.board.page.tickets.map((ticket) => [ticket.id, ticket]));
+    expect(ticketsById.get(RECORDED_TICKET_IDS.withDocuments)?.documents).toEqual({
+      spec:      { standing: 'drafting', headNumber: 1, approvedNumber: null },
+      plan:      { standing: 'unwritten', headNumber: null, approvedNumber: null },
+      buildHeld: false,
+    });
+    expect(Object.hasOwn(ticketsById.get(RECORDED_TICKET_IDS.withoutDocuments) ?? {}, 'documents')).toBe(false);
+  });
+
+  test('reads the default instructions of the spec and plan agents as of every other role', async () => {
+    const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedSpecThenPlanBoardDocument());
+    expect(reading.board?.limits.defaultInstructionsOfRole.planAgent).toEqual([{ kind: 'constitution' }, { kind: 'default-brief', role: 'planAgent' }]);
   });
 });
