@@ -12,8 +12,9 @@ export const LEGAL_SOURCE_STATES_FOR_JOB_MOVE: Readonly<Record<JobMoveTarget, re
   // From `in-customs`, `gating` or `merging-main`: a handoff whose Customs check, gate or merge of the target went red waits there for its
   // session's resume.
   'interrupted':        ['preparing', 'running', 'waiting-for-answer', 'stopping', 'in-customs', 'gating', 'merging-main'],
-  // From `gating`: a review whose gate passed waits there, with no process, for User's answer to its waiver proposals.
-  'awaiting-answer':    ['interrupted', 'gating'],
+  // From `gating`: a review whose gate passed waits there, with no process, for User's answer to its waiver proposals. From `stopping`: a
+  // document agent whose input closed waits there, with no process, for its next message.
+  'awaiting-answer':    ['interrupted', 'gating', 'stopping'],
   'in-customs':         ['running'],
   'gating':             ['in-customs', 'merging'],
   'merging-main':       ['gating'],

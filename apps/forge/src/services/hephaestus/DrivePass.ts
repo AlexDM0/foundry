@@ -12,6 +12,7 @@ import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
+  EFFECT_READING_REPORT_SCHEMA,
   PACKAGE_BUILDER_REPORT_SCHEMA,
   PACKAGE_REVIEWER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
@@ -43,6 +44,7 @@ import { LaunchSlotUtil }                                    from '../../lib/tra
 import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
+import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
 import { WorktreesFolder }                                   from '../../shared/WorktreesFolder.ts';
@@ -79,26 +81,28 @@ import {
   type DeclinedCleanup,
   type HeldTarget
 } from './Airlocks.ts';
-import { AnswerDelivery }                                                        from './AnswerDelivery.ts';
-import { type ApiBilling, ApiBillingStops, type StoppedSession }                 from './ApiBillingStops.ts';
-import { AssistantBoot, type AssistantFacts }                                    from './AssistantBoot.ts';
-import { type AssistantChatFacts, type AssistantReading, AssistantSession }      from './AssistantSession.ts';
-import type { BoardChildren, ChildLiveness }                                     from './BoardChildren.ts';
-import { CrossingStages, type CrossingStageFacts }                               from './CrossingStages.ts';
-import type { DependentFixFacts, DependentFixWording }                           from './DependentFixTickets.ts';
-import { EndedJobTokens }                                                        from './EndedJobTokens.ts';
-import { EntityDecisionAnswers, type PackageNeedFacts, type PackageNeedWording } from './EntityDecisionAnswers.ts';
-import { GateProfiling }                                                         from './GateProfiling.ts';
-import { GateRunSlots }                                                          from './GateRunSlots.ts';
-import { GpgDirectories }                                                        from './GpgDirectories.ts';
-import { GroupWorktrees }                                                        from './GroupWorktrees.ts';
-import { HatchInbox, type PendingHatchRequest }                                  from './HatchInbox.ts';
-import { jobFolderIn, hephaestusFilesIn }                                        from './HephaestusFiles.ts';
-import { HephaestusLock }                                                        from './HephaestusLock.ts';
-import { type DefaultedIncident, IncidentRouter }                                from './IncidentRouter.ts';
-import { InstructionFiles }                                                      from './InstructionFiles.ts';
-import { IntakeSessions, type IntakeFacts }                                      from './IntakeSessions.ts';
-import { type EndedJobSession, JobControlDelivery }                              from './JobControlDelivery.ts';
+import { AnswerDelivery }                                                            from './AnswerDelivery.ts';
+import { type ApiBilling, ApiBillingStops, type StoppedSession }                     from './ApiBillingStops.ts';
+import { AssistantBoot, type AssistantFacts }                                        from './AssistantBoot.ts';
+import { type AssistantChatFacts, type AssistantReading, AssistantSession }          from './AssistantSession.ts';
+import type { BoardChildren, ChildLiveness }                                         from './BoardChildren.ts';
+import { CrossingStages, type CrossingStageFacts }                                   from './CrossingStages.ts';
+import type { DependentFixFacts, DependentFixWording }                               from './DependentFixTickets.ts';
+import { type DocumentAgentFacts, type DocumentAgentReading, DocumentAgentSessions } from './DocumentAgentSessions.ts';
+import { EffectReadings, type EffectReadingFacts }                                   from './EffectReadings.ts';
+import { EndedJobTokens }                                                            from './EndedJobTokens.ts';
+import { EntityDecisionAnswers, type PackageNeedFacts, type PackageNeedWording }     from './EntityDecisionAnswers.ts';
+import { GateProfiling }                                                             from './GateProfiling.ts';
+import { GateRunSlots }                                                              from './GateRunSlots.ts';
+import { GpgDirectories }                                                            from './GpgDirectories.ts';
+import { GroupWorktrees }                                                            from './GroupWorktrees.ts';
+import { HatchInbox, type PendingHatchRequest }                                      from './HatchInbox.ts';
+import { jobFolderIn, hephaestusFilesIn }                                            from './HephaestusFiles.ts';
+import { HephaestusLock }                                                            from './HephaestusLock.ts';
+import { type DefaultedIncident, IncidentRouter }                                    from './IncidentRouter.ts';
+import { InstructionFiles }                                                          from './InstructionFiles.ts';
+import { IntakeSessions, type IntakeFacts }                                          from './IntakeSessions.ts';
+import { type EndedJobSession, JobControlDelivery }                                  from './JobControlDelivery.ts';
 import {
   BUILD_JOB_CAUSES,
   type BuildJobObservation,
@@ -168,6 +172,10 @@ export interface JobLaunchFacts {
   assistant:              AssistantFacts | null;
   /** A pipeline agent's record, the stored pipeline and the gate history `advise` reads; `null` for every other job. */
   pipelineAgent?:         PipelineAgentFacts | null;
+  /** A spec or plan agent's ticket, request and documents; absent or `null` for every other job. */
+  documentAgent?:         DocumentAgentFacts | null;
+  /** An effect reader's version and the main line's paths; absent or `null` for every other job. */
+  effectReading?:         EffectReadingFacts | null;
   /** The role's instruction files as the pipeline names them, joined in order and unfilled; empty for a job no array speaks for. */
   instructions:           string;
   /** What the session runs under on this platform, the one fact its settings and its prompt's confinement claims both come from. */
@@ -356,6 +364,8 @@ export interface DrivePass {
   /** The number of the pass running now, counted from 1 over this DrivePass's life; `null` between passes. */
   passInFlight:   () => number | null;
   state:          () => HephaestusStateDocument;
+  /** The effect readings this Hephaestus runs and keeps in memory, which User's effect read asks for and a client reads. */
+  effectReadings: EffectReadingSource;
   /** No pass starts after it; resolves once the one running, a landing in it included, has finished, and each gate profile run has ended. */
   stop:           () => Promise<void>;
 }
@@ -383,6 +393,7 @@ interface Observation {
   answeredWaiverTrees:          ReadonlyMap<string, string | null>;
   usageMarker:                  UsageMarkerReading;
   assistantReadings:            readonly AssistantReading[];
+  documentAgentReadings:        readonly DocumentAgentReading[];
   fingerprint:                  string;
   trackerId:                    string;
 }
@@ -413,15 +424,16 @@ const INTERRUPTION_CAUSE_OF_TALOS_END: Readonly<Partial<Record<ChildEnd['reason'
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'product-owner']);
 
 /** Multi-turn sessions: finished only when Hephaestus closed their input, never by a turn's `result`. */
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent', 'document-agent'];
 
 /** The jobs whose session owes a closing report: one that exits cleanly without it ends `failed`, cause `no-report`. */
 const REPORTING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
 const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
-  'build':       BUILDER_REPORT_SCHEMA,
-  'review':      REVIEWER_REPORT_SCHEMA,
-  'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
+  'effect-reading': EFFECT_READING_REPORT_SCHEMA,
+  'build':          BUILDER_REPORT_SCHEMA,
+  'review':         REVIEWER_REPORT_SCHEMA,
+  'merge-agent':    AIRLOCK_AGENT_REPORT_SCHEMA,
 };
 
 /**
@@ -512,6 +524,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   });
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
   const assistantReadings = AssistantSession.readingsOf(children, request.agentAdapter, { jobs: () => jobs });
+  const documentAgentReadings = DocumentAgentSessions.readingsOf(children, request.agentAdapter, jobs);
   const pendingRequests = HatchInbox.pendingRequestsOf(workspace.rootDirectory, jobs);
   const location        = projectLocationOf(workspace.rootDirectory);
   const targets         = [...new Set([request.mainLine, ...jobs.flatMap((job) => (job.target === null ? [] : [job.target]))])].sort();
@@ -534,6 +547,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     answeredWaiverTrees,
     usageMarker,
     assistantReadings,
+    documentAgentReadings,
     fingerprint: fingerprintOf(boardStore.reads.revision(), childObservations, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
     trackerId:   progress.trackerId,
   };
@@ -552,6 +566,12 @@ interface AppliedChildEvents {
   stoppedSessions:         StoppedSession[];
   /** The pipeline agents whose turn ended in a `result`, whose snapshot Customs checks in the same hold. */
   pipelineAgentTurnEnds:   string[];
+  /** The document agents whose turn ended, in a `result` or with their session, whose snapshot Customs checks before their requests apply. */
+  documentAgentTurnEnds:   string[];
+  /** Each effect reader's `result`, with the report it carried. */
+  effectReadingResults:    { jobId: string; report: unknown }[];
+  /** The effect readers whose session ended with no `result`. */
+  effectReadingEnds:       string[];
 }
 
 /** What the child events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
@@ -586,6 +606,9 @@ function applyChildEvents(
   const usageWindowObservations: UsageWindowObservation[] = [];
   const stoppedSessions: StoppedSession[] = [];
   const pipelineAgentTurnEnds: string[] = [];
+  const documentAgentTurnEnds: string[] = [];
+  const effectReadingResults: { jobId: string; report: unknown }[] = [];
+  const effectReadingEnds: string[] = [];
   for (const childObservation of childObservations) {
     if (board.jobById(childObservation.jobId)?.childInstance !== childObservation.instance) continue;
     let closedWithResult = false;
@@ -622,6 +645,12 @@ function applyChildEvents(
         // A session's turn ends in a `result` too; it finishes only once Hephaestus closed its input.
         const kind = board.jobById(childObservation.jobId)?.kind ?? 'build';
         if (event.kind === 'result' && state === 'running' && kind === 'pipeline-agent') pipelineAgentTurnEnds.push(childObservation.jobId);
+        if (event.kind === 'result' && state !== undefined && kind === 'document-agent') documentAgentTurnEnds.push(childObservation.jobId);
+        if (event.kind === 'result' && state === 'running' && kind === 'effect-reading') {
+          effectReadingResults.push({ jobId: childObservation.jobId, report: event.structuredReport });
+          closedWithResult = true;
+          continue;
+        }
         if (event.kind === 'result' && state === 'running' && !SESSION_JOB_KINDS.includes(kind)) {
           board.moveJob(childObservation.jobId, 'in-customs', at);
           closedWithResult = true;
@@ -645,6 +674,12 @@ function applyChildEvents(
       childObservation.sessionStarted,
     )) {
       JobResumption.applyResumeFailure(board, job, at);
+    } else if (childIsGone && !closedWithResult && job?.kind === 'effect-reading') {
+      effectReadingEnds.push(job.id);
+    } else if (childIsGone && state === 'stopping' && job !== undefined && DocumentAgentSessions.isDocumentAgentJob(job)) {
+      // Its turn ended with its session, stopped by User or closed while idle: it waits for its next message with no session.
+      documentAgentTurnEnds.push(job.id);
+      DocumentAgentSessions.settleEndedSession(board, job, at);
     } else if (childIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       // An Assistant or pipeline agent ends `closed`, so User's next message opens a pipeline agent again with its conversation.
       board.endJob(childObservation.jobId, { outcome: 'closed' }, at);
@@ -659,7 +694,7 @@ function applyChildEvents(
     }
   }
   return {
-    usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
+    usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, effectReadingResults, effectReadingEnds
   };
 }
 
@@ -760,6 +795,13 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory));
   if (PipelineAgentSessions.isPipelineAgentJob(job)) {
     return PipelineAgentSessions.pipelineAgentProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), hatchDirectory);
+  }
+  if (DocumentAgentSessions.isDocumentAgentJob(job)) {
+    return DocumentAgentSessions.documentAgentProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), hatchDirectory);
+  }
+  if (job.kind === 'effect-reading') {
+    const { repositoryRoot } = projectLocationOf(jobLaunchContext.workspace.rootDirectory);
+    return EffectReadings.effectReaderProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), repositoryRoot, jobLaunchContext.workspace.trackerDirectory);
   }
   const isAirlockAgent = job.kind === 'merge-agent';
   if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
@@ -878,6 +920,7 @@ export function launchFactsOf(
     intake:                 IntakeSessions.intakeFactsOf(board, job, request.agentAdapter),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, pipelineAgentLaunch),
+    documentAgent:          DocumentAgentSessions.documentAgentFactsOf(board, job),
   };
 }
 
@@ -897,6 +940,15 @@ function sessionConfinementRefusalOf(
   return { sessionConfinementRefusedFor: job.id };
 }
 
+/** A pipeline or document agent works in its snapshot of the main line, any other session in its ticket's worktree or a folder of its own. */
+function sessionPlaceOf(snapshotContext: Parameters<typeof PipelineAgentSessions.prepareSnapshot>[0], board: Board, job: Readonly<Job>): SessionPlace {
+  const location = projectLocationOf(snapshotContext.workspace.rootDirectory);
+  if (PipelineAgentSessions.isPipelineAgentJob(job)) return SessionPlaces.snapshotSessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job));
+  if (DocumentAgentSessions.isDocumentAgentJob(job)) return SessionPlaces.snapshotSessionPlaceOf(location, DocumentAgentSessions.prepareSnapshot(snapshotContext, board, job));
+  if (job.kind === 'effect-reading') return SessionPlaces.sessionFolderPlaceOf(snapshotContext.workspace, job.id);
+  return SessionPlaces.ticketSessionPlaceOf(snapshotContext.workspace, location, job);
+}
+
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
@@ -908,6 +960,7 @@ async function launchAgentChild(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
+  effectReadings: EffectReadings,
 ): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
@@ -926,9 +979,7 @@ async function launchAgentChild(
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
   const snapshotContext = { workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine };
-  const place = PipelineAgentSessions.isPipelineAgentJob(job)
-    ? SessionPlaces.snapshotSessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job))
-    : SessionPlaces.ticketSessionPlaceOf(workspace, location, job);
+  const place = sessionPlaceOf(snapshotContext, board, job);
   const entityHomeFacts = WorkerProfiles.entityFactsOf(board.pipeline());
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP, entityHomeFacts)) return null;
   if (job.kind === 'merge-agent') {
@@ -953,7 +1004,8 @@ async function launchAgentChild(
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
   }
-  const launchFacts      = launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
+  const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
+  const launchFacts      = { ...launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place }), effectReading };
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
@@ -1282,6 +1334,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
+  const effectReadings = EffectReadings.createEffectReadings({ wake: () => wake(true), nowMilliseconds: () => request.now().getTime() });
+  const relayedControlContext = HatchInbox.relayedContextWith(effectReadings);
+
   /** Talos is asked to stop the session, after the grace the session has to end by itself. */
   async function stopSession(jobId: string, childInstance: number): Promise<void> {
     await request.boardChildren.stop(request.boardChildren.jobFolderOf(jobId), childInstance, sessionStopGraceMilliseconds);
@@ -1439,7 +1494,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const billing = change.board.pipeline()?.billing;
         const childEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
         const {
-          usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
+          usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, effectReadingResults, effectReadingEnds
         } = applyChildEvents(
           change,
           request.agentAdapter,
@@ -1453,7 +1508,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           .find((childObservation) => childObservation.jobId === job.id && childObservation.instance === job.childInstance)?.liveness
           ?? request.boardChildren.livenessOf(request.boardChildren.jobFolderOf(job.id), job.childInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
-        PipelineAgentSessions.verifyTurnEnds(change, {
+        const turnEndContext = {
           workspace:     request.workspace,
           worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
           branchNames:   request.branchNames,
@@ -1461,8 +1516,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           pathStyle:     platformPorts.dataFolders,
           agentNaming:   request.agentAdapter,
           ...(sharedRepository === null ? {} : { sharedRepository }),
-        }, pipelineAgentTurnEnds);
+        };
+        PipelineAgentSessions.verifyTurnEnds(change, turnEndContext, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
+        replies.push(...DocumentAgentSessions.verifyTurnEnds(change, turnEndContext, documentAgentTurnEnds, observation.pendingRequests, relayedControlContext));
+        for (const { jobId, report } of effectReadingResults) effectReadings.settle(change.board, jobId, report, change.at);
+        const failedEffectReaders = effectReadings.failOverdue(change.board, effectReadingEnds, change.at);
         request.afterHoldPhase?.('child-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
@@ -1496,6 +1555,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
         for (const jobId of slotJobIdsBefore) agentSlots.tryAcquire(observation.trackerId, jobId);
         const machineAgentSlotsFree = agentSlots.reserve(observation.trackerId, change.board.concurrency().freeSlots);
+        const waitingDocumentAgentIds = change.board.jobs()
+          .filter((job) => DocumentAgentSessions.isDocumentAgentJob(job) && job.state === 'awaiting-answer')
+          .map((job) => job.id);
         let steps: ReturnType<Board['followPlaybook']>['steps'];
         try {
           ({ steps } = change.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt }, { ...observations, machineAgentSlotsFree }, request.decisionWordingOf));
@@ -1510,6 +1572,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
         AssistantBoot.deliverOpenIncidentsAtBoot(change.board, jobIdsBeforeTheLifecycle);
         AssistantSession.closeInputWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory, change.at);
+        const resumedFromWaitingJobIds = waitingDocumentAgentIds.filter((jobId) => change.board.jobById(jobId)?.state === 'running');
+        DocumentAgentSessions.deliverWhenIdle(change.board, observation.documentAgentReadings, request.workspace.trackerDirectory, resumedFromWaitingJobIds, change.at);
+        effectReadings.launchDue(change.board, change.at);
         if (usageResetsAt === null) AssistantSession.deliverIncidentsWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory);
         request.afterHoldPhase?.('lifecycle', change.board);
         const recordedReviewPipelineOf = (record: Parameters<typeof ReviewOutcome.recordedReviewPipelineOf>[1]): ReturnType<typeof ReviewOutcome.recordedReviewPipelineOf> => {
@@ -1530,6 +1595,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), recordedReviewPipelineOf, LIFECYCLE_LIMITS),
           ticketsWaitingForMachineSlot: steps.filter((step) => step.kind === 'await-machine-slot').length,
           waiverAnswersAwaitAPass,
+          failedEffectReaders,
         };
       },
     });
@@ -1545,6 +1611,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
     UsageLimits.recordWindowObservations(request.monitorFolder, written.result.usageWindowObservations);
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.childInstance);
+    for (const jobId of written.result.failedEffectReaders) await stopSession(jobId, observation.childObservations.find((child) => child.jobId === jobId)?.instance ?? 1);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     gateSlots.startRound();
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
@@ -1585,7 +1652,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       : jobsNeedingAChild(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
     for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
-      const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job);
+      const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job, effectReadings);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
@@ -1604,8 +1671,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
     });
     const { trackerDirectory } = request.workspace;
-    const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job);
+    const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job)
+      || DocumentAgentSessions.opensWithAMessage(trackerDirectory, written.board, job);
     await JobResumption.deliverResumeMessages(request.boardChildren, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);
+    await DocumentAgentSessions.sendDeliveries(request.boardChildren, trackerDirectory, written.board, request.agentAdapter);
     await AnswerDelivery.deliverAnswers({
       boardChildren:   request.boardChildren,
       board:           written.board,
@@ -1785,6 +1854,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     passInFlight:   () => passInFlight,
     // An abandoned pass ends before the pass's own notices are derived, so its notice joins them here.
     state:          () => ({ ...state, notices: [...state.notices, ...passesAbandonedNotices()] }),
+    effectReadings,
     stop,
   };
 }

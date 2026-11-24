@@ -15,7 +15,11 @@ import type { Job, JobState }                            from '../../lib/tracker
 import type { HatchAppliedRecord, LogRecordFieldsOf }    from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                                    from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                  from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { DocumentAgentJobUtil }                          from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
+import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, SetupMessage }             from '../../shared/@types/ControlContext.ts';
+import type { EffectReadingSource }                      from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                               from '../../shared/WorktreesFolder.ts';
 import { Bouncer, type RelayingJob }                     from '../control/Bouncer.ts';
@@ -53,6 +57,11 @@ const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   },
   liveHephaestusOf: () => null,
 });
+
+/** The relayed context with the live Hephaestus's effect readings, which a document agent's turn-end requests may ask for. */
+function relayedContextWith(effectReadings: EffectReadingSource): ControlContext {
+  return Object.freeze({ ...RELAYED_COMMAND_CONTEXT, effectReadings });
+}
 
 const REQUEST_FILE_PATTERN = /^(.+)\.json$/;
 const HATCH_FORMAT_VERSION = 1;
@@ -161,7 +170,19 @@ function replyOfRefusal(requestId: string, thrown: unknown): HatchReply {
   throw thrown;
 }
 
-function replyOf(change: BoardTransaction, job: Readonly<Job>, request: PendingHatchRequest): { reply: HatchReply; commandKind: string } {
+/** A document agent's admitted move carries the commit of its snapshot, which only Hephaestus knows. */
+function stampedCommandOf(command: ControlCommand, snapshotCommit: string | null): ControlCommand {
+  if (snapshotCommit === null || (command.kind !== 'ticket-document-agent-propose' && command.kind !== 'ticket-document-agent-ready')) return command;
+  return { ...command, constitutionCommit: snapshotCommit };
+}
+
+function replyOf(
+  change: BoardTransaction,
+  job: Readonly<Job>,
+  request: PendingHatchRequest,
+  context: ControlContext = RELAYED_COMMAND_CONTEXT,
+  snapshotCommit: string | null = null,
+): { reply: HatchReply; commandKind: string } {
   const reading = HatchFormatUtil.requestReadingOf(request.text);
   if (reading.verdict === 'refused') {
     const detail: OperationRefusalDetail = reading.reason === 'hatch-identity-mismatch'
@@ -180,7 +201,7 @@ function replyOf(change: BoardTransaction, job: Readonly<Job>, request: PendingH
     return { reply: refusedReply(request.requestId, 'refused', detail), commandKind: reading.command.kind };
   }
   try {
-    const applied = ControlService.apply(verdict.command, change, RELAYED_COMMAND_CONTEXT);
+    const applied = ControlService.apply(stampedCommandOf(verdict.command, snapshotCommit), change, context);
     return {
       reply: {
         hatchFormatVersion: HATCH_FORMAT_VERSION, requestId: request.requestId, outcome: applied.outcome, ticketIds: ticketIdsOf(applied.result)
@@ -224,6 +245,42 @@ function replyRebuiltFrom(applied: HatchAppliedRecord): HatchReply | null {
  * replies are returned for Hephaestus to write once the hold has committed.
  */
 function applyPendingRequests(change: BoardTransaction, repositoryRoot: string, pending: readonly PendingHatchRequest[]): HatchReplyToWrite[] {
+  const heldUntilTurnEnd = (request: PendingHatchRequest): boolean => {
+    const job = change.board.jobById(request.jobId);
+    return job !== undefined && DocumentAgentJobUtil.documentOf(job) !== null;
+  };
+  return applyEach(change, repositoryRoot, pending.filter((request) => !heldUntilTurnEnd(request)), (job, request) => replyOf(change, job, request));
+}
+
+/**
+ * A document agent's requests, held until its turn ended and Customs found its snapshot clean: applied as any request is, with the live
+ * Hephaestus's context and its snapshot's commit stamped on its document moves.
+ */
+function applyTurnEndRequests(
+  change: BoardTransaction, repositoryRoot: string, pending: readonly PendingHatchRequest[], context: ControlContext, snapshotCommit: string | null,
+): HatchReplyToWrite[] {
+  return applyEach(change, repositoryRoot, pending, (job, request) => replyOf(change, job, request, context, snapshotCommit));
+}
+
+/** Every request refused with the Board's refusal, applying none, as a turn whose snapshot changed is. */
+function refuseRequests(change: BoardTransaction, repositoryRoot: string, pending: readonly PendingHatchRequest[], refusal: BoardRefusalDetail): HatchReplyToWrite[] {
+  return applyEach(change, repositoryRoot, pending, (_job, request) => ({
+    reply:       refusedReply(request.requestId, 'refused', { kind: 'board-refusal', boardRefusal: refusal }),
+    commandKind: commandKindOf(request),
+  }));
+}
+
+function commandKindOf(request: PendingHatchRequest): string {
+  const reading = HatchFormatUtil.requestReadingOf(request.text);
+  return reading.verdict === 'read' ? reading.command.kind : 'unread';
+}
+
+function applyEach(
+  change: BoardTransaction,
+  repositoryRoot: string,
+  pending: readonly PendingHatchRequest[],
+  replyFor: (job: Readonly<Job>, request: PendingHatchRequest) => { reply: HatchReply; commandKind: string },
+): HatchReplyToWrite[] {
   const replies: HatchReplyToWrite[] = [];
   for (const request of pending) {
     const job = change.board.jobById(request.jobId);
@@ -235,7 +292,7 @@ function applyPendingRequests(change: BoardTransaction, repositoryRoot: string, 
       if (rebuilt !== null) replies.push({ hatchDirectory, reply: rebuilt });
       continue;
     }
-    const { reply, commandKind } = replyOf(change, job, request);
+    const { reply, commandKind } = replyFor(job, request);
     change.board.recordHatchApplied(job.id, appliedFieldsOf(reply, commandKind), change.at);
     replies.push({ hatchDirectory, reply });
   }
@@ -249,5 +306,5 @@ function writeReplies(replies: readonly HatchReplyToWrite[]): void {
 }
 
 export const HatchInbox = Object.freeze({
-  hatchDirectoryOf, pendingRequestsOf, applyPendingRequests, writeReplies
+  hatchDirectoryOf, relayedContextWith, pendingRequestsOf, applyPendingRequests, applyTurnEndRequests, refuseRequests, writeReplies
 });

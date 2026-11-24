@@ -51,7 +51,7 @@ type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messa
 
 const BUDGETED_JOB_KINDS: readonly string[] = ['build', 'review'];
 
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent', 'document-agent'];
 
 const TRANSCRIPT_START = { instance: 1, sequence: 0 };
 

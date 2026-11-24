@@ -23,6 +23,7 @@ import type {
 import type { HatchAppliedRecord, LogRecord, LogRecordFieldsOf }    from './@types/LogRecord.ts';
 import type { DeclaredNeed }                                        from './@types/Need.ts';
 import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
+import type { TicketDocumentKind }                                  from './@types/TicketDocument.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
 import { Playbook }                                                 from './Playbook.ts';
@@ -34,8 +35,10 @@ import {
   FORCED_STOP_REFUSED_INTERRUPTION,
   JOB_ID_PREFIX
 }                                   from './constants/JobStates.ts';
-import { JobControlRuleUtil }     from './utils/JobControlRuleUtil.ts';
-import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
+import { DocumentAgentJobUtil }      from './utils/DocumentAgentJobUtil.ts';
+import { JobControlRuleUtil }        from './utils/JobControlRuleUtil.ts';
+import { OptionConsequencesUtil }    from './utils/OptionConsequencesUtil.ts';
+import { TicketDocumentVersionUtil } from './utils/TicketDocumentVersionUtil.ts';
 
 /** The states a plain move names: an interruption carries its cause. The table refuses `launching`, which only a launch enters. */
 export type SteppedJobState = Exclude<JobState, 'interrupted'>;
@@ -225,6 +228,20 @@ export class Jobs {
   }
 
   /**
+   * A ticket document's agent: the one waiting for its next message resumes its session in its next instance; with none on the board a
+   * fresh one launches, a plan's agent carrying as its attempt the spec version it writes the plan for.
+   */
+  launchOrResumeDocumentAgent(ticketId: string, document: TicketDocumentKind, at: string): JobChanged {
+    const waiting = DocumentAgentJobUtil.liveAgentOf(this.jobs(), ticketId, document);
+    if (waiting?.state === 'awaiting-answer') return this.moveJob(waiting.id, 'running', at);
+    const spec    = this.records.ticketDocumentRecordOf(ticketId)?.record.documents.find((candidate) => candidate.kind === 'spec');
+    const attempt = document === 'plan' && spec !== undefined ? TicketDocumentVersionUtil.approvalAtHeadOf(spec)?.number ?? 1 : 1;
+    return this.launchJob({
+      kind: 'document-agent', role: DocumentAgentJobUtil.roleOf(document), ticketIds: [ticketId], parentJobId: null, attempt, target: null
+    }, at);
+  }
+
+  /**
    * Puts an ended job back on the board from its log records, `running` in its next child instance, so Hephaestus launches it resuming the
    * same session; the caller decides which ended jobs may come back.
    */
@@ -386,6 +403,12 @@ export class Jobs {
     this.records.requireTicket(ticketId);
     const fields = { entity: need.entity, title: need.title, byJob: need.byJob };
     return { logged: [this.records.logger.log({ kind: 'need-declared', ticketId, fields }, at)] };
+  }
+
+  /** A document agent's turn end found its snapshot changed: the checks that refused it, on the ticket's log. */
+  recordDocumentSnapshotTouched(ticketId: string, touched: LogRecordFieldsOf<'ticket-document-snapshot-touched'>, at: string): Logged {
+    const fields = { document: touched.document, jobId: touched.jobId, checks: [...touched.checks] };
+    return { logged: [this.records.logger.log({ kind: 'ticket-document-snapshot-touched', ticketId, fields }, at)] };
   }
 
   recordHatchApplied(jobId: string, applied: LogRecordFieldsOf<'hatch-applied'>, at: string): Logged {

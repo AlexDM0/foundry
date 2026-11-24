@@ -1,7 +1,8 @@
 /**
  * Which jobs hold a launch slot. What matters is that the rule reads the job's kind and never its role: a merge-agent job runs as its
  * ticket's builder or reviewer, yet it never waits behind builds, so a role rule would count a job no gate holds back. A build or review
- * that waits for an answer or was interrupted is the same job and keeps its slot, so its state never frees one.
+ * that waits for an answer or was interrupted is the same job and keeps its slot, so its state never frees one. A document agent is the one
+ * kind whose state frees its slot: it waits for its next message with no session.
  */
 import { expect, test } from 'bun:test';
 
@@ -30,6 +31,19 @@ test('session, pipeline agent, merge and refresh jobs hold no launch slot', () =
 test('a build waiting for an answer and an interrupted build keep their launch slots', () => {
   expect(jobHoldsLaunchSlot(jobFixture({ id: 'J6', state: 'waiting-for-answer' }))).toBe(true);
   expect(jobHoldsLaunchSlot(jobFixture({ id: 'J7', state: 'interrupted', interruption: 'reboot' }))).toBe(true);
+});
+
+test('a document agent holds a launch slot for its turns, and none while it waits for its next message', () => {
+  expect(jobHoldsLaunchSlot(jobFixture({
+    id: 'J8', kind: 'document-agent', role: 'spec-agent', state: 'running'
+  }))).toBe(true);
+  expect(jobHoldsLaunchSlot(jobFixture({
+    id: 'J9', kind: 'document-agent', role: 'plan-agent', state: 'awaiting-answer'
+  }))).toBe(false);
+});
+
+test('an effect reading holds no launch slot', () => {
+  expect(jobHoldsLaunchSlot(jobFixture({ id: 'J10', kind: 'effect-reading', role: 'effect-reader' }))).toBe(false);
 });
 
 test('the slot job ids are the build and review jobs, in launch order', () => {
