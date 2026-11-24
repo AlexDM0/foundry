@@ -1,6 +1,7 @@
 /**
  * The address of each route of Gaia's relay of one forge's board, at the version `GAIA_ENDPOINT_VERSIONS` names: the board, its event
- * stream, a job's and a gate profile's streams after a cursor, the pictures and the commands. Each tracker id and item id is encoded once.
+ * stream, a job's and a gate profile's streams after a cursor, the pictures, the commands and a ticket's documents. Each tracker id and
+ * item id is encoded once.
  */
 import { ApiPathUtil }            from '../../../src/lib/api-paths/ApiPathUtil.ts';
 import { GAIA_ENDPOINT_VERSIONS } from '../../../src/shared/constants/GaiaSystemVersions.ts';
@@ -48,6 +49,11 @@ function commandsPathOf(trackerId: string): string {
   return ApiPathUtil.versionedPathOf(forgeEndpointOf(trackerId, '/commands'), GAIA_ENDPOINT_VERSIONS.forgeCommands);
 }
 
+function ticketDocumentsPathOf(trackerId: string, ticketId: string): string {
+  const endpoint = forgeEndpointOf(trackerId, `/tickets/${encodeURIComponent(ticketId)}/documents`);
+  return ApiPathUtil.versionedPathOf(endpoint, GAIA_ENDPOINT_VERSIONS.forgeTicketDocuments);
+}
+
 export const BoardApiPaths = {
   boardPathOf,
   boardEventsPathOf,
@@ -56,4 +62,5 @@ export const BoardApiPaths = {
   picturesPathOf,
   picturePathOf,
   commandsPathOf,
+  ticketDocumentsPathOf,
 } as const;

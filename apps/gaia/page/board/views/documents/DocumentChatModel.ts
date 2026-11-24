@@ -1,0 +1,193 @@
+/**
+ * A document agent's chat, pure. The agent's turns are its job's transcript as `ChatThreadModel` reads it, the job's own user lines left
+ * out, since the document's messages stand for them: each sent message is placed before the agent turn it opened (`agentTurn`, counted by
+ * the transcript's user lines from 1), a message the agent has not taken yet after the turns, and a queued one under the composer, where
+ * `×` withdraws it. A proposal's diff card follows the turn that answered its message, a settled proposal leaves one line there, and the
+ * newest effect reading of the document is a card that opens its pane. The agent works while its newest turn has not ended.
+ */
+import type { BoardTranscriptEntryDocument } from '../../../@types/board/ConversationDocument.ts';
+import type {
+  BoardDocumentMessageDocument,
+  BoardDocumentProposalDocument,
+  BoardEffectReadingDocument,
+  BoardLineRangeDocument,
+  BoardTicketDocumentDocument
+} from '../../../@types/board/TicketDocumentsDocument.ts';
+import { ChatThreadModelUtil, type ToolCall }    from '../../conversation/ChatThreadModel.ts';
+import { CommentPopoverModel }                   from './CommentPopoverModel.ts';
+import { ProposalModel, type OpenProposalModel } from './ProposalModel.ts';
+
+export interface ChatMessageItem {
+  readonly kind:       'message';
+  readonly key:        string;
+  readonly messageId:  string;
+  /** "C2 · § 4 Acceptance › A3 · line 29 · Preview"; `null` for a message about the whole document. */
+  readonly anchorLine: string | null;
+  readonly quote:      string | null;
+  /** Where the comment stands on the head version, which its card jumps to; `null` when unanchored or orphaned. */
+  readonly placement:  BoardLineRangeDocument | null;
+  readonly orphaned:   boolean;
+  /** The agent is answering it now. */
+  readonly answering:  boolean;
+  readonly text:       string;
+}
+
+export interface ChatBoardNoteItem {
+  readonly kind: 'board-note';
+  readonly key:  string;
+  readonly text: string;
+}
+
+export interface ChatAgentTurnItem {
+  readonly kind:    'agent-turn';
+  readonly key:     string;
+  readonly prose:   string;
+  readonly working: boolean;
+}
+
+export interface ChatProposalItem {
+  readonly kind:     'proposal';
+  readonly key:      string;
+  readonly proposal: OpenProposalModel;
+}
+
+export interface ChatProposalNoteItem {
+  readonly kind: 'proposal-note';
+  readonly key:  string;
+  readonly text: string;
+}
+
+export interface ChatEffectCardItem {
+  readonly kind:            'effect-card';
+  readonly key:             string;
+  readonly placeCount:      number;
+  readonly unresolvedCount: number;
+}
+
+export type DocumentChatItem = ChatMessageItem | ChatBoardNoteItem | ChatAgentTurnItem | ChatProposalItem | ChatProposalNoteItem | ChatEffectCardItem;
+
+export interface QueuedMessageItem {
+  readonly messageId:  string;
+  readonly anchorLine: string | null;
+  readonly text:       string;
+}
+
+export interface DocumentChat {
+  readonly items:              readonly DocumentChatItem[];
+  readonly queued:             readonly QueuedMessageItem[];
+  /** The agent's newest turn has not ended. */
+  readonly working:            boolean;
+  /** The comment the agent answers now, `null` while it answers none. */
+  readonly answeringComment:   number | null;
+  /** The version the message the agent answers was made on, `null` while it answers none. */
+  readonly answeringOnVersion: number | null;
+  /** The newest call of the working turn, `null` while it calls nothing. */
+  readonly runningCall:        ToolCall | null;
+}
+
+const USER_ROLE = 'user';
+
+/** The transcript in turns: a turn starts at each of the job's user lines, so the user line numbered n opens turn n. */
+function turnsOf(entries: readonly BoardTranscriptEntryDocument[]): BoardTranscriptEntryDocument[][] {
+  const turns: BoardTranscriptEntryDocument[][] = [[]];
+  for (const entry of entries) {
+    if (entry.role === USER_ROLE && entry.parentToolUseId === null) turns.push([]);
+    else turns.at(-1)?.push(entry);
+  }
+  return turns;
+}
+
+function messageItemOf(message: BoardDocumentMessageDocument, answering: boolean): ChatMessageItem | ChatBoardNoteItem {
+  if (message.from === 'board') return { kind: 'board-note', key: message.messageId, text: message.text };
+  return {
+    kind:       'message',
+    key:        message.messageId,
+    messageId:  message.messageId,
+    anchorLine: message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement),
+    quote:      message.anchor === null ? null : message.anchor.diagram?.nodeLabel ?? message.anchor.quote,
+    placement:  message.placement,
+    orphaned:   message.orphaned,
+    answering,
+    text:       message.text,
+  };
+}
+
+function queuedItemOf(message: BoardDocumentMessageDocument): QueuedMessageItem {
+  return {
+    messageId:  message.messageId,
+    anchorLine: message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement),
+    text:       message.text,
+  };
+}
+
+function agentTurnItemsOf(entries: readonly BoardTranscriptEntryDocument[], turnNumber: number): ChatAgentTurnItem[] {
+  return ChatThreadModelUtil.threadItemsOf(entries, []).flatMap((item): ChatAgentTurnItem[] => (
+    item.kind === 'agent-turn' ? [{
+      kind: 'agent-turn', key: `${turnNumber}.${item.key}`, prose: item.prose, working: item.working
+    }] : []
+  ));
+}
+
+function runningCallOf(entries: readonly BoardTranscriptEntryDocument[]): ToolCall | null {
+  const lastTurn = ChatThreadModelUtil.threadItemsOf(entries, []).findLast((item) => item.kind === 'agent-turn');
+  if (lastTurn?.kind !== 'agent-turn' || !lastTurn.working) return null;
+  return lastTurn.toolFold?.calls.findLast((call) => call.state === 'running') ?? null;
+}
+
+function proposalItemOf(document: BoardTicketDocumentDocument, proposal: BoardDocumentProposalDocument): DocumentChatItem[] {
+  if (proposal.state === 'proposed') return [{ kind: 'proposal', key: proposal.proposalId, proposal: ProposalModel.openProposalOf(document.document, proposal) }];
+  const note = ProposalModel.settledNoteOf(proposal);
+  return note === null ? [] : [{ kind: 'proposal-note', key: proposal.proposalId, text: note }];
+}
+
+function effectCardOf(reading: BoardEffectReadingDocument | null): ChatEffectCardItem[] {
+  if (reading?.state !== 'read') return [];
+  return [{
+    kind:            'effect-card',
+    key:             `effect.${reading.versionNumber}`,
+    placeCount:      reading.references.length,
+    unresolvedCount: reading.entries.filter((entry) => entry.change === 'unresolved').length,
+  }];
+}
+
+function documentChatOf(
+  document: BoardTicketDocumentDocument,
+  entries: readonly BoardTranscriptEntryDocument[],
+  effectReading: BoardEffectReadingDocument | null,
+): DocumentChat {
+  const turns = turnsOf(entries);
+  const turnItems = turns.map((turnEntries, turnNumber) => agentTurnItemsOf(turnEntries, turnNumber));
+  const working = turnItems.flat().at(-1)?.working ?? false;
+  const lastTurnNumber = turns.length - 1;
+  const shown = document.messages.filter((message) => message.state !== 'queued' && message.state !== 'withdrawn');
+  const takenIn = (message: BoardDocumentMessageDocument): number | null => (
+    message.agentTurn !== null && message.agentTurn <= lastTurnNumber ? message.agentTurn : null
+  );
+  const answeringMessage = working ? shown.findLast((message) => message.from === 'person' && takenIn(message) === lastTurnNumber) ?? null : null;
+  const turnOfMessage = new Map(shown.map((message) => [message.messageId, takenIn(message)]));
+  const turnOfProposal = (proposal: BoardDocumentProposalDocument): number | null => (
+    proposal.answersMessageId === null ? null : turnOfMessage.get(proposal.answersMessageId) ?? null
+  );
+
+  const items: DocumentChatItem[] = turnItems.flatMap((agentItems, turnNumber) => [
+    ...shown.filter((message) => takenIn(message) === turnNumber).map((message) => messageItemOf(message, message === answeringMessage)),
+    ...agentItems,
+    ...document.proposals.filter((proposal) => turnOfProposal(proposal) === turnNumber).flatMap((proposal) => proposalItemOf(document, proposal)),
+  ]);
+
+  return {
+    items: [
+      ...items,
+      ...shown.filter((message) => takenIn(message) === null).map((message) => messageItemOf(message, false)),
+      ...document.proposals.filter((proposal) => turnOfProposal(proposal) === null).flatMap((proposal) => proposalItemOf(document, proposal)),
+      ...effectCardOf(effectReading),
+    ],
+    queued:             document.messages.filter((message) => message.state === 'queued').map(queuedItemOf),
+    working,
+    answeringComment:   answeringMessage?.commentNumber ?? null,
+    answeringOnVersion: answeringMessage?.anchor?.versionNumber ?? null,
+    runningCall:        runningCallOf(turns.at(-1) ?? []),
+  };
+}
+
+export const DocumentChatModel = Object.freeze({ documentChatOf, turnsOf });

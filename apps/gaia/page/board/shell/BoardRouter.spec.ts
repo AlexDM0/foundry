@@ -41,12 +41,12 @@ describe('the board\'s path read as a route', () => {
 });
 
 describe('the tabs shown', () => {
-  test('the board tabs come first in their order, then the others, Pipeline last', () => {
-    expect(BOARD_TABS).toEqual(['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake', 'pipeline']);
+  test('the board tabs come first in their order, then the others, Pipeline last, then the route-only documents page', () => {
+    expect(BOARD_TABS).toEqual(['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake', 'pipeline', 'documents']);
   });
 
   test('Waves and Epics drop out only once the board says it has none, and a route to a dropped tab falls back to the first', () => {
-    expect(BoardRouter.shownTabsOf(null, null, true)).toEqual([...BOARD_TABS]);
+    expect(BoardRouter.shownTabsOf(null, null, true)).toEqual(BOARD_TABS.filter((tab) => tab !== 'documents'));
     const shown = BoardRouter.shownTabsOf(false, false, null);
     expect(shown).toEqual(['kanban', 'progress', 'tickets', 'agents', 'questions', 'assistant', 'intake']);
     expect(BoardRouter.shownRouteOf({ tab: 'waves', item: null }, shown)).toEqual({ tab: 'kanban', item: null });
@@ -68,6 +68,28 @@ describe('the tabs shown', () => {
 
   test('a route to a tab not shown falls back to the first shown tab, not to Kanban', () => {
     expect(BoardRouter.shownRouteOf({ tab: 'kanban', item: null }, ['agents', 'questions'])).toEqual({ tab: 'agents', item: null });
+  });
+});
+
+describe('a ticket\'s documents page', () => {
+  test('is reached by its route with an item and never shows in the tab bar', () => {
+    const route = BoardRouter.documentsRouteOf('004', 'plan');
+    expect(route).toEqual({ tab: 'documents', item: 'ticket/004/plan' });
+    expect(BoardRouter.shownTabsOf(true, true, true)).not.toContain('documents');
+    expect(BoardRouter.shownRouteOf(route, BoardRouter.shownTabsOf(true, true, true))).toEqual(route);
+    expect(BoardRouter.routeOf('documents/ticket/004/spec', null)).toEqual({ tab: 'documents', item: 'ticket/004/spec' });
+  });
+
+  test('without an item falls back to the first shown tab, and a stored documents tab opens the default tab', () => {
+    expect(BoardRouter.shownRouteOf({ tab: 'documents', item: null }, ['kanban', 'agents'])).toEqual({ tab: 'kanban', item: null });
+    expect(BoardRouter.routeOf(null, 'documents')).toEqual({ tab: 'kanban', item: null });
+  });
+
+  test('names the ticket and the document of its item, and nothing for an item of another form', () => {
+    expect(BoardRouter.documentOfRoute({ tab: 'documents', item: 'ticket/004/spec' })).toEqual({ ticketId: '004', document: 'spec' });
+    expect(['ticket/004/brief', 'ticket/004', 'draft/D1/spec', 'ticket/004/spec/extra'].map((item) => BoardRouter.documentOfRoute({ tab: 'documents', item })))
+      .toEqual([null, null, null, null]);
+    expect(BoardRouter.documentOfRoute({ tab: 'kanban', item: 'ticket/004/spec' })).toBeNull();
   });
 });
 

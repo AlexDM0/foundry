@@ -27,6 +27,15 @@ const SLOT_CUE_ANSWERS: Readonly<Record<FlintSlotCue, SpriteIntent>> = Object.fr
 
 const JOB_CUES: readonly FlintSlotCue[] = [FLINT_SLOT_CUES.AGENT_WRITES, FLINT_SLOT_CUES.AGENT_REVIEWS, FLINT_SLOT_CUES.AGENT_IS_IDLE];
 
+/** What a ticket document's agent does: it reads the repository, writes its document, waits on User's review, is done, or idles. */
+const DOCUMENT_AGENT_CUES: readonly FlintSlotCue[] = [
+  FLINT_SLOT_CUES.AGENT_READS,
+  FLINT_SLOT_CUES.AGENT_WRITES,
+  FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
+  FLINT_SLOT_CUES.AGENT_IS_DONE,
+  FLINT_SLOT_CUES.AGENT_IS_IDLE,
+];
+
 /** What every setup step's agent strip may say besides its work: a question waits on User, or the agent is stopped. */
 const SETUP_STEP_PAUSE_CUES: readonly FlintSlotCue[] = [FLINT_SLOT_CUES.AGENT_WAITS_ON_USER, FLINT_SLOT_CUES.AGENT_IS_IDLE];
 
@@ -103,6 +112,16 @@ export const FLINT_SLOT_HABITATS = Object.freeze({
     kind:        'intake-slot',
     description: 'The product owner\'s turn at the end of the intake chat, while it writes.',
     cues:        [FLINT_SLOT_CUES.AGENT_WRITES],
+  }),
+  specAgent: slotHabitatOf({
+    kind:        'spec-agent-slot',
+    description: 'The spec agent\'s strip on a ticket\'s spec: it reads the repository, writes the spec, waits on User\'s review, is done, or idles.',
+    cues:        DOCUMENT_AGENT_CUES,
+  }),
+  planAgent: slotHabitatOf({
+    kind:        'plan-agent-slot',
+    description: 'The plan agent\'s strip on a ticket\'s plan: it reads the repository, writes the plan, waits on User\'s review, is done, or idles.',
+    cues:        DOCUMENT_AGENT_CUES,
   }),
 });
 

@@ -7,6 +7,7 @@ import type { ConnectionState }      from '../api/BoardEventStreamClient.ts';
 import type { PreferenceStore }      from '../preferences/PreferenceStore.ts';
 import { AgentsView }                from '../views/agents/AgentsView.tsx';
 import { AssistantView }             from '../views/assistant/AssistantView.tsx';
+import { TicketDocumentsView }       from '../views/documents/TicketDocumentsView.tsx';
 import { EpicsView }                 from '../views/epics/EpicsView.tsx';
 import { IntakeView }                from '../views/intake/IntakeView.tsx';
 import { KanbanTabView }             from '../views/kanban/KanbanTabView.tsx';
@@ -60,4 +61,5 @@ export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   assistant: ({ board, services }) => <AssistantView board={board} followTranscript={services.followTranscript} />,
   intake:    IntakeTabView,
   pipeline:  PipelineTabView,
+  documents: TicketDocumentsView,
 };

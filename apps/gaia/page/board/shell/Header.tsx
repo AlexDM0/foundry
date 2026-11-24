@@ -74,6 +74,7 @@ export const TAB_LABELS: Readonly<Record<BoardTab, string>> = {
   assistant: 'Assistant',
   intake:    'Intake',
   pipeline:  'Pipeline',
+  documents: 'Documents',
 };
 
 const COUNT_BADGE_OF_TONE: Readonly<Record<TabCountTone, CountBadgeColours & { readonly marked?: boolean }>> = {

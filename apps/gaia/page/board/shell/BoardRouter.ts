@@ -2,16 +2,24 @@
  * The board's routes: its tabs in their order, and a route as the tab and the item it opens. A route is written into Gaia's address as
  * `#forge/<trackerId>/<tab>[/<item segments>]`, each segment encoded, so a link survives a reload and needs no server route. A path naming no
  * tab falls back to the stored tab, then the first; a tab the board does not show (Waves without a dependency, Epics without an epic, every
- * tab but Pipeline on a board with no readable pipeline) falls back to the first tab it shows. The router reads and writes no address bar:
- * whoever mounts the board hands it the path and the way to go.
+ * tab but Pipeline on a board with no readable pipeline) falls back to the first tab it shows. A route-only page, such as a ticket's
+ * documents, is reached only by its route with an item, never from the tab bar or the stored tab. The router reads and writes no address
+ * bar: whoever mounts the board hands it the path and the way to go.
  */
-import type { BoardTargetDocument } from '../../@types/board/BoardTargetDocument.ts';
-import type { BoardTargetSubject }  from '../../@types/board/BoardVocabulary.ts';
+import type { BoardTargetDocument }                         from '../../@types/board/BoardTargetDocument.ts';
+import type { BoardTargetSubject, BoardTicketDocumentKind } from '../../@types/board/BoardVocabulary.ts';
 
-/** The board tabs in their order, then the others, Pipeline last. */
-export const BOARD_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake', 'pipeline'] as const;
+/** The board tabs in their order, then the others, Pipeline last, then the pages reached only by a route. */
+export const BOARD_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake', 'pipeline', 'documents'] as const;
 
 export type BoardTab = typeof BOARD_TABS[number];
+
+/** A ticket's spec and plan, at `documents/ticket/<ticketId>/<spec|plan>`: never in the tab bar, never stored as the tab to open. */
+const ROUTE_ONLY_TABS: ReadonlySet<BoardTab> = new Set<BoardTab>(['documents']);
+
+const DOCUMENTS_ITEM_FORM = 'ticket';
+
+const DOCUMENT_KINDS: readonly BoardTicketDocumentKind[] = ['spec', 'plan'];
 
 export interface BoardRoute {
   readonly tab:  BoardTab;
@@ -51,7 +59,7 @@ function routeOf(boardPath: string | null, storedTab: string | null): BoardRoute
   const [tabName = '', ...itemParts] = (boardPath ?? '').split(ITEM_SEGMENT_SEPARATOR);
   const item = itemParts.map(decodedSegmentOf).join(ITEM_SEGMENT_SEPARATOR);
   if (isBoardTab(tabName)) return { tab: tabName, item: item === '' ? null : item };
-  return { tab: isBoardTab(storedTab) ? storedTab : DEFAULT_TAB, item: null };
+  return { tab: isBoardTab(storedTab) && !ROUTE_ONLY_TABS.has(storedTab) ? storedTab : DEFAULT_TAB, item: null };
 }
 
 function fragmentOf(trackerId: string, route: BoardRoute): string {
@@ -60,9 +68,10 @@ function fragmentOf(trackerId: string, route: BoardRoute): string {
   return `${trackerPath}/${route.item.split(ITEM_SEGMENT_SEPARATOR).map(encodeURIComponent).join(ITEM_SEGMENT_SEPARATOR)}`;
 }
 
-/** The route itself while its tab is shown, else the first shown tab alone. */
+/** The route itself while its tab is shown, or while it is a route-only page with its item, else the first shown tab alone. */
 function shownRouteOf(route: BoardRoute, shownTabs: readonly BoardTab[]): BoardRoute {
   const [firstShownTab = DEFAULT_TAB] = shownTabs;
+  if (ROUTE_ONLY_TABS.has(route.tab)) return route.item === null ? { tab: firstShownTab, item: null } : route;
   return shownTabs.includes(route.tab) ? route : { tab: firstShownTab, item: null };
 }
 
@@ -72,8 +81,22 @@ function shownRouteOf(route: BoardRoute, shownTabs: readonly BoardTab[]): BoardR
  */
 function shownTabsOf(boardHasWaves: boolean | null, boardHasEpics: boolean | null, boardHasPipeline: boolean | null): BoardTab[] {
   if (boardHasPipeline === false) return ['pipeline'];
-  return BOARD_TABS.filter((tab) => !(tab === 'waves' && boardHasWaves === false) && !(tab === 'epics' && boardHasEpics === false)
+  return BOARD_TABS.filter((tab) => !ROUTE_ONLY_TABS.has(tab) && !(tab === 'waves' && boardHasWaves === false) && !(tab === 'epics' && boardHasEpics === false)
     && !(tab === 'pipeline' && boardHasPipeline === null));
+}
+
+/** The page of a ticket's document. */
+function documentsRouteOf(ticketId: string, document: BoardTicketDocumentKind): BoardRoute {
+  return { tab: 'documents', item: [DOCUMENTS_ITEM_FORM, ticketId, document].join(ITEM_SEGMENT_SEPARATOR) };
+}
+
+/** The ticket and document a documents route names, `null` for an item of another form. */
+function documentOfRoute(route: BoardRoute): { readonly ticketId: string; readonly document: BoardTicketDocumentKind } | null {
+  if (route.tab !== 'documents' || route.item === null) return null;
+  const [form, ticketId, document, ...rest] = route.item.split(ITEM_SEGMENT_SEPARATOR);
+  const kind = DOCUMENT_KINDS.find((candidate) => candidate === document);
+  if (form !== DOCUMENTS_ITEM_FORM || ticketId === undefined || ticketId === '' || kind === undefined || rest.length > 0) return null;
+  return { ticketId, document: kind };
 }
 
 /** The route that opens a served target: its question, its ticket or draft on the Kanban, its job, or the Assistant for an incident. */
@@ -84,5 +107,5 @@ function routeOfTarget(target: BoardTargetDocument): BoardRoute {
 }
 
 export const BoardRouter = Object.freeze({
-  routeOf, fragmentOf, shownTabsOf, shownRouteOf, routeOfTarget,
+  routeOf, fragmentOf, shownTabsOf, shownRouteOf, routeOfTarget, documentsRouteOf, documentOfRoute,
 });

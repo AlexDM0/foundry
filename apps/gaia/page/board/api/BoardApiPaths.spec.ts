@@ -20,6 +20,7 @@ describe('the relay\'s addresses', () => {
       BoardApiPaths.picturesPathOf('example-tracker'),
       BoardApiPaths.picturePathOf('example-tracker', 'a'.repeat(64)),
       BoardApiPaths.commandsPathOf('example-tracker'),
+      BoardApiPaths.ticketDocumentsPathOf('example-tracker', '004'),
     ]).toEqual([
       `/api/v${GAIA_ENDPOINT_VERSIONS.forgeBoard}/forges/example-tracker/board`,
       `/api/v${GAIA_ENDPOINT_VERSIONS.forgeBoardEvents}/forges/example-tracker/board/events`,
@@ -28,6 +29,7 @@ describe('the relay\'s addresses', () => {
       `/api/v${GAIA_ENDPOINT_VERSIONS.forgePictureUpload}/forges/example-tracker/pictures`,
       `/api/v${GAIA_ENDPOINT_VERSIONS.forgePicture}/forges/example-tracker/pictures/${'a'.repeat(64)}`,
       `/api/v${GAIA_ENDPOINT_VERSIONS.forgeCommands}/forges/example-tracker/commands`,
+      `/api/v${GAIA_ENDPOINT_VERSIONS.forgeTicketDocuments}/forges/example-tracker/tickets/004/documents`,
     ]);
   });
 
