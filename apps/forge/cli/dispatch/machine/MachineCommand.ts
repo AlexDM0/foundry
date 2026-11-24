@@ -44,7 +44,7 @@ async function machineAgentProgram(commandArguments: ArgumentParser, context: Co
   const { vendor, displayName } = context.agentAdapter;
   if (written === undefined) {
     const programPath = MachineConfigFile.programPathOf(MachineConfigFile.read(monitorFolder), vendor);
-    const places = AgentPrograms.placesOf(context.agentAdapter, context.homeDirectory, context.platformPorts.executableResolver);
+    const places = AgentPrograms.placesOf(context.agentAdapter, context.platformPorts.programFolders, context.homeDirectory, context.platformPorts.executableResolver);
     const placeLines = places.map((place) => `  ${place.path}${place.found ? '' : ' (not there)'}`);
     const humanLine = [`This machine's ${displayName}: ${programPath ?? 'none set'}.`, ...(places.length === 0 ? [] : ['Places its installers use:', ...placeLines])].join('\n');
     ProgramAnswerUtil.printAnswer(commandArguments, context, { vendor, programPath, places }, humanLine);

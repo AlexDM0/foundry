@@ -100,6 +100,9 @@ export const EVERY_TOOL_REQUIRED_VARIABLE = everyToolRequiredVariableOf(PRODUCT_
 const USER_SHELL_VARIABLE = 'SHELL';
 const COMMAND_INTERPRETER_VARIABLE = 'ComSpec';
 const SYSTEM_ROOT_VARIABLE = 'SystemRoot';
+const LOCAL_APPLICATION_DATA_VARIABLE = 'LOCALAPPDATA';
+const ROAMING_APPLICATION_DATA_VARIABLE = 'APPDATA';
+const PROGRAM_FILES_VARIABLE = 'ProgramFiles';
 const EXECUTABLE_SEARCH_PATH_VARIABLE = 'PATH';
 const BUN_INSTALL_FOLDER_VARIABLE = 'BUN_INSTALL';
 
@@ -240,4 +243,19 @@ export function commandInterpreter(): string | undefined {
 /** Windows' `SystemRoot`, whose `System32\cmd.exe` runs a gate's line when `ComSpec` is no absolute path; empty or whitespace reads as unset. */
 export function systemRoot(): string | undefined {
   return nonBlankValueOf(SYSTEM_ROOT_VARIABLE);
+}
+
+/** Windows' `LOCALAPPDATA`, the user's machine-local application folder; empty or whitespace reads as unset. */
+export function localApplicationDataFolder(): string | undefined {
+  return nonBlankValueOf(LOCAL_APPLICATION_DATA_VARIABLE);
+}
+
+/** Windows' `APPDATA`, the user's roaming application folder, which holds npm's global shims; empty or whitespace reads as unset. */
+export function roamingApplicationDataFolder(): string | undefined {
+  return nonBlankValueOf(ROAMING_APPLICATION_DATA_VARIABLE);
+}
+
+/** Windows' `ProgramFiles`, where machine-wide programs are installed; empty or whitespace reads as unset. */
+export function programFilesFolder(): string | undefined {
+  return nonBlankValueOf(PROGRAM_FILES_VARIABLE);
 }

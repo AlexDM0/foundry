@@ -73,6 +73,7 @@ macOS; on Linux they have never run. The Linux-only adapters have never run anyw
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a gate profile's line under bwrap, its output read piece by piece, and Stop ending its tree on a real /proc. |
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a pipeline check's two runs under bwrap, and a Hephaestus stop ending its tree on a real /proc. |
 | `ProcessSupervision` (boot start) | none | the `btime` line of a real /proc/stat, read for a crash suspected before a reboot. |
+| `ProgramFolders` | none | `LinuxProgramFolders` against a real Linux install: the agent's program and the tools found in its folders. |
 
 ## Windows
 
@@ -103,6 +104,7 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
 | `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and a Hephaestus stop ending its tree through taskkill. |
 | `ProcessSupervision` (boot start) | none | no read exists: the boot's start answers `null`, so a crash suspected before a reboot is never judged on Windows. |
+| `ProgramFolders` | none | `WindowsProgramFolders` against a real Windows install: claude.exe and the tools found in its folders, and a session's `Path` ending in the folders under `SystemRoot`. |
 
 ## Repository tooling
 

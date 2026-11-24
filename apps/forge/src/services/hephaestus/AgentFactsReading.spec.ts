@@ -7,6 +7,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { MachineConfigFile }                              from '../../adapters/machine-config/MachineConfigFile.ts';
 import type { ExecutableResolver }                        from '../../lib/executable-resolver/ExecutableResolver.ts';
+import { ProgramSearchUtil }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
@@ -53,7 +54,8 @@ describe('agentFactsOf', () => {
     const facts = AgentFactsReading.agentFactsOf(sourceOf(FOLLOWING_THE_MACHINE, monitorFolder));
     expect([facts.machineProgramPath, facts.programPath, facts.check]).toEqual([PROGRAM, PROGRAM, { verdict: 'runs', programPath: PROGRAM, version: '1.2.3' }]);
     expect(facts.vendors).toEqual([{ vendor: ADAPTER.vendor, displayName: ADAPTER.displayName, supported: true }]);
-    expect(facts.places).toEqual(ADAPTER.programPlacesOf(monitorFolder).map((path) => ({ path, found: path === PROGRAM })));
+    const placesOfThisPlatform = ProgramSearchUtil.programPlacesOf(defaultSpecPlatformPorts().programFolders, monitorFolder, ADAPTER);
+    expect(facts.places).toEqual(placesOfThisPlatform.map((path) => ({ path, found: path === PROGRAM })));
   }));
 
   test('a machine naming none and another vendor read as not running, and no choice reads as no run', withMonitorFolder((monitorFolder) => {

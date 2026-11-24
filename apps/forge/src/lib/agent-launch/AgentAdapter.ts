@@ -83,8 +83,10 @@ export interface AgentAdapter {
   readonly promptFills:            Readonly<Record<AgentPromptFillName, string>>;
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
-  /** Where the vendor's installers put its program under `homeDirectory`, in the order a choice is offered; each path as found, never resolved. */
-  programPlacesOf(homeDirectory: string): readonly string[];
+  /** The file name of the vendor's program on this host. */
+  readonly programFileName:        string;
+  /** The folders only the vendor's own installers put its program in, under the home folder, each as its path segments. */
+  readonly vendorProgramFolders:   readonly (readonly string[])[];
   /** The arguments that make the program print its version and end, which a chosen program is run with once before it is kept. */
   readonly versionArguments:       readonly string[];
   /** The version the program printed, or `null` when the output is not this agent's answer. */

@@ -1,5 +1,6 @@
 /** What a command about the forge's agent is prepared with on this process: its adapter, its ports, its environment and its run of a program. */
 import { runProgramCheck }                          from '../src/lib/program-check/ProgramCheck.ts';
+import { ProgramSearchUtil }                        from '../src/lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { AgentCommandPreparationContext }      from '../src/services/control/AgentCommandPreparation.ts';
 import type { AgentProgramCheck }                   from '../src/shared/@types/AgentProgramCheck.ts';
 import { environmentCopy }                          from '../src/shared/Environment.ts';
@@ -24,7 +25,7 @@ export function agentCommandPreparationContextOf(
       timeoutMilliseconds:  AGENT_PROGRAM_CHECK_TIMEOUT_MILLISECONDS,
     },
     monitorFolder: platformPorts.dataFolders.monitorFolderOf(homeDirectory),
-    toolFolders:   platformPorts.launchEnvironment.toolFoldersOf(homeDirectory),
+    toolFolders:   ProgramSearchUtil.toolFoldersOf(platformPorts.programFolders, homeDirectory),
     ...(recordCheck === undefined ? {} : { recordCheck }),
   };
 }
