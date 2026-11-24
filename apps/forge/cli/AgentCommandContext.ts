@@ -25,7 +25,7 @@ export function agentCommandPreparationContextOf(
       timeoutMilliseconds:  AGENT_PROGRAM_CHECK_TIMEOUT_MILLISECONDS,
     },
     monitorFolder: platformPorts.dataFolders.monitorFolderOf(homeDirectory),
-    toolFolders:   ProgramSearchUtil.toolFoldersOf(platformPorts.programFolders, homeDirectory),
+    toolSearch:    ProgramSearchUtil.toolSearchOf(platformPorts.programFolders, homeDirectory),
     ...(recordCheck === undefined ? {} : { recordCheck }),
   };
 }

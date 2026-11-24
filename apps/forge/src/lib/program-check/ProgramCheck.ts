@@ -20,6 +20,9 @@ export type ProgramCheckRun = (request: ProgramCheckRequest) => Promise<ProgramC
 
 const TIMED_OUT = 'timed-out';
 
+/** A version answer is a line; a program that floods its output is still read to its end, but only this much of each stream is kept. */
+export const PROGRAM_CHECK_OUTPUT_LIMIT_BYTES = 65_536;
+
 function codeOf(problem: unknown): string {
   return problem instanceof Error && 'code' in problem && typeof problem.code === 'string' ? problem.code : String(problem);
 }
@@ -31,6 +34,19 @@ function timeoutOf(milliseconds: number): { readonly expiry: Promise<typeof TIME
     timer = setTimeout(() => resolve(TIMED_OUT), milliseconds);
   });
   return { expiry, stop: () => clearTimeout(timer) };
+}
+
+/** The stream read to its end, so the program never blocks on a full pipe, with only its first `limitBytes` kept, as text. */
+export async function cappedTextOf(stream: ReadableStream<Uint8Array>, limitBytes: number): Promise<string> {
+  const kept: Uint8Array[] = [];
+  let keptBytes = 0;
+  for await (const chunk of stream) {
+    if (keptBytes >= limitBytes) continue;
+    const part = chunk.subarray(0, limitBytes - keptBytes);
+    kept.push(part);
+    keptBytes += part.byteLength;
+  }
+  return new TextDecoder().decode(Buffer.concat(kept));
 }
 
 /** Its standard output and error together, as a person running it would read them; a program that keeps its output open past the bound times out. */
@@ -49,7 +65,11 @@ export const runProgramCheck: ProgramCheckRun = async (request) => {
     return { kind: 'did-not-start', code: codeOf(problem) };
   }
   const timeout = timeoutOf(request.timeoutMilliseconds);
-  const finished = Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  const finished = Promise.all([
+    child.exited,
+    cappedTextOf(child.stdout, PROGRAM_CHECK_OUTPUT_LIMIT_BYTES),
+    cappedTextOf(child.stderr, PROGRAM_CHECK_OUTPUT_LIMIT_BYTES),
+  ]);
   const ending = await Promise.race([finished, timeout.expiry]);
   timeout.stop();
   if (ending === TIMED_OUT) {

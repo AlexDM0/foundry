@@ -23,6 +23,7 @@ const ports = platformPortsFor('darwin', {
   localApplicationDataFolder:   () => undefined,
   roamingApplicationDataFolder: () => undefined,
   programFilesFolder:           () => undefined,
+  programExtensions:            () => undefined,
   monitorFolderName:            '.example-monitor',
   pipeNamePrefix:               'example-product'
 });

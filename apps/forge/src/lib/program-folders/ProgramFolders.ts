@@ -10,4 +10,6 @@ export interface ProgramFolders {
   nodeVersionFoldersOf(homeDirectory: string): readonly string[];
   /** The folders of the system's own programs, which end every agent's search path; none when the machine names none. */
   baseFolders(): readonly string[];
+  /** The file names a program of this name may have here, in the order they are tried. */
+  programFileNamesOf(programName: string): readonly string[];
 }

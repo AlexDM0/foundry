@@ -103,6 +103,7 @@ const SYSTEM_ROOT_VARIABLE = 'SystemRoot';
 const LOCAL_APPLICATION_DATA_VARIABLE = 'LOCALAPPDATA';
 const ROAMING_APPLICATION_DATA_VARIABLE = 'APPDATA';
 const PROGRAM_FILES_VARIABLE = 'ProgramFiles';
+const PROGRAM_EXTENSIONS_VARIABLE = 'PATHEXT';
 const EXECUTABLE_SEARCH_PATH_VARIABLE = 'PATH';
 const BUN_INSTALL_FOLDER_VARIABLE = 'BUN_INSTALL';
 
@@ -258,4 +259,9 @@ export function roamingApplicationDataFolder(): string | undefined {
 /** Windows' `ProgramFiles`, where machine-wide programs are installed; empty or whitespace reads as unset. */
 export function programFilesFolder(): string | undefined {
   return nonBlankValueOf(PROGRAM_FILES_VARIABLE);
+}
+
+/** Windows' `PATHEXT`, the extensions a program named without one is found by; empty or whitespace reads as unset, Windows' default. */
+export function programExtensions(): string | undefined {
+  return nonBlankValueOf(PROGRAM_EXTENSIONS_VARIABLE);
 }

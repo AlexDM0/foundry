@@ -1,7 +1,8 @@
 /**
  * The agent facts a view reads. What matters: the program a launch would start follows the machine's config for a choice that follows it;
  * a choice naming no program, or another vendor, reads as not running without a run; and a named program reads as Hephaestus last ran
- * it, with the places the vendor's installers use.
+ * it, with the places the vendor's installers use; the vendors are the adapter's, which can be chosen, then each vendor coming later by
+ * name, which cannot.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -53,7 +54,11 @@ describe('agentFactsOf', () => {
     MachineConfigFile.writeAgentProgram(monitorFolder, ADAPTER.vendor, PROGRAM);
     const facts = AgentFactsReading.agentFactsOf(sourceOf(FOLLOWING_THE_MACHINE, monitorFolder));
     expect([facts.machineProgramPath, facts.programPath, facts.check]).toEqual([PROGRAM, PROGRAM, { verdict: 'runs', programPath: PROGRAM, version: '1.2.3' }]);
-    expect(facts.vendors).toEqual([{ vendor: ADAPTER.vendor, displayName: ADAPTER.displayName, supported: true }]);
+    expect(facts.vendors).toEqual([
+      { vendor: ADAPTER.vendor, displayName: ADAPTER.displayName, supported: true },
+      { vendor: 'codex', displayName: 'Codex', supported: false },
+      { vendor: 'github-copilot', displayName: 'GitHub Copilot', supported: false },
+    ]);
     const placesOfThisPlatform = ProgramSearchUtil.programPlacesOf(defaultSpecPlatformPorts().programFolders, monitorFolder, ADAPTER);
     expect(facts.places).toEqual(placesOfThisPlatform.map((path) => ({ path, found: path === PROGRAM })));
   }));

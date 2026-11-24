@@ -27,6 +27,8 @@ const RESOLVER = createPosixExecutableResolver({
   programKindOf: (path) => (PROGRAMS.has(path) ? 'program' : 'missing'),
 });
 
+const TOOL_FOLDERS: readonly string[] = ['/home/example/.bun/bin', '/usr/bin'];
+
 function contextOf(monitorFolder: string, recorded: AgentProgramCheck[]): AgentCommandPreparationContext {
   return {
     check: {
@@ -39,7 +41,7 @@ function contextOf(monitorFolder: string, recorded: AgentProgramCheck[]): AgentC
       timeoutMilliseconds:  1000,
     },
     monitorFolder,
-    toolFolders: ['/home/example/.bun/bin', '/usr/bin'],
+    toolSearch:  { folders: TOOL_FOLDERS, pathsOf: (name) => TOOL_FOLDERS.map((folder) => `${folder}/${name}`) },
     recordCheck: (check) => recorded.push(check),
   };
 }

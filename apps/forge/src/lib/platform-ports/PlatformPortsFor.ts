@@ -43,6 +43,8 @@ export interface PlatformHostFacts {
   readonly localApplicationDataFolder:   () => string | undefined;
   readonly roamingApplicationDataFolder: () => string | undefined;
   readonly programFilesFolder:           () => string | undefined;
+  /** Windows' `PATHEXT`, the extensions a program is found by there. */
+  readonly programExtensions:            () => string | undefined;
   readonly monitorFolderName:            string;
   readonly pipeNamePrefix:               string;
 }

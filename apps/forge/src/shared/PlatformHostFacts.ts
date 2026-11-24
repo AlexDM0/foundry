@@ -2,6 +2,7 @@ import type { PlatformHostFacts } from '../lib/platform-ports/PlatformPortsFor.t
 import {
   commandInterpreter,
   localApplicationDataFolder,
+  programExtensions,
   programFilesFolder,
   roamingApplicationDataFolder,
   systemRoot,
@@ -17,6 +18,7 @@ export const PLATFORM_HOST_FACTS: PlatformHostFacts = Object.freeze({
   localApplicationDataFolder,
   roamingApplicationDataFolder,
   programFilesFolder,
+  programExtensions,
   monitorFolderName: PRODUCT_NAMES.MONITOR_FOLDER,
   pipeNamePrefix:    PRODUCT_NAMES.PROGRAM
 });

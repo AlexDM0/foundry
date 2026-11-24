@@ -14,4 +14,5 @@ export const DARWIN_PROGRAM_FOLDERS: ProgramFolders = Object.freeze<ProgramFolde
   installFoldersOf:     (homeDirectory) => [posix.join(homeDirectory, ...BUN_FOLDER), ...SYSTEM_INSTALL_FOLDERS, posix.join(homeDirectory, ...USER_LINK_FOLDER)],
   nodeVersionFoldersOf: newestNodeVersionFoldersOf,
   baseFolders:          () => BASE_FOLDERS,
+  programFileNamesOf:   (programName) => [programName],
 });

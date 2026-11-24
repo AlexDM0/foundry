@@ -11,6 +11,7 @@ import type { AgentFacts }        from '../../shared/@types/AgentFacts.ts';
 import type { AgentProgramCheck } from '../../shared/@types/AgentProgramCheck.ts';
 import { AgentPrograms }          from '../control/AgentPrograms.ts';
 import { AgentTools }             from '../control/AgentTools.ts';
+import { COMING_AGENT_VENDORS }   from './constants/ComingAgentVendors.ts';
 
 export interface AgentFactsSource {
   board:         Pick<Board, 'agentOfForge' | 'pipeline' | 'pipelineSetup'>;
@@ -40,11 +41,14 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
   const machineProgramPath = MachineConfigFile.programPathOf(MachineConfigFile.read(source.monitorFolder), vendor);
   const programPath = choice === null ? null : AgentPrograms.chosenPathOf(choice.program, machineProgramPath);
   const { executableResolver, programFolders, shellLine } = platformPorts;
-  const toolFolders = ProgramSearchUtil.toolFoldersOf(programFolders, homeDirectory);
+  const toolSearch = ProgramSearchUtil.toolSearchOf(programFolders, homeDirectory);
   const pipeline = board.pipeline();
   const setup = board.pipelineSetup();
   return {
-    vendors:     [{ vendor: adapter.vendor, displayName: adapter.displayName, supported: true }],
+    vendors: [
+      { vendor: adapter.vendor, displayName: adapter.displayName, supported: true },
+      ...COMING_AGENT_VENDORS.filter((coming) => coming.vendor !== adapter.vendor).map((coming) => ({ ...coming, supported: false })),
+    ],
     agentName:   adapter.displayName,
     choice,
     machineProgramPath,
@@ -52,8 +56,8 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
     check:       checkOfChoice(source, programPath),
     places:      vendor === adapter.vendor ? AgentPrograms.placesOf(adapter, programFolders, homeDirectory, executableResolver) : [],
     toolsListed: pipeline?.tools !== undefined,
-    tools:       AgentTools.toolFactsOf(pipeline, shellLine, toolFolders, executableResolver),
-    setupTools:  setup === null ? [] : AgentTools.toolFactsOf(setup.draft ?? pipeline, shellLine, toolFolders, executableResolver),
+    tools:       AgentTools.toolFactsOf(pipeline, shellLine, toolSearch, executableResolver),
+    setupTools:  setup === null ? [] : AgentTools.toolFactsOf(setup.draft ?? pipeline, shellLine, toolSearch, executableResolver),
   };
 }
 

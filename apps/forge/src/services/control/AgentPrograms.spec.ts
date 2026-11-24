@@ -125,7 +125,7 @@ describe('placesOf', () => {
   test('reports the vendor\'s own folder, then each program folder of the platform, found or not, as the path spells it, never a base folder', () => {
     const adapter = { ...ADAPTER, programFileName: 'agent', vendorProgramFolders: [['.example', 'bin']] };
     const programFolders: ProgramFolders = {
-      pathModule: posix, installFoldersOf: () => ['/opt/example/bin'], nodeVersionFoldersOf: () => [], baseFolders: () => ['/usr/bin'],
+      pathModule: posix, installFoldersOf: () => ['/opt/example/bin'], nodeVersionFoldersOf: () => [], baseFolders: () => ['/usr/bin'], programFileNamesOf: (name) => [name],
     };
     expect(AgentPrograms.placesOf(adapter, programFolders, '/home/example', RESOLVER))
       .toEqual([{ path: '/home/example/.example/bin/agent', found: false }, { path: PROGRAM, found: true }]);

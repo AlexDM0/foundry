@@ -2,9 +2,8 @@
  * The programs a forge's agents may run: those its pipeline's prepare steps and gates run, or the list User kept, each found in the
  * places installers put programs; git always. Their folders make an agent's search path, the system's folders after them.
  */
-import { join } from 'node:path';
-
 import type { ExecutableResolver }     from '../../lib/executable-resolver/ExecutableResolver.ts';
+import type { ToolSearch }             from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { ShellLine }              from '../../lib/shell-line/ShellLine.ts';
 import type { Pipeline, PipelineTool } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ToolFacts, ToolUse }     from '../../shared/@types/AgentFacts.ts';
@@ -88,10 +87,10 @@ function toolUsesOf(pipeline: Readonly<Pipeline> | null, shellLine: ShellLine): 
   return uses;
 }
 
-/** The first of `folders` that holds a program of that name, as found there; `null` when none does. */
-function foundPathOf(name: string, folders: readonly string[], resolver: ExecutableResolver): string | null {
-  for (const folder of folders) {
-    const program = resolver.programAt(join(folder, name), []);
+/** The first path the search gives that holds a program of that name, as found there; `null` when none does. */
+function foundPathOf(name: string, search: ToolSearch, resolver: ExecutableResolver): string | null {
+  for (const path of search.pathsOf(name)) {
+    const program = resolver.programAt(path, []);
     if (program.verdict === 'found') return program.path;
   }
   return null;
@@ -101,13 +100,13 @@ function foundPathOf(name: string, folders: readonly string[], resolver: Executa
  * Every tool a view lists: the pipeline's programs, each found now, and the forge's own list where it keeps one, each at its kept path;
  * a program the pipeline names that the list leaves out is listed unapproved. git is always approved.
  */
-function toolFactsOf(pipeline: Readonly<Pipeline> | null, shellLine: ShellLine, folders: readonly string[], resolver: ExecutableResolver): ToolFacts[] {
+function toolFactsOf(pipeline: Readonly<Pipeline> | null, shellLine: ShellLine, search: ToolSearch, resolver: ExecutableResolver): ToolFacts[] {
   const uses = toolUsesOf(pipeline, shellLine);
   const kept = pipeline?.tools;
   const listed = kept === undefined ? [] : kept.filter((tool) => !uses.has(tool.name)).map((tool) => tool.name);
   return [...uses.keys(), ...listed].map((name) => {
     const keptTool = kept?.find((tool) => tool.name === name);
-    const path = keptTool === undefined ? foundPathOf(name, folders, resolver) : resolver.programAt(keptTool.path, []).verdict === 'found' ? keptTool.path : null;
+    const path = keptTool === undefined ? foundPathOf(name, search, resolver) : resolver.programAt(keptTool.path, []).verdict === 'found' ? keptTool.path : null;
     const approved = name === ALWAYS_APPROVED_TOOL || kept === undefined ? path !== null : keptTool !== undefined;
     return {
       name, path, approved, usedBy: uses.get(name) ?? []
@@ -119,11 +118,11 @@ function toolFactsOf(pipeline: Readonly<Pipeline> | null, shellLine: ShellLine, 
 function launchToolsOf(
   pipeline: Readonly<Pipeline> | null,
   shellLine: ShellLine,
-  folders: readonly string[],
+  search: ToolSearch,
   resolver: ExecutableResolver,
   gitPath: string | null,
 ): PipelineTool[] {
-  const facts = toolFactsOf(pipeline, shellLine, folders, resolver);
+  const facts = toolFactsOf(pipeline, shellLine, search, resolver);
   const approved = facts.flatMap((tool) => (tool.approved && tool.path !== null ? [{ name: tool.name, path: tool.path }] : []));
   return gitPath === null || approved.some((tool) => tool.name === ALWAYS_APPROVED_TOOL) ? approved : [{ name: ALWAYS_APPROVED_TOOL, path: gitPath }, ...approved];
 }

@@ -935,7 +935,7 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, programPa
   const tools = AgentTools.launchToolsOf(
     board.pipeline(),
     shellLine,
-    ProgramSearchUtil.toolFoldersOf(programFolders, request.homeDirectory),
+    ProgramSearchUtil.toolSearchOf(programFolders, request.homeDirectory),
     executableResolver,
     git.verdict === 'found' ? git.path : null,
   );

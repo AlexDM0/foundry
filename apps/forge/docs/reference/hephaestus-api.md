@@ -634,7 +634,9 @@ Forge 4.1 adds each forge's agent, only adding: the board document's `agent` (th
 machine's program, the places its installers use, whether the program runs and the tools), a job's `notLaunched`, the
 pipeline's `agent` and `tools`, the setup step `agent` and the record's `agent` and `tools`, the draft field `tools`,
 the board commands `pipeline-setup-agent`, `pipeline-agent-set`, `pipeline-tools-set` and `agent-look-again`, and the
-control command `machine-agent-program-set`. No endpoint changes its version.
+control command `machine-agent-program-set`. No endpoint changes its version. The vendors list the agent forge runs,
+which can be chosen, then each vendor forge names before it can run it (Codex, GitHub Copilot), with `supported` false,
+for a view to show as coming later; the names come from forge, so a client names no vendor of its own.
 
 The system version is set by interoperability, never by a package's version:
 

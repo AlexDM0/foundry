@@ -121,6 +121,7 @@ describe('the Windows answer per child kind', () => {
       localApplicationDataFolder:   () => undefined,
       roamingApplicationDataFolder: () => undefined,
       programFilesFolder:           () => undefined,
+      programExtensions:            () => undefined,
       monitorFolderName:            'monitor-example',
       pipeNamePrefix:               'example-product'
     });

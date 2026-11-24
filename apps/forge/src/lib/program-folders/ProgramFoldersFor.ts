@@ -11,6 +11,7 @@ const NO_FOLDERS: ProgramFolders = Object.freeze<ProgramFolders>({
   installFoldersOf:     () => [],
   nodeVersionFoldersOf: () => [],
   baseFolders:          () => [],
+  programFileNamesOf:   (programName) => [programName],
 });
 
 /** `windowsRoots` are read only on Windows. */

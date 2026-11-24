@@ -3,6 +3,7 @@
  * its version arguments and refused when it does not run, and a tool named alone is found in the places installers put programs.
  */
 import { MachineConfigFile }                            from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { ToolSearch }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { PipelineAgent, PipelineTool }             from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineDraftEdit }                       from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { AgentProgramCheck }                       from '../../shared/@types/AgentProgramCheck.ts';
@@ -14,8 +15,8 @@ import { AgentTools }                                   from './AgentTools.ts';
 export interface AgentCommandPreparationContext {
   check:         AgentProgramCheckContext;
   monitorFolder: string;
-  /** The folders a tool named alone is looked for in, in order. */
-  toolFolders:   readonly string[];
+  /** How a tool named alone is found. */
+  toolSearch:    ToolSearch;
   /** Told each run, so the views read it at once. */
   recordCheck?:  (check: AgentProgramCheck) => void;
 }
@@ -43,8 +44,8 @@ async function requireRunningProgram(vendor: string, programPath: string, contex
 function foundToolsOf(tools: readonly PipelineTool[], context: AgentCommandPreparationContext): PipelineTool[] {
   return tools.map((tool) => {
     if (tool.path !== '') return tool;
-    const path = AgentTools.foundPathOf(tool.name, context.toolFolders, context.check.resolver);
-    if (path === null) throw new OperationRefusal('refused', { kind: 'tool-not-found', name: tool.name, searchedFolders: [...context.toolFolders] });
+    const path = AgentTools.foundPathOf(tool.name, context.toolSearch, context.check.resolver);
+    if (path === null) throw new OperationRefusal('refused', { kind: 'tool-not-found', name: tool.name, searchedFolders: [...context.toolSearch.folders] });
     return { name: tool.name, path };
   });
 }

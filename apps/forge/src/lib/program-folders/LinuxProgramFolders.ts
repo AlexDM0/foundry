@@ -21,4 +21,5 @@ export const LINUX_PROGRAM_FOLDERS: ProgramFolders = Object.freeze<ProgramFolder
   ],
   nodeVersionFoldersOf: newestNodeVersionFoldersOf,
   baseFolders:          () => BASE_FOLDERS,
+  programFileNamesOf:   (programName) => [programName],
 });

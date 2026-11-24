@@ -82,7 +82,6 @@ export interface BoardJobAirlockDocument {
   readonly phase: string;
 }
 
-/** A job on the board. */
 /** Why the job's session did not launch: the cause, the program the forge named, and the forge's sentence. */
 export interface BoardJobNotLaunchedDocument {
   readonly cause:       AgentProgramRefusalCause;
@@ -91,6 +90,7 @@ export interface BoardJobNotLaunchedDocument {
   readonly sentence:    string;
 }
 
+/** A job on the board. */
 export interface BoardJobDocument {
   readonly id:            string;
   readonly kind:          string;

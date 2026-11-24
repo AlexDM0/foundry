@@ -1,7 +1,8 @@
 /**
  * One contract for the `ProgramFolders` port: every folder is absolute under the adapter's own path module, the home folders sit under the
  * home given, and no folder is named twice. Then each OS's own folders in order, since a program is looked for first where it is listed
- * first; and that Windows names no folder under a root its machine does not name drive-absolute.
+ * first; that Windows finds a program by its `PATHEXT` extensions, never bare; and that Windows names no folder under a root its machine does not
+ * name drive-absolute.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -21,6 +22,7 @@ const WINDOWS_ROOTS: WindowsProgramFolderRoots = {
   localApplicationDataFolder:   () => 'C:\\Users\\example\\AppData\\Local',
   roamingApplicationDataFolder: () => 'C:\\Users\\example\\AppData\\Roaming',
   programFilesFolder:           () => 'C:\\Program Files',
+  programExtensions:            () => '.COM;.EXE;.BAT;.CMD',
 };
 
 const clausesOf = (homeDirectory: string): readonly PortClause<ProgramFolders>[] => [{
@@ -80,10 +82,24 @@ describe('each OS\'s folders, in the order a program is looked for', () => {
     expect(windows.nodeVersionFoldersOf('C:\\Users\\example')).toEqual([]);
   });
 
+  test('Windows finds a program named alone only by an extension of PATHEXT, in its order, and one named with such an extension as it is', () => {
+    const windows = createWindowsProgramFolders(WINDOWS_ROOTS);
+    expect(windows.programFileNamesOf('bun')).toEqual(['bun.com', 'bun.exe', 'bun.bat', 'bun.cmd']);
+    expect(windows.programFileNamesOf('bun.EXE')).toEqual(['bun.EXE']);
+    const unset = createWindowsProgramFolders({ ...WINDOWS_ROOTS, programExtensions: () => undefined });
+    expect(unset.programFileNamesOf('git')).toEqual(['git.com', 'git.exe', 'git.bat', 'git.cmd']);
+    expect(DARWIN_PROGRAM_FOLDERS.programFileNamesOf('bun')).toEqual(['bun']);
+    expect(LINUX_PROGRAM_FOLDERS.programFileNamesOf('bun')).toEqual(['bun']);
+  });
+
   test('Windows names no folder under a root that is unset or not drive-absolute, and reads each root at the call', () => {
     let systemRoot: string | undefined = 'D:\\Windows';
     const windows = createWindowsProgramFolders({
-      systemRoot: () => systemRoot, localApplicationDataFolder: () => undefined, roamingApplicationDataFolder: () => 'AppData', programFilesFolder: () => '\\Program Files',
+      systemRoot:                   () => systemRoot,
+      localApplicationDataFolder:   () => undefined,
+      roamingApplicationDataFolder: () => 'AppData',
+      programFilesFolder:           () => '\\Program Files',
+      programExtensions:            () => undefined,
     });
     expect(windows.installFoldersOf('C:\\Users\\example')).toEqual(['C:\\Users\\example\\.local\\bin', 'C:\\Users\\example\\.bun\\bin']);
     expect(windows.baseFolders()[0]).toBe('D:\\Windows\\System32');

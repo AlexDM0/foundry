@@ -6,13 +6,18 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ExecutableResolver } from '../../lib/executable-resolver/ExecutableResolver.ts';
+import type { ToolSearch }         from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import { createPosixShellLine }    from '../../lib/shell-line/PosixShellLine.ts';
 import type { Pipeline }           from '../../lib/tracker-model/@types/Pipeline.ts';
 import { AgentTools }              from './AgentTools.ts';
 
 const SHELL_LINE = createPosixShellLine({ userShell: () => '/bin/sh' });
 
-const FOLDERS = ['/home/example/.bun/bin', '/usr/bin'];
+function searchIn(folders: readonly string[], fileNamesOf: (name: string) => readonly string[] = (name) => [name]): ToolSearch {
+  return { folders, pathsOf: (name) => folders.flatMap((folder) => fileNamesOf(name).map((fileName) => `${folder}/${fileName}`)) };
+}
+
+const FOLDERS = searchIn(['/home/example/.bun/bin', '/usr/bin']);
 
 const PROGRAMS: ReadonlySet<string> = new Set(['/home/example/.bun/bin/bun', '/usr/bin/git', '/usr/bin/make', '/opt/example/bin/gh']);
 
@@ -79,9 +84,18 @@ describe('toolFactsOf', () => {
   });
 });
 
+describe('foundPathOf', () => {
+  test('finds a tool under the first of the platform\'s file names a folder holds, as a Windows program is found by its extension', () => {
+    const windowsLike = searchIn(['/opt/example/bin', '/usr/bin'], (name) => [`${name}.exe`, `${name}.cmd`, name]);
+    const resolver: ExecutableResolver = { ...RESOLVER, programAt: (path) => (path === '/usr/bin/make.cmd' ? { verdict: 'found', path } : RESOLVER.programAt(path, [])) };
+    expect(AgentTools.foundPathOf('make', windowsLike, resolver)).toBe('/usr/bin/make.cmd');
+    expect(AgentTools.foundPathOf('docker', windowsLike, resolver)).toBeNull();
+  });
+});
+
 describe('launchToolsOf', () => {
   test('gives a launch the approved tools that were found, git from the lookup where no folder holds it', () => {
-    expect(AgentTools.launchToolsOf(PIPELINE, SHELL_LINE, ['/home/example/.bun/bin'], RESOLVER, '/opt/git/bin/git')).toEqual([
+    expect(AgentTools.launchToolsOf(PIPELINE, SHELL_LINE, searchIn(['/home/example/.bun/bin']), RESOLVER, '/opt/git/bin/git')).toEqual([
       { name: 'git', path: '/opt/git/bin/git' },
       { name: 'bun', path: '/home/example/.bun/bin/bun' },
     ]);
