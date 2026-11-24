@@ -87,6 +87,19 @@ export const PRESENCE_SITUATIONS = [
 export type PresenceSituation = typeof PRESENCE_SITUATIONS[number];
 
 /**
+ * Example Bookshop's board in the spec-then-plan route: `ticket-documents-saved` the save of a draft's spec, which opens its documents, then
+ * the board's events up to the `documents` event, the documents and the board read after it; `ticket-documents-absent` a ticket with no
+ * documents; `ticket-documents-unknown-ticket` a reference that names no ticket.
+ */
+export const TICKET_DOCUMENTS_SITUATIONS = [
+  'ticket-documents-saved',
+  'ticket-documents-absent',
+  'ticket-documents-unknown-ticket',
+] as const;
+
+export type TicketDocumentsSituation = typeof TICKET_DOCUMENTS_SITUATIONS[number];
+
+/**
  * Forges at another system version than the one Gaia supports: one ahead of it that still serves it, called at its versioned paths; one
  * too new to talk to; one older; and one that serves no `/api/versions`, as every forge before 1.0, which is older too.
  */
@@ -145,6 +158,7 @@ export const HEPHAESTUS_RECORDING_NAMES = [
   'hephaestus-fetch-supported-forge',
   'hephaestus-fetch-board',
   'hephaestus-fetch-presence',
+  'hephaestus-fetch-ticket-documents',
   'hephaestus-fetch-other-programs',
 ] as const;
 
@@ -171,7 +185,7 @@ export function streamCallShapeOf(request: Pick<HephaestusStreamRequest, 'path' 
   return `${STREAM_CALL_SHAPE_PREFIX}${request.path}${bearer}${request.lastEventId === null ? '' : LAST_EVENT_ID_SUFFIX}`;
 }
 
-export type RecordedSituation = HephaestusSituation | VersionsSituation | BoardSituation | PresenceSituation;
+export type RecordedSituation = HephaestusSituation | VersionsSituation | BoardSituation | PresenceSituation | TicketDocumentsSituation;
 
 export function situationCallShapeOf(situation: RecordedSituation, callShape: string): string {
   return `${situation}${SITUATION_SEPARATOR}${callShape}`;
@@ -265,6 +279,11 @@ export function recordedBoardAnswersOf(situation: BoardSituation, operatingSyste
 
 /** The answers of one situation of Example Storefront's presence, each call shape without its situation. */
 export function recordedPresenceAnswersOf(situation: PresenceSituation, operatingSystem: string = process.platform): readonly RecordedHephaestusAnswer[] {
+  return answersOfSituation(everyRecordedHephaestusAnswerOf(operatingSystem), situation);
+}
+
+/** The answers of one situation of Example Bookshop's ticket documents, each call shape without its situation. */
+export function recordedTicketDocumentsAnswersOf(situation: TicketDocumentsSituation, operatingSystem: string = process.platform): readonly RecordedHephaestusAnswer[] {
   return answersOfSituation(everyRecordedHephaestusAnswerOf(operatingSystem), situation);
 }
 

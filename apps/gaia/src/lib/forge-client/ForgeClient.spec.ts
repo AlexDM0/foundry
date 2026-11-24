@@ -17,10 +17,13 @@ import {
   recordedHephaestusAnswersOf,
   recordedHephaestusFetch,
   situationCallShapeOf,
+  recordedTicketDocumentsAnswersOf,
   recordedVersionsAnswersOf,
+  TICKET_DOCUMENTS_SITUATIONS,
   type BoardSituation,
   type HephaestusSituation,
   type RecordedHephaestusFetch,
+  type TicketDocumentsSituation,
 } from '../../testing/RecordedAnswers.ts';
 
 import type { ForgeStreamEvent, HephaestusAccess, HephaestusAddress }         from './@types/ForgeClientAnswer.ts';
@@ -439,8 +442,9 @@ describe('the paths a Hephaestus is called at', () => {
       'profileStream',
       'pictures',
       'picture',
+      'ticketDocuments',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 3, 5, 5, 3, 4, 1, 4, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 3, 5, 5, 3, 4, 1, 4, 1, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {
@@ -844,5 +848,104 @@ describe('the token on the board\'s calls', () => {
   test('is carried by no answer of any board outcome', async () => {
     const answers = await Promise.all(BOARD_OUTCOME_CASES.map(async (outcomeCase) => outcomeCase.answerOf(boardFetchOf(outcomeCase.situation))));
     expect(JSON.stringify(answers)).not.toContain(EXAMPLE_TOKEN);
+  });
+});
+
+interface TicketDocumentsOutcomeCase {
+  readonly call:      string;
+  readonly situation: TicketDocumentsSituation;
+  readonly callShape: string;
+  readonly answerOf:  (hephaestusFetch: RecordedHephaestusFetch) => Promise<unknown>;
+  readonly expected:  unknown;
+}
+
+const SPEC_TICKET_ID = '001';
+const TICKET_WITHOUT_DOCUMENTS_ID = '002';
+const UNKNOWN_TICKET_ID = '999';
+
+const TICKET_DOCUMENTS_OUTCOME_CASES: readonly TicketDocumentsOutcomeCase[] = [
+  {
+    call:      'sendBoardCommand',
+    situation: 'ticket-documents-saved',
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, {
+      kind: 'ticket-document-save', ticketReference: SPEC_TICKET_ID, document: 'spec', baseVersion: null, markdown: '# Example',
+    }),
+    expected: { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 3, outcome: 'done', result: expect.objectContaining({ versionNumber: 1 }) }) },
+  },
+  {
+    call:      'followEvents',
+    situation: 'ticket-documents-saved',
+    callShape: 'STREAM /api/v4/events with bearer',
+    answerOf:  async (hephaestusFetch) => {
+      const { events } = await followedEventsOf((onEvent) => clientOf(hephaestusFetch).followEvents(ACCESS, null, onEvent), 4);
+      return events.map(({ eventName, data }) => (eventName === 'documents' ? [eventName, JSON.parse(data) as unknown] : [eventName]));
+    },
+    expected: [['handshake'], ['board'], ['documents', { ticketId: SPEC_TICKET_ID }], ['board']],
+  },
+  {
+    call:      'ticketDocumentsOf',
+    situation: 'ticket-documents-saved',
+    callShape: `GET /api/v1/tickets/${SPEC_TICKET_ID}/documents with bearer`,
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).ticketDocumentsOf(ACCESS, SPEC_TICKET_ID),
+    expected:  {
+      verdict: 'answered',
+      status:  200,
+      body:    expect.objectContaining({ ticketId: SPEC_TICKET_ID, documents: [expect.objectContaining({ document: 'spec' }), expect.objectContaining({ document: 'plan' })] }),
+    },
+  },
+  {
+    call:      'boardOf',
+    situation: 'ticket-documents-saved',
+    callShape: 'GET /api/v4/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
+    expected:  { verdict: 'answered', document: expect.objectContaining({ project: 'Example Bookshop' }) },
+  },
+  {
+    call:      'ticketDocumentsOf',
+    situation: 'ticket-documents-absent',
+    callShape: `GET /api/v1/tickets/${TICKET_WITHOUT_DOCUMENTS_ID}/documents with bearer`,
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).ticketDocumentsOf(ACCESS, TICKET_WITHOUT_DOCUMENTS_ID),
+    expected:  {
+      verdict: 'answered',
+      status:  404,
+      body:    { refusal: 'ticket-has-no-documents', fields: { ticketId: TICKET_WITHOUT_DOCUMENTS_ID }, text: expect.stringContaining('#002') },
+    },
+  },
+  {
+    call:      'ticketDocumentsOf',
+    situation: 'ticket-documents-unknown-ticket',
+    callShape: `GET /api/v1/tickets/${UNKNOWN_TICKET_ID}/documents with bearer`,
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).ticketDocumentsOf(ACCESS, UNKNOWN_TICKET_ID),
+    expected:  {
+      verdict: 'answered',
+      status:  404,
+      body:    { refusal: 'no-readable-ticket', fields: { reference: UNKNOWN_TICKET_ID }, text: expect.stringContaining('There is no readable ticket 999.') },
+    },
+  },
+];
+
+function ticketDocumentsFetchOf(situation: TicketDocumentsSituation): RecordedHephaestusFetch {
+  return recordedHephaestusFetch(recordedTicketDocumentsAnswersOf(situation));
+}
+
+describe('each outcome of each ticket documents call', () => {
+  for (const outcomeCase of TICKET_DOCUMENTS_OUTCOME_CASES) {
+    test(`${outcomeCase.call} answers ${JSON.stringify(outcomeCase.expected)} where the documents are ${outcomeCase.situation}`, async () => {
+      expect(await outcomeCase.answerOf(ticketDocumentsFetchOf(outcomeCase.situation))).toEqual(outcomeCase.expected);
+    });
+  }
+
+  test('is proven by exactly the recorded answers of the documents\' situations, each used once', () => {
+    const provenCallShapes   = TICKET_DOCUMENTS_OUTCOME_CASES.map(({ situation, callShape }) => situationCallShapeOf(situation, callShape));
+    const recordedCallShapes = everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape)
+      .filter((callShape) => TICKET_DOCUMENTS_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, ''))));
+    expect([...provenCallShapes].sort()).toEqual([...recordedCallShapes].sort());
+  });
+
+  test('sends the token as the bearer of the documents\' read', async () => {
+    const hephaestusFetch = ticketDocumentsFetchOf('ticket-documents-absent');
+    await clientOf(hephaestusFetch).ticketDocumentsOf(ACCESS, TICKET_WITHOUT_DOCUMENTS_ID);
+    expect(hephaestusFetch.callsAnswered().map(({ bearerToken }) => bearerToken)).toEqual([EXAMPLE_TOKEN]);
   });
 });

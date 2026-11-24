@@ -1,24 +1,34 @@
 /**
  * The endpoints of Gaia's relay of a forge's board, below `/api/` and its version: each names the forge by its tracker id, percent-decoded
- * once, and some an item of it, a job, a profile run, a picture or a crash log, whose id must be one the forge's path template takes.
+ * once, and some an item of it, a job, a profile run, a picture, a crash log or a ticket, whose id must be one the forge's path template takes.
  */
-export type BoardRelayEndpointName = 'board' | 'boardEvents' | 'jobStream' | 'profileStream' | 'pictures' | 'picture' | 'commands' | 'crashLog';
+export type BoardRelayEndpointName =
+  | 'board'
+  | 'boardEvents'
+  | 'jobStream'
+  | 'profileStream'
+  | 'pictures'
+  | 'picture'
+  | 'commands'
+  | 'crashLog'
+  | 'ticketDocuments';
 
 export interface BoardRelayEndpointValues {
   readonly trackerId: string;
-  /** The job, profile run or picture the endpoint names; `null` for an endpoint that names the forge alone. */
+  /** The job, profile run, picture, crash log or ticket the endpoint names; `null` for an endpoint that names the forge alone. */
   readonly itemId:    string | null;
 }
 
 const BOARD_RELAY_ENDPOINT_PATTERNS: Readonly<Record<BoardRelayEndpointName, RegExp>> = {
-  board:         /^forges\/([^/]+)\/board$/,
-  boardEvents:   /^forges\/([^/]+)\/board\/events$/,
-  jobStream:     /^forges\/([^/]+)\/jobs\/([^/]+)\/stream$/,
-  profileStream: /^forges\/([^/]+)\/profiles\/([^/]+)\/stream$/,
-  pictures:      /^forges\/([^/]+)\/pictures$/,
-  picture:       /^forges\/([^/]+)\/pictures\/([^/]+)$/,
-  commands:      /^forges\/([^/]+)\/commands$/,
-  crashLog:      /^forges\/([^/]+)\/crash-logs\/([^/]+)$/,
+  board:           /^forges\/([^/]+)\/board$/,
+  boardEvents:     /^forges\/([^/]+)\/board\/events$/,
+  jobStream:       /^forges\/([^/]+)\/jobs\/([^/]+)\/stream$/,
+  profileStream:   /^forges\/([^/]+)\/profiles\/([^/]+)\/stream$/,
+  pictures:        /^forges\/([^/]+)\/pictures$/,
+  picture:         /^forges\/([^/]+)\/pictures\/([^/]+)$/,
+  commands:        /^forges\/([^/]+)\/commands$/,
+  crashLog:        /^forges\/([^/]+)\/crash-logs\/([^/]+)$/,
+  ticketDocuments: /^forges\/([^/]+)\/tickets\/([^/]+)\/documents$/,
 };
 
 /** A segment a forge's path template takes, and never `.` or `..`, which would move the forge's path up a folder. */

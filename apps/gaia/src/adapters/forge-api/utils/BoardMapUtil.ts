@@ -24,6 +24,7 @@ import type {
   BoardTaskDocument,
   BoardTicketDocument,
   BoardViewRangeDocument,
+  TicketDocumentSummaryDocument,
 } from 'forge-contracts/BoardPageDocuments';
 import type { BoardAppliedPipelineDocument, InstructionEntryDocument } from 'forge-contracts/BoardPipelineDocuments';
 import type { BoardAttentionEntryDocument, BoardNoticeDocument }       from 'forge-contracts/BoardReadingDocuments';
@@ -55,12 +56,12 @@ import type {
   BoardQuestionOption,
   BoardTask,
   BoardTicket,
+  BoardTicketDocumentSummary,
   BoardViewRange,
 } from '../../../shared/@types/board/BoardTicket.ts';
-import type { BoardPipelineAgentRole } from '../../../shared/@types/board/BoardVocabulary.ts';
-import type { ForgeBoard }             from '../../../shared/@types/board/ForgeBoard.ts';
-import type { ResumeWaitsOfJobs }      from '../@types/ResumeWaitsOfJobs.ts';
-import { VocabularyMapUtil }           from './VocabularyMapUtil.ts';
+import type { ForgeBoard }        from '../../../shared/@types/board/ForgeBoard.ts';
+import type { ResumeWaitsOfJobs } from '../@types/ResumeWaitsOfJobs.ts';
+import { VocabularyMapUtil }      from './VocabularyMapUtil.ts';
 
 const VOCABULARIES = VocabularyMapUtil.vocabularies;
 
@@ -84,12 +85,19 @@ function instructionOf(entry: InstructionEntryDocument): BoardInstruction {
   return { kind: 'constitution' };
 }
 
-/** Lane E: a role the recorded forge leaves out reads no default instruction, until the recordings come from a forge that names every role. */
-function defaultInstructionsOfRoleOf(
-  defaultInstructions: Readonly<Partial<BoardLimitsDocument['defaultInstructionsOfRole']>>
-): Readonly<Record<BoardPipelineAgentRole, readonly BoardInstruction[]>> {
-  const mapped = VocabularyMapUtil.partiallyKeyedRecordOf(VOCABULARIES.pipelineAgentRole, defaultInstructions, (entries) => entries.map(instructionOf));
-  return VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, VOCABULARIES.pipelineAgentRole, (role) => mapped[role] ?? []);
+function ticketDocumentSummaryOf(summary: TicketDocumentSummaryDocument): BoardTicketDocumentSummary {
+  return {
+    standing:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.documentStanding, summary.standing),
+    headNumber:     summary.headNumber,
+    approvedNumber: summary.approvedNumber,
+  };
+}
+
+/** Present only on a ticket the forge serves a documents summary for, so a ticket in the one-ticket route reads as before. */
+function ticketDocumentsSummaryOf(ticket: BoardTicketDocument): Pick<BoardTicket, 'documents'> {
+  if (ticket.documents === undefined) return {};
+  const { spec, plan, buildHeld } = ticket.documents;
+  return { documents: { spec: ticketDocumentSummaryOf(spec), plan: ticketDocumentSummaryOf(plan), buildHeld } };
 }
 
 function ticketOf(ticket: BoardTicketDocument): BoardTicket {
@@ -136,6 +144,7 @@ function ticketOf(ticket: BoardTicketDocument): BoardTicket {
       kinds:           VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.offeredCommandKind, ticket.offers.kinds),
       priorityChoices: VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.ticketPriority, ticket.offers.priorityChoices),
     },
+    ...ticketDocumentsSummaryOf(ticket),
   };
 }
 
@@ -466,7 +475,7 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
     reworkRoundThresholdLines:  limits.reworkRoundThresholdLines,
     defaultTicketPriority:      VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketPriority, limits.defaultTicketPriority),
     firstRepeatReviewRound:     limits.firstRepeatReviewRound,
-    defaultInstructionsOfRole:  defaultInstructionsOfRoleOf(limits.defaultInstructionsOfRole),
+    defaultInstructionsOfRole:  VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, limits.defaultInstructionsOfRole, (entries) => entries.map(instructionOf)),
     reReviewThresholdStepLines: limits.reReviewThresholdStepLines,
   };
 }

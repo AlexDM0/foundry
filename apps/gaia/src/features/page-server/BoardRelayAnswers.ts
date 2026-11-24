@@ -1,9 +1,11 @@
 /**
  * The HTTP side of every answer Gaia's relay of a forge's board gives the page, in this one place: each refusal of Gaia's to its status,
- * each relayed command and picture upload to the status of how it ended, and the refusal of a forge Gaia cannot reach, from the reason
- * `ForgeAccess` gives.
+ * each relayed command and picture upload to the status of how it ended, a forge's refusal of a read with its sentence unchanged, and the
+ * refusal of a forge Gaia cannot reach, from the reason `ForgeAccess` gives.
  */
+import { BoardDocumentMapUtil }                                                        from '../../adapters/page-api/BoardDocumentMapUtil.ts';
 import { BoardRelayAnswerMapUtil }                                                     from '../../adapters/page-api/BoardRelayAnswerMapUtil.ts';
+import type { BoardRefusal }                                                           from '../../shared/@types/board/BoardRefusal.ts';
 import type { BoardCommandRelayVerdict, BoardRelayRefusal, PictureUploadRelayVerdict } from '../../shared/@types/board/BoardRelayVerdict.ts';
 import type { ForgeAccessRefusal }                                                     from './ForgeAccess.ts';
 
@@ -41,6 +43,11 @@ function relayRefusalOfAccess(refusal: ForgeAccessRefusal): BoardRelayRefusal {
 
 function relayRefusalAnswerOf(refusal: BoardRelayRefusal): Response {
   return Response.json(BoardRelayAnswerMapUtil.relayRefusalDocumentOf(refusal), { status: HTTP_STATUS_OF_RELAY_REFUSAL[refusal], headers: NO_STORE });
+}
+
+/** A forge that refused a read, such as a ticket with no documents, answered for the page as the forge worded it. */
+function forgeRefusalAnswerOf(refusal: BoardRefusal): Response {
+  return Response.json(BoardDocumentMapUtil.refusalDocumentOf(refusal), { status: HTTP_STATUS.conflict, headers: NO_STORE });
 }
 
 function commandStatusOf(verdict: BoardCommandRelayVerdict): number {
@@ -81,6 +88,7 @@ export const BoardRelayAnswers = {
   NO_STORE,
   relayRefusalOfAccess,
   relayRefusalAnswerOf,
+  forgeRefusalAnswerOf,
   commandAnswerOf,
   pictureUploadAnswerOf,
 } as const;

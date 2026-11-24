@@ -30,7 +30,8 @@ import type {
   SetupQuestionDocument,
   SourceAnnotationDocument,
 } from 'forge-contracts/BoardPipelineDocuments';
-import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
+import type { DocumentReadingRule } from 'forge-contracts/BoardVocabulary';
+import type { ForgeBoardDocument }  from 'forge-contracts/ForgeBoardDocument';
 
 import type {
   BoardAgentPair,
@@ -93,11 +94,19 @@ function gateOf(gate: PipelineGateDocument): BoardPipelineGate {
   };
 }
 
+/** Present only where the step names the documents it reads, so a pipeline without them reads as before. */
+function documentReadingRulesOf(settings: AgentStepSettingsDocument): Pick<BoardAgentStepSettings, 'documents'> {
+  if (settings.documents === undefined) return {};
+  const readingRuleOf = (rule: DocumentReadingRule) => VocabularyMapUtil.gaiaValueOf(VOCABULARIES.documentReadingRule, rule);
+  return { documents: VocabularyMapUtil.partiallyKeyedRecordOf(VOCABULARIES.ticketDocumentKind, settings.documents, readingRuleOf) };
+}
+
 function agentStepSettingsOf(settings: AgentStepSettingsDocument): BoardAgentStepSettings {
   return {
     model:        settings.model === undefined ? null : VocabularyMapUtil.gaiaValueOf(VOCABULARIES.agentModel, settings.model),
     effort:       settings.effort === undefined ? null : VocabularyMapUtil.gaiaValueOf(VOCABULARIES.agentEffort, settings.effort),
     instructions: settings.instructions?.map(BoardMapUtil.instructionOf) ?? null,
+    ...documentReadingRulesOf(settings),
   };
 }
 
@@ -150,6 +159,7 @@ function pipelineDefinitionOf(pipeline: PipelineDefinitionDocument): BoardPipeli
     billing:          pipeline.billing === undefined ? null : billingOf(pipeline.billing),
     reach:            pipeline.reach ?? [],
     entities:         entityRecordOf(pipeline.entities, pipelineEntityOf),
+    ...pipeline.ticketWriting === undefined ? {} : { ticketWriting: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketWritingRoute, pipeline.ticketWriting) },
   };
 }
 

@@ -16,6 +16,7 @@ const BOARD_EVENT_OF_EVENT_NAME: Readonly<Record<string, BoardEvent>> = {
   usage:      { kind: 'part-changed', part: 'usage' },
   profile:    { kind: 'part-changed', part: 'profile' },
   pipeline:   { kind: 'part-changed', part: 'pipeline' },
+  documents:  { kind: 'part-changed', part: 'documents' },
 };
 
 export class BoardEventIngestion {

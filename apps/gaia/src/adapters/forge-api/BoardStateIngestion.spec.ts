@@ -134,7 +134,10 @@ describe('boardOf, on the board of a forge at work', () => {
     });
     expect(limits.defaultInstructionsOfRole.builder).toEqual([{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }]);
     expect(Object.keys(limits.defaultInstructionsOfRole)).toHaveLength(9);
-    expect([limits.defaultInstructionsOfRole.specAgent, limits.defaultInstructionsOfRole.planAgent]).toEqual([[], []]);
+    expect([limits.defaultInstructionsOfRole.specAgent, limits.defaultInstructionsOfRole.planAgent]).toEqual([
+      [{ kind: 'constitution' }, { kind: 'default-brief', role: 'specAgent' }],
+      [{ kind: 'constitution' }, { kind: 'default-brief', role: 'planAgent' }],
+    ]);
   });
 
   test('keeps the applied pipeline with each entity\'s effective pipeline', async () => {

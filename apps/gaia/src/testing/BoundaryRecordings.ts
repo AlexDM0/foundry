@@ -111,6 +111,12 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'forge',
   },
   {
+    recordingName:  'hephaestus-fetch-ticket-documents',
+    boundaryModule: 'src/lib/forge-client/HephaestusFetch.ts',
+    recordingSpec:  'src/lib/forge-client/HephaestusFetch.ticketDocuments.recording.spec.ts',
+    system:         'forge',
+  },
+  {
     recordingName:  'hephaestus-fetch-versions',
     boundaryModule: 'src/lib/forge-client/HephaestusFetch.ts',
     recordingSpec:  'src/lib/forge-client/HephaestusFetch.versions.recording.spec.ts',

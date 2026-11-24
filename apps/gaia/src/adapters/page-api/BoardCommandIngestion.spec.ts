@@ -2,13 +2,15 @@
  * The page's board command body read into Gaia's model. What matters: a valid body of each kind becomes its model command, every typed draft
  * edit included; a key the kind does not name never reaches the model; a missing key, a key of the wrong type, a value outside its union and
  * a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is refused as
- * unknown; a body at another version or no JSON object is malformed.
+ * unknown; a body at another version or no JSON object is malformed. A ticket document's save may carry a whole document, up to its own
+ * bound, while every other kind keeps to the smaller one; a comment's anchor is read key by key, a diagram node's included.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PAGE_CONTRACT_VERSIONS }                                 from '../../shared/constants/PageContractVersions.ts';
-import { BoardCommandIngestion }                                  from './BoardCommandIngestion.ts';
-import { EXAMPLE_BOARD_COMMAND_DOCUMENTS, exampleBoardCommandOf } from './testing/ExampleBoardCommandDocuments.ts';
+import { BOARD_COMMAND_BODY_BOUND_BYTES }                                                 from '../../shared/constants/Limits.ts';
+import { PAGE_CONTRACT_VERSIONS }                                                         from '../../shared/constants/PageContractVersions.ts';
+import { BoardCommandIngestion }                                                          from './BoardCommandIngestion.ts';
+import { EXAMPLE_BOARD_COMMAND_DOCUMENTS, EXAMPLE_COMMENT_ANCHOR, exampleBoardCommandOf } from './testing/ExampleBoardCommandDocuments.ts';
 
 const INGESTION = new BoardCommandIngestion();
 
@@ -89,5 +91,66 @@ describe('commandOf, on a body it refuses', () => {
   test('refuses text that is no JSON object as malformed', () => {
     expect(INGESTION.commandOf('not json')).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: [] });
     expect(INGESTION.commandOf('[]')).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: [] });
+  });
+});
+
+describe('commandOf, on a ticket document\'s commands', () => {
+  test('reads a comment with no anchor, a save with no base version and an apply of the agent\'s own lines', () => {
+    const comment = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], anchor: null };
+    expect(readingOf(comment)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(comment) });
+    const firstSave = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-save'], baseVersion: null };
+    expect(readingOf(firstSave)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(firstSave) });
+    const apply = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-proposal-apply'], replacementLines: null };
+    expect(readingOf(apply)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(apply) });
+  });
+
+  test('reads an anchor with no columns, quote or diagram', () => {
+    const anchor = {
+      ...EXAMPLE_COMMENT_ANCHOR, view: 'code' as const, columns: null, quote: null, diagram: null
+    };
+    const comment = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], anchor };
+    expect(readingOf(comment)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(comment) });
+  });
+
+  test('names each key of an anchor that holds another type, a diagram node\'s included', () => {
+    const anchor = {
+      ...EXAMPLE_COMMENT_ANCHOR,
+      view:    'split',
+      lines:   { from: 20 },
+      diagram: { ...EXAMPLE_COMMENT_ANCHOR.diagram, nodeId: 7 },
+    };
+    const invalidKeys = ['anchor.view', 'anchor.lines.to', 'anchor.diagram.nodeId'];
+    expect(readingOf({ ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], anchor })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys });
+  });
+
+  test('names a document, a mode, a version and replacement lines outside their shapes', () => {
+    const examples = EXAMPLE_BOARD_COMMAND_DOCUMENTS;
+    expect(readingOf({ ...examples['ticket-document-turn-stop'], document: 'brief' })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['document'] });
+    expect(readingOf({ ...examples['ticket-document-mode-set'], mode: 'auto' })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['mode'] });
+    expect(readingOf({ ...examples['ticket-document-approve'], version: -1 })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['version'] });
+    const apply = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-proposal-apply'], replacementLines: ['one line'] };
+    expect(readingOf(apply)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['replacementLines[0]'] });
+  });
+
+  test('reads a save larger than every other command may be, and refuses another kind of that size as too large', () => {
+    const documentOverTheCommandBound = 'x'.repeat(BOARD_COMMAND_BODY_BOUND_BYTES);
+    const save = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-save'], markdown: documentOverTheCommandBound };
+    expect(readingOf(save)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(save) });
+    const comment = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], text: documentOverTheCommandBound };
+    expect(readingOf(comment)).toEqual({ verdict: 'refused', refusal: 'too-large' });
+  });
+});
+
+describe('commandOf, on an agent step\'s documents', () => {
+  test('names a reading rule outside its union', () => {
+    const edit = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-draft-edit'];
+    const reviewerEdit = {
+      target: 'role',
+      role:   'reviewer',
+      value:  {
+        model: null, effort: null, instructions: null, documents: { plan: 'sometimes' }
+      }
+    };
+    expect(readingOf({ ...edit, edits: [reviewerEdit] })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['edits[0]'] });
   });
 });

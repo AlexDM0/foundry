@@ -71,6 +71,9 @@ const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The question Hephaestus's first pass opens on a board with no checks set. */
 const FIRST_PASS_QUESTION_KIND = 'question';
 const SETTLING_EVENTS_AT_MOST = 40;
+/** How often, and how many times, the registry is read for the successor of a restart before the restart is given up on. */
+const SUCCESSOR_LOOK_INTERVAL_MILLISECONDS = 100;
+const SUCCESSOR_LOOKS_AT_MOST = 100;
 const INTAKE_REQUEST = 'Example: suggest searches as the shopper types.';
 const JOBS_AT_WORK_AFTER_AN_INTAKE = 1;
 /** Forge's test setting that keeps each fake agent's session working until it is stopped, so a job stays at work while it is recorded. */
@@ -142,6 +145,16 @@ export function describeSupportedForgeRecording(recordingName: string): void {
 
   async function sendCommand(command: Record<string, unknown>): Promise<HephaestusAnswer> {
     return realHephaestusFetch().request(requestOf('POST', PATHS.commands, bearerToken, JSON.stringify(command)));
+  }
+
+  /** The stream ends once the board is released, a little before the successor registers; a start in between would start one itself. */
+  async function successorIsRegistered(): Promise<void> {
+    for (let look = 0; look < SUCCESSOR_LOOKS_AT_MOST; look += 1) {
+      const hephaestus = scratchForge.registryEntryOf(trackerIdDrawn)?.['hephaestus'] as { processId: number } | null | undefined;
+      if (hephaestus !== undefined && hephaestus !== null && hephaestus.processId !== hephaestusProcessId) return;
+      await Bun.sleep(SUCCESSOR_LOOK_INTERVAL_MILLISECONDS);
+    }
+    throw new Error('The registry named no successor of the restart.');
   }
 
   /** Reads Hephaestus the registry names now: its address, process and token, each run-drawn value given its example. */
@@ -429,6 +442,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       const ending = await chunksUntilTheEnd(stream, chunks);
       keep('restart', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending });
       expect(snapshotsIn(chunks).length).toBeGreaterThanOrEqual(1);
+      await successorIsRegistered();
       const restarted = await scratchForge.runForDocument(repository, ['start', '--json']);
       expect(restarted).toMatchObject({ started: false });
       followTheLiveHephaestus();

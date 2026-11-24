@@ -4,6 +4,7 @@
  */
 import type { BoardCommandDocument, BoardCommandDocumentKind } from '../../../../page/@types/board/BoardCommandDocument.ts';
 import type { BoardDraftEditDocument }                         from '../../../../page/@types/board/BoardPipelineDocuments.ts';
+import type { BoardCommentAnchorDocument }                     from '../../../../page/@types/board/TicketDocumentsDocument.ts';
 import type { BoardCommand }                                   from '../../../shared/@types/board/BoardCommand.ts';
 import { PAGE_CONTRACT_VERSIONS }                              from '../../../shared/constants/PageContractVersions.ts';
 
@@ -31,8 +32,19 @@ export const EXAMPLE_DRAFT_EDITS: readonly BoardDraftEditDocument[] = [
     value:  { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }, { kind: 'file', path: 'docs/brief.md' }] },
   },
   { target: 'role', role: 'assistant', value: { model: null, effort: null, instructions: null } },
+  {
+    target: 'role',
+    role:   'reviewer',
+    value:  {
+      model: null, effort: null, instructions: null, documents: { spec: 'always', plan: 'if-person-approved' }
+    }
+  },
+  { target: 'role', role: 'specAgent', value: { model: 'sonnet', effort: 'medium', instructions: null } },
   { target: 'airlock', value: { reReview: null } },
   { target: 'approval', approval: 'merge', value: true },
+  { target: 'approval', approval: 'plan', value: false },
+  { target: 'ticket-writing', value: 'spec-then-plan' },
+  { target: 'ticket-writing', value: null },
   { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: null } },
   { target: 'entity', entityKey: 'retired', value: null },
   { target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'reviewer', value: { model: 'sonnet', effort: null, instructions: null } } },
@@ -42,6 +54,20 @@ export const EXAMPLE_DRAFT_EDITS: readonly BoardDraftEditDocument[] = [
   { target: 'within-entity', entityKey: 'web', edit: { target: 'concurrency', value: 2 } },
   { target: 'within-entity', entityKey: 'web', edit: { target: 'constitution', constitutionPath: null } },
 ];
+
+/** A comment on a diagram node in Preview, which carries every key an anchor has. */
+export const EXAMPLE_COMMENT_ANCHOR: BoardCommentAnchorDocument = {
+  view:             'preview',
+  versionNumber:    4,
+  lines:            { from: 20, to: 20 },
+  columns:          { from: 5, to: 18 },
+  sectionPath:      ['Example spec', 'Behaviour'],
+  quote:            'Theme[Read theme]',
+  surroundingLines: { from: 17, to: 23 },
+  diagram:          {
+    lines: { from: 17, to: 23 }, diagramKind: 'flowchart', nodeId: 'Theme', nodeLabel: 'Read theme'
+  },
+};
 
 export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   'hephaestus-pause':        { ...VERSION, kind: 'hephaestus-pause' },
@@ -134,9 +160,36 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   'ticket-priority': {
     ...VERSION, kind: 'ticket-priority', ticketId: '001', priority: 'high'
   },
-  'ticket-ready':  { ...VERSION, kind: 'ticket-ready', ticketIds: ['001', '002'] },
-  'ticket-unhold': { ...VERSION, kind: 'ticket-unhold', ticketId: '001' },
-  'tracker-clear': { ...VERSION, kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-ready':         { ...VERSION, kind: 'ticket-ready', ticketIds: ['001', '002'] },
+  'ticket-unhold':        { ...VERSION, kind: 'ticket-unhold', ticketId: '001' },
+  'tracker-clear':        { ...VERSION, kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-document-save': {
+    ...VERSION, kind: 'ticket-document-save', ticketId: '004', document: 'spec', baseVersion: 4, markdown: '# Example spec\n\n## Outcome\n'
+  },
+  'ticket-document-comment': {
+    ...VERSION, kind: 'ticket-document-comment', ticketId: '004', document: 'spec', anchor: EXAMPLE_COMMENT_ANCHOR, text: 'Name the theme tokens here.'
+  },
+  'ticket-document-comment-withdraw': {
+    ...VERSION, kind: 'ticket-document-comment-withdraw', ticketId: '004', document: 'spec', messageId: 'M3'
+  },
+  'ticket-document-proposal-apply': {
+    ...VERSION, kind: 'ticket-document-proposal-apply', ticketId: '004', document: 'plan', proposalId: 'P2', replacementLines: [['- Read the theme from tokens.'], []]
+  },
+  'ticket-document-proposal-discard': {
+    ...VERSION, kind: 'ticket-document-proposal-discard', ticketId: '004', document: 'plan', proposalId: 'P1'
+  },
+  'ticket-document-mode-set': {
+    ...VERSION, kind: 'ticket-document-mode-set', ticketId: '004', document: 'spec', mode: 'auto-apply'
+  },
+  'ticket-document-approve': {
+    ...VERSION, kind: 'ticket-document-approve', ticketId: '004', document: 'spec', version: 5
+  },
+  'ticket-document-effect-read': {
+    ...VERSION, kind: 'ticket-document-effect-read', ticketId: '004', document: 'plan', version: 2
+  },
+  'ticket-document-turn-stop': {
+    ...VERSION, kind: 'ticket-document-turn-stop', ticketId: '004', document: 'plan'
+  },
 };
 
 /** The model command each example body reads into: the same keys and values, without the page's version. */

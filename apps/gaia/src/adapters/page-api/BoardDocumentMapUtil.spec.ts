@@ -277,3 +277,20 @@ describe('the ordered lists the views iterate', () => {
     expect(BOARD_AGENT_EFFORTS).toEqual([...AGENT_EFFORTS]);
   });
 });
+
+describe('boardDocumentOf, on a ticket with documents', () => {
+  test('carries the ticket\'s documents summary to its page field, and none on a ticket without documents', async () => {
+    const board = await recordedBoardModel();
+    const [firstTicket, ...otherTickets] = board.page.tickets;
+    if (firstTicket === undefined) throw new Error('The recorded board holds a ticket.');
+    const documents = {
+      spec:      { standing: 'approved', headNumber: 6, approvedNumber: 6 },
+      plan:      { standing: 'unwritten', headNumber: null, approvedNumber: null },
+      buildHeld: true,
+    } as const;
+    const boardWithDocuments: ForgeBoard = { ...board, page: { ...board.page, tickets: [{ ...firstTicket, documents }, ...otherTickets] } };
+    const [mappedTicket, ...otherMappedTickets] = BoardDocumentMapUtil.boardDocumentOf(boardWithDocuments, markdownLeftAsWritten).page.tickets;
+    expect(mappedTicket?.documents).toEqual(documents);
+    expect(otherMappedTickets.filter((ticket) => 'documents' in ticket)).toEqual([]);
+  });
+});

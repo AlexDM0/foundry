@@ -16,6 +16,7 @@ import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 import {
   BOARD_SITUATIONS,
   PRESENCE_SITUATIONS,
+  TICKET_DOCUMENTS_SITUATIONS,
   everyRecordedHephaestusAnswerOf,
   everyRecordedVersionsAnswerOf,
   HEPHAESTUS_SITUATIONS,
@@ -70,7 +71,7 @@ describe('the call shapes', () => {
 describe('the recorded hephaestus answers', () => {
   test('lead every call shape with a known situation, once over every recording', () => {
     const callShapes = everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape);
-    const situations = [...HEPHAESTUS_SITUATIONS, ...BOARD_SITUATIONS, ...PRESENCE_SITUATIONS];
+    const situations = [...HEPHAESTUS_SITUATIONS, ...BOARD_SITUATIONS, ...PRESENCE_SITUATIONS, ...TICKET_DOCUMENTS_SITUATIONS];
     for (const callShape of callShapes) expect([callShape, situations.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))]).toEqual([callShape, true]);
     expect(new Set(callShapes).size).toBe(callShapes.length);
   });

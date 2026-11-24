@@ -6,9 +6,9 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 4.0 meets V1 to V5 and V9: it answers `/api/versions` with current 4.0 and minimum 4.0, serves identity 1, summary 3, monitor 6
+Forge 4.1 meets V1 to V5, V9 and V11: it answers `/api/versions` with current 4.1 and minimum 4.0, serves identity 1, summary 3, monitor 6
 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
-documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.0. Since 2.0 forge serves no page of its own, so the
+documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.1. Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
 
@@ -112,9 +112,23 @@ board document anew on each `board` event, and types the rest against its own co
 Declaring them in the contract, and carrying the board document in the `board` event, lets Gaia type every shape against the contract
 and skip the extra read.
 
+### V11. Serve a ticket's documents and take the user's commands on them (Must, met in 4.1)
+
+**Requirement.** In the spec-then-plan route forge serves a ticket's spec and plan at `GET /api/v1/tickets/{ticketId}/documents`
+(`forge-contracts/TicketDocumentsDocument`), answers 404 with its refusal's code, fields and sentence for a ticket with no documents,
+takes the nine `ticket-document-*` commands at its commands endpoint, carries each ticket's documents summary in the board document and
+the stored pipeline's `ticketWriting` and documents rules in its pipeline, and sends a `documents` event after a change of a record. It
+adds these as forge 4.1, a minor: a client built for 4.0 is served none of them.
+
+**Reason.** Gaia's document view reads and edits a ticket's documents through its relay; the documents are too large to carry in every
+board read, so the board names only where each stands.
+
+**Acceptance.** Met: forge 4.1 serves them, `ForgeCompatibilityRegistry` dates the endpoint 4.1, and the `hephaestus-fetch-ticket-documents`
+recording reads each answer.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.0) and keeps nothing for an older forge: forge 1, 2 or 3,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.1) and keeps nothing for an older forge: forge 1, 2 or 3,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |
@@ -126,6 +140,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
+| V11 | A forge before 4.1 is older than Gaia can talk to, and Gaia offers Update forge. |
 
 ## 4. Order for forge
 

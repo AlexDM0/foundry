@@ -22,23 +22,28 @@ import { foundBrowserIn }                                                from '.
 import { browserWindowWatchOver }                                        from './features/launcher/BrowserWindowWatch.ts';
 import { createLauncher, launchMessageOf, type LaunchVerdict }           from './features/launcher/Launcher.ts';
 import { startPageServer, type PageServerStartVerdict }                  from './features/page-server/PageServer.ts';
-import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
-import { BoardRelayLogUtil }                                             from './features/page-server/utils/BoardRelayLogUtil.ts';
-import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
-import { realHephaestusFetch }                                           from './lib/forge-client/HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION }                                       from './lib/forge-client/constants/SupportedForgeVersions.ts';
-import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
-import { realClockTimers, stampOfNow }                                   from './services/Clock.ts';
-import { environmentCopy, gaiaPort, homeDirectory }                      from './services/Environment.ts';
-import { createFleetStore }                                              from './services/FleetStore.ts';
-import { createForgeWatch }                                              from './services/ForgeWatch.ts';
-import { createSettingsStore }                                           from './services/SettingsStore.ts';
-import type { FleetSnapshot }                                            from './shared/@types/FleetSnapshot.ts';
-import { GaiaError }                                                     from './shared/GaiaError.ts';
-import { CONTRACT_VERSIONS }                                             from './shared/constants/ContractVersions.ts';
-import { GAIA_SYSTEM_VERSION }                                           from './shared/constants/GaiaSystemVersions.ts';
-import { GAIA_INSTALL_VERSION }                                          from './shared/constants/InstallVersion.ts';
-import { PRODUCT_NAMES }                                                 from './shared/constants/ProductNames.ts';
+import {
+  builtDiagramFrameFilesOf,
+  builtPageFilesOf,
+  diagramFrameFolderPath,
+  pageIndexFilePath,
+} from './features/page-server/routes/PageFilesRoute.ts';
+import { BoardRelayLogUtil }                        from './features/page-server/utils/BoardRelayLogUtil.ts';
+import { forgeClientOf }                            from './lib/forge-client/ForgeClient.ts';
+import { realHephaestusFetch }                      from './lib/forge-client/HephaestusFetch.ts';
+import { SUPPORTED_FORGE_VERSION }                  from './lib/forge-client/constants/SupportedForgeVersions.ts';
+import { realProcessRun }                           from './lib/process-run/ProcessRun.ts';
+import { realClockTimers, stampOfNow }              from './services/Clock.ts';
+import { environmentCopy, gaiaPort, homeDirectory } from './services/Environment.ts';
+import { createFleetStore }                         from './services/FleetStore.ts';
+import { createForgeWatch }                         from './services/ForgeWatch.ts';
+import { createSettingsStore }                      from './services/SettingsStore.ts';
+import type { FleetSnapshot }                       from './shared/@types/FleetSnapshot.ts';
+import { GaiaError }                                from './shared/GaiaError.ts';
+import { CONTRACT_VERSIONS }                        from './shared/constants/ContractVersions.ts';
+import { GAIA_SYSTEM_VERSION }                      from './shared/constants/GaiaSystemVersions.ts';
+import { GAIA_INSTALL_VERSION }                     from './shared/constants/InstallVersion.ts';
+import { PRODUCT_NAMES }                            from './shared/constants/ProductNames.ts';
 
 export interface ProgramOutput {
   readonly writeStandardOutput: (text: string) => void;
@@ -192,6 +197,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     fleetStore,
     forgeCounts:        () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
     pageFiles:          builtPageFilesOf(pageIndexFilePath()),
+    diagramFrameFiles:  builtDiagramFrameFilesOf(diagramFrameFolderPath()),
     carryCommand:       forgeControl.carry,
     forgeAccessSources: {
       readRegistry, readings: forgeWatch.readings, presenceReadingAfterNow: forgeWatch.presenceReadingAfterNow, forgeClient

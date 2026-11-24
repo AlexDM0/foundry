@@ -20,8 +20,8 @@ export function markdownLeftAsWritten(markdown: string): string {
   return markdown;
 }
 
-/** The keys only the page contract carries: its version, and who refused. */
-const PAGE_ONLY_KEYS: ReadonlySet<string> = new Set(['boardVersion', 'refusedBy']);
+/** The keys only the page contract carries: a document's version, and who refused. */
+const PAGE_ONLY_KEYS: ReadonlySet<string> = new Set(['boardVersion', 'ticketDocumentsVersion', 'refusedBy']);
 
 const EMPTY_LIST_LEAF = '[]';
 const EMPTY_RECORD_LEAF = '{}';

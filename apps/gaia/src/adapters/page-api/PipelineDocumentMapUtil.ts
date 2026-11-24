@@ -151,6 +151,12 @@ function agentStepSettingsOut(settings: BoardAgentStepSettings): BoardAgentStepS
     model:        settings.model,
     effort:       settings.effort,
     instructions: settings.instructions === null ? null : settings.instructions.map(instructionOut),
+    ...settings.documents === undefined ? {} : {
+      documents: {
+        ...settings.documents.spec === undefined ? {} : { spec: settings.documents.spec },
+        ...settings.documents.plan === undefined ? {} : { plan: settings.documents.plan },
+      },
+    },
   };
 }
 
@@ -198,6 +204,7 @@ function pipelineDefinitionOut(pipeline: BoardPipelineDefinition): BoardPipeline
     billing:          pipeline.billing === null ? null : billingOut(pipeline.billing),
     reach:            pipeline.reach,
     entities:         nullableRecordOutOf(pipeline.entities, pipelineEntityOut),
+    ...pipeline.ticketWriting === undefined ? {} : { ticketWriting: pipeline.ticketWriting },
   };
 }
 

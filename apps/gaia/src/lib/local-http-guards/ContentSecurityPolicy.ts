@@ -1,7 +1,8 @@
 /**
- * The content security policy of a page that a loopback server serves: every resource from its own origin, no plugin, no base or form
- * target, never framed by another page, and no frame from anywhere but its own origin. The page frames no other server: its one frame is
- * the sandboxed `srcdoc` frame of an agent's HTML, which `'self'` keeps loading.
+ * The content security policies a loopback server serves. The page's: every resource from its own origin, no plugin, no base or form target,
+ * never framed by another page, and no frame from anywhere but its own origin, so its frames are the sandboxed `srcdoc` frame of an agent's
+ * HTML and the diagram frame. The diagram frame's own: a sandbox with scripts and no origin of its own, its script from its server, the
+ * inline styles a drawn diagram carries, images only as data, and nothing else.
  */
 const CONTENT_SECURITY_POLICY_HEADER = 'content-security-policy';
 
@@ -18,6 +19,16 @@ export function pageContentSecurityPolicyFor(): string {
     'form-action \'none\'',
     'frame-ancestors \'none\'',
     'frame-src \'self\'',
+  ].join('; ');
+}
+
+export function diagramFrameContentSecurityPolicyFor(): string {
+  return [
+    'default-src \'none\'',
+    'script-src \'self\'',
+    'style-src \'self\' \'unsafe-inline\'',
+    'img-src data:',
+    'sandbox allow-scripts',
   ].join('; ');
 }
 

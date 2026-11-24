@@ -2,7 +2,7 @@
  * The ingestion of a board command the page posts (`POST /api/v1/forges/<trackerId>/commands`), as `GaiaCommandIngestion` reads Gaia's own:
  * parse, check `boardCommandVersion`, the kind and each key of the kind against its shape, then map into Gaia's `BoardCommand`. A key the
  * kind does not name is passed over and never reaches the forge. The page and the server ship together, so another version means a stale
- * page, refused as a malformed body.
+ * page, refused as a malformed body. Only a ticket document's save carries a whole document; every other kind keeps to the smaller bound.
  */
 import type {
   BoardAnswerFormDocument,
@@ -26,16 +26,27 @@ import type {
 } from '../../../page/@types/board/BoardPipelineDocuments.ts';
 import {
   BOARD_AGENT_EFFORTS,
+  BOARD_DOCUMENT_READING_RULES,
   BOARD_FORGE_LEVEL_AGENT_ROLES,
   BOARD_GATE_PHASES,
   BOARD_PIPELINE_AGENT_ROLES,
+  BOARD_TICKET_DOCUMENT_KINDS,
+  BOARD_TICKET_WRITING_ROUTES,
   type BoardAgentModel,
+  type BoardCommentView,
   type BoardEntityKind,
   type BoardJobStopMode,
   type BoardPipelineApproval,
+  type BoardProposalMode,
   type BoardSetupStep,
   type BoardTicketPriority,
 } from '../../../page/@types/board/BoardVocabulary.ts';
+import type {
+  BoardColumnRangeDocument,
+  BoardCommentAnchorDocument,
+  BoardDiagramAnchorDocument,
+  BoardLineRangeDocument,
+} from '../../../page/@types/board/TicketDocumentsDocument.ts';
 import {
   DocumentShapeUtil,
   type DocumentShape,
@@ -62,14 +73,20 @@ import type {
   BoardPipelineStep,
   BoardStepsDraftEdit,
 } from '../../shared/@types/board/BoardPipeline.ts';
-import { PAGE_CONTRACT_VERSIONS } from '../../shared/constants/PageContractVersions.ts';
-import { ContractVersionUtil }    from '../../shared/utils/ContractVersionUtil.ts';
+import type { BoardCommentAnchor }        from '../../shared/@types/board/TicketDocuments.ts';
+import { BOARD_COMMAND_BODY_BOUND_BYTES } from '../../shared/constants/Limits.ts';
+import { PAGE_CONTRACT_VERSIONS }         from '../../shared/constants/PageContractVersions.ts';
+import { ContractVersionUtil }            from '../../shared/utils/ContractVersionUtil.ts';
 
-/** `malformed-body` names each key that is missing or holds another type; `unknown-kind` names the kind, `null` when the body names none. */
+/**
+ * `malformed-body` names each key that is missing or holds another type; `unknown-kind` names the kind, `null` when the body names none;
+ * `too-large` is a body over `BOARD_COMMAND_BODY_BOUND_BYTES` of a kind that carries no document.
+ */
 export type BoardCommandReading =
   | { readonly verdict: 'readable'; readonly command: BoardCommand }
   | { readonly verdict: 'refused'; readonly refusal: 'malformed-body'; readonly invalidKeys: readonly string[] }
-  | { readonly verdict: 'refused'; readonly refusal: 'unknown-kind'; readonly kind: string | null };
+  | { readonly verdict: 'refused'; readonly refusal: 'unknown-kind'; readonly kind: string | null }
+  | { readonly verdict: 'refused'; readonly refusal: 'too-large' };
 
 type CommandDocumentOf<Kind extends BoardCommandDocumentKind> = Extract<BoardCommandDocument, { readonly kind: Kind }>;
 
@@ -79,6 +96,7 @@ const VERSION_KEYS = { majorKey: 'boardCommandVersion' } as const;
 const KIND_KEY = 'kind';
 const RESUME_TARGET_KEY = 'target';
 const RESUME_EVERYTHING_TARGET = 'all';
+const DOCUMENT_SAVE_KIND = 'ticket-document-save';
 
 /** Each union a command carries as a record of its values, so a value the union gains is a compile error here until the shapes take it. */
 const AGENT_MODELS = {
@@ -91,6 +109,8 @@ const ENTITY_KINDS = { app: true, package: true, root: true } as const satisfies
 const JOB_STOP_MODES = { 'stop': true, 'wind-down': true } as const satisfies Record<BoardJobStopMode, true>;
 const TICKET_PRIORITIES = { low: true, normal: true, high: true } as const satisfies Record<BoardTicketPriority, true>;
 const TRACKER_CLEAR_SCOPES = { 'tasks-and-log': true, 'everything': true } as const satisfies Record<BoardTrackerClearScope, true>;
+const PROPOSAL_MODES = { 'ask-first': true, 'auto-apply': true } as const satisfies Record<BoardProposalMode, true>;
+const COMMENT_VIEWS = { preview: true, code: true } as const satisfies Record<BoardCommentView, true>;
 const SETUP_STEPS = {
   billing:      true,
   research:     true,
@@ -133,11 +153,13 @@ const INSTRUCTION_RULE: FieldRule = {
   ],
 };
 
+const DOCUMENT_READING_RULE: FieldRule = { optional: { oneOf: BOARD_DOCUMENT_READING_RULES } };
+
 const AGENT_STEP_SETTINGS_SHAPE = {
   model:        { nullable: oneOfRecord(AGENT_MODELS) },
   effort:       { nullable: { oneOf: BOARD_AGENT_EFFORTS } },
   instructions: { nullable: { eachOf: INSTRUCTION_RULE } },
-  documents:    'passed-over',
+  documents:    { optional: { object: { spec: DOCUMENT_READING_RULE, plan: DOCUMENT_READING_RULE } } },
 } as const satisfies ShapeOf<BoardAgentStepSettingsDocument>;
 
 const STEPS_DRAFT_EDIT_SHAPES: readonly DocumentShape[] = [
@@ -193,6 +215,10 @@ const DRAFT_EDIT_RULE: FieldRule = {
       value:    { nullable: 'boolean' },
     } as const satisfies ShapeOf<EditDocumentOf<BoardDraftEditDocument, 'approval'>>,
     {
+      target: { oneOf: ['ticket-writing'] },
+      value:  { nullable: { oneOf: BOARD_TICKET_WRITING_ROUTES } },
+    } as const satisfies ShapeOf<EditDocumentOf<BoardDraftEditDocument, 'ticket-writing'>>,
+    {
       target:    { oneOf: ['entity'] },
       entityKey: 'text',
       value:     { nullable: { object: { kind: oneOfRecord(ENTITY_KINDS), home: 'text-list', summary: NULLABLE_TEXT } } },
@@ -232,6 +258,29 @@ const CHART_RANGE_RULE: FieldRule = {
 };
 
 const PICTURES_RULE: FieldRule = { listOf: { pictureId: 'text', name: 'text' } as const satisfies ShapeOf<BoardPictureReferenceDocument> };
+
+const LINE_RANGE_RULE: FieldRule = { object: { from: 'whole-number', to: 'whole-number' } as const satisfies ShapeOf<BoardLineRangeDocument> };
+const COLUMN_RANGE_RULE: FieldRule = { object: { from: 'whole-number', to: 'whole-number' } as const satisfies ShapeOf<BoardColumnRangeDocument> };
+
+const DIAGRAM_ANCHOR_SHAPE = {
+  lines:       LINE_RANGE_RULE,
+  diagramKind: 'text',
+  nodeId:      'text',
+  nodeLabel:   'text',
+} as const satisfies ShapeOf<BoardDiagramAnchorDocument>;
+
+const COMMENT_ANCHOR_SHAPE = {
+  view:             oneOfRecord(COMMENT_VIEWS),
+  versionNumber:    'whole-number',
+  lines:            LINE_RANGE_RULE,
+  columns:          { nullable: COLUMN_RANGE_RULE },
+  sectionPath:      'text-list',
+  quote:            NULLABLE_TEXT,
+  surroundingLines: LINE_RANGE_RULE,
+  diagram:          { nullable: { object: DIAGRAM_ANCHOR_SHAPE } },
+} as const satisfies ShapeOf<BoardCommentAnchorDocument>;
+
+const TICKET_DOCUMENT_HEAD = { ...PASSED_OVER_HEAD, ticketId: 'text', document: { oneOf: BOARD_TICKET_DOCUMENT_KINDS } } as const;
 
 const COMMAND_SHAPES = {
   'hephaestus-pause':        { ...PASSED_OVER_HEAD },
@@ -326,10 +375,23 @@ const COMMAND_SHAPES = {
     reason:     'text',
     incidentId: NULLABLE_TEXT,
   },
-  'ticket-priority': { ...PASSED_OVER_HEAD, ticketId: 'text', priority: oneOfRecord(TICKET_PRIORITIES) },
-  'ticket-ready':    { ...PASSED_OVER_HEAD, ticketIds: 'text-list' },
-  'ticket-unhold':   { ...PASSED_OVER_HEAD, ticketId: 'text' },
-  'tracker-clear':   { ...PASSED_OVER_HEAD, scope: oneOfRecord(TRACKER_CLEAR_SCOPES) },
+  'ticket-priority':      { ...PASSED_OVER_HEAD, ticketId: 'text', priority: oneOfRecord(TICKET_PRIORITIES) },
+  'ticket-ready':         { ...PASSED_OVER_HEAD, ticketIds: 'text-list' },
+  'ticket-unhold':        { ...PASSED_OVER_HEAD, ticketId: 'text' },
+  'tracker-clear':        { ...PASSED_OVER_HEAD, scope: oneOfRecord(TRACKER_CLEAR_SCOPES) },
+  'ticket-document-save': {
+    ...TICKET_DOCUMENT_HEAD,
+    baseVersion: { nullable: 'whole-number' },
+    markdown:    'text',
+  },
+  'ticket-document-comment':          { ...TICKET_DOCUMENT_HEAD, anchor: { nullable: { object: COMMENT_ANCHOR_SHAPE } }, text: 'text' },
+  'ticket-document-comment-withdraw': { ...TICKET_DOCUMENT_HEAD, messageId: 'text' },
+  'ticket-document-proposal-apply':   { ...TICKET_DOCUMENT_HEAD, proposalId: 'text', replacementLines: { nullable: { eachOf: 'text-list' } } },
+  'ticket-document-proposal-discard': { ...TICKET_DOCUMENT_HEAD, proposalId: 'text' },
+  'ticket-document-mode-set':         { ...TICKET_DOCUMENT_HEAD, mode: oneOfRecord(PROPOSAL_MODES) },
+  'ticket-document-approve':          { ...TICKET_DOCUMENT_HEAD, version: 'whole-number' },
+  'ticket-document-effect-read':      { ...TICKET_DOCUMENT_HEAD, version: 'whole-number' },
+  'ticket-document-turn-stop':        { ...TICKET_DOCUMENT_HEAD },
 } as const satisfies { readonly [Kind in BoardCommandDocumentKind]: ShapeOf<CommandDocumentOf<Kind>> };
 
 function isCommandKind(kind: string): kind is BoardCommandDocumentKind {
@@ -400,12 +462,44 @@ function instructionIn(instruction: BoardInstructionDocument): BoardInstruction 
   }
 }
 
+type DocumentReadingRules = NonNullable<BoardAgentStepSettings['documents']>;
+
+function documentReadingRulesIn(rules: NonNullable<BoardAgentStepSettingsDocument['documents']>): DocumentReadingRules {
+  return {
+    ...rules.spec === undefined ? {} : { spec: rules.spec },
+    ...rules.plan === undefined ? {} : { plan: rules.plan },
+  };
+}
+
 function agentStepSettingsIn(settings: BoardAgentStepSettingsDocument | null): BoardAgentStepSettings | null {
   if (settings === null) return null;
   return {
     model:        settings.model,
     effort:       settings.effort,
     instructions: settings.instructions === null ? null : settings.instructions.map(instructionIn),
+    ...settings.documents === undefined ? {} : { documents: documentReadingRulesIn(settings.documents) },
+  };
+}
+
+function lineRangeIn(range: BoardLineRangeDocument): BoardCommentAnchor['lines'] {
+  return { from: range.from, to: range.to };
+}
+
+function commentAnchorIn(anchor: BoardCommentAnchorDocument): BoardCommentAnchor {
+  return {
+    view:             anchor.view,
+    versionNumber:    anchor.versionNumber,
+    lines:            lineRangeIn(anchor.lines),
+    columns:          anchor.columns === null ? null : { from: anchor.columns.from, to: anchor.columns.to },
+    sectionPath:      anchor.sectionPath,
+    quote:            anchor.quote,
+    surroundingLines: lineRangeIn(anchor.surroundingLines),
+    diagram:          anchor.diagram === null ? null : {
+      lines:       lineRangeIn(anchor.diagram.lines),
+      diagramKind: anchor.diagram.diagramKind,
+      nodeId:      anchor.diagram.nodeId,
+      nodeLabel:   anchor.diagram.nodeLabel,
+    },
   };
 }
 
@@ -597,7 +691,54 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
       return { kind: document.kind, ticketIds: document.ticketIds };
     case 'tracker-clear':
       return { kind: document.kind, scope: document.scope };
+    case 'ticket-document-save':
+      return {
+        kind:        document.kind,
+        ticketId:    document.ticketId,
+        document:    document.document,
+        baseVersion: document.baseVersion,
+        markdown:    document.markdown,
+      };
+    case 'ticket-document-comment':
+      return {
+        kind:     document.kind,
+        ticketId: document.ticketId,
+        document: document.document,
+        anchor:   document.anchor === null ? null : commentAnchorIn(document.anchor),
+        text:     document.text,
+      };
+    case 'ticket-document-comment-withdraw':
+      return {
+        kind: document.kind, ticketId: document.ticketId, document: document.document, messageId: document.messageId
+      };
+    case 'ticket-document-proposal-apply':
+      return {
+        kind:             document.kind,
+        ticketId:         document.ticketId,
+        document:         document.document,
+        proposalId:       document.proposalId,
+        replacementLines: document.replacementLines,
+      };
+    case 'ticket-document-proposal-discard':
+      return {
+        kind: document.kind, ticketId: document.ticketId, document: document.document, proposalId: document.proposalId
+      };
+    case 'ticket-document-mode-set':
+      return {
+        kind: document.kind, ticketId: document.ticketId, document: document.document, mode: document.mode
+      };
+    case 'ticket-document-approve':
+    case 'ticket-document-effect-read':
+      return {
+        kind: document.kind, ticketId: document.ticketId, document: document.document, version: document.version
+      };
+    case 'ticket-document-turn-stop':
+      return { kind: document.kind, ticketId: document.ticketId, document: document.document };
   }
+}
+
+function byteLengthOf(text: string): number {
+  return new TextEncoder().encode(text).length;
 }
 
 function malformedBody(invalidKeys: readonly string[]): BoardCommandReading {
@@ -613,6 +754,7 @@ export class BoardCommandIngestion {
     const kind = JsonValueUtil.ownValueOf(body, KIND_KEY);
     if (typeof kind !== 'string') return { verdict: 'refused', refusal: 'unknown-kind', kind: null };
     if (!isCommandKind(kind)) return { verdict: 'refused', refusal: 'unknown-kind', kind };
+    if (kind !== DOCUMENT_SAVE_KIND && byteLengthOf(bodyText) > BOARD_COMMAND_BODY_BOUND_BYTES) return { verdict: 'refused', refusal: 'too-large' };
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(body, COMMAND_SHAPES[kind]);
     if (invalidKeys.length > 0) return malformedBody(invalidKeys);
     if (kind !== 'interrupted-work-resume') return { verdict: 'readable', command: commandIn(body as Parameters<typeof commandIn>[0]) };
