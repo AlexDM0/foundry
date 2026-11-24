@@ -80,7 +80,7 @@ describe('the system\'s chooser, answered by a person', () => {
   });
 
   test('answers cancelled when the file chooser is cancelled', async () => {
-    await showNote('Cancel the next dialog.');
+    await showNote('Cancel the next dialog, which opens in your home folder with hidden files shown.');
     expect(await recordingChooser().choose('file')).toEqual({ verdict: 'cancelled' });
   });
 });
