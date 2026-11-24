@@ -26,6 +26,7 @@ import type {
   PipelineApplyChanged,
   PipelineChanged,
   PipelineSetupChanged,
+  PipelineSetupStartedOver,
   ReviewBarRequest,
   ReviewBarStarted,
   ReviewRecorded,
@@ -1284,7 +1285,7 @@ export class Board {
     return this.pipelineSetups.discardDraft(setupId, at);
   }
 
-  startOverSetup(setupId: string, at: string): PipelineSetupChanged {
+  startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
     return this.pipelineSetups.startOverSetup(setupId, at);
   }
 

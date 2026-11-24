@@ -569,6 +569,19 @@ describe('the record\'s pipeline agent', () => {
     expect(fixture.board.pipelineSetup()).toBeNull();
     expect(fixture.board.jobById('J1')).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
   });
+
+  test('a start over removes an unreadable record and stops every pipeline agent, since none has a record left to serve', () => {
+    const fixture = boardFixture({ pipelineSetup: { verdict: 'malformed', reason: 'formatVersion is 2' } });
+    const { job } = fixture.board.launchJob({
+      kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
+    }, CHANGED_AT);
+    fixture.board.moveJob(job.id, 'running', CHANGED_AT);
+
+    apply(fixture, { kind: 'pipeline-setup-start-over', setupId: 'S4' });
+
+    expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'removed' });
+    expect(fixture.board.jobById(job.id)).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
+  });
 });
 
 describe('a resume', () => {

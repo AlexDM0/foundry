@@ -7,8 +7,13 @@
  * and draft revision, so a retried Apply never refuses the pipeline it stored itself. On a draft over entities the forge has no
  * constitution of its own: each entity's drafted text is what the commit writes, and an entity with no draft adopts the file main holds.
  */
-import type { Logged, PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
-import type { LogRecord }                                          from './@types/LogRecord.ts';
+import type {
+  Logged,
+  PipelineApplyChanged,
+  PipelineSetupChanged,
+  PipelineSetupStartedOver
+} from './@types/BoardChanges.ts';
+import type { LogRecord } from './@types/LogRecord.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -681,12 +686,15 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-draft-discarded', setupId, fields: { revision: setup.draftRevision } }, at)], setup };
   }
 
-  /** Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. */
-  startOverSetup(setupId: string, at: string): PipelineSetupChanged {
-    const setup = this.requireMovableSetup(setupId);
+  /**
+   * Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. A record that cannot be read is removed
+   * whatever id the move names, since its own id cannot be read: starting over is the one way out of an unreadable record.
+   */
+  startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
+    const discarded = this.records.pipelineSetupReading.verdict === 'malformed' ? null : this.requireMovableSetup(setupId);
     this.records.pipelineSetupReading = { verdict: 'absent' };
     this.records.pipelineSetupChanged = true;
-    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup: discarded };
   }
 
   /**

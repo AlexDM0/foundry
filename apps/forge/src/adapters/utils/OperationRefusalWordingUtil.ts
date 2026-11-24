@@ -371,7 +371,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'no-setup-open':
       return `Pipeline setup ${detail.setupId} is not open. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-setup-unreadable':
-      return `The pipeline setup record cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove pipeline-setup.json in the data folder.`;
+      return `The pipeline setup record cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Start the setup over, which removes the record, `
+        + 'or repair pipeline-setup.json in the data folder.';
     case 'no-pipeline-to-update':
       return `No pipeline is stored, so there is nothing to ${detail.mode === 'advise' ? 'advise on' : 'update'}: set the pipeline up first. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-apply-pending':

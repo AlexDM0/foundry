@@ -2,10 +2,11 @@
  * The setup record's moves on the Board. What matters: one record is open at a time and its id is never reused; a step reopened sends
  * every later done step to `needs-recheck`, never back to `not-started`, and only Continue clears a recheck; only User's edit of an
  * earlier step of a first setup reopens it; the constitution is kept byte for byte, a source must name a line the text holds, and an
- * edit re-anchors the sources so only the edited line loses its tag; Undo writes the base value back; an unreadable record and a pending
- * Apply refuse every move; and each move refuses with its reason and logs ids and values only. The `entities` step is walked only by a
- * record whose step states hold it: a first setup and an update of a pipeline without entities open with no such state and never reach
- * it, while a record over entities walks it between research and the constitution. The edits of a copy to another entity carry their
+ * edit re-anchors the sources so only the edited line loses its tag; Undo writes the base value back; an unreadable record refuses every
+ * move but a start over, which removes it, and a pending Apply refuses every move; and each move refuses with its reason and logs ids and
+ * values only. The `entities` step is walked only by a record whose step states hold it: a first setup and an update of a pipeline
+ * without entities open with no such state and never reach it, while a record over entities walks it between research and the
+ * constitution. The edits of a copy to another entity carry their
  * set's batch, the first of their edit ids, and still undo one by one or as one set at one revision, a copy to two entities one entity
  * at a time; no other edit carries a batch, so
  * its set is itself; and a field inside an entity is
@@ -132,20 +133,27 @@ describe('opening a record', () => {
   });
 });
 
-describe('a record no move can change', () => {
+describe('a record no move but a start over can change', () => {
   const UNREADABLE: PipelineSetupReading = { verdict: 'malformed', reason: 'setupId is missing' };
 
   test.each<[string, (board: Board) => unknown]>([
     ['openSetup', (board) => board.openSetup(FIRST_SETUP, AT)],
     ['setSetupBilling', (board) => board.setSetupBilling('S1', { mode: 'subscription' }, AT)],
     ['continueSetupStep', (board) => board.continueSetupStep('S1', 'billing', AT)],
-    ['startOverSetup', (board) => board.startOverSetup('S1', AT)],
   ])('an unreadable record refuses %s and is never written over', (_move, move) => {
     const { board, records } = boardFixture({ pipelineSetup: UNREADABLE });
 
     expect(refusalDetailOf(() => move(board))).toEqual({ reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' });
     expect(board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
     expect(records).toEqual([]);
+  });
+
+  test('a start over removes an unreadable record whatever id it names, the one way out of it, and logs the discard', () => {
+    const { board } = boardFixture({ pipelineSetup: UNREADABLE });
+
+    expect(board.startOverSetup('S7', AT).setup).toBeNull();
+    expect(board.pipelineSetupWrite()).toEqual({ write: 'removed' });
+    expect(board.logRecordsSoFar()).toMatchObject([{ kind: 'pipeline-setup-discarded', setupId: 'S7' }]);
   });
 
   test('a move naming a record that is not the open one refuses no-setup-open', () => {

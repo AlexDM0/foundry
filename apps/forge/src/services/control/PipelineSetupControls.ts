@@ -10,13 +10,13 @@
  * entity of the draft, an update or advise opens at the forge or at one entity, and each move messages the session of the level it
  * changed, never another's.
  */
-import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
-import { SetupPayloadSchemas }                             from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import { OperationRefusalWordingUtil }                     from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import { GitProcess }                                      from '../../lib/git/GitProcess.ts';
-import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
-import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
-import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import { PipelineFile }                                                              from '../../adapters/pipeline/PipelineFile.ts';
+import { SetupPayloadSchemas }                                                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
+import { OperationRefusalWordingUtil }                                               from '../../adapters/utils/OperationRefusalWordingUtil.ts';
+import { GitProcess }                                                                from '../../lib/git/GitProcess.ts';
+import { commitCountAheadOf }                                                        from '../../lib/git/MergeTree.ts';
+import { JsonRecordUtil }                                                            from '../../lib/json-record/JsonRecordUtil.ts';
+import type { PipelineApplyChanged, PipelineSetupChanged, PipelineSetupStartedOver } from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -361,16 +361,19 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: BoardTransa
 
 /**
  * Every live agent of the record, the forge's and each entity's, is stopped in the same hold; Hephaestus removes the snapshot once no
- * pipeline agent runs.
+ * pipeline agent runs. An unreadable record names no agent, so every pipeline agent on the board is stopped, none having a record to serve.
  */
-function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: BoardTransaction): PipelineSetupChanged {
+function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: BoardTransaction): PipelineSetupStartedOver {
   const changed  = change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at);
-  const agentJobIds = [changed.setup.agentJobId, ...entityKeysOfParts(changed.setup).map((entityKey) => agentJobIdAt(changed.setup, entityKey))];
+  const { setup } = changed;
+  const agentJobIds = setup === null
+    ? change.board.jobs().filter((job) => job.kind === 'pipeline-agent').map((job) => job.id)
+    : [setup.agentJobId, ...entityKeysOfParts(setup).map((entityKey) => agentJobIdAt(setup, entityKey))];
   const stopped = agentJobIds.flatMap((agentJobId) => {
     const agent = agentJobId === null ? undefined : change.board.jobById(agentJobId);
     return agent === undefined || agent.state === 'stopping' ? [] : change.board.requestJobStop(agent.id, 'stop', change.at).logged;
   });
-  return stopped.length === 0 ? changed : { setup: changed.setup, logged: [...changed.logged, ...stopped] };
+  return stopped.length === 0 ? changed : { setup, logged: [...changed.logged, ...stopped] };
 }
 
 /** Every path whose content differs between the two commits, as git spells it; `null` when git cannot answer. */
