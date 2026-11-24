@@ -4,7 +4,8 @@
  * ways, which the typecheck and a runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route
  * answers 200 `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit
  * inside an entity lands, and an edit written as a field string is malformed; a ticket document command whose anchor holds a key it does
- * not name answers 400 and writes nothing.
+ * not name answers 400 and writes nothing; a save on a ticket with no documents record answers 409 `ticket-has-no-documents` and writes
+ * nothing, and once the record is open the same save answers 200 and stores version 1 with its text.
  */
 import { readFileSync } from 'node:fs';
 
@@ -18,6 +19,7 @@ import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from 'forge-contra
 
 import type { PipelineSetup }                                                  from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { localStoreLayoutOf }                                                  from '../../../src/services/tracker/LocalStoreLayout.ts';
+import { listTicketDocuments }                                                 from '../../../src/services/tracker/TicketDocumentStore.ts';
 import { requireWorkspace }                                                    from '../../../src/services/tracker/Workspace.ts';
 import { BOARD_COMMAND_CONTRACT_KINDS, CONTROL_CONTRACT_KINDS }                from '../../../src/shared/constants/HephaestusApiContracts.ts';
 import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
@@ -87,6 +89,8 @@ const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
   'ticket-document-effect-read':      true,
   'ticket-document-turn-stop':        true,
 };
+
+const SPEC_TEXT = '## Outcome\n\nThe basket shows its items.\n\n## Acceptance\n\nA1. The basket shows two items.\n';
 
 const MALFORMED_ANSWER = {
   status: 400,
@@ -191,5 +195,35 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
       kind: 'ticket-document-comment', ticketReference: '1', document: 'spec', anchor, text: 'Name the page.'
     })).toEqual(MALFORMED_ANSWER);
     expect(progressText()).toBe(progressBefore);
+  });
+
+  test('a save on a ticket with no documents record answers 409 and writes nothing; once its record is open, the save answers 200', async () => {
+    const filed = await answerOf({
+      kind: 'ticket-add', title: 'Example ticket', type: 'ticket', dependsOn: [], epics: [], network: [], introducedBy: null, foundInReview: null, bodyText: null
+    });
+    expect(filed.status).toBe(200);
+    const save: ForgeTicketDocumentCommand = {
+      kind: 'ticket-document-save', ticketReference: '1', document: 'spec', baseVersion: null, markdown: SPEC_TEXT
+    };
+    const progressBefore = progressText();
+
+    expect(await answerOf(save)).toEqual({
+      status: 409,
+      body:   {
+        controlVersion: 3, refusal: 'ticket-has-no-documents', fields: expect.objectContaining({ ticketId: expect.any(String) }), text: expect.any(String)
+      },
+    });
+    expect(progressText()).toBe(progressBefore);
+    const request = routeRequest();
+    const ticketId = request.boardStore.reads.listTickets().tickets[0]?.frontmatter.id ?? '';
+    await request.boardStore.transactions.transact({
+      at:     FROZEN_NOW.toISOString(),
+      mutate: (transaction) => transaction.board.ticketDocuments().open(ticketId, FROZEN_NOW.toISOString()),
+    });
+
+    expect(await answerOf(save)).toEqual({ status: 200, body: { controlVersion: 3, outcome: 'done', result: expect.anything() } });
+    const [stored] = listTicketDocuments(requireWorkspace(repositoryDirectory)).records;
+    expect(stored?.record.documents.find((document) => document.kind === 'spec')?.versions.map((version) => version.number)).toEqual([1]);
+    expect(Object.values(stored?.textOfContentHash ?? {})).toEqual([SPEC_TEXT]);
   });
 });

@@ -1795,11 +1795,6 @@ export class Board {
     return this.records.ticketDocumentRecords;
   }
 
-  /** `null` for a ticket with no documents record. */
-  ticketDocumentRecordOf(ticketId: string): Readonly<LoadedTicketDocumentRecord> | null {
-    return this.records.ticketDocumentRecordOf(ticketId) ?? null;
-  }
-
   removedDrafts(): readonly Draft[] {
     return this.records.removedDraftRecords;
   }

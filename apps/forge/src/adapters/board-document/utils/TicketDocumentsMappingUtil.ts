@@ -27,13 +27,13 @@ import type {
   DocumentProposal,
   DocumentStanding,
   DocumentVersion,
-  LineEdit,
   LineRange,
   LoadedTicketDocumentRecord,
   TicketDocument,
   TicketDocumentKind
 } from '../../../lib/tracker-model/@types/TicketDocument.ts';
 import { TICKET_DOCUMENT_KINDS }      from '../../../lib/tracker-model/@types/TicketDocument.ts';
+import { DocumentLineMergeUtil }      from '../../../lib/tracker-model/utils/DocumentLineMergeUtil.ts';
 import { LineDiffUtil }               from '../../../lib/tracker-model/utils/LineDiffUtil.ts';
 import type { LineHunk }              from '../../../lib/tracker-model/utils/LineDiffUtil.ts';
 import { TicketDocumentStandingUtil } from '../../../lib/tracker-model/utils/TicketDocumentStandingUtil.ts';
@@ -145,24 +145,10 @@ function textOfVersion(loadedRecord: Readonly<LoadedTicketDocumentRecord>, versi
   return Object.hasOwn(loadedRecord.textOfContentHash, version.contentHash) ? loadedRecord.textOfContentHash[version.contentHash] ?? null : null;
 }
 
-function linesAreEqual(first: readonly string[], second: readonly string[]): boolean {
-  return first.length === second.length && first.every((line, index) => line === second[index]);
-}
-
-/** An edit's lines at the head: an insert is the empty range just before where it goes; `null` when its original lines no longer stand there. */
-function editRangeAtHead(edit: Readonly<LineEdit>, hunks: readonly LineHunk[], headLines: readonly string[]): LineRange | null {
-  if (edit.originalLines.length === 0) {
-    if (edit.fromLine === 1) return { from: 1, to: 0 };
-    const lineBefore = LineDiffUtil.lineRangeAfter(edit.fromLine - 1, hunks);
-    return lineBefore === null ? null : { from: lineBefore.to + 1, to: lineBefore.to };
-  }
-  const firstLine = LineDiffUtil.lineRangeAfter(edit.fromLine, hunks);
-  if (firstLine === null) return null;
-  const range = { from: firstLine.from, to: firstLine.from + edit.originalLines.length - 1 };
-  return linesAreEqual(headLines.slice(range.from - 1, range.to), edit.originalLines) ? range : null;
-}
-
-/** Only an open proposal covers lines: from its first edit's first line at the head to its last edit's last. */
+/**
+ * Only an open proposal covers lines: from its first edit's first line at the head to its last edit's last, carried onto the head as
+ * applying it would; `null` when the head changed a line it edits.
+ */
 function proposalHeadLinesOf(
   proposal: Readonly<DocumentProposal>,
   document: Readonly<TicketDocument>,
@@ -172,15 +158,9 @@ function proposalHeadLinesOf(
   const baseText = textOfVersion(loadedRecord, TicketDocumentVersionUtil.versionOfNumber(document, proposal.baseNumber));
   const headText = textOfVersion(loadedRecord, TicketDocumentVersionUtil.headOf(document));
   if (baseText === null || headText === null) return null;
-  const headLines = LineDiffUtil.linesOf(headText);
-  const hunks = LineDiffUtil.hunksOf(LineDiffUtil.linesOf(baseText), headLines);
-  const ranges: LineRange[] = [];
-  for (const edit of proposal.edits) {
-    const range = editRangeAtHead(edit, hunks, headLines);
-    if (range === null) return null;
-    ranges.push(range);
-  }
-  return { from: Math.min(...ranges.map((range) => range.from)), to: Math.max(...ranges.map((range) => range.to)) };
+  const editsOnHead = DocumentLineMergeUtil.editsOnHeadOf(LineDiffUtil.linesOf(baseText), LineDiffUtil.linesOf(headText), proposal.edits);
+  if (editsOnHead === null) return null;
+  return { from: Math.min(...editsOnHead.map((edit) => edit.fromLine)), to: Math.max(...editsOnHead.map((edit) => edit.toLine)) };
 }
 
 function proposalOf(proposal: Readonly<DocumentProposal>, headLines: LineRangeDocument | null): DocumentProposalDocument {

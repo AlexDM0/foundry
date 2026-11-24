@@ -279,7 +279,7 @@ describe('TicketDocumentsMappingUtil.ticketDocumentsOf', () => {
     expect([plan?.reviewer, plan?.holdsAcceptance, plan?.editable, plan?.agentJobId]).toEqual(['pipeline', false, false, 'J7']);
   });
 
-  test('an open proposal covers the lines its edits stand on at the head, moved by the lines changed since its base', () => {
+  test('an open proposal covers the lines its edits stand on at the head, moved by the lines changed since its base, as applying it would', () => {
     expect(plan?.proposals.map((proposal) => [proposal.proposalId, proposal.headLines])).toEqual([
       ['P1', { from: 6, to: 6 }],
       ['P2', { from: 3, to: 2 }],

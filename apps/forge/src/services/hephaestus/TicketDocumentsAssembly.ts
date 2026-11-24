@@ -14,7 +14,7 @@ import type { Ticket, TicketFrontmatter }                       from '../../lib/
 import type { LoadedTicketDocumentRecord, TicketDocumentKind }  from '../../lib/tracker-model/@types/TicketDocument.ts';
 import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }               from '../../lib/tracker-model/constants/Statuses.ts';
 import { PipelineUtil }                                         from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentStandingUtil }                           from '../../lib/tracker-model/utils/TicketDocumentStandingUtil.ts';
+import { TicketDocumentReadinessUtil }                          from '../../lib/tracker-model/utils/TicketDocumentReadinessUtil.ts';
 import { TicketWritingUtil }                                    from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { EffectReading }                                   from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal }                                     from '../../shared/OperationRefusal.ts';
@@ -91,12 +91,11 @@ function ticketDocumentsOf(source: TicketDocumentsSource): ForgeTicketDocumentsD
   });
 }
 
-/** A committed ticket waits for its build while its spec, or a plan its builder reads, is not approved on the spec it reads. */
+/** A committed ticket waits for its build while the readiness rule finds a gap in its documents, the rule Hephaestus holds it by. */
 function buildIsHeld(ticket: Readonly<TicketFrontmatter>, loadedRecord: Readonly<LoadedTicketDocumentRecord>, pipeline: Readonly<Pipeline> | null): boolean {
   if (ticket.status !== 'committed') return false;
-  const standings = TicketDocumentStandingUtil.standingsOf(loadedRecord.record);
   const builderReadsThePlan = TicketWritingUtil.documentReadingRuleOf(pipeline, 'builder', 'plan', ticket.entity) !== 'never';
-  return standings.spec !== 'approved' || (builderReadsThePlan && standings.plan !== 'approved');
+  return TicketDocumentReadinessUtil.documentGapsOf(loadedRecord, builderReadsThePlan).length > 0;
 }
 
 /** `null` for a ticket with no documents record, which the board document then carries no summary for. */

@@ -857,8 +857,8 @@ reading of the board, through `TicketDocumentsMappingUtil`, which names every fi
   constitution the ticket's pipeline names, up to that commit (`git rev-list --count`), counted once per commit; `null`
   for the installed default constitution or a commit git cannot count.
 - An open proposal's `headLines` are the lines its edits stand on at the head, moved by what changed since its base;
-  an insert is the empty range just before where it goes. They are `null` once its original lines no longer stand at
-  the head, and for a settled proposal.
+  an insert is the empty range just before where it goes. They are `null` once the head changed a line it edits, so it
+  can no longer apply as it stands, and for a settled proposal.
 - A plan approved on a spec version that is no longer the spec's approved head is `out-of-date`: `outOfDate` names the
   spec version it was approved on, the spec's head, and the spec's lines changed between the two.
 - `effectReadings[]`: the newest effect reading of each document, held in memory only, so a restart forgets them.
