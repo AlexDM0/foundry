@@ -26,7 +26,6 @@ import type { WorkerProfile }                        from '../../lib/agent-launc
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { ProgramSearchUtil }                         from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
 import type { ChildEnd }                             from '../../lib/talos/ChildRecord.ts';
 import type { RecognisedEnding }                     from '../../lib/talos/EndingPatterns.ts';
@@ -71,6 +70,7 @@ import type { BoardStore }                            from '../store/BoardStore.
 import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
 import { lockTakerOf }                                from '../tracker/LockHolders.ts';
 import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
+import { registeredRepositoryRootsIn }                from '../tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                             from '../tracker/Workspace.ts';
 import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
 import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
@@ -908,40 +908,36 @@ function sessionConfinementRefusalOf(
   return { sessionConfinementRefusedFor: job.id };
 }
 
-/**
- * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
- * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
- * marks its instance spawned, so the next pass tries it again.
- */
 /** The forge's agent read through this machine's config, kept as the choice names it and checked where it lies. */
 function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
   if (request.agentProgramOf !== undefined) return request.agentProgramOf(board, job);
   const agent = PipelineAgentSessions.launchAgentOf(board, job);
   if (agent === null && request.agentProgramWhenNoneIsChosen !== undefined) return { verdict: 'found', programPath: request.agentProgramWhenNoneIsChosen };
+  // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
+  const ownRepositoryRoot = projectLocationOf(request.workspace.rootDirectory).repositoryRoot;
   return AgentPrograms.resolutionOf({
     agent,
     adapterVendor:      request.agentAdapter.vendor,
     machineProgramPath: agent === null ? null : MachineConfigFile.programPathOf(MachineConfigFile.read(request.monitorFolder), agent.vendor),
     resolver:           request.platformPorts.executableResolver,
-    // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
-    forbiddenRoots:     [projectLocationOf(request.workspace.rootDirectory).repositoryRoot],
+    forbiddenRoots:     AgentPrograms.forbiddenRootsOf(agent, ownRepositoryRoot, registeredRepositoryRootsIn(request.monitorFolder)),
   });
 }
 
 /** Exactly the approved tools' folders, then the program's own, then the system's: nothing else of the inherited search path. */
-function agentSearchFoldersOf(request: DrivePassRequest, board: Board, programPath: string, repositoryRoot: string): string[] {
-  const { executableResolver, programFolders, shellLine } = request.platformPorts;
-  const git = executableResolver.absolutePathOf('git', [repositoryRoot]);
-  const tools = AgentTools.launchToolsOf(
-    board.pipeline(),
-    shellLine,
-    ProgramSearchUtil.toolSearchOf(programFolders, request.homeDirectory),
-    executableResolver,
-    git.verdict === 'found' ? git.path : null,
-  );
-  return [...tools.map((tool) => dirname(tool.path)), dirname(programPath)];
+function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Readonly<Job>, programPath: string): string[] {
+  const launch = AgentTools.forgeLaunchToolsOf(board.pipeline(), {
+    platformPorts: request.platformPorts, homeDirectory: request.homeDirectory, monitorFolder: request.monitorFolder, rootDirectory: request.workspace.rootDirectory
+  });
+  for (const refused of launch.refusedTools) request.log(`The tool ${refused.name} is left off the search path of job ${job.id}: ${refused.reason}.`);
+  return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
 
+/**
+ * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
+ * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
+ * marks its instance spawned, so the next pass tries it again.
+ */
 async function launchAgentChild(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
@@ -1027,7 +1023,7 @@ async function launchAgentChild(
         { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
         agentAdapter.inheritedVariableNames
       ),
-      agentSearchFoldersOf(request, board, program.programPath, location.repositoryRoot),
+      agentSearchFoldersOf(request, board, job, program.programPath),
     ),
     profile:           launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
     confinement:       launchFacts.confinement,
@@ -1312,7 +1308,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:        request.mainLine,
     platformPorts,
     gateSlots,
-    gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
+    gateEnvironment: (profiledSteps) => JobLaunch.gateEnvironmentOf(jobLaunchContext, profiledSteps),
     confinedLineIn:  (worktreePath, profileRunId) => (commandArguments, confinement) => {
       const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
       return hephaestusGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), storedPipeline(), commandArguments, confinement);
@@ -1331,7 +1327,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mainLine:        request.mainLine,
     platformPorts,
     gateSlots,
-    gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
+    gateEnvironment: (checkedSteps) => JobLaunch.gateEnvironmentOf(jobLaunchContext, checkedSteps),
     confinedLineIn:  (worktreePath, setupId) => (commandArguments, confinement) => {
       const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, PIPELINE_CHECK_SANDBOXES_FOLDER);
       return hephaestusGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), storedPipeline(), commandArguments, confinement);
@@ -1395,7 +1391,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           runRequest: {
             shellLine:       platformPorts.shellLine,
             directory:       worktreePath,
-            environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
+            environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext, pipeline),
             confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
             runLine:         (lineRequest) => request.lineRunner({ ...lineRequest, stopSignal }),
             childFolder:     runFolder,

@@ -55,7 +55,11 @@ async function machineAgentProgram(commandArguments: ArgumentParser, context: Co
   if (context.job !== undefined) throw new OperationRefusal('refused', { kind: 'verb-not-relayable', verb: context.commandVerb, jobId: context.job.jobId });
   const programPath = programPathFrom(written, context, AGENT_USAGE);
   // Every forge that follows the machine's program runs it, so it may lie in no repository of a forge on this machine.
-  await AgentCommandPreparation.requireRunningProgram(vendor, programPath, agentCommandPreparationContextOf(context, registeredRepositoryRootsIn(monitorFolder)));
+  await AgentCommandPreparation.requireRunningProgram(vendor, programPath, agentCommandPreparationContextOf(context, {
+    programForbiddenRoots: registeredRepositoryRootsIn(monitorFolder),
+    toolForbiddenRoots:    registeredRepositoryRootsIn(monitorFolder),
+    pipelineNow:           () => null,
+  }));
   const write = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
   if (write !== 'written') {
     const reason = write.verdict === 'newer-version' ? `its version ${write.version} is newer than this program reads` : write.reason;

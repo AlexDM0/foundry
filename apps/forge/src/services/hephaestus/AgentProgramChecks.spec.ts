@@ -28,6 +28,7 @@ test('a kept run is answered while its program file stays the same, and a replac
         programKindOf: () => (programIsThere ? 'program' : 'missing'),
       }),
       forbiddenRoots:       [],
+      toolFolders:          () => [],
       launchEnvironment:    createPosixLaunchEnvironment(() => []),
       inheritedEnvironment: {},
       run:                  async (request) => {

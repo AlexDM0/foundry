@@ -2,7 +2,9 @@
  * The program a forge's agent runs, and its one run before a choice is kept, on the answers the real program check recorded for planted
  * programs. What matters: a launch never reads a search path, so no choice, another vendor or a machine naming no program refuses it;
  * a program is kept as its path spells it and refused where it lies; a run that does not start, fails, outlives the bound or answers as
- * another program does not run; and the run searches only the program's own folder and the system's.
+ * another program does not run, a failing one keeping the first line it printed; the machine's program, which every following forge runs,
+ * lies in no registered forge's repository; and the run searches what a launch searches: the forge's
+ * approved tools' folders, the program's own folder and the system's, so a program a launch would start is never refused by its run.
  */
 import { posix } from 'node:path';
 
@@ -71,15 +73,24 @@ describe('resolutionOf', () => {
   });
 });
 
+describe('forbiddenRootsOf', () => {
+  test('keeps a pinned program out of the forge\'s own repository, and the machine\'s program out of every registered one too', () => {
+    const registered = ['/home/example/other-repository', REPOSITORY];
+    expect(AgentPrograms.forbiddenRootsOf({ vendor: ADAPTER.vendor, program: { pinned: PROGRAM } }, REPOSITORY, registered)).toEqual([REPOSITORY]);
+    expect(AgentPrograms.forbiddenRootsOf(AGENT, REPOSITORY, registered)).toEqual([REPOSITORY, '/home/example/other-repository']);
+  });
+});
+
 describe('checkOf', () => {
   const requests: ProgramCheckRequest[] = [];
 
-  function contextOf(situation: keyof typeof PROGRAM_CHECK_RECORDING.EXPECTED_KIND_OF, adapter = ADAPTER): AgentProgramCheckContext {
+  function contextOf(situation: keyof typeof PROGRAM_CHECK_RECORDING.EXPECTED_KIND_OF, adapter = ADAPTER, toolFolders: readonly string[] = []): AgentProgramCheckContext {
     const recorded = recordedProgramCheckRun({ [PROGRAM]: situation });
     return {
       adapter,
       resolver:             RESOLVER,
       forbiddenRoots:       [REPOSITORY],
+      toolFolders:          () => toolFolders,
       launchEnvironment:    launchEnvironmentFor('darwin', DARWIN_PROGRAM_FOLDERS.baseFolders),
       inheritedEnvironment: { HOME: '/home/example', PATH: '/home/example/inherited/bin', SECRET: 'left behind' },
       run:                  (request) => {
@@ -97,8 +108,17 @@ describe('checkOf', () => {
     expect(request?.environment).toEqual({ HOME: '/home/example', PATH: '/opt/example/bin:/usr/bin:/bin:/usr/sbin:/sbin' });
   });
 
+  test('a program run searches the forge\'s approved tools\' folders first, as its launch does, so a runtime among them is found', async () => {
+    await AgentPrograms.checkOf(PROGRAM, contextOf(PROGRAM_CHECK_RECORDING.ANSWERS, ADAPTER, ['/home/example/.nvm/versions/node/v22.0.0/bin']));
+    const [request] = requests.splice(0);
+    expect(request?.environment['PATH']).toBe('/home/example/.nvm/versions/node/v22.0.0/bin:/opt/example/bin:/usr/bin:/bin:/usr/sbin:/sbin');
+  });
+
   test('a failing exit, the bound outlived, a start that failed and an answer of another program do not run', async () => {
-    expect(await AgentPrograms.checkOf(PROGRAM, contextOf(PROGRAM_CHECK_RECORDING.FAILS))).toMatchObject({ verdict: 'does-not-run', cause: 'failed' });
+    expect(await AgentPrograms.checkOf(PROGRAM, contextOf(PROGRAM_CHECK_RECORDING.FAILS)))
+      .toEqual({
+        verdict: 'does-not-run', programPath: PROGRAM, cause: 'failed', outputLine: 'unknown option'
+      });
     expect(await AgentPrograms.checkOf(PROGRAM, contextOf(PROGRAM_CHECK_RECORDING.HANGS))).toMatchObject({ verdict: 'does-not-run', cause: 'timed-out' });
     expect(await AgentPrograms.checkOf(PROGRAM, contextOf(PROGRAM_CHECK_RECORDING.NOT_A_PROGRAM))).toMatchObject({ verdict: 'does-not-run', cause: 'did-not-start' });
     const otherAgent = { ...ADAPTER, versionOf: () => null };

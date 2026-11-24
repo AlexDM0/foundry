@@ -68,9 +68,10 @@ import {
   SESSION_STOP_GRACE_MILLISECONDS,
   WIND_DOWN_GRACE_CALLS
 } from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }  from '../../shared/constants/LifecycleLimits.ts';
-import { EntityFoldersUtil } from '../../shared/utils/EntityFoldersUtil.ts';
-import { ProjectPathsUtil }  from '../../shared/utils/ProjectPathsUtil.ts';
+import { LIFECYCLE_LIMITS }                 from '../../shared/constants/LifecycleLimits.ts';
+import { EntityFoldersUtil }                from '../../shared/utils/EntityFoldersUtil.ts';
+import { ProjectPathsUtil }                 from '../../shared/utils/ProjectPathsUtil.ts';
+import { AgentTools, type ToolNamingSteps } from '../control/AgentTools.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   type CrossingStageScope,
@@ -2457,10 +2458,23 @@ function cacheFolderFactsOf(context: SandboxContext): Pick<SandboxFactsRequest, 
 /** The profile a gate or prepare step runs under in `worktree`: the step's own network and `writes`, and the job's denies. */
 type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment' | 'platformPorts'>;
 
+type GateEnvironmentContext = SandboxContext & Pick<JobLaunchContext, 'monitorFolder' | 'workspace'>;
+
 /** The portable git settings ride along, so a gate's own git reaches a long path as Hephaestus's does. */
-function gateEnvironmentOf(context: SandboxContext, reportFile?: string): Record<string, string> {
-  const gitSettings = GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS);
-  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitSettings), reportFile);
+function inheritedGateEnvironmentOf(context: SandboxContext): Record<string, string> {
+  return context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS));
+}
+
+/**
+ * A gate, a prepare step or a gate's fix searches what an agent of the forge searches: the folders of the tools `steps` name and approve,
+ * then the system's, nothing else of Hephaestus's own search path.
+ */
+function gateEnvironmentOf(context: GateEnvironmentContext, steps: Readonly<ToolNamingSteps> | null, reportFile?: string): Record<string, string> {
+  const launch = AgentTools.forgeLaunchToolsOf(steps, {
+    platformPorts: context.platformPorts, homeDirectory: context.homeDirectory, monitorFolder: context.monitorFolder, rootDirectory: context.workspace.rootDirectory
+  });
+  const { launchEnvironment } = context.platformPorts;
+  return GateRun.gateEnvironmentOf(launchEnvironment.withSearchFolders(inheritedGateEnvironmentOf(context), AgentTools.toolFoldersOf(launch.tools)), reportFile);
 }
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
@@ -2469,7 +2483,7 @@ function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, c
     worktree:             facts.worktree,
     worktreeAdminFolder:  GitProcess.succeeded(adminFolder) ? adminFolder.standardOutput.trim() : null,
     homeDirectory:        context.homeDirectory,
-    temporaryDirectory:   context.platformPorts.dataFolders.temporaryFolderOf(gateEnvironmentOf(context)),
+    temporaryDirectory:   context.platformPorts.dataFolders.temporaryFolderOf(inheritedGateEnvironmentOf(context)),
     cachePaths:           confinement.writes,
     executableSearchPath: facts.executableSearchPath,
     cacheFolderStyle:     facts.cacheFolderStyle,
@@ -2562,7 +2576,7 @@ async function spawnLineChild(
     workingDirectory,
     argv:                  line.argv,
     verbatimArguments:     spawnRequest.verbatimArguments,
-    environment:           gateEnvironmentOf(context, step.reportFile),
+    environment:           gateEnvironmentOf(context, pipeline, step.reportFile),
     timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS,
   });
   if (launched.verdict === 'talos-unavailable') return launched;

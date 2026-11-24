@@ -1,6 +1,7 @@
 /**
  * What a command about the forge's agent needs settled before it reaches the board, outside any hold: a chosen program is run once with
- * its version arguments and refused when it does not run, and a tool named alone is found in the places installers put programs.
+ * its version arguments and refused when it does not run, a tool named alone is found in the places installers put programs, and a tool
+ * named with its path is refused when it is no program to keep, such as one inside a repository a job could write.
  */
 import { MachineConfigFile }                            from '../../adapters/machine-config/MachineConfigFile.ts';
 import type { ToolSearch }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
@@ -13,17 +14,19 @@ import { type AgentProgramCheckContext, AgentPrograms } from './AgentPrograms.ts
 import { AgentTools }                                   from './AgentTools.ts';
 
 export interface AgentCommandPreparationContext {
-  check:         AgentProgramCheckContext;
-  monitorFolder: string;
+  check:              AgentProgramCheckContext;
+  monitorFolder:      string;
   /** How a tool named alone is found. */
-  toolSearch:    ToolSearch;
+  toolSearch:         ToolSearch;
+  /** Where no tool may lie: every registered repository, and the forge's own repository and worktrees. */
+  toolForbiddenRoots: readonly string[];
   /** Told each run, so the views read it at once. */
-  recordCheck?:  (check: AgentProgramCheck) => void;
+  recordCheck?:       (check: AgentProgramCheck) => void;
 }
 
 function refusalOf(check: Extract<AgentProgramCheck, { verdict: 'does-not-run' }>, agentName: string): OperationRefusal {
   return new OperationRefusal('refused', {
-    kind: 'agent-program-does-not-run', cause: check.cause, programPath: check.programPath, agentName
+    kind: 'agent-program-does-not-run', cause: check.cause, programPath: check.programPath, agentName, ...(check.outputLine === undefined ? {} : { outputLine: check.outputLine })
   });
 }
 
@@ -40,11 +43,15 @@ async function requireRunningProgram(vendor: string, programPath: string, contex
   await requireRunningChoice({ vendor, program: { pinned: programPath } }, context);
 }
 
-/** A tool sent with no path is found; one found nowhere is refused, naming where forge looked. */
+/** A tool sent with no path is found, and one found nowhere is refused, naming where forge looked; one sent with its path is checked there. */
 function foundToolsOf(tools: readonly PipelineTool[], context: AgentCommandPreparationContext): PipelineTool[] {
   return tools.map((tool) => {
-    if (tool.path !== '') return tool;
-    const path = AgentTools.foundPathOf(tool.name, context.toolSearch, context.check.resolver);
+    if (tool.path !== '') {
+      const program = context.check.resolver.programAt(tool.path, context.toolForbiddenRoots);
+      if (program.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'tool-refused', name: tool.name, reason: program.reason });
+      return tool;
+    }
+    const path = AgentTools.foundPathOf(tool.name, context.toolSearch, context.check.resolver, context.toolForbiddenRoots);
     if (path === null) throw new OperationRefusal('refused', { kind: 'tool-not-found', name: tool.name, searchedFolders: [...context.toolSearch.folders] });
     return { name: tool.name, path };
   });

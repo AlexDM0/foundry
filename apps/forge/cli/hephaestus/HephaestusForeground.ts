@@ -85,7 +85,7 @@ import {
   HEPHAESTUS_STOP_WAIT_MILLISECONDS,
   RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
-import { agentCommandPreparationContextOf }                             from '../AgentCommandContext.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
@@ -498,7 +498,8 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const mergeForecastCache = createMergeForecastCache();
   const mainLineReads = new MainLineReads(workspace.rootDirectory);
   // A run of an agent program that ended is published by a pass, so the views read whether the program runs.
-  const agentProgramChecks = new AgentProgramChecks(agentCommandPreparationContextOf(context, [repositoryRoot]).check, () => current?.drivePass.wake(true));
+  const agentProgramCheckContext = agentCommandPreparationContextOf(context, preparedForgeAt(context, workspace.rootDirectory, boardStore.reads)).check;
+  const agentProgramChecks = new AgentProgramChecks(agentProgramCheckContext, () => current?.drivePass.wake(true));
   // Shown in the monitor snapshot only; until the program on disk answered, the code in memory stands in for it.
   let codeVersionOnDisk = codeVersion;
   const installWatch = createInstallChangeWatch({

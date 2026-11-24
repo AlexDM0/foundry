@@ -357,6 +357,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
     kind: 'agent-program-does-not-run', cause: 'not-there', programPath: '/opt/example/bin/agent', agentName: 'Example Agent'
   },
   'tool-not-found':               { kind: 'tool-not-found', name: 'example-tool', searchedFolders: ['/opt/example/bin'] },
+  'tool-refused':                 { kind: 'tool-refused', name: 'example-tool', reason: '/home/example/repository/bin/example-tool sits inside /home/example/repository' },
   'machine-config-unwritable':    { kind: 'machine-config-unwritable', filePath: '/home/example/.example-monitor/config.json', reason: 'Example reason' },
   'task-ticket-missing':          { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
   'namespace-board-has-jobs':     { kind: 'namespace-board-has-jobs', jobCount: 2 },

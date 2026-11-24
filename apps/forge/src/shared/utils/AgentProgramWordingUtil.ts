@@ -5,7 +5,8 @@
 import type { JobNotLaunchedCause }      from '../../lib/tracker-model/@types/Job.ts';
 import type { AgentProgramRefusalCause } from '../@types/AgentProgramCheck.ts';
 
-function programClauseOf(cause: AgentProgramRefusalCause, agentName: string, programPath: string | null): string {
+/** `outputLine`: the first line a run that failed printed. */
+function programClauseOf(cause: AgentProgramRefusalCause, agentName: string, programPath: string | null, outputLine?: string): string {
   const program = `the ${agentName} at ${programPath ?? 'no path'}`;
   switch (cause) {
     case 'no-agent-chosen':
@@ -31,7 +32,7 @@ function programClauseOf(cause: AgentProgramRefusalCause, agentName: string, pro
     case 'timed-out':
       return `${program} did not answer in time`;
     case 'failed':
-      return `${program} failed when asked for its version`;
+      return `${program} failed when asked for its version${outputLine === undefined ? '' : `, saying "${outputLine}"`}`;
     case 'not-this-agent':
       return `the program at ${programPath ?? 'no path'} did not answer as ${agentName}`;
   }

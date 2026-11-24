@@ -20,13 +20,12 @@ import type { RouteAnswer }                                             from '..
 import { MachineAgentLimit }                                            from '../../../src/services/hephaestus/MachineAgentLimit.ts';
 import type { BoardStore }                                              from '../../../src/services/store/BoardStore.ts';
 import { readingBoardOfContents }                                       from '../../../src/services/tracker/BoardOfContents.ts';
-import { projectLocationOf }                                            from '../../../src/services/tracker/ProjectLocation.ts';
 import { registeredRepositoryRootsIn }                                  from '../../../src/services/tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                                               from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommand, ControlCommandOf }                        from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                             from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }                                     from '../../../src/shared/constants/HephaestusApiContracts.ts';
-import { agentCommandPreparationContextOf }                             from '../../AgentCommandContext.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt }            from '../../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../../CommandContext.ts';
 import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../../CommandControlContext.ts';
 import { registerWrittenTracker }                                       from '../../RegisterWrittenTracker.ts';
@@ -145,9 +144,15 @@ function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: Comma
   }
 }
 
-function preparationContextOf(request: CommandRouteRequest, forbiddenRoots: readonly string[]): AgentCommandPreparationContext {
+/** `programForbiddenRoots`: where else than the forge's repository the program may not lie. */
+function preparationContextOf(request: CommandRouteRequest, programForbiddenRoots: readonly string[] = []): AgentCommandPreparationContext {
   const { agentProgramChecks } = request;
-  return agentCommandPreparationContextOf(request.context, forbiddenRoots, agentProgramChecks === undefined ? undefined : (check) => agentProgramChecks.record(check));
+  const forge = preparedForgeAt(request.context, request.workspace.rootDirectory, request.boardStore.reads);
+  return agentCommandPreparationContextOf(
+    request.context,
+    { ...forge, programForbiddenRoots: [...new Set([...forge.programForbiddenRoots, ...programForbiddenRoots])] },
+    agentProgramChecks === undefined ? undefined : (check) => agentProgramChecks.record(check),
+  );
 }
 
 /** The machine's program of a vendor, kept only once it runs; every forge that follows it reads it at its next launch. */
@@ -157,8 +162,7 @@ async function machineAgentProgramAnswerOf(body: Record<string, unknown>, reques
   try {
     const monitorFolder = request.context.platformPorts.dataFolders.monitorFolderOf(request.context.homeDirectory);
     // Every forge that follows the machine's program runs it, so it may lie in no repository of a forge on this machine.
-    const forbiddenRoots = [projectLocationOf(request.workspace.rootDirectory).repositoryRoot, ...registeredRepositoryRootsIn(monitorFolder)];
-    await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, forbiddenRoots));
+    await AgentCommandPreparation.requireRunningProgram(vendor, programPath, preparationContextOf(request, registeredRepositoryRootsIn(monitorFolder)));
     const written = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
     if (written !== 'written') {
       const reason = written.verdict === 'newer-version' ? `its version ${written.version} is newer than this program reads` : written.reason;
@@ -220,7 +224,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   }
   const { context, workspace, boardStore } = request;
   try {
-    const preparationContext = preparationContextOf(request, [projectLocationOf(workspace.rootDirectory).repositoryRoot]);
+    const preparationContext = preparationContextOf(request);
     if (command.kind === 'agent-look-again') await AgentCommandPreparation.lookAgain(namedProgramPathOf(request), preparationContext);
     const prepared = await AgentCommandPreparation.preparedCommandOf(command, preparationContext);
     const at      = OptionValueUtil.atStampFrom(request.commandArguments, context.now());

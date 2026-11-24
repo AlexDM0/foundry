@@ -15,6 +15,9 @@ import type { AgentProgramChoice, PipelineAgent }   from '../../lib/tracker-mode
 import type { AgentProgramPlace }                   from '../../shared/@types/AgentFacts.ts';
 import type { AgentProgramCheck }                   from '../../shared/@types/AgentProgramCheck.ts';
 
+/** A failed run's first line is shown in a sentence, so a program that floods its output does not flood the sentence. */
+const FAILED_RUN_OUTPUT_LINE_LIMIT_CHARACTERS = 200;
+
 /** The program a launch starts, or why the job is not launched. */
 export type AgentProgramResolution =
   | { verdict: 'found'; programPath: string }
@@ -36,6 +39,8 @@ export interface AgentProgramCheckContext {
   adapter:              AgentAdapter;
   resolver:             ExecutableResolver;
   forbiddenRoots:       readonly string[];
+  /** The folders of the forge's approved tools now, which a launch puts before the program's own folder, as the run does. */
+  toolFolders:          () => readonly string[];
   launchEnvironment:    LaunchEnvironment;
   inheritedEnvironment: Readonly<Record<string, string | undefined>>;
   run:                  ProgramCheckRun;
@@ -62,6 +67,15 @@ function notLaunchedCauseOf(cause: Exclude<ReturnType<ExecutableResolver['progra
   }
 }
 
+/**
+ * Where the program a choice names may not lie: the forge's own repository, and, for the machine's program, which every forge that follows
+ * it runs, every registered forge's repository too.
+ */
+function forbiddenRootsOf(agent: Readonly<PipelineAgent> | null, ownRepositoryRoot: string, registeredRepositoryRoots: readonly string[]): string[] {
+  const followsTheMachine = agent !== null && !('pinned' in agent.program);
+  return followsTheMachine ? [...new Set([ownRepositoryRoot, ...registeredRepositoryRoots])] : [ownRepositoryRoot];
+}
+
 function resolutionOf(source: AgentProgramSource): AgentProgramResolution {
   const { agent } = source;
   if (agent === null) return { verdict: 'not-launched', notLaunched: { cause: 'no-agent-chosen', programPath: null } };
@@ -73,18 +87,30 @@ function resolutionOf(source: AgentProgramSource): AgentProgramResolution {
   return { verdict: 'found', programPath: program.path };
 }
 
-/** The program's folder is the one folder of the run's search path besides the system's, as at a launch. */
+/** The first line a failed run printed, cut to a sentence's length; `null` when it printed nothing. */
+function firstOutputLineOf(output: string): string | null {
+  const line = output.split(/\r?\n/u).map((candidate) => candidate.trim()).find((candidate) => candidate !== '');
+  return line === undefined ? null : line.slice(0, FAILED_RUN_OUTPUT_LINE_LIMIT_CHARACTERS);
+}
+
+/** The run's search path is the launch's: the approved tools' folders, then the program's own, then the system's. */
 async function checkOf(programPath: string, context: AgentProgramCheckContext): Promise<AgentProgramCheck> {
   const program = context.resolver.programAt(programPath, context.forbiddenRoots);
   if (program.verdict === 'refused') return { verdict: 'does-not-run', programPath, cause: notLaunchedCauseOf(program.cause) };
   const { launchEnvironment } = context;
-  const environment = launchEnvironment.withSearchFolders(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}), [dirname(programPath)]);
+  const searchFolders = [...context.toolFolders(), dirname(programPath)];
+  const environment = launchEnvironment.withSearchFolders(launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, {}), searchFolders);
   const answer = await context.run({
     programPath, arguments: context.adapter.versionArguments, environment, timeoutMilliseconds: context.timeoutMilliseconds
   });
   if (answer.kind === 'did-not-start') return { verdict: 'does-not-run', programPath, cause: 'did-not-start' };
   if (answer.kind === 'timed-out') return { verdict: 'does-not-run', programPath, cause: 'timed-out' };
-  if (answer.exitCode !== 0) return { verdict: 'does-not-run', programPath, cause: 'failed' };
+  if (answer.exitCode !== 0) {
+    const outputLine = firstOutputLineOf(answer.output);
+    return {
+      verdict: 'does-not-run', programPath, cause: 'failed', ...(outputLine === null ? {} : { outputLine })
+    };
+  }
   const version = context.adapter.versionOf(answer.output);
   return version === null ? { verdict: 'does-not-run', programPath, cause: 'not-this-agent' } : { verdict: 'runs', programPath, version };
 }
@@ -104,5 +130,5 @@ function placesOf(adapter: AgentAdapter, programFolders: ProgramFolders, homeDir
 }
 
 export const AgentPrograms = Object.freeze({
-  chosenPathOf, resolutionOf, checkOf, choiceCheckOf, placesOf
+  chosenPathOf, forbiddenRootsOf, resolutionOf, checkOf, choiceCheckOf, placesOf
 });

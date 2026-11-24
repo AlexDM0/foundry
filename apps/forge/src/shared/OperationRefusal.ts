@@ -63,10 +63,15 @@ export type OperationRefusalDetail =
   | { kind: 'draft-copy-outside-entities'; setupId: string; fields: readonly string[] }
   /** Git could not tell what main's `CONSTITUTION.md` holds; `reason` is git's own. */
   | { kind: 'main-constitution-unreadable'; reason: string }
-  /** A chosen agent program that does not run is not kept; `agentName` is the agent's name as a person knows it. */
-  | { kind: 'agent-program-does-not-run'; cause: AgentProgramRefusalCause; programPath: string | null; agentName: string }
+  /**
+   * A chosen agent program that does not run is not kept; `agentName` is the agent's name as a person knows it, `outputLine` the first line
+   * a failed run printed.
+   */
+  | { kind: 'agent-program-does-not-run'; cause: AgentProgramRefusalCause; programPath: string | null; agentName: string; outputLine?: string }
   /** A tool named alone that none of `searchedFolders` holds. */
   | { kind: 'tool-not-found'; name: string; searchedFolders: readonly string[] }
+  /** A tool named with its path that is no program to keep, such as one inside a repository a job could write; `reason` is the resolver's. */
+  | { kind: 'tool-refused'; name: string; reason: string }
   /** This machine's config that is newer or malformed is never written over. */
   | { kind: 'machine-config-unwritable'; filePath: string; reason: string }
   | { kind: 'picture-unknown'; pictureId: string }

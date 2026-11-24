@@ -4,6 +4,8 @@
  * it, with the places the vendor's installers use; the vendors are the adapter's, which can be chosen, then each vendor coming later by
  * name, which cannot.
  */
+import { join } from 'node:path';
+
 import { describe, expect, test } from 'bun:test';
 
 import { MachineConfigFile }                              from '../../adapters/machine-config/MachineConfigFile.ts';
@@ -34,6 +36,7 @@ function sourceOf(pipeline: Pipeline, monitorFolder: string, adapter = ADAPTER):
     platformPorts: { ...defaultSpecPlatformPorts(), executableResolver: RESOLVER },
     homeDirectory: monitorFolder,
     monitorFolder,
+    rootDirectory: join(monitorFolder, 'example-repository'),
     checkOf:       (programPath) => ({ verdict: 'runs', programPath, version: '1.2.3' }),
   };
 }

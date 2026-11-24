@@ -1,22 +1,21 @@
 /** A verb's one control command, applied through the store's command face: the `--at` stamp and the skipped-file report are the command line's. */
-import { AgentCommandPreparation }               from '../src/services/control/AgentCommandPreparation.ts';
-import type { ControlResultOf }                  from '../src/services/control/ControlService.ts';
-import { hephaestusFilesIn }                     from '../src/services/hephaestus/HephaestusFiles.ts';
-import { HephaestusLock }                        from '../src/services/hephaestus/HephaestusLock.ts';
-import type { CommandWritten }                   from '../src/services/store/BoardStore.ts';
-import { projectLocationOf }                     from '../src/services/tracker/ProjectLocation.ts';
-import type { ControlCommand }                   from '../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../src/shared/OperationRefusal.ts';
-import { HEPHAESTUS_NUDGE_TIMEOUT_MILLISECONDS } from '../src/shared/constants/HephaestusLimits.ts';
-import { agentCommandPreparationContextOf }      from './AgentCommandContext.ts';
-import { boardStoreOf }                          from './BoardStoreOf.ts';
-import type { CommandContext }                   from './CommandContext.ts';
-import { commandControlContextOf }               from './CommandControlContext.ts';
-import { registerWrittenTracker }                from './RegisterWrittenTracker.ts';
-import type { ArgumentParser }                   from './arguments/ArgumentParser.ts';
-import { NextLineUtil }                          from './utils/NextLineUtil.ts';
-import { OptionValueUtil }                       from './utils/OptionValueUtil.ts';
-import { OutputUtil }                            from './utils/OutputUtil.ts';
+import { AgentCommandPreparation }                           from '../src/services/control/AgentCommandPreparation.ts';
+import type { ControlResultOf }                              from '../src/services/control/ControlService.ts';
+import { hephaestusFilesIn }                                 from '../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                    from '../src/services/hephaestus/HephaestusLock.ts';
+import type { CommandWritten }                               from '../src/services/store/BoardStore.ts';
+import type { ControlCommand }                               from '../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                  from '../src/shared/OperationRefusal.ts';
+import { HEPHAESTUS_NUDGE_TIMEOUT_MILLISECONDS }             from '../src/shared/constants/HephaestusLimits.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt } from './AgentCommandContext.ts';
+import { boardStoreOf }                                      from './BoardStoreOf.ts';
+import type { CommandContext }                               from './CommandContext.ts';
+import { commandControlContextOf }                           from './CommandControlContext.ts';
+import { registerWrittenTracker }                            from './RegisterWrittenTracker.ts';
+import type { ArgumentParser }                               from './arguments/ArgumentParser.ts';
+import { NextLineUtil }                                      from './utils/NextLineUtil.ts';
+import { OptionValueUtil }                                   from './utils/OptionValueUtil.ts';
+import { OutputUtil }                                        from './utils/OutputUtil.ts';
 
 /**
  * After the lock is released, so the pass it wakes can take it: a body-less `POST /api/nudge` to the live Hephaestus lock's URL. Silent whatever
@@ -43,7 +42,7 @@ export async function applyCommandOfVerb<Command extends ControlCommand>(
   }
   const { workspace, store } = boardStoreOf(context);
   const at      = OptionValueUtil.atStampFrom(commandArguments, context.now());
-  const preparationContext = agentCommandPreparationContextOf(context, [projectLocationOf(workspace.rootDirectory).repositoryRoot]);
+  const preparationContext = agentCommandPreparationContextOf(context, preparedForgeAt(context, workspace.rootDirectory, store.reads));
   const prepared = await AgentCommandPreparation.preparedCommandOf(command, preparationContext) as Command;
   const written = await store.commands.apply({ command: prepared, at, context: commandControlContextOf(context.platformPorts) });
   // The store is already written, so a skipped file never fails the command: exit 0, named on standard error.

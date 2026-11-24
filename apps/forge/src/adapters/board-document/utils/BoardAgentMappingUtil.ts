@@ -24,7 +24,7 @@ function pipelineToolOf(tool: PipelineTool): PipelineToolDocument {
 function checkOf(check: AgentProgramCheck | null, agentName: string): AgentProgramCheckDocument | null {
   if (check === null) return null;
   if (check.verdict === 'runs') return { verdict: 'runs', version: check.version };
-  return { verdict: 'does-not-run', cause: check.cause, sentence: AgentProgramWordingUtil.programClauseOf(check.cause, agentName, check.programPath) };
+  return { verdict: 'does-not-run', cause: check.cause, sentence: AgentProgramWordingUtil.programClauseOf(check.cause, agentName, check.programPath, check.outputLine) };
 }
 
 function toolUseOf(use: ToolUse): AgentToolUseDocument {

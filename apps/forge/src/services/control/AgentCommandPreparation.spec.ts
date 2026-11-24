@@ -1,8 +1,9 @@
 /**
  * What a command about the forge's agent settles before the hold, on the answers the real program check recorded. What matters: a
  * chosen program that does not run refuses the command with its cause and path, naming the agent; one that runs passes the command as it
- * came and its run reaches the views; a tool named alone is found in the folders in order and one found nowhere is refused; and a command
- * of any other kind passes untouched.
+ * came and its run reaches the views, a failed run naming the first line it printed; a tool named alone is found in the folders in order
+ * and one found nowhere is refused; a tool named with its path is kept only where a program lies outside every repository a job could
+ * write; and a command of any other kind passes untouched.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -19,7 +20,9 @@ import { type AgentCommandPreparationContext, AgentCommandPreparation } from './
 const ADAPTER = fakeAgentAdapter();
 const RUNS = '/opt/example/bin/agent';
 const FAILS = '/opt/example/bin/failing-agent';
-const PROGRAMS: ReadonlySet<string> = new Set([RUNS, FAILS, '/home/example/.bun/bin/bun', '/usr/bin/bun', '/usr/bin/git']);
+const REPOSITORY = '/home/example/repository';
+const PLANTED_TOOL = `${REPOSITORY}/bin/bun`;
+const PROGRAMS: ReadonlySet<string> = new Set([RUNS, FAILS, '/home/example/.bun/bin/bun', '/usr/bin/bun', '/usr/bin/git', '/opt/git/bin/git', PLANTED_TOOL]);
 
 const RESOLVER = createPosixExecutableResolver({
   lookUp:        () => null,
@@ -35,14 +38,16 @@ function contextOf(monitorFolder: string, recorded: AgentProgramCheck[]): AgentC
       adapter:              ADAPTER,
       resolver:             RESOLVER,
       forbiddenRoots:       [],
+      toolFolders:          () => [],
       launchEnvironment:    createPosixLaunchEnvironment(() => []),
       inheritedEnvironment: {},
       run:                  recordedProgramCheckRun({ [RUNS]: PROGRAM_CHECK_RECORDING.ANSWERS, [FAILS]: PROGRAM_CHECK_RECORDING.FAILS }),
       timeoutMilliseconds:  1000,
     },
     monitorFolder,
-    toolSearch:  { folders: TOOL_FOLDERS, pathsOf: (name) => TOOL_FOLDERS.map((folder) => `${folder}/${name}`) },
-    recordCheck: (check) => recorded.push(check),
+    toolSearch:         { folders: TOOL_FOLDERS, pathsOf: (name) => TOOL_FOLDERS.map((folder) => `${folder}/${name}`) },
+    toolForbiddenRoots: [REPOSITORY],
+    recordCheck:        (check) => recorded.push(check),
   };
 }
 
@@ -78,7 +83,7 @@ describe('a chosen program', () => {
     const context = contextOf(monitorFolder, []);
     const failing: ControlCommand = { kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: ADAPTER.vendor, program: { pinned: FAILS } } };
     expect(await refusalOf(() => AgentCommandPreparation.preparedCommandOf(failing, context))).toEqual({
-      kind: 'agent-program-does-not-run', cause: 'failed', programPath: FAILS, agentName: ADAPTER.displayName
+      kind: 'agent-program-does-not-run', cause: 'failed', programPath: FAILS, agentName: ADAPTER.displayName, outputLine: 'unknown option'
     });
     const following: ControlCommand = {
       kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: { vendor: ADAPTER.vendor, program: { follows: 'machine' } }
@@ -111,6 +116,21 @@ describe('a tool named alone', () => {
     const missing: ControlCommand = { kind: 'pipeline-tools-set', tools: [{ name: 'pnpm', path: '' }] };
     const refusal = await refusalOf(() => AgentCommandPreparation.preparedCommandOf(missing, contextOf(monitorFolder, [])));
     expect(refusal).toEqual({ kind: 'tool-not-found', name: 'pnpm', searchedFolders: ['/home/example/.bun/bin', '/usr/bin'] });
+  }));
+});
+
+describe('a tool named with its path', () => {
+  test('inside a repository a job could write, or where no program is, refuses the command with the reason', withMonitorFolder(async (monitorFolder) => {
+    const context = contextOf(monitorFolder, []);
+    const refusalOfCommand = async (command: ControlCommand): Promise<unknown> => await refusalOf(() => AgentCommandPreparation.preparedCommandOf(command, context));
+    const planted: ControlCommand = { kind: 'pipeline-tools-set', tools: [{ name: 'bun', path: PLANTED_TOOL }] };
+    expect(await refusalOfCommand(planted)).toEqual({ kind: 'tool-refused', name: 'bun', reason: `${PLANTED_TOOL} sits inside ${REPOSITORY}` });
+    const plantedInADraft: ControlCommand = {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'tools', value: [{ name: 'bun', path: PLANTED_TOOL }] }]
+    };
+    expect(await refusalOfCommand(plantedInADraft)).toMatchObject({ kind: 'tool-refused' });
+    const gone: ControlCommand = { kind: 'pipeline-tools-set', tools: [{ name: 'gh', path: '/opt/example/bin/gh' }] };
+    expect(await refusalOfCommand(gone)).toEqual({ kind: 'tool-refused', name: 'gh', reason: '/opt/example/bin/gh is not there' });
   }));
 });
 

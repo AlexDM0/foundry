@@ -69,7 +69,8 @@ export interface GateProfilingContext {
   mainLine:           string;
   platformPorts:      Pick<PlatformPorts, 'shellLine'>;
   gateSlots:          Pick<GateRunSlots, 'tryAcquireAfterRealGates' | 'release'>;
-  gateEnvironment:    () => Readonly<Record<string, string>>;
+  /** The environment a profile's lines run in, whose search path holds the tools its steps run. */
+  gateEnvironment:    (profiledSteps: Pick<GateProfileRun, 'prepare'> & { gates: GateProfileRun['gate'][] }) => Readonly<Record<string, string>>;
   /** Confines each line of the run in the profile's worktree, as a gate of Hephaestus's is confined. */
   confinedLineIn:     (worktreePath: string, profileRunId: string) => GateLineConfiner;
   hold:               <Result>(mutate: (hold: GateProfileHold) => Result) => Promise<Result>;
@@ -215,7 +216,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
       const lines = GitProcess.succeeded(added)
         ? await context.runGateLines({
           shellLine:      platformPorts.shellLine,
-          environment:    context.gateEnvironment(),
+          environment:    context.gateEnvironment({ prepare: run.prepare, gates: [run.gate] }),
           confinedLineOf: context.confinedLineIn(worktreePath, run.profileRunId),
           runLine:        (lineRequest) => context.runLine({ ...lineRequest, stopSignal }),
           childFolder:    runFolderOf(run.profileRunId),

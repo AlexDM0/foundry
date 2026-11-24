@@ -911,7 +911,10 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'main-constitution-unreadable':
       return `CONSTITUTION.md on the main line could not be read: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'agent-program-does-not-run':
-      return `The program was not kept: ${AgentProgramWordingUtil.programClauseOf(detail.cause, detail.agentName, detail.programPath)}. ${NOTHING_WAS_WRITTEN}`;
+      return `The program was not kept: ${AgentProgramWordingUtil.programClauseOf(detail.cause, detail.agentName, detail.programPath, detail.outputLine)}. `
+        + NOTHING_WAS_WRITTEN;
+    case 'tool-refused':
+      return `The tool ${detail.name} was not kept: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'tool-not-found':
       return `No program ${detail.name} is in ${detail.searchedFolders.length === 0 ? 'any place installers use' : detail.searchedFolders.join(', ')}: `
         + `name the tool with its path. ${NOTHING_WAS_WRITTEN}`;
@@ -1001,6 +1004,7 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'need-outside-an-entity':            'only a build job of an entity declares a need',
   'need-incomplete':                   'a need names its entity and a title, and its body holds a numbered ## Acceptance and a ## Brief',
   'need-for-sealed-package':           'the change of this ticket in that package is sealed; end the stage with the outcome package-return',
+  'tools-set-by-user-only':            'only User sets the tools agents run; the programs the pipeline runs are found without a list',
 };
 
 /** What a relayed verb prints once Hephaestus answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

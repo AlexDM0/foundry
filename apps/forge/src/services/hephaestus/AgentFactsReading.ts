@@ -2,16 +2,16 @@
  * The facts of the forge's agent a view reads, from the Board, this machine's config and the places installers put programs: the choice,
  * the program it names now, whether that program ran since Hephaestus started, and the tools of the pipeline and of the open setup record.
  */
-import { MachineConfigFile }      from '../../adapters/machine-config/MachineConfigFile.ts';
-import type { AgentAdapter }      from '../../lib/agent-launch/AgentAdapter.ts';
-import type { PlatformPorts }     from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { ProgramSearchUtil }      from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
-import type { Board }             from '../../lib/tracker-model/Board.ts';
-import type { AgentFacts }        from '../../shared/@types/AgentFacts.ts';
-import type { AgentProgramCheck } from '../../shared/@types/AgentProgramCheck.ts';
-import { AgentPrograms }          from '../control/AgentPrograms.ts';
-import { AgentTools }             from '../control/AgentTools.ts';
-import { COMING_AGENT_VENDORS }   from './constants/ComingAgentVendors.ts';
+import { MachineConfigFile }         from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { AgentAdapter }         from '../../lib/agent-launch/AgentAdapter.ts';
+import type { PlatformPorts }        from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { Board }                from '../../lib/tracker-model/Board.ts';
+import type { AgentFacts }           from '../../shared/@types/AgentFacts.ts';
+import type { AgentProgramCheck }    from '../../shared/@types/AgentProgramCheck.ts';
+import { AgentPrograms }             from '../control/AgentPrograms.ts';
+import { AgentTools }                from '../control/AgentTools.ts';
+import { agentToolForbiddenRootsOf } from '../tracker/RegisteredRepositoryRoots.ts';
+import { COMING_AGENT_VENDORS }      from './constants/ComingAgentVendors.ts';
 
 export interface AgentFactsSource {
   board:         Pick<Board, 'agentOfForge' | 'pipeline' | 'pipelineSetup'>;
@@ -19,6 +19,8 @@ export interface AgentFactsSource {
   platformPorts: PlatformPorts;
   homeDirectory: string;
   monitorFolder: string;
+  /** The forge's tracker folder, whose repository and worktrees no tool may lie in. */
+  rootDirectory: string;
   /** The newest run of a program this Hephaestus made, `null` for one it has not run yet; absent outside Hephaestus, where none runs. */
   checkOf?:      (programPath: string) => AgentProgramCheck | null;
 }
@@ -40,8 +42,8 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
   const vendor = choice?.vendor ?? adapter.vendor;
   const machineProgramPath = MachineConfigFile.programPathOf(MachineConfigFile.read(source.monitorFolder), vendor);
   const programPath = choice === null ? null : AgentPrograms.chosenPathOf(choice.program, machineProgramPath);
-  const { executableResolver, programFolders, shellLine } = platformPorts;
-  const toolSearch = ProgramSearchUtil.toolSearchOf(programFolders, homeDirectory);
+  const { executableResolver, programFolders } = platformPorts;
+  const toolPlaces = AgentTools.toolPlacesOf(platformPorts, homeDirectory, agentToolForbiddenRootsOf(source.rootDirectory, source.monitorFolder));
   const pipeline = board.pipeline();
   const setup = board.pipelineSetup();
   return {
@@ -56,8 +58,8 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
     check:       checkOfChoice(source, programPath),
     places:      vendor === adapter.vendor ? AgentPrograms.placesOf(adapter, programFolders, homeDirectory, executableResolver) : [],
     toolsListed: pipeline?.tools !== undefined,
-    tools:       AgentTools.toolFactsOf(pipeline, shellLine, toolSearch, executableResolver),
-    setupTools:  setup === null ? [] : AgentTools.toolFactsOf(setup.draft ?? pipeline, shellLine, toolSearch, executableResolver),
+    tools:       AgentTools.toolFactsOf(pipeline, toolPlaces),
+    setupTools:  setup === null ? [] : AgentTools.toolFactsOf(setup.draft ?? pipeline, toolPlaces),
   };
 }
 

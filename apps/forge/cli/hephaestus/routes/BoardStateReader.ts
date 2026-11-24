@@ -173,6 +173,7 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
       platformPorts: context.platformPorts,
       homeDirectory: context.homeDirectory,
       monitorFolder: context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
+      rootDirectory: workspace.rootDirectory,
       ...(source.agentProgramChecks === undefined ? {} : { checkOf: (programPath: string) => source.agentProgramChecks?.checkOf(programPath) ?? null }),
     }),
     pipelineSources: {
