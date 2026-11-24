@@ -6,7 +6,9 @@
  * a command; a switch sends its edit, and on a live board sends `pipeline-update-start` first and the edit once the update record shows;
  * a refusal shows verbatim, and after it the next gesture's edit goes to a record opened elsewhere; a live step says its state and links
  * the tickets on it; the live Merge header names the ticket the Airlock lets onto main, the fast-forward's too, and the queued ones; an
- * editing step carries its change; a question pill asks for the question.
+ * editing step carries its change; a question pill asks for the question. The Ticket phase offers how a ticket is written: a press on
+ * the other route sends one `ticket-writing` edit and a press on the chosen one sends nothing; the spec-then-plan route draws its four
+ * steps, each writing step naming its document, and says a ticket needs the spec's Acceptance, an approved spec and an approved plan.
  */
 import {
   act,
@@ -292,5 +294,50 @@ describe('live and editing marks', () => {
     cleanup();
     renderPhase('A6-drawn-changes', 'build');
     expect(within(stepOf('gates-build')).getByText('lint').closest('[data-change]')?.getAttribute('data-change')).toBe('removed');
+  });
+});
+
+describe('how a ticket is written', () => {
+  test('the choice shows the draft\'s route, and a press on the other route sends one ticket-writing edit to the open record', async () => {
+    const { controls } = renderPhase('A2', 'ticket');
+    const choice = screen.getByRole('group', { name: 'How a ticket is written' });
+    const pressed = (): string[] => within(choice).getAllByRole('button')
+      .filter((button) => button.getAttribute('aria-pressed') === 'true')
+      .map((button) => button.textContent ?? '');
+    expect(pressed()).toEqual(['One ticket']);
+    await clickSettled(within(choice).getByRole('button', { name: 'One ticket' }));
+    expect(controls.sent).toEqual([]);
+    await clickSettled(within(choice).getByRole('button', { name: 'Spec, then plan' }));
+    expect(controls.sent).toEqual([{
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ target: 'ticket-writing', value: 'spec-then-plan' }], isACopy: false
+    }]);
+  });
+
+  test('going back to one ticket sends the edit that removes the route', async () => {
+    const { controls } = renderPhase('A2-spec-then-plan', 'ticket');
+    await clickSettled(within(screen.getByRole('group', { name: 'How a ticket is written' })).getByRole('button', { name: 'One ticket' }));
+    expect(controls.sent).toMatchObject([{ kind: 'pipeline-draft-edit', edits: [{ target: 'ticket-writing', value: null }] }]);
+  });
+
+  test('the spec-then-plan route draws its four steps, each writing step naming its document, and its readiness lines', () => {
+    renderPhase('A2-spec-then-plan', 'ticket');
+    const steps = [...document.querySelectorAll<HTMLElement>('[data-step-node-id]')];
+    expect(steps.map((step) => step.dataset['stepNodeId'])).toEqual(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review']);
+    expect(within(stepOf('spec-writing')).getByText('spec.md')).toBeDefined();
+    expect(within(stepOf('plan-writing')).getByText('plan.md')).toBeDefined();
+    expect(within(stepOf('human-spec-review')).getByRole('switch', { name: 'Human spec review' }).getAttribute('aria-checked')).toBe('true');
+    const readiness = screen.getByRole('region', { name: 'What makes a draft ready' });
+    expect(within(readiness).getByText('A ticket is ready to build when it has all of these')).toBeDefined();
+    expect([...readiness.querySelectorAll('li')].map((line) => line.textContent)).toEqual([
+      'A numbered AcceptanceIn the spec. Each line is one check the change must pass.',
+      'An approved specApproved by you, since Human spec review is on.',
+      'An approved planIt takes the place of the Brief. The builder starts from it.',
+    ]);
+  });
+
+  test('a document review\'s switch sends its own approval edit', async () => {
+    const { controls } = renderPhase('A2-spec-then-plan', 'ticket');
+    await clickSettled(within(stepOf('human-plan-review')).getByRole('switch', { name: 'Human plan review' }));
+    expect(controls.sent).toMatchObject([{ kind: 'pipeline-draft-edit', edits: [{ target: 'approval', approval: 'plan', value: false }] }]);
   });
 });

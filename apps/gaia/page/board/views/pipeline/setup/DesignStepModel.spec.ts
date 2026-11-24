@@ -3,7 +3,8 @@
  * the facts' summary; Apply is disabled exactly while a question is open, with its reason and the amber hint, and enabled with "All
  * questions answered" at zero; the Changes tab's name says what its count counts; the panel head's dot and word come from the agent's
  * job and its ready mark; the newest change is the agent's newest edit that is not undone; each field shows on the flow in the
- * phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that lists it, an order as the gates.
+ * phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that lists it, an order as the gates,
+ * and how a ticket is written as the Ticket phase's first step.
  */
 import { describe, expect, test }                                                             from 'bun:test';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -77,6 +78,20 @@ describe('show on the flow', () => {
     expect(DesignStepModel.flowTargetOf('constitution', flow)).toBeNull();
     expect(DesignStepModel.flowTargetOf('gate:no-such-gate', flow)).toBeNull();
     expect(DesignStepModel.showLinkTextOf('gate:typecheck')).toBe('Show typecheck on the flow');
+  });
+
+  test('how a ticket is written shows as the Ticket phase\'s first step, and the document reviews and agents as their cards', () => {
+    const flowOfState = (name: 'A2' | 'A2-spec-then-plan'): BoardPipelineFlowDocument => {
+      const { flow } = pipelineBoardStateOf(name).pipeline;
+      if (flow === null) throw new Error(`${name} has no flow`);
+      return flow;
+    };
+    const flow = flowOfState('A2-spec-then-plan');
+    expect(DesignStepModel.flowTargetOf('ticket-writing', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'spec-writing' } });
+    expect(DesignStepModel.flowTargetOf('ticket-writing', flowOfState('A2'))).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'ticket-creation' } });
+    expect(DesignStepModel.flowTargetOf('approval:spec', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'human-spec-review' } });
+    expect(DesignStepModel.flowTargetOf('approval:plan', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'human-plan-review' } });
+    expect(DesignStepModel.flowTargetOf('role:planAgent', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'plan-writing' } });
   });
 });
 

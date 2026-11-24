@@ -1,8 +1,9 @@
 /**
  * One step of the open phase: its kind word with its mark, a Conditional pill on a re-review, the pills that say what it waits on or how
  * it changed (each pops in), User's switch on a "You" step, then its title, its gate pills, its sentence, the tickets on it on a live
- * board, and an agent's model, effort and brief files. A double-click or Enter asks for what the step opens, or for the question it waits
- * on; a press inside a control stays that control's. At an entity of a monorepo, a switch the forge sets is a link to the forge level.
+ * board, and an agent's model, effort and brief files, or the document a writing step writes. A double-click or Enter asks for what the
+ * step opens, or for the question it waits on; a press inside a control stays that control's. At an entity of a monorepo, a switch the
+ * forge sets is a link to the forge level.
  */
 
 import type { KeyboardEvent, SyntheticEvent } from 'react';
@@ -158,7 +159,7 @@ export function StepCard({
           )}
         <Text muted>{view.sentence}</Text>
         {occupants === null ? null : <LiveTickets occupants={occupants} />}
-        {meter === null && view.briefText === null
+        {meter === null && view.briefText === null && view.documentFileName === null
           ? null
           : (
             <View gap="four" paddingTop="eight">
@@ -176,6 +177,7 @@ export function StepCard({
                   />
                 )}
               {view.briefText === null ? null : <Text typeRole="small" mono subtle>{view.briefText}</Text>}
+              {view.documentFileName === null ? null : <Text typeRole="small" mono subtle>{view.documentFileName}</Text>}
             </View>
           )}
       </Card>

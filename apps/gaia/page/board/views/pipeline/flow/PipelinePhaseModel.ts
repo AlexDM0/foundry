@@ -1,12 +1,18 @@
 /**
  * The Focus layout's model, pure: which of the four phases (Ticket, Build, Review, Merge) holds each node and add slot of the facts, the
  * stepper's tab of each phase with its sub-line and pill, the open phase's header words, the step a live card is in, and the Ticket
- * phase's readiness lines. The Merge header stands for the merge train's frame and its end, so those nodes get no step card. An entity of a
- * monorepo draws three phases: its tickets are made at the forge, so the Ticket phase is the forge's.
+ * phase's readiness lines, which follow how a ticket is written: one ticket with an Acceptance and a Brief, or a spec, then a plan. The
+ * Merge header stands for the merge train's frame and its end, so those nodes get no step card. An entity of a monorepo draws three
+ * phases: its tickets are made at the forge, so the Ticket phase is the forge's.
  */
 import type { BoardFlowNodeDocument, BoardInsertSlotDocument, BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardFlowStage, BoardGatePhase, BoardPipelineNodeKind }                     from '../../../../@types/board/BoardVocabulary.ts';
-import { PipelineFlowModel, type FlowSlotPlace, type StepKind }                           from './PipelineFlowModel.ts';
+import type {
+  BoardFlowStage,
+  BoardGatePhase,
+  BoardPipelineNodeKind,
+  BoardTicketWritingRoute
+} from '../../../../@types/board/BoardVocabulary.ts';
+import { PipelineFlowModel, type FlowSlotPlace, type StepKind } from './PipelineFlowModel.ts';
 
 export type PipelinePhase = 'ticket' | 'build' | 'review' | 'merge';
 
@@ -62,6 +68,12 @@ export interface ReadinessLine {
   readonly text:  string;
 }
 
+/** What makes a draft ready in the Ticket phase: the lead beside the heading, then a line per thing it needs. */
+export interface TicketReadinessView {
+  readonly lead:  string;
+  readonly lines: readonly ReadinessLine[];
+}
+
 const PHASE_NAMES: Readonly<Record<PipelinePhase, string>> = Object.freeze({
   ticket: 'Ticket', build: 'Build', review: 'Review', merge: 'Merge',
 });
@@ -71,16 +83,63 @@ const HEADER_NODE_KINDS: readonly BoardPipelineNodeKind[] = Object.freeze(['read
 
 const DONE_ON_MAIN_TEXT = 'Done on main';
 
-const TICKET_READINESS: readonly ReadinessLine[] = Object.freeze([
-  { key: 'acceptance', title: 'A numbered Acceptance', text: 'Each line is one check the change must pass.' },
-  { key: 'brief', title: 'A Brief', text: 'At least one line. It is the builder\'s brief.' },
-]);
+const ONE_TICKET_READINESS: TicketReadinessView = Object.freeze({
+  lead:  'A draft is ready to build when it has both of these',
+  lines: Object.freeze([
+    { key: 'acceptance', title: 'A numbered Acceptance', text: 'Each line is one check the change must pass.' },
+    { key: 'brief', title: 'A Brief', text: 'At least one line. It is the builder\'s brief.' },
+  ]),
+});
+
+const SPEC_THEN_PLAN_READINESS_LEAD = 'A ticket is ready to build when it has all of these';
+
+const SPEC_ACCEPTANCE_LINE: ReadinessLine = Object.freeze({
+  key:   'acceptance',
+  title: 'A numbered Acceptance',
+  text:  'In the spec. Each line is one check the change must pass.',
+});
+
+const APPROVED_SPEC_TEXTS: Readonly<Record<'on' | 'off', string>> = Object.freeze({
+  on:  'Approved by you, since Human spec review is on.',
+  off: 'Approved by the pipeline when the spec agent calls it ready, since Human spec review is off.',
+});
+
+const APPROVED_PLAN_LINE: ReadinessLine = Object.freeze({ key: 'approved-plan', title: 'An approved plan', text: 'It takes the place of the Brief. The builder starts from it.', });
+
+const TICKET_PURPOSES: Readonly<Record<BoardTicketWritingRoute, string>> = Object.freeze({
+  'one-ticket':     'A request becomes a ticket with a numbered Acceptance and a Brief.',
+  'spec-then-plan': 'A request becomes a ticket: written, reviewed by you, then ready to build.',
+});
+
+/** The spec-then-plan route with both reviews off: no step of the phase waits on User. */
+const UNREVIEWED_SPEC_THEN_PLAN_PURPOSE = 'A request becomes a ticket: a spec, then a plan, then ready to build.';
+
+/** The forge draws a spec's writing step only in the spec-then-plan route, so the flow's nodes say the route it was drawn for. */
+function ticketWritingRouteOf(flow: Pick<BoardPipelineFlowDocument, 'nodes'>): BoardTicketWritingRoute {
+  return flow.nodes.some((node) => node.nodeKind === 'spec-writing') ? 'spec-then-plan' : 'one-ticket';
+}
+
+function switchIsOn(flow: Pick<BoardPipelineFlowDocument, 'nodes'>, nodeKind: BoardPipelineNodeKind): boolean {
+  return flow.nodes.some((node) => node.nodeKind === nodeKind && node.switchState === 'on');
+}
+
+function ticketReadinessOf(flow: Pick<BoardPipelineFlowDocument, 'nodes'>): TicketReadinessView {
+  if (ticketWritingRouteOf(flow) === 'one-ticket') return ONE_TICKET_READINESS;
+  const approvedSpecLine = { key: 'approved-spec', title: 'An approved spec', text: APPROVED_SPEC_TEXTS[switchIsOn(flow, 'human-spec-review') ? 'on' : 'off'] };
+  return { lead: SPEC_THEN_PLAN_READINESS_LEAD, lines: [SPEC_ACCEPTANCE_LINE, approvedSpecLine, APPROVED_PLAN_LINE] };
+}
+
+function ticketPurposeOf(flow: Pick<BoardPipelineFlowDocument, 'nodes'>): string {
+  const route = ticketWritingRouteOf(flow);
+  const reviewed = switchIsOn(flow, 'human-spec-review') || switchIsOn(flow, 'human-plan-review');
+  return route === 'spec-then-plan' && !reviewed ? UNREVIEWED_SPEC_THEN_PLAN_PURPOSE : TICKET_PURPOSES[route];
+}
 
 function countText(count: number, singular: string): string {
   return `${count} ${singular}${count === 1 ? '' : 's'}`;
 }
 
-/** The phase a node opens, walking the facts' order; null for a node that stays in the phase before it. */
+/** The phase a node opens, walking the facts' order; null for a node that stays in the phase before it, as a ticket's writing steps do. */
 function phaseOpenedBy(node: BoardFlowNodeDocument, current: PipelinePhase): PipelinePhase | null {
   if (node.nodeKind === 'builder' && current === 'ticket') return 'build';
   const opensReview = node.nodeKind === 'review' || node.nodeKind === 'human-code-review'
@@ -239,7 +298,7 @@ function headerOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase, phases:
   }
   if (phase === 'ticket') {
     return {
-      ...shared, purpose: 'A request becomes a ticket with a numbered Acceptance and a Brief.', endLead: 'Leaves when', endText: 'it is ready to build',
+      ...shared, purpose: ticketPurposeOf(flow), endLead: 'Leaves when', endText: 'it is ready to build',
     };
   }
   if (phase === 'build') return { ...shared, ...buildHeaderOf(flow), endLead: 'Leaves when' };
@@ -282,7 +341,6 @@ function queueNodeIdsOf(flow: Pick<BoardPipelineFlowDocument, 'nodes'>): string[
 
 export const PipelinePhaseModel = Object.freeze({
   DONE_ON_MAIN_TEXT,
-  TICKET_READINESS,
   gatePhaseOf,
   headerOf,
   liveStateTextOf,
@@ -294,5 +352,7 @@ export const PipelinePhaseModel = Object.freeze({
   queueNodeIdsOf,
   stepItemsOf,
   tabViewsOf,
+  ticketReadinessOf,
+  ticketWritingRouteOf,
   trainNodeIdsOf,
 });

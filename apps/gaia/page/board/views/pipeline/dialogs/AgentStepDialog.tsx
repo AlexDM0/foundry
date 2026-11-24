@@ -1,8 +1,9 @@
 /**
- * The agent step dialog (A3Inspector) of Ticket creation and the Builder: the model beside the effort, every value the board offers, the
- * meter in the head following the form, the brief, when the step runs and what it fixes, and the foot. The form is local until Save,
- * which sends the role's one edit; Reset to default fills the form with the defaults and sends nothing; Esc, × and Cancel send nothing.
- * At the forge level of a monorepo, the product owner's dialog says it also names each ticket's entity.
+ * The agent step dialog (A3Inspector) of Ticket creation, the Spec and Plan writing steps and the Builder: the model beside the effort,
+ * every value the board offers, the meter in the head following the form, the brief, in the spec-then-plan route the builder's pipeline
+ * documents, when the step runs and what it fixes, and the foot. The form is local until Save, which sends the role's one edit; Reset to
+ * default fills the form with the defaults and sends nothing; Esc, × and Cancel send nothing. At the forge level of a monorepo, the
+ * product owner's dialog says it also names each ticket's entity.
  */
 
 import { useState }                                                                                  from 'react';
@@ -13,17 +14,18 @@ import {
   Card,
   Dialog,
   ModelEffortMeter,
-  Row,
-  Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
+import { PipelineFlowModel }           from '../flow/PipelineFlowModel.ts';
 
 import { AgentStepDialogModel, type AgentStepForm, type AgentStepRole } from './AgentStepDialogModel.ts';
 import { InstructionsEditor }                                           from './InstructionsEditor.tsx';
 import type { ConstitutionPlace }                                       from './InstructionsEditorModel.ts';
 import { ModelEffortFields }                                            from './ModelEffortFields.tsx';
+import { PipelineDocumentsSection }                                     from './PipelineDocumentsSection.tsx';
 import { StepDialogFoot }                                               from './StepDialogFoot.tsx';
+import { StepFact }                                                     from './StepFact.tsx';
 
 /** Sends a question to the pipeline agent, opening an advise session first where none runs. */
 export interface PipelineAgentAsker {
@@ -45,21 +47,6 @@ export interface AgentStepDialogProps {
   readonly onClose:       () => void;
   /** The forge holds entities, so the product owner also routes each ticket to one. */
   readonly overEntities?: boolean;
-}
-
-interface StepFactProps {
-  readonly term:        string;
-  readonly description: string;
-}
-
-/** One line of the step's facts: the term in bold, what it says muted beside it. */
-function StepFact({ term, description }: StepFactProps) {
-  return (
-    <Row gap="ten" paddingVertical="eight">
-      <Text bold>{term}</Text>
-      <Text muted>{description}</Text>
-    </Row>
-  );
 }
 
 export function AgentStepDialog({
@@ -124,6 +111,9 @@ export function AgentStepDialog({
           constitution={constitution}
           onChange={(entries) => setForm({ ...form, entries })}
         />
+        {role !== 'builder' || form.documents === null || PipelineFlowModel.ticketWritingRouteOfDraft(draft) !== 'spec-then-plan'
+          ? null
+          : <PipelineDocumentsSection role="builder" rules={form.documents} onChange={(documents) => setForm({ ...form, documents })} />}
         <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
           <StepFact term="Runs" description={words.runs} />
           {words.fixes === null ? null : <StepFact term="Fixes" description={words.fixes} />}

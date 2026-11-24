@@ -4,7 +4,9 @@
  * settings and shows the off note, and Save then drops `review.reReview`; the threshold steps by 50 and stops at 50; Reset puts back the
  * defaults (re-review on at 750, the constitution in both briefs); Remove review asks first and then sends one `null` edit; both tabs
  * offer every model and effort; every brief the re-review reads offers Open; and opened from the re-review node it opens on the Re-review
- * tab, its switch focused.
+ * tab, its switch focused. In the spec-then-plan route the Review tab holds the Pipeline documents after the brief, the spec fixed at
+ * Always with its other choices disabled, a read-only line on what the builder reads, and Reset to default puts the plan back at If you
+ * approved it.
  */
 import {
   act,
@@ -174,4 +176,41 @@ test('both tabs offer every model and effort value', () => {
   expect(modelsOf('Re-review model')).toEqual(['haiku', 'sonnet', 'opus', 'fable']);
   expect(effortsOf('Re-review effort')).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
   expect(within(dialog()).getByRole('group', { name: 'Re-review effort' }).getAttribute('data-size')).toBe('compact');
+});
+
+describe('the pipeline documents', () => {
+  function documentsRegion(): HTMLElement {
+    return within(dialog()).getByRole('region', { name: 'Pipeline documents' });
+  }
+
+  function pressedIn(groupName: string): string | null {
+    const group = within(documentsRegion()).getByRole('group', { name: groupName });
+    return [...group.querySelectorAll('button')].find((button) => button.getAttribute('aria-pressed') === 'true')?.textContent ?? null;
+  }
+
+  test('the spec stays at Always, its other choices disabled, and the plan offers every choice', () => {
+    renderDialog('A2-spec-then-plan');
+    const specChoices = [...within(documentsRegion()).getByRole('group', { name: 'When the reviewer reads the spec' }).querySelectorAll('button')];
+    expect(specChoices.map((button) => [button.textContent, button.disabled])).toEqual([['Always', false], ['If you approved it', true], ['Never', true]]);
+    expect(pressedIn('When the reviewer reads the plan')).toBe('If you approved it');
+    expect(dialog().textContent).toContain('Reads the spec and the plan, always. Change it in the Builder\'s editor.');
+  });
+
+  test('a changed plan rule is stored on Save, and Reset to default puts it back at If you approved it', async () => {
+    const controls = renderDialog('A2-spec-then-plan');
+    const planGroup = (): HTMLElement => within(documentsRegion()).getByRole('group', { name: 'When the reviewer reads the plan' });
+    act(() => within(planGroup()).getByRole('button', { name: 'Never' }).click());
+    expect(pressedIn('When the reviewer reads the plan')).toBe('Never');
+    act(() => within(dialog()).getByRole('button', { name: 'Reset to default' }).click());
+    expect(pressedIn('When the reviewer reads the plan')).toBe('If you approved it');
+    act(() => within(planGroup()).getByRole('button', { name: 'Always' }).click());
+    await clickSettled(within(dialog()).getByRole('button', { name: 'Save' }));
+    const reviewerEdit = expect.objectContaining({ target: 'role', role: 'reviewer', value: expect.objectContaining({ documents: { plan: 'always' } }) });
+    expect(controls.sent[0]).toMatchObject({ edits: expect.arrayContaining([reviewerEdit]) });
+  });
+
+  test('one ticket gives the reviewer no pipeline documents to read', () => {
+    renderDialog('A2');
+    expect(within(dialog()).queryByRole('region', { name: 'Pipeline documents' })).toBeNull();
+  });
 });

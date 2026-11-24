@@ -22,9 +22,11 @@ import type {
   BoardInsertableStep,
   BoardPipelineApproval,
   BoardPipelineNodeKind,
-  BoardPipelineNodeMark
+  BoardPipelineNodeMark,
+  BoardTicketWritingRoute
 } from '../../../../@types/board/BoardVocabulary.ts';
-import { GateCacheMarkModel } from '../gates/GateCacheMarkModel.ts';
+import { BOARD_TICKET_WRITING_ROUTES } from '../../../../@types/board/BoardVocabulary.ts';
+import { GateCacheMarkModel }          from '../gates/GateCacheMarkModel.ts';
 
 /** What a step card names itself as: an agent's step, User's step, a phase's gates or a step that runs by itself. */
 export type StepKind = 'agent' | 'you' | 'gates' | 'automatic';
@@ -70,26 +72,28 @@ export type FlowOpenRequest =
   | { readonly kind: 'new-gate'; readonly phase: BoardGatePhase };
 
 export interface FlowNodeView {
-  readonly nodeId:      string;
+  readonly nodeId:           string;
   /** The node's name in the dialogs and the activity list ("Gates"). */
-  readonly title:       string;
+  readonly title:            string;
   /** The card's title: a gates step is named for its phase ("Build gates"). */
-  readonly cardTitle:   string;
-  readonly kind:        StepKind;
-  readonly sentence:    string;
-  readonly conditional: boolean;
-  /** The agent's instruction files, " · " between them; null on a step no agent runs. */
-  readonly briefText:   string | null;
-  readonly gatePills:   readonly FlowGatePillView[];
-  readonly meter:       FlowMeterView | null;
-  readonly switchView:  FlowSwitchView | null;
+  readonly cardTitle:        string;
+  readonly kind:             StepKind;
+  readonly sentence:         string;
+  readonly conditional:      boolean;
+  /** The agent's instruction files, " · " between them; null on a step no agent runs and on a writing step, which names its document. */
+  readonly briefText:        string | null;
+  /** The document a writing step writes ("spec.md"); null on any other step. */
+  readonly documentFileName: string | null;
+  readonly gatePills:        readonly FlowGatePillView[];
+  readonly meter:            FlowMeterView | null;
+  readonly switchView:       FlowSwitchView | null;
   /** Human code review while on: the step that waits on User. */
-  readonly highlighted: boolean;
-  readonly change:      FlowChange | null;
+  readonly highlighted:      boolean;
+  readonly change:           FlowChange | null;
   /** The editing marker's words ("Changed", "Off → on", "2 changes"); null with no change. */
-  readonly changeText:  string | null;
-  readonly openAction:  FlowOpenAction | null;
-  readonly openLabel:   string | null;
+  readonly changeText:       string | null;
+  readonly openAction:       FlowOpenAction | null;
+  readonly openLabel:        string | null;
 }
 
 /** What a node's words read beside the node: the efforts a meter counts in, and the forge's rework threshold a re-review names by default. */
@@ -170,8 +174,23 @@ const DERIVED_WITHOUT_REVIEW_NOTE = Object.freeze({
 const SWITCH_SENTENCES: Readonly<Record<BoardPipelineApproval, Readonly<Record<'on' | 'off', string>>>> = Object.freeze({
   tickets: { on: 'You ready each draft before it builds.', off: 'Off: a complete draft builds at once.' },
   merge:   { on: 'You review the change and press Merge. Your presses set the order.', off: 'Off: a green review goes straight to the merge train.' },
-  spec:    { on: 'You approve each spec before its plan is written.', off: 'Off: the spec agent approves the spec when it is ready.' },
-  plan:    { on: 'You approve each plan before the ticket builds.', off: 'Off: the plan agent approves the plan when it is ready.' },
+  spec:    { on: 'You approve the spec before the plan starts.', off: 'Off: the spec agent approves the spec when it is ready.' },
+  plan:    { on: 'You approve the plan; approving starts the build.', off: 'Off: the plan agent approves the plan when it is ready.' },
+});
+
+/** The document each writing step writes, as its card names it. */
+const DOCUMENT_FILE_NAMES: Readonly<Partial<Record<BoardPipelineNodeKind, string>>> = Object.freeze({
+  'spec-writing': 'spec.md',
+  'plan-writing': 'plan.md',
+});
+
+const HUMAN_STEP_KINDS: readonly BoardPipelineNodeKind[] = Object.freeze(['human-ticket-review', 'human-spec-review', 'human-plan-review', 'human-code-review']);
+
+const APPROVAL_OF_SWITCH_NODE: Readonly<Partial<Record<BoardPipelineNodeKind, BoardPipelineApproval>>> = Object.freeze({
+  'human-ticket-review': 'tickets',
+  'human-spec-review':   'spec',
+  'human-plan-review':   'plan',
+  'human-code-review':   'merge',
 });
 
 const INSERT_CHOICE_WORDS: Readonly<Record<BoardInsertableStep, { readonly label: string; readonly description: string }>> = Object.freeze({
@@ -199,7 +218,7 @@ function countText(count: number, singular: string): string {
 
 function kindOf(node: BoardFlowNodeDocument): StepKind {
   if (node.nodeKind === 'gates') return 'gates';
-  if (node.nodeKind === 'human-ticket-review' || node.nodeKind === 'human-code-review') return 'you';
+  if (HUMAN_STEP_KINDS.includes(node.nodeKind)) return 'you';
   return node.role === null ? 'automatic' : 'agent';
 }
 
@@ -209,9 +228,11 @@ function instructionFilesTextOf(node: BoardFlowNodeDocument): string {
 }
 
 function switchApprovalOf(node: BoardFlowNodeDocument): BoardPipelineApproval | null {
-  if (node.nodeKind === 'human-ticket-review') return 'tickets';
-  if (node.nodeKind === 'human-code-review') return 'merge';
-  return null;
+  return Object.hasOwn(APPROVAL_OF_SWITCH_NODE, node.nodeKind) ? APPROVAL_OF_SWITCH_NODE[node.nodeKind] ?? null : null;
+}
+
+function documentFileNameOf(node: BoardFlowNodeDocument): string | null {
+  return Object.hasOwn(DOCUMENT_FILE_NAMES, node.nodeKind) ? DOCUMENT_FILE_NAMES[node.nodeKind] ?? null : null;
 }
 
 function mergeSentenceOf(node: BoardFlowNodeDocument): string {
@@ -237,6 +258,10 @@ function sentenceOf(node: BoardFlowNodeDocument, fixer: GatesFixer, reworkThresh
   switch (node.nodeKind) {
     case 'ticket-creation':
       return 'Turns a request into a draft ticket with a numbered Acceptance and a Brief.';
+    case 'spec-writing':
+      return 'Writes what and why with you, and the numbered Acceptance.';
+    case 'plan-writing':
+      return 'Works out how: approach, changes and order, from the approved spec.';
     case 'builder':
       return 'Makes the change in a worktree of its own and commits on its branch.';
     case 'review':
@@ -346,6 +371,7 @@ function nodeViewOf(node: BoardFlowNodeDocument, wording: FlowWording, fixer: Ga
   const title = NODE_TITLES[node.nodeKind];
   const kind = kindOf(node);
   const change = changeOfMark(node.mark);
+  const documentFileName = documentFileNameOf(node);
   return {
     nodeId:      node.nodeId,
     title,
@@ -353,7 +379,8 @@ function nodeViewOf(node: BoardFlowNodeDocument, wording: FlowWording, fixer: Ga
     kind,
     sentence:    sentenceOf(node, fixer, wording.reworkThresholdLines),
     conditional: node.conditional,
-    briefText:   kind === 'agent' ? instructionFilesTextOf(node) : null,
+    briefText:   kind === 'agent' && documentFileName === null ? instructionFilesTextOf(node) : null,
+    documentFileName,
     gatePills:   gatePillsOf(node, gateCacheMarks),
     meter:       meterOf(node, wording.efforts),
     switchView:  approval === null ? null : { accessibleName: title, checked: node.switchState === 'on', approval },
@@ -406,6 +433,25 @@ function slotViewOf(slot: BoardInsertSlotDocument, place: FlowSlotPlace, draft: 
   };
 }
 
+const TICKET_WRITING_ROUTE_LABELS: Readonly<Record<BoardTicketWritingRoute, string>> = Object.freeze({
+  'one-ticket':     'One ticket',
+  'spec-then-plan': 'Spec, then plan',
+});
+
+/** The choice of how a ticket is written, in the order the Ticket phase offers it. */
+const TICKET_WRITING_CHOICES: readonly { readonly value: BoardTicketWritingRoute; readonly label: string }[] = Object.freeze(
+  BOARD_TICKET_WRITING_ROUTES.map((value) => ({ value, label: TICKET_WRITING_ROUTE_LABELS[value] })),
+);
+
+/** An absent route is one ticket, so choosing one ticket removes the key and the stored pipeline stays as it was before the choice. */
+function ticketWritingEditOf(route: BoardTicketWritingRoute): BoardDraftEditDocument {
+  return { target: 'ticket-writing', value: route === 'one-ticket' ? null : route };
+}
+
+function ticketWritingRouteOfDraft(draft: Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null): BoardTicketWritingRoute {
+  return draft?.ticketWriting ?? 'one-ticket';
+}
+
 function switchEditOf(switchView: FlowSwitchView): BoardDraftEditDocument {
   return { target: 'approval', approval: switchView.approval, value: !switchView.checked };
 }
@@ -444,6 +490,7 @@ function flowWordingOf(facts: Pick<BoardDocument, 'pipeline' | 'limits'>): FlowW
 }
 
 export const PipelineFlowModel = Object.freeze({
+  TICKET_WRITING_CHOICES,
   flowWordingOf,
   changeOfMark,
   draftEditCommandOf,
@@ -457,4 +504,6 @@ export const PipelineFlowModel = Object.freeze({
   removedStepsTextOf,
   slotViewOf,
   switchEditOf,
+  ticketWritingEditOf,
+  ticketWritingRouteOfDraft,
 });

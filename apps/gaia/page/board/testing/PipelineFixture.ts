@@ -43,7 +43,8 @@ import type {
   BoardNodeDialogTarget,
   BoardPipelineAgentRole,
   BoardPipelineNodeMark,
-  BoardProfileRunState
+  BoardProfileRunState,
+  BoardTicketWritingRoute
 } from '../../@types/board/BoardVocabulary.ts';
 import { BOARD_FORGE_LEVEL_AGENT_ROLES }               from '../../@types/board/BoardVocabulary.ts';
 import type { ProfileLogFollower, TranscriptFollower } from '../@types/BoardServices.ts';
@@ -70,6 +71,8 @@ export type PipelineFixtureName =
   | 'A2'
   | 'A2-question-open'
   | 'A2-designing'
+  | 'A2-spec-then-plan'
+  | 'A2-spec-then-plan-reviews-off'
   | 'A3-constitution-removed'
   | 'A3-fable-xhigh'
   | 'A4'
@@ -233,6 +236,8 @@ function defaultBriefEntry(role: BoardPipelineAgentRole, readByRoles: BoardPipel
 function exampleDialogTargetOf(node: Partial<BoardFlowNodeDocument> & Pick<BoardFlowNodeDocument, 'nodeKind'>): BoardNodeDialogTarget | null {
   switch (node.nodeKind) {
     case 'ticket-creation':
+    case 'spec-writing':
+    case 'plan-writing':
     case 'builder':
       return 'agent-step';
     case 'review':
@@ -337,6 +342,55 @@ interface FlowShape {
   readonly mark:            BoardPipelineNodeMark;
   readonly humanCodeReview: boolean;
   readonly applied:         boolean;
+  /** Absent draws one ticket's two steps. */
+  readonly ticketWriting?:  BoardTicketWritingRoute;
+  /** The spec's and the plan's review switches in the spec-then-plan route; absent is on. */
+  readonly documentReview?: 'on' | 'off';
+}
+
+const SPEC_AGENT_SETTINGS: BoardAgentPairDocument = { model: 'sonnet', effort: 'medium' };
+
+const PLAN_AGENT_SETTINGS: BoardAgentPairDocument = { model: 'opus', effort: 'high' };
+
+/** The Ticket phase's steps as the forge draws them for the route: one ticket's, or the spec's and the plan's, which the draft added. */
+function ticketNodesOf(shape: FlowShape): BoardFlowNodeDocument[] {
+  const { mark } = shape;
+  if (shape.ticketWriting !== 'spec-then-plan') {
+    return [
+      exampleNode({
+        nodeId: 'ticket-creation', nodeKind: 'ticket-creation', role: 'productOwner', settings: WORKER_SETTINGS, mark, instructionEntries: [PRODUCT_OWNER_BRIEF],
+      }),
+      exampleNode({
+        nodeId: 'human-ticket-review', nodeKind: 'human-ticket-review', switchState: 'on', mark
+      }),
+    ];
+  }
+  const writingMark: BoardPipelineNodeMark = shape.stage === 'live' ? mark : 'new';
+  const switchState = shape.documentReview ?? 'on';
+  return [
+    exampleNode({
+      nodeId:             'spec-writing',
+      nodeKind:           'spec-writing',
+      role:               'specAgent',
+      settings:           SPEC_AGENT_SETTINGS,
+      mark:               writingMark,
+      instructionEntries: [constitutionEntry(['specAgent', 'planAgent', ...CONSTITUTION_READERS], shape.applied), defaultBriefEntry('specAgent', ['specAgent'])],
+    }),
+    exampleNode({
+      nodeId: 'human-spec-review', nodeKind: 'human-spec-review', switchState, mark: writingMark
+    }),
+    exampleNode({
+      nodeId:             'plan-writing',
+      nodeKind:           'plan-writing',
+      role:               'planAgent',
+      settings:           PLAN_AGENT_SETTINGS,
+      mark:               writingMark,
+      instructionEntries: [constitutionEntry(['specAgent', 'planAgent', ...CONSTITUTION_READERS], shape.applied), defaultBriefEntry('planAgent', ['planAgent'])],
+    }),
+    exampleNode({
+      nodeId: 'human-plan-review', nodeKind: 'human-plan-review', switchState, mark: writingMark
+    }),
+  ];
 }
 
 /** The nodes, edges and slots of a pipeline, as the forge's flow graph would draw them for the shape given. */
@@ -350,12 +404,7 @@ function flowOf(shape: FlowShape, changes: Partial<BoardPipelineFlowDocument> = 
   const chipsOf = (phase: BoardGatePhase): BoardFlowNodeDocument['gateChips'] => pipeline.phases[phase].map((gateName) => ({ gateName, mark }));
   const lastWorker = review === null ? 'builder' : 'last-worker';
   const nodes: BoardFlowNodeDocument[] = [
-    exampleNode({
-      nodeId: 'ticket-creation', nodeKind: 'ticket-creation', role: 'productOwner', settings: WORKER_SETTINGS, mark, instructionEntries: [PRODUCT_OWNER_BRIEF],
-    }),
-    exampleNode({
-      nodeId: 'human-ticket-review', nodeKind: 'human-ticket-review', switchState: 'on', mark
-    }),
+    ...ticketNodesOf(shape),
     exampleNode({
       nodeId:             'builder',
       nodeKind:           'builder',
@@ -546,6 +595,18 @@ function exampleEdit(changes: Partial<BoardSetupEditDocument> & Pick<BoardSetupE
     by: 'user', summary: '', undone: false, batch: null, ...changes,
   };
 }
+
+/** The proposed pipeline with a spec, then a plan, each read by the builder always and by the reviewer as the forge defaults it. */
+const SPEC_THEN_PLAN_PIPELINE = examplePipeline({
+  ...PROPOSED_PIPELINE,
+  ticketWriting: 'spec-then-plan',
+  approvals:     {
+    tickets: true, merge: false, spec: true, plan: true
+  },
+});
+
+/** The pipeline agent's newest edit: the route the owner asked for. */
+const TICKET_WRITING_EDIT_ID = 'E4';
 
 const USER_EDITS: readonly BoardSetupEditDocument[] = [
   exampleEdit({
@@ -1248,6 +1309,33 @@ function monorepoEditingState(): BoardDocument {
   }));
 }
 
+/** Artboard 9: the design step with the spec-then-plan route the pipeline agent proposed, its documents reviewed by User or not. */
+function specThenPlanState(documentReview: 'on' | 'off'): BoardDocument {
+  const draft = examplePipeline({
+    ...SPEC_THEN_PLAN_PIPELINE,
+    approvals: {
+      tickets: true, merge: false, spec: documentReview === 'on', plan: documentReview === 'on'
+    }
+  });
+  const edits = [
+    ...USER_EDITS,
+    exampleEdit({
+      editId: TICKET_WRITING_EDIT_ID, by: 'agent', field: 'ticket-writing', summary: 'Example: a spec, then a plan, each reviewed by User.'
+    }),
+  ];
+  const changeList: BoardPipelineChangeDocument[] = [
+    ...PROPOSAL_CHANGES,
+    { field: 'ticket-writing', changeKind: 'changed', editId: TICKET_WRITING_EDIT_ID },
+    { field: 'role:specAgent', changeKind: 'new', editId: null },
+    { field: 'role:planAgent', changeKind: 'new', editId: null },
+  ];
+  return setupState(setupRecord({ draft, edits }), {}, {
+    flow: flowOf({
+      pipeline: draft, stage: 'proposal', mark: 'proposed', humanCodeReview: false, applied: false, ticketWriting: 'spec-then-plan', documentReview,
+    }, { changeList }),
+  });
+}
+
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument>> = {
   'A0':             () => pipelineBoardState({}),
   'A0-unreadable':  () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 5 }\n' } }),
@@ -1310,8 +1398,10 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     const record = setupRecord({ questions: [ANSWERED_RESEARCH_QUESTION, OPEN_DESIGN_QUESTION] });
     return setupState(record, {}, { flow: withNodeChanged(proposalFlow({ changeList: [...PROPOSAL_CHANGES] }), 'gates-merge', { questionIds: ['Q3'] }) });
   },
-  'A2-designing':            () => setupState(setupRecord({ draft: null, edits: [] }), {}, { flow: minimalFlow({ toolbarStage: 'proposal' }) }),
-  'A3-constitution-removed': () => {
+  'A2-designing':                  () => setupState(setupRecord({ draft: null, edits: [] }), {}, { flow: minimalFlow({ toolbarStage: 'proposal' }) }),
+  'A2-spec-then-plan':             () => specThenPlanState('on'),
+  'A2-spec-then-plan-reviews-off': () => specThenPlanState('off'),
+  'A3-constitution-removed':       () => {
     const builder = { ...WORKER_PAIR, instructions: [{ kind: 'default-brief', role: 'builder' } as const] };
     const draft = examplePipeline({ ...PROPOSED_PIPELINE, agents: { ...PROPOSED_PIPELINE.agents, builder } });
     const flow = withNodeChanged(proposalFlow(), 'builder', { instructionEntries: [defaultBriefEntry('builder', ['builder'])] });

@@ -120,7 +120,7 @@ describe('the status', () => {
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByText('Researching')).toBeDefined();
     const flint = within(panel).getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['50', 'page']);
     expect(within(panel).getByText('Waiting for your answer', { selector: '.board-pipeline-agent-strip *' })).toBeDefined();
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
   });

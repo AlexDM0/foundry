@@ -5,7 +5,8 @@
  * sends one edit with model, effort and the ordered entries and the dialog closes once it is applied; a removed constitution leaves the
  * Include the constitution switch, which puts it back at the top; with every row removed the built-in brief line shows and Save sends an
  * empty list; on a live board Save opens the update first and its edit goes once the record shows; and Ask the pipeline agent messages
- * the agent's job, or opens an advise session first.
+ * the agent's job, or opens an advise session first. In the spec-then-plan route the Spec and Plan steps open it under the Ticket phase
+ * on their own pairs, and the builder's dialog holds the Pipeline documents with every choice open, whose changed rule its Save stores.
  */
 import {
   act,
@@ -239,5 +240,44 @@ describe('Ask the pipeline agent', () => {
     const { controls } = renderDialog('A5');
     await clickSettled(within(dialog()).getByRole('button', { name: 'Ask the pipeline agent' }));
     expect(controls.sent).toEqual([{ ...SENT_COMMAND_VERSION, kind: 'pipeline-agent-advise', entity: null }]);
+  });
+});
+
+describe('the spec-then-plan route', () => {
+  function renderStep(nodeId: string) {
+    const controls = fakeControls();
+    const request: FlowOpenRequest = { kind: 'node', nodeId, action: { kind: 'dialog', dialog: 'agent-step', focusesReReview: false } };
+    controls.render(onBoard(<PipelineDialogs facts={pipelineBoardStateOf('A2-spec-then-plan')} request={request} onClose={() => undefined} />));
+    return controls;
+  }
+
+  test('the Spec and Plan steps open the agent step dialog under the Ticket phase, on their own pairs, and save their own role', async () => {
+    const controls = renderStep('spec-writing');
+    const spec = screen.getByRole('dialog', { name: 'Spec' });
+    expect(spec.querySelector('.design-system-dialog-kicker')?.textContent).toBe('Ticket · Agent step');
+    expect((within(spec).getByRole('combobox', { name: 'Model' }) as HTMLSelectElement).value).toBe('sonnet');
+    expect(within(spec).queryByRole('region', { name: 'Pipeline documents' })).toBeNull();
+    await clickSettled(within(spec).getByRole('button', { name: 'Save' }));
+    expect(controls.sent[0]).toMatchObject({ edits: [{ target: 'role', role: 'specAgent', value: { model: 'sonnet', effort: 'medium' } }] });
+    cleanup();
+    renderStep('plan-writing');
+    const plan = screen.getByRole('dialog', { name: 'Plan' });
+    expect((within(plan).getByRole('combobox', { name: 'Model' }) as HTMLSelectElement).value).toBe('opus');
+    expect(within(plan).getByText('When the spec is approved, again when it changes, and for each message on the plan.')).toBeDefined();
+  });
+
+  test('the builder\'s dialog holds the Pipeline documents with every choice open, and a Save stores the rule changed', async () => {
+    const controls = renderStep('builder');
+    const documents = within(dialog()).getByRole('region', { name: 'Pipeline documents' });
+    const planChoices = within(documents).getByRole('group', { name: 'When the builder reads the plan' });
+    expect([...documents.querySelectorAll('button')].every((button) => !button.disabled)).toBe(true);
+    act(() => within(planChoices).getByRole('button', { name: 'Never' }).click());
+    await save();
+    expect(controls.sent[0]).toMatchObject({ edits: [{ target: 'role', role: 'builder', value: { documents: { plan: 'never' } } }] });
+  });
+
+  test('one ticket gives the builder no pipeline documents to read', () => {
+    renderDialog('A2');
+    expect(within(dialog()).queryByRole('region', { name: 'Pipeline documents' })).toBeNull();
   });
 });

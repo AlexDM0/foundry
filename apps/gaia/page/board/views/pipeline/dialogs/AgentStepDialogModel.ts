@@ -1,7 +1,7 @@
 /**
  * The agent step dialog's model, pure: the form a role's dialog starts from (the draft's stored settings, else the node's resolved pair,
- * else the defaults), Reset's defaults, the one edit a Save sends, and every word the dialog shows for a role: its title, what it does,
- * when it runs and what it fixes, and the hint under each effort.
+ * else the defaults, and the builder's and the reviewer's pipeline documents), Reset's defaults, the one edit a Save sends, and every
+ * word the dialog shows for a role: its title, what it does, when it runs and what it fixes, and the hint under each effort.
  */
 import type { BoardLimitsDocument } from '../../../../@types/board/BoardFactDocuments.ts';
 import type {
@@ -11,18 +11,24 @@ import type {
   BoardPipelineDefinitionDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardAgentEffort, BoardAgentModel, BoardPipelineAgentRole } from '../../../../@types/board/BoardVocabulary.ts';
+import { PipelineDocumentsSectionModel, type DocumentReadingRules }       from './PipelineDocumentsSectionModel.ts';
 
-/** The roles a step dialog sets: the two agent steps, the reviewer and the two re-reviewers. */
-export type StepDialogRole = Extract<BoardPipelineAgentRole, 'productOwner' | 'builder' | 'reviewer' | 'reReviewer' | 'conflictReReviewer'>;
+/** The roles a step dialog sets: the agent steps, the reviewer and the two re-reviewers. */
+export type StepDialogRole = Extract<BoardPipelineAgentRole, 'productOwner' | 'specAgent' | 'planAgent' | 'builder' | 'reviewer' | 'reReviewer' | 'conflictReReviewer'>;
 
 /** The roles whose own dialog is the agent step dialog. */
-export type AgentStepRole = Extract<StepDialogRole, 'productOwner' | 'builder'>;
+export type AgentStepRole = Extract<StepDialogRole, 'productOwner' | 'specAgent' | 'planAgent' | 'builder'>;
+
+/** The roles that write a ticket's documents, each with the model and effort the forge runs it on where the pipeline names none. */
+type DocumentAgentRole = Extract<AgentStepRole, 'specAgent' | 'planAgent'>;
 
 export interface AgentStepForm {
-  readonly model:   BoardAgentModel;
-  readonly effort:  BoardAgentEffort;
+  readonly model:     BoardAgentModel;
+  readonly effort:    BoardAgentEffort;
   /** Read top to bottom; an empty list leaves the role its built-in brief. */
-  readonly entries: readonly BoardInstructionDocument[];
+  readonly entries:   readonly BoardInstructionDocument[];
+  /** When the builder or the reviewer reads each pipeline document; null for every other role. */
+  readonly documents: DocumentReadingRules | null;
 }
 
 interface AgentStepWords {
@@ -37,6 +43,18 @@ const AGENT_STEP_WORDS: Readonly<Record<AgentStepRole, AgentStepWords>> = Object
     title:       'Ticket creation',
     description: 'Turns what User reports into draft tickets, each with a numbered Acceptance and a Brief.',
     runs:        'Once per filing session, when User asks for a ticket.',
+    fixes:       null,
+  },
+  specAgent: {
+    title:       'Spec',
+    description: 'Writes the spec of each ticket with User: what and why, and the numbered Acceptance.',
+    runs:        'When a ticket is filed, and again for each message on its spec.',
+    fixes:       null,
+  },
+  planAgent: {
+    title:       'Plan',
+    description: 'Works out how from the approved spec: the approach, the changes and their order. The builder starts from its plan.',
+    runs:        'When the spec is approved, again when it changes, and for each message on the plan.',
     fixes:       null,
   },
   builder: {
@@ -58,11 +76,29 @@ const EFFORT_HINTS: Readonly<Record<BoardAgentEffort, string>> = Object.freeze({
 /** The phase a role's step stands in, then what kind of step it is: "Build · Agent step". */
 const AGENT_STEP_KICKERS: Readonly<Record<AgentStepRole, string>> = Object.freeze({
   productOwner: 'Ticket · Agent step',
+  specAgent:    'Ticket · Agent step',
+  planAgent:    'Ticket · Agent step',
   builder:      'Build · Agent step',
 });
 
+/** The forge's own pair for each document agent; the board serves only the pair every worker role runs on. */
+const DOCUMENT_AGENT_DEFAULT_PAIRS: Readonly<Record<DocumentAgentRole, BoardAgentPairDocument>> = Object.freeze({
+  specAgent: Object.freeze({ model: 'sonnet', effort: 'medium' }),
+  planAgent: Object.freeze({ model: 'opus', effort: 'high' }),
+});
+
+const AGENT_STEP_ROLES: readonly AgentStepRole[] = Object.freeze(['productOwner', 'specAgent', 'planAgent', 'builder']);
+
 function isAgentStepRole(role: BoardPipelineAgentRole | null): role is AgentStepRole {
-  return role === 'productOwner' || role === 'builder';
+  return AGENT_STEP_ROLES.some((candidate) => candidate === role);
+}
+
+function isDocumentAgentRole(role: StepDialogRole): role is DocumentAgentRole {
+  return role === 'specAgent' || role === 'planAgent';
+}
+
+function defaultPairOf(role: StepDialogRole, defaults: AgentStepDefaults): BoardAgentPairDocument {
+  return isDocumentAgentRole(role) ? DOCUMENT_AGENT_DEFAULT_PAIRS[role] : { model: defaults.workerModel, effort: defaults.workerEffort };
 }
 
 /** The worker pair and each role's instruction list the forge falls back on, as its board's limits serve them. */
@@ -71,21 +107,36 @@ export type AgentStepDefaults = Pick<BoardLimitsDocument, 'workerModel' | 'worke
 /** The draft's stored settings first; where it stores none, the pair the facts resolved, then the served defaults; the role's default list. */
 function formOf(role: StepDialogRole, draft: BoardPipelineDefinitionDocument | null, resolvedSettings: BoardAgentPairDocument | null, defaults: AgentStepDefaults): AgentStepForm {
   const stored = draft?.agents[role];
+  const defaultPair = defaultPairOf(role, defaults);
   return {
-    model:   stored?.model ?? resolvedSettings?.model ?? defaults.workerModel,
-    effort:  stored?.effort ?? resolvedSettings?.effort ?? defaults.workerEffort,
-    entries: stored?.instructions ?? defaults.defaultInstructionsOfRole[role],
+    model:     stored?.model ?? resolvedSettings?.model ?? defaultPair.model,
+    effort:    stored?.effort ?? resolvedSettings?.effort ?? defaultPair.effort,
+    entries:   stored?.instructions ?? defaults.defaultInstructionsOfRole[role],
+    documents: PipelineDocumentsSectionModel.isDocumentReadingRole(role) ? PipelineDocumentsSectionModel.rulesOf(role, stored?.documents) : null,
   };
 }
 
-/** What Reset to default puts in the form: the model and effort every worker role runs on, and the role's default instruction list, as served. */
+/**
+ * What Reset to default puts in the form: the role's default pair (a document agent's own, every other role the worker pair), its default
+ * instruction list as served, and its default pipeline documents.
+ */
 function resetFormOf(role: StepDialogRole, defaults: AgentStepDefaults): AgentStepForm {
-  return { model: defaults.workerModel, effort: defaults.workerEffort, entries: defaults.defaultInstructionsOfRole[role] };
+  const defaultPair = defaultPairOf(role, defaults);
+  return {
+    model:     defaultPair.model,
+    effort:    defaultPair.effort,
+    entries:   defaults.defaultInstructionsOfRole[role],
+    documents: PipelineDocumentsSectionModel.isDocumentReadingRole(role) ? PipelineDocumentsSectionModel.defaultRulesOf(role) : null,
+  };
 }
 
-/** The one edit a Save sends for a role: its model, its effort and its instruction list in order. */
+/** The one edit a Save sends for a role: its model, its effort, its instruction list in order, and its documents where they differ from the default. */
 function roleEditOf(role: StepDialogRole, form: AgentStepForm): BoardDraftEditDocument {
-  return { target: 'role', role, value: { model: form.model, effort: form.effort, instructions: [...form.entries] } };
+  const settings = { model: form.model, effort: form.effort, instructions: [...form.entries] };
+  const storedDocuments = form.documents === null || !PipelineDocumentsSectionModel.isDocumentReadingRole(role)
+    ? null
+    : PipelineDocumentsSectionModel.storedRulesOf(role, form.documents);
+  return { target: 'role', role, value: storedDocuments === null ? settings : { ...settings, documents: storedDocuments } };
 }
 
 /** An effort's meter level is its place in the choices plus one; an effort outside them fills no bar. */
@@ -120,6 +171,7 @@ function questionOf(title: string): string {
 }
 
 export const AgentStepDialogModel = Object.freeze({
+  defaultPairOf,
   kickerOf,
   effortHintOf,
   formOf,
