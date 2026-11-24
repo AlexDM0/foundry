@@ -54,9 +54,11 @@ import type {
   BoardTaskDocument,
   BoardTaskPhaseDocument,
   BoardTicketDocument,
+  BoardTicketDocumentsSummaryDocument,
   BoardTicketSectionDocument,
   BoardTicketStageDocument,
   BoardViewRangeDocument,
+  TicketDocumentSummaryDocument,
 } from 'forge-contracts/BoardPageDocuments';
 import type {
   AgentPairDocument,
@@ -235,6 +237,18 @@ const TICKET_OFFERS_SHAPE = {
   priorityChoices: vocabularyListRule('ticketPriority'),
 } as const satisfies ShapeOf<BoardTicketOffersDocument>;
 
+const TICKET_DOCUMENT_SUMMARY_SHAPE = {
+  standing:       vocabularyRule('documentStanding'),
+  headNumber:     WHOLE_NUMBER_OR_NULL,
+  approvedNumber: WHOLE_NUMBER_OR_NULL,
+} as const satisfies ShapeOf<TicketDocumentSummaryDocument>;
+
+const TICKET_DOCUMENTS_SUMMARY_SHAPE = {
+  spec:      { object: TICKET_DOCUMENT_SUMMARY_SHAPE },
+  plan:      { object: TICKET_DOCUMENT_SUMMARY_SHAPE },
+  buildHeld: 'boolean',
+} as const satisfies ShapeOf<BoardTicketDocumentsSummaryDocument>;
+
 const TICKET_SECTION_SHAPE = { heading: 'text', markdown: 'text' } as const satisfies ShapeOf<BoardTicketSectionDocument>;
 
 const ACCEPTANCE_ITEM_SHAPE = { label: 'text', text: 'text', waived: 'boolean' } as const satisfies ShapeOf<BoardAcceptanceItemDocument>;
@@ -272,7 +286,7 @@ const TICKET_SHAPE = {
   acceptanceItems: { listOf: ACCEPTANCE_ITEM_SHAPE },
   facts:           { object: TICKET_FACTS_SHAPE },
   offers:          { object: TICKET_OFFERS_SHAPE },
-  documents:       'passed-over',
+  documents:       { optional: { object: TICKET_DOCUMENTS_SUMMARY_SHAPE } },
 } as const satisfies ShapeOf<BoardTicketDocument>;
 
 const TASK_PHASE_SHAPE = { status: vocabularyRule('taskStatus'), at: 'text' } as const satisfies ShapeOf<BoardTaskPhaseDocument>;
@@ -609,8 +623,7 @@ const LIMITS_SHAPE = {
   reworkRoundThresholdLines:  'whole-number',
   defaultTicketPriority:      vocabularyRule('ticketPriority'),
   firstRepeatReviewRound:     'whole-number',
-  // Lane E: keyed by every role again once the recordings come from a forge that names the spec and plan agents.
-  defaultInstructionsOfRole:  { object: partiallyKeyedByVocabularyShape('pipelineAgentRole', { eachOf: INSTRUCTION_RULE }) },
+  defaultInstructionsOfRole:  { object: keyedByVocabularyShape('pipelineAgentRole', { eachOf: INSTRUCTION_RULE }) },
   reReviewThresholdStepLines: 'whole-number',
 } as const satisfies ShapeOf<BoardLimitsDocument>;
 
@@ -635,7 +648,7 @@ const AGENT_STEP_SETTINGS_SHAPE = {
   model:        { optional: vocabularyRule('agentModel') },
   effort:       { optional: vocabularyRule('agentEffort') },
   instructions: { optional: { eachOf: INSTRUCTION_RULE } },
-  documents:    'passed-over',
+  documents:    { optional: { object: partiallyKeyedByVocabularyShape('ticketDocumentKind', vocabularyRule('documentReadingRule')) } },
 } as const satisfies ShapeOf<AgentStepSettingsDocument>;
 
 const RE_REVIEW_SHAPE = { thresholdLines: 'whole-number' } as const satisfies ShapeOf<ConditionalReReviewDocument>;
@@ -685,7 +698,7 @@ const PIPELINE_DEFINITION_SHAPE = {
   reach:         OPTIONAL_TEXT_LIST,
   entities:      { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
   assistant:     { optional: 'boolean' },
-  ticketWriting: 'passed-over',
+  ticketWriting: { optional: vocabularyRule('ticketWritingRoute') },
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {

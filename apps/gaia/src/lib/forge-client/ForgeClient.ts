@@ -1,8 +1,8 @@
 /**
- * The HTTP client of one Hephaestus: its versions, identity, board summary, monitor snapshot and board document, its event streams, a
- * control or board command, a picture up and down, and a session code. Every call answers the forge's document or a verdict; the documents
- * stay unchecked JSON for the ingestions that read them. `/api/versions` is asked at its one path; every other endpoint at the version
- * forge's registry serves the supported forge version.
+ * The HTTP client of one Hephaestus: its versions, identity, board summary, monitor snapshot and board document, a ticket's documents,
+ * its event streams, a control or board command, a picture up and down, and a session code. Every call answers the forge's document or
+ * a verdict; the documents stay unchecked JSON for the ingestions that read them. `/api/versions` is asked at its one path; every other
+ * endpoint at the version forge's registry serves the supported forge version.
  */
 import { FORGE_COMPATIBILITY_REGISTRY }              from 'forge-contracts/ForgeCompatibilityRegistry';
 import type { ForgeControlCommand }                  from 'forge-contracts/ForgeControlCommand';
@@ -20,6 +20,7 @@ import type {
   ForgePictureUploadAnswer,
   ForgeStreamEvent,
   ForgeStreamFollow,
+  ForgeTicketDocumentsAnswer,
   MonitorFollow,
   MonitorFollowEnd,
   HephaestusAccess,
@@ -64,10 +65,12 @@ export interface ForgeClient {
   readonly followProfileStream: (
     access: HephaestusAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ) => ForgeStreamFollow;
-  readonly uploadPicture:    (access: HephaestusAccess, bytes: Uint8Array, mediaType: string) => Promise<ForgePictureUploadAnswer>;
-  readonly pictureOf:        (access: HephaestusAccess, pictureId: string) => Promise<ForgePictureAnswer>;
+  readonly uploadPicture:     (access: HephaestusAccess, bytes: Uint8Array, mediaType: string) => Promise<ForgePictureUploadAnswer>;
+  readonly pictureOf:         (access: HephaestusAccess, pictureId: string) => Promise<ForgePictureAnswer>;
   /** Unlike `send`, keeps the forge's status and its whole body, so an install hold (423) reads apart from a refusal. */
-  readonly sendBoardCommand: (access: HephaestusAccess, body: JsonObject) => Promise<ForgeBoardCommandAnswer>;
+  readonly sendBoardCommand:  (access: HephaestusAccess, body: JsonObject) => Promise<ForgeBoardCommandAnswer>;
+  /** Keeps the forge's status and its whole body, so a ticket with no documents (404) reads with the forge's code, fields and sentence. */
+  readonly ticketDocumentsOf: (access: HephaestusAccess, ticketId: string) => Promise<ForgeTicketDocumentsAnswer>;
 }
 
 const HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS = 5_000;
@@ -75,19 +78,20 @@ const MONITOR_STREAM_OPEN_TIMEOUT_MILLISECONDS = 5_000;
 
 /** Each endpoint below `/api/`, without its version; a `{<name>}` segment is filled per call. */
 const HEPHAESTUS_ENDPOINTS = {
-  identity:      'identity',
-  summary:       'summary',
-  monitor:       'monitor',
-  monitorEvents: 'monitor/events',
-  commands:      'commands',
-  board:         'board',
-  presence:      'presence',
-  crashLog:      'crash-log',
-  events:        'events',
-  jobStream:     'jobs/{jobId}/stream',
-  profileStream: 'profiles/{profileRunId}/stream',
-  pictures:      'pictures',
-  picture:       'pictures/{pictureId}',
+  identity:        'identity',
+  summary:         'summary',
+  monitor:         'monitor',
+  monitorEvents:   'monitor/events',
+  commands:        'commands',
+  board:           'board',
+  presence:        'presence',
+  crashLog:        'crash-log',
+  events:          'events',
+  jobStream:       'jobs/{jobId}/stream',
+  profileStream:   'profiles/{profileRunId}/stream',
+  pictures:        'pictures',
+  picture:         'pictures/{pictureId}',
+  ticketDocuments: 'tickets/{ticketId}/documents',
 } as const;
 
 export type HephaestusEndpointName = keyof typeof HEPHAESTUS_ENDPOINTS;
@@ -151,7 +155,7 @@ function commandAnswerOf(answer: HephaestusAnswer): ForgeCommandAnswer {
   return outcome === 'done' || outcome === 'nothing-to-do' ? { verdict: 'answered', outcome } : { verdict: 'malformed' };
 }
 
-/** Keeps the status of every answer but a refused token, and its body parsed, for the command's ingestion to read. */
+/** Keeps the status of every answer but a refused token, and its body parsed, for the command's or the documents' ingestion to read. */
 function boardCommandAnswerOf(answer: HephaestusAnswer): ForgeBoardCommandAnswer {
   if (answer.verdict !== 'answered') return { verdict: 'unreachable' };
   if (answer.status === UNAUTHORIZED_STATUS) return { verdict: 'unauthorized' };
@@ -229,6 +233,11 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   async function sendBoardCommand(access: HephaestusAccess, body: JsonObject): Promise<ForgeBoardCommandAnswer> {
     const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
     return boardCommandAnswerOf(await hephaestusFetch.request(commandRequest));
+  }
+
+  async function ticketDocumentsOf(access: HephaestusAccess, ticketId: string): Promise<ForgeTicketDocumentsAnswer> {
+    const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId });
+    return boardCommandAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', documentsPath, access.bearerToken, null)));
   }
 
   async function uploadPicture(access: HephaestusAccess, bytes: Uint8Array, mediaType: string): Promise<ForgePictureUploadAnswer> {
@@ -331,5 +340,6 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     uploadPicture,
     pictureOf,
     sendBoardCommand,
+    ticketDocumentsOf,
   };
 }

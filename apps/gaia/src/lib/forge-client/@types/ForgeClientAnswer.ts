@@ -51,6 +51,9 @@ export type ForgeBoardCommandAnswer =
 
 export type ForgePictureUploadAnswer = ForgeBoardCommandAnswer;
 
+/** A ticket's documents as the forge answered them: 200 the documents, 404 a ticket with no documents, each body unchecked. */
+export type ForgeTicketDocumentsAnswer = ForgeBoardCommandAnswer;
+
 /** A picture as the forge served it: the bytes and their content type, or the forge's refusal's status with its body's bytes. */
 export type ForgePictureAnswer =
   | { readonly verdict: 'answered'; readonly status: number; readonly contentType: string | null; readonly bytes: Uint8Array }

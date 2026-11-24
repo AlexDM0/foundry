@@ -3,37 +3,38 @@
  * its own guard, and every answer carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token,
  * then opens its routes; it refuses to start where Gaia already answers.
  */
-import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                   from '../../adapters/gaia-server/GaiaServerClient.ts';
-import type { ForgeCounts }                                                           from '../../adapters/gaia-server/HealthDocument.ts';
-import { ApiPathUtil, type EndpointOfPath }                                           from '../../lib/api-paths/ApiPathUtil.ts';
-import { pageContentSecurityPolicyFor, withContentSecurityPolicy }                    from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
-import { hostGuardVerdictFor }                                                        from '../../lib/local-http-guards/HostGuard.ts';
-import { originGuardVerdictFor }                                                      from '../../lib/local-http-guards/OriginGuard.ts';
-import { createSessionCodes, type SessionCodes }                                      from '../../lib/local-http-guards/SessionCodes.ts';
-import { bearerTokenMatches }                                                         from '../../lib/local-http-guards/TokenCheck.ts';
-import { monotonicMillisecondsOfNow }                                                 from '../../services/Clock.ts';
-import type { ClockTimers }                                                           from '../../services/Clock.ts';
-import type { FleetStore }                                                            from '../../services/FleetStore.ts';
-import { GAIA_ENDPOINT_VERSIONS }                                                     from '../../shared/constants/GaiaSystemVersions.ts';
-import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES, TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES } from '../../shared/constants/Limits.ts';
-import type { BoardRelayLog }                                                         from './@types/BoardRelayLogEntry.ts';
-import { createBoardStreams, type BoardStreams }                                      from './BoardStreams.ts';
-import { createFleetBroker, type FleetBroker }                                        from './FleetBroker.ts';
-import type { ForgeAccessSources }                                                    from './ForgeAccess.ts';
-import { refusalAnswerOf }                                                            from './RefusalAnswer.ts';
-import { writeFreshServerToken }                                                      from './ServerToken.ts';
-import { boardCommandAnswerFor }                                                      from './routes/BoardCommandRoute.ts';
-import { pictureAnswerFor, pictureUploadAnswerFor }                                   from './routes/BoardPictureRoutes.ts';
-import { createBoardStateRoute, type BoardStateRoute }                                from './routes/BoardStateRoute.ts';
-import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }           from './routes/BoardStreamRoutes.ts';
-import { commandAnswerFor, type CommandCarrier }                                      from './routes/CommandsRoute.ts';
-import { diagramFrameAnswerFor, isDiagramFramePath }                                  from './routes/DiagramFrameRoute.ts';
-import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                          from './routes/ForgeCrashLogRoute.ts';
-import { healthAnswerOf }                                                             from './routes/HealthRoute.ts';
-import { pageFileAnswerFor, type PageFilesSource }                                    from './routes/PageFilesRoute.ts';
-import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }        from './routes/SessionRoutes.ts';
-import { versionsAnswerOf }                                                           from './routes/VersionsRoute.ts';
-import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                        from './utils/BoardRelayEndpointUtil.ts';
+import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                      from '../../adapters/gaia-server/GaiaServerClient.ts';
+import type { ForgeCounts }                                                              from '../../adapters/gaia-server/HealthDocument.ts';
+import { ApiPathUtil, type EndpointOfPath }                                              from '../../lib/api-paths/ApiPathUtil.ts';
+import { pageContentSecurityPolicyFor, withContentSecurityPolicy }                       from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
+import { hostGuardVerdictFor }                                                           from '../../lib/local-http-guards/HostGuard.ts';
+import { originGuardVerdictFor }                                                         from '../../lib/local-http-guards/OriginGuard.ts';
+import { createSessionCodes, type SessionCodes }                                         from '../../lib/local-http-guards/SessionCodes.ts';
+import { bearerTokenMatches }                                                            from '../../lib/local-http-guards/TokenCheck.ts';
+import { monotonicMillisecondsOfNow }                                                    from '../../services/Clock.ts';
+import type { ClockTimers }                                                              from '../../services/Clock.ts';
+import type { FleetStore }                                                               from '../../services/FleetStore.ts';
+import { GAIA_ENDPOINT_VERSIONS }                                                        from '../../shared/constants/GaiaSystemVersions.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES, TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }    from '../../shared/constants/Limits.ts';
+import type { BoardRelayLog }                                                            from './@types/BoardRelayLogEntry.ts';
+import { createBoardStreams, type BoardStreams }                                         from './BoardStreams.ts';
+import { createFleetBroker, type FleetBroker }                                           from './FleetBroker.ts';
+import type { ForgeAccessSources }                                                       from './ForgeAccess.ts';
+import { refusalAnswerOf }                                                               from './RefusalAnswer.ts';
+import { writeFreshServerToken }                                                         from './ServerToken.ts';
+import { boardCommandAnswerFor }                                                         from './routes/BoardCommandRoute.ts';
+import { pictureAnswerFor, pictureUploadAnswerFor }                                      from './routes/BoardPictureRoutes.ts';
+import { createBoardStateRoute, type BoardStateRoute }                                   from './routes/BoardStateRoute.ts';
+import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }              from './routes/BoardStreamRoutes.ts';
+import { commandAnswerFor, type CommandCarrier }                                         from './routes/CommandsRoute.ts';
+import { diagramFrameAnswerFor, isDiagramFramePath }                                     from './routes/DiagramFrameRoute.ts';
+import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                             from './routes/ForgeCrashLogRoute.ts';
+import { healthAnswerOf }                                                                from './routes/HealthRoute.ts';
+import { pageFileAnswerFor, type PageFilesSource }                                       from './routes/PageFilesRoute.ts';
+import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }           from './routes/SessionRoutes.ts';
+import { ticketDocumentsAnswerFor, ticketDocumentsReaderOf, type TicketDocumentsReader } from './routes/TicketDocumentsRoute.ts';
+import { versionsAnswerOf }                                                              from './routes/VersionsRoute.ts';
+import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                           from './utils/BoardRelayEndpointUtil.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -110,13 +111,14 @@ function failureOf(error: unknown): string {
 }
 
 interface RouteContext {
-  readonly broker:          FleetBroker;
-  readonly boardStreams:    BoardStreams;
-  readonly boardStateRoute: BoardStateRoute;
-  readonly crashLogRoute:   ForgeCrashLogRoute;
-  readonly sessionCodes:    SessionCodes;
-  readonly token:           string;
-  readonly options:         PageServerOptions;
+  readonly broker:              FleetBroker;
+  readonly boardStreams:        BoardStreams;
+  readonly boardStateRoute:     BoardStateRoute;
+  readonly crashLogRoute:       ForgeCrashLogRoute;
+  readonly readTicketDocuments: TicketDocumentsReader;
+  readonly sessionCodes:        SessionCodes;
+  readonly token:               string;
+  readonly options:             PageServerOptions;
 }
 
 interface Routing {
@@ -141,7 +143,7 @@ function relayValuesOf(endpointName: BoardRelayEndpointName, endpoint: string): 
 
 function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
   const {
-    boardStreams, boardStateRoute, crashLogRoute, options
+    boardStreams, boardStateRoute, crashLogRoute, readTicketDocuments, options
   } = context;
   const forgeAccess = options.forgeAccessSources;
   const streamSources = { forgeAccess, boardStreams };
@@ -186,6 +188,10 @@ function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
     relayRoute('GET', 'crashLog', GAIA_ENDPOINT_VERSIONS.forgeCrashLog, (_request, endpoint) => {
       const { trackerId, itemId } = relayValuesOf('crashLog', endpoint);
       return crashLogRoute.answerFor(trackerId, itemId);
+    }),
+    relayRoute('GET', 'ticketDocuments', GAIA_ENDPOINT_VERSIONS.forgeTicketDocuments, (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('ticketDocuments', endpoint);
+      return ticketDocumentsAnswerFor(trackerId, itemId, readTicketDocuments);
     }),
   ];
 }
@@ -355,10 +361,11 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   const context: RouteContext = {
     broker,
     boardStreams,
-    boardStateRoute: createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay),
-    crashLogRoute:   createForgeCrashLogRoute(options.forgeAccessSources, options.logBoardRelay),
-    sessionCodes:    createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
-    token:           tokenWrite.token,
+    boardStateRoute:     createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay),
+    crashLogRoute:       createForgeCrashLogRoute(options.forgeAccessSources, options.logBoardRelay),
+    readTicketDocuments: ticketDocumentsReaderOf(options.forgeAccessSources, options.logBoardRelay),
+    sessionCodes:        createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
+    token:               tokenWrite.token,
     options,
   };
   routing = { context, routes: routesOf(context) };
