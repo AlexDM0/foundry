@@ -1,7 +1,8 @@
 /**
  * A2Proposal, the design step: the Focus layout of the proposed flow, with the pipeline agent's panel in its right column, whose tabs are
  * the Conversation (the agent's chat with the design questions as decision cards, Flint's strip and the composer) and the change list.
- * The agent's newest change shows under its chat with a link that opens the step's phase and selects it, and its Undo. The footer's agent
+ * The agent's newest change shows under its chat, framed under its label, with a link that opens the step's phase and selects it, and its
+ * Undo. The footer's agent
  * tools open the list of the programs the design runs, kept as a draft edit. The footer says that nothing is stored before Apply, counts
  * the proposed steps and gates, and offers Discard proposal and Apply pipeline, which waits while a question is open and opens the apply
  * dialog, also on its own while an Apply is pending. Until the agent proposes a draft, a line over the phases says that it is designing.
@@ -11,7 +12,7 @@
  * to that level, and a question in any level holds Apply.
  */
 
-import { useState }                        from 'react';
+import { useId, useState }                 from 'react';
 import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   ActionBar,
@@ -58,6 +59,8 @@ import { DesignStepModel }                                     from './DesignSte
 
 type PanelTab = 'conversation' | 'changes';
 
+const NEWEST_AGENT_CHANGE_LABEL = 'The agent\'s newest change';
+
 export interface DesignStepProps {
   readonly facts:            PipelineViewFacts;
   readonly setup:            BoardPipelineSetupDocument;
@@ -77,10 +80,11 @@ interface NewestAgentChangeProps {
   readonly level:     PipelineLevel | null;
 }
 
-/** The change the agent's last reply names, with its links: show the step on the flow, and undo the change. */
+/** The change the agent's last reply names, framed under its label, with its links: show the step on the flow, and undo the change. */
 function NewestAgentChange({
   facts, setup, selection, level
 }: NewestAgentChangeProps) {
+  const labelId = useId();
   const { edits } = setup.record;
   const edit = level === null ? DesignStepModel.newestAgentEditOf(edits) : DesignStepModel.newestAgentEditAtLevelOf(edits, level);
   const flow = facts.pipeline.flow ?? null;
@@ -88,7 +92,8 @@ function NewestAgentChange({
   const target = flow === null ? null : DesignStepModel.flowTargetAtLevelOf(edit.field, flow, level);
   const wordedField = EntityLevelFactsModel.fieldAsASinglePipelineNamesIt(edit.field);
   return (
-    <section className="board-pipeline-design-latest-change" aria-label="The agent's newest change">
+    <section className="board-pipeline-design-latest-change" aria-labelledby={labelId}>
+      <span id={labelId} className="board-pipeline-design-latest-change-label">{NEWEST_AGENT_CHANGE_LABEL}</span>
       <p className="board-pipeline-design-latest-change-text">{edit.summary}</p>
       <span className="board-pipeline-design-latest-change-links">
         {target === null ? null : <TextButton label={DesignStepModel.showLinkTextOf(wordedField)} onPress={() => selection.showOnFlow(target)} />}
@@ -96,6 +101,7 @@ function NewestAgentChange({
           label="Undo this change"
           accessibleName={`Undo the change to ${ChangeListModel.fieldWordsOf(wordedField).title}`}
           command={ChangeListModel.undoCommandOf(setup.record.setupId, edit.editId)}
+          compact
         />
       </span>
     </section>

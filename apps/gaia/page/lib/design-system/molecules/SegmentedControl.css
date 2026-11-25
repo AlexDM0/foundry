@@ -1,5 +1,5 @@
-/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered, and a disabled one stays
-   in the quietest ink. A press scales a segment inside its own box. Only the tray's own buttons are segments: a trailing part keeps its own
+/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered, and a disabled one fades
+   to the disabled ink every control shares. A press scales a segment inside its own box. Only the tray's own buttons are segments: a trailing part keeps its own
    look, and the buttons it holds, such as a menu's items, are not segments. */
 .design-system-segments {
   display: flex; gap: var(--space-2); width: max-content; padding: var(--space-2);
@@ -18,17 +18,20 @@
 .design-system-segments > button:not(:disabled):hover { color: var(--ink); }
 .design-system-segments > button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .design-system-segments > button:disabled { cursor: not-allowed; }
-.design-system-segments > button:disabled:not([aria-pressed="true"]) { color: var(--ink-4); }
+.design-system-segments > button:disabled:not([aria-pressed="true"]) { color: var(--ink-disabled); }
 .design-system-segments > button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 /* Mono segments, for labels that are machine text such as times. */
 .design-system-segments[data-mono] > button { font-family: var(--font-mono); }
 .design-system-segment-count { margin-left: var(--space-3); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 
 /* Segments of a set height, and segments that take the whole width in equal columns, --segment-count of them. The height is handed on as
-   --segment-height, so a trailing segment takes it too. */
+   --segment-height, so a trailing segment takes it too. A segment of a set height keeps its label on one line, so a narrow holder never
+   wraps it out of its box. */
 .design-system-segments[data-size="standard"] { --segment-height: 26px; }
 .design-system-segments[data-size="compact"] { --segment-height: 22px; }
-.design-system-segments[data-size] > button { display: inline-flex; align-items: center; justify-content: center; height: var(--segment-height); padding-block: 0; }
+.design-system-segments[data-size] > button {
+  display: inline-flex; align-items: center; justify-content: center; height: var(--segment-height); padding-block: 0; white-space: nowrap;
+}
 .design-system-segments[data-fill] {
   display: grid; grid-template-columns: repeat(var(--segment-count), minmax(0, 1fr)); box-sizing: border-box; width: 100%;
 }
@@ -46,7 +49,7 @@
 }
 .design-system-segments[data-separated][data-size="compact"] > button { height: 32px; }
 .design-system-segments[data-separated] > button[aria-pressed="true"] { font-weight: 600; color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
-.design-system-segments[data-separated] > button:disabled:not([aria-pressed="true"]) { color: var(--ink-4); }
+.design-system-segments[data-separated] > button:disabled:not([aria-pressed="true"]) { color: var(--ink-disabled); }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-segments > button:not(:disabled):active { transform: none; }

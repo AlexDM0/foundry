@@ -236,14 +236,14 @@ function changeCountOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase): n
   return stepChanges + rowChanges;
 }
 
-/** The smallest pipeline's pill: "Removed" when the phase lost a step, "Changed" when one changed or came. */
-function minimalPillOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase): PhasePillView | null {
+/** A proposal's or the smallest pipeline's pill: "Removed" when the phase lost a step, "Changed" when one changed or came. */
+function changeWordPillOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase): PhasePillView | null {
   const changes = nodesOfPhase(flow, phase).map((node) => PipelineFlowModel.changeOfMark(node.mark));
   if (changes.includes('removed')) return { text: 'Removed', tone: 'error' };
   return changes.some((change) => change !== null) ? { text: 'Changed', tone: 'warn' } : null;
 }
 
-/** A waiting question first; else the live tickets, the editing changes or the smallest pipeline's word. */
+/** A waiting question first; else the live tickets, the editing changes, or a proposal's or the smallest pipeline's word. */
 function pillOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase, context: PhaseTabContext): PhasePillView | null {
   const questionCount = nodesOfPhase(flow, phase).reduce((sum, node) => sum + PipelineFlowModel.openQuestionCountOf(node, context.openQuestionIds), 0);
   if (questionCount > 0) return { text: PipelineFlowModel.questionCountTextOf(questionCount), tone: 'warn' };
@@ -251,8 +251,7 @@ function pillOf(flow: BoardPipelineFlowDocument, phase: PipelinePhase, context: 
     const ticketCount = occupantsOfPhase(flow, phase).length;
     return ticketCount === 0 ? null : { text: countText(ticketCount, 'ticket'), tone: 'neutral' };
   }
-  if (context.stage !== 'editing') return null;
-  if (context.minimal) return minimalPillOf(flow, phase);
+  if (context.stage === 'proposal' || context.minimal) return changeWordPillOf(flow, phase);
   const changeCount = changeCountOf(flow, phase);
   return changeCount === 0 ? null : { text: countText(changeCount, 'change'), tone: 'warn' };
 }

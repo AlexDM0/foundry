@@ -4,7 +4,8 @@
  * question while every other step keeps its own dialog, and the answer sends `pipeline-setup-answer` and closes it; Apply pipeline is disabled exactly
  * while a question is open, with its reason and hint, and opens the apply step otherwise; the Changes tab counts the facts' change list
  * and lists one card per change with Undo; the footer counts the steps and gates from the facts; neither a proposal nor a new one sends a
- * profile, only a time chip press does; the agent's newest change opens its phase, selects its gate row and undoes it; Discard
+ * profile, only a time chip press does; the agent's newest change is framed under its own label, opens its phase, selects its gate row
+ * and undoes it; Discard
  * proposal sends `pipeline-draft-discard`; before a draft a line over the phases and the agent strip say the agent is designing; the
  * agent's panel opens on the Conversation, and its strip, beside the one Flint slot, waits while a design question is open and is ready once proposed.
  * In monorepo mode: an entity's level draws its three phases, its own gates and its own chat, its edits and profiles name the entity, and
@@ -194,9 +195,10 @@ describe('the Changes tab', () => {
 });
 
 describe('the agent\'s newest change', () => {
-  test('Show opens its gate\'s phase and selects its row, and Undo sends that edit', async () => {
+  test('it is named by its own label; Show opens its gate\'s phase and selects its row, and Undo sends that edit', async () => {
     const { controls } = renderDesign();
     const change = screen.getByRole('region', { name: 'The agent\'s newest change' });
+    expect(change.firstElementChild?.id).toBe(change.getAttribute('aria-labelledby') ?? 'no label');
     expect(within(change).getByText('Example: typecheck runs in every phase.')).toBeDefined();
     await clickSettled(phaseTab(/^Merge/));
     await clickSettled(within(change).getByRole('button', { name: 'Show typecheck on the flow' }));
