@@ -1,7 +1,8 @@
 /**
  * "What the plan names", pure: the effect reading's entries as a folder tree of the repository, each entry under its folder with its
- * change mark and reference number, an ambiguous entry under the folder of each candidate; the legend with a count per change; the
- * unresolved entries with their reason and a hint; and the line that says what the reading read and how long it took.
+ * change mark and reference number, an ambiguous entry under the folder of each candidate, and the files one reference changes alike in
+ * one folder folded into one row; the legend with a count per change; the unresolved entries with their reason and a hint; and the line
+ * that says what the reading read and how long it took.
  */
 import type { BoardEffectChange }                                    from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardEffectEntryDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
@@ -21,18 +22,20 @@ const MILLISECONDS_PER_SECOND = 1000;
 
 const PATH_SEPARATOR = '/';
 
-export type EffectTreeRow =
-  | { readonly kind: 'folder'; readonly key: string; readonly depth: number; readonly name: string }
-  | {
-    readonly kind:      'entry';
-    readonly key:       string;
-    readonly depth:     number;
-    readonly name:      string;
-    readonly change:    BoardEffectChange;
-    readonly sigil:     string;
-    readonly reference: number;
-    readonly detail:    string;
-  };
+export interface EffectEntryRow {
+  readonly kind:      'entry';
+  readonly key:       string;
+  readonly depth:     number;
+  readonly name:      string;
+  /** What a folded row holds, `7 files`; `null` for one file. */
+  readonly fileCount: string | null;
+  readonly change:    BoardEffectChange;
+  readonly sigil:     string;
+  readonly reference: number;
+  readonly detail:    string;
+}
+
+export type EffectTreeRow = { readonly kind: 'folder'; readonly key: string; readonly depth: number; readonly name: string } | EffectEntryRow;
 
 export interface EffectLegendItem {
   readonly change: BoardEffectChange;
@@ -110,14 +113,19 @@ function shownFolderOf(folder: FolderNode, parentDepth: number): { readonly fold
   return { folder: shown, name: `${shown.path.slice(parentDepth).join(PATH_SEPARATOR)}${PATH_SEPARATOR}` };
 }
 
-function entryRowOf(place: PlacedEntry, depth: number): EffectTreeRow {
+function changeOf(entry: BoardEffectEntryDocument): BoardEffectChange {
+  return entry.unresolvedReason === null ? entry.change : 'unresolved';
+}
+
+function entryRowOf(place: PlacedEntry, depth: number): EffectEntryRow {
   const { entry, folder, name } = place;
-  const change = entry.unresolvedReason === null ? entry.change : 'unresolved';
+  const change = changeOf(entry);
   return {
     kind:      'entry',
     key:       `entry:${entry.reference}:${[...folder, name].join(PATH_SEPARATOR)}`,
     depth,
     name,
+    fileCount: null,
     change,
     sigil:     EFFECT_SIGILS[change],
     reference: entry.reference,
@@ -125,33 +133,69 @@ function entryRowOf(place: PlacedEntry, depth: number): EffectTreeRow {
   };
 }
 
+/** The files one reference changes alike in one folder share a row: `every file · 7 files`. */
+function entryRowsOf(places: readonly PlacedEntry[], depth: number): EffectTreeRow[] {
+  const alike = new Map<string, PlacedEntry[]>();
+  for (const place of [...places].sort((a, b) => a.entry.reference - b.entry.reference || a.name.localeCompare(b.name))) {
+    const alikeKey = `${place.entry.reference}:${changeOf(place.entry)}`;
+    alike.set(alikeKey, [...alike.get(alikeKey) ?? [], place]);
+  }
+  return [...alike.values()].flatMap((group): EffectTreeRow[] => {
+    const [first] = group;
+    if (first === undefined) return [];
+    if (group.length === 1) return [entryRowOf(first, depth)];
+    return [{
+      ...entryRowOf(first, depth),
+      key:       `entry:${first.entry.reference}:${first.folder.join(PATH_SEPARATOR)}${PATH_SEPARATOR}*`,
+      name:      'every file',
+      fileCount: `${group.length} files`,
+    }];
+  });
+}
+
+/** The first reference a folder holds, in it or below it, which orders the folders as the plan names them. */
+function firstReferenceOf(folder: FolderNode): number {
+  return Math.min(...folder.places.map((place) => place.entry.reference), ...[...folder.folders.values()].map(firstReferenceOf));
+}
+
+function folderRowsOf(folders: readonly FolderNode[], parentDepth: number, depth: number): EffectTreeRow[] {
+  return folders.flatMap((child): EffectTreeRow[] => {
+    const shown = shownFolderOf(child, parentDepth);
+    return [
+      {
+        kind: 'folder', key: `folder:${shown.folder.path.join(PATH_SEPARATOR)}`, depth, name: shown.name
+      },
+      ...rowsUnder(shown.folder, depth + 1),
+    ];
+  });
+}
+
 function rowsUnder(folder: FolderNode, depth: number): EffectTreeRow[] {
-  const folderRows = [...folder.folders.values()]
-    .sort((a, b) => a.path.join(PATH_SEPARATOR).localeCompare(b.path.join(PATH_SEPARATOR)))
-    .flatMap((child): EffectTreeRow[] => {
-      const shown = shownFolderOf(child, folder.path.length);
-      return [
-        {
-          kind: 'folder', key: `folder:${shown.folder.path.join(PATH_SEPARATOR)}`, depth, name: shown.name
-        },
-        ...rowsUnder(shown.folder, depth + 1),
-      ];
-    });
-  const entryRows = [...folder.places].sort((a, b) => a.name.localeCompare(b.name)).map((place) => entryRowOf(place, depth));
-  return [...folderRows, ...entryRows];
+  const folders = [...folder.folders.values()]
+    .sort((a, b) => firstReferenceOf(a) - firstReferenceOf(b) || a.path.join(PATH_SEPARATOR).localeCompare(b.path.join(PATH_SEPARATOR)));
+  return [...folderRowsOf(folders, folder.path.length, depth), ...entryRowsOf(folder.places, depth)];
 }
 
-/** The tree in path order: each folder before what it holds, its folders before its files, and each one step in from its folder. */
+/**
+ * The tree: a top folder of the repository that holds no file of its own lends its name to each of its folders, so `packages/contracts/`
+ * and `packages/shared/utils/` are two roots, in path order. Below a root each folder comes in the order the plan names it, before what
+ * it holds, its folders before its files, and each one step in from its folder.
+ */
 function rowsOf(entries: readonly BoardEffectEntryDocument[]): EffectTreeRow[] {
-  return rowsUnder(folderTreeOf(entries.flatMap(placesOf)), 0);
+  const repository = folderTreeOf(entries.flatMap(placesOf));
+  const roots = [...repository.folders.values()]
+    .flatMap((top) => (top.places.length === 0 ? [...top.folders.values()] : [top]))
+    .sort((a, b) => a.path.join(PATH_SEPARATOR).localeCompare(b.path.join(PATH_SEPARATOR)));
+  return [...folderRowsOf(roots, 0, 0), ...entryRowsOf(repository.places, 0)];
 }
 
+/** The legend counts the places the plan names, so a reference that changes 7 files counts once. */
 function legendOf(entries: readonly BoardEffectEntryDocument[]): EffectLegendItem[] {
   return LEGEND_ORDER.map((change) => ({
     change,
     sigil: EFFECT_SIGILS[change],
     word:  CHANGE_WORDS[change],
-    count: entries.filter((entry) => (entry.unresolvedReason === null ? entry.change : 'unresolved') === change).length,
+    count: new Set(entries.filter((entry) => changeOf(entry) === change).map((entry) => entry.reference)).size,
   }));
 }
 

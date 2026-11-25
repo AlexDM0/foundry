@@ -37,7 +37,7 @@ export interface DocumentPreviewProps {
   readonly onDraft:        (draft: CommentDraft | null) => void;
   /** The document can no longer change: its proposals offer nothing. */
   readonly settled:        boolean;
-  /** Drawn above the document, such as the plan's context line. */
+  /** Drawn under the document's title, or above the document when it opens with none, such as the plan's context line. */
   readonly lead?:          ReactNode;
   /** The comment text a screen shows half written in the popover. */
   readonly draftText?:     string;
@@ -129,8 +129,11 @@ export function DocumentPreview({
   const nextCommentNumber = CommentPopoverModel.nextCommentNumberOf(messages);
   const openPlacements = messages.flatMap((message) => (OPEN_MESSAGE_STATES.has(message.state) && message.placement !== null ? [message.placement] : []));
   const placedProposals = proposals.filter((proposal) => proposal.headLines !== null);
+  const [firstBlock] = blocks;
+  const titleLine = firstBlock?.kind === 'heading' && firstBlock.depth === 1 ? firstBlock.lines.from : null;
 
   const parts: PlacedPart[] = [
+    ...(lead === undefined || titleLine === null ? [] : [{ key: 'lead', line: titleLine, part: lead }]),
     ...placedProposals.map((proposal): PlacedPart => ({
       key:  proposal.proposalId,
       line: proposal.headLines?.to ?? 1,
@@ -166,7 +169,7 @@ export function DocumentPreview({
 
   return (
     <article className="board-document-article" aria-label={`The ${place.document}`} onMouseUp={commentOnSelection}>
-      {lead}
+      {titleLine === null ? lead : null}
       <DocumentBlocks
         blocks={blocks}
         chips={chipsOf(messages)}

@@ -2,11 +2,11 @@
  * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the
  * source line and column where it starts, so a selection maps back to the source; a character reference draws the character it names; a
  * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the
- * marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference mark of the effect reading (`1`, in the
- * warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold an editor's caret line carry
- * `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's proposed edit or
- * the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open comment points at stays
- * marked.
+ * marks of the lines it holds, glued to its last word: a comment's chip (`C2`, `✓ C2` once applied) and a reference mark of the effect
+ * reading (`1`, in the warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold an editor's
+ * caret line carry `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's
+ * proposed edit or the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open
+ * comment points at stays marked.
  */
 import {
   createContext,
@@ -74,6 +74,9 @@ export interface DocumentBlocksProps {
 const CHECKBOX_GLYPHS = { checked: '☑', unchecked: '☐' } as const;
 
 const HEADING_ELEMENTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
+
+/** Glues the marks to the last word before them, so a mark never wraps onto a line of its own. */
+const WORD_JOINER = '\u2060';
 
 function unresolvedPlacesOf(props: DocumentBlocksProps): UnresolvedPlace[] {
   return (props.referenceMarks ?? []).filter((mark) => mark.unresolved);
@@ -216,6 +219,7 @@ function Marks({ lines, props, nestedItems }: { readonly lines: SourceLines; rea
   if (chips.length === 0 && marks.length === 0) return null;
   return (
     <>
+      {WORD_JOINER}
       {chips.map((chip) => (
         <span key={chip.key} className="board-document-chip" data-applied={chip.applied ? '' : undefined} title={chip.title}>{chip.text}</span>
       ))}
@@ -260,8 +264,10 @@ function lineAttributesOf(lines: SourceLines, props: DocumentBlocksProps) {
   };
 }
 
+/** A list item's marks follow the paragraph that holds their line, before a code block or list the item holds after it. */
 function ListItem({ item, props }: { readonly item: MarkdownListItem; readonly props: DocumentBlocksProps }) {
   const nestedItems = item.blocks.flatMap((block) => (block.kind === 'list' ? block.items.map((nested) => nested.lines) : []));
+  const paragraphLines = item.blocks.flatMap((block) => (block.kind === 'paragraph' ? [block.lines] : []));
   return (
     <li className="board-document-list-item" data-task={item.checkbox === null ? undefined : ''} {...lineAttributesOf(item.lines, props)}>
       <Framed framed={isFramed(item.lines, props, nestedItems)}>
@@ -269,10 +275,16 @@ function ListItem({ item, props }: { readonly item: MarkdownListItem; readonly p
         <span className="board-document-item-text">
           {item.blocks.map((block, position) => (
             block.kind === 'paragraph'
-              ? <Fragment key={position}><Spans spans={block.spans} places={unresolvedPlacesOf(props)} />{' '}</Fragment>
+              ? (
+                <Fragment key={position}>
+                  <Spans spans={block.spans} places={unresolvedPlacesOf(props)} />
+                  <Marks lines={block.lines} props={props} nestedItems={nestedItems} />
+                  {' '}
+                </Fragment>
+              )
               : <Block key={position} block={block} props={props} />
           ))}
-          <Marks lines={item.lines} props={props} nestedItems={nestedItems} />
+          <Marks lines={item.lines} props={props} nestedItems={[...nestedItems, ...paragraphLines]} />
         </span>
         <PartsAfter lines={item.lines} props={props} nestedItems={nestedItems} />
       </Framed>

@@ -86,13 +86,22 @@ export const PLAN_MARKDOWN = [
   '',
   '## Approach',
   '',
-  'We resolve the theme before the first paint with a small script in the document head, so no account page renders light first.',
+  'We resolve the theme before the first paint with a small script in the document head, so no account page renders light first. '
+    + 'The pages stop hard-coding colours and read the design tokens.',
   '',
   '## Changes',
   '',
   '- Add a `ThemeResolver.ts` next to the other theme code in `src/theme/`. It reads `prefers-color-scheme` and sets `data-theme` on the root.',
   '- Add a few functions to `utils/networkUtil.ts` to read and store the saved choice: `fetchThemeChoice`, `storeThemeChoice`.',
-  '- Modify the profile contract and bump it to v2 with this data model: `ProfileV2 { id, themeChoice }`.',
+  '- Modify the profile contract and bump it to v2 with this data model:',
+  '',
+  '  ```ts',
+  '  interface ProfileV2 {',
+  '    id: string;',
+  '    themeChoice: \'system\' | \'light\' | \'dark\';',
+  '  }',
+  '  ```',
+  '',
   '- Each page under `pages/account/` drops its hard-coded colours.',
   '- Remove `light-only.css`; the tokens replace it.',
   '- Put the theme switch on the settings page, hidden until the toggle ticket ships.',
@@ -361,6 +370,9 @@ const PLAN_REFERENCES = [
   { reference: 6, text: 'the settings page' },
 ] as const;
 
+/** Every page under `pages/account/`, which reference 4 changes alike. */
+const ACCOUNT_PAGES = ['AccountPage.tsx', 'AddressesPage.tsx', 'BillingPage.tsx', 'NotificationsPage.tsx', 'OrdersPage.tsx', 'ProfilePage.tsx', 'SecurityPage.tsx'];
+
 export const PLAN_EFFECT_READING: BoardEffectReadingDocument = {
   document:             'plan',
   versionNumber:        2,
@@ -382,9 +394,9 @@ export const PLAN_EFFECT_READING: BoardEffectReadingDocument = {
     {
       reference: 3, path: 'packages/contracts/profile.ts', change: 'changes', detail: '→ v2', unresolvedReason: null, candidates: [],
     },
-    {
-      reference: 4, path: 'apps/storefront/src/pages/account/index.tsx', change: 'changes', detail: 'every page, 7 files', unresolvedReason: null, candidates: [],
-    },
+    ...ACCOUNT_PAGES.map((page) => ({
+      reference: 4, path: `apps/storefront/src/pages/account/${page}`, change: 'changes' as const, detail: 'Drops its hard-coded colours', unresolvedReason: null, candidates: [],
+    })),
     {
       reference: 5, path: 'apps/storefront/src/legacy/light-only.css', change: 'removes', detail: 'The light-only stylesheet', unresolvedReason: null, candidates: [],
     },
