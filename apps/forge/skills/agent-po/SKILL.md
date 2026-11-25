@@ -115,20 +115,13 @@ cause**: a subagent finds the delivered ticket that introduced it, passed as `--
 
 The Acceptance is the builder's stop condition: things true or false, never a direction, numbered `A1.`, `A2.`, …,
 never renumbered or reused. **Every ticket carries a numbered Acceptance and a non-empty `## Brief`**: `ticket ready`
-refuses one without either. The spec-then-plan route below is different: the spec holds the Acceptance, and the plan
-takes the place of the Brief.
+refuses one without either.
 
 **Read the Acceptance back against itself before filing.** Two items that cannot both be true cost an agent a pass:
 say in the ticket which wins and what bounded deviation the other tolerates.
 
 **With `"ticketWriting": "spec-then-plan"` in `{{dataFolder}}/pipeline.json`**, write only `## Report` and `## Wanted`:
-the spec and plan agents write the rest. Do not write an Acceptance or a Brief. Still set the title, the entity, the
-epics and the dependencies. A submit does not ready such a draft: the approval of its spec and plan readies it.
-
-- **Under Hephaestus**, `{{program}} intake close` keeps each draft as a draft and opens its spec and plan. In a forge
-  with entities, it refuses a draft that has no entity.
-- **In the user's own session**, do not run `{{program}} ticket submit`. Tell the user that each draft stays a draft,
-  and that its spec and plan open when the user writes or comments in the ticket's documents in a client.
+the spec and plan agents write the rest. The reference says how it goes on.
 
 ## The mechanics
 
@@ -154,7 +147,6 @@ The board's ticket review switch (`gate approval tickets on|off`) sets what the 
 
 - **Ticket review off**: the draft becomes `committed` with its row. Hephaestus builds it.
 - **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
-  the user can ready the ticket, for example with `{{program}} ticket ready <ids>`.
+  the user readies it (`{{program}} ticket ready <ids>`).
 
-An incomplete draft stays a draft. Complete it, then submit it again. In the spec-then-plan route, the route's
-paragraph above tells what to do instead.
+An incomplete draft stays a draft. Complete it, then submit it again.

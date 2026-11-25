@@ -182,6 +182,12 @@ stays where it was.
 stored as `reviewed` for its group's release. A free-standing row — a chore, anything with no branch to merge —
 reaches `Done` through `{{program}} task deliver <id>` once its work is accepted.
 
+**A draft in the spec-then-plan route** has only its `## Report` and `## Wanted`, and a submit does not ready it: the
+approval of its spec and plan readies it. Under Hephaestus, the product owner runs `{{program}} intake close`, which
+keeps each draft as a draft and opens its spec and plan; in a board with entities it refuses a draft that has no
+entity. In the user's own session, the product owner does not run `{{program}} ticket submit`. It tells the user that
+each draft stays a draft, and that its spec and plan open when the user writes or comments in them in a client.
+
 ## Jobs, decisions and incidents
 
 **A job** is one agent session Hephaestus launched, kept on the board while it lives: a `build` or `review` job on a

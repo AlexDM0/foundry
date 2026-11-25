@@ -830,7 +830,7 @@ never carries it.
                               decides nothing. Under the product owner's own job it names no job.
                               In the spec-then-plan route a draft with its \`## Report\` and
                               \`## Wanted\` stays a draft and opens its spec and plan instead, and
-                              a forge with entities refuses one with no entity.
+                              a board with entities refuses one with no entity.
   intake title <J> -- <title> [--json]
                               Logged intake-titled: a short title for the intake, kept on the job;
                               a later title replaces it (job-not-intake for another kind of job).
