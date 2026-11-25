@@ -1,6 +1,6 @@
 /**
  * The effect pane in a happy-dom document. What matters: it says what the reading read, lists the tree with each place's mark and
- * reference, names the unresolved places with their reason and hint, Refresh asks for a reading of the head, and × closes it.
+ * reference, names the unresolved places, each a card with its reason and hint, Refresh asks for a reading of the head, and × closes it.
  */
 import {
   cleanup,
@@ -31,7 +31,9 @@ describe('the effect pane (artboard 7)', () => {
     expect(within(pane).getByText('From plan v2 and the file tree only. No code read. 1.4s')).toBeTruthy();
     expect(within(pane).getByText('ThemeResolver.ts').closest('[data-change]')?.getAttribute('data-change')).toBe('adds');
     expect(within(pane).getByText('Unresolved · 2')).toBeTruthy();
-    expect(within(pane).getByText('Could be either of 2 files in the tree.')).toBeTruthy();
+    expect(within(pane).getAllByText('networkUtil.ts').map((name) => name.closest('[data-change]')?.getAttribute('data-change'))).toEqual(['unresolved', 'unresolved']);
+    expect(within(pane).getByText('Could be either of 2 files in the tree.').closest('.board-document-unresolved-item')).toBeTruthy();
+    expect(within(pane).getByText('No matching file or folder.').className).toBe('board-document-unresolved-reason');
     expect(within(pane).getByText('Say where it lives, or that it is new.')).toBeTruthy();
     await clickSettled(within(pane).getByRole('button', { name: 'Refresh' }));
     expect<unknown[]>(controls.sent).toEqual([{
