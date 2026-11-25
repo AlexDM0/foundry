@@ -143,6 +143,22 @@ describe('boardOf, on the board of a forge at work', () => {
     ]);
   });
 
+  test('keeps the defaults a pipeline means where it says nothing, as the forge serves them', async () => {
+    const { limits } = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
+    expect(Object.keys(limits.defaultAgentPairOfRole)).toHaveLength(9);
+    expect([limits.defaultAgentPairOfRole.builder, limits.defaultAgentPairOfRole.specAgent, limits.defaultAgentPairOfRole.planAgent]).toEqual([
+      { model: 'opus', effort: 'medium' },
+      { model: 'sonnet', effort: 'medium' },
+      { model: 'opus', effort: 'high' },
+    ]);
+    expect(limits.defaultDocumentsOfRole).toEqual({ builder: { spec: 'always', plan: 'always' }, reviewer: { spec: 'always', plan: 'if-person-approved' } });
+    expect(limits.fixedDocumentsOfRole).toEqual({ builder: [], reviewer: ['spec'] });
+    expect(limits.defaultApprovals).toEqual({
+      tickets: true, merge: false, spec: true, plan: true
+    });
+    expect(limits.defaultTicketWritingRoute).toBe('one-ticket');
+  });
+
   test('keeps the applied pipeline with each entity\'s effective pipeline', async () => {
     const { pipeline } = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
     if (pipeline.applied.readingVerdict !== 'readable') throw new Error('The recorded pipeline is readable.');

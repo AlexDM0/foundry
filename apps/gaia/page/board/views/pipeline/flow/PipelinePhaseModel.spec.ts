@@ -2,7 +2,7 @@
  * The Focus layout's model over the pipeline fixtures. What matters: the nodes fall into the four phases in the facts' order, with each
  * add card right after its node and the merge train's queue, frame and end left to the Merge header; a step's phase is the one that holds
  * it; each tab says its steps and gates, and its pill says what waits there per stage (a question first, then the live tickets, the
- * editing changes or the smallest pipeline's word); the header words when a phase leaves, a phase with no step is skipped and Merge ends
+ * editing changes, or a proposal's or the smallest pipeline's word); the header words when a phase leaves, a phase with no step is skipped and Merge ends
  * on main; and a live step's state is a word. The spec-then-plan route keeps its four writing and review steps in the Ticket phase, says
  * the ticket is ready with a numbered Acceptance in the spec, an approved spec and an approved plan, and words who approves the spec by
  * its switch.
@@ -84,6 +84,10 @@ describe('the stepper\'s tabs', () => {
       { text: '2 changes', tone: 'warn' },
       { text: '3 changes', tone: 'warn' },
     ]);
+  });
+
+  test('a proposal\'s tab says "Changed" on the phase it changed, and nothing on the phases it left', () => {
+    expect(tabsOf(flowOf('A2-spec-then-plan')).map((tab) => tab.pill)).toEqual([{ text: 'Changed', tone: 'warn' }, null, null, null]);
   });
 
   test('the smallest pipeline\'s tabs say "Removed" or "Changed", and its Review phase with no step is a ring', () => {

@@ -58,7 +58,7 @@ export function MergeStepDialog({
   );
   const reReviewSwitch = useRef<HTMLElement | null>(null);
   const head = MergeStepDialogModel.headOf(mergeNode.mergePlacement);
-  const saveEdits = MergeStepDialogModel.saveEditsOf(reReviewForm, levelPart);
+  const saveEdits = MergeStepDialogModel.saveEditsOf(reReviewForm, limits, levelPart);
   const { meter } = PipelineFlowModel.nodeViewOf(mergeNode, { efforts: choices.efforts, reworkThresholdLines: limits.reworkRoundThresholdLines });
   return (
     <Dialog

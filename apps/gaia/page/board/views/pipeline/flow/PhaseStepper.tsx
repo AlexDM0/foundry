@@ -1,7 +1,7 @@
 /**
  * The four phases as equal tabs with chevrons between them: each shows its phase dot, its name, "N steps · N gates" and the pill of what
- * waits there (a question, the live tickets, the editing changes), which pops in. A press opens that phase; the open one carries the orange
- * tint.
+ * waits there (a question, the live tickets, the editing changes, or "Changed" on a phase a proposal changed), which pops in. A press
+ * opens that phase; the open one carries the orange tint.
  */
 import { Fragment }  from 'react';
 import { Tag, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';

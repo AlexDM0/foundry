@@ -1,8 +1,8 @@
 /**
  * Code: the document's Markdown in the board's editor, with line numbers and each comment's chip in the gutter. Selected lines, then
  * Cmd/Ctrl+Shift+M or the gutter's `+`, open the same comment popover as Preview, anchored on those lines of the head, so only while the
- * text is the head's; an edit not yet saved is saved first. The text saves with the version User saw once User pauses typing and on blur;
- * the forge merges it onto a newer head, and a refused save keeps User's text.
+ * text is the head's; an edit not yet saved is saved first. The lines stay selected while the popover is open. The text saves with the
+ * version User saw once User pauses typing and on blur; the forge merges it onto a newer head, and a refused save keeps User's text.
  */
 import { useCallback, useMemo } from 'react';
 
@@ -68,6 +68,7 @@ export function DocumentCodeEditor({
   const markerOf = useCallback((line: EditorLine) => markersByLine.get(line.number) ?? null, [markersByLine]);
   const nextCommentNumber = CommentPopoverModel.nextCommentNumberOf(messages);
   const lineCount = markdown.split('\n').length;
+  const codeDraft = draft?.anchor.view === 'code' ? draft : null;
   const commentOnLines = (lines: EditorLineRange): void => {
     if (versionNumber === null) return;
     onDraft({ commentNumber: nextCommentNumber, anchor: DocumentSelectionModel.anchorOfLines(blocks, lineCount, versionNumber, lines) });
@@ -87,16 +88,17 @@ export function DocumentCodeEditor({
         gutter={{ onCommentLines: commentOnLines }}
         idleSaveMilliseconds={DOCUMENT_SAVE_IDLE_MILLISECONDS}
         readOnly={readOnly}
+        heldLines={codeDraft?.anchor.lines ?? null}
         {...(onTextChange === undefined ? {} : { onTextChange })}
         {...(onCaretLine === undefined ? {} : { onCaretLine })}
       />
-      {draft === null || draft.anchor.view !== 'code'
+      {codeDraft === null
         ? null
         : (
           <CommentPopover
-            key={JSON.stringify(draft.anchor)}
+            key={JSON.stringify(codeDraft.anchor)}
             place={place}
-            draft={draft}
+            draft={codeDraft}
             blocks={blocks}
             onClose={() => onDraft(null)}
             {...(draftText === undefined ? {} : { initialText: draftText })}

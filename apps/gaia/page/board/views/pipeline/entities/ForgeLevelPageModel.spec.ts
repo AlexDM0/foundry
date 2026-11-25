@@ -1,6 +1,6 @@
 /**
- * The forge level's page. What matters: each approval reads its `pipeline.json` default while absent and its switch sends the other state,
- * the Ticket phase's as the route writes a ticket;
+ * The forge level's page. What matters: each approval reads the default the forge serves while absent and its switch sends the other
+ * state, the Ticket phase's as the route writes a ticket, the served default route where the draft names none;
  * the merge train's re-review reads as its threshold or Off; the board limit is sent only when it changed and stays in its bounds, and
  * every count is worded in jobs; the footer counts the entities and their gates, and a root kept for a person is never "without gates".
  */
@@ -20,18 +20,31 @@ const DRAFT: Pick<BoardPipelineDefinitionDocument, 'entities' | 'approvals' | 'a
 
 const BOUNDS = EXAMPLE_BOARD_LIMITS.concurrency;
 
+const SERVED = EXAMPLE_BOARD_LIMITS;
+
 describe('the approvals', () => {
   test('read their defaults while absent, and a switch sends the other state', () => {
-    const views = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(DRAFT), ForgeLevelPageModel.mergeApprovalViewOf(DRAFT)];
+    const views = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(DRAFT, SERVED), ForgeLevelPageModel.mergeApprovalViewOf(DRAFT, SERVED)];
     expect(views.map((view) => [view.approval, view.isOn])).toEqual([['tickets', true], ['merge', false]]);
-    const merge = ForgeLevelPageModel.mergeApprovalViewOf(DRAFT);
+    const merge = ForgeLevelPageModel.mergeApprovalViewOf(DRAFT, SERVED);
     expect(merge.hint).toBe('Off: a green review goes straight to the merge train.');
     expect(ForgeLevelPageModel.approvalEditOf(merge)).toEqual({ target: 'approval', approval: 'merge', value: true });
-    expect(ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { tickets: false } })[0]?.isOn).toBe(false);
+    expect(ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { tickets: false } }, SERVED)[0]?.isOn).toBe(false);
+  });
+
+  test('take what an absent approval and route read as from the forge, never a copy of their own', () => {
+    const otherForge = {
+      defaultApprovals: {
+        tickets: false, merge: true, spec: false, plan: true
+      },
+      defaultTicketWritingRoute: 'spec-then-plan'
+    } as const;
+    const views = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(DRAFT, otherForge), ForgeLevelPageModel.mergeApprovalViewOf(DRAFT, otherForge)];
+    expect(views.map((view) => [view.approval, view.isOn])).toEqual([['spec', false], ['plan', true], ['merge', true]]);
   });
 
   test('of the Ticket phase follow the route: Human spec and plan review where a ticket is written as a spec, then a plan', () => {
-    const views = ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { plan: false }, ticketWriting: 'spec-then-plan' });
+    const views = ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { plan: false }, ticketWriting: 'spec-then-plan' }, SERVED);
     expect(views.map((view) => [view.title, view.isOn])).toEqual([['Human spec review', true], ['Human plan review', false]]);
     expect(views[1]?.hint).toBe('Off: the plan agent approves the plan when it is ready.');
   });

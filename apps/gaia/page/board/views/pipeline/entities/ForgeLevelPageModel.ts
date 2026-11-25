@@ -6,7 +6,7 @@
  */
 import { PAGE_CONTRACT_VERSIONS }                                                              from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                           from '../../../../@types/board/BoardCommandDocument.ts';
-import type { BoardConcurrencyBoundsDocument }                                                 from '../../../../@types/board/BoardFactDocuments.ts';
+import type { BoardConcurrencyBoundsDocument, BoardLimitsDocument }                            from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardDraftEditDocument, BoardFlowNodeDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardPipelineApproval, BoardPipelineNodeKind, BoardTicketWritingRoute }          from '../../../../@types/board/BoardVocabulary.ts';
 
@@ -31,10 +31,8 @@ const APPROVAL_HINTS: Readonly<Record<BoardPipelineApproval, { readonly on: stri
   plan:    { on: 'On: you approve each plan before the ticket builds.', off: 'Off: the plan agent approves the plan when it is ready.' },
 });
 
-/** An absent `tickets`, `spec` or `plan` approval is on and an absent `merge` approval is off, as `pipeline.json` reads them. */
-const APPROVAL_DEFAULTS: Readonly<Record<BoardPipelineApproval, boolean>> = Object.freeze({
-  tickets: true, merge: false, spec: true, plan: true
-});
+/** Whether an approval the draft leaves out is on, and the route a draft that names none writes a ticket by, as the forge serves them. */
+export type ApprovalDefaults = Pick<BoardLimitsDocument, 'defaultApprovals' | 'defaultTicketWritingRoute'>;
 
 /** The Ticket phase's reviews in each route: Human ticket review of one ticket, Human spec and plan review of a spec, then a plan. */
 const TICKET_PHASE_APPROVALS: Readonly<Record<BoardTicketWritingRoute, readonly BoardPipelineApproval[]>> = Object.freeze({
@@ -49,20 +47,20 @@ function countText(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function approvalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null, approval: BoardPipelineApproval): ApprovalView {
-  const isOn = draft?.approvals?.[approval] ?? APPROVAL_DEFAULTS[approval];
+function approvalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null, approval: BoardPipelineApproval, defaults: ApprovalDefaults): ApprovalView {
+  const isOn = draft?.approvals?.[approval] ?? defaults.defaultApprovals[approval];
   return {
     approval, title: APPROVAL_TITLES[approval], isOn, hint: isOn ? APPROVAL_HINTS[approval].on : APPROVAL_HINTS[approval].off
   };
 }
 
 /** The Ticket phase's switches in the route the draft writes a ticket by. */
-function ticketPhaseApprovalViewsOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals' | 'ticketWriting'> | null): ApprovalView[] {
-  return TICKET_PHASE_APPROVALS[draft?.ticketWriting ?? 'one-ticket'].map((approval) => approvalViewOf(draft, approval));
+function ticketPhaseApprovalViewsOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals' | 'ticketWriting'> | null, defaults: ApprovalDefaults): ApprovalView[] {
+  return TICKET_PHASE_APPROVALS[draft?.ticketWriting ?? defaults.defaultTicketWritingRoute].map((approval) => approvalViewOf(draft, approval, defaults));
 }
 
-function mergeApprovalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null): ApprovalView {
-  return approvalViewOf(draft, 'merge');
+function mergeApprovalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null, defaults: ApprovalDefaults): ApprovalView {
+  return approvalViewOf(draft, 'merge', defaults);
 }
 
 /** The flow's steps that write a ticket, in its order. */

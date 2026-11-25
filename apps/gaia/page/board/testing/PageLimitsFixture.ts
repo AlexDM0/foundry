@@ -40,6 +40,26 @@ export const EXAMPLE_BOARD_LIMITS: BoardLimitsDocument = {
     assistant:          [{ kind: 'default-brief', role: 'assistant' }],
   },
   reReviewThresholdStepLines: 10,
+  defaultAgentPairOfRole:     {
+    productOwner:       { model: 'opus', effort: 'high' },
+    specAgent:          { model: 'sonnet', effort: 'medium' },
+    planAgent:          { model: 'opus', effort: 'high' },
+    builder:            { model: 'opus', effort: 'high' },
+    reviewer:           { model: 'opus', effort: 'high' },
+    reReviewer:         { model: 'opus', effort: 'high' },
+    conflictReReviewer: { model: 'opus', effort: 'high' },
+    pipelineAgent:      { model: 'opus', effort: 'high' },
+    assistant:          { model: 'sonnet', effort: 'medium' },
+  },
+  defaultDocumentsOfRole: {
+    builder:  { spec: 'always', plan: 'always' },
+    reviewer: { spec: 'always', plan: 'if-person-approved' },
+  },
+  fixedDocumentsOfRole: { builder: [], reviewer: ['spec'] },
+  defaultApprovals:     {
+    tickets: true, merge: false, spec: true, plan: true
+  },
+  defaultTicketWritingRoute: 'one-ticket',
 };
 
 export const EXAMPLE_PAGE_LIMITS: Readonly<TimelineLimits & TimestampSlices> = EXAMPLE_BOARD_LIMITS;

@@ -1,6 +1,7 @@
 /* The board's Markdown editor (the constitution's Edit view and a ticket document's Code view). The textarea and the mirror share one
    font, line height and padding, so the mirror's lines stand under the textarea's; the textarea's own text is var(--see-through) and its
-   caret stays visible. A gutter, where the caller asks for one, keeps the same line height, so its numbers stand beside their lines. */
+   caret stays visible. A gutter, where the caller asks for one, keeps the same line height, so its numbers stand beside their lines. At
+   rest a long line ends in an ellipsis; once User scrolls sideways the mirror draws each line whole, as the textarea holds it. */
 .board-markdown-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 
 .board-markdown-editor-lines { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
@@ -18,11 +19,19 @@
 
 .board-markdown-editor-mirror-line { display: flex; align-items: center; gap: 10px; min-height: 22px; width: max-content; min-width: 100%; }
 
-.board-markdown-editor-mirror-line[data-heading] { font-weight: 600; }
+.board-markdown-editor-gutter + .board-markdown-editor-body > :is(.board-markdown-editor-mirror, .board-markdown-editor-input) { padding-left: 14px; }
 
-.board-markdown-editor-mirror-line[data-selected] { background: var(--badge-accent-tint); }
+.board-markdown-editor-mirror-line[data-heading] { font-weight: 700; }
+
+.board-markdown-editor-mirror-line[data-muted] { color: var(--ink-muted); }
+
+.board-markdown-editor-mirror-line[data-selected] { background: var(--comment-selection-tint); }
 
 .board-markdown-editor-mirror-text { white-space: pre; }
+
+.board-markdown-editor-mirror:not([data-scrolled-sideways]) .board-markdown-editor-mirror-line { width: auto; }
+
+.board-markdown-editor-mirror:not([data-scrolled-sideways]) .board-markdown-editor-mirror-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .board-markdown-editor-caret { display: inline-block; width: 7px; height: 15px; align-self: center; background: var(--signal); }
 
@@ -38,15 +47,16 @@
 .board-markdown-editor-input:read-only { caret-color: var(--see-through); }
 
 .board-markdown-editor-gutter {
-  flex: none; align-self: stretch; overflow: hidden; padding-right: 0; padding-left: 8px; color: var(--ink-4); background: var(--wash); border-right: 1px solid var(--line);
+  flex: none; align-self: stretch; overflow: hidden; padding-right: 0; padding-left: 0; color: var(--ink-muted); border-right: 1px solid var(--line);
   user-select: none;
 }
 
-.board-markdown-editor-gutter-line { display: grid; grid-template-columns: 46px 24px 22px; align-items: center; height: 22px; }
+/* The marker, then the number; the line's + stands over its number while the pointer is on the line. */
+.board-markdown-editor-gutter-line { position: relative; display: grid; grid-template-columns: 52px 40px; align-items: center; height: 22px; }
 
-.board-markdown-editor-marker-place { display: flex; justify-content: flex-end; padding-right: 6px; }
+.board-markdown-editor-marker-place { display: flex; justify-content: flex-end; padding-right: 8px; }
 
-.board-markdown-editor-line-number { text-align: right; font-variant-numeric: tabular-nums; }
+.board-markdown-editor-line-number { padding-right: 14px; text-align: right; font-variant-numeric: tabular-nums; }
 
 .board-markdown-editor-marker {
   display: inline-flex; align-items: center; height: 16px; padding: 0 5px; font-size: var(--fs-micro); line-height: 1;
@@ -56,7 +66,7 @@
 .board-markdown-editor-marker[data-tone="open"] { color: var(--link); border-color: var(--accent-outline); }
 
 .board-markdown-editor-comment-button {
-  width: 16px; height: 16px; margin-left: 4px; padding: 0; font: inherit; line-height: 14px; color: var(--link); cursor: pointer;
+  position: absolute; top: 3px; right: 12px; width: 16px; height: 16px; padding: 0; font: inherit; line-height: 14px; color: var(--link); cursor: pointer;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-1); opacity: 0;
 }
 

@@ -835,6 +835,8 @@ const BOARD_TEXT_PAIRS: readonly TextPair[] = [
   textPair('--link', '--surface'),
   textPair('--link', '--link-tint', '--surface'),
   textPair('--ink', '--link-tint', '--surface'),
+  // The text an open comment points at, in a document and in its Markdown editor.
+  textPair('--ink', '--comment-selection-tint', '--surface'),
   // A chip of an epic, its slot's ink on its slot's tint.
   ...[1, 2, 3, 4, 5, 6].map((slot) => textPair(`--epic-${slot}-ink`, `--epic-${slot}-tint`, '--surface')),
   // A warning card, and a failed tool call's result.

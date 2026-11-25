@@ -22,6 +22,7 @@ import type {
 import { ENTITY_AGENT_ROLES, PIPELINE_AGENT_ROLES }                            from '../@types/Pipeline.ts';
 import type { EntityDraftField, PipelineDraftField, PipelineEntityDefinition } from '../@types/PipelineSetup.ts';
 import { TICKET_DOCUMENT_KINDS }                                               from '../@types/TicketDocument.ts';
+import { DEFAULT_APPROVALS }                                                   from '../constants/PipelineDefaults.ts';
 import { PipelineDraftEditUtil }                                               from './PipelineDraftEditUtil.ts';
 import { PipelineUtil }                                                        from './PipelineUtil.ts';
 import { TicketWritingUtil }                                                   from './TicketWritingUtil.ts';
@@ -57,13 +58,8 @@ export interface PipelineChangedFieldNames {
 
 const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge', 'spec', 'plan'];
 
-/** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
-const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({
-  tickets: true, merge: false, spec: true, plan: true
-});
-
 function approvalIsOn(pipeline: Readonly<Pipeline>, approval: PipelineApproval): boolean {
-  return pipeline.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];
+  return pipeline.approvals?.[approval] ?? DEFAULT_APPROVALS[approval];
 }
 
 /** Object keys sorted and absent keys dropped, so a hand edit that only reorders keys compares equal; array order counts. */

@@ -1,7 +1,8 @@
 /**
  * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, with the New pill beside it, a ruled row per
- * document (the spec, then the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. The
- * reviewer's spec stays at Always, its other choices shown disabled. The rules are the form's: nothing is sent until the dialog's Save.
+ * document (the spec, then the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. A
+ * document the forge fixes for the role (the reviewer's spec) stays at its rule, its other choices shown disabled. The rules are the
+ * form's: nothing is sent until the dialog's Save.
  */
 import { useId } from 'react';
 import {
@@ -10,15 +11,24 @@ import {
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { PipelineDocumentsSectionModel, type DocumentReadingRole, type DocumentReadingRules } from './PipelineDocumentsSectionModel.ts';
+import {
+  PipelineDocumentsSectionModel,
+  type DocumentReadingDefaults,
+  type DocumentReadingRole,
+  type DocumentReadingRules
+} from './PipelineDocumentsSectionModel.ts';
 
 export interface PipelineDocumentsSectionProps {
   readonly role:     DocumentReadingRole;
   readonly rules:    DocumentReadingRules;
+  /** The forge's defaults and fixed documents, as its board's limits serve them. */
+  readonly defaults: DocumentReadingDefaults;
   readonly onChange: (rules: DocumentReadingRules) => void;
 }
 
-export function PipelineDocumentsSection({ role, rules, onChange }: PipelineDocumentsSectionProps) {
+export function PipelineDocumentsSection({
+  role, rules, defaults, onChange
+}: PipelineDocumentsSectionProps) {
   const titleId = useId();
   const words = PipelineDocumentsSectionModel.WORDS;
   return (
@@ -29,7 +39,7 @@ export function PipelineDocumentsSection({ role, rules, onChange }: PipelineDocu
         <Text muted>{words.lead}</Text>
       </Row>
       <div className="board-pipeline-dialog-brief">
-        {PipelineDocumentsSectionModel.rowsOf(role, rules).map((row) => (
+        {PipelineDocumentsSectionModel.rowsOf(role, rules, defaults).map((row) => (
           <div key={row.document} className="board-pipeline-dialog-brief-row" data-document="">
             <span className="board-pipeline-dialog-document-name">
               <Text bold>{row.title}</Text>

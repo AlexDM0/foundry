@@ -26,7 +26,7 @@ describe('the words', () => {
 
 describe('a Save', () => {
   test('while on: the merge train with its re-review, then the conflict re-reviewer', () => {
-    const edits = MergeStepDialogModel.saveEditsOf({ ...RE_REVIEW_ON, thresholdLines: 400 });
+    const edits = MergeStepDialogModel.saveEditsOf({ ...RE_REVIEW_ON, thresholdLines: 400 }, EXAMPLE_BOARD_LIMITS);
     expect(edits).toEqual([
       { target: 'airlock', value: { reReview: { thresholdLines: 400 } } },
       {
@@ -38,6 +38,6 @@ describe('a Save', () => {
   });
 
   test('while off: the merge train without its re-review, and no re-reviewer', () => {
-    expect(MergeStepDialogModel.saveEditsOf({ ...RE_REVIEW_ON, isOn: false })).toEqual([{ target: 'airlock', value: { reReview: null } }]);
+    expect(MergeStepDialogModel.saveEditsOf({ ...RE_REVIEW_ON, isOn: false }, EXAMPLE_BOARD_LIMITS)).toEqual([{ target: 'airlock', value: { reReview: null } }]);
   });
 });

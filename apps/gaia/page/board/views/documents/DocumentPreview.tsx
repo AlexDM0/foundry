@@ -1,8 +1,8 @@
 /**
  * Preview: the document drawn from its Markdown by the page itself, with each comment's chip after its text and the effect reading's
- * reference marks, an open proposal inline where it lands, and the comment popover after the text it points at. A selection opens the
- * popover with an anchor of source lines, columns, quote and section, also one in code or one that ends on a chip, a checkbox or the edge of
- * a block; a hovered diagram node offers a comment on its own line. Read-only
+ * reference marks, an open proposal framed with the lines it replaces, and the comment popover after the text it points at, which stays
+ * marked while the popover is open. A selection opens the popover with an anchor of source lines, columns, quote and section, also one in
+ * code or one that ends on a chip, a checkbox or the edge of a block; a hovered diagram node offers a comment on its own line. Read-only
  * text still takes comments: a comment changes no text.
  */
 import { useMemo, type MouseEvent, type ReactNode } from 'react';
@@ -135,6 +135,7 @@ export function DocumentPreview({
       key:  proposal.proposalId,
       line: proposal.headLines?.to ?? 1,
       part: <InlineProposal place={place} proposal={proposal} settled={settled} />,
+      ...(proposal.headLines === null ? {} : { framedLines: proposal.headLines }),
     })),
     ...(draft === null ? [] : [{
       key:  'comment-popover',
@@ -173,6 +174,7 @@ export function DocumentPreview({
         commentedLines={openPlacements}
         replacedLines={placedProposals.flatMap((proposal) => (proposal.headLines === null ? [] : [proposal.headLines]))}
         parts={parts}
+        markedRange={draft === null ? null : DocumentSelectionModel.markedRangeOf(draft.anchor)}
         onNodeComment={commentOnNode}
         nodeOfferOf={(diagram, node) => `+ Comment on node · line ${DocumentSelectionModel.nodeSourceLineOf(diagram, node.nodeId)}`}
       />

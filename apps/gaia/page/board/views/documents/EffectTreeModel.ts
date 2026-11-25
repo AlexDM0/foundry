@@ -5,6 +5,7 @@
  */
 import type { BoardEffectChange }                                    from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardEffectEntryDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
+import type { ReferenceMark }                                        from './DocumentBlocks.tsx';
 
 export const EFFECT_SIGILS: Readonly<Record<BoardEffectChange, string>> = {
   adds: '+', changes: '~', removes: '−', unresolved: '?'
@@ -77,47 +78,72 @@ function placesOf(entry: BoardEffectEntryDocument): PlacedEntry[] {
   });
 }
 
-function folderKeyOf(folder: readonly string[]): string {
-  return folder.join(PATH_SEPARATOR);
+interface FolderNode {
+  readonly path:    readonly string[];
+  readonly folders: Map<string, FolderNode>;
+  readonly places:  PlacedEntry[];
 }
 
-/**
- * The tree in path order: a row for each folder before what it holds, named after the folder it shares a start with, and indented under it;
- * each entry one step in from its folder.
- */
-function rowsOf(entries: readonly BoardEffectEntryDocument[]): EffectTreeRow[] {
-  const pathOf = (place: PlacedEntry): string => [...place.folder, place.name].join(PATH_SEPARATOR);
-  const placed = entries.flatMap(placesOf).sort((a, b) => pathOf(a).localeCompare(pathOf(b)));
-  const rows: EffectTreeRow[] = [];
-  let openFolder: readonly string[] | null = null;
-  let openFolderDepth = 0;
+function folderTreeOf(placed: readonly PlacedEntry[]): FolderNode {
+  const root: FolderNode = { path: [], folders: new Map(), places: [] };
   for (const place of placed) {
-    const { entry, folder, name } = place;
-    if (openFolder === null || folderKeyOf(openFolder) !== folderKeyOf(folder)) {
-      const previous: readonly string[] = openFolder ?? [];
-      let shared = 0;
-      while (shared < previous.length && shared < folder.length && previous[shared] === folder[shared]) shared += 1;
-      openFolderDepth = shared === 0 ? 0 : 1;
-      if (folder.length > 0) {
-        rows.push({
-          kind: 'folder', key: `folder:${folderKeyOf(folder)}`, depth: openFolderDepth, name: `${folder.slice(shared).join(PATH_SEPARATOR)}${PATH_SEPARATOR}`
-        });
-      }
-      openFolder = folder;
+    let node = root;
+    for (const segment of place.folder) {
+      const known = node.folders.get(segment);
+      const child = known ?? { path: [...node.path, segment], folders: new Map<string, FolderNode>(), places: [] };
+      if (known === undefined) node.folders.set(segment, child);
+      node = child;
     }
-    const change = entry.unresolvedReason === null ? entry.change : 'unresolved';
-    rows.push({
-      kind:      'entry',
-      key:       `entry:${entry.reference}:${pathOf(place)}`,
-      depth:     folder.length === 0 ? 0 : openFolderDepth + 1,
-      name,
-      change,
-      sigil:     EFFECT_SIGILS[change],
-      reference: entry.reference,
-      detail:    entry.detail,
-    });
+    node.places.push(place);
   }
-  return rows;
+  return root;
+}
+
+/** A folder that holds only one folder shares its row: `apps/storefront/src/`. */
+function shownFolderOf(folder: FolderNode, parentDepth: number): { readonly folder: FolderNode; readonly name: string } {
+  let shown = folder;
+  while (shown.places.length === 0 && shown.folders.size === 1) {
+    const [only] = shown.folders.values();
+    if (only === undefined) break;
+    shown = only;
+  }
+  return { folder: shown, name: `${shown.path.slice(parentDepth).join(PATH_SEPARATOR)}${PATH_SEPARATOR}` };
+}
+
+function entryRowOf(place: PlacedEntry, depth: number): EffectTreeRow {
+  const { entry, folder, name } = place;
+  const change = entry.unresolvedReason === null ? entry.change : 'unresolved';
+  return {
+    kind:      'entry',
+    key:       `entry:${entry.reference}:${[...folder, name].join(PATH_SEPARATOR)}`,
+    depth,
+    name,
+    change,
+    sigil:     EFFECT_SIGILS[change],
+    reference: entry.reference,
+    detail:    entry.detail,
+  };
+}
+
+function rowsUnder(folder: FolderNode, depth: number): EffectTreeRow[] {
+  const folderRows = [...folder.folders.values()]
+    .sort((a, b) => a.path.join(PATH_SEPARATOR).localeCompare(b.path.join(PATH_SEPARATOR)))
+    .flatMap((child): EffectTreeRow[] => {
+      const shown = shownFolderOf(child, folder.path.length);
+      return [
+        {
+          kind: 'folder', key: `folder:${shown.folder.path.join(PATH_SEPARATOR)}`, depth, name: shown.name
+        },
+        ...rowsUnder(shown.folder, depth + 1),
+      ];
+    });
+  const entryRows = [...folder.places].sort((a, b) => a.name.localeCompare(b.name)).map((place) => entryRowOf(place, depth));
+  return [...folderRows, ...entryRows];
+}
+
+/** The tree in path order: each folder before what it holds, its folders before its files, and each one step in from its folder. */
+function rowsOf(entries: readonly BoardEffectEntryDocument[]): EffectTreeRow[] {
+  return rowsUnder(folderTreeOf(entries.flatMap(placesOf)), 0);
 }
 
 function legendOf(entries: readonly BoardEffectEntryDocument[]): EffectLegendItem[] {
@@ -172,11 +198,20 @@ function paneOf(reading: BoardEffectReadingDocument): EffectPaneModel {
   };
 }
 
-/** The references the plan's text carries, each with whether its place is unresolved, for the marks after its sentences. */
-function referenceMarksOf(reading: BoardEffectReadingDocument | null): { readonly reference: number; readonly line: number; readonly unresolved: boolean }[] {
+/**
+ * The references the plan's text carries, each with whether its place is unresolved, for the marks after its sentences, and the words
+ * and lines it quotes, which an unresolved one underlines.
+ */
+function referenceMarksOf(reading: BoardEffectReadingDocument | null): ReferenceMark[] {
   if (reading?.state !== 'read') return [];
   const unresolvedReferences = new Set(reading.entries.filter((entry) => entry.unresolvedReason !== null || entry.change === 'unresolved').map((entry) => entry.reference));
-  return reading.references.map((reference) => ({ reference: reference.reference, line: reference.lines.to, unresolved: unresolvedReferences.has(reference.reference) }));
+  return reading.references.map((reference) => ({
+    reference:  reference.reference,
+    line:       reference.lines.to,
+    unresolved: unresolvedReferences.has(reference.reference),
+    quote:      reference.quote,
+    quoteLines: reference.lines,
+  }));
 }
 
 export const EffectTreeModel = Object.freeze({

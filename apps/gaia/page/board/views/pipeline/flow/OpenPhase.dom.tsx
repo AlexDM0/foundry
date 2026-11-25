@@ -8,8 +8,12 @@
  * the tickets on it; the live Merge header names the ticket the Airlock lets onto main, the fast-forward's too, and the queued ones; an
  * editing step carries its change; a question pill asks for the question. The Ticket phase offers how a ticket is written: a press on
  * the other route sends one `ticket-writing` edit and a press on the chosen one sends nothing; the spec-then-plan route draws its four
- * steps, each writing step naming its document, and says a ticket needs the spec's Acceptance, an approved spec and an approved plan.
+ * steps, each writing step naming its document, and says a ticket needs the spec's Acceptance, an approved spec and an approved plan; and
+ * the stylesheet lets four step cards and their three arrows share one row of a phase beside the agent's panel at 1440 px.
  */
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
+
 import {
   act,
   cleanup,
@@ -34,6 +38,24 @@ import { OpenPhase }                                                         fro
 import type { PipelinePhase }                                                from './PipelinePhaseModel.ts';
 
 afterEach(cleanup);
+
+const PIPELINE_STYLESHEET_PATH = join(import.meta.dir, '..', '..', '..', '..', 'styles', 'board', 'pipeline.css');
+
+/** The width of a phase's step row inside Gaia's shell at 1440 px, beside the pipeline agent's panel. */
+const STEP_ROW_WIDTH_AT_1440_PIXELS = 694;
+
+/** The declarations of the stylesheet's rule with exactly this selector, by property. */
+function declarationsOf(stylesheetText: string, selector: string): ReadonlyMap<string, string> {
+  const ruleStart = stylesheetText.indexOf(`\n${selector} {`);
+  if (ruleStart === -1) throw new Error(`pipeline.css has no rule ${selector}`);
+  const body = stylesheetText.slice(stylesheetText.indexOf('{', ruleStart) + 1, stylesheetText.indexOf('}', ruleStart));
+  return new Map(body.split(';').map((declaration) => declaration.split(':').map((part) => part.trim())).filter((parts) => parts.length === 2)
+    .map(([property, value]) => [property ?? '', value ?? '']));
+}
+
+function pixelsOf(value: string | undefined): number {
+  return Number.parseFloat(value ?? 'NaN');
+}
 
 function selectionAt(openPhase: PipelinePhase, opened: FlowWorkspaceOpenRequest[], phasesOpened: PipelinePhase[]): FlowSelection {
   return {
@@ -333,6 +355,15 @@ describe('how a ticket is written', () => {
       'An approved specApproved by you, since Human spec review is on.',
       'An approved planIt takes the place of the Brief. The builder starts from it.',
     ]);
+  });
+
+  test('four step cards and their three arrows share one row of a phase beside the agent\'s panel, each card at most 212 px', () => {
+    const stylesheetText = readFileSync(PIPELINE_STYLESHEET_PATH, 'utf8');
+    const step = declarationsOf(stylesheetText, '.board-pipeline-step');
+    const [grow, shrink, basis] = (step.get('flex') ?? '').split(' ');
+    const arrowWidth = pixelsOf(declarationsOf(stylesheetText, '.board-pipeline-glyph[data-glyph="arrow"]').get('width'));
+    expect([grow, shrink, pixelsOf(step.get('max-width'))]).toEqual(['1', '1', 212]);
+    expect(4 * pixelsOf(basis) + 3 * arrowWidth).toBeLessThanOrEqual(STEP_ROW_WIDTH_AT_1440_PIXELS);
   });
 
   test('a document review\'s switch sends its own approval edit', async () => {

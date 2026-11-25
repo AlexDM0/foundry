@@ -88,6 +88,7 @@ function changeListEditingOf(facts: PipelineViewFacts): ChangeListEditing | null
     base:        facts.pipeline.applied.readingVerdict === 'readable' ? facts.pipeline.applied.pipeline : null,
     draft:       facts.pipeline.setup?.record.draft ?? null,
     profileRuns: facts.pipeline.profileRuns ?? [],
+    defaults:    facts.limits,
   };
 }
 

@@ -3,7 +3,8 @@
  * reads them again on the board stream's `documents` part, never on another; Approve sends the head version it shows; the tabs link the
  * other document, muted while it waits on the one before; a plan the spec moved under says so, holds the build and asks to be approved
  * again; where the review is off the document reads `Approved by pipeline` and its Code is read-only; a refusal reads verbatim; a comment's
- * card in the chat jumps to Preview and scrolls to its lines at each press; Plan's composer opens the effect pane on the effect reading it
+ * card in the chat jumps to Preview and scrolls to its lines at each press, and a page opened jumped to lines scrolls there; while the agent
+ * works on a comment made before User's edit, the chat says its edit lands on User's text; Plan's composer opens the effect pane on the effect reading it
  * asks for; a failed read after a good one keeps the page and User's text; and leaving Code leaves no edit that locks Approve.
  */
 import {
@@ -34,11 +35,21 @@ import {
   DOCUMENT_STATES,
   documentsBoardOf,
   documentsTicketOf,
+  lineOf,
+  SPEC_MARKDOWN,
+  SPEC_MARKDOWN_V6,
+  SPEC_TRANSCRIPT_IDLE,
+  SPEC_TRANSCRIPT_SPLIT,
   SPEC_TRANSCRIPT_WORKING,
   SPEC_AGENT_JOB_ID
 } from '../../testing/TicketDocumentsFixture.ts';
-import { DiagramFrameAddressContext }                        from './DiagramFrame.tsx';
-import { TicketDocumentsReaderContext, TicketDocumentsView } from './TicketDocumentsView.tsx';
+import { DiagramFrameAddressContext } from './DiagramFrame.tsx';
+import {
+  TicketDocumentsPage,
+  TicketDocumentsReaderContext,
+  TicketDocumentsView,
+  type PageStateAtMount
+} from './TicketDocumentsView.tsx';
 
 afterEach(() => {
   cleanup();
@@ -94,6 +105,15 @@ function renderDocuments(documents: GaiaTicketDocumentsDocument, options: Render
   return {
     controls, relay, fire, followed
   };
+}
+
+function renderPage(documents: GaiaTicketDocumentsDocument, transcript: typeof SPEC_TRANSCRIPT_IDLE, atMount: PageStateAtMount) {
+  const controls = fakeControls();
+  controls.render(onBoard(
+    <DiagramFrameAddressContext value={null}>
+      <TicketDocumentsPage project="Example Storefront" ticket={documentsTicketOf()} documents={documents} shown="spec" transcript={transcript} atMount={atMount} />
+    </DiagramFrameAddressContext>,
+  ));
 }
 
 async function settled(): Promise<void> {
@@ -245,6 +265,37 @@ describe('the documents page', () => {
     } finally {
       Element.prototype.scrollIntoView = scrollIntoViewBefore;
     }
+  });
+
+  test('a page opened jumped to lines scrolls to them once, as a press on their comment\'s card does', () => {
+    const scrolled: string[] = [];
+    const scrollIntoViewBefore = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function recordScroll(this: Element) {
+      scrolled.push(this.getAttribute('data-from-line') ?? '');
+    };
+    try {
+      const contrastLine = lineOf(SPEC_MARKDOWN, '**A3**');
+      renderPage(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE, { jumpedTo: { from: contrastLine, to: contrastLine } });
+      expect(scrolled).toEqual([String(contrastLine)]);
+    } finally {
+      Element.prototype.scrollIntoView = scrollIntoViewBefore;
+    }
+  });
+
+  test('while the agent answers C3, made on v5, User typing on line 34 reads that its edit lands on User\'s text', () => {
+    const sentence = 'You changed line 34 while the agent works. It proposes against v6, so its edit to lines 17–23 lands on your text, not over it.';
+    renderPage(DOCUMENT_STATES.specSplit, SPEC_TRANSCRIPT_SPLIT, { view: 'split' });
+    const chat = screen.getByRole('log', { name: 'Chat with the spec agent' });
+    expect(within(chat).getByText(/^You changed the spec while the agent works\./u)).toBeTruthy();
+    const editor = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' });
+    const typed = SPEC_MARKDOWN_V6.replace('(ticket #011)', '(ticket #012)');
+    fireEvent.change(editor, { target: { value: typed } });
+    const caret = typed.indexOf('#012');
+    editor.setSelectionRange(caret, caret);
+    fireEvent.select(editor);
+    expect(within(chat).getByText(sentence)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(within(chat).getByText(/^You changed the spec while the agent works\./u)).toBeTruthy();
   });
 
   test('a ticket with no documents shows the forge\'s refusal', async () => {

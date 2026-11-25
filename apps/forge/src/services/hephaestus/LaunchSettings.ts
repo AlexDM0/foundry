@@ -7,20 +7,11 @@ import type { AgentEffort }                 from '../../lib/agent-launch/AgentLa
 import type { Job, JobRole }                from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { AgentPair }                   from '../../lib/tracker-model/@types/Ticket.ts';
-import { DEFAULT_AGENT_MODEL }              from '../../lib/tracker-model/constants/AgentSettings.ts';
 import { PipelineUtil }                     from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { VocabularyUtil }                   from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import {
-  ASSISTANT_EFFORT,
-  ASSISTANT_MODEL,
+  DEFAULT_AGENT_PAIR_OF_ROLE,
   EFFECT_READER_EFFORT,
   EFFECT_READER_MODEL,
-  PIPELINE_AGENT_EFFORT,
-  PIPELINE_AGENT_MODEL,
-  PLAN_AGENT_EFFORT,
-  PLAN_AGENT_MODEL,
-  SPEC_AGENT_EFFORT,
-  SPEC_AGENT_MODEL,
   WORKER_EFFORT,
   WORKER_MODEL
 } from '../../shared/constants/HephaestusLimits.ts';
@@ -47,27 +38,14 @@ const WORKER_SETTINGS: SessionLaunchSettings = Object.freeze({ model: WORKER_MOD
 
 const EFFECT_READER_SETTINGS: SessionLaunchSettings = Object.freeze({ model: EFFECT_READER_MODEL, effort: EFFECT_READER_EFFORT });
 
-const DEFAULT_SETTINGS_OF_ROLE: Readonly<Record<PipelineAgentRole, SessionLaunchSettings>> = Object.freeze({
-  productOwner:       WORKER_SETTINGS,
-  specAgent:          Object.freeze({ model: SPEC_AGENT_MODEL, effort: SPEC_AGENT_EFFORT }),
-  planAgent:          Object.freeze({ model: PLAN_AGENT_MODEL, effort: PLAN_AGENT_EFFORT }),
-  builder:            WORKER_SETTINGS,
-  reviewer:           WORKER_SETTINGS,
-  reReviewer:         WORKER_SETTINGS,
-  conflictReReviewer: WORKER_SETTINGS,
-  pipelineAgent:      Object.freeze({ model: PIPELINE_AGENT_MODEL, effort: PIPELINE_AGENT_EFFORT }),
-  assistant:          Object.freeze({ model: ASSISTANT_MODEL, effort: ASSISTANT_EFFORT }),
-});
-
 /** What a role launches on where the pipeline names no model or effort. */
 function defaultLaunchSettingsOf(role: PipelineAgentRole): SessionLaunchSettings {
-  return DEFAULT_SETTINGS_OF_ROLE[role];
+  return DEFAULT_AGENT_PAIR_OF_ROLE[role];
 }
 
 /** A role's default in the facts' vocabulary, which the flow shows on a step whose pipeline names no model or effort. */
 function defaultAgentPairOf(role: PipelineAgentRole): AgentPair {
-  const { model, effort } = DEFAULT_SETTINGS_OF_ROLE[role];
-  return { model: VocabularyUtil.agentModelIsKnown(model) ? model : DEFAULT_AGENT_MODEL, effort };
+  return DEFAULT_AGENT_PAIR_OF_ROLE[role];
 }
 
 /** The pipeline step whose settings and instructions the job's sessions read; `null` for a merge or refresh job, which runs no agent. */

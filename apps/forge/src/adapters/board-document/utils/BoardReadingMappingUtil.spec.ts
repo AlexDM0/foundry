@@ -8,13 +8,27 @@
 import { describe, expect, test } from 'bun:test';
 
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { DEFAULT_INSTRUCTIONS_OF_ROLE, RE_REVIEW_THRESHOLD_STEP_LINES }       from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
-import type { PageTicket, PageTicketFacts }                                   from '../../../shared/@types/PagePayload.ts';
-import { DISPATCH_PROTOCOL }                                                  from '../../../shared/constants/DispatchProtocol.ts';
-import { WORKER_EFFORT, WORKER_MODEL }                                        from '../../../shared/constants/HephaestusLimits.ts';
-import type { AttentionEntry }                                                from '../../../shared/monitor/AttentionEntries.ts';
-import { taskFixture }                                                        from '../../../testing/BoardFixtures.ts';
-import { BoardReadingMappingUtil }                                            from './BoardReadingMappingUtil.ts';
+import {
+  DEFAULT_APPROVALS,
+  DEFAULT_DOCUMENTS_OF_ROLE,
+  DEFAULT_INSTRUCTIONS_OF_ROLE,
+  DEFAULT_TICKET_WRITING_ROUTE,
+  RE_REVIEW_THRESHOLD_STEP_LINES
+} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
+import type { PageTicket, PageTicketFacts } from '../../../shared/@types/PagePayload.ts';
+import { DISPATCH_PROTOCOL }                from '../../../shared/constants/DispatchProtocol.ts';
+import {
+  DEFAULT_AGENT_PAIR_OF_ROLE,
+  PLAN_AGENT_EFFORT,
+  PLAN_AGENT_MODEL,
+  SPEC_AGENT_EFFORT,
+  SPEC_AGENT_MODEL,
+  WORKER_EFFORT,
+  WORKER_MODEL
+} from '../../../shared/constants/HephaestusLimits.ts';
+import type { AttentionEntry }     from '../../../shared/monitor/AttentionEntries.ts';
+import { taskFixture }             from '../../../testing/BoardFixtures.ts';
+import { BoardReadingMappingUtil } from './BoardReadingMappingUtil.ts';
 
 const AT = '2026-11-20T10:00:00+01:00';
 
@@ -153,5 +167,21 @@ describe('BoardReadingMappingUtil.ruleLimitsOf', () => {
     expect([limits.workerModel, limits.workerEffort, limits.reworkRoundThresholdLines]).toEqual([WORKER_MODEL, WORKER_EFFORT, DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES]);
     expect([limits.defaultTicketPriority, limits.firstRepeatReviewRound, limits.reReviewThresholdStepLines]).toEqual(['normal', 2, RE_REVIEW_THRESHOLD_STEP_LINES]);
     expect(limits.defaultInstructionsOfRole).toEqual(DEFAULT_INSTRUCTIONS_OF_ROLE);
+  });
+
+  test('serves each role\'s default model and effort as the launch takes them, the document agents\' own beside the worker pair', () => {
+    const limits = BoardReadingMappingUtil.ruleLimitsOf();
+    expect(limits.defaultAgentPairOfRole).toEqual(DEFAULT_AGENT_PAIR_OF_ROLE);
+    expect(limits.defaultAgentPairOfRole.specAgent).toEqual({ model: SPEC_AGENT_MODEL, effort: SPEC_AGENT_EFFORT });
+    expect(limits.defaultAgentPairOfRole.planAgent).toEqual({ model: PLAN_AGENT_MODEL, effort: PLAN_AGENT_EFFORT });
+    expect(limits.defaultAgentPairOfRole.builder).toEqual({ model: WORKER_MODEL, effort: WORKER_EFFORT });
+  });
+
+  test('serves the pipeline\'s defaults: the documents each reading role reads, the reviewer\'s fixed spec, the approvals and the route', () => {
+    const limits = BoardReadingMappingUtil.ruleLimitsOf();
+    expect(limits.defaultDocumentsOfRole).toEqual(DEFAULT_DOCUMENTS_OF_ROLE);
+    expect(limits.fixedDocumentsOfRole).toEqual({ builder: [], reviewer: ['spec'] });
+    expect(limits.defaultApprovals).toEqual(DEFAULT_APPROVALS);
+    expect(limits.defaultTicketWritingRoute).toBe(DEFAULT_TICKET_WRITING_ROUTE);
   });
 });

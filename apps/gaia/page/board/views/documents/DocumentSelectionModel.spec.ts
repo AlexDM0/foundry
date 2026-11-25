@@ -82,3 +82,25 @@ describe('a position in a drawn span', () => {
     expect(DocumentSelectionModel.positionInSpan({ line: 7, column: 5 }, 'abc\ndef', 6)).toEqual({ line: 8, column: 3 });
   });
 });
+
+describe('the text an open comment marks', () => {
+  test('is a one-line anchor\'s columns, a longer one\'s whole lines, and nothing for a diagram node', () => {
+    const quote = 'Every account page passes 4.5:1 contrast in both themes.';
+    const selection = { start: { line: A3_LINE, column: 14 }, end: { line: A3_LINE, column: 14 + quote.length }, quote };
+    const oneLine = DocumentSelectionModel.anchorOfPreviewSelection(BLOCKS, LINE_COUNT, 4, selection);
+    expect(DocumentSelectionModel.markedRangeOf(oneLine)).toEqual({ start: { line: A3_LINE, column: 14 }, end: { line: A3_LINE, column: 14 + quote.length } });
+    const twoLines = DocumentSelectionModel.anchorOfLines(BLOCKS, LINE_COUNT, 4, { from: 17, to: 23 });
+    expect(DocumentSelectionModel.markedRangeOf(twoLines)).toEqual({ start: { line: 17, column: 1 }, end: { line: 24, column: 1 } });
+    const diagram = DocumentSelectionModel.diagramAtLine(BLOCKS, 17);
+    if (diagram === null) throw new Error('no diagram');
+    expect(DocumentSelectionModel.markedRangeOf(DocumentSelectionModel.anchorOfNode(BLOCKS, LINE_COUNT, 4, diagram, { nodeId: 'Stored', label: 'Saved choice' }))).toBeNull();
+  });
+
+  test('cuts a drawn span at the range\'s ends, across a line break, and leaves a span outside it whole', () => {
+    const range = { start: { line: 7, column: 9 }, end: { line: 8, column: 3 } };
+    expect(DocumentSelectionModel.markedOffsetsInSpan({ line: 7, column: 5 }, 'abc def', range)).toEqual({ from: 4, to: 7 });
+    expect(DocumentSelectionModel.markedOffsetsInSpan({ line: 7, column: 5 }, 'abc defg\nhijk', range)).toEqual({ from: 4, to: 11 });
+    expect(DocumentSelectionModel.markedOffsetsInSpan({ line: 9, column: 1 }, 'after', range)).toBeNull();
+    expect(DocumentSelectionModel.markedOffsetsInSpan({ line: 6, column: 1 }, 'before', range)).toBeNull();
+  });
+});

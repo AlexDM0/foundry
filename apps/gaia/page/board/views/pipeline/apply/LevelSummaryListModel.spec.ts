@@ -5,6 +5,7 @@
  */
 import { describe, expect, test }                from 'bun:test';
 import type { BoardPipelineDefinitionDocument }  from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { EXAMPLE_BOARD_LIMITS }                  from '../../../testing/PageLimitsFixture.ts';
 import { examplePipeline, pipelineBoardStateOf } from '../../../testing/PipelineFixture.ts';
 import { LevelSummaryListModel }                 from './LevelSummaryListModel.ts';
 
@@ -16,7 +17,7 @@ function monorepoDraft(): BoardPipelineDefinitionDocument {
 
 describe('the levels', () => {
   test('the forge first, then each entity with what Apply stores for it', () => {
-    expect(LevelSummaryListModel.levelsOf(monorepoDraft()).map((level) => [level.name, level.nameIsKey, level.text])).toEqual([
+    expect(LevelSummaryListModel.levelsOf(monorepoDraft(), EXAMPLE_BOARD_LIMITS).map((level) => [level.name, level.nameIsKey, level.text])).toEqual([
       ['Forge', false, 'Human ticket review on, human code review off, conflict re-review over 750 lines'],
       ['web', true, 'app · 1 prepare step · 2 build, 2 review and 2 merge gates · review on'],
       ['design-system', true, 'package · 1 build, 1 review and 1 merge gates · review on'],
@@ -32,12 +33,12 @@ describe('the levels', () => {
       ...web, gates: [], phases: { build: [], review: [], merge: [] }, review: null, concurrency: 1,
     };
     const changed = { ...draft, entities: { ...draft.entities, web: webWithoutGates } };
-    expect(LevelSummaryListModel.levelsOf(changed)[1]?.text).toBe('app · 1 prepare step · No gates · review off · a cap of 1 job');
+    expect(LevelSummaryListModel.levelsOf(changed, EXAMPLE_BOARD_LIMITS)[1]?.text).toBe('app · 1 prepare step · No gates · review off · a cap of 1 job');
   });
 
   test('a draft without entities lists no level', () => {
     const singleDraft: BoardPipelineDefinitionDocument = examplePipeline();
-    expect(LevelSummaryListModel.levelsOf(singleDraft)).toEqual([]);
-    expect(LevelSummaryListModel.levelsOf(null)).toEqual([]);
+    expect(LevelSummaryListModel.levelsOf(singleDraft, EXAMPLE_BOARD_LIMITS)).toEqual([]);
+    expect(LevelSummaryListModel.levelsOf(null, EXAMPLE_BOARD_LIMITS)).toEqual([]);
   });
 });

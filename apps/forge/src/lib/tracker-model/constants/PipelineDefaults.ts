@@ -1,9 +1,15 @@
 /**
- * What a pipeline means where it says nothing: each role's instruction list, the ticket documents the builder and the reviewer read, and
- * the step of a re-review threshold in lines.
+ * What a pipeline means where it says nothing: each role's instruction list, the ticket documents the builder and the reviewer read, the
+ * approvals that are on, the route a ticket is written by, and the step of a re-review threshold in lines.
  */
-import type { DocumentReadingRule, InstructionEntry, PipelineAgentRole } from '../@types/Pipeline.ts';
-import type { TicketDocumentKind }                                       from '../@types/TicketDocument.ts';
+import type {
+  DocumentReadingRule,
+  InstructionEntry,
+  PipelineAgentRole,
+  PipelineApproval,
+  TicketWritingRoute
+} from '../@types/Pipeline.ts';
+import type { TicketDocumentKind } from '../@types/TicketDocument.ts';
 
 /** Also the lowest threshold a pipeline may store. */
 export const RE_REVIEW_THRESHOLD_STEP_LINES = 50;
@@ -29,3 +35,17 @@ export const DEFAULT_DOCUMENTS_OF_ROLE: Readonly<Record<DocumentReadingRole, Rea
   builder:  Object.freeze({ spec: 'always', plan: 'always' }),
   reviewer: Object.freeze({ spec: 'always', plan: 'if-person-approved' }),
 });
+
+/** The documents a role reads at its default rule whatever its pipeline stores: the reviewer checks the change against the spec's Acceptance. */
+export const FIXED_DOCUMENTS_OF_ROLE: Readonly<Record<DocumentReadingRole, readonly TicketDocumentKind[]>> = Object.freeze({
+  builder:  Object.freeze<TicketDocumentKind[]>([]),
+  reviewer: Object.freeze<TicketDocumentKind[]>(['spec']),
+});
+
+/** An absent `tickets`, `spec` or `plan` approval is on; an absent `merge` approval is off. */
+export const DEFAULT_APPROVALS: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({
+  tickets: true, merge: false, spec: true, plan: true
+});
+
+/** Absent, and with no pipeline, a ticket is written as one ticket. */
+export const DEFAULT_TICKET_WRITING_ROUTE: TicketWritingRoute = 'one-ticket';

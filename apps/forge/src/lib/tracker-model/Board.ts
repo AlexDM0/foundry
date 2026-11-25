@@ -218,6 +218,7 @@ import { TicketStageRows }                               from './TicketStageRows
 import { TokenCredits }                                  from './TokenCredits.ts';
 import { TrackerChanges }                                from './TrackerChanges.ts';
 import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON }   from './constants/DecisionAndIncidentVocabulary.ts';
+import { DEFAULT_TICKET_WRITING_ROUTE }                  from './constants/PipelineDefaults.ts';
 import { SETTLED_TICKET_STATUSES }                       from './constants/Statuses.ts';
 import { GroupNameUtil }                                 from './utils/GroupNameUtil.ts';
 import type { MergeForecast }                            from './utils/MergeQueueUtil.ts';
@@ -432,7 +433,7 @@ export class Board {
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
     workFilesOf?: WorkFilesOf,
-    route: TicketWritingRoute = 'one-ticket',
+    route: TicketWritingRoute = DEFAULT_TICKET_WRITING_ROUTE,
   ): JobChanged {
     if (route === 'spec-then-plan') {
       const completeDrafts = this.draftsFiledByIntakeOf(jobId)

@@ -554,7 +554,7 @@ const TICKET_DOCUMENT_SCREEN_STATES: Readonly<Record<number, readonly string[]>>
   2: ['C3 · § 2 Outcome · line 11 · Preview', 'The agent gets the quote, its section and lines 9–13.'],
   3: ['C3 · lines 17–23 · Code', '§ 3 Behaviour › mermaid block Theme flow'],
   4: ['Spec agent proposes · line 29 only', 'Waiting on you · 1 edit to review', 'spec · v4 · 1 edit proposed'],
-  5: ['Replying to C3 · started on v5', 'Queue ⌘↵', 'Queued for the agent', 'spec · v6 · editing'],
+  5: ['Replying to C3 · started on v5', 'Queue ⌘↵', 'Queued for the agent', 'spec · v6 · editing', 'You changed line 34 while the agent works.'],
   6: ['C3 · § 3 Behaviour · line 20 · Preview', 'The agent gets the node, its section and lines 18–22.'],
   7: ['What the plan names', 'Unresolved · 2', 'Approve plan · start build', 'Waiting on you · 2 unresolved places'],
   8: ['Approve plan again · start build', 'then Build · held', 'The spec changed after this plan was approved', 'Plan agent proposes, for spec v6'],

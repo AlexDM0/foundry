@@ -86,7 +86,7 @@ export function AgentStepDialog({
           canSave={editSender.enabled}
           refusal={editSender.refusal ?? asker.refusal}
           onCancel={onClose}
-          onSave={() => editSender.sendEdits([AgentStepDialogModel.roleEditOf(role, form)])}
+          onSave={() => editSender.sendEdits([AgentStepDialogModel.roleEditOf(role, form, limits)])}
         />
       )}
     >
@@ -111,9 +111,9 @@ export function AgentStepDialog({
           constitution={constitution}
           onChange={(entries) => setForm({ ...form, entries })}
         />
-        {role !== 'builder' || form.documents === null || PipelineFlowModel.ticketWritingRouteOfDraft(draft) !== 'spec-then-plan'
+        {role !== 'builder' || form.documents === null || PipelineFlowModel.ticketWritingRouteOfDraft(draft, limits) !== 'spec-then-plan'
           ? null
-          : <PipelineDocumentsSection role="builder" rules={form.documents} onChange={(documents) => setForm({ ...form, documents })} />}
+          : <PipelineDocumentsSection role="builder" rules={form.documents} defaults={limits} onChange={(documents) => setForm({ ...form, documents })} />}
         <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
           <StepFact term="Runs" description={words.runs} />
           {words.fixes === null ? null : <StepFact term="Fixes" description={words.fixes} />}

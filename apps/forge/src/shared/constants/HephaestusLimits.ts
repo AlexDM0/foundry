@@ -1,3 +1,6 @@
+import type { PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { AgentPair }         from '../../lib/tracker-model/@types/Ticket.ts';
+
 /** The bounds Hephaestus and the sessions it launches keep: how long a relayed verb waits for its reply, and how much a worker may file. */
 
 /** How many times a relayed verb looks for its reply before it prints `queued <requestId>`; a schedule only, never a decision. */
@@ -47,6 +50,19 @@ export const SPEC_AGENT_EFFORT = 'medium' as const;
 export const PLAN_AGENT_MODEL = 'opus';
 
 export const PLAN_AGENT_EFFORT = 'high' as const;
+
+/** The model and effort each pipeline role launches on where the pipeline names none, in the facts' tier words. */
+export const DEFAULT_AGENT_PAIR_OF_ROLE: Readonly<Record<PipelineAgentRole, Readonly<AgentPair>>> = Object.freeze({
+  productOwner:       Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT }),
+  specAgent:          Object.freeze({ model: SPEC_AGENT_MODEL, effort: SPEC_AGENT_EFFORT }),
+  planAgent:          Object.freeze({ model: PLAN_AGENT_MODEL, effort: PLAN_AGENT_EFFORT }),
+  builder:            Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT }),
+  reviewer:           Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT }),
+  reReviewer:         Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT }),
+  conflictReReviewer: Object.freeze({ model: WORKER_MODEL, effort: WORKER_EFFORT }),
+  pipelineAgent:      Object.freeze({ model: PIPELINE_AGENT_MODEL, effort: PIPELINE_AGENT_EFFORT }),
+  assistant:          Object.freeze({ model: ASSISTANT_MODEL, effort: ASSISTANT_EFFORT }),
+});
 
 /** The effect reader's fixed model and effort: it is no pipeline role, so no pipeline names them. */
 export const EFFECT_READER_MODEL = 'haiku';

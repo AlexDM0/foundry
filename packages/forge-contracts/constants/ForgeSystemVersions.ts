@@ -22,7 +22,9 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * pipeline-tools-set, agent-look-again and machine-agent-program-set.
  * Forge 4.2 adds a ticket's documents in the spec-then-plan route: their endpoint, the user's commands on them, the `documents` event and
  * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
- * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds.
+ * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds. The
+ * limits also add the defaults a pipeline means where it says nothing, so a client keeps no copy: `defaultAgentPairOfRole`,
+ * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`.
  * Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: pipeline-setup-start carries the agent
  * and optionally the billing, the record's `billing` is `null` until chosen, each vendor names its `billingOptions`, and a job is not
  * launched `billing-not-offered` when its billing names a way its vendor does not bill; pipeline-agent-set optionally carries a billing to

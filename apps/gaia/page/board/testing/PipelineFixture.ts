@@ -786,7 +786,15 @@ function pipelineBoardState(pipelineChanges: Partial<BoardPipelineFactsDocument>
       workerEffort:               WORKER_SETTINGS.effort,
       reworkRoundThresholdLines:  FIXTURE_THRESHOLD_LINES,
       reReviewThresholdStepLines: FIXTURE_RE_REVIEW_THRESHOLD_STEP_LINES,
-      defaultInstructionsOfRole:  {
+      defaultAgentPairOfRole:     {
+        ...base.limits.defaultAgentPairOfRole,
+        productOwner:       WORKER_SETTINGS,
+        builder:            WORKER_SETTINGS,
+        reviewer:           WORKER_SETTINGS,
+        reReviewer:         WORKER_SETTINGS,
+        conflictReReviewer: WORKER_SETTINGS,
+      },
+      defaultInstructionsOfRole: {
         ...base.limits.defaultInstructionsOfRole,
         reReviewer:         [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'reReviewer' }],
         conflictReReviewer: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'conflictReReviewer' }],
@@ -1331,7 +1339,10 @@ function monorepoEditingState(): BoardDocument {
   }));
 }
 
-/** Artboard 9: the design step with the spec-then-plan route the pipeline agent proposed, its documents reviewed by User or not. */
+/**
+ * Artboard 9: the design step with the spec-then-plan route the pipeline agent proposed, its documents reviewed by User or not; the proposal
+ * is ready, and its change list holds the route's three changes.
+ */
 function specThenPlanState(documentReview: 'on' | 'off'): BoardDocument {
   const draft = examplePipeline({
     ...SPEC_THEN_PLAN_PIPELINE,
@@ -1346,12 +1357,11 @@ function specThenPlanState(documentReview: 'on' | 'off'): BoardDocument {
     }),
   ];
   const changeList: BoardPipelineChangeDocument[] = [
-    ...PROPOSAL_CHANGES,
     { field: 'ticket-writing', changeKind: 'changed', editId: TICKET_WRITING_EDIT_ID },
     { field: 'role:specAgent', changeKind: 'new', editId: null },
     { field: 'role:planAgent', changeKind: 'new', editId: null },
   ];
-  return setupState(setupRecord({ draft, edits }), {}, {
+  return setupState(setupRecord({ draft, edits, readyToContinue: ['design'] }), {}, {
     flow: flowOf({
       pipeline: draft, stage: 'proposal', mark: 'proposed', humanCodeReview: false, applied: false, ticketWriting: 'spec-then-plan', documentReview,
     }, { changeList }),

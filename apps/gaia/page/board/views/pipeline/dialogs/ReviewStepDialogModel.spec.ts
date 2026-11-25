@@ -15,13 +15,14 @@ const RE_REVIEW_ON = RereviewSettingsModel.resetFormOf('review', EXAMPLE_BOARD_L
 
 describe('a Save', () => {
   test('while the re-review is on: the reviewer, the re-reviewer and the review with its re-review', () => {
-    const edits = ReviewStepDialogModel.saveEditsOf({ name: 'example-review', reReview: null }, REVIEWER_FORM, RE_REVIEW_ON);
+    const edits = ReviewStepDialogModel.saveEditsOf({ name: 'example-review', reReview: null }, REVIEWER_FORM, RE_REVIEW_ON, EXAMPLE_BOARD_LIMITS);
     expect(edits.map((edit) => edit.target)).toEqual(['role', 'role', 'review']);
     expect(edits.at(-1)).toEqual({ target: 'review', value: { name: 'example-review', reReview: { thresholdLines: EXAMPLE_BOARD_LIMITS.reworkRoundThresholdLines } } });
   });
 
   test('while it is off: the review drops its re-review, and the re-reviewer is not sent', () => {
-    const edits = ReviewStepDialogModel.saveEditsOf({ name: 'example-review', reReview: { thresholdLines: 300 } }, REVIEWER_FORM, { ...RE_REVIEW_ON, isOn: false });
+    const review = { name: 'example-review', reReview: { thresholdLines: 300 } };
+    const edits = ReviewStepDialogModel.saveEditsOf(review, REVIEWER_FORM, { ...RE_REVIEW_ON, isOn: false }, EXAMPLE_BOARD_LIMITS);
     expect(edits.map((edit) => edit.target)).toEqual(['role', 'review']);
     expect(edits.at(-1)).toEqual({ target: 'review', value: { name: 'example-review', reReview: null } });
   });

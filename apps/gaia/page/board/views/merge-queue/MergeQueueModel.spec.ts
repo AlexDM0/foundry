@@ -8,6 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { DIRTY_CHECKOUT_NOTICE, QUEUED_TARGET } from '../../testing/BoardStateFixture.ts';
+import { EXAMPLE_BOARD_LIMITS }                 from '../../testing/PageLimitsFixture.ts';
 import { pipelineBoardStateOf }                 from '../../testing/PipelineFixture.ts';
 
 const NO_TARGETS = { targets: [] } as const;
@@ -88,9 +89,9 @@ describe('the order text', () => {
     if (approving.readingVerdict !== 'readable') throw new Error('the fixture has no readable pipeline');
     const notApproving = { ...approving, pipeline: { ...approving.pipeline, approvals: { tickets: true, merge: false } } };
     expect([
-      MergeQueueModel.orderTextOf(approving),
-      MergeQueueModel.orderTextOf(notApproving),
-      MergeQueueModel.orderTextOf({ readingVerdict: 'absent' }),
+      MergeQueueModel.orderTextOf(approving, EXAMPLE_BOARD_LIMITS),
+      MergeQueueModel.orderTextOf(notApproving, EXAMPLE_BOARD_LIMITS),
+      MergeQueueModel.orderTextOf({ readingVerdict: 'absent' }, EXAMPLE_BOARD_LIMITS),
     ]).toEqual([
       'Ordered by User\'s Merge presses, earliest first, then ticket id.',
       'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.',
