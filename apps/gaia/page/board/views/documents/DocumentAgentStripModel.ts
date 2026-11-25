@@ -40,9 +40,14 @@ function versionText(document: BoardTicketDocumentDocument): string {
   return document.head === null ? 'no version yet' : `v${document.head.number}`;
 }
 
+/** The path a call names whole: `apps/storefront/server/render.ts`; `null` when it names none. */
+function namedPathOf(call: ToolCall): string | null {
+  return NAMED_PATH.exec(call.inputText)?.[1] ?? null;
+}
+
 /** The file a call names, its last segment: `package.json`; `null` when it names none. */
 function namedFileOf(call: ToolCall): string | null {
-  const path = NAMED_PATH.exec(call.inputText)?.[1] ?? null;
+  const path = namedPathOf(call);
   return path === null ? null : path.split('/').filter((segment) => segment !== '').at(-1) ?? path;
 }
 
@@ -114,4 +119,4 @@ function stripOf(reading: DocumentAgentReading): DocumentAgentStripModel {
   };
 }
 
-export const DocumentAgentStripModelUtil = Object.freeze({ stripOf, namedFileOf });
+export const DocumentAgentStripModelUtil = Object.freeze({ stripOf, namedFileOf, namedPathOf });

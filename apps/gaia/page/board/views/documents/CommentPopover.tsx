@@ -56,7 +56,7 @@ export function CommentPopover({
       </div>
       {content.section === null ? null : <div className="board-document-popover-section">{content.section}</div>}
       {content.quote === null ? null : <div className="board-document-popover-quote">{`“${content.quote}”`}</div>}
-      <label className="board-document-popover-label" htmlFor={fieldId}>Your comment</label>
+      <label className="board-visually-hidden" htmlFor={fieldId}>Your comment</label>
       <textarea
         id={fieldId}
         className="board-textarea board-document-popover-input"
@@ -74,7 +74,7 @@ export function CommentPopover({
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
       <div className="board-document-popover-foot">
         <span className="board-document-note">{content.note}</span>
-        <Button label="Cancel" emphasis="ghost" dense onPress={onClose} />
+        <Button label="Cancel" dense onPress={onClose} />
         <Button label="Send to agent ⌘↵" emphasis="primary" dense disabled={!sender.enabled} onPress={() => void sender.send()} />
       </div>
     </div>

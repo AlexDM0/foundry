@@ -1,22 +1,24 @@
-/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered, and a disabled one fades
+/* Segments in a tray of the wash; the pressed one is a chip raised on it, the rest ink-muted until hovered, and a disabled one fades
    to the disabled ink every control shares. A press scales a segment inside its own box. Only the tray's own buttons are segments: a trailing part keeps its own
    look, and the buttons it holds, such as a menu's items, are not segments. */
 .design-system-segments {
   display: flex; gap: var(--space-2); width: max-content; padding: var(--space-2);
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  background: var(--segment-track); border-radius: var(--r-2);
 }
 .design-system-segments > button {
   font: 500 var(--fs-small)/1 var(--font-ui);
   font-variant-numeric: tabular-nums;
   padding: var(--space-6) var(--space-10);
-  border: 1px solid transparent; border-radius: var(--r-2);
+  border: 1px solid transparent; border-radius: var(--r-1);
   background: transparent; color: var(--ink-muted);
   cursor: pointer;
   transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
 }
 .design-system-segments > button:not(:disabled):active { transform: scale(var(--press-scale)); }
 .design-system-segments > button:not(:disabled):hover { color: var(--ink); }
-.design-system-segments > button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.design-system-segments > button[aria-pressed="true"] {
+  font-weight: 600; color: var(--segment-pressed-ink); background: var(--segment-pressed-fill); border-color: var(--segment-pressed-edge);
+}
 .design-system-segments > button:disabled { cursor: not-allowed; }
 .design-system-segments > button:disabled:not([aria-pressed="true"]) { color: var(--ink-disabled); }
 .design-system-segments > button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
