@@ -28,7 +28,8 @@ import {
   DOCUMENT_STATES,
   PLAN_OUT_OF_DATE_TRANSCRIPT,
   SPEC_TRANSCRIPT_IDLE,
-  SPEC_TRANSCRIPT_SPLIT
+  SPEC_TRANSCRIPT_SPLIT,
+  SPEC_TRANSCRIPT_WORKING
 } from '../../testing/TicketDocumentsFixture.ts';
 import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
 import { DocumentChat }                                       from './DocumentChat.tsx';
@@ -167,16 +168,34 @@ describe('what the chat draws', () => {
     expect(note.nextElementSibling?.className).toBe('board-document-agent-turn');
   });
 
-  test('the composer asks for lines in Code and text elsewhere, and says where a comment being written lands', () => {
+  test('the composer asks for lines in Code and text elsewhere, says where a comment being written lands, and names the version only while no edit waits', () => {
     renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE, { view: 'code', draftIsOpen: true });
     const composer = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the spec agent' });
-    expect(composer.placeholder).toBe('Ask about the whole spec, or select lines in it to comment on one part');
+    expect(composer.placeholder).toBe('Ask about the whole spec, or select lines to comment on one part');
     expect(screen.getByText('A comment lands here as its own message')).toBeTruthy();
     cleanup();
     renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
     expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the spec agent' }).placeholder)
       .toBe('Ask about the whole spec, or select text in it to comment on one part');
+    expect(screen.queryByText('Sees the whole spec at v4')).toBeNull();
+    cleanup();
+    renderChat(DOCUMENT_STATES.specWorking, SPEC_TRANSCRIPT_WORKING);
     expect(screen.getByText('Sees the whole spec at v4')).toBeTruthy();
+  });
+
+  test('while a comment is written, the waiting edit folds to one line that Show unfolds, and the cards drop the view shown', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE, { draftIsOpen: true });
+    expect(screen.queryByText('Applying closes C2; its mark turns to ✓ C2.')).toBeNull();
+    const waiting = screen.getByRole('button', { name: 'Show C2 · § 4 Acceptance › A3 · line 29 · Preview' });
+    expect([waiting.textContent.includes('· Preview'), waiting.textContent.includes('↦ show')]).toEqual([false, false]);
+    expect(screen.getByText('Edit proposed for line 29')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(screen.getByText('Applying closes C2; its mark turns to ✓ C2.')).toBeTruthy();
+  });
+
+  test('the working agent\'s whole path shows only where the strip shortens it', () => {
+    renderChat(DOCUMENT_STATES.specWorking, SPEC_TRANSCRIPT_WORKING);
+    expect(document.querySelector('.board-document-activity')).toBeNull();
   });
 });
 

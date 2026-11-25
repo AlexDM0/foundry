@@ -83,7 +83,7 @@ export function ProposalDiffCard({ place, proposal, settled = false }: ProposalC
     <div className="board-document-diff-card" role="group" aria-label={`Proposed edit, ${proposal.linesText}`}>
       <div className="board-document-diff-head">
         <span className="board-document-micro">Proposed edit</span>
-        <span className="board-document-mono">{proposal.linesText}</span>
+        <span className="board-document-mono board-document-note">{proposal.linesText}</span>
       </div>
       {proposal.diffRows.map((row) => (
         <div key={row.key} className="board-document-diff-line" data-sign={row.sign === '+' ? 'added' : 'removed'}>

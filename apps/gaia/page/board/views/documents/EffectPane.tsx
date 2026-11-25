@@ -61,6 +61,7 @@ export function EffectPane({
             <span className="board-document-tree-name">
               {row.name}
               {row.kind === 'entry' && row.fileCount !== null ? <>{' · '}<span className="board-document-tree-count">{row.fileCount}</span></> : null}
+              {row.kind === 'entry' && row.becomes !== null ? <>{' '}<span className="board-document-tree-count">{row.becomes}</span></> : null}
             </span>
             {row.kind === 'entry'
               ? <span className="board-document-reference" data-unresolved={row.change === 'unresolved' ? '' : undefined}>{row.reference}</span>

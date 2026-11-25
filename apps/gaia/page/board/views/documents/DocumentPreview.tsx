@@ -15,6 +15,7 @@ import { CommentPopoverModel }                                     from './Comme
 import {
   DocumentBlocks,
   type CommentChip,
+  type CommentedQuote,
   type PlacedPart,
   type ReferenceMark
 } from './DocumentBlocks.tsx';
@@ -127,7 +128,15 @@ export function DocumentPreview({
   const blocks = useMemo(() => MarkdownBlocks.blocksOf(markdown), [markdown]);
   const lineCount = useMemo(() => markdown.split('\n').length, [markdown]);
   const nextCommentNumber = CommentPopoverModel.nextCommentNumberOf(messages);
-  const openPlacements = messages.flatMap((message) => (OPEN_MESSAGE_STATES.has(message.state) && message.placement !== null ? [message.placement] : []));
+  const placedComments = messages.filter((message) => message.commentNumber !== null && message.placement !== null && message.state !== 'withdrawn');
+  const quoteOf = (message: BoardDocumentMessageDocument): string | null => (message.anchor?.diagram === null ? message.anchor.quote : null);
+  const commentedQuotes = placedComments.flatMap((message): CommentedQuote[] => {
+    const quote = quoteOf(message);
+    return quote === null || message.placement === null ? [] : [{ quote, quoteLines: message.placement, applied: message.state === 'applied' }];
+  });
+  const openPlacements = placedComments.flatMap((message) => (
+    OPEN_MESSAGE_STATES.has(message.state) && quoteOf(message) === null && message.placement !== null ? [message.placement] : []
+  ));
   const placedProposals = proposals.filter((proposal) => proposal.headLines !== null);
   const [firstBlock] = blocks;
   const titleLine = firstBlock?.kind === 'heading' && firstBlock.depth === 1 ? firstBlock.lines.from : null;
@@ -175,6 +184,7 @@ export function DocumentPreview({
         chips={chipsOf(messages)}
         referenceMarks={referenceMarks}
         commentedLines={openPlacements}
+        commentedQuotes={commentedQuotes}
         replacedLines={placedProposals.flatMap((proposal) => (proposal.headLines === null ? [] : [proposal.headLines]))}
         parts={parts}
         markedRange={draft === null ? null : DocumentSelectionModel.markedRangeOf(draft.anchor)}

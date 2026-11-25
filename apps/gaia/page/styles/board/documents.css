@@ -6,7 +6,7 @@
 .board-document-page { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; background: var(--bg); }
 
 .board-document-head {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 12px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 24px;
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
 
@@ -28,6 +28,8 @@
 .board-document-tab:hover { color: var(--ink); }
 
 .board-document-tab-suffix { font-size: var(--fs-micro); }
+
+.board-document-tab-suffix[data-warns] { color: var(--link); }
 
 .board-document-build { font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -70,8 +72,16 @@
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
-/* A plan reads narrower, under its notice, beside a narrower agent. */
+/* A plan reads narrower, under its notice, beside a narrower agent; beside the effect pane too, the page ground narrows to a gutter. */
 .board-document-page[data-document="plan"] :is(.board-document-article, .board-document-notice) { box-sizing: border-box; max-width: 760px; }
+
+.board-document-page[data-document="plan"] .board-document-main { padding: 24px 32px; }
+
+.board-document-page[data-document="plan"] .board-document-article { padding: 32px 44px; }
+
+.board-document-page[data-effect-open] .board-document-main { padding: 24px; }
+
+.board-document-page[data-effect-open] .board-document-article { max-width: none; }
 
 /* The block of the line the caret stands on, in Split's preview. */
 .board-document-article[data-follows-caret] [data-caret]:not(:has([data-caret])) { background: var(--wash); border-radius: var(--r-1); }
@@ -80,7 +90,7 @@
 
 .board-document-heading { margin: 28px 0 8px; line-height: 1.3; }
 
-h1.board-document-heading { margin-top: 0; font-size: 26px; line-height: 1.2; }
+h1.board-document-heading { margin-top: 0; font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
 
 h2.board-document-heading { font-size: 17px; }
 
@@ -107,7 +117,12 @@ h2.board-document-heading { font-size: 17px; }
 
 .board-document-item-text > .board-document-code { margin: 6px 0 4px; }
 
-.board-document-quote { margin: 0 0 6px; padding: 0; font-size: var(--fs-tab); color: var(--ink-muted); }
+.board-document-quote { margin: 0 0 6px; padding: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--ink-muted); }
+
+.board-document-quote > .board-document-paragraph { margin: 0; font-size: inherit; line-height: inherit; }
+
+/* Code in a quote, such as the ticket's number in the line under the title, is set in the mono face without a chip. */
+.board-document-quote .board-document-inline-code { padding: 0; font-size: inherit; background: none; }
 
 blockquote.board-document-quote { border: 0; }
 
@@ -121,10 +136,24 @@ blockquote.board-document-quote { border: 0; }
   border-bottom: 2px dashed var(--accent-outline);
 }
 
-/* Only the replaced block's own text is struck: the edit's new lines drawn inside it are not. */
+/* The words an open comment quotes, tinted and underlined; an applied comment's keep a dotted line. */
+.board-document-commented-quote { padding: 1px 0; background: var(--link-tint); border-bottom: 2px dashed var(--accent-outline); }
+
+.board-document-commented-quote[data-applied] { padding: 0; background: none; border-bottom: 1px dashed var(--line-strong); }
+
+:is(.board-document-paragraph, .board-document-list-item)[data-replaced] .board-document-commented-quote { background: none; border-bottom: 0; }
+
+/* Only the replaced block's own text is struck: the edit's new lines drawn inside it are not, nor an item's bold label, which names it. */
 .board-document-list-item[data-replaced] > .board-document-item-text,
 .board-document-list-item[data-replaced] > .board-document-proposal-frame > .board-document-item-text,
 :is(.board-document-paragraph, .board-document-heading)[data-replaced] { text-decoration: line-through; color: var(--ink-muted); }
+
+.board-document-list-item[data-replaced] .board-document-item-text > strong:first-child { display: inline-block; color: var(--ink); }
+
+/* The edit's new item stands under the item it replaces, its label under that label: no checkbox of its own. */
+.board-document-proposal-inserted .board-document-checkbox { visibility: hidden; }
+
+.board-document-proposal-inserted ol.board-document-list { padding-left: 0; list-style: none; }
 
 /* The text an open comment points at, held marked while its popover is open. */
 .board-document-marked { padding: 1px 0; color: inherit; background: var(--comment-selection-tint); border-radius: 2px; }
@@ -181,7 +210,9 @@ blockquote.board-document-quote { border: 0; }
   border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: var(--shadow-popover);
 }
 
-.board-document-popover-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-document-popover-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-micro); color: var(--ink-muted); }
+
+.board-document-popover-section-title { color: var(--ink); }
 
 .board-document-popover-section { font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -192,9 +223,11 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-popover .board-document-popover-input:focus { outline: 2px solid var(--link-tint); }
 
-.board-document-popover-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.board-document-popover-foot { display: flex; align-items: center; gap: 12px; }
 
-.board-document-popover-foot > .board-document-note { flex: 1 1 200px; font-size: var(--fs-micro); line-height: 1.35; }
+.board-document-popover-foot > .board-document-note { flex: 1 1 0; min-width: 0; font-size: var(--fs-micro); line-height: 1.35; }
+
+.board-document-popover-actions { display: flex; flex: none; gap: 8px; }
 
 /* An agent's edit, inline where it lands, in one frame with the lines it replaces, and as the chat's diff card. */
 .board-document-proposal {
@@ -223,7 +256,9 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-diff-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-2); overflow: hidden; }
 
-.board-document-diff-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.board-document-diff-head { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--wash); }
+
+.board-document-diff-head > .board-document-note { font-size: var(--fs-micro); }
 
 .board-document-diff-line {
   display: grid; grid-template-columns: 28px 14px 1fr; gap: 4px; padding: 2px 10px; font: 12px/18px var(--font-mono); color: var(--ink);
@@ -283,6 +318,9 @@ blockquote.board-document-quote { border: 0; }
 }
 
 .board-document-split-preview > .board-document-article { margin: 0; padding: 20px 28px; border: 0; }
+
+/* Room under the document, so following the caret brings a block near the end to the middle as well. */
+.board-document-split-preview > .board-document-article[data-follows-caret] { padding-bottom: 50vh; }
 
 .board-document-split-preview > .board-document-pane-head { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 
@@ -351,14 +389,19 @@ blockquote.board-document-quote { border: 0; }
 /* Split and a plan give the document more room: the agent's side is narrower there. */
 .board-document-page:is([data-view="split"], [data-document="plan"]) .board-document-agent { flex-basis: 360px; max-width: 420px; }
 
-/* The mode switch or Stop stands on the title's row, at its end; the line under the name wraps beside it. */
-.board-document-agent-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.board-document-page[data-effect-open] .board-document-agent { flex-basis: 320px; max-width: 380px; }
+
+/* The mode switch or Stop stands on the title's row, at its end, where the line under the name fits beside it on one line; else on a row of
+   its own under the title, still at the end. */
+.board-document-agent-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+
+.board-document-agent-head-control { flex: none; margin-left: auto; }
 
 .board-document-agent-dot { flex: none; width: 8px; height: 8px; background: var(--line-strong); border-radius: var(--r-pill); }
 
 .board-document-agent-dot[data-working] { background: var(--signal); }
 
-.board-document-agent-title { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+.board-document-agent-title { display: flex; flex: 1 0 auto; flex-direction: column; max-width: calc(100% - 18px); }
 
 .board-document-agent-name { font-size: 15px; font-weight: 600; }
 
@@ -408,6 +451,13 @@ button.board-document-anchor:hover { background: var(--wash); }
 
 .board-document-chat-proposal { display: flex; flex-direction: column; gap: 8px; }
 
+.board-document-folded-proposal {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; font-size: var(--fs-small);
+  border: 1px solid var(--line); border-radius: var(--r-2);
+}
+
+.board-document-folded-proposal-title { font-weight: 600; color: var(--link); }
+
 .board-document-chat-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
 .board-document-effect-card {
@@ -427,7 +477,7 @@ button.board-document-anchor:hover { background: var(--wash); }
 
 .board-document-composer { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; border-top: 1px solid var(--line); }
 
-.board-document-composer-input { min-height: 0; resize: none; }
+.board-document-composer .board-document-composer-input { min-height: 0; padding: 8px 10px; font-size: var(--fs-body); resize: none; }
 
 .board-document-composer-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 

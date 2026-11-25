@@ -36,6 +36,12 @@ export interface CommentChip {
   readonly title:   string;
 }
 
+export interface CommentedQuote {
+  readonly quote:      string;
+  readonly quoteLines: SourceLines;
+  readonly applied:    boolean;
+}
+
 export interface ReferenceMark {
   readonly reference:  number;
   readonly line:       number;
@@ -55,20 +61,22 @@ export interface PlacedPart {
 }
 
 export interface DocumentBlocksProps {
-  readonly blocks:          readonly MarkdownBlock[];
-  readonly chips?:          readonly CommentChip[];
-  readonly referenceMarks?: readonly ReferenceMark[];
-  /** Lines an open comment points at, drawn with the comment's tint. */
-  readonly commentedLines?: readonly SourceLines[];
+  readonly blocks:           readonly MarkdownBlock[];
+  readonly chips?:           readonly CommentChip[];
+  readonly referenceMarks?:  readonly ReferenceMark[];
+  /** Lines an open comment points at, drawn with the comment's tint, for a comment that quotes no text. */
+  readonly commentedLines?:  readonly SourceLines[];
+  /** The words a comment quotes and the lines they stand on: an open comment's tinted, an applied one's dotted. */
+  readonly commentedQuotes?: readonly CommentedQuote[];
   /** Lines an open proposal replaces, drawn struck through. */
-  readonly replacedLines?:  readonly SourceLines[];
-  readonly parts?:          readonly PlacedPart[];
+  readonly replacedLines?:   readonly SourceLines[];
+  readonly parts?:           readonly PlacedPart[];
   /** The text an open comment points at, drawn marked. */
-  readonly markedRange?:    MarkedRange | null;
+  readonly markedRange?:     MarkedRange | null;
   /** The line the caret stands on in an editor beside, whose blocks carry `data-caret`. */
-  readonly caretLine?:      number | null;
-  readonly onNodeComment?:  (diagram: DiagramBlock, node: DiagramNode) => void;
-  readonly nodeOfferOf?:    (diagram: DiagramBlock, node: DiagramNode) => string;
+  readonly caretLine?:       number | null;
+  readonly onNodeComment?:   (diagram: DiagramBlock, node: DiagramNode) => void;
+  readonly nodeOfferOf?:     (diagram: DiagramBlock, node: DiagramNode) => string;
 }
 
 const CHECKBOX_GLYPHS = { checked: '☑', unchecked: '☐' } as const;
@@ -78,8 +86,16 @@ const HEADING_ELEMENTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
 /** Glues the marks to the last word before them, so a mark never wraps onto a line of its own. */
 const WORD_JOINER = '\u2060';
 
-function unresolvedPlacesOf(props: DocumentBlocksProps): UnresolvedPlace[] {
-  return (props.referenceMarks ?? []).filter((mark) => mark.unresolved);
+function commentedPlaceOf(commented: CommentedQuote): QuotedPlace {
+  return { quote: commented.quote, quoteLines: commented.quoteLines, look: commented.applied ? 'applied-comment' : 'open-comment' };
+}
+
+/** The quoted words the text draws in a look of their own: an unresolved place of the effect reading, or a comment's quote. */
+function quotedPlacesOf(props: DocumentBlocksProps): QuotedPlace[] {
+  return [
+    ...(props.referenceMarks ?? []).filter((mark) => mark.unresolved).map((mark): QuotedPlace => ({ quote: mark.quote, quoteLines: mark.quoteLines, look: 'unresolved' })),
+    ...(props.commentedQuotes ?? []).map(commentedPlaceOf),
+  ];
 }
 
 function overlaps(lines: SourceLines, other: SourceLines): boolean {
@@ -105,83 +121,96 @@ function characterOf(reference: string): string {
 
 const MarkedRangeContext = createContext<MarkedRange | null>(null);
 
+type PlaceLook = 'unresolved' | 'open-comment' | 'applied-comment';
+
 interface SourceTextProps {
-  readonly text:        string;
-  readonly start:       SourcePosition;
-  readonly unresolved?: boolean;
+  readonly text:  string;
+  readonly start: SourcePosition;
+  readonly look?: PlaceLook | null;
 }
 
-function SourceRun({ text, start, unresolved }: SourceTextProps) {
-  return unresolved === true
-    ? <span className="board-document-unresolved-place" data-source-line={start.line} data-source-column={start.column}>{text}</span>
-    : <span data-source-line={start.line} data-source-column={start.column}>{text}</span>;
+function SourceRun({ text, start, look = null }: SourceTextProps) {
+  const source = { 'data-source-line': start.line, 'data-source-column': start.column };
+  switch (look) {
+    case null:
+      return <span {...source}>{text}</span>;
+    case 'unresolved':
+      return <span className="board-document-unresolved-place" {...source}>{text}</span>;
+    case 'open-comment':
+    case 'applied-comment':
+      return <span className="board-document-commented-quote" data-applied={look === 'applied-comment' ? '' : undefined} {...source}>{text}</span>;
+  }
 }
 
 /** A piece of source text, carrying where it starts, with the part of it inside the marked range drawn marked. */
-function SourceText({ text, start, unresolved = false }: SourceTextProps) {
+function SourceText({ text, start, look = null }: SourceTextProps) {
   const markedRange = useContext(MarkedRangeContext);
   const marked = markedRange === null ? null : DocumentSelectionModel.markedOffsetsInSpan(start, text, markedRange);
-  if (marked === null) return <SourceRun text={text} start={start} unresolved={unresolved} />;
+  if (marked === null) return <SourceRun text={text} start={start} look={look} />;
   const startOf = (offset: number) => DocumentSelectionModel.positionInSpan(start, text, offset);
   const markedStart = startOf(marked.from);
   const afterStart = startOf(marked.to);
   return (
     <>
-      {marked.from === 0 ? null : <SourceRun text={text.slice(0, marked.from)} start={start} unresolved={unresolved} />}
+      {marked.from === 0 ? null : <SourceRun text={text.slice(0, marked.from)} start={start} look={look} />}
       <mark
-        className={unresolved ? 'board-document-marked board-document-unresolved-place' : 'board-document-marked'}
+        className={look === 'unresolved' ? 'board-document-marked board-document-unresolved-place' : 'board-document-marked'}
         data-source-line={markedStart.line}
         data-source-column={markedStart.column}
       >
         {text.slice(marked.from, marked.to)}
       </mark>
-      {marked.to === text.length ? null : <SourceRun text={text.slice(marked.to)} start={afterStart} unresolved={unresolved} />}
+      {marked.to === text.length ? null : <SourceRun text={text.slice(marked.to)} start={afterStart} look={look} />}
     </>
   );
 }
 
-type UnresolvedPlace = Pick<ReferenceMark, 'quote' | 'quoteLines'>;
+interface QuotedPlace {
+  readonly quote:      string;
+  readonly quoteLines: SourceLines;
+  readonly look:       PlaceLook;
+}
 
 interface TextPiece {
-  readonly text:       string;
-  readonly offset:     number;
-  readonly unresolved: boolean;
+  readonly text:   string;
+  readonly offset: number;
+  readonly look:   PlaceLook | null;
 }
 
-function quotesAt(line: number, places: readonly UnresolvedPlace[]): string[] {
-  return places.filter((place) => place.quote !== '' && lineIsIn(line, place.quoteLines)).map((place) => place.quote);
+function placesAt(line: number, places: readonly QuotedPlace[]): QuotedPlace[] {
+  return places.filter((place) => place.quote !== '' && lineIsIn(line, place.quoteLines));
 }
 
-/** A text cut where an unresolved place's quote stands in it, so the quote alone is underlined. */
-function piecesOf(text: string, quotes: readonly string[]): TextPiece[] {
+/** A text cut where a quoted place stands in it, so the quote alone is drawn in its look. */
+function piecesOf(text: string, places: readonly QuotedPlace[]): TextPiece[] {
   const pieces: TextPiece[] = [];
   let offset = 0;
   while (offset < text.length) {
-    const found = quotes
-      .map((quote) => ({ quote, at: text.indexOf(quote, offset) }))
+    const found = places
+      .map((place) => ({ place, at: text.indexOf(place.quote, offset) }))
       .filter((match) => match.at >= 0)
       .sort((a, b) => a.at - b.at)[0];
     if (found === undefined) break;
-    if (found.at > offset) pieces.push({ text: text.slice(offset, found.at), offset, unresolved: false });
-    pieces.push({ text: found.quote, offset: found.at, unresolved: true });
-    offset = found.at + found.quote.length;
+    if (found.at > offset) pieces.push({ text: text.slice(offset, found.at), offset, look: null });
+    pieces.push({ text: found.place.quote, offset: found.at, look: found.place.look });
+    offset = found.at + found.place.quote.length;
   }
-  if (offset < text.length || pieces.length === 0) pieces.push({ text: text.slice(offset), offset, unresolved: false });
+  if (offset < text.length || pieces.length === 0) pieces.push({ text: text.slice(offset), offset, look: null });
   return pieces;
 }
 
-function TextSpan({ span, places }: { readonly span: Extract<MarkdownSpan, { readonly kind: 'text' }>; readonly places: readonly UnresolvedPlace[] }) {
-  return piecesOf(span.text, quotesAt(span.start.line, places)).map((piece) => {
+function TextSpan({ span, places }: { readonly span: Extract<MarkdownSpan, { readonly kind: 'text' }>; readonly places: readonly QuotedPlace[] }) {
+  return piecesOf(span.text, placesAt(span.start.line, places)).map((piece) => {
     const start = DocumentSelectionModel.positionInSpan(span.start, span.text, piece.offset);
-    return <SourceText key={piece.offset} text={piece.text} start={start} unresolved={piece.unresolved} />;
+    return <SourceText key={piece.offset} text={piece.text} start={start} look={piece.look} />;
   });
 }
 
-function Spans({ spans, places }: { readonly spans: readonly MarkdownSpan[]; readonly places: readonly UnresolvedPlace[] }) {
+function Spans({ spans, places }: { readonly spans: readonly MarkdownSpan[]; readonly places: readonly QuotedPlace[] }) {
   return spans.map((span, position) => <Span key={position} span={span} places={places} />);
 }
 
-function Span({ span, places }: { readonly span: MarkdownSpan; readonly places: readonly UnresolvedPlace[] }) {
+function Span({ span, places }: { readonly span: MarkdownSpan; readonly places: readonly QuotedPlace[] }) {
   switch (span.kind) {
     case 'text':
       return <TextSpan span={span} places={places} />;
@@ -189,7 +218,7 @@ function Span({ span, places }: { readonly span: MarkdownSpan; readonly places: 
       return (
         <code
           className="board-document-inline-code"
-          data-unresolved={quotesAt(span.start.line, places).some((quote) => span.text.includes(quote)) ? '' : undefined}
+          data-unresolved={placesAt(span.start.line, places).some((place) => place.look === 'unresolved' && span.text.includes(place.quote)) ? '' : undefined}
         >
           <SourceText text={span.text} start={span.start} />
         </code>
@@ -277,7 +306,7 @@ function ListItem({ item, props }: { readonly item: MarkdownListItem; readonly p
             block.kind === 'paragraph'
               ? (
                 <Fragment key={position}>
-                  <Spans spans={block.spans} places={unresolvedPlacesOf(props)} />
+                  <Spans spans={block.spans} places={quotedPlacesOf(props)} />
                   <Marks lines={block.lines} props={props} nestedItems={nestedItems} />
                   {' '}
                 </Fragment>
@@ -309,7 +338,7 @@ function DiagramFigure({ block, props }: { readonly block: DiagramBlock; readonl
 
 function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonly props: DocumentBlocksProps }) {
   const attributes = lineAttributesOf(block.lines, props);
-  const places = unresolvedPlacesOf(props);
+  const places = quotedPlacesOf(props);
   switch (block.kind) {
     case 'heading': {
       const Heading = HEADING_ELEMENTS[Math.min(Math.max(block.depth, 1), HEADING_ELEMENTS.length) - 1] ?? 'h6';

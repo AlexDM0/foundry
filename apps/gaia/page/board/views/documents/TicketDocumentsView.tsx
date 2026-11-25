@@ -26,28 +26,33 @@ import {
   SegmentedControl,
   type SegmentOption
 } from '../../../lib/design-system/DesignSystemInterface.ts';
-import type { BoardServices }                                                         from '../../@types/BoardServices.ts';
-import { TicketDocumentsClient, type TicketDocumentsRead }                            from '../../api/TicketDocumentsClient.ts';
-import { useTranscript }                                                              from '../../conversation/TranscriptLog.tsx';
-import { useBoardHrefOf }                                                             from '../../shell/BoardRouteLinks.ts';
-import { BoardRouter }                                                                from '../../shell/BoardRouter.ts';
-import type { BoardTabViewProps }                                                     from '../../shell/BoardTabViews.tsx';
-import { useControlCommand }                                                          from '../../shell/ControlCommandSender.ts';
-import { DetailRoute }                                                                from '../../shell/DetailRoute.ts';
-import { TimeUtil }                                                                   from '../../utils/TimeUtil.ts';
-import type { CommentDraft }                                                          from './CommentPopover.tsx';
-import { DocumentAgentStripModelUtil, type DocumentViewMode }                         from './DocumentAgentStripModel.ts';
-import { DocumentChat }                                                               from './DocumentChat.tsx';
-import { DocumentChatModel }                                                          from './DocumentChatModel.ts';
-import { DocumentCodeEditor }                                                         from './DocumentCodeEditor.tsx';
-import { DocumentPreview }                                                            from './DocumentPreview.tsx';
-import { DocumentSplitView }                                                          from './DocumentSplitView.tsx';
-import { EffectPane }                                                                 from './EffectPane.tsx';
-import { EffectTreeModel }                                                            from './EffectTreeModel.ts';
-import { OutOfDateNotice }                                                            from './OutOfDateNotice.tsx';
-import { ProposalModel }                                                              from './ProposalModel.ts';
-import type { DocumentPlace }                                                         from './TicketDocumentCommands.ts';
-import { TicketDocumentsViewModel, type DocumentsHeadModel, type PrimaryActionModel } from './TicketDocumentsViewModel.ts';
+import type { BoardServices }                                 from '../../@types/BoardServices.ts';
+import { TicketDocumentsClient, type TicketDocumentsRead }    from '../../api/TicketDocumentsClient.ts';
+import { useTranscript }                                      from '../../conversation/TranscriptLog.tsx';
+import { useBoardHrefOf }                                     from '../../shell/BoardRouteLinks.ts';
+import { BoardRouter }                                        from '../../shell/BoardRouter.ts';
+import type { BoardTabViewProps }                             from '../../shell/BoardTabViews.tsx';
+import { useControlCommand }                                  from '../../shell/ControlCommandSender.ts';
+import { DetailRoute }                                        from '../../shell/DetailRoute.ts';
+import { TimeUtil }                                           from '../../utils/TimeUtil.ts';
+import type { CommentDraft }                                  from './CommentPopover.tsx';
+import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
+import { DocumentChat }                                       from './DocumentChat.tsx';
+import { DocumentChatModel }                                  from './DocumentChatModel.ts';
+import { DocumentCodeEditor }                                 from './DocumentCodeEditor.tsx';
+import { DocumentPreview }                                    from './DocumentPreview.tsx';
+import { DocumentSplitView }                                  from './DocumentSplitView.tsx';
+import { EffectPane }                                         from './EffectPane.tsx';
+import { EffectTreeModel }                                    from './EffectTreeModel.ts';
+import { OutOfDateNotice }                                    from './OutOfDateNotice.tsx';
+import { ProposalModel }                                      from './ProposalModel.ts';
+import type { DocumentPlace }                                 from './TicketDocumentCommands.ts';
+import {
+  OUT_OF_DATE_SUFFIX,
+  TicketDocumentsViewModel,
+  type DocumentsHeadModel,
+  type PrimaryActionModel
+} from './TicketDocumentsViewModel.ts';
 
 /** Reads a ticket's documents for a tracker; a DOM spec hands its own relay. */
 export type TicketDocumentsReader = (trackerId: string) => TicketDocumentsClient;
@@ -152,7 +157,7 @@ function DocumentsHead({
             {tab.label}
             {/* A flex row drops the spaces between its items, which still part the tab's name. */}
             {tab.version === null ? null : <>{' '}<span className="board-document-mono">{tab.version}</span></>}
-            {tab.suffix === null ? null : <>{' '}<span className="board-document-tab-suffix">{tab.suffix}</span></>}
+            {tab.suffix === null ? null : <>{' '}<span className="board-document-tab-suffix" data-warns={tab.suffix === OUT_OF_DATE_SUFFIX ? '' : undefined}>{tab.suffix}</span></>}
           </a>
         ))}
       </div>
@@ -297,7 +302,7 @@ export function TicketDocumentsPage({
   })();
 
   return (
-    <div className="board-document-page" data-view={view} data-document={shown}>
+    <div className="board-document-page" data-view={view} data-document={shown} data-effect-open={shown === 'plan' && effectIsOpen ? '' : undefined}>
       <DocumentsHead
         project={project}
         ticket={ticket}

@@ -52,7 +52,6 @@ import { ForgeLevelPageModel }                                 from '../entities
 import { MonorepoLevelContext, type MonorepoLevelScope }       from '../entities/MonorepoLevelContext.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
 import { PipelineLevelRail }                                   from '../entities/PipelineLevelRail.tsx';
-import { FlowGlyph }                                           from '../flow/FlowGlyph.tsx';
 import { useFlowSelection, type FlowSelection }                from '../flow/FlowSelection.ts';
 import { BillingStepModel }                                    from './BillingStepModel.ts';
 import { DesignStepModel }                                     from './DesignStepModel.ts';
@@ -230,12 +229,10 @@ function DesignPage({
       end={(
         <>
           <span className="board-pipeline-design-hint" data-tone={apply.hint.tone} role="status">
-            {apply.hint.tone === 'question-open'
-              ? <span className="board-pipeline-design-hint-dot" aria-hidden="true" />
-              : <FlowGlyph glyph="check" />}
+            {apply.hint.tone === 'question-open' ? <span className="board-pipeline-design-hint-dot" aria-hidden="true" /> : null}
             {apply.hint.text}
           </span>
-          <CommandButton label="Discard proposal" command={DesignStepModel.discardCommandOf(record.setupId)} />
+          <CommandButton label="Discard proposal" command={DesignStepModel.discardCommandOf(record.setupId)} ghost />
           <span className="board-pipeline-design-apply" title={apply.disabledReason ?? undefined}>
             <Button
               label="Apply pipeline"

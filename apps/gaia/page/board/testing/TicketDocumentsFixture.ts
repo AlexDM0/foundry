@@ -32,7 +32,7 @@ const OPEN_QUESTION = '- Does the saved choice (dashed in the diagram) exist yet
 export const SPEC_MARKDOWN = [
   '# Account pages dark mode',
   '',
-  '> Ticket #004 · Example Storefront · spec v4',
+  '> Ticket `#004` · Example Storefront · spec v4',
   '',
   '## 1 Problem',
   '',
@@ -312,7 +312,7 @@ export const SPEC_TRANSCRIPT_WORKING: readonly BoardTranscriptEntryDocument[] = 
   entry(2, 'assistant', 'Drafted v1: problem, outcome, behaviour with a theme-flow diagram, four acceptance checks and what stays out.'),
   entry(3, 'turn-end', ''),
   entry(4, 'user', '{"comment":"C1"}'),
-  entry(5, 'assistant', 'The repo has no saved theme choice yet. I added **Saved choice** to the diagram, dashed, and listed it as an open question instead of guessing.'),
+  entry(5, 'assistant', 'The repo has no saved theme choice yet. I added **Saved choice** to the diagram, dashed, and listed it as an open question.'),
   entry(6, 'turn-end', ''),
   entry(7, 'user', '{"comment":"C2"}'),
   entry(8, 'tool-call', '{"file_path":"package.json"}', { toolName: 'Read', toolUseId: 'T1' }),

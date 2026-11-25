@@ -12,6 +12,8 @@ import type { BoardTicketDocumentDocument, GaiaTicketDocumentsDocument } from '.
 import { TimeUtil }                                                      from '../../utils/TimeUtil.ts';
 import { TicketDocumentCommands }                                        from './TicketDocumentCommands.ts';
 
+export const OUT_OF_DATE_SUFFIX = '· out of date';
+
 export interface DocumentTabModel {
   readonly document: BoardTicketDocumentKind;
   /** "Spec", "✓ Spec", "Plan". */
@@ -80,7 +82,7 @@ function tabOf(documents: GaiaTicketDocumentsDocument, kind: BoardTicketDocument
   const approvedAtHead = document?.standing === 'approved';
   const spec = documentOf(documents, 'spec');
   const waitsOnSpec = kind === 'plan' && spec?.standing !== 'approved' && (spec?.approvals.length ?? 0) === 0;
-  const suffix = waitsOnSpec ? '· after spec' : document?.standing === 'out-of-date' ? '· out of date' : null;
+  const suffix = waitsOnSpec ? '· after spec' : document?.standing === 'out-of-date' ? OUT_OF_DATE_SUFFIX : null;
   return {
     document: kind,
     label:    approvedAtHead ? `✓ ${TAB_TITLES[kind]}` : TAB_TITLES[kind],

@@ -21,7 +21,7 @@ describe('the effect pane', () => {
       '1 utils/',
       '2 ? networkUtil.ts 2',
       '1 pages/account/',
-      '2 ~ every file 4',
+      '2 ~ every page 4',
       '1 legacy/',
       '2 − light-only.css 5',
       '0 packages/contracts/',
@@ -33,7 +33,7 @@ describe('the effect pane', () => {
 
   test('folds the files one reference changes alike in one folder into one row that counts them', () => {
     const folded = pane.rows.find((row) => row.kind === 'entry' && row.reference === 4);
-    expect(folded?.kind === 'entry' ? [folded.name, folded.fileCount] : null).toEqual(['every file', '7 files']);
+    expect(folded?.kind === 'entry' ? [folded.name, folded.fileCount] : null).toEqual(['every page', '7 files']);
     const single = pane.rows.find((row) => row.kind === 'entry' && row.reference === 1);
     expect(single?.kind === 'entry' ? single.fileCount : 'folded').toBeNull();
   });

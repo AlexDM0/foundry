@@ -250,7 +250,8 @@ describe('Code', () => {
     fireEvent.keyDown(editor, { key: 'M', metaKey: true, shiftKey: true });
     const popover = screen.getByRole('dialog', { name: 'Comment for the spec agent' });
     expect(within(popover).getByText('C3 · lines 17–23 · Code')).toBeTruthy();
-    expect(within(popover).getByText('§ 3 Behaviour › mermaid block Theme flow')).toBeTruthy();
+    const section = within(popover).getByText('Theme flow');
+    expect([section.tagName, section.parentElement?.textContent]).toEqual(['B', '§ 3 Behaviour › mermaid block Theme flow']);
     fireEvent.change(within(popover).getByRole('textbox', { name: 'Your comment' }), { target: { value: 'Put the server path in the flow.' } });
     await clickSettled(within(popover).getByRole('button', { name: 'Send to agent ⌘↵' }));
     expect(controls.sent.at(-1)).toMatchObject({

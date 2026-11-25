@@ -15,11 +15,13 @@ const VIEW_WORDS: Readonly<Record<BoardCommentView, string>> = { preview: 'Previ
 const SECTION_SEPARATOR = ' › ';
 
 export interface CommentPopoverContent {
-  readonly heading: string;
+  readonly heading:      string;
   /** The section line under the heading in Code, where the heading names lines alone; `null` in Preview. */
-  readonly section: string | null;
-  readonly quote:   string | null;
-  readonly note:    string;
+  readonly section:      string | null;
+  /** The mermaid block's title that ends the section line, which the popover sets in bold; `null` where the line names none. */
+  readonly sectionTitle: string | null;
+  readonly quote:        string | null;
+  readonly note:         string;
 }
 
 function linesTextOf(lines: BoardLineRangeDocument): string {
@@ -58,6 +60,10 @@ function anchorLineOf(commentNumber: number, anchor: BoardCommentAnchorDocument,
   return [parts.commentName, parts.section, parts.linesText, parts.viewWord].filter((part) => part !== null).join(' · ');
 }
 
+function diagramTitleOf(blocks: readonly MarkdownBlock[], anchor: BoardCommentAnchorDocument): string | null {
+  return DocumentSelectionModel.diagramAtLine(blocks, anchor.lines.from)?.title ?? null;
+}
+
 function diagramNameOf(blocks: readonly MarkdownBlock[], anchor: BoardCommentAnchorDocument): string | null {
   const diagram = DocumentSelectionModel.diagramAtLine(blocks, anchor.lines.from);
   if (diagram === null) return null;
@@ -69,18 +75,20 @@ function popoverContentOf(commentNumber: number, anchor: BoardCommentAnchorDocum
     const diagramName = diagramNameOf(blocks, anchor);
     const sectionPath = diagramName === null ? anchor.sectionPath : [...anchor.sectionPath, diagramName];
     return {
-      heading: `C${commentNumber} · ${linesTextOf(anchor.lines)} · Code`,
-      section: sectionTextOf(sectionPath),
-      quote:   null,
-      note:    'Same comment, same anchor, in either view.',
+      heading:      `C${commentNumber} · ${linesTextOf(anchor.lines)} · Code`,
+      section:      sectionTextOf(sectionPath),
+      sectionTitle: diagramName === null ? null : diagramTitleOf(blocks, anchor),
+      quote:        null,
+      note:         'Same comment, same anchor, in either view.',
     };
   }
   const quote = anchor.diagram === null ? anchor.quote : anchor.diagram.nodeLabel;
   return {
-    heading: anchorLineOf(commentNumber, anchor, null),
-    section: null,
+    heading:      anchorLineOf(commentNumber, anchor, null),
+    section:      null,
+    sectionTitle: null,
     quote,
-    note:    `The agent gets ${anchor.diagram === null ? 'the quote' : 'the node'}, its section and ${linesTextOf(anchor.surroundingLines)}.`,
+    note:         `The agent gets ${anchor.diagram === null ? 'the quote' : 'the node'}, its section and ${linesTextOf(anchor.surroundingLines)}.`,
   };
 }
 

@@ -33,6 +33,8 @@ export interface EffectEntryRow {
   readonly sigil:     string;
   readonly reference: number;
   readonly detail:    string;
+  /** What the change makes of the file, shown after its name: `→ v2`; `null` where the detail only describes it. */
+  readonly becomes:   string | null;
 }
 
 export type EffectTreeRow = { readonly kind: 'folder'; readonly key: string; readonly depth: number; readonly name: string } | EffectEntryRow;
@@ -130,10 +132,20 @@ function entryRowOf(place: PlacedEntry, depth: number): EffectEntryRow {
     sigil:     EFFECT_SIGILS[change],
     reference: entry.reference,
     detail:    entry.detail,
+    becomes:   entry.detail.startsWith(BECOMES_MARK) ? entry.detail : null,
   };
 }
 
-/** The files one reference changes alike in one folder share a row: `every file · 7 files`. */
+const BECOMES_MARK = '→';
+
+/** The last capitalised word every file name ends on before its extension, as `page` for `AccountPage.tsx` and `BillingPage.tsx`. */
+function sharedKindOf(names: readonly string[]): string | null {
+  const kinds = names.map((name) => /([A-Z][a-z]+)\.[^.]+$/u.exec(name)?.[1] ?? null);
+  const [first] = kinds;
+  return first !== null && first !== undefined && kinds.every((kind) => kind === first) ? first.toLowerCase() : null;
+}
+
+/** The files one reference changes alike in one folder share a row: `every page · 7 files`, `every file` where they share no kind. */
 function entryRowsOf(places: readonly PlacedEntry[], depth: number): EffectTreeRow[] {
   const alike = new Map<string, PlacedEntry[]>();
   for (const place of [...places].sort((a, b) => a.entry.reference - b.entry.reference || a.name.localeCompare(b.name))) {
@@ -147,7 +159,7 @@ function entryRowsOf(places: readonly PlacedEntry[], depth: number): EffectTreeR
     return [{
       ...entryRowOf(first, depth),
       key:       `entry:${first.entry.reference}:${first.folder.join(PATH_SEPARATOR)}${PATH_SEPARATOR}*`,
-      name:      'every file',
+      name:      `every ${sharedKindOf(group.map((place) => place.name)) ?? 'file'}`,
       fileCount: `${group.length} files`,
     }];
   });

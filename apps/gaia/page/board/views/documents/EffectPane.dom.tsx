@@ -50,7 +50,7 @@ describe('the effect pane (artboard 7)', () => {
     const roots = [...pane.querySelectorAll('.board-document-tree-row[data-root]')].map((row) => row.textContent);
     expect(roots).toEqual(['apps/storefront/src/', 'packages/contracts/', 'packages/shared/utils/']);
     expect(within(pane).getByText('light-only.css').closest('[data-change]')?.getAttribute('data-change')).toBe('removes');
-    expect(within(pane).getByText('7 files').closest('.board-document-tree-name')?.textContent).toBe('every file · 7 files');
+    expect(within(pane).getByText('7 files').closest('.board-document-tree-name')?.textContent).toBe('every page · 7 files');
   });
 
   test('a reading on its way offers no second one', () => {

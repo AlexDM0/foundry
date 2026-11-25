@@ -27,6 +27,7 @@ import {
   DOCUMENTS_PROJECT,
   documentsTicketOf,
   lineOf,
+  PLAN_MARKDOWN,
   PLAN_OUT_OF_DATE_TRANSCRIPT,
   PLAN_TRANSCRIPT,
   SPEC_MARKDOWN,
@@ -37,6 +38,7 @@ import {
   SPEC_TRANSCRIPT_WORKING
 } from '../board/testing/TicketDocumentsFixture.ts';
 import type { CommentDraft }                                                                          from '../board/views/documents/CommentPopover.tsx';
+import { letChatTopFallBetweenItems }                                                                 from '../board/views/documents/DocumentChat.tsx';
 import { DocumentSelectionModel }                                                                     from '../board/views/documents/DocumentSelectionModel.ts';
 import { followCaretIn }                                                                              from '../board/views/documents/DocumentSplitView.tsx';
 import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
@@ -794,6 +796,9 @@ const SAVED_CHOICE_COMMENT: CommentDraft | null = THEME_FLOW === null ? null : {
   anchor:        DocumentSelectionModel.anchorOfNode(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW, { nodeId: 'Stored', label: 'Saved choice' }),
 };
 
+/** Artboard 8's step 2, which the plan agent's edit for spec v6 replaces, as the notice's See the proposed plan update jumps to it. */
+const PLAN_STEP_TWO_LINES = { from: lineOf(PLAN_MARKDOWN, '2. Resolver'), to: lineOf(PLAN_MARKDOWN, '2. Resolver') };
+
 export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
   {
     artboard:   1,
@@ -873,7 +878,7 @@ export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
     shown:      'plan',
     transcript: PLAN_OUT_OF_DATE_TRANSCRIPT,
     ticket:     documentsTicketOf('committed', true),
-    atMount:    {},
+    atMount:    { jumpedTo: PLAN_STEP_TWO_LINES },
   },
 ];
 
@@ -921,7 +926,24 @@ export function ticketDocumentScreenDocumentOf(screen: TicketDocumentScreen, the
  * A painted page runs no effect, so the scroll an effect would leave is run once it is painted, by the page's own scroll: to the lines a
  * screen opened jumped to, Split's preview to the caret's block, and the comment popover into view where User's selection opened it.
  */
+/** The editor scrolls its text, mirror and gutter together on the textarea's scroll, which a painted page fires none of: scroll all three. */
+function caretLineInViewIn(editor: HTMLElement | null, caretLine: number): void {
+  const input = editor?.querySelector<HTMLElement>('.board-markdown-editor-input');
+  const line = editor?.querySelectorAll<HTMLElement>('.board-markdown-editor-gutter-line')[caretLine - 1];
+  if (editor === null || editor === undefined || input === null || input === undefined || line === undefined) return;
+  const overflow = line.getBoundingClientRect().bottom - input.getBoundingClientRect().bottom + line.offsetHeight / 2;
+  if (overflow <= 0) return;
+  for (const scrolled of editor.querySelectorAll<HTMLElement>('.board-markdown-editor-input, .board-markdown-editor-mirror, .board-markdown-editor-gutter')) {
+    scrolled.scrollTop += overflow;
+  }
+}
+
 function scrollScriptOf(screen: TicketDocumentScreen): string {
+  const chatScript = `<script>document.fonts.ready.then(() => (${letChatTopFallBetweenItems.toString()})(document.querySelector('.board-document-chat')));</script>`;
+  return chatScript + documentScrollScriptOf(screen);
+}
+
+function documentScrollScriptOf(screen: TicketDocumentScreen): string {
   const {
     jumpedTo, view, caretLine = null, draft = null
   } = screen.atMount;
@@ -929,7 +951,10 @@ function scrollScriptOf(screen: TicketDocumentScreen): string {
     `<script>(${scrollToLines.toString()})(document.querySelector('${container}'), ${JSON.stringify(lines)});</script>`
   );
   if (jumpedTo !== undefined) return scrollOf('.board-document-main', jumpedTo);
-  if (view === 'split' && caretLine !== null) return `<script>(${followCaretIn.toString()})(document.querySelector('.board-document-split-preview'));</script>`;
+  if (view === 'split' && caretLine !== null) {
+    return `<script>(${caretLineInViewIn.toString()})(document.querySelector('.board-markdown-editor'), ${caretLine});`
+      + `(${followCaretIn.toString()})(document.querySelector('.board-document-split-preview'));</script>`;
+  }
   if (draft !== null) return '<script>document.querySelector(\'.board-document-popover\')?.scrollIntoView({ block: \'nearest\' });</script>';
   return '';
 }

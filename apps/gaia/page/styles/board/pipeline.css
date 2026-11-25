@@ -209,7 +209,7 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-glyph:is([data-glyph="plus"], [data-glyph="check"]) { width: 12px; height: 12px; stroke-width: 1.5; }
 
-.board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--line-strong); }
+.board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--ink-muted); }
 
 .board-pipeline-glyph[data-glyph="chevron"] { width: 18px; stroke-width: 1.5; }
 
@@ -277,9 +277,10 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-phase-head-text > * { grid-column: 1; min-width: 0; animation: board-rise var(--motion-rise) var(--ease-out) both; }
 
-.board-pipeline-phase-head-text > :nth-child(n+3) { grid-column: 1 / -1; }
+/* The lead line shares its row with when the phase is left and the next phase, at its end; what follows the lead spans the head. */
+.board-pipeline-phase-head-text > :nth-child(n+4) { grid-column: 1 / -1; }
 
-.board-pipeline-phase-head-end { display: flex; grid-row: 1 / span 2; grid-column: 2; align-items: center; gap: 12px; }
+.board-pipeline-phase-head-end { display: flex; grid-row: 3; grid-column: 2; align-items: center; gap: 12px; }
 
 .board-pipeline-phase-done {
   display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
@@ -969,7 +970,7 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-design-hint[data-tone="question-open"] { color: var(--link); }
 
-.board-pipeline-design-hint[data-tone="answered"] { color: var(--pass-ink); }
+.board-pipeline-design-hint[data-tone="answered"] { font-weight: 400; color: var(--ink-muted); }
 
 .board-pipeline-design-hint-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--signal); }
 

@@ -37,12 +37,21 @@ function linesTextOf(lines: BoardLineRangeDocument): string {
   return lines.from === lines.to ? `line ${lines.from}` : `lines ${lines.from}–${lines.to}`;
 }
 
-/** The lines the edits touch in the version they were made on, as the chat names them: "lines 20, 37–39". */
-function editedLinesTextOf(proposal: BoardDocumentProposalDocument): string {
-  const ranges = proposal.edits.map((edit) => {
+function editedRangesOf(proposal: BoardDocumentProposalDocument): string[] {
+  return proposal.edits.map((edit) => {
     const to = edit.fromLine + Math.max(edit.replacementLines.length, 1) - 1;
     return to === edit.fromLine ? `${edit.fromLine}` : `${edit.fromLine}–${to}`;
   });
+}
+
+/** The numbers of the lines the edits touch, which the chat sets in the mono face: "20, 37–39". */
+function editedNumbersOf(proposal: BoardDocumentProposalDocument): string {
+  return editedRangesOf(proposal).join(', ');
+}
+
+/** The lines the edits touch in the version they were made on, as the chat names them: "lines 20, 37–39". */
+function editedLinesTextOf(proposal: BoardDocumentProposalDocument): string {
+  const ranges = editedRangesOf(proposal);
   return `${ranges.length === 1 && !ranges[0]?.includes('–') ? 'line' : 'lines'} ${ranges.join(', ')}`;
 }
 
@@ -123,6 +132,7 @@ export const ProposalModel = Object.freeze({
   openProposalsOf,
   openProposalOf,
   settledNoteOf,
+  editedNumbersOf,
   editedLinesTextOf,
   replacementLinesOfFields,
   applyCommandOf,

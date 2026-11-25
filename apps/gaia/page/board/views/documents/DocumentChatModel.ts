@@ -58,9 +58,11 @@ export interface ChatProposalItem {
 }
 
 export interface ChatProposalNoteItem {
-  readonly kind: 'proposal-note';
-  readonly key:  string;
-  readonly text: string;
+  readonly kind:          'proposal-note';
+  readonly key:           string;
+  readonly text:          string;
+  /** The edited lines' numbers in the text: "20, 37–39". */
+  readonly editedNumbers: string;
 }
 
 export interface ChatEffectCardItem {
@@ -162,7 +164,9 @@ function proposalItemOf(document: BoardTicketDocumentDocument, proposal: BoardDo
     }];
   }
   const note = ProposalModel.settledNoteOf(proposal);
-  return note === null ? [] : [{ kind: 'proposal-note', key: proposal.proposalId, text: note }];
+  return note === null ? [] : [{
+    kind: 'proposal-note', key: proposal.proposalId, text: note, editedNumbers: ProposalModel.editedNumbersOf(proposal)
+  }];
 }
 
 function effectCardOf(reading: BoardEffectReadingDocument | null): ChatEffectCardItem[] {
@@ -200,8 +204,15 @@ function documentChatOf(
     messageItemOf(message, message === answeringMessage, messagesWithOpenEdits.has(message.messageId))
   );
 
+  // The effect reading answers User's newest ask, so its card stands under that ask, before the agent's reply.
+  const turnOfNewestAsk = shown.reduce<number | null>((newest, message) => {
+    const turn = takenIn(message);
+    return message.from === 'person' && turn !== null && (newest === null || turn > newest) ? turn : newest;
+  }, null);
+  const effectCard = effectCardOf(effectReading);
   const items: DocumentChatItem[] = turnItems.flatMap((agentItems, turnNumber) => [
     ...shown.filter((message) => takenIn(message) === turnNumber).map(itemOf),
+    ...turnNumber === turnOfNewestAsk ? effectCard : [],
     ...agentItems,
     ...document.proposals.filter((proposal) => turnOfProposal(proposal) === turnNumber).flatMap((proposal) => proposalItemOf(document, proposal)),
   ]);
@@ -211,7 +222,7 @@ function documentChatOf(
       ...items,
       ...shown.filter((message) => takenIn(message) === null).map(itemOf),
       ...document.proposals.filter((proposal) => turnOfProposal(proposal) === null).flatMap((proposal) => proposalItemOf(document, proposal)),
-      ...effectCardOf(effectReading),
+      ...turnOfNewestAsk === null ? effectCard : [],
     ],
     queued:             document.messages.filter((message) => message.state === 'queued').map(queuedItemOf),
     working,
