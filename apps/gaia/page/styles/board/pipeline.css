@@ -927,16 +927,22 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-profile-result-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor; }
 
-/* The design step (A2Proposal), as ForgeLight draws it: the agent's newest change under its chat with its two links, the change list's
- * cards, and the footer's hint that Apply waits on a question (in the link colour after a pulsing signal dot) or that all are answered
- * (in the passed ink after a check, popping in). */
+/* The design step (A2Proposal), as ForgeLight draws it: the agent's newest change under its chat, framed under its muted label, with its
+ * link to the flow and its Undo at the end, the change list's cards, and the footer's hint that Apply waits on a question (in the link
+ * colour after a pulsing signal dot) or that all are answered (in the passed ink after a check, popping in). */
 .board-pipeline-design { display: flex; flex-direction: column; width: 100%; min-width: 0; }
 
-.board-pipeline-design-latest-change { display: flex; flex-direction: column; gap: 6px; }
+.board-pipeline-design-latest-change {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-3);
+}
 
-.board-pipeline-design-latest-change-text { margin: 0; font-size: var(--fs-lead); line-height: 21px; color: var(--ink); }
+.board-pipeline-design-latest-change-label { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.board-pipeline-design-latest-change-links { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: var(--fs-body); font-weight: 500; }
+.board-pipeline-design-latest-change-text { margin: 0; font-size: var(--fs-body); color: var(--ink); }
+
+.board-pipeline-design-latest-change-links {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-body); font-weight: 500;
+}
 
 .board-pipeline-design-hint { display: inline-flex; align-items: center; gap: 7px; font-weight: 500; }
 
