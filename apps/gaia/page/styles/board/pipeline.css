@@ -291,10 +291,11 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-ticket-writing + .board-pipeline-phase-steps { border-top: 0; }
 
-/* A step card is the 212 px step ground; it takes the focus itself, and Human code review while on carries the orange tint of what
-   waits on User. An add card is 300 px and dashed on the surface, its choices quiet buttons on the page ground. */
+/* A step card is the step ground, up to 212 px and down to 150 px, so four steps and their arrows share one row of a phase beside the
+   agent's panel; it takes the focus itself, and Human code review while on carries the orange tint of what waits on User. An add card is
+   300 px and dashed on the surface, its choices quiet buttons on the page ground. */
 .board-pipeline-step {
-  display: flex; flex: 0 0 212px; min-width: 0; border-radius: var(--r-2); outline: none;
+  display: flex; flex: 1 1 150px; min-width: 0; max-width: 212px; border-radius: var(--r-2); outline: none;
   animation: board-rise var(--motion-rise) var(--ease-out) both;
 }
 
