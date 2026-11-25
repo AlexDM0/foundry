@@ -3,6 +3,7 @@
  * line the caret stands on. The agent may work meanwhile: its edit lands on User's newer text, never over it.
  */
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -27,6 +28,8 @@ export interface DocumentSplitViewProps {
   readonly onTextChange:      (text: string) => void;
   /** The line a screen shows the caret on before User moves it. */
   readonly caretLineAtMount?: number | null;
+  /** Told the line the caret stands on each time it moves. */
+  readonly onCaretLine?:      (lineNumber: number) => void;
 }
 
 /** The element of the innermost block that holds a line, by the line attributes the blocks carry. */
@@ -38,7 +41,7 @@ function blockElementAt(container: HTMLElement, line: number): HTMLElement | nul
 }
 
 export function DocumentSplitView({
-  place, markdown, versionNumber, messages, readOnly, draft, onDraft, onTextChange, caretLineAtMount = null
+  place, markdown, versionNumber, messages, readOnly, draft, onDraft, onTextChange, caretLineAtMount = null, onCaretLine
 }: DocumentSplitViewProps) {
   const [shownText, setShownText] = useState(markdown);
   const [caretLine, setCaretLine] = useState<number | null>(caretLineAtMount);
@@ -48,6 +51,10 @@ export function DocumentSplitView({
     setShownText(text);
     onTextChange(text);
   };
+  const followCaret = useCallback((lineNumber: number): void => {
+    setCaretLine(lineNumber);
+    onCaretLine?.(lineNumber);
+  }, [onCaretLine]);
 
   useEffect(() => {
     if (caretLine === null || preview.current === null) return;
@@ -65,7 +72,7 @@ export function DocumentSplitView({
         draft={draft}
         onDraft={onDraft}
         onTextChange={followText}
-        onCaretLine={setCaretLine}
+        onCaretLine={followCaret}
         headLine={caretLine === null ? 'Select lines, then ⌘⇧M to comment' : `You are typing on line ${caretLine}`}
       />
       <section ref={preview} className="board-document-split-preview" aria-label="Live preview">

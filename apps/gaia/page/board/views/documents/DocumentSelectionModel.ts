@@ -146,6 +146,39 @@ function positionInSpan(start: SourcePosition, text: string, offset: number): So
   return { line: start.line + lineBreaks, column: before.length - before.lastIndexOf('\n') };
 }
 
+/** Source text from its start up to, not including, its end: the text a comment points at, marked while its popover is open. */
+export interface MarkedRange {
+  readonly start: SourcePosition;
+  readonly end:   SourcePosition;
+}
+
+/** The text a Preview anchor points at: its columns on one line, else its whole lines; `null` for a diagram node, whose text is no prose. */
+function markedRangeOf(anchor: BoardCommentAnchorDocument): MarkedRange | null {
+  if (anchor.diagram !== null) return null;
+  if (anchor.columns === null) return { start: { line: anchor.lines.from, column: 1 }, end: { line: anchor.lines.to + 1, column: 1 } };
+  return { start: { line: anchor.lines.from, column: anchor.columns.from }, end: { line: anchor.lines.from, column: anchor.columns.to + 1 } };
+}
+
+/** The offset into a drawn span's text of a source position, held to the span: 0 before it, its length after it. */
+function offsetInSpan(start: SourcePosition, text: string, position: SourcePosition): number {
+  const spanLines = text.split('\n');
+  let offset = 0;
+  for (const [i, spanLine] of spanLines.entries()) {
+    const line = start.line + i;
+    if (position.line < line) return offset;
+    if (position.line === line) return offset + Math.min(Math.max(position.column - (i === 0 ? start.column : 1), 0), spanLine.length);
+    offset += spanLine.length + 1;
+  }
+  return text.length;
+}
+
+/** The part of a drawn span's text inside a marked range, as offsets into its text, its end excluded; `null` when none of it is. */
+function markedOffsetsInSpan(start: SourcePosition, text: string, range: MarkedRange): { readonly from: number; readonly to: number } | null {
+  const from = offsetInSpan(start, text, range.start);
+  const to = offsetInSpan(start, text, range.end);
+  return to > from ? { from, to } : null;
+}
+
 export const DocumentSelectionModel = Object.freeze({
   sectionPathAt,
   diagramAtLine,
@@ -155,4 +188,6 @@ export const DocumentSelectionModel = Object.freeze({
   anchorOfNode,
   nodeSourceLineOf,
   positionInSpan,
+  markedRangeOf,
+  markedOffsetsInSpan,
 });

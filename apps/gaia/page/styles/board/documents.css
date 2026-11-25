@@ -49,6 +49,11 @@
 .board-document-page[data-view="code"] .board-document-main,
 .board-document-page[data-view="split"] .board-document-main { display: flex; flex-direction: column; padding: 20px 24px; }
 
+.board-document-page[data-view="code"] .board-document-main { padding: 28px 32px; }
+
+/* Code alone reads as a card as wide as the document's, centred on the page ground. */
+.board-document-page[data-view="code"] .board-document-main > .board-document-code-view { width: 100%; max-width: 860px; margin: 0 auto; box-sizing: border-box; }
+
 .board-document-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 .board-document-note { font-size: var(--fs-small); color: var(--ink-muted); }
@@ -105,12 +110,17 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-rule { margin: 18px 0; border: 0; border-top: 1px solid var(--line); }
 
-:is(.board-document-paragraph, .board-document-list-item, .board-document-heading)[data-commented] > :is(span, .board-document-item-text) {
+:is(.board-document-paragraph, .board-document-list-item, .board-document-heading)[data-commented]:not([data-replaced]) > :is(span, .board-document-item-text) {
   border-bottom: 2px dashed var(--accent-outline);
 }
 
-:is(.board-document-paragraph, .board-document-list-item, .board-document-heading)[data-replaced] .board-document-item-text,
-.board-document-paragraph[data-replaced] { text-decoration: line-through; color: var(--ink-muted); background: var(--change-removed-fill); }
+/* Only the replaced block's own text is struck: the edit's new lines drawn inside it are not. */
+.board-document-list-item[data-replaced] > .board-document-item-text,
+.board-document-list-item[data-replaced] > .board-document-proposal-frame > .board-document-item-text,
+:is(.board-document-paragraph, .board-document-heading)[data-replaced] { text-decoration: line-through; color: var(--ink-muted); }
+
+/* The text an open comment points at, held marked while its popover is open. */
+.board-document-marked { padding: 1px 0; color: inherit; background: var(--comment-selection-tint); border-radius: 2px; }
 
 .board-document-chip {
   display: inline-flex; align-items: center; height: 18px; margin-left: 6px; padding: 0 6px; vertical-align: 2px;
@@ -169,22 +179,30 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-popover-foot > .board-document-note { flex: 1 1 200px; }
 
-/* An agent's edit, inline where it lands and as the chat's diff card. */
+/* An agent's edit, inline where it lands, in one frame with the lines it replaces, and as the chat's diff card. */
 .board-document-proposal {
   display: flex; flex-direction: column; gap: 8px; margin: 6px 0 12px; padding: 10px 12px; background: var(--surface);
   border: 1px solid var(--accent-outline); border-radius: var(--r-2);
 }
 
-.board-document-proposal-inserted { padding: 4px 8px; background: var(--change-new-fill); border-radius: var(--r-1); }
+.board-document-proposal-frame { margin: 8px -12px; padding: 10px 12px; border: 1px solid var(--accent-edge); border-radius: var(--r-2); }
+
+.board-document-proposal-frame > .board-document-proposal { margin: 4px 0 0; padding: 0; border: 0; }
 
 .board-document-proposal-inserted .board-document-paragraph,
 .board-document-proposal-inserted .board-document-list { margin: 0; }
+
+.board-document-proposal-inserted :is(.board-document-item-text, .board-document-paragraph, .board-document-heading) {
+  padding: 1px 0; color: var(--ink); background: var(--link-tint); border-bottom: 2px solid var(--accent-edge);
+}
+
+.board-document-proposal-inserted :is(.board-document-paragraph, .board-document-heading) { width: fit-content; }
 
 .board-document-proposal-field { min-height: 0; font-family: var(--font-mono); resize: vertical; }
 
 .board-document-proposal-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
-.board-document-proposal-label { flex: 1 1 180px; font-size: var(--fs-small); color: var(--link); }
+.board-document-proposal-label { flex: 1 1 180px; font-size: var(--fs-small); color: var(--ink-muted); }
 
 .board-document-diff-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-2); overflow: hidden; }
 
@@ -300,7 +318,15 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-agent-name { font-size: 15px; font-weight: 600; }
 
-.board-document-chat { display: flex; flex: 1 1 auto; flex-direction: column; gap: 16px; min-height: 0; padding: 18px; overflow: auto; }
+/* The chat opens on its newest item and stays there as items come: a reversed column keeps its scroll at the end. */
+.board-document-chat { display: flex; flex: 1 1 auto; flex-direction: column-reverse; min-height: 0; padding: 18px; overflow: auto; }
+
+.board-document-chat-items { display: flex; flex-direction: column; gap: 16px; }
+
+.board-document-edit-notice {
+  margin: 0; padding: 10px 12px; font-size: var(--fs-small); color: var(--ink-muted); background: var(--wash);
+  border: 1px dashed var(--line-strong); border-radius: var(--r-2);
+}
 
 .board-document-message { display: flex; flex-direction: column; align-self: flex-end; gap: 6px; max-width: 92%; }
 

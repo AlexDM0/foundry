@@ -4,7 +4,8 @@
  * text and its refusal verbatim, a blur then saves nothing and Discard my edit keeps the focus; a save asked for while one is on its way
  * goes after it; a save the forge merged onto a newer head keeps User's text until its version is read, and text typed meanwhile saves on
  * the version it was made on; selected lines and Cmd/Ctrl+Shift+M open artboard 3's popover and send its anchor, only while the text is
- * the head's, an unsaved edit being saved first; and a gutter `+` comments on its own line.
+ * the head's, an unsaved edit being saved first; the commented lines stay selected while the popover is open; quote and fence lines are
+ * muted; a gutter `+` comments on its own line; and a long line ends in an ellipsis until User scrolls sideways.
  */
 import {
   act,
@@ -265,6 +266,34 @@ describe('Code', () => {
         diagram:          null,
       },
     });
+  });
+
+  test('the commented lines stay selected while the popover is open, wherever the caret goes, and quote and fence lines are muted', () => {
+    const { editor } = renderCode();
+    const markedLineNumbers = (attribute: string): number[] => [...document.querySelectorAll('.board-markdown-editor-mirror-line')]
+      .flatMap((line, i) => (line.hasAttribute(attribute) ? [i + 1] : []));
+    selectLines(editor, 17, 23);
+    fireEvent.keyDown(editor, { key: 'M', metaKey: true, shiftKey: true });
+    editor.setSelectionRange(0, 0);
+    fireEvent.select(editor);
+    expect(markedLineNumbers('data-selected')).toEqual([17, 18, 19, 20, 21, 22, 23]);
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Comment for the spec agent' })).getByRole('button', { name: 'Cancel' }));
+    expect(markedLineNumbers('data-selected')).toEqual([]);
+    expect(markedLineNumbers('data-muted')).toEqual([3, 17, 23]);
+  });
+
+  test('a long line ends in an ellipsis at rest and is drawn whole once User scrolls sideways', () => {
+    const { editor } = renderCode();
+    const mirror = document.querySelector('.board-markdown-editor-mirror');
+    const scrollSideways = (scrollLeft: number): void => {
+      Object.defineProperty(editor, 'scrollLeft', { configurable: true, value: scrollLeft });
+      fireEvent.scroll(editor);
+    };
+    expect(mirror?.hasAttribute('data-scrolled-sideways')).toBe(false);
+    scrollSideways(120);
+    expect(mirror?.hasAttribute('data-scrolled-sideways')).toBe(true);
+    scrollSideways(0);
+    expect(mirror?.hasAttribute('data-scrolled-sideways')).toBe(false);
   });
 
   test('a gutter + comments on its own line', () => {

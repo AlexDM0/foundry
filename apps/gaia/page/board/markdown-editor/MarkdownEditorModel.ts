@@ -9,14 +9,19 @@ const LINE_BREAK = /\r?\n/u;
 
 const HEADING_LINE = /^#{1,2}(?:\s|$)/u;
 
+/** A quote line and a code fence, which read quieter than the text. */
+const MUTED_LINE = /^(?:>|```|~~~)/u;
+
 export interface EditorLine {
   /** The line's text and its occurrence among equal lines. */
   readonly lineKey: string;
   /** From 1. */
   readonly number:  number;
   readonly text:    string;
-  /** A `#` or `##` line, drawn in the link colour. */
+  /** A `#` or `##` line, drawn bold. */
   readonly heading: boolean;
+  /** A `>` quote line or a code fence, drawn muted. */
+  readonly muted:   boolean;
 }
 
 /** `open`: something waits on the line, such as a comment the agent has not answered; `settled`: it was answered. */
@@ -74,7 +79,7 @@ function editorLinesOf(markdown: string): EditorLine[] {
   const lines = linesOf(markdown);
   const lineKeys = lineKeysOf(lines);
   return lines.map((text, i) => ({
-    lineKey: lineKeys[i] ?? lineKeyOf(text, 1), number: i + 1, text, heading: HEADING_LINE.test(text),
+    lineKey: lineKeys[i] ?? lineKeyOf(text, 1), number: i + 1, text, heading: HEADING_LINE.test(text), muted: MUTED_LINE.test(text),
   }));
 }
 

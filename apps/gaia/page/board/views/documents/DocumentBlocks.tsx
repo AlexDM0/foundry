@@ -4,18 +4,26 @@
  * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of
  * a paragraph, heading or list item go the marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference
  * mark of the effect reading (`1`, in the warning look while its place is unresolved). The caller may place its own part after the
- * innermost such block that holds a line, such as an agent's proposed edit or the comment popover.
+ * innermost such block that holds a line, such as an agent's proposed edit or the comment popover, and frame the part with that block, as
+ * an edit with the lines it replaces. The text an open comment points at stays marked.
  */
-import { Fragment, type ReactNode } from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  type ReactNode
+} from 'react';
 
 import type {
   MarkdownBlock,
   MarkdownListItem,
   MarkdownSpan,
-  SourceLines
+  SourceLines,
+  SourcePosition
 } from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
-import type { DiagramNode } from '../../../shared/@types/DiagramFrameMessages.ts';
-import { DiagramFrame }     from './DiagramFrame.tsx';
+import type { DiagramNode }                         from '../../../shared/@types/DiagramFrameMessages.ts';
+import { DiagramFrame }                             from './DiagramFrame.tsx';
+import { DocumentSelectionModel, type MarkedRange } from './DocumentSelectionModel.ts';
 
 type DiagramBlock = Extract<MarkdownBlock, { readonly kind: 'diagram' }>;
 
@@ -35,9 +43,11 @@ export interface ReferenceMark {
 
 /** A part of the caller's, placed after the innermost paragraph, heading, list item or other block that holds its line. */
 export interface PlacedPart {
-  readonly key:  string;
-  readonly line: number;
-  readonly part: ReactNode;
+  readonly key:          string;
+  readonly line:         number;
+  readonly part:         ReactNode;
+  /** Lines the part is framed with: the block it follows shares its frame when that block holds them all. */
+  readonly framedLines?: SourceLines;
 }
 
 export interface DocumentBlocksProps {
@@ -49,6 +59,8 @@ export interface DocumentBlocksProps {
   /** Lines an open proposal replaces, drawn struck through. */
   readonly replacedLines?:  readonly SourceLines[];
   readonly parts?:          readonly PlacedPart[];
+  /** The text an open comment points at, drawn marked. */
+  readonly markedRange?:    MarkedRange | null;
   readonly onNodeComment?:  (diagram: DiagramBlock, node: DiagramNode) => void;
   readonly nodeOfferOf?:    (diagram: DiagramBlock, node: DiagramNode) => string;
 }
@@ -78,6 +90,25 @@ function characterOf(reference: string): string {
   return read;
 }
 
+const MarkedRangeContext = createContext<MarkedRange | null>(null);
+
+/** A piece of source text, carrying where it starts, with the part of it inside the marked range drawn marked. */
+function SourceText({ text, start }: { readonly text: string; readonly start: SourcePosition }) {
+  const markedRange = useContext(MarkedRangeContext);
+  const marked = markedRange === null ? null : DocumentSelectionModel.markedOffsetsInSpan(start, text, markedRange);
+  if (marked === null) return <span data-source-line={start.line} data-source-column={start.column}>{text}</span>;
+  const startOf = (offset: number) => DocumentSelectionModel.positionInSpan(start, text, offset);
+  const markedStart = startOf(marked.from);
+  const afterStart = startOf(marked.to);
+  return (
+    <>
+      {marked.from === 0 ? null : <span data-source-line={start.line} data-source-column={start.column}>{text.slice(0, marked.from)}</span>}
+      <mark className="board-document-marked" data-source-line={markedStart.line} data-source-column={markedStart.column}>{text.slice(marked.from, marked.to)}</mark>
+      {marked.to === text.length ? null : <span data-source-line={afterStart.line} data-source-column={afterStart.column}>{text.slice(marked.to)}</span>}
+    </>
+  );
+}
+
 function Spans({ spans }: { readonly spans: readonly MarkdownSpan[] }) {
   return spans.map((span, position) => <Span key={position} span={span} />);
 }
@@ -85,9 +116,9 @@ function Spans({ spans }: { readonly spans: readonly MarkdownSpan[] }) {
 function Span({ span }: { readonly span: MarkdownSpan }) {
   switch (span.kind) {
     case 'text':
-      return <span data-source-line={span.start.line} data-source-column={span.start.column}>{span.text}</span>;
+      return <SourceText text={span.text} start={span.start} />;
     case 'code':
-      return <code className="board-document-inline-code" data-source-line={span.start.line} data-source-column={span.start.column}>{span.text}</code>;
+      return <code className="board-document-inline-code"><SourceText text={span.text} start={span.start} /></code>;
     case 'reference':
       return <span data-source-line={span.start.line} data-source-column={span.start.column}>{characterOf(span.reference)}</span>;
     case 'strong':
@@ -130,9 +161,21 @@ function Marks({ lines, props, nestedItems }: { readonly lines: SourceLines; rea
   );
 }
 
+function ownPartsOf(lines: SourceLines, props: DocumentBlocksProps, nestedItems: readonly SourceLines[]): PlacedPart[] {
+  return (props.parts ?? []).filter((placed) => lineIsIn(placed.line, lines) && !nestedItems.some((nested) => lineIsIn(placed.line, nested)));
+}
+
 function PartsAfter({ lines, props, nestedItems }: { readonly lines: SourceLines; readonly props: DocumentBlocksProps; readonly nestedItems: readonly SourceLines[] }) {
-  const own = (props.parts ?? []).filter((placed) => lineIsIn(placed.line, lines) && !nestedItems.some((nested) => lineIsIn(placed.line, nested)));
-  return own.map((placed) => <Fragment key={placed.key}>{placed.part}</Fragment>);
+  return ownPartsOf(lines, props, nestedItems).map((placed) => <Fragment key={placed.key}>{placed.part}</Fragment>);
+}
+
+/** A block shares its frame with a part it is followed by when it holds all the lines the part is framed with. */
+function isFramed(lines: SourceLines, props: DocumentBlocksProps, nestedItems: readonly SourceLines[]): boolean {
+  return ownPartsOf(lines, props, nestedItems).some(({ framedLines }) => framedLines !== undefined && lines.from <= framedLines.from && framedLines.to <= lines.to);
+}
+
+function Framed({ framed, children }: { readonly framed: boolean; readonly children: ReactNode }) {
+  return framed ? <div className="board-document-proposal-frame">{children}</div> : children;
 }
 
 function lineAttributesOf(lines: SourceLines, props: DocumentBlocksProps) {
@@ -148,16 +191,18 @@ function ListItem({ item, props }: { readonly item: MarkdownListItem; readonly p
   const nestedItems = item.blocks.flatMap((block) => (block.kind === 'list' ? block.items.map((nested) => nested.lines) : []));
   return (
     <li className="board-document-list-item" data-task={item.checkbox === null ? undefined : ''} {...lineAttributesOf(item.lines, props)}>
-      {item.checkbox === null ? null : <span className="board-document-checkbox" aria-label={item.checkbox}>{CHECKBOX_GLYPHS[item.checkbox]}</span>}
-      <span className="board-document-item-text">
-        {item.blocks.map((block, position) => (
-          block.kind === 'paragraph'
-            ? <Fragment key={position}><Spans spans={block.spans} />{' '}</Fragment>
-            : <Block key={position} block={block} props={props} />
-        ))}
-        <Marks lines={item.lines} props={props} nestedItems={nestedItems} />
-      </span>
-      <PartsAfter lines={item.lines} props={props} nestedItems={nestedItems} />
+      <Framed framed={isFramed(item.lines, props, nestedItems)}>
+        {item.checkbox === null ? null : <span className="board-document-checkbox" aria-label={item.checkbox}>{CHECKBOX_GLYPHS[item.checkbox]}</span>}
+        <span className="board-document-item-text">
+          {item.blocks.map((block, position) => (
+            block.kind === 'paragraph'
+              ? <Fragment key={position}><Spans spans={block.spans} />{' '}</Fragment>
+              : <Block key={position} block={block} props={props} />
+          ))}
+          <Marks lines={item.lines} props={props} nestedItems={nestedItems} />
+        </span>
+        <PartsAfter lines={item.lines} props={props} nestedItems={nestedItems} />
+      </Framed>
     </li>
   );
 }
@@ -200,7 +245,7 @@ function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonl
             {codeLines.map((codeLine, i) => {
               const start = block.lineStarts[i] ?? { line: block.lines.from, column: 1 };
               const isLast = i === codeLines.length - 1;
-              return <span key={i} data-source-line={start.line} data-source-column={start.column}>{isLast ? codeLine : `${codeLine}\n`}</span>;
+              return <SourceText key={i} text={isLast ? codeLine : `${codeLine}\n`} start={start} />;
             })}
           </code>
         </pre>
@@ -226,12 +271,12 @@ function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonl
 
 /** A list and a quote hold blocks of their own, which place the parts. */
 function Block({ block, props }: { readonly block: MarkdownBlock; readonly props: DocumentBlocksProps }) {
-  const holdsBlocks = block.kind === 'list' || block.kind === 'quote';
+  if (block.kind === 'list' || block.kind === 'quote') return <BlockElement block={block} props={props} />;
   return (
-    <>
+    <Framed framed={isFramed(block.lines, props, [])}>
       <BlockElement block={block} props={props} />
-      {holdsBlocks ? null : <PartsAfter lines={block.lines} props={props} nestedItems={[]} />}
-    </>
+      <PartsAfter lines={block.lines} props={props} nestedItems={[]} />
+    </Framed>
   );
 }
 
@@ -239,6 +284,11 @@ function BlockList({ blocks, props }: { readonly blocks: readonly MarkdownBlock[
   return blocks.map((block) => <Block key={`${block.kind}.${block.lines.from}`} block={block} props={props} />);
 }
 
+/** Each document drawn marks only its own text, so an edit's new lines drawn inside the document mark none of it. */
 export function DocumentBlocks(props: DocumentBlocksProps) {
-  return <BlockList blocks={props.blocks} props={props} />;
+  return (
+    <MarkedRangeContext value={props.markedRange ?? null}>
+      <BlockList blocks={props.blocks} props={props} />
+    </MarkedRangeContext>
+  );
 }

@@ -96,6 +96,8 @@ export interface PageStateAtMount {
   readonly effectIsOpen?: boolean;
   readonly editedText?:   string | null;
   readonly caretLine?:    number | null;
+  /** The lines the page opens scrolled to, as a press on their comment's card leaves it. */
+  readonly jumpedTo?:     BoardLineRangeDocument;
 }
 
 function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
@@ -183,7 +185,8 @@ function planContextLineOf(documents: GaiaTicketDocumentsDocument): string | nul
   ].filter((part) => part !== null).join(' · ');
 }
 
-function scrollToLines(container: HTMLElement | null, lines: BoardLineRangeDocument): void {
+/** Scrolls the innermost block that holds the lines' first to the middle of the container. */
+export function scrollToLines(container: HTMLElement | null, lines: BoardLineRangeDocument): void {
   if (container === null) return;
   const holding = [...container.querySelectorAll<HTMLElement>('[data-from-line]')].filter((element) => (
     Number(element.dataset['fromLine']) <= lines.from && lines.from <= Number(element.dataset['toLine'])
@@ -198,7 +201,8 @@ export function TicketDocumentsPage({
   const [draft, setDraft] = useState<CommentDraft | null>(atMount.draft ?? null);
   const [effectIsOpen, setEffectIsOpen] = useState(atMount.effectIsOpen ?? false);
   const [editedText, setEditedText] = useState<string | null>(atMount.editedText ?? null);
-  const [jump, setJump] = useState<JumpRequest | null>(null);
+  const [jump, setJump] = useState<JumpRequest | null>(atMount.jumpedTo === undefined ? null : { lines: atMount.jumpedTo });
+  const [caretLine, setCaretLine] = useState<number | null>(atMount.caretLine ?? null);
   const main = useRef<HTMLElement>(null);
   const hrefOf = useBoardHrefOf();
   const document = TicketDocumentsViewModel.documentOf(documents, shown);
@@ -227,10 +231,14 @@ export function TicketDocumentsPage({
   const settled = !document.editable;
   const versionNumber = document.head?.number ?? null;
   const contextLine = shown === 'plan' ? planContextLineOf(documents) : null;
+  const userEditNotice = DocumentChatModel.userEditNoticeOf({
+    document, chat, editing, caretLine: editing ? caretLine : null
+  });
   const changeView = (next: DocumentViewMode): void => {
     setView(next);
     setDraft(null);
     setEditedText(null);
+    setCaretLine(null);
   };
   const jumpTo = (lines: BoardLineRangeDocument): void => {
     if (view !== 'preview') changeView('preview');
@@ -266,6 +274,7 @@ export function TicketDocumentsPage({
             draft={draft}
             onDraft={setDraft}
             onTextChange={setEditedText}
+            onCaretLine={setCaretLine}
             {...(atMount.draftText === undefined ? {} : { draftText: atMount.draftText })}
           />
         );
@@ -281,6 +290,7 @@ export function TicketDocumentsPage({
             onDraft={setDraft}
             onTextChange={setEditedText}
             caretLineAtMount={atMount.caretLine ?? null}
+            onCaretLine={setCaretLine}
           />
         );
     }
@@ -324,6 +334,7 @@ export function TicketDocumentsPage({
           settled={settled}
           onJumpToAnchor={jumpTo}
           onOpenEffect={shown === 'plan' ? () => setEffectIsOpen(true) : null}
+          userEditNotice={userEditNotice}
         />
       </div>
     </div>
