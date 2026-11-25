@@ -661,7 +661,12 @@ documents](#a-tickets-documents), User's nine commands on them, the `documents` 
 the board document, the 413 of a command body over its bound, and the new members of the board's unions (job kinds and
 roles, the pipeline's route and documents, the readiness gaps). Most new members reach a client only once a board sets
 the route; the board's `limits.defaultInstructionsOfRole` names the defaults of the two new roles, `specAgent` and
-`planAgent`, on every board, an added key a client that reads the record by its known keys passes over. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
+`planAgent`, on every board, an added key a client that reads the record by its known keys passes over. The board's
+`limits` also add what a pipeline means where it says nothing, so a client shows and resets to forge's defaults and keeps
+no copy of them: `defaultAgentPairOfRole` (each role's model and effort), `defaultDocumentsOfRole` (the rule by which the
+builder and the reviewer read each ticket document), `fixedDocumentsOfRole` (the documents a role reads at its default
+rule whatever the pipeline stores: the reviewer's spec), `defaultApprovals` (whether each approval is on) and
+`defaultTicketWritingRoute`. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
 stays 6 and `summary` 3.
 
 The system version is set by interoperability, never by a package's version:
@@ -862,7 +867,7 @@ The document serves as finished facts what a view would otherwise recompute with
 | Why a job stands not launched: its cause, the program the forge named and the sentence | `jobs[].notLaunched` | forge |
 | The design's tools: each program the draft runs, found now, the draft's own list where it keeps one | `pipelineSetup.record.tools` | a reader |
 | Each refusal the draft's entities hold, with the entities it names, the row that shows it, a sentence of what is wrong and that Continue and Apply wait for its fix, and the one gesture that resolves it as typed draft edits | `pipelineSetup.entityRefusals` | forge |
-| The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
+| The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step; from forge 4.2 each role's default model and effort, the builder's and the reviewer's default document rules and the documents fixed at them, whether each approval is on where the pipeline names none, and the default route a ticket is written by | `limits` | a reader |
 | A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |
 
 The offers come from the predicates the Board's moves check (`MoveOffers.ts`), so an offered command is one the Board

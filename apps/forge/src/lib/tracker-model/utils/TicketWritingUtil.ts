@@ -9,19 +9,23 @@ import type {
   Pipeline,
   TicketWritingRoute
 } from '../@types/Pipeline.ts';
-import type { TicketDocumentKind }   from '../@types/TicketDocument.ts';
-import { DEFAULT_DOCUMENTS_OF_ROLE } from '../constants/PipelineDefaults.ts';
-import type { DocumentReadingRole }  from '../constants/PipelineDefaults.ts';
-import { PipelineUtil }              from './PipelineUtil.ts';
+import type { TicketDocumentKind } from '../@types/TicketDocument.ts';
+import {
+  DEFAULT_APPROVALS,
+  DEFAULT_DOCUMENTS_OF_ROLE,
+  DEFAULT_TICKET_WRITING_ROUTE,
+  FIXED_DOCUMENTS_OF_ROLE
+} from '../constants/PipelineDefaults.ts';
+import type { DocumentReadingRole } from '../constants/PipelineDefaults.ts';
+import { PipelineUtil }             from './PipelineUtil.ts';
 
-/** Absent, and with no pipeline, is today's one ticket. */
 function routeOf(pipeline: Readonly<Pipeline> | null): TicketWritingRoute {
-  return pipeline?.ticketWriting ?? 'one-ticket';
+  return pipeline?.ticketWriting ?? DEFAULT_TICKET_WRITING_ROUTE;
 }
 
-/** Absent is on: the user approves the document; off, its agent's ready approves it for the pipeline. */
+/** On, the user approves the document; off, its agent's ready approves it for the pipeline. */
 function documentReviewIsOn(pipeline: Readonly<Pipeline> | null, document: TicketDocumentKind): boolean {
-  return pipeline?.approvals?.[document] !== false;
+  return pipeline?.approvals?.[document] ?? DEFAULT_APPROVALS[document];
 }
 
 function documentReadingRoleOf(role: EntityAgentRole): DocumentReadingRole {
@@ -36,7 +40,7 @@ function documentReadingRuleOf(
   entityKey?: EntityKey
 ): DocumentReadingRule {
   const readingRole = documentReadingRoleOf(role);
-  if (readingRole === 'reviewer' && document === 'spec') return DEFAULT_DOCUMENTS_OF_ROLE.reviewer.spec;
+  if (FIXED_DOCUMENTS_OF_ROLE[readingRole].includes(document)) return DEFAULT_DOCUMENTS_OF_ROLE[readingRole][document];
   const ticketPipeline = pipeline === null ? null : PipelineUtil.ticketPipelineOf(pipeline, entityKey);
   return ticketPipeline?.agents?.[readingRole]?.documents?.[document] ?? DEFAULT_DOCUMENTS_OF_ROLE[readingRole][document];
 }

@@ -33,15 +33,20 @@ import {
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind }                                      from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { DEFAULT_DOCUMENTS_OF_ROLE, type DocumentReadingRole, RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { EntityValidationUtil }                                                                from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { VocabularyUtil }                                                                      from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { JsonTextUtil }                                                                        from '../../shared/utils/JsonTextUtil.ts';
-import { PathNestingUtil }                                                                     from '../../shared/utils/PathNestingUtil.ts';
-import { storedFileTextOf }                                                                    from '../StoredFileText.ts';
-import { OperationRefusalWordingUtil }                                                         from '../utils/OperationRefusalWordingUtil.ts';
-import { StoredValueUtil }                                                                     from '../utils/StoredValueUtil.ts';
+import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
+import {
+  DEFAULT_DOCUMENTS_OF_ROLE,
+  type DocumentReadingRole,
+  FIXED_DOCUMENTS_OF_ROLE,
+  RE_REVIEW_THRESHOLD_STEP_LINES
+} from '../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { EntityValidationUtil }        from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import { VocabularyUtil }              from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { JsonTextUtil }                from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }             from '../../shared/utils/PathNestingUtil.ts';
+import { storedFileTextOf }            from '../StoredFileText.ts';
+import { OperationRefusalWordingUtil } from '../utils/OperationRefusalWordingUtil.ts';
+import { StoredValueUtil }             from '../utils/StoredValueUtil.ts';
 
 /** Entities that are sound as stored but that this tracker cannot hold, which a refusal names instead of a repair. */
 export type UnsupportedEntities = { kind: 'entities-in-a-folder'; projectPrefix: string };
@@ -357,8 +362,8 @@ function documentsOf(value: unknown, path: string, role: DocumentReadingRole): M
     const rule = record.value[document];
     if (rule === undefined) continue;
     if (!documentReadingRuleIsKnown(rule)) return problemOf(`${path}.${document} is not one of ${DOCUMENT_READING_RULES.join(', ')}`);
-    if (role === 'reviewer' && document === 'spec' && rule !== DEFAULT_DOCUMENTS_OF_ROLE.reviewer.spec) {
-      return problemOf(`${path}.spec is ${rule}; the reviewer always reads the spec`);
+    if (FIXED_DOCUMENTS_OF_ROLE[role].includes(document) && rule !== DEFAULT_DOCUMENTS_OF_ROLE[role][document]) {
+      return problemOf(`${path}.${document} is ${rule}; the ${role} always reads the ${document}`);
     }
     documents[document] = rule;
   }

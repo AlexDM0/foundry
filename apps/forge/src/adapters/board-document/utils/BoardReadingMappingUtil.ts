@@ -19,23 +19,31 @@ import type { Task }                                                            
 import type { JobOffers, TicketOffers }                                                                        from '../../../lib/tracker-model/MoveOffers.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { jobStopHoldOf }                                                                                       from '../../../lib/tracker-model/constants/JobStopHolds.ts';
-import { DEFAULT_INSTRUCTIONS_OF_ROLE, RE_REVIEW_THRESHOLD_STEP_LINES }                                        from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { FIRST_REPEAT_REVIEW_ROUND }                                                                           from '../../../lib/tracker-model/constants/ReviewRounds.ts';
+import {
+  DEFAULT_APPROVALS,
+  DEFAULT_DOCUMENTS_OF_ROLE,
+  DEFAULT_INSTRUCTIONS_OF_ROLE,
+  DEFAULT_TICKET_WRITING_ROUTE,
+  type DocumentReadingRole,
+  FIXED_DOCUMENTS_OF_ROLE,
+  RE_REVIEW_THRESHOLD_STEP_LINES
+} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { FIRST_REPEAT_REVIEW_ROUND }         from '../../../lib/tracker-model/constants/ReviewRounds.ts';
 import {
   TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP,
   TICKET_STATUSES_THAT_CLOSE_A_TICKET,
   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY
 } from '../../../lib/tracker-model/constants/Statuses.ts';
-import { DEFAULT_TICKET_PRIORITY }                     from '../../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketDefaultsUtil }                          from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
-import type { PageTicket, PageTicketFacts }            from '../../../shared/@types/PagePayload.ts';
-import { DISPATCH_PROTOCOL }                           from '../../../shared/constants/DispatchProtocol.ts';
-import { WORKER_EFFORT, WORKER_MODEL }                 from '../../../shared/constants/HephaestusLimits.ts';
-import type { AttentionEntry }                         from '../../../shared/monitor/AttentionEntries.ts';
-import type { TodayFigures }                           from '../../../shared/monitor/TodayFigures.ts';
-import { NoticeWordingUtil, type RestartWarningFacts } from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
-import { RefusalDocumentUtil }                         from '../../utils/RefusalDocumentUtil.ts';
-import { BoardPipelineMappingUtil }                    from './BoardPipelineMappingUtil.ts';
+import { DEFAULT_TICKET_PRIORITY }                                 from '../../../lib/tracker-model/constants/TicketFields.ts';
+import { TicketDefaultsUtil }                                      from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+import type { PageTicket, PageTicketFacts }                        from '../../../shared/@types/PagePayload.ts';
+import { DISPATCH_PROTOCOL }                                       from '../../../shared/constants/DispatchProtocol.ts';
+import { DEFAULT_AGENT_PAIR_OF_ROLE, WORKER_EFFORT, WORKER_MODEL } from '../../../shared/constants/HephaestusLimits.ts';
+import type { AttentionEntry }                                     from '../../../shared/monitor/AttentionEntries.ts';
+import type { TodayFigures }                                       from '../../../shared/monitor/TodayFigures.ts';
+import { NoticeWordingUtil, type RestartWarningFacts }             from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { RefusalDocumentUtil }                                     from '../../utils/RefusalDocumentUtil.ts';
+import { BoardPipelineMappingUtil }                                from './BoardPipelineMappingUtil.ts';
 
 /** The limits forge's rules apply, beside the page's figures in `limits`. */
 export type BoardRuleLimitsDocument = Pick<BoardLimitsDocument,
@@ -46,7 +54,12 @@ export type BoardRuleLimitsDocument = Pick<BoardLimitsDocument,
   | 'defaultTicketPriority'
   | 'firstRepeatReviewRound'
   | 'defaultInstructionsOfRole'
-  | 'reReviewThresholdStepLines'>;
+  | 'reReviewThresholdStepLines'
+  | 'defaultAgentPairOfRole'
+  | 'defaultDocumentsOfRole'
+  | 'fixedDocumentsOfRole'
+  | 'defaultApprovals'
+  | 'defaultTicketWritingRoute'>;
 
 const REPEAT_REVIEW_DISPLAY_STATE = 're-review';
 
@@ -136,6 +149,39 @@ function defaultInstructionsOfRoleOf(): BoardLimitsDocument['defaultInstructions
   };
 }
 
+function defaultAgentPairOfRoleOf(): BoardLimitsDocument['defaultAgentPairOfRole'] {
+  const pairOf = (role: PipelineAgentRole) => ({ model: DEFAULT_AGENT_PAIR_OF_ROLE[role].model, effort: DEFAULT_AGENT_PAIR_OF_ROLE[role].effort });
+  return {
+    productOwner:       pairOf('productOwner'),
+    specAgent:          pairOf('specAgent'),
+    planAgent:          pairOf('planAgent'),
+    builder:            pairOf('builder'),
+    reviewer:           pairOf('reviewer'),
+    reReviewer:         pairOf('reReviewer'),
+    conflictReReviewer: pairOf('conflictReReviewer'),
+    pipelineAgent:      pairOf('pipelineAgent'),
+    assistant:          pairOf('assistant'),
+  };
+}
+
+function defaultDocumentsOfRoleOf(): BoardLimitsDocument['defaultDocumentsOfRole'] {
+  const rulesOf = (role: DocumentReadingRole) => ({ spec: DEFAULT_DOCUMENTS_OF_ROLE[role].spec, plan: DEFAULT_DOCUMENTS_OF_ROLE[role].plan });
+  return { builder: rulesOf('builder'), reviewer: rulesOf('reviewer') };
+}
+
+function fixedDocumentsOfRoleOf(): BoardLimitsDocument['fixedDocumentsOfRole'] {
+  return { builder: [...FIXED_DOCUMENTS_OF_ROLE.builder], reviewer: [...FIXED_DOCUMENTS_OF_ROLE.reviewer] };
+}
+
+function defaultApprovalsOf(): BoardLimitsDocument['defaultApprovals'] {
+  return {
+    tickets: DEFAULT_APPROVALS.tickets,
+    merge:   DEFAULT_APPROVALS.merge,
+    spec:    DEFAULT_APPROVALS.spec,
+    plan:    DEFAULT_APPROVALS.plan,
+  };
+}
+
 function ruleLimitsOf(): BoardRuleLimitsDocument {
   return {
     concurrency: {
@@ -150,6 +196,11 @@ function ruleLimitsOf(): BoardRuleLimitsDocument {
     firstRepeatReviewRound:     FIRST_REPEAT_REVIEW_ROUND,
     defaultInstructionsOfRole:  defaultInstructionsOfRoleOf(),
     reReviewThresholdStepLines: RE_REVIEW_THRESHOLD_STEP_LINES,
+    defaultAgentPairOfRole:     defaultAgentPairOfRoleOf(),
+    defaultDocumentsOfRole:     defaultDocumentsOfRoleOf(),
+    fixedDocumentsOfRole:       fixedDocumentsOfRoleOf(),
+    defaultApprovals:           defaultApprovalsOf(),
+    defaultTicketWritingRoute:  DEFAULT_TICKET_WRITING_ROUTE,
   };
 }
 

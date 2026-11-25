@@ -22,7 +22,9 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * pipeline-tools-set, agent-look-again and machine-agent-program-set.
  * Forge 4.2 adds a ticket's documents in the spec-then-plan route: their endpoint, the user's commands on them, the `documents` event and
  * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
- * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds.
+ * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds. The
+ * limits also add the defaults a pipeline means where it says nothing, so a client keeps no copy: `defaultAgentPairOfRole`,
+ * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`.
  * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.

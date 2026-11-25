@@ -20,7 +20,7 @@ const VERSIONED_STREAMS_AND_PICTURES_ADDED_IN: SystemVersion = { major: 1, minor
 const HEPHAESTUS_FORGE: SystemVersion = { major: 3, minor: 0 };
 /** The forge that restarts Hephaestus through a preflight: the state `restarting`, the warning kind restart-failed and the board's `restartWarning`. */
 const RESTARTING_FORGE: SystemVersion = { major: 4, minor: 0 };
-/** The forge that serves a ticket's spec and plan in the spec-then-plan route. */
+/** The forge that serves a ticket's spec and plan in the spec-then-plan route, and the pipeline's defaults in the board's limits. */
 const TICKET_DOCUMENTS_FORGE: SystemVersion = { major: 4, minor: 2 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
