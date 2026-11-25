@@ -167,8 +167,8 @@ describe('the board routes of a snapshot read in full', () => {
     ];
     const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ activity: targets.map((target, i) => entryAt(i, target)) }), REGISTRY_FACTS, IDENTITY, 'stamp');
     expect(reading.activity.map(({ boardRoute }) => boardRoute)).toEqual([
-      { tab: 'kanban', item: 'ticket/001' },
-      { tab: 'kanban', item: 'draft/D2' },
+      { tab: 'tickets', item: 'ticket/001' },
+      { tab: 'tickets', item: 'draft/D2' },
       { tab: 'questions', item: 'E2' },
       { tab: 'agents', item: 'J4' },
       { tab: 'assistant', item: null },

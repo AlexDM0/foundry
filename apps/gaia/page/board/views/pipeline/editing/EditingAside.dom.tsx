@@ -127,7 +127,7 @@ describe('the aside', () => {
     const tickets = within(changesPanel()).getByRole('list', { name: 'Tickets in flight' });
     expect(within(tickets).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['14', '17', '12', '9', '7']);
     expect(within(tickets).getAllByRole('link').map((chip) => [chip.className, chip.getAttribute('href')])).toEqual(
-      ['14', '17', '12', '9', '7'].map((ticketId) => ['design-system-tag', `#forge/example-tracker/kanban/ticket/${ticketId}`]),
+      ['14', '17', '12', '9', '7'].map((ticketId) => ['design-system-tag', `#forge/example-tracker/tickets/ticket/${ticketId}`]),
     );
     expect(within(changesPanel()).getByText('5 tickets are in flight.')).toBeDefined();
   });

@@ -30,28 +30,28 @@ afterEach(() => {
 
 describe('the finished-work list', () => {
   test('all shows every closed ticket latest first, each opening its row over Progress', () => {
-    render(routedOnTab('progress', <FinishedWorkView tickets={FIXTURE_TICKETS} choice="all" nowEpochMilliseconds={FIXTURE_NOW.getTime()} />).element);
+    render(routedOnTab('gantt', <FinishedWorkView tickets={FIXTURE_TICKETS} choice="all" nowEpochMilliseconds={FIXTURE_NOW.getTime()} />).element);
     expect(shownTicketIds()).toEqual(['#2', '#5', '#1']);
-    expect(linkOf('2')?.getAttribute('href')).toBe('#forge/example-tracker/progress/ticket-row/2');
+    expect(linkOf('2')?.getAttribute('href')).toBe('#forge/example-tracker/progress/gantt/ticket-row/2');
   });
 
   test('marks the open ticket, whose link then closes it, and badges each line with its state', () => {
     render(routedOnTab(
-      'progress',
+      'gantt',
       <FinishedWorkView tickets={FIXTURE_TICKETS} choice="all" nowEpochMilliseconds={FIXTURE_NOW.getTime()} />,
       { form: 'ticket-row', ticketId: '2' },
     ).element);
     const openLine = linkOf('2')?.closest('li');
 
     expect(openLine?.hasAttribute('data-selected')).toBe(true);
-    expect(linkOf('2')?.getAttribute('href')).toBe('#forge/example-tracker/progress');
+    expect(linkOf('2')?.getAttribute('href')).toBe('#forge/example-tracker/progress/gantt');
     const badges = [...document.querySelectorAll('.board-finished-ticket .design-system-state-badge')];
     expect(badges.map((badge) => [badge.getAttribute('data-state-tone'), badge.querySelector('svg') !== null, badge.hasAttribute('data-struck')]))
       .toEqual([['ink', true, false], ['muted', false, true], ['ink', true, false]]);
   });
 
   test('a window holding nothing says so in the window\'s words', () => {
-    render(routedOnTab('progress', <FinishedWorkView tickets={FIXTURE_TICKETS} choice="1h" nowEpochMilliseconds={FIXTURE_NOW.getTime()} />).element);
+    render(routedOnTab('gantt', <FinishedWorkView tickets={FIXTURE_TICKETS} choice="1h" nowEpochMilliseconds={FIXTURE_NOW.getTime()} />).element);
     expect(screen.getByText('No ticket finished in the last hour.')).toBeDefined();
   });
 });

@@ -148,8 +148,7 @@ function projectOf(fleetDocument: FleetDocument, trackerId: string): string {
 function jobHrefOf(fleetDocument: FleetDocument, row: FleetDocumentFleetAgentRow): string {
   const forge = FleetDocumentUtil.forgeOf(fleetDocument, row.trackerId);
   if (forge !== null && ForgeContractUtil.canOpenInPlace(forge)) {
-    const boardRoute = row.boardRoute ?? { tab: AGENTS_TAB, item: row.jobId };
-    return HashRouter.fragmentOf({ view: 'forge', trackerId: row.trackerId, boardRoute });
+    return HashRouter.servedBoardFragmentOf(row.trackerId, row.boardRoute ?? { tab: AGENTS_TAB, item: row.jobId });
   }
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: row.trackerId });
 }

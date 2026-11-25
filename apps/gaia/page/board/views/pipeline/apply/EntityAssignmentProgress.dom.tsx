@@ -46,7 +46,7 @@ describe('the assignment progress', () => {
       '21Show stock levels on the product pageTouches apps/web/app/product/web',
       '22Give Button a loading stateThe product owner has not assigned it yet.Waiting',
     ]);
-    expect(within(progressDialog()).getByRole('link', { name: 'Open ticket 21' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/21');
+    expect(within(progressDialog()).getByRole('link', { name: 'Open ticket 21' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/ticket/21');
     expect(within(progressDialog()).getByText('1 of 2 assigned.')).toBeDefined();
   });
 

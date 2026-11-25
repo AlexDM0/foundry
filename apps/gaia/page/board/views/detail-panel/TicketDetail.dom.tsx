@@ -124,7 +124,7 @@ function renderTicket(item: DetailItem, {
   const panelOf = (shownItem: DetailItem) => (
     <ControlSurroundingsContext.Provider value={fake.surroundings}>
       <QuestionPanelShownContext.Provider value={questionPanelIsShown}>
-        {routedOnTab('progress', (
+        {routedOnTab('gantt', (
           <DetailPanel
             board={board}
             item={shownItem}
@@ -175,10 +175,10 @@ describe('the section tabs', () => {
   test('each links to its own route over the same board tab, and a routed section shows only that section', () => {
     renderTicket({ form: 'ticket', ticketId: '004', section: 'timeline' });
     expect(sectionTabs().map((tab) => tab.getAttribute('href'))).toEqual([
-      boardHrefOf('progress/ticket/004'),
-      boardHrefOf('progress/ticket/004/timeline'),
-      boardHrefOf('progress/ticket/004/activity'),
-      boardHrefOf('progress/ticket/004/description'),
+      boardHrefOf('progress/gantt/ticket/004'),
+      boardHrefOf('progress/gantt/ticket/004/timeline'),
+      boardHrefOf('progress/gantt/ticket/004/activity'),
+      boardHrefOf('progress/gantt/ticket/004/description'),
     ]);
     expect(screen.getByRole('link', { name: 'Timeline' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('list', { name: 'Time spent in each state' })).toBeTruthy();
@@ -193,16 +193,16 @@ describe('the section tabs', () => {
     act(() => {
       fireEvent.keyDown(overview ?? document, { key: 'ArrowRight' });
     });
-    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/ticket/004/timeline'));
+    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/gantt/ticket/004/timeline'));
     expect(document.activeElement?.textContent).toBe('Timeline');
     act(() => {
       fireEvent.keyDown(document.activeElement ?? document, { key: 'End' });
     });
-    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/ticket/004/description'));
+    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/gantt/ticket/004/description'));
     act(() => {
       fireEvent.keyDown(document.activeElement ?? document, { key: 'Home' });
     });
-    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/ticket/004'));
+    expect(followedFragments.at(-1)).toBe(boardHrefOf('progress/gantt/ticket/004'));
   });
 
   test('a new section starts the body at its top', () => {
@@ -404,7 +404,7 @@ describe('the Overview', () => {
     const steps = region('Next').getAllByRole('listitem');
     expect(steps.map((step) => step.hasAttribute('data-current'))).toEqual([true, false, false, false]);
     expect(steps.at(-1)?.textContent).toBe('It integrates into group-account; #005 Example delivery ETA can start.');
-    expect(region('Next').getByRole('link', { name: '#005' }).getAttribute('href')).toBe(boardHrefOf('progress/ticket/005'));
+    expect(region('Next').getByRole('link', { name: '#005' }).getAttribute('href')).toBe(boardHrefOf('progress/gantt/ticket/005'));
   });
 
   test('a board with no forecast shows no Next', () => {

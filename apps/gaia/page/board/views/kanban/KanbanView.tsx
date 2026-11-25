@@ -84,6 +84,9 @@ export interface KanbanViewProps {
   readonly streamIsLive:          boolean;
   /** The Merge queue lane's way to the queue's own detail. */
   readonly mergeQueueHref:        string;
+  /** The drafts and the tickets for review that wait on User, which Tickets holds and the head links to. */
+  readonly draftsWaitingCount:    number;
+  readonly ticketsHref:           string;
   /** A closed lane's "show all": widens the finished-work window to everything. */
   readonly onShowAllFinished:     () => void;
   /** The lane a header figure asked for, shown outlined for `LANE_HIGHLIGHT_MILLISECONDS`; `null` once taken. */
@@ -116,8 +119,12 @@ const LANE_HEAD_EDGE_PROPERTY = '--s-edge';
 const KANBAN_LEAD = 'Every ticket by where it stands. Click a card to open it. Hover a card to see what it waits on.';
 
 function detailItemOf(card: KanbanCardModel): DetailItem | null {
-  if (card.ticketId !== null) return { form: 'ticket', ticketId: card.ticketId };
-  return card.filingDraftId === null ? null : { form: 'draft', draftId: card.filingDraftId };
+  return card.ticketId === null ? null : { form: 'ticket', ticketId: card.ticketId };
+}
+
+/** `1 draft waits on you`, `3 drafts wait on you`. */
+function draftsWaitingTextOf(count: number): string {
+  return count === 1 ? '1 draft waits on you' : `${count} drafts wait on you`;
 }
 
 /** A crossing ticket's five stages in a row, a package's stages dashed, then where it is in words. */
@@ -528,7 +535,8 @@ function cuedTicketsOf(tickets: KanbanBoard['page']['tickets']): CuedTicket[] {
 }
 
 export function KanbanView({
-  board, filters, boardStore, streamIsLive, mergeQueueHref, onShowAllFinished, laneHighlight = null, onLaneHighlightTaken, onChooseEntity
+  board, filters, boardStore, streamIsLive, mergeQueueHref, draftsWaitingCount, ticketsHref, onShowAllFinished, laneHighlight = null, onLaneHighlightTaken,
+  onChooseEntity
 }: KanbanViewProps) {
   const clock = useBoardClock();
   const routing = useDetailRouting();
@@ -744,6 +752,7 @@ export function KanbanView({
   return (
     <section className="board-kanban" aria-label="Kanban" ref={viewElement} data-flint-workplace="" data-freshness={streamIsLive ? 'live' : 'snapshot'}>
       <ViewTitle title="Kanban" lead={KANBAN_LEAD} />
+      {draftsWaitingCount === 0 ? null : <a className="board-kanban-drafts-link" href={ticketsHref}>{draftsWaitingTextOf(draftsWaitingCount)}</a>}
       {filters.entityFilter === null
         ? frame
         : (

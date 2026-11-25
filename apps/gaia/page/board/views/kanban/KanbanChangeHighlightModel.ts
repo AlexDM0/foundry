@@ -4,18 +4,17 @@
  */
 import { ChangeHighlightUtil } from '../../utils/ChangeHighlightUtil.ts';
 import type { KanbanBoard }    from './@types/KanbanBoard.ts';
+import { KanbanModel }         from './KanbanModel.ts';
 
 type SignedBoard = Pick<KanbanBoard, 'page'>;
 
-/** A ticket's signature is its display state and its status, so a draft readied or a ticket held or released shows as a move too. */
+/** A Kanban card's signature is its display state and its status, so a ticket held or released shows as a move too; a draft readied is new. */
 function cardSignaturesOf(board: SignedBoard): ReadonlyMap<string, string> {
   const displayStateById = new Map(board.page.facts.tickets.map((facts) => [facts.ticketId, facts.displayState]));
-  const ticketSignatures = board.page.tickets.map((ticket): [string, string] => [
+  return new Map(board.page.tickets.filter(KanbanModel.ticketIsOnKanban).map((ticket): [string, string] => [
     `ticket:${ticket.id}`,
     `${displayStateById.get(ticket.id) ?? ticket.status} ${ticket.status}${ticket.hold === null ? '' : ' held'}`,
-  ]);
-  const draftSignatures = board.page.facts.drafts.map((draft): [string, string] => [`draft:${draft.id}`, draft.state]);
-  return new Map([...ticketSignatures, ...draftSignatures]);
+  ]));
 }
 
 /** Only cards the current board holds are answered: a card that went has nothing on screen to mark. */

@@ -49,7 +49,9 @@ export function fixedPageClockAt(stamp: string): PageClock {
 
 export function shellSurroundingsAt(fragment: string, storedThemeChoice: string | null = null): ShellSurroundings {
   return {
-    hash:  { currentFragment: () => fragment, followFragment: () => () => undefined, goTo: () => undefined, },
+    hash: {
+      currentFragment: () => fragment, followFragment: () => () => undefined, goTo: () => undefined, replaceFragment: () => undefined,
+    },
     theme: {
       setRootAttribute:   () => undefined,
       readStoredChoice:   () => storedThemeChoice,

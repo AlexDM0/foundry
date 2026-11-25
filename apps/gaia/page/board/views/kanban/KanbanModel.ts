@@ -1,14 +1,13 @@
 /**
- * The Kanban as lanes of card models, from the forge's board and the filter menu's Kanban sections (the pressed epics, the Ready order),
- * which it also models. Which lane a ticket sits in follows its status and the merge queue's facts; which ready tickets come first follows
- * the served `readyTickets`, the priority a card shows and sorts by is the served `resolvedPriority`, so no forge rule is copied here. What
- * waits on User leads its lane: the tickets for User's review and the drafts lead Ready, and the tickets waiting for User's merge accept
- * lead the Merge queue. In monorepo mode the entity filter narrows the board and the swimlanes divide each lane by entity
+ * The Kanban as lanes of card models, from the forge's board and the filter menu's Kanban sections (the pressed epics, the Ready order), which it also
+ * models. Which lane a ticket sits in follows its status and the merge queue's facts; which ready tickets come first follows the served `readyTickets`,
+ * the priority a card shows and sorts by is the served `resolvedPriority`, so no forge rule is copied here. The Kanban holds no draft: a draft ticket, a
+ * ticket for User's review and a filing draft live in Tickets only (`docs/design/board-menu.md`). What waits on User leads its lane: the tickets waiting
+ * for User's merge accept lead the Merge queue. In monorepo mode the entity filter narrows the board and the swimlanes divide each lane by entity
  * (`KanbanEntityFilterModel`).
  */
 import type {
   BoardEpicDocument,
-  BoardFilingDraftDocument,
   BoardPageTicketFactsDocument,
   BoardTaskDocument,
   BoardTicketDocument
@@ -24,7 +23,6 @@ import type { DependencyGraph }                       from '../../@types/Depende
 import { ChipFilterUtil }                             from '../../chips/ChipFilterUtil.ts';
 import { DependencyGraphUtil }                        from '../../utils/DependencyGraphUtil.ts';
 import { DisplayStateWordingUtil }                    from '../../utils/DisplayStateWordingUtil.ts';
-import { DraftWordsUtil }                             from '../../utils/DraftWordsUtil.ts';
 import type { FinishedWorkChoice }                    from '../../utils/FinishedWorkUtil.ts';
 import { FinishedWorkUtil }                           from '../../utils/FinishedWorkUtil.ts';
 import { HeldCountUtil }                              from '../../utils/HeldCountUtil.ts';
@@ -54,16 +52,24 @@ const PRIORITY_ORDER: readonly BoardTicketPriority[] = ['high', 'normal', 'low']
 
 const PRIORITY_GROUP_TITLE: Readonly<Record<BoardTicketPriority, string>> = { high: 'High', normal: 'Normal', low: 'Low' };
 
-const NO_ROW_TITLE = 'Low priority: it gets a row on the Progress chart once it is started';
+const NO_ROW_TITLE = 'Low priority: it gets a row on the Gantt once it is started';
 
-/** A run of cards that leads its lane, above its other groups: what waits on User there, and the drafts. */
-export type KanbanLeadingGroup = 'review' | 'drafts' | 'merge-accept';
+/** A run of cards that leads its lane, above its other groups: what waits on User there. */
+export type KanbanLeadingGroup = 'merge-accept';
 
-const LEADING_GROUP_DESIGN: Readonly<Record<KanbanLeadingGroup, { readonly title: string; readonly countLabel: string }>> = {
-  'review':       { title: 'Ready for review', countLabel: 'for review' },
-  'drafts':       { title: 'Drafts', countLabel: 'in draft' },
-  'merge-accept': { title: 'Waiting for User\'s accept', countLabel: 'for User\'s accept' },
-};
+interface LeadingDesign {
+  readonly title:      string;
+  readonly countLabel: string;
+}
+
+const LEADING_GROUP_DESIGN: Readonly<Record<KanbanLeadingGroup, LeadingDesign>> = { 'merge-accept': { title: 'Waiting for User\'s accept', countLabel: 'for User\'s accept' } };
+
+/** A ticket still being written or waiting for User's ticket review: Tickets holds it, never the Kanban. */
+const DRAFT_STATUSES: ReadonlySet<BoardTicketDocument['status']> = new Set(['draft', 'ready-for-review']);
+
+function ticketIsOnKanban(ticket: Pick<BoardTicketDocument, 'status'>): boolean {
+  return !DRAFT_STATUSES.has(ticket.status);
+}
 
 /** Building and In review divide their cards by whether an agent is at work on them, the working group first. */
 export type KanbanStateGroup = 'building' | 'paused' | 'reviewing' | 'awaiting-review';
@@ -89,7 +95,7 @@ const WAITING_STATE_GROUPS: ReadonlySet<KanbanStateGroup> = new Set(['paused', '
 const LIVE_DISPLAY_STATES: ReadonlySet<BoardDisplayState> = new Set(['in-progress', 'reviewing', 're-review']);
 
 /** A card in these states waits for a person or never started, so it is drawn dashed (`docs/design/board.md`, "Kanban lanes and card shapes"). */
-const DASHED_CARD_STATES: ReadonlySet<BoardDisplayState> = new Set(['draft', 'ready-for-review', 'paused', 'in-review', 'abandoned']);
+const DASHED_CARD_STATES: ReadonlySet<BoardDisplayState> = new Set(['paused', 'in-review', 'abandoned']);
 
 interface LaneDesign {
   readonly title:     string;
@@ -139,20 +145,17 @@ export interface KanbanHeldCount {
 }
 
 export interface KanbanCardModel {
-  /** `ticket:<id>` or `draft:<id>`, unique across the board. */
+  /** `ticket:<id>`, unique across the board. */
   readonly key:                string;
   readonly ticketId:           string | null;
-  /** A filing draft's id; `null` on a ticket's card. */
-  readonly filingDraftId:      string | null;
   readonly idText:             string;
   readonly title:              string;
-  /** `draft` for both kinds of draft. */
   readonly stateToken:         BoardDisplayState;
-  /** The ticket has a row on the Progress chart, so its card carries the row's bar. */
+  /** The ticket has a row on the Gantt, so its card carries the row's bar. */
   readonly hasRow:             boolean;
   /** An agent is at work on it. */
   readonly isLive:             boolean;
-  /** Its state waits for a person or never started (a draft, paused, awaiting review, abandoned), so the card is drawn dashed. */
+  /** Its state waits for a person or never started (paused, awaiting review, abandoned), so the card is drawn dashed. */
   readonly isDashed:           boolean;
   readonly size:               BoardTicketSize | null;
   /** A priority other than `normal`, which is the unmarked priority. */
@@ -165,7 +168,7 @@ export interface KanbanCardModel {
   readonly heldTitle:          string | null;
   /** A Ready ticket with no row yet: why it has none. */
   readonly noRowTitle:         string | null;
-  /** When a reviewed ticket was reviewed, why an abandoned one was abandoned, or a filing draft's state line. */
+  /** When a reviewed ticket was reviewed, or why an abandoned one was abandoned. */
   readonly note:               string | null;
   /** A Done ticket that was reviewed before it was done: the ✓ mark's hover. */
   readonly reviewedTitle:      string | null;
@@ -178,7 +181,7 @@ export interface KanbanCardModel {
   readonly dependsOnTicketIds: readonly string[];
   /** The first open decision naming the ticket, in the order User answers them: the card's asks pill opens the question panel at it. */
   readonly asksDecisionId:     string | null;
-  /** The ticket's entity in monorepo mode; absent in single mode, on a ticket with no entity yet and on a filing draft. */
+  /** The ticket's entity in monorepo mode; absent in single mode and on a ticket with no entity yet. */
   readonly entityKey?:         string;
   /** The stages of a ticket that crosses into a package; absent on every other card. */
   readonly crossing?:          KanbanCrossing;
@@ -369,8 +372,6 @@ function priorityOf(ticket: BoardTicketDocument): BoardTicketPriority {
 function laneOf(ticket: BoardTicketDocument, queuedTicketIds: ReadonlySet<string>): KanbanLaneKey {
   if (queuedTicketIds.has(ticket.id)) return 'merge-queue';
   switch (ticket.status) {
-    case 'draft':
-    case 'ready-for-review':
     case 'committed':
       return 'ready';
     case 'in-progress':
@@ -395,14 +396,6 @@ function epicChipsOf(ticket: BoardTicketDocument): readonly string[] {
 function heldTitleOf(hold: string | null): string | null {
   if (hold === null) return null;
   return hold === '' ? 'Held' : `Held: ${hold}`;
-}
-
-/**
- * A ticket User has yet to ready, a draft or one that waits for User's ticket review, takes that state whatever the served display
- * state, so it reads as not on the board yet; `null` for every other ticket.
- */
-function readinessStateOf(ticket: BoardTicketDocument): BoardDisplayState | null {
-  return ticket.status === 'draft' || ticket.status === 'ready-for-review' ? ticket.status : null;
 }
 
 interface CardSources {
@@ -431,9 +424,8 @@ function displayStateOf(ticket: BoardTicketDocument, sources: CardSources): Boar
   return sources.factsById.get(ticket.id)?.displayState ?? ticket.status;
 }
 
-function ariaLabelOf(ticket: BoardTicketDocument, displayState: BoardDisplayState, readinessState: BoardDisplayState | null, firstRepeatReviewRound: number): string {
+function ariaLabelOf(ticket: BoardTicketDocument, displayState: BoardDisplayState, firstRepeatReviewRound: number): string {
   const reviewRound = ticket.facts.reviewRound ?? firstRepeatReviewRound;
-  if (readinessState !== null) return `#${ticket.id} ${ticket.title}, ${readinessState === 'draft' ? 'draft ticket' : wordOf(readinessState)}`;
   return `#${ticket.id} ${ticket.title}, ${DisplayStateWordingUtil.stateLabelOf(displayState, reviewRound)}, ${priorityOf(ticket)} priority`;
 }
 
@@ -444,34 +436,32 @@ function ticketCardOf(ticket: BoardTicketDocument, lane: KanbanLaneKey, sources:
   const tokens        = ownRow?.tokens ?? null;
   const priority      = priorityOf(ticket);
   const displayState  = displayStateOf(ticket, sources);
-  const readinessState = readinessStateOf(ticket);
   const textSource    = {
     ticket, displayState, ownRow, reviewRows: (facts?.reviewBarPositions ?? []).flatMap((position) => sources.rowAt(position) ?? [])
   };
   const crossing      = KanbanEntityFilterModel.crossingOf(facts?.stage ?? null, facts?.entity ?? null, ticket.crosses);
-  const ariaLabel     = ariaLabelOf(ticket, displayState, readinessState, sources.textFormat.limits.firstRepeatReviewRound);
+  const ariaLabel     = ariaLabelOf(ticket, displayState, sources.textFormat.limits.firstRepeatReviewRound);
   const entityKey     = facts?.entity ?? null;
   return {
-    key:           `ticket:${ticket.id}`,
-    ticketId:      ticket.id,
-    filingDraftId: null,
-    idText:        `#${ticket.id}`,
-    title:         ticket.title,
-    stateToken:    readinessState ?? displayState,
-    hasRow:        ownRow !== null,
-    isLive:        LIVE_DISPLAY_STATES.has(displayState),
-    isDashed:      DASHED_CARD_STATES.has(readinessState ?? displayState),
-    size:          ticket.size,
-    priority:      priority === 'normal' ? null : priority,
-    ticketType:    ticket.type === 'ticket' ? null : ticket.type,
-    tokensText:    tokens === null ? null : `${CountTextUtil.shortCountTextOf(tokens)} tokens`,
-    epics:         ticket.epics.flatMap((key) => {
+    key:        `ticket:${ticket.id}`,
+    ticketId:   ticket.id,
+    idText:     `#${ticket.id}`,
+    title:      ticket.title,
+    stateToken: displayState,
+    hasRow:     ownRow !== null,
+    isLive:     LIVE_DISPLAY_STATES.has(displayState),
+    isDashed:   DASHED_CARD_STATES.has(displayState),
+    size:       ticket.size,
+    priority:   priority === 'normal' ? null : priority,
+    ticketType: ticket.type === 'ticket' ? null : ticket.type,
+    tokensText: tokens === null ? null : `${CountTextUtil.shortCountTextOf(tokens)} tokens`,
+    epics:      ticket.epics.flatMap((key) => {
       const epic = sources.epicByKey.get(key);
       return epic === undefined ? [] : [{ key: epic.key, title: epic.title, slot: epic.slot }];
     }),
     waitingOnTicketIds: facts?.waitingOnTicketIds ?? [],
     heldTitle:          heldTitleOf(ticket.hold),
-    noRowTitle:         lane === 'ready' && readinessState === null && ownRow === null ? NO_ROW_TITLE : null,
+    noRowTitle:         lane === 'ready' && ownRow === null ? NO_ROW_TITLE : null,
     note:               KanbanCardTextUtil.cardNoteOf(textSource, sources.textFormat),
     reviewedTitle:      lane === 'done' && ownRow !== null && sources.rowCountsAsReviewed(ownRowPosition)
       ? KanbanCardTextUtil.reviewedTitleOf(ownRow, sources.textFormat)
@@ -484,43 +474,6 @@ function ticketCardOf(ticket: BoardTicketDocument, lane: KanbanLaneKey, sources:
     asksDecisionId:     sources.asksDecisionIdOf(ticket.id),
     ...entityKey === null ? {} : { entityKey },
     ...crossing === null ? {} : { crossing },
-  };
-}
-
-/** The state word, with the open questions counted while any is open: `Waiting on you · 2 open questions`. */
-function draftStateLineOf(draft: BoardFilingDraftDocument): string {
-  const stateWord = DraftWordsUtil.stateWordOf(draft.state);
-  return draft.openQuestionCount > 0 ? `${stateWord} · ${DraftWordsUtil.openQuestionCountTextOf(draft.openQuestionCount)}` : stateWord;
-}
-
-function filingDraftCardOf(draft: BoardFilingDraftDocument): KanbanCardModel {
-  const stateLine = draftStateLineOf(draft);
-  return {
-    key:                `draft:${draft.id}`,
-    ticketId:           null,
-    filingDraftId:      draft.id,
-    idText:             draft.id,
-    title:              draft.title,
-    stateToken:         'draft',
-    hasRow:             false,
-    isLive:             false,
-    isDashed:           true,
-    size:               null,
-    priority:           null,
-    ticketType:         null,
-    tokensText:         null,
-    epics:              [],
-    waitingOnTicketIds: [],
-    heldTitle:          null,
-    noRowTitle:         null,
-    note:               stateLine,
-    reviewedTitle:      null,
-    stamp:              null,
-    ariaLabel:          `Draft ${draft.id} ${draft.title}, ${stateLine}`,
-    hasNeededFirst:     false,
-    heldCount:          null,
-    dependsOnTicketIds: [],
-    asksDecisionId:     null,
   };
 }
 
@@ -685,19 +638,12 @@ function laneIsDividedByPriority(lane: KanbanLaneKey, cards: readonly KanbanCard
   return (lane === 'ready' || lane === 'merge-queue') && new Set(cards.map((card) => card.priority)).size > 1;
 }
 
-/** The cards that lead the lane, in their order: Ready's tickets for review, then its drafts; the Merge queue's tickets for User's accept. */
+/** The cards that lead the lane: the Merge queue's tickets for User's accept. */
 function leadingCardsOf(
   lane: KanbanLaneKey,
   ticketCards: readonly KanbanCardModel[],
-  filingDraftCards: readonly KanbanCardModel[],
   ticketIdsWaitingForAccept: ReadonlySet<string>,
 ): readonly (readonly [KanbanLeadingGroup, readonly KanbanCardModel[]])[] {
-  if (lane === 'ready') {
-    return [
-      ['review', ticketCards.filter((card) => card.stateToken === 'ready-for-review')],
-      ['drafts', [...ticketCards.filter((card) => card.stateToken === 'draft'), ...filingDraftCards]],
-    ];
-  }
   if (lane === 'merge-queue') return [['merge-accept', ticketCards.filter((card) => ticketIdsWaitingForAccept.has(card.ticketId ?? ''))]];
   return [];
 }
@@ -710,7 +656,7 @@ function leadingGroupsOf(leadingCards: ReturnType<typeof leadingCardsOf>): Kanba
     }]));
 }
 
-/** What leads the lane, counted first in its head's hover: `1 for review · 2 in draft`. */
+/** What leads the lane, counted first in its head's hover: `1 for User's accept`. */
 function leadingCountsTextOf(leadingGroups: readonly KanbanCardGroupModel[]): string[] {
   return leadingGroups.flatMap((group) => (group.kind === 'leading' ? [`${group.count} ${LEADING_GROUP_DESIGN[group.leadingGroup].countLabel}`] : []));
 }
@@ -812,7 +758,8 @@ function kanbanModelOf(board: KanbanBoard, filters: KanbanFilterModel, layout: K
   const factsById    = new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts]));
   const isInChosenEntity = (ticket: BoardTicketDocument): boolean => chosenEntity === null
     || KanbanEntityFilterModel.ticketIsInEntity(factsById.get(ticket.id), chosenEntity);
-  const shownTickets = board.page.tickets.filter((ticket) => isInChosenEntity(ticket) && ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
+  const shownTickets = board.page.tickets.filter((ticket) => ticketIsOnKanban(ticket) && isInChosenEntity(ticket)
+    && ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
   const isBySwimlane = entityFilter !== null && entityFilter.swimlanes === 'by-entity' && chosenEntity === null;
   const queuedTicketIds = new Set(board.mergeQueue.queuedTicketIds);
   const rowAt = (position: number | null): BoardTaskDocument | null => (position === null ? null : progress.tasks[position] ?? null);
@@ -834,8 +781,7 @@ function kanbanModelOf(board: KanbanBoard, filters: KanbanFilterModel, layout: K
     const laneTickets = orderedLaneTickets(lane, windowed, board, sources);
     const shownCount = laneIsClosed(lane) ? cappedLaneShownCount(layout.shownCountByClosedLane[lane], laneTickets.length) : laneTickets.length;
     const ticketCards = laneTickets.slice(0, shownCount).map((ticket) => ticketCardOf(ticket, lane, sources));
-    const filingDraftCards = lane === 'ready' ? boardFacts.drafts.map(filingDraftCardOf) : [];
-    const leadingGroups = leadingGroupsOf(leadingCardsOf(lane, ticketCards, filingDraftCards, ticketIdsWaitingForAccept));
+    const leadingGroups = leadingGroupsOf(leadingCardsOf(lane, ticketCards, ticketIdsWaitingForAccept));
     const leadingCardKeys = new Set(leadingGroups.flatMap((group) => group.cards.map((card) => card.key)));
     const otherCards = ticketCards.filter((card) => !leadingCardKeys.has(card.key));
     const isByWave = lane === 'ready' && readyOrder === 'by-wave';
@@ -851,7 +797,7 @@ function kanbanModelOf(board: KanbanBoard, filters: KanbanFilterModel, layout: K
       key:       lane,
       title:     design.title,
       dotState:  design.dotState,
-      count:     laneTickets.length + filingDraftCards.length,
+      count:     laneTickets.length,
       subtitle:  subtitleParts.length === 0 ? null : subtitleParts.join(' · '),
       cards:     groups.flatMap((group) => group.cards),
       groups,
@@ -894,5 +840,5 @@ function overflowDirectionsOf(scrollLeft: number, scrollWidth: number, clientWid
 }
 
 export const KanbanModel = Object.freeze({
-  kanbanModelOf, kanbanFilterModelOf, dependencyArrowLinksOf, cappedLaneShownCount, shownCountAfterMore, overflowDirectionsOf
+  kanbanModelOf, kanbanFilterModelOf, ticketIsOnKanban, dependencyArrowLinksOf, cappedLaneShownCount, shownCountAfterMore, overflowDirectionsOf
 });

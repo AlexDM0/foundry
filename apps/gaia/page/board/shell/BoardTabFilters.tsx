@@ -34,10 +34,10 @@ export interface BoardTabFilters {
   readonly showLane:           (lane: HeaderFigureLane) => void;
 }
 
-/** What the span buttons count on the shown tab: the finishing moment of each task on Progress, else of each ticket. */
+/** What the span buttons count on the shown tab: the finishing moment of each task on the Gantt, else of each ticket. */
 function finishedWorkCountOf(board: BoardDocument, shownTab: BoardTab): FinishedWorkCount {
   const { tickets, progress } = board.page;
-  if (shownTab !== 'progress') return { noun: 'ticket', finishedMoments: tickets.map(FinishedWorkUtil.ticketFinishedEpochMillisecondsOf) };
+  if (shownTab !== 'gantt') return { noun: 'ticket', finishedMoments: tickets.map(FinishedWorkUtil.ticketFinishedEpochMillisecondsOf) };
   const ticketMomentById = new Map(tickets.map((ticket) => [ticket.id, FinishedWorkUtil.ticketFinishedEpochMillisecondsOf(ticket)]));
   return {
     noun:            'task',

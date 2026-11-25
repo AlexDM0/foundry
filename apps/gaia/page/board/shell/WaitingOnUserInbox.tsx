@@ -1,6 +1,6 @@
 /**
  * The Waiting on User popover's body: its head with the count and the order, the escalated rows, then the others by age, each row one
- * thing that waits with its age and the one action that opens its place; a foot linking to Questions and to the drafts on the Kanban,
+ * thing that waits with its age and the one action that opens its place; a foot linking to Questions and to the drafts on Tickets,
  * with the notification allowance while it is unasked. The ages tick each second from the injected clock while the stream is live.
  */
 
@@ -28,7 +28,6 @@ import { useTickingNow, type BoardClock }                                 from '
 import { useBoardHrefOf }                                                 from './BoardRouteLinks.ts';
 import type { BoardRoute }                                                from './BoardRouter.ts';
 import { DetailRoute }                                                    from './DetailRoute.ts';
-import type { HeaderFigureLane }                                          from './HeaderModel.ts';
 import { ATTENTION_KIND_WORDING, type AttentionItem, type WaitingOnUser } from './WaitingOnUserModel.ts';
 
 export interface WaitingOnUserInboxProps {
@@ -38,7 +37,6 @@ export interface WaitingOnUserInboxProps {
   /** `null` on a board that serves no page: the ages still show, with the stamps as written. */
   readonly timestampSlices: TimestampSlices | null;
   readonly notifier:        QuestionNotifier;
-  readonly onShowLane:      ((lane: HeaderFigureLane) => void) | undefined;
   /** A link in the popover was followed. */
   readonly onNavigate:      () => void;
 }
@@ -52,7 +50,7 @@ function TicketIdLinks({ ticketIds }: { readonly ticketIds: readonly string[] })
   return ticketIds.map((ticketId, position) => (
     <span key={ticketId}>
       {position === 0 ? null : ' '}
-      <IdLink text={`#${ticketId}`} href={hrefOf({ tab: 'kanban', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId }) })} />
+      <IdLink text={`#${ticketId}`} href={hrefOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId }) })} />
     </span>
   ));
 }
@@ -147,7 +145,7 @@ function AttentionGroup({
 }
 
 export function WaitingOnUserInbox({
-  waiting, clock, isLive, timestampSlices, notifier, onShowLane, onNavigate
+  waiting, clock, isLive, timestampSlices, notifier, onNavigate
 }: WaitingOnUserInboxProps) {
   const now = useTickingNow(clock, isLive && waiting.total > 0);
   const inboxRef = useRef<HTMLDivElement | null>(null);
@@ -177,7 +175,7 @@ export function WaitingOnUserInbox({
         )}
       <div className="board-attention-foot">
         <a href={hrefOf({ tab: 'questions', item: null })}>All questions</a>
-        <a href={hrefOf({ tab: 'kanban', item: null })} onClick={() => onShowLane?.('ready')}>Drafts on Kanban</a>
+        <a href={hrefOf({ tab: 'tickets', item: null })}>Drafts on Tickets</a>
         <span className="board-attention-foot-end"><NotificationAllowanceControl notifier={notifier} dense /></span>
       </div>
     </div>

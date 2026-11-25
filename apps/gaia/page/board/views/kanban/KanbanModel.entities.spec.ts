@@ -49,7 +49,7 @@ describe('a board without entities', () => {
     const board = exampleBoard({ tickets: [exampleTicket('001'), exampleTicket('002', { status: 'in-progress' })] });
     expect(KanbanModel.kanbanFilterModelOf(board, [], 'filed', 'web', 'by-entity').entityFilter).toBeNull();
     const cards = modelOf(board, 'web').lanes.flatMap((lane) => lane.cards);
-    expect(cards.map((card) => card.idText)).toEqual(['D7', '#001', '#002']);
+    expect(cards.map((card) => card.idText)).toEqual(['#001', '#002']);
     expect(cards.some((card) => Object.hasOwn(card, 'entityKey') || Object.hasOwn(card, 'crossing'))).toBe(false);
   });
 });
@@ -57,7 +57,7 @@ describe('a board without entities', () => {
 describe('the entity filter', () => {
   test('a chosen entity shows its own tickets', () => {
     const cards = modelOf(monorepoBoard(), 'web').lanes.flatMap((lane) => lane.cards.map((card) => card.idText));
-    expect(cards).toEqual(['#002', '#003', '#004']);
+    expect(cards).toEqual(['#003', '#004']);
   });
 
   test('a package shows its own tickets and a crossing whose package stage runs in it', () => {
@@ -70,7 +70,6 @@ describe('the swimlanes', () => {
   test('divide each lane by entity under counted heads, below what leads the lane, the tickets with no entity last', () => {
     const model = modelOf(monorepoBoard());
     expect(groupHeadsOf(model, 'ready')).toEqual([
-      'leading:Ready for review:#002',
       'entity:web:#003',
       'entity:example-ui:#001',
       'entity:No entity yet:#005',
@@ -81,11 +80,10 @@ describe('the swimlanes', () => {
 
   test('off, or with one entity chosen, leave the lane its single-mode groups', () => {
     expect(groupHeadsOf(modelOf(monorepoBoard(), null, 'none'), 'ready')).toEqual([
-      'leading:Ready for review:#002',
       'priority:High:#001',
       'priority:Normal:#003 #005',
     ]);
-    expect(groupHeadsOf(modelOf(monorepoBoard(), 'web'), 'ready')).toEqual(['leading:Ready for review:#002', 'plain:cards:#003']);
+    expect(groupHeadsOf(modelOf(monorepoBoard(), 'web'), 'ready')).toEqual(['plain:cards:#003']);
   });
 
   test('give way to the Ready order by wave in the Ready lane, and still divide the other lanes', () => {

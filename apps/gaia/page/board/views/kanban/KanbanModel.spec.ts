@@ -1,8 +1,8 @@
 /**
  * The Kanban's view model against small synthetic boards. What matters: each ticket lands in the lane its status and the merge queue put
- * it in, what waits on User leads its lane (the tickets for review, then the drafts, on top of Ready; the tickets waiting for User's
- * merge accept on top of the Merge queue), ready tickets keep the forge's served order, closed lanes read newest first; the card carries its
- * marks (size, priority, type, tokens, epics, waiting-on, hold), a draft's priority mark too; filing drafts keep their own card; and the
+ * it in, and no draft ticket, ticket for review or filing draft is on it (Tickets holds them, `docs/design/board-menu.md`); what waits on
+ * User leads its lane (the tickets waiting for User's merge accept on top of the Merge queue), ready tickets keep the forge's served order,
+ * closed lanes read newest first; the card carries its marks (size, priority, type, tokens, epics, waiting-on, hold); and the
  * filter menu's epic rows filter, count, name the line's epic part and drop a stored row whose epic went. Also: "needed first" and `↦ N`
  * (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave (filed on a board
  * without dependencies), a closed lane's pages with their clamping, the Abandoned lane folded by default, the asks pill naming the
@@ -70,7 +70,7 @@ describe('the lanes', () => {
       queuedTicketIds: ['005'],
     });
     expect(laneIdsOf(board)).toEqual({
-      'ready':       ['#009', '#001', 'D7', '#002'],
+      'ready':       ['#002'],
       'building':    ['#003'],
       'in-review':   ['#004'],
       'merge-queue': ['#005', '#006'],
@@ -79,7 +79,7 @@ describe('the lanes', () => {
     });
   });
 
-  test('the tickets for review lead Ready, then the drafts, each under its own head, above the ready tickets in either order', () => {
+  test('a draft ticket, a ticket for review and a filing draft are on no lane, nor counted, in either Ready order', () => {
     const board = exampleBoard({
       tickets: [
         exampleTicket('101', { priority: 'high' }),
@@ -91,13 +91,10 @@ describe('the lanes', () => {
       waitingOn:      { 104: ['101'] },
     });
     for (const readyOrder of ['filed', 'by-wave'] as const) {
-      const ready = laneNamed(modelOf(board, [], DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED, readyOrder), 'ready');
-      const [review, drafts] = ready?.groups ?? [];
-      expect([review, drafts].map((group) => (group?.kind === 'leading' ? [group.title, group.count] : null)))
-        .toEqual([['Ready for review', 1], ['Drafts', 2]]);
-      expect(ready?.cards.map((card) => card.idText).slice(0, 3)).toEqual(['#103', '#102', 'D7']);
-      expect(ready?.cards.map((card) => card.idText).slice(3).sort()).toEqual(['#101', '#104']);
-      expect(ready?.count).toBe(5);
+      const model = modelOf(board, [], DEFAULT_KANBAN_LAYOUT, EXAMPLE_SURROUNDINGS_SHOWING_ALL_FINISHED, readyOrder);
+      expect(model.lanes.flatMap((lane) => lane.cards.map((card) => card.idText)).sort()).toEqual(['#101', '#104']);
+      expect(model.lanes.flatMap((lane) => lane.groups).some((group) => group.kind === 'leading')).toBe(false);
+      expect(laneNamed(model, 'ready')?.count).toBe(2);
     }
   });
 
@@ -149,7 +146,6 @@ describe('the card', () => {
     expect(card).toEqual({
       key:                'ticket:040',
       ticketId:           '040',
-      filingDraftId:      null,
       idText:             '#040',
       title:              'Example ticket 040',
       stateToken:         'committed',
@@ -189,22 +185,6 @@ describe('the card', () => {
     expect([card?.priority, card?.ariaLabel]).toEqual(['high', '#042 Example ticket 042, To do, high priority']);
   });
 
-  test('a draft ticket and a filing draft both take the draft state, the filing draft with its state line, and both say what they are', () => {
-    const drafts = laneNamed(modelOf(exampleBoard({ tickets: [exampleTicket('050', { status: 'draft' })] }), []), 'ready')?.cards ?? [];
-    expect(drafts.map((card) => [card.idText, card.stateToken, card.note, card.ariaLabel])).toEqual([
-      ['#050', 'draft', null, '#050 Example ticket 050, draft ticket'],
-      ['D7', 'draft', 'Waiting on you · 2 open questions', 'Draft D7 Example filing draft, Waiting on you · 2 open questions'],
-    ]);
-  });
-
-  test('a draft ticket and one ready for review keep their low or high priority mark', () => {
-    const board = exampleBoard({
-      filingDrafts: [],
-      tickets:      [exampleTicket('051', { status: 'draft', priority: 'low' }), exampleTicket('052', { status: 'ready-for-review', priority: 'high' })],
-    });
-    const cards = modelOf(board, []).lanes.flatMap((lane) => lane.cards);
-    expect(cards.filter((card) => card.ticketId !== null).map((card) => [card.idText, card.priority])).toEqual([['#052', 'high'], ['#051', 'low']]);
-  });
 });
 
 describe('the epic chips', () => {
@@ -507,7 +487,7 @@ describe('the card\'s marks and state', () => {
     expect(model.hasTickingStamp).toBe(true);
   });
 
-  test('a card is dashed while it waits for a person or never started: a draft, a filing draft, paused, awaiting review and abandoned, never a working or finished one', () => {
+  test('a card is dashed while it waits for a person: paused, awaiting review and abandoned, never a working or finished one', () => {
     const dashedOf = (idText: string) => cardOf(idText)?.isDashed;
     expect(['#430', '#431', '#432', '#433', '#434'].map(dashedOf)).toEqual([false, false, false, false, true]);
     const waiting = modelOf(exampleBoard({
@@ -518,13 +498,11 @@ describe('the card\'s marks and state', () => {
       ],
       displayStateById: { 441: 'paused' },
     }), []);
-    expect(waiting.lanes.flatMap((lane) => lane.cards).map((card) => [card.idText, card.isDashed])).toEqual([
-      ['#440', true], ['D7', true], ['#441', true], ['#442', true],
-    ]);
+    expect(waiting.lanes.flatMap((lane) => lane.cards).map((card) => [card.idText, card.isDashed])).toEqual([['#441', true], ['#442', true]]);
   });
 
   test('a Ready ticket without a row says so, a reviewed one when it was reviewed and built, an abandoned one why, and a reviewed delivery its ✓', () => {
-    expect(cardOf('#430')?.noRowTitle).toBe('Low priority: it gets a row on the Progress chart once it is started');
+    expect(cardOf('#430')?.noRowTitle).toBe('Low priority: it gets a row on the Gantt once it is started');
     expect(cardOf('#431')?.noRowTitle).toBeNull();
     expect(cardOf('#432')?.note).toBe('reviewed 10-09 13:28');
     expect(cardOf('#434')?.note).toBe('Example vendor dropped it');

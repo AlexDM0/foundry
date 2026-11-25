@@ -1,8 +1,9 @@
 /**
  * What waits on User. What matters: the list is the attention the forge serves, entry for entry and in its order, with only the action
  * added; each action routes to the tab and item of its served target; the escalated entries lead with the one primary action; the tab
- * counts tone Questions by escalation, sum the four Kanban kinds, count the Assistant's open incidents in grey, give no entry at zero and
- * never count Intake; and the accessible names read singular and plural. Which entries wait, and their order, are the forge's rules.
+ * counts tone Questions by escalation, sum the drafts and the tickets for review on Tickets and a merge to accept on Progress, count the
+ * Assistant's open incidents in grey, give no entry at zero and never count Intake; the drafts waiting are Tickets' count; and the
+ * accessible names read singular and plural. Which entries wait, and their order, are the forge's rules.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -14,7 +15,9 @@ import {
 } from '../testing/WaitingOnUserFixture.ts';
 import { WaitingOnUserModel } from './WaitingOnUserModel.ts';
 
-const { waitingOnUserOf, tabCountsOf, pillAriaLabelOf } = WaitingOnUserModel;
+const {
+  waitingOnUserOf, tabCountsOf, draftsWaitingCountOf, pillAriaLabelOf
+} = WaitingOnUserModel;
 
 describe('the served entries', () => {
   test('the list is the served attention entry for entry, in its order, the action only added', () => {
@@ -28,12 +31,12 @@ describe('the served entries', () => {
     const actions = [...waiting.escalated, ...waiting.byAge].map((item) => [item.idText, item.action.label, item.action.route]);
     expect(actions).toEqual([
       ['E3', 'Answer', { tab: 'questions', item: 'E3' }],
-      ['D2', 'Answer', { tab: 'kanban', item: 'draft/D2' }],
+      ['D2', 'Answer', { tab: 'tickets', item: 'draft/D2' }],
       ['E2', 'Answer', { tab: 'questions', item: 'E2' }],
-      ['#009', 'Ready', { tab: 'kanban', item: 'ticket/009' }],
-      ['#006', 'Review', { tab: 'kanban', item: 'ticket/006' }],
-      ['#005', 'Accept', { tab: 'kanban', item: 'ticket/005' }],
-      ['#015', 'Ready', { tab: 'kanban', item: 'ticket/015' }],
+      ['#009', 'Ready', { tab: 'tickets', item: 'ticket/009' }],
+      ['#006', 'Review', { tab: 'tickets', item: 'ticket/006' }],
+      ['#005', 'Accept', { tab: 'tickets', item: 'ticket/005' }],
+      ['#015', 'Ready', { tab: 'tickets', item: 'ticket/015' }],
       ['E4', 'Answer', { tab: 'questions', item: 'E4' }],
     ]);
   });
@@ -70,20 +73,25 @@ describe('the served entries', () => {
 });
 
 describe('the tab counts and the accessible names', () => {
-  test('Questions is escalated while any open decision is, Kanban sums its four kinds, and the Assistant counts its incidents in grey', () => {
+  test('Questions is escalated while any decision is, Tickets sums drafts and reviews, Progress merge accepts, the Assistant its incidents in grey', () => {
     const board = waitingOnUserBoard();
     expect(tabCountsOf(board, waitingOnUserOf(board))).toEqual({
+      tickets:   { count: 4, tone: 'waiting', ariaLabel: 'Tickets, 4 wait on User' },
+      progress:  { count: 1, tone: 'waiting', ariaLabel: 'Progress, 1 waits on User' },
       questions: { count: 3, tone: 'escalated', ariaLabel: 'Questions, 3 questions wait on User, 1 escalated' },
-      kanban:    { count: 5, tone: 'waiting', ariaLabel: 'Kanban, 5 wait on User' },
       assistant: { count: 1, tone: 'neutral', ariaLabel: 'Assistant, 1 incident the Assistant is settling' },
     });
+  });
+
+  test('the drafts waiting on User are the drafts and the tickets for review, Tickets\' count', () => {
+    expect([draftsWaitingCountOf(waitingOnUserOf(waitingOnUserBoard())), draftsWaitingCountOf(waitingOnUserOf(nothingWaitingBoard()))]).toEqual([4, 0]);
   });
 
   test('with nothing escalated Questions waits in rose, one item reads singular, and a zero count gives no entry; Intake never gets one', () => {
     const board = waitingOnUserBoard({ decisions: [AGENT_DECISION], incidents: [], attention: WAITING_ATTENTION.filter((entry) => entry.idText === 'E4'), });
     const counts = tabCountsOf(board, waitingOnUserOf(board));
     expect(counts.questions).toEqual({ count: 1, tone: 'waiting', ariaLabel: 'Questions, 1 question waits on User' });
-    expect([counts.kanban, counts.assistant, counts.intake]).toEqual([undefined, undefined, undefined]);
+    expect([counts.tickets, counts.progress, counts.assistant, counts.intake]).toEqual([undefined, undefined, undefined, undefined]);
     const nothing = nothingWaitingBoard();
     expect(tabCountsOf(nothing, waitingOnUserOf(nothing))).toEqual({});
   });

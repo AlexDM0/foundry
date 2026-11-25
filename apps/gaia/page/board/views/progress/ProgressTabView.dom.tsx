@@ -70,14 +70,14 @@ test('the shell draws the Progress tab from its table of tab views: the chart, t
   render(
     <BoardApp
       services={servicesAnswering(BOARD)}
-      route={{ tab: 'progress', item: null }}
+      route={{ tab: 'gantt', item: null }}
       project="Example Agency"
       tabViews={BOARD_TAB_VIEWS}
     />
   );
-  const heading = await screen.findByRole('heading', { level: 2, name: 'Progress' });
+  const heading = await screen.findByRole('heading', { level: 2, name: 'Gantt' });
   const mainArea = screen.getByRole('main');
-  expect(mainArea.getAttribute('data-tab')).toBe('progress');
+  expect(mainArea.getAttribute('data-tab')).toBe('gantt');
   expect(mainArea.contains(heading)).toBe(true);
   const finishedWork = within(mainArea).getByRole('region', { name: 'Finished work' });
   expect(within(finishedWork).getByText('Build the example')).toBeDefined();

@@ -73,7 +73,7 @@ describe('crossingsNowOf', () => {
     expect(EntityWorkModel.crossingsNowOf('web', page)).toEqual([{
       key:           '22',
       ticketId:      '22',
-      route:         { tab: 'kanban', item: 'ticket/22' },
+      route:         { tab: 'tickets', item: 'ticket/22' },
       homeEntity:    'web',
       packageEntity: 'design-system',
       stageText:     'package review, by design-system’s reviewer',

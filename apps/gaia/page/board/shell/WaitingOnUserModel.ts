@@ -1,11 +1,12 @@
 /**
  * What waits on User, as the board shows it: the attention entries the forge serves, split into the escalated entries and the rest, each
- * with its action opening the route of its served target; and the tab counts and the pill's label the header reads.
+ * with its action opening the route of its served target; the menu's counts and the pill's label the header reads; and how many drafts
+ * wait on User, which Tickets holds and the Kanban's head links to.
  */
 import type { BoardDocument }                                                    from '../../@types/board/BoardDocument.ts';
 import type { BoardAttentionEntryDocument }                                      from '../../@types/board/BoardFactDocuments.ts';
 import type { BoardAttentionActionLabel, BoardAttentionKind, BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
-import { BoardRouter, type BoardRoute, type BoardTab }                           from './BoardRouter.ts';
+import { BoardRouter, type BoardMenuEntry, type BoardRoute }                     from './BoardRouter.ts';
 
 export type TabCountTone = 'waiting' | 'escalated' | 'neutral';
 
@@ -35,7 +36,7 @@ export interface TabCount {
   readonly ariaLabel: string;
 }
 
-export type TabCounts = Partial<Readonly<Record<BoardTab, TabCount>>>;
+export type TabCounts = Partial<Readonly<Record<BoardMenuEntry, TabCount>>>;
 
 /** The board fields this model reads: the served entries, the open decisions the Questions tab counts and the incidents the Assistant tab counts. */
 export type WaitingOnUserBoard = Pick<BoardDocument, 'attention' | 'decisions' | 'incidents'>;
@@ -59,7 +60,11 @@ export const NOTHING_WAITING: WaitingOnUser = {
   escalated: [], byAge: [], total: 0, escalatedCount: 0
 };
 
-const KANBAN_COUNTED_KINDS: ReadonlySet<BoardAttentionKind> = new Set(['draft-ticket', 'filing-draft', 'review', 'merge-accept']);
+/** The drafts and the tickets for User's review, which live in Tickets only. */
+const DRAFT_KINDS: ReadonlySet<BoardAttentionKind> = new Set(['draft-ticket', 'filing-draft', 'review']);
+
+/** What waits on User in a Progress view: a merge to accept in the Kanban's Merge queue. */
+const PROGRESS_COUNTED_KINDS: ReadonlySet<BoardAttentionKind> = new Set(['merge-accept']);
 
 function itemOf(entry: BoardAttentionEntryDocument): AttentionItem {
   return { ...entry, action: { label: entry.actionLabel, route: BoardRouter.routeOfTarget(entry.target), primary: entry.kind === 'escalated-question' } };
@@ -95,10 +100,18 @@ function questionsTabCountOf(board: WaitingOnUserBoard, waiting: WaitingOnUser):
   };
 }
 
-function kanbanTabCountOf(waiting: WaitingOnUser): TabCount | null {
-  const count = waiting.byAge.filter((item) => KANBAN_COUNTED_KINDS.has(item.kind)).length;
+function waitingCountOf(waiting: WaitingOnUser, kinds: ReadonlySet<BoardAttentionKind>): number {
+  return waiting.byAge.filter((item) => kinds.has(item.kind)).length;
+}
+
+/** The drafts and the tickets for review that wait on User: Tickets' count, and the Kanban's link to Tickets. */
+function draftsWaitingCountOf(waiting: WaitingOnUser): number {
+  return waitingCountOf(waiting, DRAFT_KINDS);
+}
+
+function waitingTabCountOf(entryLabel: string, count: number): TabCount | null {
   if (count === 0) return null;
-  return { count, tone: 'waiting', ariaLabel: `Kanban, ${count} ${waitsWord(count)} on User` };
+  return { count, tone: 'waiting', ariaLabel: `${entryLabel}, ${count} ${waitsWord(count)} on User` };
 }
 
 function assistantTabCountOf(board: WaitingOnUserBoard): TabCount | null {
@@ -107,14 +120,19 @@ function assistantTabCountOf(board: WaitingOnUserBoard): TabCount | null {
   return { count, tone: 'neutral', ariaLabel: `Assistant, ${count} ${plural(count, 'incident', 'incidents')} the Assistant is settling` };
 }
 
-/** Questions, Kanban and the Assistant, each only while its count is above zero; Intake never, since its drafts and questions count elsewhere. */
+/**
+ * Tickets, Progress, Questions and the Assistant, each only while its count is above zero; Intake never, since its drafts and questions
+ * count elsewhere.
+ */
 function tabCountsOf(board: WaitingOnUserBoard, waiting: WaitingOnUser): TabCounts {
+  const tickets = waitingTabCountOf('Tickets', draftsWaitingCountOf(waiting));
+  const progress = waitingTabCountOf('Progress', waitingCountOf(waiting, PROGRESS_COUNTED_KINDS));
   const questions = questionsTabCountOf(board, waiting);
-  const kanban = kanbanTabCountOf(waiting);
   const assistant = assistantTabCountOf(board);
   return {
+    ...(tickets === null ? {} : { tickets }),
+    ...(progress === null ? {} : { progress }),
     ...(questions === null ? {} : { questions }),
-    ...(kanban === null ? {} : { kanban }),
     ...(assistant === null ? {} : { assistant }),
   };
 }
@@ -125,4 +143,6 @@ function pillAriaLabelOf(waiting: WaitingOnUser): string {
   return waiting.escalatedCount > 0 ? `Waiting on User: ${waiting.total}, ${waiting.escalatedCount} escalated` : `Waiting on User: ${waiting.total}`;
 }
 
-export const WaitingOnUserModel = Object.freeze({ waitingOnUserOf, tabCountsOf, pillAriaLabelOf });
+export const WaitingOnUserModel = Object.freeze({
+  waitingOnUserOf, tabCountsOf, draftsWaitingCountOf, pillAriaLabelOf
+});

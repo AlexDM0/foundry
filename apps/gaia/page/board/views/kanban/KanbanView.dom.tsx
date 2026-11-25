@@ -1,7 +1,8 @@
 /**
- * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts; the
- * card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text, a
- * planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a click
+ * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts and
+ * no draft, a draft ticket, a ticket for review and a filing draft living in Tickets only, while the head links to Tickets saying how many
+ * drafts wait on User (`docs/design/board-menu.md`); the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no
+ * row, the footer stamp) as text, a planted payload included; a card opens the ticket form in place, and a control inside a card or a click
  * ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while the
  * stream is live and holds still while it is down; a card offers no move of its own (no move button, no checkbox, no Ready selected: the
  * ticket panel holds the moves), and hovering or focusing it adds no element; the filter menu's pressed epics narrow the lanes; a card
@@ -68,7 +69,7 @@ const BOARD = exampleBoard({
   tokensById: { '005': 2_500 },
 });
 
-const MERGE_QUEUE_HREF = '#forge/example-tracker/kanban/merge-queue';
+const MERGE_QUEUE_HREF = '#forge/example-tracker/progress/kanban/merge-queue';
 
 const SHOWING_ALL_FINISHED: FinishedWorkWindow = { choice: 'all', cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS };
 
@@ -85,6 +86,7 @@ interface KanbanSurroundingsChoice {
   readonly readyOrder?:           KanbanReadyOrder;
   readonly laneHighlight?:        KanbanLaneHighlightRequest | null;
   readonly questionPanelIsShown?: boolean;
+  readonly draftsWaitingCount?:   number;
 }
 
 interface RenderedKanban {
@@ -104,7 +106,7 @@ interface RenderedKanban {
 
 function renderKanbanWith({
   availability = 'enabled', storedEntries = [], initialBoard = BOARD, streamIsLive = true, finishedWork = SHOWING_ALL_FINISHED, openItem = null,
-  pressedChips = [], readyOrder = 'filed', laneHighlight = null, questionPanelIsShown = false
+  pressedChips = [], readyOrder = 'filed', laneHighlight = null, questionPanelIsShown = false, draftsWaitingCount = 0
 }: KanbanSurroundingsChoice): RenderedKanban {
   const openedDecisionIds: string[] = [];
   const { surroundings, sent, answerWith } = fakeControlSurroundingsOf(availability);
@@ -140,6 +142,8 @@ function renderKanbanWith({
         boardStore={boardStore}
         streamIsLive={streamIsLive}
         mergeQueueHref={MERGE_QUEUE_HREF}
+        draftsWaitingCount={draftsWaitingCount}
+        ticketsHref="#forge/example-tracker/tickets"
         onShowAllFinished={() => {
           showAllFinishedAsk.count += 1;
         }}
@@ -223,25 +227,25 @@ describe('the lanes and the cards', () => {
   });
 
   test('a card is the design system\'s card, dashed while its state waits for a person, with no state badge', () => {
-    renderKanban();
+    renderKanban('enabled', [], exampleBoard({ tickets: [exampleTicket('003'), exampleTicket('006', { status: 'in-review' })] }));
     const cardBoxOf = (namePrefix: string) => cardNamed(namePrefix).querySelector(':scope > .design-system-card');
-    expect([cardBoxOf('#001'), cardBoxOf('#003')].map((box) => box?.hasAttribute('data-dashed'))).toEqual([true, false]);
+    expect([cardBoxOf('#006'), cardBoxOf('#003')].map((box) => box?.hasAttribute('data-dashed'))).toEqual([true, false]);
     expect(cardBoxOf('#003')?.hasAttribute('data-interactive')).toBe(true);
     expect(document.querySelector('.board-kanban-card .design-system-state-pill, .board-kanban-card .design-system-state-badge')).toBeNull();
   });
 
-  test('the six lanes show in order, each with its count, the drafts under their own head at the top of Ready', () => {
+  test('the six lanes show in order, each with its count, Ready holding no draft', () => {
     renderKanban();
     const lanes = screen.getAllByRole('region').filter((region) => region.hasAttribute('data-lane'));
     expect(lanes.map((lane) => [lane.getAttribute('aria-label'), lane.querySelector('.board-lane-count')?.textContent])).toEqual([
-      ['Ready', '5'],
+      ['Ready', '2'],
       ['Building', '1'],
       ['In review', '0'],
       ['Merge queue', '0'],
       ['Done', '0'],
       ['Abandoned', '0'],
     ]);
-    expect([...laneNamed('Ready').querySelectorAll('.board-lane-group')].map((head) => head.textContent)).toEqual(['Drafts 3', 'High 1', 'Normal 1']);
+    expect([...laneNamed('Ready').querySelectorAll('.board-lane-group')].map((head) => head.textContent)).toEqual(['High 1', 'Normal 1']);
     expect(within(laneNamed('In review')).getByText('Nothing in review.')).toBeTruthy();
   });
 
@@ -266,13 +270,20 @@ describe('the lanes and the cards', () => {
     expect(cardNamed('#005').querySelector('.board-kanban-size')).toBeNull();
   });
 
-  test('draft tickets and the filing draft leave the state line empty, the filing draft with its state line, neither with a row\'s bar', () => {
-    renderKanban();
-    expect(cardNamed('#001').querySelector('.board-kanban-state')?.textContent).toBe('');
-    const filingDraft = cardNamed('Draft D7');
-    expect(filingDraft.querySelector('.board-kanban-state')?.textContent).toBe('');
-    expect([cardNamed('#001'), filingDraft].map((card) => [card.getAttribute('data-state'), card.getAttribute('data-row')])).toEqual([['draft', 'none'], ['draft', 'none']]);
-    expect(filingDraft.querySelector('.board-kanban-note')?.textContent).toBe('Waiting on you · 2 open questions');
+  test('a draft ticket, a ticket for review and a filing draft are on no lane: Tickets holds them', () => {
+    renderKanban('enabled', [], exampleBoard({ tickets: [exampleTicket('001', { status: 'draft' }), exampleTicket('011', { status: 'ready-for-review' }), exampleTicket('003')] }));
+    expect(screen.getAllByRole('article').map((card) => card.getAttribute('aria-label')?.split(' ')[0])).toEqual(['#003']);
+  });
+
+  test('the head links to Tickets saying how many drafts wait on User, and says nothing while none does', () => {
+    renderKanbanWith({ draftsWaitingCount: 3 });
+    expect(screen.getByRole('link', { name: '3 drafts wait on you' }).getAttribute('href')).toBe('#forge/example-tracker/tickets');
+    cleanup();
+    renderKanbanWith({ draftsWaitingCount: 1 });
+    expect(screen.getByRole('link', { name: '1 draft waits on you' })).toBeDefined();
+    cleanup();
+    renderKanbanWith({});
+    expect(screen.queryByRole('link', { name: /wait.* on you/u })).toBeNull();
   });
 
   test('a planted payload in a title reaches the DOM only as text', () => {
@@ -296,7 +307,7 @@ describe('the card\'s controls', () => {
       exampleTicket('011', { status: 'ready-for-review' }),
     ],
     waitingOn: { '004': ['003'] },
-    decisions: [{ id: 'E7', kind: 'agent-question', ticketIds: ['001'] }],
+    decisions: [{ id: 'E7', kind: 'agent-question', ticketIds: ['003'] }],
   });
 
   test('no card renders a move button, a checkbox or an action-row element, and no lane head offers Ready selected', () => {
@@ -338,9 +349,7 @@ describe('the card\'s controls', () => {
 describe('the epic filter', () => {
   test('the pressed epics narrow the lanes to their tickets, and no chip row sits over the lanes', () => {
     renderKanbanWith({ pressedChips: ['billing'] });
-    expect([...laneNamed('Ready').querySelectorAll('.board-kanban-card')].map((card) => card.getAttribute('aria-label'))).toEqual([
-      'Draft D7 Example filing draft, Waiting on you · 2 open questions',
-    ]);
+    expect(laneNamed('Ready').querySelectorAll('.board-kanban-card').length).toBe(0);
     expect(laneNamed('Building').querySelectorAll('.board-kanban-card').length).toBe(1);
     expect(document.querySelector('.board-kanban .board-chips')).toBeNull();
   });
@@ -553,14 +562,13 @@ describe('opening a card', () => {
     ]);
   });
 
-  test('a filing draft opens the draft form, and the open card is marked selected', () => {
+  test('the open card is marked selected, and a click on it closes it', () => {
     const kanban = renderKanbanWith({ openItem: { form: 'ticket', ticketId: '003' } });
     expect(document.querySelectorAll('.board-kanban-card[data-selected]').length).toBe(1);
     expect(cardNamed('#003').hasAttribute('data-selected')).toBe(true);
     expect(cardNamed('#003').querySelector('.design-system-card')?.hasAttribute('data-selected')).toBe(true);
-    fireEvent.click(cardNamed('Draft D7'));
     fireEvent.click(cardNamed('#003'));
-    expect(kanban.navigatedRoutes()).toEqual([{ tab: 'kanban', item: 'draft/D7' }, { tab: 'kanban', item: null }]);
+    expect(kanban.navigatedRoutes()).toEqual([{ tab: 'kanban', item: null }]);
   });
 
   test('an epic chip, or Enter on a card\'s own control, opens nothing', () => {
@@ -583,7 +591,7 @@ describe('opening a card', () => {
   test('a waiting-on id brings the card it names into focus instead of following its link', () => {
     const kanban = renderKanban();
     const link = within(cardNamed('#004')).getByRole('link', { name: '#003' });
-    expect(link.getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/003');
+    expect(link.getAttribute('href')).toBe('#forge/example-tracker/progress/kanban/ticket/003');
     const followed = fireEvent.click(link);
     expect(followed).toBe(false);
     expect(document.activeElement).toBe(cardNamed('#003'));
@@ -628,7 +636,7 @@ describe('the lane heads and groups', () => {
       displayStateById: { 704: 'paused' },
     }));
     const groupsOf = (title: string) => [...laneNamed(title).querySelectorAll('.board-lane-group')].map((group) => group.textContent);
-    expect(groupsOf('Ready')).toEqual(['Drafts 1', 'High 1', 'Normal 2']);
+    expect(groupsOf('Ready')).toEqual(['High 1', 'Normal 2']);
     expect(groupsOf('Building')).toEqual(['Building 1', 'Paused 1']);
     expect(laneNamed('Building').querySelector('.board-lane-head')?.getAttribute('title')).toBe('• 1 in progress · ○ 1 paused');
   });

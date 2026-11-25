@@ -155,6 +155,10 @@ export function GaiaApp({
   const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
   const fragment = useSyncExternalStore(hash.followFragment, hash.currentFragment, hash.currentFragment);
   const route = useMemo(() => HashRouter.routeOf(fragment), [fragment]);
+  const redirectedFragment = HashRouter.redirectOf(fragment);
+  useEffect(() => {
+    if (redirectedFragment !== null) hash.replaceFragment(redirectedFragment);
+  }, [hash, redirectedFragment]);
   const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
   const secondsMayShow = SecondsOnScreen.secondsMayShowIn(route, fleetDocument);
   useEffect(() => (secondsMayShow ? clock.holdSecondTicks() : undefined), [clock, secondsMayShow]);

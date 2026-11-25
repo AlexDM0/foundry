@@ -22,7 +22,7 @@ import { FORGE_LEVEL, PipelineLevelModel }                         from '../enti
 import { PipelineFlowModel, type FlowMeterView, type FlowWording } from '../flow/PipelineFlowModel.ts';
 
 /** The board tab a chip or a row opens the detail panel over. */
-const DETAIL_TAB = 'kanban' as const;
+const DETAIL_TAB = 'tickets' as const;
 
 export interface OccupantChipView {
   readonly key:   string;
@@ -73,7 +73,7 @@ function detailItemOf(occupant: Pick<BoardFlowOccupantDocument, 'occupantKind' |
     : { form: 'ticket', ticketId: occupant.occupantId };
 }
 
-/** The detail panel of the ticket or the filing draft, over Kanban. */
+/** The detail panel of the ticket or the filing draft, over Tickets. */
 function occupantRouteOf(occupant: Pick<BoardFlowOccupantDocument, 'occupantKind' | 'occupantId'>): BoardRoute {
   return { tab: DETAIL_TAB, item: DetailRoute.itemTextOf(detailItemOf(occupant)) };
 }

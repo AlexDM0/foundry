@@ -27,7 +27,7 @@ function DraftItem({ ticket }: { readonly ticket: BoardTicketDocument }) {
     <li className="board-intake-draft">
       <a
         className="board-intake-draft-link"
-        href={hrefOf({ tab: 'kanban', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}
+        href={hrefOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}
       >
         <MonoId text={`#${ticket.id}`} tone="link" />
         <span className="board-intake-draft-title">{ticket.title}</span>

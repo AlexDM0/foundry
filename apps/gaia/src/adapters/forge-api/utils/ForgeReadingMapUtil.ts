@@ -38,8 +38,8 @@ const NO_CONTRACTS: ForgeContracts = {
 /** The tab each subject opens, and the detail form its id is written in there; `null` writes the id itself, and an incident opens the tab alone. */
 const PLACE_OF_TARGET_SUBJECT: Readonly<Record<BoardTargetSubject, { readonly tab: BoardTabName; readonly detailForm: string | null; readonly namesItem: boolean }>> = {
   decision: { tab: 'questions', detailForm: null, namesItem: true },
-  ticket:   { tab: 'kanban', detailForm: 'ticket', namesItem: true },
-  draft:    { tab: 'kanban', detailForm: 'draft', namesItem: true },
+  ticket:   { tab: 'tickets', detailForm: 'ticket', namesItem: true },
+  draft:    { tab: 'tickets', detailForm: 'draft', namesItem: true },
   job:      { tab: 'agents', detailForm: null, namesItem: true },
   incident: { tab: 'assistant', detailForm: null, namesItem: false },
 };

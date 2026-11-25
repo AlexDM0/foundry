@@ -56,7 +56,7 @@ describe('the ticket form\'s sections', () => {
     const routeItemText = DetailRoute.routeItemTextOf({ form: 'ticket', ticketId: '004', section });
     expect(routeItemText).toBe(section === 'overview' ? 'ticket/004' : `ticket/004/${section}`);
     expect(DetailRoute.detailItemOf(routeItemText)).toEqual(section === 'overview' ? { form: 'ticket', ticketId: '004' } : { form: 'ticket', ticketId: '004', section });
-    expect(DetailRoute.sectionRouteOf('progress', '004', section)).toEqual({ tab: 'progress', item: routeItemText });
+    expect(DetailRoute.sectionRouteOf('gantt', '004', section)).toEqual({ tab: 'gantt', item: routeItemText });
   });
 
   test('a section never changes which item is open, so the opener closes the ticket from any section', () => {
@@ -79,7 +79,7 @@ describe('the openers', () => {
   test('an epic is pointed at on the Epics tab only', () => {
     expect(DetailRoute.epicItemTextOf('checkout')).toBe('epic/checkout');
     expect(DetailRoute.pointedEpicKeyOf({ tab: 'epics', item: 'epic/checkout' })).toBe('checkout');
-    expect(DetailRoute.pointedEpicKeyOf({ tab: 'progress', item: 'epic/checkout' })).toBeNull();
+    expect(DetailRoute.pointedEpicKeyOf({ tab: 'gantt', item: 'epic/checkout' })).toBeNull();
     expect(DetailRoute.pointedEpicKeyOf({ tab: 'epics', item: 'ticket/004' })).toBeNull();
   });
 });

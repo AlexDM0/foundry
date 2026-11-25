@@ -417,7 +417,7 @@ describe('a live monorepo pipeline', () => {
     expect(screen.getByRole('heading', { name: 'Forge' })).toBeDefined();
     expect(screen.queryByRole('group', { name: 'Pipeline phases' })).toBeNull();
     const train = screen.getByRole('table', { name: 'Merge train' });
-    expect(within(train).getByRole('link', { name: 'Open ticket 19' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/19');
+    expect(within(train).getByRole('link', { name: 'Open ticket 19' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/ticket/19');
     expect(within(train).getByText('Waiting for the Airlock')).toBeDefined();
     expect(screen.getByText('Board: 2 of 2 jobs running')).toBeDefined();
     expect(document.querySelector('[data-step-node-id="ticket-creation"]')?.textContent).toContain('D3');
@@ -437,7 +437,7 @@ describe('a live monorepo pipeline', () => {
     for (const item of ['entity/web', 'entity/design-system']) {
       const { unmount } = renderOnBoard(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item }} {...pipelineViewServicesOf()} />);
       const crossing = screen.getByRole('region', { name: 'Crossing now' });
-      expect(within(crossing).getByRole('link', { name: 'Open ticket 22' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/22');
+      expect(within(crossing).getByRole('link', { name: 'Open ticket 22' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/ticket/22');
       expect(crossing.textContent).toContain('web→design-system· package build, with design-system’s constitution, builder and gates');
       unmount();
     }
@@ -471,6 +471,6 @@ describe('a live monorepo pipeline', () => {
       ['design-system', 'Board limit', '1 · crossing from web', 'None'],
       ['root', 'For a person', 'No jobs', 'None'],
     ]);
-    expect(within(table).getByRole('link', { name: '24' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/24');
+    expect(within(table).getByRole('link', { name: '24' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/ticket/24');
   });
 });

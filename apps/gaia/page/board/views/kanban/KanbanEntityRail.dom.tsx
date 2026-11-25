@@ -62,7 +62,9 @@ function ChoosingKanban({ boardState }: { readonly boardState: BoardDocument }) 
       filters={KanbanModel.kanbanFilterModelOf(boardState, [], 'filed', chosenEntity, 'by-entity')}
       boardStore={null}
       streamIsLive={false}
-      mergeQueueHref="#forge/example-tracker/kanban/merge-queue"
+      mergeQueueHref="#forge/example-tracker/progress/kanban/merge-queue"
+      draftsWaitingCount={0}
+      ticketsHref="#forge/example-tracker/tickets"
       onShowAllFinished={() => undefined}
       onChooseEntity={setChosenEntity}
     />
