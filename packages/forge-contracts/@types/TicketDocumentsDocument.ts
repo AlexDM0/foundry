@@ -1,5 +1,5 @@
 /**
- * A ticket's documents in the spec-then-plan route, `GET /api/v1/tickets/{ticketId}/documents` from forge 4.1: each document's standing,
+ * A ticket's documents in the spec-then-plan route, `GET /api/v1/tickets/{ticketId}/documents` from forge 4.2: each document's standing,
  * versions, approvals, messages to its agent and the agent's proposals, with the head's Markdown, and the newest effect reading of each.
  * Line numbers are 1-based and a range includes both ends. The Markdown is agent-written: a reader renders it with raw HTML as text.
  */

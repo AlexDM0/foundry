@@ -2,6 +2,7 @@
  * A command a view of a forge's board sends, as Gaia holds it between the page's body and the forge's contract: each kind under the forge's
  * own kind name, with Gaia's payload. Only kinds the forge takes from a client: never a kind its command line alone may run.
  */
+import type { BoardPipelineAgent, BoardToolRequest }                   from './BoardAgent.ts';
 import type { BoardBilling, BoardConstitutionSources, BoardDraftEdit } from './BoardPipeline.ts';
 import type {
   BoardGatePhase,
@@ -36,6 +37,11 @@ export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
 export type BoardCommand =
   | BoardTicketDocumentCommand
+  | { readonly kind: 'agent-look-again' }
+  | { readonly kind: 'machine-agent-program-set'; readonly vendor: string; readonly programPath: string }
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgent }
+  | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: BoardPipelineAgent }
+  | { readonly kind: 'pipeline-tools-set'; readonly tools: readonly BoardToolRequest[] | null }
   | { readonly kind: 'hephaestus-pause' }
   | { readonly kind: 'hephaestus-unpause' }
   | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
@@ -90,7 +96,13 @@ export type BoardCommand =
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: BoardAnswerForm }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: BoardBilling }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  | { readonly kind: 'pipeline-setup-start'; readonly billing: BoardBilling; readonly replacesUnreadablePipeline: boolean }
+  | {
+    readonly kind:                       'pipeline-setup-start';
+    readonly billing:                    BoardBilling;
+    readonly replacesUnreadablePipeline: boolean;
+    /** `null`: the record opens at the agent step. */
+    readonly agent:                      BoardPipelineAgent | null;
+  }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: BoardSetupStep; readonly move: 'continue' }
   | { readonly kind: 'pipeline-update-start'; readonly entity: string | null }

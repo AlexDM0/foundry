@@ -15,6 +15,7 @@ import type { BoardLaunchSlotsDocument } from 'forge-contracts/ForgeBoardDocumen
 
 import type { LaunchSlots }                              from '../../../lib/tracker-model/@types/LaunchSlots.ts';
 import type { TicketForecast, TicketForecastStep }       from '../../../lib/tracker-model/@types/TicketForecast.ts';
+import { AgentProgramWordingUtil }                       from '../../../shared/utils/AgentProgramWordingUtil.ts';
 import type { EndedJob, JobWithLiveFacts, LastToolCall } from '../../@types/BoardStateParts.ts';
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }           from '../../constants/MonitorInterruptionCauseOfCause.ts';
 import { BoardReadingMappingUtil }                       from './BoardReadingMappingUtil.ts';
@@ -46,8 +47,8 @@ function liveFactsOf(live: JobWithLiveFacts['live']): BoardJobLiveFactsDocument 
   };
 }
 
-/** `offers` are the Board's reading of what the job accepts now; its stop holds are read here from its id. */
-function jobOf(job: JobWithLiveFacts, offers: BoardJobOffersDocument): BoardJobDocument {
+/** `offers` are the Board's reading of what the job accepts now; its stop holds are read here from its id; `agentName` words a refused launch. */
+function jobOf(job: JobWithLiveFacts, offers: BoardJobOffersDocument, agentName: string): BoardJobDocument {
   return {
     id:            job.id,
     kind:          job.kind,
@@ -64,8 +65,13 @@ function jobOf(job: JobWithLiveFacts, offers: BoardJobOffersDocument): BoardJobD
     stopRequest:   job.stopRequest ?? null,
     intake:        job.intake === undefined ? null : { text: job.intake.text, title: job.intake.title ?? null },
     entity:        job.entity ?? null,
-    live:          liveFactsOf(job.live),
-    stopHolds:     BoardReadingMappingUtil.jobStopHoldsOf(job.id),
+    notLaunched:   job.notLaunched === undefined ? null : {
+      cause:       job.notLaunched.cause,
+      programPath: job.notLaunched.programPath,
+      sentence:    AgentProgramWordingUtil.notLaunchedClauseOf(job.notLaunched.cause, agentName, job.notLaunched.programPath),
+    },
+    live:      liveFactsOf(job.live),
+    stopHolds: BoardReadingMappingUtil.jobStopHoldsOf(job.id),
     offers,
   };
 }

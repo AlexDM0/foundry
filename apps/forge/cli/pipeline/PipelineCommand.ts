@@ -1,10 +1,11 @@
 /**
- * `pipeline setup|billing|continue|start-over|resume|answer|constitution|update|edit|undo|discard|check|apply|apply-cancel`: User's verbs of
+ * `pipeline setup|billing|agent|continue|start-over|resume|answer|constitution|update|edit|undo|discard|check|apply|apply-cancel`: User's verbs of
  * the pipeline setup record; `pipeline profile|profile-stop`: User's gate profiles; `pipeline finding|ask|draft-constitution|propose|ready`:
  * the pipeline agent's, relayed under its job.
  */
 import type { CommandHandler }                       from '../CommandHandler.ts';
 import { refuseUsage }                               from '../RecordedIncidentMove.ts';
+import { setPipelineAgent }                          from './PipelineAgent.ts';
 import { answerPipelineQuestion }                    from './PipelineAnswer.ts';
 import { applyPipelineSetup }                        from './PipelineApply.ts';
 import { cancelPipelineApply }                       from './PipelineApplyCancel.ts';
@@ -33,6 +34,7 @@ type PipelineSubcommand = keyof typeof PIPELINE_USAGE | keyof typeof PIPELINE_AG
 const SUBCOMMANDS: Readonly<Record<PipelineSubcommand, CommandHandler>> = {
   'setup':              startPipelineSetup,
   'billing':            setPipelineBilling,
+  'agent':              setPipelineAgent,
   'continue':           continuePipelineStep,
   'start-over':         startPipelineSetupOver,
   'resume':             resumePipelineSetup,

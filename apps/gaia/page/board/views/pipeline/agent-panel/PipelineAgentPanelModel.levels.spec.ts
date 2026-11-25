@@ -7,6 +7,7 @@
  */
 import { describe, expect, test }                                      from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { EXAMPLE_NOT_LAUNCHED }                                        from '../../../testing/AgentFixture.ts';
 import { pipelineBoardStateOf }                                        from '../../../testing/PipelineFixture.ts';
 import { FORGE_LEVEL, PipelineLevelModel }                             from '../entities/PipelineLevelModel.ts';
 import { PipelineAgentPanelModel }                                     from './PipelineAgentPanelModel.ts';
@@ -47,23 +48,30 @@ function setupAskingEverywhere(): BoardPipelineSetupDocument {
 describe('the session of a level', () => {
   test('the forge\'s session is the record\'s own, as single mode reads it', () => {
     const setup = monorepoSetup();
-    const forge = PipelineAgentPanelModel.levelSessionOf(setup, FORGE_LEVEL);
-    expect(forge).toEqual(PipelineAgentPanelModel.levelSessionOf(setup, null));
+    const forge = PipelineAgentPanelModel.levelSessionOf(setup, FORGE_LEVEL, []);
+    expect(forge).toEqual(PipelineAgentPanelModel.levelSessionOf(setup, null, []));
     expect(forge.agentJobId).toBe(setup.record.agentJobId);
     expect(forge.questions.map((question) => question.questionId)).toEqual(['Q1']);
   });
 
   test('an entity\'s session holds its own job and questions alone', () => {
-    const web = PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), WEB_LEVEL);
+    const web = PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), WEB_LEVEL, []);
     expect(web.agentJobId).toBe('J5');
-    expect(web.agentJobState).toBe('running');
+    expect(web.sessionState).toBe('running');
     expect(web.questions.map((question) => question.questionId)).toEqual(['Q4']);
   });
 
   test('an entity with no part of the record yet has no job and no question', () => {
-    expect(PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), PipelineLevelModel.entityLevelOf('root'))).toEqual({
-      agentJobId: null, agentJobState: null, questions: [], findings: [],
+    expect(PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), PipelineLevelModel.entityLevelOf('root'), [])).toEqual({
+      agentJobId: null, sessionState: 'stopped', questions: [], findings: [],
     });
+  });
+
+  test('an entity whose job forge did not launch reads not launched, and the forge\'s session beside it still runs', () => {
+    const jobs = [{ id: 'J5', notLaunched: EXAMPLE_NOT_LAUNCHED }];
+    expect(PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), WEB_LEVEL, jobs).sessionState).toBe('not-launched');
+    expect(PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), FORGE_LEVEL, jobs).sessionState)
+      .toBe(PipelineAgentPanelModel.levelSessionOf(monorepoSetup(), FORGE_LEVEL, []).sessionState);
   });
 });
 

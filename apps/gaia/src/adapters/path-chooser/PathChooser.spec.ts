@@ -64,4 +64,9 @@ describe('choosing', () => {
     expect(pathChooserArgumentsOf('folder').join(' ')).toContain('choose folder');
     expect(pathChooserArgumentsOf('file').join(' ')).toContain('choose file');
   });
+
+  test('opens the file chooser in the home folder with hidden files shown, and the folder chooser where the system last left it', () => {
+    expect(pathChooserArgumentsOf('file').join(' ')).toContain('default location (path to home folder) with invisibles');
+    expect(pathChooserArgumentsOf('folder').join(' ')).not.toContain('default location');
+  });
 });

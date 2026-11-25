@@ -11,9 +11,11 @@ import type { PipelineStepRun }                           from './@types/Job.ts'
 import type { LogRecordFieldsOf }                         from './@types/LogRecord.ts';
 import {
   type Pipeline,
+  type PipelineAgent,
   type PipelineApproval,
   type PipelineGate,
-  type PipelineStep
+  type PipelineStep,
+  type PipelineTool
 } from './@types/Pipeline.ts';
 import type { HephaestusState, ViewRange } from './@types/TrackerProgress.ts';
 import type { BoardRecords }               from './BoardRecords.ts';
@@ -192,6 +194,29 @@ export class TrackerChanges {
     return this.changedPipelineOf((pipeline) => {
       if (on) pipeline.assistant = true;
       else delete pipeline.assistant;
+    }, logged);
+  }
+
+  /** Refused with no stored pipeline, as an approval is; `null` removes the key, so the tools follow the pipeline again. */
+  setTools(tools: readonly PipelineTool[] | null, at: string): PipelineChanged {
+    this.refusePendingApply();
+    if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'tools-without-pipeline' });
+    const kept = tools === null ? [] : tools.map((tool) => ({ name: tool.name, path: tool.path }));
+    const logged = [this.records.logger.log({ kind: 'pipeline-tools-set', fields: { paths: kept.map((tool) => tool.path) } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      if (tools === null) delete pipeline.tools;
+      else pipeline.tools = kept;
+    }, logged);
+  }
+
+  /** The stored pipeline's agent; the caller first checked that one is stored. */
+  setAgent(agent: Readonly<PipelineAgent>, at: string): PipelineChanged {
+    this.refusePendingApply();
+    if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'agent-without-pipeline' });
+    const program = 'pinned' in agent.program ? agent.program.pinned : 'machine';
+    const logged = [this.records.logger.log({ kind: 'pipeline-agent-set', fields: { vendor: agent.vendor, program } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      pipeline.agent = { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
     }, logged);
   }
 

@@ -17,6 +17,12 @@ import type {
   TicketDocumentKind,
   TicketWritingRoute
 } from '../constants/BoardVocabulary.ts';
+import type {
+  AgentToolDocument,
+  PipelineAgentDocument,
+  PipelineToolDocument,
+  PipelineToolRequestDocument
+} from './BoardAgentDocuments.ts';
 import type { ForgeRefusalDocument } from './ForgeRefusalDocument.ts';
 
 
@@ -141,6 +147,10 @@ export interface PipelineDefinitionDocument {
   readonly assistant?:     true;
   /** Absent is `one-ticket`. */
   readonly ticketWriting?: TicketWritingRoute;
+  /** Absent: no agent is chosen, and no job launches. */
+  readonly agent?:         PipelineAgentDocument;
+  /** Absent: the tools follow the pipeline's programs, found at each launch. */
+  readonly tools?:         readonly PipelineToolDocument[];
 }
 
 /** The newest Apply. */
@@ -171,7 +181,7 @@ export type BoardAppliedPipelineDocument =
   };
 
 /** `entities` is walked only by a record of a forge over entities. */
-export type PipelineSetupStep = 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+export type PipelineSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** A later `done` step becomes `needs-recheck` when an earlier one reopens. */
 export type PipelineSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
@@ -296,6 +306,7 @@ export type PipelineDraftField =
   | PipelineStepsDraftField
   | `role:${PipelineAgentRole}`
   | 'airlock'
+  | 'tools'
   | `approval:${PipelineApproval}`
   | 'ticket-writing'
   | `entity:${EntityKey}`
@@ -395,6 +406,10 @@ export interface PipelineSetupRecordDocument {
   readonly stepStates:                 PipelineSetupStepStatesDocument;
   readonly currentStep:                PipelineSetupStep;
   readonly billing:                    PipelineBillingDocument;
+  /** The agent the record's pipeline agent runs on and Apply stores; `null` until the user chose one. */
+  readonly agent:                      PipelineAgentDocument | null;
+  /** The design's tools: each program the draft runs, else the stored pipeline's, found now, and the draft's own list where it keeps one. */
+  readonly tools:                      readonly AgentToolDocument[];
   readonly agentJobId:                 string | null;
   /** The main line's commit the agent's snapshot holds. */
   readonly snapshotCommit:             string | null;
@@ -517,6 +532,8 @@ export type PipelineDraftEditDocument =
   | PipelineStepsDraftEditDocument
   | { readonly target: 'role'; readonly role: PipelineAgentRole; readonly value: AgentStepSettingsDocument | null }
   | { readonly target: 'airlock'; readonly value: PipelineAirlockDocument | null }
+  /** The draft's own tool list; a tool named alone is found by forge, and `null` follows the draft's programs again. */
+  | { readonly target: 'tools'; readonly value: readonly PipelineToolRequestDocument[] | null }
   | { readonly target: 'approval'; readonly approval: PipelineApproval; readonly value: boolean | null }
   | { readonly target: 'ticket-writing'; readonly value: TicketWritingRoute | null }
   | { readonly target: 'entity'; readonly entityKey: EntityKey; readonly value: PipelineEntityDefinitionDocument | null }

@@ -59,7 +59,7 @@ function routeOver(hephaestusFetch: RecordedHephaestusFetch, options: ExampleRel
   const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), hephaestusFetch, undefined, presenceReadingAfterNow);
   return createBoardStateRoute(sources, (entry) => {
     logEntries.push(entry);
-  });
+  }, () => 0);
 }
 
 async function expectedBoardDocumentOf(situation: 'board-at-work' | 'board-install-held'): Promise<unknown> {
@@ -110,7 +110,7 @@ describe('a forge whose board cannot be read', () => {
   test('is forge-not-registered when the registry names no such forge, and is asked nothing', async () => {
     const hephaestusFetch = recordedHephaestusFetch([]);
     const forge = exampleRelayForgeOf(scratchFolder, tokenPath);
-    const route = createBoardStateRoute(relaySourcesOver(forge, hephaestusFetch, { verdict: 'readable', forges: [] }), () => undefined);
+    const route = createBoardStateRoute(relaySourcesOver(forge, hephaestusFetch, { verdict: 'readable', forges: [] }), () => undefined, () => 0);
     const answer = await route.answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json(), hephaestusFetch.callsAnswered()]).toEqual([404, { refusal: 'forge-not-registered', refusedBy: 'gaia' }, []]);
   });

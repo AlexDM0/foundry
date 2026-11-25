@@ -17,7 +17,10 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * Forge 4.0 restarts Hephaestus after a preflight of the code on disk, with no handshake through a file. Against forge 3: the process's state
  * while it restarts is `restarting` in the summary, the monitor and the board document, the warning kind of a failed restart is
  * restart-failed, and the board document carries that failure as `restartWarning`. The registry dates the endpoints this changed at 4.0.
- * Forge 4.1 adds a ticket's documents in the spec-then-plan route: their endpoint, the user's commands on them, the `documents` event and
+ * Forge 4.1 adds each forge's agent: the board document's `agent`, the setup step `agent` and the record's `agent` and `tools`, a job's
+ * `notLaunched`, the pipeline's `agent` and `tools`, the draft field `tools`, and the commands pipeline-setup-agent, pipeline-agent-set,
+ * pipeline-tools-set, agent-look-again and machine-agent-program-set.
+ * Forge 4.2 adds a ticket's documents in the spec-then-plan route: their endpoint, the user's commands on them, the `documents` event and
  * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
  * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds.
  * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
@@ -25,6 +28,6 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 4, minor: 1 },
+  current:          { major: 4, minor: 2 },
   minimumSupported: { major: 4, minor: 0 },
 };

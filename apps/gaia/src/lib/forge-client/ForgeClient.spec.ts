@@ -646,6 +646,43 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
     },
   },
   {
+    call:      'boardOf',
+    situation: 'setup-choosing-agent',
+    callShape: 'GET /api/v4/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({
+        agent:         expect.objectContaining({ choice: null, check: null, places: expect.arrayContaining([expect.objectContaining({ found: true })]) }),
+        pipelineSetup: expect.objectContaining({ record: expect.objectContaining({ currentStep: 'agent', agent: null }) }),
+      }),
+    },
+  },
+  {
+    call:      'boardOf',
+    situation: 'job-not-launched',
+    callShape: 'GET /api/v4/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({
+        agent: expect.objectContaining({ check: expect.objectContaining({ verdict: 'does-not-run', cause: 'not-there' }) }),
+        jobs:  expect.arrayContaining([expect.objectContaining({ notLaunched: expect.objectContaining({ cause: 'not-there', sentence: expect.any(String) }) })]),
+      }),
+    },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'job-not-launched',
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'agent-look-again' }),
+    expected:  {
+      verdict: 'answered',
+      status:  200,
+      body:    expect.objectContaining({ outcome: 'done', result: { logged: [expect.objectContaining({ kind: 'job-launch-retried' })] } }),
+    },
+  },
+  {
     call:      'followEvents',
     situation: 'board-at-work',
     callShape: 'STREAM /api/v4/events with bearer',

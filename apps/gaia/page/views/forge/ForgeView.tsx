@@ -7,17 +7,17 @@
  */
 import { useRef, useState } from 'react';
 
-import type { CommandBody, ForgeStopAgents }      from '../../@types/CommandDocument.ts';
-import type { CrashLogDocument }                  from '../../@types/CrashLogDocument.ts';
-import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import { CommandSender, useCommandSender }        from '../../api/CommandSender.ts';
-import { Board, type BoardServicesOf }            from '../../board/Board.tsx';
-import type { BoardRoute }                        from '../../board/shell/BoardRouter.ts';
-import type { BoardTabViewTable }                 from '../../board/shell/BoardTabViews.tsx';
-import type { ClockReading }                      from '../../shared/@types/ClockReading.ts';
-import type { ViewParts }                         from '../../shared/@types/ViewParts.ts';
-import { HashRouter }                             from '../../shared/HashRouter.ts';
-import type { CrashLogResult }                    from './CrashLogRequest.ts';
+import type { CommandBody, ForgeStopAgents }                   from '../../@types/CommandDocument.ts';
+import type { CrashLogDocument }                               from '../../@types/CrashLogDocument.ts';
+import type { FleetDocument, FleetDocumentForge }              from '../../@types/FleetDocument.ts';
+import { CommandSender, type CommandResult, useCommandSender } from '../../api/CommandSender.ts';
+import { Board, type BoardServicesOf }                         from '../../board/Board.tsx';
+import type { BoardRoute }                                     from '../../board/shell/BoardRouter.ts';
+import type { BoardTabViewTable }                              from '../../board/shell/BoardTabViews.tsx';
+import type { ClockReading }                                   from '../../shared/@types/ClockReading.ts';
+import type { ViewParts }                                      from '../../shared/@types/ViewParts.ts';
+import { HashRouter }                                          from '../../shared/HashRouter.ts';
+import type { CrashLogResult }                                 from './CrashLogRequest.ts';
 import {
   BarRefusalLine,
   ForgeAreaLayout,
@@ -147,6 +147,13 @@ interface ForgeContentViewProps {
   readonly surroundings: ForgeViewSurroundings;
 }
 
+/** The path the system's file chooser answered, or `null` when User cancelled or the choice did not succeed. */
+async function chosenProgramPathOf(send: (command: CommandBody) => Promise<CommandResult>): Promise<string | null> {
+  const result = await send({ kind: 'path-choose', what: 'file' });
+  if (result.verdict !== 'answered' || result.answer.outcome !== 'done') return null;
+  return result.answer.text;
+}
+
 function ForgeContentView({ content, route, surroundings }: ForgeContentViewProps) {
   const { send, dismissFailure, states } = useCommandSender();
   const { area } = content;
@@ -163,7 +170,7 @@ function ForgeContentView({ content, route, surroundings }: ForgeContentViewProp
             trackerId={area.trackerId}
             route={route.boardRoute}
             project={area.project}
-            servicesOf={surroundings.boardServicesOf}
+            servicesOf={(trackerId) => ({ ...surroundings.boardServicesOf(trackerId), chooseProgramFile: () => chosenProgramPathOf(send) })}
             tabViews={surroundings.boardTabViews}
           />
         )

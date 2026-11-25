@@ -1,10 +1,10 @@
 /**
  * A2Proposal, the design step: the Focus layout of the proposed flow, with the pipeline agent's panel in its right column, whose tabs are
  * the Conversation (the agent's chat with the design questions as decision cards, Flint's strip and the composer) and the change list.
- * The agent's newest change shows under its chat with a link that opens the step's phase and selects it, and its Undo. The footer says
- * that nothing is stored before Apply, counts the proposed steps and gates, and offers Discard proposal and Apply pipeline, which waits
- * while a question is open and opens the apply dialog, also on its own while an Apply is pending. Until the agent proposes a draft, a
- * line over the phases says that it is designing.
+ * The agent's newest change shows under its chat with a link that opens the step's phase and selects it, and its Undo. The footer's agent
+ * tools open the list of the programs the design runs, kept as a draft edit. The footer says that nothing is stored before Apply, counts
+ * the proposed steps and gates, and offers Discard proposal and Apply pipeline, which waits while a question is open and opens the apply
+ * dialog, also on its own while an Apply is pending. Until the agent proposes a draft, a line over the phases says that it is designing.
  * In monorepo mode (MonoDesignEntity, MonoDesignForge) the page is one level's, which the route holds: the entity rail stands left and the
  * level's breadcrumb over the title. At an entity, its three phases, gates, dialogs, chat and changes are its own, and its settings can be
  * copied to other entities; at the forge, the forge's page stands in place of the phases. A press on the rail keeps the screen and moves
@@ -31,7 +31,10 @@ import { TimeUtil }                                            from '../../../ut
 import { FlowWorkspace }                                       from '../FlowWorkspace.tsx';
 import { PipelinePanel, PipelinePanelBody }                    from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts }           from '../PipelineViewModel.ts';
+import { ToolListDialog }                                      from '../agent/ToolListDialog.tsx';
+import { ToolListModel }                                       from '../agent/ToolListModel.ts';
 import { AgentMeter }                                          from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                                   from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanel }                                  from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                             from '../agent-panel/PipelineAgentPanelModel.ts';
 import { ApplyDialog }                                         from '../apply/ApplyDialog.tsx';
@@ -140,6 +143,7 @@ function DesignPage({
   const selection = useFlowSelection(setup.applyState === null ? null : setup.record.setupId);
   const [panelTab, setPanelTab] = useState<PanelTab>('conversation');
   const [copyIsOpen, setCopyIsOpen] = useState(false);
+  const [toolsAreOpen, setToolsAreOpen] = useState(false);
   const applyIsAsked = selection.applyIsAskedFor(setup.record.setupId);
   const { record } = setup;
   const now = useTickingNow(clock, false);
@@ -147,6 +151,7 @@ function DesignPage({
   const entityKey: string | null = level?.kind === 'entity' ? level.key : null;
   const levelFacts = entityKey === null ? facts : EntityLevelFactsModel.factsAtEntityOf(facts, entityKey);
   const levelSetup = levelFacts.pipeline.setup ?? setup;
+  const agentState = DesignStepModel.agentStateOf(levelSetup, AgentSessionModel.setupSessionStateOf(levelSetup, facts.jobs));
   const changeCount = level === null ? facts.pipeline.flow?.changeList.length ?? 0 : levelChangeCountOf(facts, level);
   const apply = DesignStepModel.applyAvailabilityOf(level === null ? setup.openQuestionCount : DesignStepModel.openQuestionCountOfEveryLevel(setup));
   const words = level === null ? PipelineViewModel.flowPageWordsOf('proposal', facts.pipeline.flow ?? null, null) : DesignStepModel.levelPageWordsOf(level);
@@ -156,7 +161,7 @@ function DesignPage({
     <PipelinePanel
       label="Pipeline agent"
       title={PipelineAgentPanelModel.panelTitleOf(level)}
-      status={DesignStepModel.panelStatusOf(levelSetup)}
+      status={DesignStepModel.panelStatusOf(agentState)}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
       tabs={(
         <Tabs
@@ -186,6 +191,7 @@ function DesignPage({
             followTranscript={followTranscript}
             todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
             composerPlaceholder="Ask for a change, or ask why"
+            jobs={facts.jobs}
             afterChat={<NewestAgentChange facts={levelFacts} setup={setup} selection={selection} level={level} />}
             showsAgentStrip
             levelShown={level === null ? null : { level, hrefOf: levelHrefOf }}
@@ -207,6 +213,7 @@ function DesignPage({
         <>
           <Tag text="Proposal" tone="neutral" />
           <Text bold>Nothing is stored until you apply.</Text>
+          <Tag text={`Agent tools: ${ToolListModel.summaryOf(record.tools)}`} tone="neutral" chip onPress={() => setToolsAreOpen(true)} />
           <Text muted>{level === null ? DesignStepModel.footerSummaryOf(setup.summary) : levelFooterSummaryOf(setup, level)}</Text>
         </>
       )}
@@ -262,7 +269,7 @@ function DesignPage({
     />
   );
   return (
-    <div className="board-pipeline-design" data-state={DesignStepModel.agentStateOf(levelSetup)}>
+    <div className="board-pipeline-design" data-state={agentState}>
       {shown === null
         ? workspace
         : <MonorepoLevelContext.Provider value={scopeOf(shown.level, levelHrefOf(FORGE_LEVEL), setup)}>{workspace}</MonorepoLevelContext.Provider>}
@@ -277,6 +284,17 @@ function DesignPage({
             storedPipeline={facts.pipeline.applied}
             pendingTicketWithoutEntityCount={ApplyDialogModel.pendingTicketWithoutEntityCountOf(facts.page.tickets)}
             {...(shown === null ? {} : { entityHrefOf: (entityKey: string) => levelHrefOf(PipelineLevelModel.entityLevelOf(entityKey)) })}
+          />
+        )
+        : null}
+      {toolsAreOpen
+        ? (
+          <ToolListDialog
+            tools={record.tools}
+            target={{ kind: 'draft', setupId: record.setupId, draftRevision: record.draftRevision }}
+            title={facts.project === '' ? 'The tools this forge\'s agents use' : `The tools ${facts.project}'s agents use`}
+            isOpen
+            onClose={() => setToolsAreOpen(false)}
           />
         )
         : null}

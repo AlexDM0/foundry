@@ -1,8 +1,8 @@
 /**
  * The billing step against fake controls. What matters: "Set up the pipeline" sends the start with the chosen billing and cap and then
- * opens the research step; the start of an unreadable file says that it replaces it; a refusal shows verbatim; the page counts the
+ * opens the agent step; the start of an unreadable file says that it replaces it; a refusal shows verbatim; the page counts the
  * waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; reopened while a record is open, the
- * start is replaced by the way back to the current step, or by Continue to research while the record is still at billing, so the step
+ * start is replaced by the way back to the current step, or by Continue to the agent while the record is still at billing, so the step
  * never links back to itself, and a billing change is saved to the record; the panel introduces Flint in its one slot, and the footer
  * words the chosen billing.
  */
@@ -32,16 +32,16 @@ afterEach(() => {
 const LANDING_ROUTE = { tab: 'pipeline', item: null } as const;
 
 describe('the setup landing', () => {
-  test('"Set up the pipeline" sends the start with the chosen billing and cap, then opens the research', async () => {
+  test('"Set up the pipeline" sends the start with the chosen billing and cap, then opens the agent step', async () => {
     const controls = fakeControls();
     controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
     fireEvent.click(screen.getByLabelText('API key'));
     fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '12.5' } });
     await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
     expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 12.5 }, replacesUnreadablePipeline: false
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 12.5 }, replacesUnreadablePipeline: false, agent: null
     }]);
-    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/research');
+    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/agent');
   });
 
   test('the subscription is chosen first, and typing a cap chooses the API key', async () => {
@@ -52,7 +52,7 @@ describe('the setup landing', () => {
     expect((screen.getByLabelText('API key') as HTMLInputElement).checked).toBe(true);
     await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
     expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: null }, replacesUnreadablePipeline: false
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: null }, replacesUnreadablePipeline: false, agent: null
     }]);
   });
 
@@ -61,7 +61,7 @@ describe('the setup landing', () => {
     controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0-unreadable')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
     await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
     expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: true
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: true, agent: null
     }]);
   });
 
@@ -123,15 +123,15 @@ describe('the billing step reopened with a record', () => {
     expect(screen.getByRole('link', { name: 'Back to pipeline design' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/design');
   });
 
-  test('a record still at billing offers Continue to research, which continues the step and opens the research', async () => {
+  test('a record still at billing offers Continue to the agent, which continues the step and opens the agent step', async () => {
     const controls = fakeControls();
     controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0b-at-billing')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />));
     expect(screen.queryByRole('link', { name: 'Back to billing' })).toBeNull();
-    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
+    await clickSettled(screen.getByRole('button', { name: 'Continue to the agent' }));
     expect(controls.sent).toEqual([{
       ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
     }]);
-    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/research');
+    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/agent');
   });
 
   test('a billing change is saved to the record, and the record\'s own billing sends nothing', async () => {

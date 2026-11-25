@@ -7,7 +7,9 @@
  */
 import { describe, expect, test }                                        from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { EXAMPLE_NOT_LAUNCHED }                                          from '../../../testing/AgentFixture.ts';
 import { PIPELINE_FIXTURE_NOW, pipelineBoardStateOf }                    from '../../../testing/PipelineFixture.ts';
+import { AgentSessionModel }                                             from '../agent-panel/AgentSessionModel.ts';
 import { ResearchStepModel }                                             from './ResearchStepModel.ts';
 
 function researchSetup(): BoardPipelineSetupDocument {
@@ -65,14 +67,15 @@ describe('the findings', () => {
 describe('the status lines', () => {
   test('the line over the page names the agent, its state, the snapshot and the time since its launch', () => {
     const setup = withRecord(researchSetup(), { readyToContinue: [] });
-    expect(ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: '2026-11-12T09:27:20Z' }, PIPELINE_FIXTURE_NOW))
+    expect(ResearchStepModel.statusLineOf({ setup, sessionState: 'running', agentLaunchedAt: '2026-11-12T09:27:20Z' }, PIPELINE_FIXTURE_NOW))
       .toBe('Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s');
   });
 
   test('a stopped agent shows no time, and a ready research says it is done', () => {
-    expect(ResearchStepModel.statusLineOf({ setup: { ...researchSetup(), agentJobState: null }, agentLaunchedAt: '2026-11-12T09:27:20Z' }, PIPELINE_FIXTURE_NOW))
+    const stopped = { ...researchSetup(), agentJobState: null };
+    expect(ResearchStepModel.statusLineOf({ setup: stopped, sessionState: 'stopped', agentLaunchedAt: '2026-11-12T09:27:20Z' }, PIPELINE_FIXTURE_NOW))
       .toBe('Pipeline agent J4 · stopped · snapshot of main at 1111111');
-    expect(ResearchStepModel.statusLineOf({ setup: researchSetup(), agentLaunchedAt: null }, PIPELINE_FIXTURE_NOW))
+    expect(ResearchStepModel.statusLineOf({ setup: researchSetup(), sessionState: 'running', agentLaunchedAt: null }, PIPELINE_FIXTURE_NOW))
       .toBe('Pipeline agent J4 · research done · snapshot of main at 1111111');
   });
 
@@ -82,9 +85,21 @@ describe('the status lines', () => {
   });
 
   test('the panel head and the footer pill say whether the agent researches, is done or stopped', () => {
-    expect(ResearchStepModel.panelStatusOf(withRecord(researchSetup(), { readyToContinue: [] }))).toEqual({ tone: 'working', text: 'Researching' });
-    expect(ResearchStepModel.panelStatusOf(researchSetup())).toEqual({ tone: 'ready', text: 'Research done' });
-    expect(ResearchStepModel.panelStatusOf({ ...researchSetup(), agentJobState: null })).toEqual({ tone: 'idle', text: 'Stopped' });
+    const statusOf = (setup: BoardPipelineSetupDocument) => ResearchStepModel.panelStatusOf(
+      ResearchStepModel.researchStateOf(setup, AgentSessionModel.setupSessionStateOf(setup, [])),
+    );
+    expect(statusOf(withRecord(researchSetup(), { readyToContinue: [] }))).toEqual({ tone: 'working', text: 'Researching' });
+    expect(statusOf(researchSetup())).toEqual({ tone: 'ready', text: 'Research done' });
+    expect(statusOf({ ...researchSetup(), agentJobState: null })).toEqual({ tone: 'idle', text: 'Stopped' });
+  });
+
+  test('a job forge did not launch reads not launched, never researching, with no time since a launch it never had', () => {
+    const setup = withRecord(researchSetup(), { readyToContinue: [] });
+    const sessionState = AgentSessionModel.setupSessionStateOf(setup, [{ id: 'J4', notLaunched: EXAMPLE_NOT_LAUNCHED }]);
+    expect(sessionState).toBe('not-launched');
+    expect(ResearchStepModel.panelStatusOf(ResearchStepModel.researchStateOf(setup, sessionState))).toEqual({ tone: 'failed', text: 'Not launched' });
+    expect(ResearchStepModel.statusLineOf({ setup, sessionState, agentLaunchedAt: '2026-11-12T09:27:20Z' }, PIPELINE_FIXTURE_NOW))
+      .toBe('Pipeline agent J4 · not launched · snapshot of main at 1111111');
   });
 
   test('the heading names the project', () => {
@@ -131,7 +146,7 @@ describe('monorepo mode', () => {
         }
       }
     });
-    expect(ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: null }, PIPELINE_FIXTURE_NOW))
+    expect(ResearchStepModel.statusLineOf({ setup, sessionState: 'running', agentLaunchedAt: null }, PIPELINE_FIXTURE_NOW))
       .toBe('Pipeline agent J4 · research done · one session per entity · snapshot of main at 1111111');
   });
 

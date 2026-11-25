@@ -4,16 +4,16 @@
  * applied and the draft pipeline, and the commands of Ask the pipeline agent to check and Discard. Over entities (MonoEditing) the
  * changes are grouped by level, the footer also counts the levels, and the check names the entities the draft touches.
  */
-import { PAGE_CONTRACT_VERSIONS }                 from '../../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardCommandDocument }              from '../../../../@types/board/BoardCommandDocument.ts';
-import type { BoardPipelineDefinitionDocument }   from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardJobState }                     from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                    from '../../../conversation/ChatTurnWordingUtil.ts';
-import type { PanelStatus }                       from '../PipelinePanel.tsx';
-import type { FlowPageWords, PipelineViewFacts }  from '../PipelineViewModel.ts';
-import type { ChangeListEditing }                 from '../apply/ChangeListModel.ts';
-import { ChangeGroupModel, type ChangeGroupView } from '../entities/ChangeGroupModel.ts';
-import { PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
+import { PAGE_CONTRACT_VERSIONS }                            from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardCommandDocument }                         from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardPipelineDefinitionDocument }              from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { ChatTurnWordingUtil }                               from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }                                  from '../PipelinePanel.tsx';
+import type { FlowPageWords, PipelineViewFacts }             from '../PipelineViewModel.ts';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState } from '../agent-panel/AgentSessionModel.ts';
+import type { ChangeListEditing }                            from '../apply/ChangeListModel.ts';
+import { ChangeGroupModel, type ChangeGroupView }            from '../entities/ChangeGroupModel.ts';
+import { PipelineLevelModel, type PipelineLevel }            from '../entities/PipelineLevelModel.ts';
 
 /** "4 changes · version 2 → 3"; only the count for a pipeline that no Apply numbered. */
 function footerSummaryOf(changeCount: number, appliedRevision: number | null): string {
@@ -67,9 +67,10 @@ function versionStepTextOf(appliedRevision: number | null, byLevel = false): str
   return byLevel ? `${versionStep} · by level` : versionStep;
 }
 
-/** The Pipeline agent tab's dot and word: whether the agent's job runs. */
-function agentStatusOf(agentJobState: BoardJobState | null): PanelStatus {
-  return agentJobState === null ? { tone: 'idle', text: 'Not running' } : { tone: 'working', text: 'Running' };
+/** The Pipeline agent tab's dot and word: whether the agent's job runs, or that forge did not start it. */
+function agentStatusOf(sessionState: AgentSessionState): PanelStatus {
+  if (sessionState === 'not-launched') return NOT_LAUNCHED_PANEL_STATUS;
+  return sessionState === 'stopped' ? { tone: 'idle', text: 'Not running' } : { tone: 'working', text: 'Running' };
 }
 
 /** "The board keeps running on version 2 until Apply." */

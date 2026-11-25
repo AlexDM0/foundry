@@ -17,6 +17,7 @@ import {
   type PipelineGate,
   type PipelineReview,
   type PipelineStep,
+  type PipelineTool,
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -73,6 +74,7 @@ const TYPED_EDIT_KEYS = {
   'constitution':   ['target', 'value'],
   'role':           ['target', 'role', 'value'],
   'airlock':        ['target', 'value'],
+  'tools':          ['target', 'value'],
   'approval':       ['target', 'approval', 'value'],
   'ticket-writing': ['target', 'value'],
   'entity':         ['target', 'entityKey', 'value'],
@@ -254,6 +256,19 @@ function textsOrNullAt(value: unknown, path: string): string[] | null {
   return texts;
 }
 
+const TOOL_KEYS = ['name', 'path'] as const;
+
+/** Each tool's name and path, or `null` to follow the pipeline's programs again. */
+function toolsOrNullAt(value: unknown, path: string): PipelineTool[] | null {
+  if (value === null) return null;
+  if (!Array.isArray(value)) malformed(path);
+  return value.map((tool: unknown, index) => {
+    const toolPath = `${path}[${index}]`;
+    const record   = closedRecordAt(tool, toolPath, TOOL_KEYS);
+    return { name: textAt(record, toolPath, 'name'), path: textAt(record, toolPath, 'path') };
+  });
+}
+
 /** A whole definition or `null` for a value that must be an object, which the whole draft's validation then judges. */
 function definitionOrNullAt(value: unknown, path: string): object | null {
   if (value !== null && !JsonRecordUtil.valueIsAPlainObject(value)) malformed(path);
@@ -323,6 +338,7 @@ function pipelineEditAt(field: PipelineDraftField, value: unknown, valuePath: st
   }
   const role = PIPELINE_AGENT_ROLES.find((candidate) => candidate === name);
   if (fieldKind === 'role' && role !== undefined) return { target: 'role', role, value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
+  if (field === 'tools') return { target: 'tools', value: toolsOrNullAt(value, valuePath) };
   return { target: 'airlock', value: definitionOrNullAt(value, valuePath) as PipelineAirlock | null };
 }
 
@@ -426,6 +442,8 @@ function typedDraftEditReadingOf(edit: unknown, index: number): PayloadReading<P
         return { target, role: oneOf(PIPELINE_AGENT_ROLES, record, path, 'role'), value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
       case 'airlock':
         return { target, value: definitionOrNullAt(value, valuePath) as PipelineAirlock | null };
+      case 'tools':
+        return { target, value: toolsOrNullAt(value, valuePath) };
       case 'approval':
         if (value !== null && typeof value !== 'boolean') malformed(valuePath);
         return { target, approval: oneOf(PIPELINE_APPROVALS, record, path, 'approval'), value };

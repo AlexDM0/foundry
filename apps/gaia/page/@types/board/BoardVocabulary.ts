@@ -130,6 +130,7 @@ export type BoardMergePrediction = 'clean' | 'conflicting' | 'prediction-failed'
 
 /** The board command kinds a ticket may offer, the forge's own kind names. */
 export type BoardOfferedCommandKind =
+  | 'agent-look-again'
   | 'chart-range-set'
   | 'decision-answer'
   | 'gate-profile-start'
@@ -142,6 +143,7 @@ export type BoardOfferedCommandKind =
   | 'merge-accept'
   | 'merge-update'
   | 'pipeline-agent-advise'
+  | 'pipeline-agent-set'
   | 'pipeline-apply'
   | 'pipeline-apply-cancel'
   | 'pipeline-assistant-set'
@@ -150,12 +152,14 @@ export type BoardOfferedCommandKind =
   | 'pipeline-draft-discard'
   | 'pipeline-draft-edit'
   | 'pipeline-draft-undo'
+  | 'pipeline-setup-agent'
   | 'pipeline-setup-answer'
   | 'pipeline-setup-billing'
   | 'pipeline-setup-resume'
   | 'pipeline-setup-start'
   | 'pipeline-setup-start-over'
   | 'pipeline-setup-step'
+  | 'pipeline-tools-set'
   | 'pipeline-update-start'
   | 'ticket-deliver-by-hand'
   | 'ticket-hold'
@@ -170,7 +174,26 @@ export type BoardPipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
 
 export type BoardBillingMode = 'subscription' | 'api';
 
-export type BoardSetupStep = 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+export type BoardSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+
+/** Why an agent's program does not run: what the choice names, where the program lies, or how its run with its version arguments ended. */
+export type BoardAgentProgramRefusalCause =
+  | 'no-agent-chosen'
+  | 'other-vendor'
+  | 'no-machine-program'
+  | 'relative-path'
+  | 'inside-forbidden-root'
+  | 'batch-target'
+  | 'not-there'
+  | 'not-executable'
+  | 'no-adapter'
+  | 'did-not-start'
+  | 'timed-out'
+  | 'failed'
+  | 'not-this-agent';
+
+/** Where a pipeline runs a tool: a prepare step, a gate, or every job, as git is. */
+export type BoardAgentToolUseKind = 'prepare' | 'gate' | 'every-job';
 
 export type BoardSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
 

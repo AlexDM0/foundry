@@ -22,4 +22,8 @@ export interface AgentHostFacts {
   readonly sandboxSettingsApply: boolean;
   /** Seatbelt matches a deny as a path rule; bubblewrap, Claude Code's sandbox on Linux, mounts over each path at launch. */
   readonly sandboxDenyShape:     SandboxDenyShape;
+  /** The file name of the `claude` program on this platform. */
+  readonly programFileName:      string;
+  /** The folders only Claude Code's own installers put the program in, under the home folder; the platform's program folders follow them. */
+  readonly vendorProgramFolders: readonly (readonly string[])[];
 }

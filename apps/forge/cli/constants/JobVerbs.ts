@@ -36,10 +36,16 @@ export const OTHER_VERBS_OF_CONTROL_KIND: Readonly<Partial<Record<ControlCommand
  * before it runs, never relayed.
  */
 export const UNRELAYED_VERB_OF_CONTROL_KIND = {
-  'chart-range-set':        'range',
-  'tracker-clear':          'clear',
-  'ticket-deliver-by-hand': 'ticket deliver --by-hand',
-  'talos-restart':          'talos-restart',
+  'chart-range-set':           'range',
+  'tracker-clear':             'clear',
+  'ticket-deliver-by-hand':    'ticket deliver --by-hand',
+  'talos-restart':             'talos-restart',
+  // The agent's program and the tools are User's choice of what runs on the machine, never a session's.
+  'machine-agent-program-set': 'machine agent',
+  'pipeline-setup-agent':      'pipeline agent',
+  'pipeline-agent-set':        'gate agent',
+  'pipeline-tools-set':        'gate tools',
+  'agent-look-again':          'gate look-again',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
 
 /**

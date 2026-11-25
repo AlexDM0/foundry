@@ -96,10 +96,12 @@ endpoint already had.
 came with Gaia 1.2, and `forgeCrashLog`, one crash log of a forge that serves again, with Gaia 1.3; Gaia 2.0 took Flint's brain out of the
 fleet document and the commands and dates `commands` at 2.0; Gaia 3.0 named a forge's serving process Hephaestus in the fleet document;
 Gaia 4.0 names a restarting forge's condition and the look of a failed restart in it, dates `fleet` and `events` at 4.0, and raised its
-minimum supported to 4.0; every route reads a body of at most 65,536 bytes, the picture upload one of at most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES`
-and the board commands route one of at most `TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES`, which only a ticket document's save, an edited
-proposal and a comment's quote may pass 65,536 bytes for (`src/lib/local-http-guards/BoundedBody.ts`), since Bun's own bound is one for
-the whole server.
+minimum supported to 4.0; Gaia 4.1 only adds the forge's agent to the board (its keys `agent` and a job's `notLaunched`, the setup step
+`agent`, the record's `agent` and `tools`) and the agent's board commands; Gaia 4.2 only adds a ticket's documents, their route
+`forgeTicketDocuments` and the board's spec-then-plan route; every route reads a body of at most 65,536 bytes, the picture upload one of at
+most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES` and the board commands route one of at most `TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES`, which only a
+ticket document's save, an edited proposal and a comment's quote may pass 65,536 bytes for (`src/lib/local-http-guards/BoundedBody.ts`),
+since Bun's own bound is one for the whole server.
 
 ## Versioned contracts
 
@@ -120,8 +122,8 @@ version, major.minor.
 | `gaiaCommand` | 5 | `commandVersion` | the body of `POST /api/v6/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
 | `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v6/commands`, with one answer per forge for `fleet-outage-resume` in `forges` (a key it only adds) | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaHealth` | 1 | `healthVersion` | the open `GET /api/v1/health` | serves; the launcher and a second `serve` read | `src/adapters/gaia-server/HealthDocument.ts` | Gaia |
-| `gaiaBoard` | 2 | `boardVersion` | one forge's board as the page reads it, with `assistantIsOn` (a key it only adds), the spec and plan roles, approvals and steps and a ticket's `documents` (2), each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia, at `forgeBoard` and in the three relayed streams |
-| `gaiaBoardCommand` | 2 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload; `pipeline-assistant-set` is a kind it only adds; the `ticket-writing` draft edit and the ticket document kinds (2) | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
+| `gaiaBoard` | 2 | `boardVersion` | one forge's board as the page reads it, with `assistantIsOn` (a key it only adds), from Gaia 4.1 the forge's `agent` (`BoardAgentDocuments.ts`, with `otherForgesFollowingMachine`, which Gaia counts across its forges, `null` while one of them is not read), a job's `notLaunched`, the setup step `agent` and the record's `agent` and `tools` (keys it only adds), the spec and plan roles, approvals and steps and a ticket's `documents` (2), each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia, at `forgeBoard` and in the three relayed streams |
+| `gaiaBoardCommand` | 2 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload; `pipeline-assistant-set`, and from Gaia 4.1 `agent-look-again`, `pipeline-agent-set`, `pipeline-setup-agent`, `pipeline-tools-set`, the draft edit `tools`, the start's `agent` and the forge's control kind `machine-agent-program-set`, are kinds and keys it only adds; the `ticket-writing` draft edit and the ticket document kinds (2) | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
 | `gaiaBoardStream` | 2 | `boardStreamVersion` | the `handshake` that opens every relayed board stream, with Gaia's and the forge's system versions, written with no id; the part `documents` (2) | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeBoardEvents`, `forgeJobStream` and `forgeProfileStream` |
 | `gaiaBoardCommandAnswer` | 1 | `boardCommandAnswerVersion` | the answer to a board command: applied, with the job it started and `writtenVersionNumber`, the version a ticket document's save left at the head (a key it only adds), refused with the forge's sentence or Gaia's own, held for an install change, unreachable or of unknown outcome | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeCommands` |
 | `gaiaPictureUploadAnswer` | 1 | `pictureUploadAnswerVersion` | the answer to a picture the page uploads for one forge | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgePictureUpload` |
@@ -133,17 +135,20 @@ version, major.minor.
 
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9. Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 4.1: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
-new board's Assistant is off; `hephaestus-fetch-board`, Example Storefront's board as the relay reads it:
+forge 4.2: `hephaestus-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
+new board's Assistant is off, launched on the agent the board offers, chosen in a setup record left at its agent step, since a forge with no
+agent chosen launches no job; `hephaestus-fetch-board`, Example Storefront's board as the relay reads it:
 the board document (with a draft ticket and a committed one the product owner gives an entity; a pipeline applied over two app entities
-with the Assistant switched on; an agent's question with its
+with the Assistant switched on, its agent pinned to the program the board offers; an agent's question with its
 recommendation, escalated to User; an open incident and a defaulted one's notice, left in the stopped forge's store as an ended Assistant turn
 leaves them, since the fake agent asks nothing; and an update setup whose entities draft holds a
 standing `equal-homes` refusal with its fix, which Apply refuses as `entity-refusals-stand`), and refused
 another's token; the board's event stream from its start and from its first event's id; a board command applied,
 refused with its code, fields and sentence, of an unknown kind, and answered 423 while launches are held for an install change, with the
 board's notice in that hold; a picture accepted and read back, refused as too large and as no picture; a product owner job's stream (its handshake
-and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.2) and newer (5.1) through its
+and an empty history, since the fake agent writes no conversation) and a gate profile run's output; the first setup record at its agent
+step with no agent chosen; and an intake's product owner standing not launched once the program its agent was pinned to is gone, with the
+look again and the board after it, whose program check does not run); and `hephaestus-fetch-versions`, the forge answering older (1.0), one minor ahead (4.3) and newer (5.1) through its
 test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`;
 `hephaestus-fetch-ticket-documents`, Example Bookshop with a pipeline stored in the spec-then-plan route and two drafts: the save of one
 draft's spec, which opens its documents, with the board's events up to the `documents` event, the documents and the board read after it,
@@ -178,7 +183,7 @@ is a separate document Gaia serves.
   the read on its way; a presence that does not ingest, or a forge whose monitor the watch does not follow, leaves every wait `null`.
   `src/adapters/forge-api/PresenceIngestion.ts` is its one ingestion. A crash log is read by its number
   (`GET /api/v1/crash-log?number=<n>`, `CrashLogIngestion.ts`) only when User opens it.
-- **A ticket's documents** in the spec-then-plan route, from forge 4.1, are read afresh on each ask of the page's documents route
+- **A ticket's documents** in the spec-then-plan route, from forge 4.2, are read afresh on each ask of the page's documents route
   (`GET /api/v1/tickets/<ticketId>/documents`, `forge-contracts/TicketDocumentsDocument`), never held. The document carries no version
   key: its version is the endpoint's. `src/adapters/forge-api/TicketDocumentsIngestion.ts` checks it against
   `constants/TicketDocumentsShapes.ts` and maps it through `utils/TicketDocumentsMapUtil.ts`, the Markdown kept as source text; the

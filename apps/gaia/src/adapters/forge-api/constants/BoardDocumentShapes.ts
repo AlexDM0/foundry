@@ -4,6 +4,18 @@
  * view reads: Gaia passes it over, and a change of it shows here first.
  */
 import type {
+  AgentProgramCheckDocument,
+  AgentProgramChoiceDocument,
+  AgentProgramPlaceDocument,
+  AgentToolDocument,
+  AgentToolUseDocument,
+  AgentVendorDocument,
+  BoardAgentDocument,
+  PipelineAgentDocument,
+  PipelineToolDocument,
+  PipelineToolRequestDocument,
+} from 'forge-contracts/BoardAgentDocuments';
+import type {
   BoardDecisionDocument,
   BoardDecisionOptionDocument,
   BoardDecisionQuestionDocument,
@@ -17,6 +29,7 @@ import type {
   BoardJobDocument,
   BoardJobIntakeDocument,
   BoardJobLiveFactsDocument,
+  BoardJobNotLaunchedDocument,
   BoardLastToolCallDocument,
   BoardLostLineDocument,
   BoardSessionLastLineDocument,
@@ -172,6 +185,67 @@ function partiallyKeyedByVocabularyShape(name: BoardVocabularyName, rule: FieldR
 export const REFUSAL_DOCUMENT_SHAPE = { code: 'text', fields: { recordOf: 'json' }, sentence: 'text' } as const satisfies ShapeOf<ForgeRefusalDocument>;
 
 export const TARGET_SHAPE = { subject: vocabularyRule('targetSubject'), id: 'text' } as const satisfies ShapeOf<BoardTarget>;
+
+type ProgramChoiceOf<Key extends 'follows' | 'pinned'> = Extract<AgentProgramChoiceDocument, Record<Key, unknown>>;
+
+const PROGRAM_CHOICE_RULE = {
+  anyShapeOf: [
+    { follows: { oneOf: ['machine'] } } as const satisfies ShapeOf<ProgramChoiceOf<'follows'>>,
+    { pinned: 'text' } as const satisfies ShapeOf<ProgramChoiceOf<'pinned'>>,
+  ],
+} as const;
+
+const PIPELINE_AGENT_SHAPE = { vendor: 'text', program: PROGRAM_CHOICE_RULE } as const satisfies ShapeOf<PipelineAgentDocument>;
+
+const PIPELINE_TOOL_SHAPE = { name: 'text', path: 'text' } as const satisfies ShapeOf<PipelineToolDocument>;
+
+const TOOL_REQUEST_SHAPE = { name: 'text', path: OPTIONAL_TEXT } as const satisfies ShapeOf<PipelineToolRequestDocument>;
+
+type ProgramCheckOf<Verdict extends AgentProgramCheckDocument['verdict']> = Extract<AgentProgramCheckDocument, { verdict: Verdict }>;
+
+const PROGRAM_CHECK_RULE = {
+  anyShapeOf: [
+    { verdict: { oneOf: ['runs'] }, version: 'text' } as const satisfies ShapeOf<ProgramCheckOf<'runs'>>,
+    {
+      verdict:  { oneOf: ['does-not-run'] },
+      cause:    vocabularyRule('agentProgramRefusalCause'),
+      sentence: 'text',
+    } as const satisfies ShapeOf<ProgramCheckOf<'does-not-run'>>,
+  ],
+} as const;
+
+type ToolUseOf<Kind extends AgentToolUseDocument['kind']> = Extract<AgentToolUseDocument, { kind: Kind }>;
+
+const TOOL_USE_RULE = {
+  anyShapeOf: [
+    { kind: { oneOf: ['prepare', 'gate'] }, name: 'text', entity: TEXT_OR_NULL } as const satisfies ShapeOf<ToolUseOf<'prepare' | 'gate'>>,
+    { kind: { oneOf: ['every-job'] } } as const satisfies ShapeOf<ToolUseOf<'every-job'>>,
+  ],
+} as const;
+
+const AGENT_TOOL_SHAPE = {
+  name:     'text',
+  path:     TEXT_OR_NULL,
+  approved: 'boolean',
+  usedBy:   { eachOf: TOOL_USE_RULE },
+} as const satisfies ShapeOf<AgentToolDocument>;
+
+const AGENT_SHAPE = {
+  vendors:            { listOf: { vendor: 'text', displayName: 'text', supported: 'boolean' } as const satisfies ShapeOf<AgentVendorDocument> },
+  choice:             { nullable: { object: PIPELINE_AGENT_SHAPE } },
+  machineProgramPath: TEXT_OR_NULL,
+  programPath:        TEXT_OR_NULL,
+  check:              { nullable: PROGRAM_CHECK_RULE },
+  places:             { listOf: { path: 'text', found: 'boolean' } as const satisfies ShapeOf<AgentProgramPlaceDocument> },
+  toolsListed:        'boolean',
+  tools:              { listOf: AGENT_TOOL_SHAPE },
+} as const satisfies ShapeOf<BoardAgentDocument>;
+
+const JOB_NOT_LAUNCHED_SHAPE = {
+  cause:       vocabularyRule('agentProgramRefusalCause'),
+  programPath: TEXT_OR_NULL,
+  sentence:    'text',
+} as const satisfies ShapeOf<BoardJobNotLaunchedDocument>;
 
 const ATTENTION_ENTRY_SHAPE = {
   key:                     'text',
@@ -476,6 +550,7 @@ const JOB_SHAPE = {
   stopRequest:   { nullable: vocabularyRule('jobStopRequest') },
   intake:        { nullable: { object: JOB_INTAKE_SHAPE } },
   entity:        TEXT_OR_NULL,
+  notLaunched:   { nullable: { object: JOB_NOT_LAUNCHED_SHAPE } },
   live:          { object: JOB_LIVE_FACTS_SHAPE },
   stopHolds:     { object: JOB_STOP_HOLDS_SHAPE },
   offers:        { object: JOB_OFFERS_SHAPE },
@@ -699,6 +774,8 @@ const PIPELINE_DEFINITION_SHAPE = {
   entities:      { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
   assistant:     { optional: 'boolean' },
   ticketWriting: { optional: vocabularyRule('ticketWritingRoute') },
+  agent:         { optional: { object: PIPELINE_AGENT_SHAPE } },
+  tools:         { optional: { listOf: PIPELINE_TOOL_SHAPE } },
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {
@@ -835,6 +912,8 @@ const SETUP_RECORD_SHAPE = {
   stepStates:                 { object: SETUP_STEP_STATES_SHAPE },
   currentStep:                vocabularyRule('setupStep'),
   billing:                    BILLING_RULE,
+  agent:                      { nullable: { object: PIPELINE_AGENT_SHAPE } },
+  tools:                      { listOf: AGENT_TOOL_SHAPE },
   agentJobId:                 TEXT_OR_NULL,
   snapshotCommit:             TEXT_OR_NULL,
   readyToContinue:            vocabularyListRule('setupStep'),
@@ -923,6 +1002,7 @@ const DRAFT_EDIT_RULE = {
       value:  { nullable: { object: AGENT_STEP_SETTINGS_SHAPE } },
     } as const satisfies ShapeOf<DraftEditOf<'role'>>,
     { target: { oneOf: ['airlock'] }, value: { nullable: { object: AIRLOCK_SHAPE } } } as const satisfies ShapeOf<DraftEditOf<'airlock'>>,
+    { target: { oneOf: ['tools'] }, value: { nullable: { listOf: TOOL_REQUEST_SHAPE } } } as const satisfies ShapeOf<DraftEditOf<'tools'>>,
     {
       target:   { oneOf: ['approval'] },
       approval: vocabularyRule('pipelineApproval'),
@@ -1173,6 +1253,7 @@ export const BOARD_DOCUMENT_SHAPE = {
   pipelineAgentDefaults: { object: AGENT_PAIR_SHAPE },
   entityAssignment:      { nullable: { object: ENTITY_ASSIGNMENT_SHAPE } },
   pictureLimits:         { nullable: { object: PICTURE_LIMITS_SHAPE } },
+  agent:                 { object: AGENT_SHAPE },
   limits:                { object: LIMITS_SHAPE },
   notices:               { listOf: NOTICE_SHAPE },
   warnings:              { listOf: NOTICE_SHAPE },

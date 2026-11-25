@@ -55,7 +55,7 @@ const CONTRACT_LISTS: Partial<Record<BoardVocabularyName, readonly string[]>> = 
   entityKind:            ENTITY_KINDS,
   agentEffort:           AGENT_EFFORTS,
   interruptionCause:     MONITOR_INTERRUPTION_CAUSES,
-  offeredCommandKind:    FORGE_CONTROL_COMMAND_KINDS.slice(FORGE_CONTROL_COMMAND_KINDS.indexOf('chart-range-set'), FORGE_CONTROL_COMMAND_KINDS.indexOf('ticket-document-save')),
+  offeredCommandKind:    FORGE_CONTROL_COMMAND_KINDS.slice(FORGE_CONTROL_COMMAND_KINDS.indexOf('agent-look-again'), FORGE_CONTROL_COMMAND_KINDS.indexOf('ticket-document-save')),
   ticketWritingRoute:    TICKET_WRITING_ROUTES,
   ticketDocumentKind:    TICKET_DOCUMENT_KINDS,
   documentReadingRule:   DOCUMENT_READING_RULES,

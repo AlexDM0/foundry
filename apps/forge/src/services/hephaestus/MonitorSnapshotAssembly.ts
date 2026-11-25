@@ -140,6 +140,11 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'pipeline-gate-removed':            null,
   'pipeline-approval-set':            null,
   'pipeline-assistant-set':           null,
+  'pipeline-agent-set':               null,
+  'pipeline-tools-set':               null,
+  'pipeline-setup-agent-set':         null,
+  'job-not-launched':                 'needs-user',
+  'job-launch-retried':               null,
   'pipeline-reach-set':               null,
   'branch-namespace-set':             null,
   'pipeline-gates-ordered':           null,
@@ -211,7 +216,7 @@ const RUNNING_SUBAGENT_STATE = 'running';
 
 const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
-/** Jobs the monitor contract has no kind for: a ticket document's agent and an effect reading, both of forge 4.1. */
+/** Jobs the monitor contract has no kind for: a ticket document's agent and an effect reading, both of forge 4.2. */
 const JOB_KINDS_THE_MONITOR_LEAVES_OUT: readonly JobKind[] = ['document-agent', 'effect-reading'];
 
 /** The subject a record is about: its decision, its job, its ticket, its draft or its incident, the first it names; `null` for the board's own. */

@@ -146,6 +146,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/executable-resolver/',
     specs:    ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts', 'src/testing/RecordedGateLines.executableLookup.integration.spec.ts'],
   },
+  { boundary: 'src/lib/program-check/', specs: ['src/lib/program-check/ProgramCheck.integration.spec.ts'] },
   { boundary: 'src/lib/shell-line/', specs: ['src/lib/shell-line/ShellLine.contract.integration.spec.ts', 'src/testing/RecordedGateLines.shellLine.integration.spec.ts'] },
   { boundary: 'src/lib/quiet-watch/QuietWatch.ts', specs: ['src/lib/quiet-watch/QuietWatch.integration.spec.ts'] },
   {

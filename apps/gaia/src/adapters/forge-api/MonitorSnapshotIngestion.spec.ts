@@ -120,6 +120,13 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     },
   ],
   [
+    'Pipeline setup S1 opened: setup',
+    {
+      category:   'forge',
+      boardRoute: null,
+    },
+  ],
+  [
     'Hephaestus set to running',
     {
       category:   'forge',
@@ -135,8 +142,8 @@ function mappedActivityOf(text: string): Omit<ForgeReading['activity'][number], 
 }
 
 /**
- * What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened, and the product
- * owner of the intake User started at work.
+ * What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened, the setup record
+ * its agent was chosen in, and the product owner of the intake User started at work.
  */
 function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
   return {

@@ -115,7 +115,15 @@ describe('the Windows answer per child kind', () => {
 
   test('the record the platform ports hold gives that answer', () => {
     const { processSupervision } = platformPortsFor('win32', {
-      userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined, monitorFolderName: 'monitor-example', pipeNamePrefix: 'example-product'
+      userShell:                    () => undefined,
+      commandInterpreter:           () => undefined,
+      systemRoot:                   () => undefined,
+      localApplicationDataFolder:   () => undefined,
+      roamingApplicationDataFolder: () => undefined,
+      programFilesFolder:           () => undefined,
+      programExtensions:            () => undefined,
+      monitorFolderName:            'monitor-example',
+      pipeNamePrefix:               'example-product'
     });
     for (const childKind of EVERY_CHILD_KIND) expect(processSupervision.spawnOptionsFor(childKind)).toEqual(supervision.spawnOptionsFor(childKind));
   });

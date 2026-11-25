@@ -4,9 +4,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { POSIX_LAUNCH_ENVIRONMENT } from './PosixLaunchEnvironment.ts';
+import { createPosixLaunchEnvironment } from './PosixLaunchEnvironment.ts';
 
-const { inheritedVariableNames, launchEnvironmentOf } = POSIX_LAUNCH_ENVIRONMENT;
+const { inheritedVariableNames, launchEnvironmentOf } = createPosixLaunchEnvironment(() => []);
 
 const PARENT_SESSION_ENVIRONMENT = {
   HOME:                         '/Users/example',

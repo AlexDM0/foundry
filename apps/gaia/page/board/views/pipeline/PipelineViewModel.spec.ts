@@ -85,8 +85,8 @@ describe('single mode and monorepo mode', () => {
 
   test('single mode has no entities step, and its route falls back to the resume summary', () => {
     const state = pipelineBoardStateOf('A0b-recheck');
-    expect(PipelineViewModel.setupStepsOf(recordOf('A0b-recheck'))).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
-    expect(PipelineViewModel.setupStepsOf(null)).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupStepsOf(recordOf('A0b-recheck'))).toEqual(['billing', 'agent', 'research', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupStepsOf(null)).toEqual(['billing', 'agent', 'research', 'constitution', 'design', 'apply']);
     expect(screenOf(state, pipelineRoute('setup/entities'))).toEqual({ screen: 'setup-resume' });
   });
 
@@ -95,7 +95,7 @@ describe('single mode and monorepo mode', () => {
     const walking: BoardSetupRecordDocument = { ...single, stepStates: { ...single.stepStates, entities: 'needs-recheck' } };
     const holding: BoardSetupRecordDocument = { ...single, entities: {} };
 
-    expect(PipelineViewModel.setupStepsOf(walking)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupStepsOf(walking)).toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
     expect(PipelineViewModel.setupHasEntities(holding)).toBe(true);
     expect(PipelineViewModel.setupStepStatusOf(walking, 'entities')).toBe('recheck');
     const state = pipelineBoardStateOf('A0b-recheck');
@@ -112,7 +112,7 @@ describe('single mode and monorepo mode', () => {
     const stillThere: BoardSetupRecordDocument = { ...declined, currentStep: 'entities' };
 
     expect(PipelineViewModel.setupHasEntities(declined)).toBe(false);
-    expect(PipelineViewModel.setupStepsOf(declined)).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupStepsOf(declined)).toEqual(['billing', 'agent', 'research', 'constitution', 'design', 'apply']);
     expect(PipelineViewModel.setupHasEntities(stillThere)).toBe(true);
   });
 });

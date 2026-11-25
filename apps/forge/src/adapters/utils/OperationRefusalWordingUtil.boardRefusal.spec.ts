@@ -596,7 +596,8 @@ test.each<[BoardRefusalDetail, string]>([
   [{ reason: 'no-setup-open', setupId: 'S2' }, 'Pipeline setup S2 is not open. Nothing was written.'],
   [
     { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' },
-    'The pipeline setup record cannot be read: setupId is missing. Nothing was written. Repair or remove pipeline-setup.json in the data folder.',
+    'The pipeline setup record cannot be read: setupId is missing. Nothing was written. Start the setup over, which removes the record, '
+      + 'or repair pipeline-setup.json in the data folder.',
   ],
   [{ reason: 'no-pipeline-to-update', mode: 'update' }, 'No pipeline is stored, so there is nothing to update: set the pipeline up first. Nothing was written.'],
   [{ reason: 'pipeline-apply-pending', setupId: 'S1' }, 'Pipeline setup S1 waits for its Apply to land, so it cannot change now: cancel the Apply first. Nothing was written.'],

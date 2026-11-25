@@ -57,7 +57,10 @@ describe('the board\'s command client', () => {
   test('a forge refusal and an install hold keep the forge\'s sentence verbatim, even one that names a command', async () => {
     const refused = await outcomeOf(relayAnswerOf(409, { outcome: 'refused', applied: null, refusal: FORGE_REFUSAL }));
     const installHeld = await outcomeOf(relayAnswerOf(423, { outcome: 'install-held', applied: null, refusal: FORGE_REFUSAL }));
-    expect([refused, installHeld]).toEqual([{ verdict: 'refused', refusal: FORGE_REFUSAL.text }, { verdict: 'install-held', refusal: FORGE_REFUSAL.text }]);
+    expect([refused, installHeld]).toEqual([
+      { verdict: 'refused', refusal: FORGE_REFUSAL.text, forgeRefusal: { code: FORGE_REFUSAL.code, fields: FORGE_REFUSAL.fields } },
+      { verdict: 'install-held', refusal: FORGE_REFUSAL.text },
+    ]);
   });
 
   test('Gaia\'s answers keep their outcome: refused with Gaia\'s sentence, unreachable, and outcome-unknown once the command was sent', async () => {

@@ -50,15 +50,16 @@ const CONSTITUTION_MARKDOWN = '# Constitution\n\n## Tests\n\n- Each module has a
 
 function setupAt(currentStep: PipelineSetup['currentStep']): PipelineSetup {
   return {
-    formatVersion:   2,
+    formatVersion:   3,
     setupId:         'S1',
     mode:            'setup',
     baseContentHash: null,
     stepStates:      {
-      billing: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
     },
     currentStep,
     billing:         { mode: 'subscription' },
+    agent:           { vendor: 'example-agent', program: { follows: 'machine' } },
     agentJobId:      'J9',
     snapshotCommit:  null,
     readyToContinue: [],

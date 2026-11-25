@@ -2,6 +2,7 @@
  * Gaia's model of one forge's board: the last board document read from that forge, mapped in at the boundary, held per forge and never
  * written back to a forge or a file (decision 47). It holds what a view of the board reads and the facts the forge serves, nothing else.
  */
+import type { BoardAgent }                               from './BoardAgent.ts';
 import type { BoardDecision, BoardQuestionHistoryEntry } from './BoardDecision.ts';
 import type {
   BoardAttentionEntry,
@@ -72,6 +73,8 @@ export interface ForgeBoard {
   readonly pipeline:             BoardPipelineFacts;
   /** The board's Assistant switch as the forge holds it: off until the board turns it on, and off while no readable pipeline is stored. */
   readonly assistantIsOn:        boolean;
+  /** The forge's agent, its program and its tools. */
+  readonly agent:                BoardAgent;
   readonly pictureLimits:        BoardPictureLimits | null;
   readonly limits:               BoardLimits;
   readonly notices:              readonly BoardNotice[];

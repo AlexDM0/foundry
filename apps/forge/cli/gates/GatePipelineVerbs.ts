@@ -1,6 +1,7 @@
 /**
- * `gate prepare|add|order|none|remove|approval|assistant|reach|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one
- * control command applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
+ * `gate prepare|add|order|none|remove|approval|assistant|reach|agent|tools|look-again|list`: the only writers and the reader of the board's
+ * `pipeline.json`. Each write is one control command applied in a hold (relayed when run under a job, but the agent and the tools, which
+ * User alone sets); a command line goes after `--`, so its words are never read as options.
  * On a pipeline with entities the Board refuses each write of the forge's own steps, gates and reach, since every entity holds its own.
  */
 import { PipelineFile }                from '../../src/adapters/pipeline/PipelineFile.ts';
@@ -13,10 +14,11 @@ import type {
 } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/hephaestus/GateCachePaths.ts';
-import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
+import type { ControlCommand, ControlCommandOf }          from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
+import { agentFrom, toolFrom }                            from '../AgentProgramWords.ts';
 import { applyCommandOfVerb }                             from '../ApplyCommandOfVerb.ts';
 import { boardReadsOf }                                   from '../BoardStoreOf.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
@@ -32,13 +34,16 @@ export const GATE_PIPELINE_USAGE = {
   prepare: `${PROGRAM} gate prepare <name> [--in <folder>] [--json] -- <command>`,
   add:     `${PROGRAM} gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… `
     + '[--forge-only] [--phases <phase>,…] [--json] -- <command>',
-  order:     `${PROGRAM} gate order build|review|merge <name>… [--json]`,
-  none:      `${PROGRAM} gate none [--json]`,
-  remove:    `${PROGRAM} gate remove <name> [--json]`,
-  list:      `${PROGRAM} gate list [--json]`,
-  approval:  `${PROGRAM} gate approval tickets|merge|spec|plan on|off [--json]`,
-  assistant: `${PROGRAM} gate assistant on|off [--json]`,
-  reach:     `${PROGRAM} gate reach <path>…|none [--json]`,
+  order:        `${PROGRAM} gate order build|review|merge <name>… [--json]`,
+  none:         `${PROGRAM} gate none [--json]`,
+  remove:       `${PROGRAM} gate remove <name> [--json]`,
+  list:         `${PROGRAM} gate list [--json]`,
+  approval:     `${PROGRAM} gate approval tickets|merge|spec|plan on|off [--json]`,
+  assistant:    `${PROGRAM} gate assistant on|off [--json]`,
+  reach:        `${PROGRAM} gate reach <path>…|none [--json]`,
+  agent:        `${PROGRAM} gate agent machine|<path> [--json]`,
+  tools:        `${PROGRAM} gate tools <name>[=<path>]…|pipeline [--json]`,
+  'look-again': `${PROGRAM} gate look-again [--json]`,
 } as const;
 
 const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'forge-only', 'phases', 'json'];
@@ -46,6 +51,8 @@ const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', '
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
 const REACH_NONE_WORD = 'none';
+
+const FOLLOW_PIPELINE_WORD = 'pipeline';
 
 const UNWRITABLE_FOLDER_WORDING: Readonly<Record<CacheFolderRefusal, string>> = {
   'executables-folder': 'is, sits in or holds a bin folder or executables',
@@ -118,6 +125,45 @@ async function applyPipelineChange(commandArguments: ArgumentParser, context: Co
   if (!('pipeline' in changed)) return;
   const { logged, pipeline } = changed;
   OutputUtil.printEntity(commandArguments, context, { pipeline: PipelineFile.storedDocumentOf(pipeline), ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));
+}
+
+/** The agent's program and the tools are User's choice of what runs on the machine, so a session never relays them. */
+async function applyUnrelayedChange(
+  commandArguments: ArgumentParser,
+  context: CommandContext,
+  command: ControlCommandOf<'pipeline-agent-set' | 'pipeline-tools-set' | 'agent-look-again'>,
+): Promise<void> {
+  if (context.job !== undefined) throw new OperationRefusal('refused', { kind: 'verb-not-relayable', verb: context.commandVerb, jobId: context.job.jobId });
+  const { logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
+  const pipeline = boardReadsOf(context).requireBoard().pipelineReading;
+  const stored = pipeline.verdict === 'readable' ? { pipeline: PipelineFile.storedDocumentOf(pipeline.pipeline), ...hashesOf(pipeline.pipeline) } : {};
+  OutputUtil.printEntity(commandArguments, context, { ...stored, logged }, OutputUtil.loggedSentencesOf(logged));
+}
+
+/** The forge's agent, run once before it is kept; an open setup record follows it. */
+export async function setAgent(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE.agent;
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  commandArguments.rejectExtraPositionals(2, usage);
+  await applyUnrelayedChange(commandArguments, context, { kind: 'pipeline-agent-set', agent: agentFrom(commandArguments.positionals()[1], context, usage) });
+}
+
+/** The whole list at once, git always among them; `pipeline` removes the list, so the tools follow the pipeline's programs again. */
+export async function setTools(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE.tools;
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  const words = commandArguments.positionals().slice(1);
+  if (words.length === 0) refuseUsage('Name each tool, or pipeline.', usage);
+  const tools = words.length === 1 && words[0] === FOLLOW_PIPELINE_WORD ? null : words.map((word) => toolFrom(word, context, usage));
+  await applyUnrelayedChange(commandArguments, context, { kind: 'pipeline-tools-set', tools });
+}
+
+/** Every job that stood not launched for its agent's program is launched again by the next pass. */
+export async function lookAgain(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE['look-again'];
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  commandArguments.rejectExtraPositionals(1, usage);
+  await applyUnrelayedChange(commandArguments, context, { kind: 'agent-look-again' });
 }
 
 export async function prepareStep(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {

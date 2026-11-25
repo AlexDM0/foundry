@@ -4,12 +4,15 @@
  * target, the worded notices, today's figures with their date, the open decisions in answering order, each ticket's facts and offers, each
  * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
  * draft with its refusals and their typed fix, the Apply refusal and the step run times; the Assistant's switch is the stored pipeline's
- * `assistant` key, read from the boards recorded after it was switched off and on, off while no readable pipeline is stored; a missing
+ * `assistant` key, read from the boards recorded after it was switched off and on, off while no readable pipeline is stored; the forge's agent
+ * as the forge serves it, from the first setup record at its agent step with no agent chosen, through the agent chosen and its program
+ * running, to a job standing not launched once that program is gone, with the forge's sentence; a missing
  * key, or a value outside a value list, makes the document malformed and is named; a key Gaia does not read is passed over, and so is a
  * key Gaia names as passed over.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { BoardAgent }                                                      from '../../shared/@types/board/BoardAgent.ts';
 import { BoardStateIngestion, type BoardReading }                               from './BoardStateIngestion.ts';
 import { RECORDED_TRACKER_ID, recordedBoardDocumentOf, recordedCalendarDateOf } from './testing/BoardDocuments.ts';
 
@@ -195,7 +198,7 @@ describe('boardOf, on the board of a forge at work', () => {
       sentence: expect.stringMatching(/^Pipeline setup S2's draft still holds 1 entity refusal \(equal-homes\)/),
     });
     expect(setup?.record.stepStates).toEqual({
-      billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started', entities: 'done'
+      billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started', entities: 'done'
     });
   });
 
@@ -218,6 +221,58 @@ describe('boardOf, on the board of a forge at work', () => {
   });
 });
 
+describe('boardOf, on a forge\'s agent', () => {
+  test('reads a first setup record at its agent step with no agent chosen, and the places the installers put the vendor\'s program', async () => {
+    const document = await recordedBoardDocumentOf('setup-choosing-agent') as MutableDocument;
+    const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, document));
+    expect(board.agent).toEqual({
+      vendors:            recordAt(document, ['agent'])['vendors'] as BoardAgent['vendors'],
+      choice:             null,
+      machineProgramPath: null,
+      programPath:        null,
+      check:              null,
+      places:             [
+        { path: '/Users/example/.bun/bin/bun', found: true },
+        { path: '/opt/homebrew/bin/bun', found: false },
+        { path: '/usr/local/bin/bun', found: false },
+        { path: '/Users/example/.local/bin/bun', found: false },
+      ],
+      toolsListed: false,
+      tools:       [{
+        name: 'git', path: expect.any(String), approved: true, usedBy: [{ kind: 'every-job', name: null, entity: null }]
+      }],
+    });
+    const record = board.pipeline.setup?.record;
+    expect(record?.currentStep).toBe('agent');
+    expect(record?.agent).toBeNull();
+    expect(record?.stepStates).toMatchObject({ billing: 'done', agent: 'in-progress', research: 'not-started' });
+    expect(record?.tools).toEqual(board.agent.tools);
+    expect(board.jobs).toEqual([]);
+  });
+
+  test('reads the agent chosen, pinned to its program, which runs with its version, beside the applied pipeline and the update that follow it', async () => {
+    const document = await boardAtWorkDocument();
+    const [vendor] = recordAt(document, ['agent'])['vendors'] as { vendor: string }[];
+    const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, document));
+    const choice = { vendor: vendor?.vendor, program: { pinned: '/Users/example/.bun/bin/bun' } };
+    expect(board.agent).toMatchObject({ choice, programPath: '/Users/example/.bun/bin/bun', check: { verdict: 'runs', version: expect.any(String) } });
+    expect(board.pipeline.applied).toMatchObject({ pipeline: { agent: choice, tools: null } });
+    expect(board.pipeline.setup?.record).toMatchObject({ currentStep: 'design', agent: choice, tools: board.agent.tools });
+    expect(board.jobs.map((job) => job.notLaunched)).toEqual(board.jobs.map(() => null));
+  });
+
+  test('reads a job standing not launched with the forge\'s cause, program and sentence, and the program looked at again that does not run', async () => {
+    const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await recordedBoardDocumentOf('job-not-launched')));
+    const vanishedProgramPath = '/Users/example/.local/bin/example-agent';
+    const sentence = `the Claude Code at ${vanishedProgramPath} is not there`;
+    expect(board.jobs.flatMap((job) => (job.notLaunched === null ? [] : [{ role: job.role, notLaunched: job.notLaunched }]))).toEqual([
+      { role: 'product-owner', notLaunched: { cause: 'not-there', programPath: vanishedProgramPath, sentence } },
+    ]);
+    const check = { verdict: 'does-not-run', cause: 'not-there', sentence };
+    expect(board.agent).toMatchObject({ choice: { program: { pinned: vanishedProgramPath } }, programPath: vanishedProgramPath, check });
+  });
+});
+
 describe('boardOf, on a document Gaia cannot read', () => {
   test('names every key Gaia reads that is missing, nested keys as paths', async () => {
     const document = await boardAtWorkDocument();
@@ -235,6 +290,14 @@ describe('boardOf, on a document Gaia cannot read', () => {
     recordAt(document, ['page', 'tickets', 0])['status'] = 'example-added-status';
     recordAt(document, ['jobs', 0])['state'] = 'example-added-state';
     expect(INGESTION.boardOf(RECORDED_TRACKER_ID, document)).toEqual({ board: null, reason: { invalidKeys: ['page.tickets[0].status', 'jobs[0].state'] } });
+  });
+
+  test('names a cause of a job not launched outside the value list, and a program check whose cause is outside it as a whole', async () => {
+    const document = structuredClone(await recordedBoardDocumentOf('job-not-launched')) as MutableDocument;
+    const notLaunchedJobIndex = (document['jobs'] as MutableDocument[]).findIndex((job) => job['notLaunched'] !== null);
+    recordAt(document, ['jobs', notLaunchedJobIndex, 'notLaunched'])['cause'] = 'example-added-cause';
+    recordAt(document, ['agent', 'check'])['cause'] = 'example-added-cause';
+    expect(INGESTION.boardOf(RECORDED_TRACKER_ID, document)).toEqual({ board: null, reason: { invalidKeys: [`jobs[${notLaunchedJobIndex}].notLaunched.cause`, 'agent.check'] } });
   });
 
   test('reads no board whose Assistant switch is no boolean', async () => {

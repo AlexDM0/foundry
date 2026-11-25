@@ -4,10 +4,11 @@
  * review or pending, stamped with its job), the own-job stamp on the `question-options` of every role that asks User, a builder's need for
  * another entity (only from the builder of an entity's stage, only complete, stamped with its job; incomplete covering a field that is no
  * text; never for a package sealed for its ticket, E42), the pipeline agent's setup moves stamped with its job, its setup and, for an
- * entity's session, its entity (every other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's incident
- * moves, a spec or plan agent's document moves stamped with its job (every other kind refused, and no other role sends them),
- * `talos-restart` refused for every role, and the planted forgeries (a `role`, a `jobId`, a snapshot commit or an admission in the
- * command). Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
+ * entity's session, its entity (every other kind refused, a setup or entity of the agent's own choosing too, and a proposal of the tools,
+ * which only User sets), the Assistant's incident moves, a spec or plan agent's document moves stamped with its job (every other kind
+ * refused, and no other role sends them), `talos-restart` refused for every role, and the planted forgeries (a `role`, a `jobId`, a
+ * snapshot commit or an admission in the command). Identity is the job record's, so a request in another job's folder is judged as that
+ * folder's job, which the last case plants.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -336,6 +337,17 @@ describe('pipeline agent', () => {
   test('a request naming an entity of its own choosing is refused hatch-identity-mismatch', () => {
     const command: ControlCommand = { kind: 'pipeline-step-ready', entity: 'web', step: 'research' };
     expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test('a proposal that names the tools agents run is refused tools-set-by-user-only, whatever else it proposes', () => {
+    const command: ControlCommand = {
+      kind:  'pipeline-draft-propose',
+      edits: [
+        { field: 'review', value: { name: 'Review' }, summary: 'Review every ticket.' },
+        { field: 'tools', value: [{ name: 'bun', path: '/opt/example/bin/bun' }], summary: 'Run bun from here.' },
+      ],
+    };
+    expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'refused', reason: 'tools-set-by-user-only' });
   });
 
   test('an agent whose job serves no open setup record is refused job-serves-no-setup', () => {

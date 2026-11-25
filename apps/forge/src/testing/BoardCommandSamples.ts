@@ -49,6 +49,7 @@ export const DRAFT_EDIT_SAMPLES: readonly PipelineDraftEditDocument[] = [
     value:  { model: 'opus', documents: { spec: 'always', plan: 'never' } },
   },
   { target: 'airlock', value: { reReview: { thresholdLines: 750 } } },
+  { target: 'tools', value: [{ name: 'bun', path: '/opt/example/bin/bun' }] },
   { target: 'approval', approval: 'merge', value: true },
   { target: 'entity', entityKey: 'web', value: { kind: 'app', home: ['/apps/web'], summary: 'The example shop.' } },
   { target: 'entity', entityKey: 'docs', value: null },
@@ -88,6 +89,9 @@ export const BOARD_COMMAND_SAMPLES: BoardCommandSamples = {
   },
   'pipeline-apply-cancel':      { kind: 'pipeline-apply-cancel', setupId: 'S1' },
   'pipeline-assistant-set':     { kind: 'pipeline-assistant-set', on: false },
+  'pipeline-agent-set':         { kind: 'pipeline-agent-set', agent: { vendor: 'example-agent', program: { pinned: '/opt/example/bin/agent' } } },
+  'pipeline-tools-set':         { kind: 'pipeline-tools-set', tools: [{ name: 'bun', path: '/opt/example/bin/bun' }, { name: 'git', path: '/usr/bin/git' }] },
+  'agent-look-again':           { kind: 'agent-look-again' },
   'pipeline-check':             { kind: 'pipeline-check', setupId: 'S1' },
   'pipeline-constitution-edit': {
     kind:        'pipeline-constitution-edit',
@@ -107,9 +111,12 @@ export const BOARD_COMMAND_SAMPLES: BoardCommandSamples = {
   'pipeline-setup-answer': {
     kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'text', text: 'Only on merge.' }
   },
-  'pipeline-setup-billing':    { kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maxBudgetUsd: 10 } },
-  'pipeline-setup-resume':     { kind: 'pipeline-setup-resume', setupId: 'S1' },
-  'pipeline-setup-start':      { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false },
+  'pipeline-setup-billing': { kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maxBudgetUsd: 10 } },
+  'pipeline-setup-resume':  { kind: 'pipeline-setup-resume', setupId: 'S1' },
+  'pipeline-setup-start':   {
+    kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: { vendor: 'example-agent', program: { follows: 'machine' } }
+  },
+  'pipeline-setup-agent':      { kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: 'example-agent', program: { follows: 'machine' } } },
   'pipeline-setup-start-over': { kind: 'pipeline-setup-start-over', setupId: 'S1' },
   'pipeline-setup-step':       {
     kind: 'pipeline-setup-step', setupId: 'S1', step: 'design', move: 'continue'

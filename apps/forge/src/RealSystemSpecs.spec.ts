@@ -57,6 +57,8 @@ const GATE_PROCESS_STARTS = new Set([
 ]);
 /** The real platform folder watch, which shipping code starts too, so it counts only in an integration spec, as the gate starts do. */
 const FOLDER_WATCH_STARTS = new Set(['QuietWatch.watchQuietly']);
+/** The run of a chosen program with its version arguments, which shipping code makes too, so it counts only in an integration spec. */
+const PROGRAM_CHECK_STARTS = new Set(['runProgramCheck']);
 const MINIMUM_SPEC_FILE_COUNT = 100;
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const SHIPPING_REAL_CALL_FORM_COUNT_FLOOR = 10;
@@ -123,7 +125,9 @@ function realSystemFormsOfIntegrationSpec(source: RepositorySource): string[] {
   return formsIn(source, (node) => {
     const isSleep = ts.isPropertyAccessExpression(node) && node.getText() === 'Bun.sleep';
     const integrationOnlyStart = ts.isCallExpression(node) ? node.expression.getText() : '';
-    if (GATE_PROCESS_STARTS.has(integrationOnlyStart) || FOLDER_WATCH_STARTS.has(integrationOnlyStart)) return [integrationOnlyStart];
+    if (GATE_PROCESS_STARTS.has(integrationOnlyStart) || FOLDER_WATCH_STARTS.has(integrationOnlyStart) || PROGRAM_CHECK_STARTS.has(integrationOnlyStart)) {
+      return [integrationOnlyStart];
+    }
     if (ts.isIdentifier(node) && node.text === 'REAL_PROCESS_STARTS') return ['REAL_PROCESS_STARTS'];
     return isSleep ? ['Bun.sleep'] : nodeFormsOf(node);
   });
@@ -718,6 +722,7 @@ describe('what the guard leaves alone', () => {
     ['a proposal\'s two gate runs', 'await ProposalTwiceRun.runProposalTwice(request);\n'],
     ['the real process starts', 'const starts = REAL_PROCESS_STARTS;\n'],
     ['a folder watch', 'const handle = QuietWatch.watchQuietly(request);\n'],
+    ['a program\'s version run', 'const answer = await runProgramCheck(request);\n'],
   ])('%s makes an integration spec real, and is no real call in a default spec', (_form, text) => {
     const integrationSpec = { path: 'src/Example.integration.spec.ts', text };
     expect(suiteViolationsOf([integrationSpec, { path: 'src/Example.spec.ts', text }], {})).toEqual([]);

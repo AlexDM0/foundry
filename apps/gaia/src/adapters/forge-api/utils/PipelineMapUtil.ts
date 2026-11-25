@@ -62,6 +62,7 @@ import type {
   BoardSourceAnnotation,
   BoardStepsDraftEdit,
 } from '../../../shared/@types/board/BoardPipeline.ts';
+import { BoardAgentMapUtil } from './BoardAgentMapUtil.ts';
 import { BoardMapUtil }      from './BoardMapUtil.ts';
 import { VocabularyMapUtil } from './VocabularyMapUtil.ts';
 
@@ -157,6 +158,8 @@ function pipelineDefinitionOf(pipeline: PipelineDefinitionDocument): BoardPipeli
     agents:           VocabularyMapUtil.partiallyKeyedRecordOf(VOCABULARIES.pipelineAgentRole, pipeline.agents, agentStepSettingsOf),
     approvals:        VocabularyMapUtil.partiallyKeyedRecordOf(VOCABULARIES.pipelineApproval, pipeline.approvals, (isOn) => isOn),
     billing:          pipeline.billing === undefined ? null : billingOf(pipeline.billing),
+    agent:            pipeline.agent === undefined ? null : BoardAgentMapUtil.pipelineAgentOf(pipeline.agent),
+    tools:            pipeline.tools === undefined ? null : pipeline.tools.map((tool) => ({ name: tool.name, path: tool.path })),
     reach:            pipeline.reach ?? [],
     entities:         entityRecordOf(pipeline.entities, pipelineEntityOf),
     ...pipeline.ticketWriting === undefined ? {} : { ticketWriting: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketWritingRoute, pipeline.ticketWriting) },
@@ -272,6 +275,7 @@ function setupRecordOf(record: PipelineSetupRecordDocument): BoardSetupRecord {
     mode:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupMode, record.mode),
     stepStates: {
       billing:      VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.billing),
+      agent:        VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.agent),
       research:     VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.research),
       constitution: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.constitution),
       design:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.design),
@@ -280,6 +284,8 @@ function setupRecordOf(record: PipelineSetupRecordDocument): BoardSetupRecord {
     },
     currentStep:     VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStep, record.currentStep),
     billing:         billingOf(record.billing),
+    agent:           record.agent === null ? null : BoardAgentMapUtil.pipelineAgentOf(record.agent),
+    tools:           record.tools.map(BoardAgentMapUtil.toolOf),
     agentJobId:      record.agentJobId,
     snapshotCommit:  record.snapshotCommit,
     readyToContinue: VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.setupStep, record.readyToContinue),
@@ -356,6 +362,8 @@ function entityDraftEditOf(edit: EntityDraftEditDocument): BoardEntityDraftEdit 
 
 function draftEditOf(edit: PipelineDraftEditDocument): BoardDraftEdit {
   switch (edit.target) {
+    case 'tools':
+      return { target: 'tools', value: edit.value === null ? null : edit.value.map(BoardAgentMapUtil.toolRequestOf) };
     case 'role':
       return {
         target: 'role',

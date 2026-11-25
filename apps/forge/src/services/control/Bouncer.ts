@@ -186,9 +186,13 @@ function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): Bounc
   return isOwnDraft(job, namedTicketIdOf(command)) ? { verdict: 'admitted', command } : refused('not-own-draft');
 }
 
+/** A tool's path names a folder every agent's search path starts with, so only User sets one; the agent's proposal names no tools. */
+const USER_ONLY_DRAFT_FIELD = 'tools';
+
 function pipelineAgentVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
   if (!PIPELINE_AGENT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
+  if (command.kind === 'pipeline-draft-propose' && command.edits.some((edit) => edit.field === USER_ONLY_DRAFT_FIELD)) return refused('tools-set-by-user-only');
   if (Object.hasOwn(command, 'setupId') || Object.hasOwn(command, 'entity')) return refused('hatch-identity-mismatch');
   if (job.setupId === null) return refused('job-serves-no-setup');
   const entity = job.setupEntity === undefined ? {} : { entity: job.setupEntity };

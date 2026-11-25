@@ -8,7 +8,7 @@
   },
   "answers": [
     {
-      "callShape": "run [\"/usr/bin/osascript\",\"-e\",\"activate\",\"-e\",\"try\",\"-e\",\"return POSIX path of (choose file with prompt \\\"Choose a file\\\")\",\"-e\",\"on error number -128\",\"-e\",\"return \\\"\\\"\",\"-e\",\"end try\"]",
+      "callShape": "run [\"/usr/bin/osascript\",\"-e\",\"activate\",\"-e\",\"try\",\"-e\",\"return POSIX path of (choose file with prompt \\\"Choose a file\\\" default location (path to home folder) with invisibles)\",\"-e\",\"on error number -128\",\"-e\",\"return \\\"\\\"\",\"-e\",\"end try\"]",
       "answer": {
         "verdict": "finished",
         "exitCode": 0,

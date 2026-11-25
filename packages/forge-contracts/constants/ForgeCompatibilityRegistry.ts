@@ -21,7 +21,7 @@ const HEPHAESTUS_FORGE: SystemVersion = { major: 3, minor: 0 };
 /** The forge that restarts Hephaestus through a preflight: the state `restarting`, the warning kind restart-failed and the board's `restartWarning`. */
 const RESTARTING_FORGE: SystemVersion = { major: 4, minor: 0 };
 /** The forge that serves a ticket's spec and plan in the spec-then-plan route. */
-const TICKET_DOCUMENTS_FORGE: SystemVersion = { major: 4, minor: 1 };
+const TICKET_DOCUMENTS_FORGE: SystemVersion = { major: 4, minor: 2 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {

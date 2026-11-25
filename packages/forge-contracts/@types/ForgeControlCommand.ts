@@ -27,4 +27,6 @@ export type ForgeControlCommand =
   | { readonly kind: 'talos-restart' }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
   | { readonly kind: 'job-stop-all'; readonly mode: ForgeJobStopMode }
-  | { readonly kind: 'machine-agent-limit-set'; readonly limit: number };
+  | { readonly kind: 'machine-agent-limit-set'; readonly limit: number }
+  /** This machine's program of an agent vendor, for every forge that follows it, kept only once it runs. From forge 4.1. */
+  | { readonly kind: 'machine-agent-program-set'; readonly vendor: string; readonly programPath: string };

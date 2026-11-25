@@ -2,8 +2,9 @@
  * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
  * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
  * endings and all, while `--file -` in a terminal is refused rather than read as empty text; a draft edit sets several fields in one
- * move; outside a job the pipeline agent's verbs name the record and apply its moves; and a usage mistake or a Board refusal exits 1
- * with the record, the progress file and the log as they were.
+ * move; a setup over a record of an older format starts that record over first; outside a job the pipeline agent's verbs name the record
+ * and apply its moves; under a job a setup naming its agent is refused;
+ * and a usage mistake or a Board refusal exits 1 with the record, the progress file and the log as they were.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
@@ -66,7 +67,7 @@ function storedSetup(): PipelineSetup {
 }
 
 async function setupAtDesign(): Promise<void> {
-  await runSetup(['pipeline', 'setup']);
+  await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
   for (const step of ['research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
 }
 
@@ -82,7 +83,7 @@ afterEach(() => {
 
 describeWhenGitIsRecorded('the pipeline verbs', () => {
   test('pipeline setup opens S1 billed as named, launches its pipeline agent, prints the record under --json, and logs both', async () => {
-    const context = await runSetup(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
+    const context = await runSetup(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--agent', process.execPath, '--json']);
 
     const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
     expect(printed.setup).toMatchObject({
@@ -93,12 +94,14 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
   });
 
   test('pipeline billing and pipeline continue move the stored record', async () => {
-    await runSetup(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
 
     await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
     await run(['pipeline', 'continue', 'S1', 'research']);
 
-    const stepStates = { billing: 'done', research: 'done', constitution: 'in-progress' };
+    const stepStates = {
+      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress'
+    };
     expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'constitution', stepStates });
   });
 
@@ -238,8 +241,35 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     expect(storedFiles()).toEqual(before);
   });
 
+  test('under a job, pipeline setup naming its agent is refused verb-not-relayable at exit 1 with nothing written or relayed', async () => {
+    const before = storedFiles();
+    const hatchDirectory = join(repositoryDirectory, 'example-hatch');
+    const context = {
+      ...createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW }),
+      job: {
+        jobId: 'J4', hatchDirectory, replyTries: 1, replyIntervalMilliseconds: 1
+      },
+    };
+
+    expect(await runCommandLine(['pipeline', 'setup', '--agent', process.execPath], context)).toBe(1);
+    expect(context.errorText()).toContain('pipeline setup --agent` cannot run under job J4');
+    expect(existsSync(hatchDirectory)).toBe(false);
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('pipeline setup over a record of an older format starts it over first, then opens and launches the new one', async () => {
+    writeFileSync(setupFilePath(), `${JSON.stringify({
+      formatVersion: 2, setupId: 'S1', mode: 'setup', currentStep: 'research'
+    })}\n`);
+    const context = await runSetup(['pipeline', 'setup', '--agent', process.execPath, '--json']);
+
+    const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
+    expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-discarded', 'pipeline-setup-opened', 'job-launched']);
+    expect(storedSetup()).toMatchObject({ setupId: printed.setup.setupId, mode: 'setup', agentJobId: 'J1' });
+  });
+
   test('pipeline start-over removes the record, and pipeline update then refuses with no pipeline stored', async () => {
-    await runSetup(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
 
     await run(['pipeline', 'start-over', 'S1']);
     expect(existsSync(setupFilePath())).toBe(false);

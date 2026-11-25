@@ -2,7 +2,8 @@
  * Maps each value list of a forge's board into Gaia's own union through a record typed `Record<forge value, Gaia value>`, so a value a forge
  * adds is a compile error here and nowhere else. The board's shapes check a value with `oneOf` over a record's keys.
  */
-import type { ForgeBoardCommand } from 'forge-contracts/BoardCommand';
+import type { AgentProgramRefusalCause, AgentToolUseDocument } from 'forge-contracts/BoardAgentDocuments';
+import type { ForgeBoardCommand }                              from 'forge-contracts/BoardCommand';
 import type {
   BoardInterruptionCause,
   BoardJobStopRequest,
@@ -298,6 +299,7 @@ const MERGE_PREDICTION = {
 } as const satisfies Record<BoardMergePrediction, Gaia.BoardMergePrediction>;
 
 const OFFERED_COMMAND_KIND = {
+  'agent-look-again':           'agent-look-again',
   'chart-range-set':            'chart-range-set',
   'decision-answer':            'decision-answer',
   'gate-profile-start':         'gate-profile-start',
@@ -310,6 +312,7 @@ const OFFERED_COMMAND_KIND = {
   'merge-accept':               'merge-accept',
   'merge-update':               'merge-update',
   'pipeline-agent-advise':      'pipeline-agent-advise',
+  'pipeline-agent-set':         'pipeline-agent-set',
   'pipeline-apply':             'pipeline-apply',
   'pipeline-apply-cancel':      'pipeline-apply-cancel',
   'pipeline-assistant-set':     'pipeline-assistant-set',
@@ -318,12 +321,14 @@ const OFFERED_COMMAND_KIND = {
   'pipeline-draft-discard':     'pipeline-draft-discard',
   'pipeline-draft-edit':        'pipeline-draft-edit',
   'pipeline-draft-undo':        'pipeline-draft-undo',
+  'pipeline-setup-agent':       'pipeline-setup-agent',
   'pipeline-setup-answer':      'pipeline-setup-answer',
   'pipeline-setup-billing':     'pipeline-setup-billing',
   'pipeline-setup-resume':      'pipeline-setup-resume',
   'pipeline-setup-start':       'pipeline-setup-start',
   'pipeline-setup-start-over':  'pipeline-setup-start-over',
   'pipeline-setup-step':        'pipeline-setup-step',
+  'pipeline-tools-set':         'pipeline-tools-set',
   'pipeline-update-start':      'pipeline-update-start',
   'ticket-deliver-by-hand':     'ticket-deliver-by-hand',
   'ticket-hold':                'ticket-hold',
@@ -376,12 +381,35 @@ const BILLING_MODE = { subscription: 'subscription', api: 'api' } as const satis
 
 const SETUP_STEP = {
   billing:      'billing',
+  agent:        'agent',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',
   design:       'design',
   apply:        'apply',
 } as const satisfies Record<PipelineSetupStep, Gaia.BoardSetupStep>;
+
+const AGENT_PROGRAM_REFUSAL_CAUSE = {
+  'no-agent-chosen':       'no-agent-chosen',
+  'other-vendor':          'other-vendor',
+  'no-machine-program':    'no-machine-program',
+  'relative-path':         'relative-path',
+  'inside-forbidden-root': 'inside-forbidden-root',
+  'batch-target':          'batch-target',
+  'not-there':             'not-there',
+  'not-executable':        'not-executable',
+  'no-adapter':            'no-adapter',
+  'did-not-start':         'did-not-start',
+  'timed-out':             'timed-out',
+  'failed':                'failed',
+  'not-this-agent':        'not-this-agent',
+} as const satisfies Record<AgentProgramRefusalCause, Gaia.BoardAgentProgramRefusalCause>;
+
+const AGENT_TOOL_USE_KIND = {
+  'prepare':   'prepare',
+  'gate':      'gate',
+  'every-job': 'every-job',
+} as const satisfies Record<AgentToolUseDocument['kind'], Gaia.BoardAgentToolUseKind>;
 
 const SETUP_STEP_STATE = {
   'not-started':   'not-started',
@@ -625,6 +653,8 @@ const BOARD_VOCABULARIES = {
   billingMode:              BILLING_MODE,
   setupStep:                SETUP_STEP,
   setupStepState:           SETUP_STEP_STATE,
+  agentProgramRefusalCause: AGENT_PROGRAM_REFUSAL_CAUSE,
+  agentToolUseKind:         AGENT_TOOL_USE_KIND,
   setupMode:                SETUP_MODE,
   findingTopic:             FINDING_TOPIC,
   gateCandidacy:            GATE_CANDIDACY,

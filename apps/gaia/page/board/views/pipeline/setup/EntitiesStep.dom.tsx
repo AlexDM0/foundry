@@ -1,7 +1,7 @@
 /**
  * The entities step against fake controls. What matters: the proposal shows every entity and the root kept for a person, and Continue
  * waits until User decides; Accept opens Continue, which moves the step on; Stay in single mode removes every entity from the draft, the
- * step then says single mode, and once the step is left that way the setup has five steps again; before any proposal, Stay in single mode
+ * step then says single mode, and once the step is left that way the setup has six steps again; before any proposal, Stay in single mode
  * continues the step with no entity; a fold sends the package's removal and the target's new homes as one gesture; a gesture is sent at
  * once even when the draft it leaves holds a refusal, and nothing is predicted; a refusal the forge serves shows in its sentence with
  * Continue disabled, and its fix sends the fix's edits; a key the forge refuses shows the forge's sentence; choosing the root's gates adds
@@ -144,17 +144,17 @@ describe('single mode', () => {
     expect(continueButton().disabled).toBe(false);
   });
 
-  test('once the step is left that way, the setup has five steps and the entities route falls back to the resume summary', () => {
+  test('once the step is left that way, the setup has six steps and the entities route falls back to the resume summary', () => {
     const board = entitiesStepBoardOf({
       currentStep: 'constitution',
       stepStates:  {
-        billing: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+        billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
       },
       draft: null,
     });
     renderEntities(board);
     expect(document.querySelector('.board-pipeline')?.getAttribute('data-screen')).toBe('setup-resume');
-    expect(within(screen.getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(screen.getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem')).toHaveLength(6);
   });
 });
 

@@ -29,7 +29,9 @@ import { ViewTitle }                                 from '../../ViewTitle.tsx';
 import { PipelinePage }                              from '../PipelinePage.tsx';
 import { PipelinePanel }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
+import { NotLaunchedJob }                            from '../agent/NotLaunchedJob.tsx';
 import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                         from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanel }                        from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                   from '../agent-panel/PipelineAgentPanelModel.ts';
 import { PipelineLevelModel, type PipelineLevel }    from '../entities/PipelineLevelModel.ts';
@@ -63,6 +65,9 @@ const MONOREPO_LEAD = 'The agent reports the layout first, then researches each 
 const SINGLE_MODE_PLACEHOLDER = 'Correct a finding, for example: the tests also need Redis';
 
 const MONOREPO_PLACEHOLDER = 'Correct a finding of this entity, for example: e2e also needs Redis';
+
+/** Stands for the findings while forge did not start the agent, in place of grey lines that would read as work under way. */
+const NOT_LAUNCHED_EMPTY_TEXT = 'Nothing found yet: forge has not started the agent.';
 
 const SINGLE_MODE_FOOTER_NOTE = 'Continue at any time. The agent keeps its findings for the design.';
 
@@ -113,7 +118,7 @@ function routeOfLevel(level: PipelineLevel): BoardRoute {
 }
 
 function monorepoResearchOf(facts: PipelineViewFacts, setup: BoardPipelineSetupDocument, routedLevel: PipelineLevel | null): MonorepoResearch | null {
-  const sessionFacts = { setup, shownEntities: PipelineViewModel.entitiesShownOf(facts) };
+  const sessionFacts = { setup, shownEntities: PipelineViewModel.entitiesShownOf(facts), jobs: facts.jobs };
   if (!EntitySessionListModel.hasEntitySessions(sessionFacts)) return null;
   const level = EntitySessionListModel.shownLevelOf(sessionFacts, routedLevel);
   return {
@@ -159,18 +164,20 @@ function ResearchPage({
   facts, setup, followTranscript, clock, routedLevel
 }: ResearchPageProps) {
   const { record } = setup;
-  const state = ResearchStepModel.researchStateOf(setup);
-  const now = useTickingNow(clock, state !== 'stopped');
+  const sessionState = AgentSessionModel.setupSessionStateOf(setup, facts.jobs);
+  const state = ResearchStepModel.researchStateOf(setup, sessionState);
+  const now = useTickingNow(clock, ResearchStepModel.researchIsUnderWay(state));
   const monorepoMode = PipelineViewModel.monorepoModeOf(facts);
   const research = monorepoMode ? monorepoResearchOf(facts, setup, routedLevel) : null;
   const boardHrefOf = useBoardHrefOf();
   const navigateTo = useBoardNavigation();
   const levelShown = research === null ? null : { level: research.level, hrefOf: (level: PipelineLevel) => boardHrefOf(research.routeOf(level)) };
-  const status = research === null ? ResearchStepModel.panelStatusOf(setup) : EntitySessionListModel.panelStatusOf(research.shown.state);
+  const notLaunched = ResearchStepModel.notLaunchedOf(setup, facts.jobs);
+  const status = research === null ? ResearchStepModel.panelStatusOf(state) : EntitySessionListModel.panelStatusOf(research.shown.state);
   const layoutItems = ResearchStepModel.layoutItemsOf(record.findings);
-  const statusLine = ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
+  const statusLine = ResearchStepModel.statusLineOf({ setup, sessionState, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
   const continueStep = ResearchStepModel.continueStepOf(PipelineViewModel.setupStepsOf(record));
-  let findingsPart: ReactNode = <SessionFindings findings={record.findings} />;
+  let findingsPart: ReactNode = <SessionFindings findings={record.findings} emptyText={state === 'not-launched' ? NOT_LAUNCHED_EMPTY_TEXT : null} />;
   if (research !== null) findingsPart = <SessionsAndFindings research={research} />;
   const main = (
     <>
@@ -181,6 +188,9 @@ function ResearchPage({
         </span>
         <ViewTitle title={ResearchStepModel.headingOf(facts.project ?? '')} lead={monorepoMode ? MONOREPO_LEAD : SINGLE_MODE_LEAD} />
       </View>
+      {notLaunched === null
+        ? null
+        : <NotLaunchedJob jobId={record.agentJobId} notLaunched={notLaunched} agent={facts.agent} choiceRoute={PipelineViewModel.agentChoiceRouteOf(facts)} />}
       {monorepoMode && layoutItems.length > 0
         ? <LayoutFinding items={layoutItems} sourcePaths={ResearchStepModel.layoutSourcePathsOf(record.findings)} />
         : null}
@@ -198,6 +208,7 @@ function ResearchPage({
       <PipelineAgentPanel
         setup={setup}
         step="research"
+        jobs={facts.jobs}
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder={research === null ? SINGLE_MODE_PLACEHOLDER : MONOREPO_PLACEHOLDER}
@@ -212,7 +223,9 @@ function ResearchPage({
       label="Research actions"
       start={(
         <>
-          <Tag text={status.text} tone="neutral" stateTone={StateToneUtil.toneOf('in-progress')} dot={status.tone === 'working'} />
+          {status.tone === 'failed'
+            ? <Tag text={status.text} tone="error" />
+            : <Tag text={status.text} tone="neutral" stateTone={StateToneUtil.toneOf('in-progress')} dot={status.tone === 'working'} />}
           <span className="board-pipeline-research-footer-status" aria-live="polite">
             {research === null ? ResearchStepModel.footerCountsOf(setup) : EntitySessionListModel.footerCountsOf(research.rows)}
           </span>

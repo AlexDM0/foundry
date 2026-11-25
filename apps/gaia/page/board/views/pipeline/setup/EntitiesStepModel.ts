@@ -17,6 +17,7 @@ import type {
 import { BOARD_ENTITY_AGENT_ROLES, BOARD_GATE_PHASES, type BoardEntityKind } from '../../../../@types/board/BoardVocabulary.ts';
 import type { BoardEntityRefusalReason }                                     from '../../../../@types/board/BoardVocabulary.ts';
 import type { PanelStatus }                                                  from '../PipelinePanel.tsx';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                 from '../agent-panel/AgentSessionModel.ts';
 import type { DraftEditTarget }                                              from '../flow/PipelineFlowModel.ts';
 
 /**
@@ -244,9 +245,10 @@ function headingOf(project: string): string {
   return project === '' ? 'The entities of the repository' : `The entities of ${project}`;
 }
 
-function panelStatusOf(setup: Pick<BoardPipelineSetupDocument, 'openQuestionCount' | 'agentJobState'>): PanelStatus {
+function panelStatusOf(setup: Pick<BoardPipelineSetupDocument, 'openQuestionCount'>, sessionState: AgentSessionState): PanelStatus {
   if (setup.openQuestionCount > 0) return { tone: 'working', text: 'Waiting for you' };
-  if (setup.agentJobState === null) return { tone: 'idle', text: 'Stopped' };
+  if (sessionState === 'not-launched') return NOT_LAUNCHED_PANEL_STATUS;
+  if (sessionState === 'stopped') return { tone: 'idle', text: 'Stopped' };
   return { tone: 'ready', text: 'Done with the layout' };
 }
 

@@ -4,12 +4,19 @@
  * repository with two apps, its fake agent playing every session, and brings the board to tickets in several statuses, an agent's question
  * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps with the
  * Assistant switched on (a board whose Assistant is off defaults every incident at once), and an update
- * of it whose entities draft holds a standing refusal with its fix, which Apply refuses; then it records each situation of
- * `BOARD_SITUATIONS` at the versioned path Gaia calls, the Assistant switched off and on again among them. The values the run
+ * of it whose entities draft holds a standing refusal with its fix, which Apply refuses, keeping the first setup record at its agent step
+ * before the agent is chosen; then it records each situation of `BOARD_SITUATIONS` at the versioned path Gaia calls, the Assistant switched
+ * off and on again among them, and last a job not launched once the program its agent is pinned to is gone. The values the run
  * draws are recorded as example values; the forge's install and code versions stamp it.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterAll,
   beforeAll,
@@ -27,10 +34,10 @@ import {
   type BoardSituation,
   type RecordedStream,
 } from '../../testing/RecordedAnswers.ts';
-import { createScratchForge, type ScratchForge } from '../../testing/ScratchForge.ts';
-import { scratchRoot }                           from '../../testing/ScratchRoot.ts';
-import { eventStreamParserOf }                   from '../event-stream/EventStreamParser.ts';
-import { forgeEndpointPathOf }                   from './ForgeClient.ts';
+import { agentAtTheFoundPlaceOf, createScratchForge, type ScratchForge } from '../../testing/ScratchForge.ts';
+import { scratchRoot }                                                   from '../../testing/ScratchRoot.ts';
+import { eventStreamParserOf }                                           from '../event-stream/EventStreamParser.ts';
+import { forgeEndpointPathOf }                                           from './ForgeClient.ts';
 import {
   realHephaestusFetch,
   type HephaestusAnswer,
@@ -81,6 +88,8 @@ const APP_FOLDERS = ['apps/web', 'apps/api'] as const;
 /** The entity whose gate a profile runs. */
 const PROFILED_ENTITY_KEY = 'web';
 const EXAMPLE_GATE = { name: PIPELINE_GATE_NAME, run: 'echo Example gate passed' } as const;
+/** Where in the scratch home the agent's program is pinned to a link to the program found, which is then taken away. */
+const VANISHING_AGENT_PROGRAM_PATH = ['.local', 'bin', 'example-agent'] as const;
 /** The refusal Apply meets while an entity refusal stands. */
 const ENTITY_REFUSALS_STAND = 'entity-refusals-stand';
 const PROGRESS_STORE_PATH = ['.forge', 'progress.json'] as const;
@@ -356,11 +365,37 @@ function appEntityEditsOf(entityKey: string, home: string): Record<string, unkno
   ];
 }
 
-/** Opens pipeline setup, has the layout of both apps found as the pipeline agent reports it, drafts an entity of each app with one gate and applies it. */
+/** Keeps the board as it shows `wanted`, read once the board's event stream brought it there. */
+async function keepTheBoardOnceItShows(situation: BoardSituation, wanted: string, boardShows: (board: Record<string, unknown>) => boolean): Promise<Record<string, unknown>> {
+  await boardOnceItShows(wanted, boardShows);
+  const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+  const answer = await realHephaestusFetch().request(boardRequest);
+  const board = bodyOf(answer);
+  expect(boardShows(board)).toBe(true);
+  keep(situation, requestCallShapeOf(boardRequest), answer);
+  return board;
+}
+
+function agentOf(board: Record<string, unknown>): Record<string, unknown> {
+  return recordOf(board['agent']);
+}
+
+/**
+ * Opens pipeline setup at its agent step with no agent chosen, which the recording keeps, chooses the agent the board offers, has the
+ * layout of both apps found as the pipeline agent reports it, drafts an entity of each app with one gate and applies it.
+ */
 async function applyAPipelineOverTheApps(): Promise<void> {
   const opened = await sendCommand({ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
   const firstSetupId = String(setupOfAnswer(opened)['setupId']);
   setupId = firstSetupId;
+  const choosingBoard = await keepTheBoardOnceItShows('setup-choosing-agent', 'a setup record at its agent step with no agent chosen', (board) => {
+    const record = recordOf(recordOf(board['pipelineSetup'])['record']);
+    return record['currentStep'] === 'agent' && record['agent'] === null && agentOf(board)['choice'] === null;
+  });
+  expect(await sendCommand({ kind: 'pipeline-setup-agent', setupId: firstSetupId, agent: agentAtTheFoundPlaceOf(choosingBoard) })).toMatchObject({ status: SUCCESS_STATUS });
+  expect(await sendCommand({
+    kind: 'pipeline-setup-step', setupId: firstSetupId, step: 'agent', move: 'continue'
+  })).toMatchObject({ status: SUCCESS_STATUS });
   for (const appFolder of APP_FOLDERS) {
     const finding = {
       topic: 'layout', label: `${appFolder} is a stand-alone codebase`, value: appFolder, sourcePaths: [`${appFolder}/package.json`], script: null,
@@ -416,7 +451,7 @@ beforeAll(async () => {
   await scratchForge.runForDocument(repository, ['ticket', 'ready', committedTicketId, '--json']);
   // A new board starts paused and launches nothing, so the stop that follows interrupts no job. The Assistant's switch needs a stored pipeline.
   await scratchForge.runForDocument(repository, ['start', '--json']);
-  followTheLiveHephaestusOf(trackerIdDrawn);
+  followTheLiveHephaestusWithItsExamples();
   await applyAPipelineOverTheApps();
   expect(await sendCommand({ kind: 'pipeline-assistant-set', on: true })).toMatchObject({ status: SUCCESS_STATUS });
   await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
@@ -574,5 +609,20 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     expect(Object.hasOwn(recordOf(appliedPipelineOf(switchedOff)['pipeline']), 'assistant')).toBe(false);
     const switchedOn = await keepTheAssistantSwitched('assistant-switched-on', true);
     expect(assistantKeyOf(switchedOn)).toBe(true);
+  }, STEP_TIMEOUT_MILLISECONDS);
+
+  test('stands an intake\'s product owner not launched once the program its agent is pinned to is gone, and looks again', async () => {
+    const vanishingProgramPath = join(scratchForge.home(), ...VANISHING_AGENT_PROGRAM_PATH);
+    const { vendor, program } = agentAtTheFoundPlaceOf(await boardDocument());
+    mkdirSync(join(vanishingProgramPath, '..'), { recursive: true });
+    symlinkSync(program.pinned, vanishingProgramPath);
+    const pinned = await sendCommand({ kind: 'pipeline-agent-set', agent: { vendor, program: { pinned: vanishingProgramPath } } });
+    expect(pinned).toMatchObject({ status: SUCCESS_STATUS });
+    rmSync(vanishingProgramPath);
+    expect(await sendCommand({ kind: 'intake-start', text: 'Example: remember the shopper\'s last search.', pictures: [] })).toMatchObject({ status: SUCCESS_STATUS });
+    await boardOnceItShows('a job not launched', (board) => listOf(board['jobs']).some((job) => job['notLaunched'] !== null));
+    expect(await keepCommand('job-not-launched', { kind: 'agent-look-again' })).toMatchObject({ status: SUCCESS_STATUS });
+    await keepTheBoardOnceItShows('job-not-launched', 'a job not launched and the program looked at again', (board) => listOf(board['jobs'])
+      .some((job) => job['notLaunched'] !== null) && recordOf(agentOf(board)['check'])['verdict'] === 'does-not-run');
   }, STEP_TIMEOUT_MILLISECONDS);
 });

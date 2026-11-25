@@ -11,10 +11,12 @@ import type { JobStopMode, PictureReference }                   from '../../lib/
 import type { OptionNote }                                      from '../../lib/tracker-model/@types/OptionConsequences.ts';
 import type {
   EntityKey,
+  PipelineAgent,
   PipelineApproval,
   PipelineBilling,
   PipelineGate,
-  PipelineStep
+  PipelineStep,
+  PipelineTool
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
@@ -190,6 +192,7 @@ export type ControlCommand =
   | { kind: 'concurrency-set'; limit: number }
   /** Machine-wide, never a board change: Hephaestus writes `<monitor>/machine-limits.json`; applied to a board it is refused as runtime only. */
   | { kind: 'machine-agent-limit-set'; limit: number }
+  | { kind: 'machine-agent-program-set'; vendor: string; programPath: string }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   /** With no `phases`, a new gate runs in every phase and a replaced one keeps its phases. */
   | { kind: 'pipeline-gate-add'; gate: PipelineGate; phases?: GatePhase[] }
@@ -200,11 +203,17 @@ export type ControlCommand =
   | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
   /** The board's switch for the Assistant; off also winds a live Assistant down at the end of its turn. */
   | { kind: 'pipeline-assistant-set'; on: boolean }
+  // The agent's program was checked, and each tool found, before the command reached the board.
+  | { kind: 'pipeline-agent-set'; agent: PipelineAgent }
+  | { kind: 'pipeline-tools-set'; tools: PipelineTool[] | null }
+  | { kind: 'agent-look-again' }
   /** The whole reach, each a repository path leading with `/`; an empty list clears it. */
   | { kind: 'pipeline-reach-set'; paths: string[] }
   /** User's first setup of the pipeline: it opens the setup record; `replacesUnreadablePipeline` lets Apply write over an unreadable file. */
-  | { kind: 'pipeline-setup-start'; billing: PipelineBilling; replacesUnreadablePipeline: boolean }
+  // With no `agent` the record opens at the agent step; a sent agent's program was checked before the command reached the board.
+  | { kind: 'pipeline-setup-start'; billing: PipelineBilling; replacesUnreadablePipeline: boolean; agent?: PipelineAgent }
   | { kind: 'pipeline-setup-billing'; setupId: string; billing: PipelineBilling }
+  | { kind: 'pipeline-setup-agent'; setupId: string; agent: PipelineAgent }
   | { kind: 'pipeline-setup-step'; setupId: string; step: PipelineSetupStep; move: 'continue' }
   | { kind: 'pipeline-setup-start-over'; setupId: string }
   /** Opens the record's pipeline agent again; when main moved, its snapshot moves to main's tip first. */

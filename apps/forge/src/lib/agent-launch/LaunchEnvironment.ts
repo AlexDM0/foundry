@@ -13,4 +13,6 @@ export interface LaunchEnvironment {
   ): Record<string, string>;
   /** The folders of the environment's search path, in order, empty entries left out. */
   searchFoldersOf(environment: Readonly<Record<string, string | undefined>>): string[];
+  /** The environment with its search path exactly `folders`, then the base folders it was made with, duplicates dropped; no inherited folder stays. */
+  withSearchFolders(environment: Readonly<Record<string, string>>, folders: readonly string[]): Record<string, string>;
 }

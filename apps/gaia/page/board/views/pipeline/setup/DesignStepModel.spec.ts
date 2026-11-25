@@ -9,6 +9,7 @@
 import { describe, expect, test }                                                             from 'bun:test';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { pipelineBoardStateOf }                                                               from '../../../testing/PipelineFixture.ts';
+import type { AgentSessionState }                                                             from '../agent-panel/AgentSessionModel.ts';
 import { DesignStepModel }                                                                    from './DesignStepModel.ts';
 
 function proposal(): { readonly flow: BoardPipelineFlowDocument; readonly setup: BoardPipelineSetupDocument } {
@@ -48,12 +49,14 @@ describe('the aside', () => {
     expect(DesignStepModel.changesTabNameOf(1)).toBe('Changes, 1 change');
   });
 
-  test('the agent designs while it runs, is ready once it says so, and is not running with no job', () => {
+  test('the agent designs while it runs, is ready once it says so, is not running with no job, and is not launched rather than designing', () => {
     const { setup } = proposal();
-    expect(DesignStepModel.panelStatusOf(setup)).toEqual({ tone: 'working', text: 'Designing' });
+    const statusOf = (shown: typeof setup, sessionState: AgentSessionState) => DesignStepModel.panelStatusOf(DesignStepModel.agentStateOf(shown, sessionState));
+    expect(statusOf(setup, 'running')).toEqual({ tone: 'working', text: 'Designing' });
     const ready = { ...setup, record: { ...setup.record, readyToContinue: ['design' as const] } };
-    expect(DesignStepModel.panelStatusOf(ready)).toEqual({ tone: 'ready', text: 'Proposal ready' });
-    expect(DesignStepModel.panelStatusOf({ ...ready, agentJobState: null })).toEqual({ tone: 'idle', text: 'Not running' });
+    expect(statusOf(ready, 'running')).toEqual({ tone: 'ready', text: 'Proposal ready' });
+    expect(statusOf(ready, 'stopped')).toEqual({ tone: 'idle', text: 'Not running' });
+    expect(statusOf(setup, 'not-launched')).toEqual({ tone: 'failed', text: 'Not launched' });
   });
 
   test('the newest change is the agent\'s newest edit that is not undone', () => {

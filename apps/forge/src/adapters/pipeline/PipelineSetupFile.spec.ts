@@ -26,15 +26,16 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
 
 const EXAMPLE_SETUP: PipelineSetup = {
-  formatVersion:   2,
+  formatVersion:   3,
   setupId:         'S2',
   mode:            'setup',
   baseContentHash: null,
   stepStates:      {
-    billing: 'done', research: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+    billing: 'done', agent: 'done', research: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
   },
   currentStep:     'design',
   billing:         { mode: 'api', maxBudgetUsd: 4.5 },
+  agent:           { vendor: 'example-agent', program: { follows: 'machine' } },
   agentJobId:      'J7',
   snapshotCommit:  'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678',
   readyToContinue: ['design'],
@@ -121,12 +122,13 @@ const EXAMPLE_CHECKED: PipelineSetup = {
 
 /** An open record as a build that knew no entities stored it, written by hand so the new build cannot shape it. */
 const STORED_BEFORE_ENTITIES_TEXT = `{
-  "formatVersion": 2,
+  "formatVersion": 3,
   "setupId": "S1",
   "mode": "setup",
   "baseContentHash": null,
   "stepStates": {
     "billing": "done",
+    "agent": "done",
     "research": "in-progress",
     "constitution": "not-started",
     "design": "not-started",
@@ -135,6 +137,12 @@ const STORED_BEFORE_ENTITIES_TEXT = `{
   "currentStep": "research",
   "billing": {
     "mode": "subscription"
+  },
+  "agent": {
+    "vendor": "example-agent",
+    "program": {
+      "follows": "machine"
+    }
   },
   "agentJobId": "J1",
   "snapshotCommit": null,
@@ -202,7 +210,7 @@ const EXAMPLE_COPIED: PipelineSetup = {
 const EXAMPLE_OVER_ENTITIES: PipelineSetup = {
   ...EXAMPLE_SETUP,
   stepStates: {
-    billing: 'done', research: 'done', entities: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+    billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
   },
   findings: [
     ...EXAMPLE_SETUP.findings,
@@ -275,6 +283,7 @@ describe('a readable record', () => {
       'stepStates',
       'currentStep',
       'billing',
+      'agent',
       'agentJobId',
       'snapshotCommit',
       'readyToContinue',
@@ -326,7 +335,7 @@ describe('a readable record', () => {
     if (reading.verdict !== 'readable') throw new Error('the record did not read');
     expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
     const document = JSON.parse(text) as { stepStates: object; entities: Record<string, object> };
-    expect(Object.keys(document.stepStates)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(Object.keys(document.stepStates)).toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
     const keys = Object.keys(document);
     expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'entities', 'nextNumbers']);
     expect(Object.keys(document.entities['api'] ?? {})).toEqual(['agentJobId', 'findings', 'questions', 'constitution']);
@@ -405,7 +414,7 @@ describe('a readable record', () => {
 describe('a malformed record', () => {
   test.each<[string, (document: Record<string, unknown>) => unknown, string]>([
     ['not an object', () => [], 'the document is not a JSON object'],
-    ['an older format version', (document) => ({ ...document, formatVersion: 1 }), 'formatVersion is 1, and this build reads 2'],
+    ['an older format version', (document) => ({ ...document, formatVersion: 1 }), 'formatVersion is 1, and this build reads 3'],
     ['a missing key', ({ setupId: _setupId, ...rest }) => rest, 'setupId is missing'],
     ['a setup id of another shape', (document) => ({ ...document, setupId: 'D1' }), 'setupId is "D1", and it has to be a setup id such as S1'],
     ['an unknown step state',

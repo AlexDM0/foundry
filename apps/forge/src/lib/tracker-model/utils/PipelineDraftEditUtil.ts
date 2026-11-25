@@ -98,6 +98,7 @@ function fieldOf(edit: PipelineDraftEdit): PipelineDraftField {
     case 'approval':
       return `approval:${edit.approval}`;
     case 'airlock':
+    case 'tools':
     case 'ticket-writing':
       return edit.target;
     case 'entity':
@@ -142,7 +143,7 @@ function fieldIsWellFormed(text: string): text is PipelineDraftField {
     const scope = entityScopeOf(text);
     return scope !== null && scope.entityKey.trim() !== '';
   }
-  if (stepsFieldIsWellFormed(text) || text === 'airlock' || text === 'ticket-writing') return true;
+  if (stepsFieldIsWellFormed(text) || text === 'airlock' || text === 'tools' || text === 'ticket-writing') return true;
   const [kind, value = ''] = text.split(/:(.*)/su);
   if (kind === 'role') return roleIsKnown(value);
   if (kind === 'approval') return approvalIsKnown(value);
@@ -280,6 +281,10 @@ function pipelineWithEdit(pipeline: Readonly<Pipeline>, edit: PipelineDraftEdit)
       if (edit.value === null) Reflect.deleteProperty(draft, 'airlock');
       else draft.airlock = structuredClone(edit.value);
       return draft;
+    case 'tools':
+      if (edit.value === null) Reflect.deleteProperty(draft, 'tools');
+      else draft.tools = edit.value.map((tool) => ({ name: tool.name, path: tool.path }));
+      return draft;
     case 'ticket-writing':
       if (edit.value === null) Reflect.deleteProperty(draft, 'ticketWriting');
       else draft.ticketWriting = edit.value;
@@ -334,6 +339,7 @@ function baseEditOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, field: 
   const stepsEdit = stepsBaseEditOf(base, draft, field);
   if (stepsEdit !== null) return stepsEdit;
   if (field === 'airlock') return { target: 'airlock', value: base.airlock ?? null };
+  if (field === 'tools') return { target: 'tools', value: base.tools ?? null };
   if (field === 'ticket-writing') return { target: 'ticket-writing', value: base.ticketWriting ?? null };
   const [kind = '', name = ''] = field.split(/:(.*)/su);
   if (kind === 'role' && roleIsKnown(name)) return { target: 'role', role: name, value: base.agents?.[name] ?? null };

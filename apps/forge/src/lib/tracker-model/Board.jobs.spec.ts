@@ -9,7 +9,8 @@
  * `intake-empty`; only a product owner takes pictures. A pipeline agent is a session too: a stop closes it, even before its session started,
  * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`. User's resume is logged for
  * an interrupted job only, refused `job-not-interrupted` for any other, and gives the job its crash resumes back. In every state a job
- * offers exactly the stop modes, fresh agent and message its controls accept.
+ * offers exactly the stop modes, fresh agent and message its controls accept. A job whose launch stands refused ends on every stop mode, since
+ * no session of it will ever end.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -25,13 +26,14 @@ import type {
   JobMoveTarget,
   JobState
 } from './@types/Job.ts';
-import type { Pipeline }                        from './@types/Pipeline.ts';
-import type { PlaybookStep }                    from './@types/PlaybookStep.ts';
-import type { Board }                           from './Board.ts';
-import type { SteppedJobState }                 from './Jobs.ts';
-import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }     from './constants/JobMoveLegality.ts';
-import { JOB_STATES }                           from './constants/JobStates.ts';
-import { FIXTURE_LIMITS, FIXTURE_OBSERVATIONS } from './testing/LifecycleFixtures.ts';
+import type { Pipeline }                            from './@types/Pipeline.ts';
+import type { PlaybookStep }                        from './@types/PlaybookStep.ts';
+import type { Board }                               from './Board.ts';
+import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE } from './JobControls.ts';
+import type { SteppedJobState }                     from './Jobs.ts';
+import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }         from './constants/JobMoveLegality.ts';
+import { JOB_STATES }                               from './constants/JobStates.ts';
+import { FIXTURE_LIMITS, FIXTURE_OBSERVATIONS }     from './testing/LifecycleFixtures.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
@@ -388,6 +390,21 @@ describe('the end of a job', () => {
     board.launchJob(BUILD_LAUNCH, AT);
     expect(refusalDetailOf(() => board.moveJob('J2', 'running', AT))).toEqual({ reason: 'unknown-job', jobId: 'J2' });
     expect(refusalDetailOf(() => board.moveJob('job-1', 'running', AT))).toEqual({ reason: 'unknown-job', jobId: 'job-1' });
+  });
+});
+
+describe('a job whose launch stands refused', () => {
+  const NOT_LAUNCHED = { cause: 'not-there', programPath: '/opt/example/bin/agent' } as const;
+
+  test.each(['stop', 'wind-down', 'fresh'] as const)('ends on a %s while it runs, since no session of it will ever end', (mode) => {
+    const { board, progress } = boardWithTicket();
+    const jobId = jobInState(board, 'running');
+    board.recordNotLaunched(jobId, NOT_LAUNCHED, AT);
+    const { logged } = board.requestJobStop(jobId, mode, AT);
+    expect(progress.jobs).toEqual([]);
+    const ended = logged.filter((record) => record.kind === 'job-ended');
+    expect(ended).toHaveLength(1);
+    expect(ended[0]?.fields).toMatchObject(mode === 'fresh' ? { outcome: 'replaced', cause: FRESH_AGENT_CAUSE } : { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE });
   });
 });
 

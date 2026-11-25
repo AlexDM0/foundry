@@ -44,6 +44,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
 | `<data>/version.json` | [The install version file](#dataversionjson) |
 | `<monitor>/projects.json` | [The machine's registry](#monitorprojectsjson) |
+| `<monitor>/config.json` | [The machine's agent programs](#concurrency-and-gates), under `machine agent` |
 | `<monitor>/usage-windows.json` | [The machine's usage windows](#monitorusage-windowsjson) |
 | `<data>/tickets/<id>-<slug>.md` | [The ticket file](#datafoldertickets003-double-click-a-role-to-edit-itmd) |
 | `<data>/epics/<key>.md` | [The epic file](#dataepicscheckout-redesignmd) |
@@ -208,7 +209,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
-| `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. |
+| `PATH` | Not for this program | An empty entry is left out | The login environment; the test preload prepends one folder | Its folders are the executables a gate's `--writes` must never let a branch replace, as `gate add` says. No agent, gate, prepare step or fix runs on it: each gets the forge's [tools](#datapipelinejson)' folders instead. |
 
 - `FORGE_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
   naming a directory that has none is refused with a message saying the variable is set. `init` does not choose its
@@ -219,6 +220,11 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
 - A gate's environment also drops a `FORGE_GATE_REPORT` it would inherit and carries its own instead.
+- A gate, a prepare step and a gate's fix search exactly what an agent of the forge searches: the folders of the
+  [tools](#datapipelinejson) the pipeline names and approves, then the system's (`/usr/bin`, `/bin`, `/usr/sbin`,
+  `/sbin`), and nothing else of Hephaestus's own `PATH`. A pipeline check and a gate profile search the folders of the
+  programs their own steps run that the machine has. So what the design step shows as found is what the gates run, and
+  a Hephaestus started with a bare `PATH`, as from Finder, runs the same gates.
 
 > **As built.** The hook guard also needs the program on `PATH`.
 
@@ -909,6 +915,7 @@ before the first listing is out of reach, as it is on POSIX.
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Hephaestus reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Hephaestus claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at Hephaestus's next sweep; a slot whose Hephaestus is gone is taken over by the next claim, and a job that outlived its Hephaestus's restart keeps its slot under the new Hephaestus. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Hephaestus takes the same change as the control command `machine-agent-limit-set`. |
+| `machine agent [<path>] [--json]` | Print this machine's program of the agent this program runs, which every forge whose agent follows the machine starts, and the places the agent's installers put it, each found or not. With `<path>` (a relative one is taken from the current folder), run that program once with the agent's version arguments, bounded by `AGENT_PROGRAM_CHECK_TIMEOUT_MILLISECONDS` (10 s), and store it in `<monitor>/config.json`, `{ "version": 1, "agents": { "<vendor>": { "programPath": "<path>" } } }`, kept as the path names it, a link never resolved, every other key of the file kept. A program that is not there, lies inside the repository of any forge `<monitor>/projects.json` names, cannot run, fails, outlives the bound or answers as another program is refused `agent-program-does-not-run` at exit 1 with nothing written; a newer or malformed file is never written over (`machine-config-unwritable`). `--json` prints `{ answerVersion, vendor, programPath, places }`, after a set `{ answerVersion, outcome, vendor, programPath }`. A live Hephaestus takes the same change as the control command `machine-agent-program-set`. No role an agent runs under may run it. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. The text names the phases of a gate that runs in only some (`lint (runs in merge): bun run lint`); a gate with none runs in every phase. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
 | `gate prepare <name> [--in <folder>] [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. `--in` names the folder it runs in, as a gate's `--in` does. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--forge-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (Hephaestus's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
@@ -920,6 +927,9 @@ before the first listing is out of reach, as it is on POSIX.
 | `gate approval merge on\|off [--json]` | Switch merge approval, stored as `approvals.merge` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. Off, as with no key, the Airlocks work as without it. On, on every target (the main line, each group integration and the group release), a ticket in review done waits for merge until User runs `merge accept`: see [Merge approval](#merge-approval). Refused as `gate approval tickets` is. |
 | `gate assistant on\|off [--json]` | Switch the board's [Assistant](#the-assistant), stored as `assistant: true` in `pipeline.json` while on and as no key while off, with one log line (`Assistant set on`, kind `pipeline-assistant-set`). A new board has it off. On, the next pass boots an Assistant. Off, no pass boots one; a live one is asked to wind down in the same hold (`job-stop-requested`, mode `wind-down`), finishes its turn and ends `closed`, and every open incident takes its default with the cause `assistant-off`, one delivered in a turn still open once that turn closes. A wind-down once asked stands when the switch goes on again: that Assistant ends, and the next pass boots a fresh one. One that is interrupted or quiet while it winds down ends `closed` too, never a failed boot. Where the `assistant` key leaves `pipeline.json` another way, the next pass asks a live Assistant to wind down the same way. Any other switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`assistant-without-pipeline`). A pipeline with entities takes it. It prints what `gate approval` prints. No role an agent runs under may relay it. |
 | `gate reach <path>…\|none [--json]` | Store the repository paths besides the project that a ticket may change as `reach` in `pipeline.json`, with one log line (`Reach set to <paths>`, kind `pipeline-reach-set`). Each path starts with `/`, the repository's root, and holds no `..` or backslash; `none` clears the list. A path named twice is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`reach-without-pipeline`). No role an agent runs under may relay it. |
+| `gate agent machine\|<path> [--json]` | Set the board's agent, stored as `agent` in `pipeline.json` (`pipeline-agent-set`), with one log line (`Agent set to <vendor>, the machine's program`, kind `pipeline-agent-set`): `machine` follows this machine's program of the agent (`machine agent`), and a path pins that program to this board. The program runs once first, as `machine agent <path>` runs it, and one that does not run is refused `agent-program-does-not-run` at exit 1 with nothing written. An open setup record takes the same agent. With no `pipeline.json`, an open setup record alone takes it; with neither it is refused `agent-without-pipeline`. Every job that [stood not launched](#a-launch-that-is-not-launched) launches again. No role an agent runs under may run it. |
+| `gate tools <name>[=<path>]…\|pipeline [--json]` | Store the programs whose folders an agent's search path holds as `tools` in `pipeline.json` (`pipeline-tools-set`), with one log line (`Tools set to <paths>`, kind `pipeline-tools-set`). A name alone is found in the places installers put programs on the OS (the `ProgramFolders` port), in order. On macOS: `~/.bun/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`, nvm's newest node, then `/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`. On Linux: `~/.bun/bin`, `/usr/local/bin`, `~/.local/bin`, `/home/linuxbrew/.linuxbrew/bin`, `/snap/bin`, nvm's newest node, then the same four. On Windows: `%USERPROFILE%\.local\bin`, `%USERPROFILE%\.bun\bin`, `%APPDATA%\npm`, `%LOCALAPPDATA%\Microsoft\WinGet\Links`, `%ProgramFiles%\nodejs`, `%ProgramFiles%\Git\cmd`, then `System32`, the system root, `System32\Wbem` and `System32\WindowsPowerShell\v1.0` under `%SystemRoot%`. One found nowhere is refused `tool-not-found`. A `<path>` that is no program, or that lies inside a registered forge's repository or this forge's worktrees, is refused `tool-refused`. `pipeline` removes the key, so the tools follow the pipeline again. An open update's draft takes the same list, so its Apply keeps it. Refused with no `pipeline.json` (`tools-without-pipeline`). No role an agent runs under may run it. |
+| `gate look-again [--json]` | Launch again every job that stood not launched for its agent's program (`agent-look-again`), each logged `job-launch-retried`. From a client the forge also runs its program once more, so the views read whether it runs now. No role an agent runs under may run it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
 Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`, `assistant`) takes the lock, writes
@@ -1047,10 +1057,11 @@ question and edit id is read in either case (`s1`, `S1`).
 
 | command | what it does |
 |---|---|
-| `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the research step with the billing step done, billed by subscription unless `--billing api` says otherwise, with an optional cap, and launch its [pipeline agent](#advise) in the same hold, `launching`, billed as the record says; the record names it as `agentJobId`. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. When main holds a `CONSTITUTION.md`, the record's constitution starts from it byte for byte, its `baseBlob` main's blob id of that file, with the sources of [`constitution-sources.json`](#dataconstitution-sourcesjson) only when they were stored for that same blob; a main whose `CONSTITUTION.md` git cannot read is refused `main-constitution-unreadable` at exit 2. Refused `setup-in-progress` beside an open record. |
+| `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--agent machine\|<path>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the agent step with the billing step done, billed by subscription unless `--billing api` says otherwise, with an optional cap. No pipeline agent launches before the agent step is done: its Continue launches the record's [pipeline agent](#advise) in the same hold, `launching`, billed as the record says, and the record names it as `agentJobId`. With `--agent`, as `pipeline agent` names one, or a client's `pipeline-setup-start` carrying its `agent`, the program runs once first: then the record opens at the research step with the agent step done, and its pipeline agent launches at once. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. When main holds a `CONSTITUTION.md`, the record's constitution starts from it byte for byte, its `baseBlob` main's blob id of that file, with the sources of [`constitution-sources.json`](#dataconstitution-sourcesjson) only when they were stored for that same blob; a main whose `CONSTITUTION.md` git cannot read is refused `main-constitution-unreadable` at exit 2. Refused `setup-in-progress` beside an open record. |
 | `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step, with no agent until `pipeline resume` asks for one. Its constitution starts from main's `CONSTITUTION.md` byte for byte (empty when main holds none, as a main line with no commit yet does), its `baseBlob` main's blob id of that file, with the sources of [`constitution-sources.json`](#dataconstitution-sourcesjson) only when they were stored for that same blob. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`; a main whose `CONSTITUTION.md` git cannot read is refused `main-constitution-unreadable` at exit 2. |
 | `pipeline billing <S> subscription\|api [--max-budget-usd <n>] [--json]` | Change the record's billing (`pipeline-setup-billing`), logged `pipeline-setup-billing-set`. A cap of 0 or below is refused `billing-cap-not-positive`. |
-| `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. A first setup opens past billing, so `billing` is current only in a record a reopen left there. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. While the draft's entities hold a refusal of the entity validator, every Continue is refused `entity-refusals-stand`, naming the reasons. |
+| `pipeline agent <S> machine\|<path> [--json]` | Choose the agent the record's pipeline agent runs on and Apply stores (`pipeline-setup-agent`), logged `pipeline-setup-agent-set`: `machine` follows this machine's program, a path pins one to this forge. The program runs once first, as `machine agent <path>` runs it; one that does not run is refused `agent-program-does-not-run` at exit 1 with nothing written. It moves no step; every job that stood not launched launches again. No role an agent runs under may run it, nor `pipeline setup --agent`. |
+| `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. A first setup opens past billing, so `billing` is current only in a record a reopen left there. The `agent` step's Continue is refused `setup-agent-not-chosen` while the record holds no agent, and launches the record's pipeline agent. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. While the draft's entities hold a refusal of the entity validator, every Continue is refused `entity-refusals-stand`, naming the reasons. |
 | `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
 | `pipeline constitution <S> --revision <n> [--file <path>\|-] [--sources <source>,…\|none] [--json]` | Store User's constitution (`pipeline-constitution-edit`), logged `pipeline-constitution-set`: the whole text from the file, or from standard input with `--file -`, byte for byte (an empty file clears it), and the SOURCES ticks, the sources named on (`contributing`, `research`, `installed-default`) and the others off. Give the text, the sources or both. `--revision` is the constitution revision User read; another is refused `constitution-draft-stale`. |
 | `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. Each field and value are read into the typed edit the command carries (`target` and its keys, as [the Hephaestus API](reference/hephaestus-api.md#board-commands) names them); a value of the wrong shape is refused `malformed-setup-command`, naming the field, before anything is written. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. Entities the validator refuses together, such as two on one home, are kept: the draft holds them until User resolves them, and Continue and Apply wait (`entity-refusals-stand`). |
@@ -1718,6 +1729,23 @@ nothing, so the ticket runs again as it stood.
 | `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with Hephaestus up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
 | `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: Hephaestus stamps its own. [What follows](#intake-close) is below. |
 | `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with Hephaestus up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: Hephaestus stamps its own. [Who runs it](#intake-title) is below. |
+
+#### A launch that is not launched
+
+Each launch starts the program the forge's agent names, never one found on Hephaestus's search path: a pipeline agent's
+setup record's agent, else `pipeline.json`'s, through `<monitor>/config.json` when it follows the machine. A forge that
+names no agent, an agent of another vendor than this program runs, a machine that names no program of the vendor, and a
+program that is relative, inside the repository (the machine's program: inside any registered forge's repository), a
+batch file on Windows, not there or not executable each refuse the launch, with nothing spawned. The job keeps its
+state, stores `notLaunched` `{ cause, programPath }`, logged `job-not-launched` once, and a notice words it (`job J1 is
+not launched: the Claude Code at ~/.local/bin/claude is not there`); the board document carries it on the job. No pass
+tries the job again until the program the forge names reads otherwise (it resolves, or names another path or cause: a
+change of the forge's agent or of the machine's config does this), or until User looks again (`gate look-again`,
+`agent-look-again`); `gate agent` and `pipeline agent` look again too. While a job stands not launched, every Hephaestus
+sweep runs a pass that reads the program again, so a program installed, or a machine program set by another forge or by
+`machine agent`, is seen without a change on the board. A refusal whose program resolved before the pass could record it
+is not recorded. Each retry is logged `job-launch-retried`. A job that stands not launched has no session, so a `job
+stop`, `job wind-down` or `job fresh` ends it at once, freeing its slot, and no sweep counts it quiet.
 
 #### `job message`
 
@@ -2548,6 +2576,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
 | `entity` | yes | The entity whose stage the job runs, written by Hephaestus at launch only on a forge with entities. |
 | `stage` | yes | The ticket's stage the job runs, from 1, written with `entity`. |
+| `notLaunched` | yes | Written only while the job's launch [stands refused](#a-launch-that-is-not-launched) for its agent's program: `{ cause, programPath }`, `programPath` `null` when the forge named none. |
 
 </details>
 
@@ -2696,6 +2725,8 @@ is refused at exit 1 with nothing written, and a stored one reads as malformed, 
 | `ticketWriting` | no | how a ticket is written: `one-ticket`, the product owner's ticket, as with no key; or `spec-then-plan`, where the product owner writes the Report and the Wanted and the spec agent and the plan agent write the [ticket documents](#ticket-documents). Any other value makes the file malformed. It is written last, only once set, and it is not part of `pipelineHash`; a pipeline without it keeps its `contentHash`, as one without `spec`, `plan` or `documents` does. |
 | `billing` | no | How every agent Hephaestus starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 | `assistant` | no | `true` while the board's Assistant is on, as `gate assistant on` writes it; absent is off, and any other value makes the file malformed. It is not part of `pipelineHash`. |
+| `agent` | no | The agent every job of the forge runs: `{ "vendor": "<vendor>", "program": { "follows": "machine" } }`, this machine's program of that vendor in `<monitor>/config.json`, or `{ "program": { "pinned": "<absolute path>" } }`, a program for this forge alone, kept as found. An Apply stores the setup record's; `gate agent` sets it. Absent, no agent is chosen and no job launches: each [stands not launched](#a-launch-that-is-not-launched). Any other shape makes the file malformed. It is not part of `pipelineHash`. |
+| `tools` | no | The programs whose folders an agent's search path holds, `[{ "name": "bun", "path": "/Users/x/.bun/bin/bun" }]`, each name once, each path absolute and kept as found. Absent, the tools follow the pipeline: each program its prepare steps and gates run (a gate's `fix` too) is found at each launch in the places `gate tools` names. `git` is always one. A launch gives the agent exactly the folders of the tools that were found, then the agent program's own folder, then the system's (`/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`), and nothing else of Hephaestus's own search path; a gate, a prepare step and a fix get the same tools' folders, then the system's. A tool kept inside a registered forge's repository or this forge's worktrees is left off, and the launch logs why. Only User sets the list: a pipeline agent's proposal that edits it is refused `tools-set-by-user-only`. The list is no security boundary; the sandbox is. It is not part of `pipelineHash`. |
 | `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 | `entities` | no | each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
 
@@ -2749,21 +2780,22 @@ starts.
 The one open pipeline setup record, beside `progress.json`: a first setup, an update or an advise session of the
 pipeline agent, saved as each answer, edit and finding happens, so every step can resume. Only an Apply writes
 `pipeline.json` from it. The [`pipeline` verbs](#pipeline-setup) and the same commands from a client write it through
-the lock, atomically; a start over removes it. This is format version 2: its draft is read as `pipeline.json` is but
+the lock, atomically; a start over removes it. This is format version 3: its draft is read as `pipeline.json` is but
 for the entities' set check, so it keeps entities the validator refuses until User resolves them.
 
 ```jsonc
 {
-  "formatVersion": 2,                            // only this version is read
+  "formatVersion": 3,                            // only this version is read
   "setupId": "S1",                               // S<n>, from progress.json's nextSetupId, never reused
   "mode": "setup",                               // setup | update | advise
   "baseContentHash": null,                       // the stored pipeline's content hash when an update or advise opened
   "stepStates": {                                // not-started | in-progress | done | needs-recheck
-    "billing": "done", "research": "in-progress", "constitution": "not-started", "design": "not-started",
+    "billing": "done", "agent": "done", "research": "in-progress", "constitution": "not-started", "design": "not-started",
     "apply": "not-started"                       // and "entities", only once a record over entities walks it
   },
   "currentStep": "research",
   "billing": { "mode": "subscription" },         // as pipeline.json's billing
+  "agent": { "vendor": "claude-code", "program": { "follows": "machine" } },  // as pipeline.json's agent; null until chosen
   "agentJobId": null,
   "snapshotCommit": null,                        // the main commit the agent's snapshot holds
   "readyToContinue": [],                         // the agent's suggestion; it never moves a step
@@ -2806,12 +2838,12 @@ On a forge over entities the record also holds, each written only once set:
   times, so an edited line loses its source. `draftedFrom` holds the three SOURCES ticks; `baseBlob` is main's blob of
   `CONSTITUTION.md` when the record opened, or `null`.
 - An edit's `field` is one of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `role:<role>`,
-  `review`, `airlock`, `approval:<approval>`, `ticket-writing` and `constitution`; on a draft with entities also
-  `entity:<key>`, an entity's `kind`, `home` and `summary`, and `entity:<key>/<field>`, a field inside that entity: one
-  of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `review`, `constitution`, `role:<role>`
-  (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `depends-on` and `concurrency`.
-  Undo writes the base pipeline's value of that field back: the stored pipeline's, or the minimal one's for a first
-  setup.
+  `review`, `airlock`, `tools`, `approval:<approval>`, `ticket-writing` and `constitution`; on a draft with entities
+  also `entity:<key>`, an entity's `kind`, `home` and `summary`, and `entity:<key>/<field>`, a field inside that entity:
+  one of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `review`, `constitution`,
+  `role:<role>` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `depends-on` and
+  `concurrency`. Undo writes the base pipeline's value of that field back: the stored pipeline's, or the minimal one's
+  for a first setup.
 - An edit's `batch` is written only by a copy of one entity's settings to other entities: a `pipeline-draft-edit` sent
   with `isACopy`, whose edits each take the set's `batch`, the first of their edit ids. A copy on a draft without
   entities, or with an edit of a field outside an entity, is refused `draft-copy-outside-entities`, so a forge without
@@ -2852,9 +2884,12 @@ On a forge over entities the record also holds, each written only once set:
   `cannot-run`.
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
-  wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move
-  refuses `pipeline-setup-unreadable` with the reason and nothing writes over the file, and every other command runs as
-  before.
+  wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move but
+  `pipeline start-over` and `pipeline setup` refuses `pipeline-setup-unreadable` with the reason and nothing writes over
+  the file, and every other command runs as before. `pipeline start-over`, with any setup id, removes the unreadable
+  record, logged `pipeline-setup-discarded` with that id, and stops every pipeline agent on the board; `pipeline setup`
+  does the same first, logged with the newest setup id the board numbered, then opens its record. Nothing migrates a
+  record.
 
 ### `<data>/gate-profiles.json`
 
@@ -3005,6 +3040,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 |---|---|---|
 | `pipeline-setup-opened` | `setupId` | `mode` (`setup`, `update` or `advise`), `replacesUnreadablePipeline` |
 | `pipeline-setup-billing-set` | `setupId` | `mode` (`subscription` or `api`), `maxBudgetUsd` only for a cap |
+| `pipeline-setup-agent-set` | `setupId` | `vendor`, `program`: `machine` or the pinned path |
 | `pipeline-setup-step-moved` | `setupId` | `step`, its new `state`, the `currentStep`, and `needsRecheck`: the later steps a reopening sent back |
 | `pipeline-setup-resumed` | `setupId` | `snapshotCommit`, `changedPaths` (changed on main since the earlier snapshot) |
 | `pipeline-snapshot-touched` | `setupId` | `check` and `reason` of the Customs refusal at a turn end of the pipeline agent; Apply refuses `setup-snapshot-touched` until the next `pipeline-setup-resumed` |
@@ -3049,6 +3085,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-gates-ordered` | none | `phase` (`build`, `review` or `merge`), `names` (the phase's gates in their new run order) |
 | `pipeline-approval-set` | none | `approval`: `tickets`, `state`: `on` or `off` |
 | `pipeline-assistant-set` | none | `state`: `on` or `off` |
+| `pipeline-agent-set` | none | `vendor`, `program`: `machine` or the pinned path |
+| `pipeline-tools-set` | none | `paths`: the tools' paths; empty when the list was removed |
 | `pipeline-reach-set` | none | `paths`: the repository paths, an empty list when cleared |
 | `branch-namespace-set` | none | `namespace` |
 | `check-command-set` | none | `command` (the shell line, or `null` when cleared); retired: still read, never logged |
@@ -3082,6 +3120,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
+| `job-not-launched` | `jobId` | `cause`, `programPath` (`null` when none was named): the launch was refused for the agent's program |
+| `job-launch-retried` | `jobId` | none: the agent's program changed, or User looked again |
 | `job-messaged` | `jobId` | `text`: a chat turn Hephaestus writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byHephaestus` (`true`) only when the text is Hephaestus's wording of User's setup move |
 | `job-reopened` | `jobId` | `childInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byHephaestus` as on `job-messaged` |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |

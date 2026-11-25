@@ -1,16 +1,16 @@
 /**
  * The launcher port: what a coding-agent vendor's adapter does for Talos, which knows no vendor. It renders a launch plan Talos executes,
  * maps each stdout line the session prints to events, and writes the lines Talos sends the session. The package depends on
- * `src/lib/executable-resolver`, whose port an adapter finds its program through.
+ * `src/lib/executable-resolver`, whose refusals of a program an adapter repairs.
  */
-import type { ExecutableRefusalCause, ExecutableResolution, ExecutableResolver } from '../executable-resolver/ExecutableResolver.ts';
-import type { AgentInstaller }                                                   from './AgentInstaller.ts';
-import type { AgentLaunchPlan }                                                  from './AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                               from './AgentLaunchRequest.ts';
-import type { AgentQuestion, AgentSessionEvent }                                 from './AgentSessionEvent.ts';
-import type { AgentToolCall }                                                    from './AgentToolCall.ts';
-import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest }         from './AgentTranscripts.ts';
-import type { SandboxDenyShape }                                                 from './WorkerProfile.ts';
+import type { ExecutableRefusalCause }                                   from '../executable-resolver/ExecutableResolver.ts';
+import type { AgentInstaller }                                           from './AgentInstaller.ts';
+import type { AgentLaunchPlan }                                          from './AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                       from './AgentLaunchRequest.ts';
+import type { AgentQuestion, AgentSessionEvent }                         from './AgentSessionEvent.ts';
+import type { AgentToolCall }                                            from './AgentToolCall.ts';
+import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest } from './AgentTranscripts.ts';
+import type { SandboxDenyShape }                                         from './WorkerProfile.ts';
 
 /** The names an adapter may give an ending in its plan's `endingPatterns`, each of which Hephaestus maps to a cause. */
 export const AGENT_ENDING_NAMES = ['network-outage'] as const;
@@ -83,8 +83,14 @@ export interface AgentAdapter {
   readonly promptFills:            Readonly<Record<AgentPromptFillName, string>>;
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
-  /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */
-  programPathOf(resolver: ExecutableResolver, forbiddenRoots: readonly string[]): ExecutableResolution;
+  /** The file name of the vendor's program on this host. */
+  readonly programFileName:        string;
+  /** The folders only the vendor's own installers put its program in, under the home folder, each as its path segments. */
+  readonly vendorProgramFolders:   readonly (readonly string[])[];
+  /** The arguments that make the program print its version and end, which a chosen program is run with once before it is kept. */
+  readonly versionArguments:       readonly string[];
+  /** The version the program printed, or `null` when the output is not this agent's answer. */
+  versionOf(versionOutput: string): string | null;
   /** The sentence that repairs a refused program, or `null`. */
   programRepairOf(cause: ExecutableRefusalCause): string | null;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;

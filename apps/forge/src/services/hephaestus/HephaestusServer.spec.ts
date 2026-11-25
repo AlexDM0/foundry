@@ -14,7 +14,7 @@
  * serves no page: `GET /` and every other path outside `/api/` is a 404. The bearer token is the only credential: the routes that once
  * gave a browser a session are a 404, and a data route answers a cookie with no token 401. Every answer carries the API's policy, which
  * lets nothing frame it, and a picture and a job file their sandbox. A ticket's documents answer behind the token at their v1 path from
- * forge 4.1, the reference reaching the route from the path, and the route's 404 refusal passes through as it is. A command body larger
+ * forge 4.2, the reference reaching the route from the path, and the route's 404 refusal passes through as it is. A command body larger
  * than the bound is refused 413 and never reaches the command route.
  */
 import {

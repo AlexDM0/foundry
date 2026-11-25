@@ -5,9 +5,10 @@
  * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedTalosStages.ts`,
  * a Hephaestus restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
  * given with Hephaestus down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent, or a conflict
- * re-reviewer before User's code review, launches never asking User. A first instance that resumes another job's session and exits before
- * it starts is a failed resume. A gate profile left running by a stopped Hephaestus reads `stopped` after the next start, is never run
- * again, and its worktree goes. A product owner past the crash bound waits for its answer when a question is open, else for User's resume.
+ * re-reviewer before User's code review, launches never asking User, and one whose denied root cannot be made opens one launch incident.
+ * A first instance that resumes another job's session and exits before it starts is a failed resume. A gate profile left running by a
+ * stopped Hephaestus reads `stopped` after the next start, is never run again, and its worktree goes. A product owner past the crash
+ * bound waits for its answer when a question is open, else for User's resume.
  *
  * An Apply cut short anywhere in its hold is finished by the next holder's journal replay, so a retried Apply of the same revision finds
  * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; Hephaestus's start hold leaves no record
@@ -32,24 +33,25 @@ import {
   test,
 } from 'bun:test';
 
-import type { AgentAdapter }                                from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                          from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                               from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { WorkerProfile }                               from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ChildRecord }                                 from '../../lib/talos/ChildRecord.ts';
-import { createEventLogWriter, type EventLogEntry }         from '../../lib/talos/EventLog.ts';
-import type { Decision }                                    from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                       from '../../lib/tracker-model/Board.ts';
-import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
-import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
-import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
-import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
-import { PRODUCT_NAMES }                                    from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
-import { createScratchDrivePass }                           from '../../testing/DrivePassHarness.ts';
-import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith } from '../../testing/EchoedControlContext.ts';
+import type { AgentAdapter }                                    from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                              from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                                   from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { WorkerProfile }                                   from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ChildRecord }                                     from '../../lib/talos/ChildRecord.ts';
+import { createEventLogWriter, type EventLogEntry }             from '../../lib/talos/EventLog.ts';
+import type { Decision }                                        from '../../lib/tracker-model/@types/Decision.ts';
+import type { Job }                                             from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../lib/tracker-model/Board.ts';
+import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
+import { refusalIsOperationRefusal }                            from '../../shared/OperationRefusal.ts';
+import { WorktreesFolder }                                      from '../../shared/WorktreesFolder.ts';
+import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                    from '../../shared/constants/HephaestusLimits.ts';
+import { LIFECYCLE_LIMITS }                                     from '../../shared/constants/LifecycleLimits.ts';
+import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
+import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../testing/DrivePassHarness.ts';
+import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }     from '../../testing/EchoedControlContext.ts';
+import { EXAMPLE_PIPELINE_AGENT }                               from '../../testing/ExamplePipelineAgent.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -402,7 +404,7 @@ describe('an Apply cut short', () => {
       now,
       mutate:    (change) => {
         const { setupId } = change.board.openSetup({
-          mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+          mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
         }, change.at).setup;
         change.board.setConstitution(setupId, {
           markdown:    MAIN_CONSTITUTION.markdown,
@@ -583,6 +585,7 @@ function withoutLiveAnswers(adapter: AgentAdapter): AgentAdapter {
 function startedHephaestus(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
+  requestOverrides: Partial<ScratchDrivePassRequest> = {},
 ): Promise<DrivePass> {
   return Promise.resolve(createScratchDrivePass({
     platformPorts:     { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
@@ -610,6 +613,7 @@ function startedHephaestus(
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
     log:                 (line) => hephaestusLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
+    ...requestOverrides,
   }));
 }
 
@@ -1168,6 +1172,34 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(requireProgressFile(sessionWorkspace).incidents ?? []).toEqual([]);
     expect(storedRecords().filter((record) => record.kind === 'incident-handled')).toMatchObject([{ incidentId, fields: { move: 'gate-retry' } }]);
     expect(childReadings().livenessOf(sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unlaunched');
+  });
+
+  test('an Airlock agent whose denied root cannot be made launches nothing and opens one sandbox-unavailable launch incident', async () => {
+    let airlockAgentJobId = '';
+    await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        airlockAgentJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job.id;
+      },
+    });
+    const drivePass = await startedHephaestus(
+      { ...recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }), sandboxDenyShape: 'mount-points' },
+      undefined,
+      { folderMaker: { makeFolder: () => false } },
+    );
+
+    await passOnce(drivePass);
+    await passOnce(drivePass);
+
+    expect((requireProgressFile(sessionWorkspace).incidents ?? []).map((incident) => [incident.kind, incident.jobId, incident.facts['step']]), hephaestusLog.join('\n')).toEqual([
+      ['sandbox-unavailable', airlockAgentJobId, 'airlock-agent'],
+    ]);
+    expect(childReadings().livenessOf(sessionJobFolder(airlockAgentJobId), 1).verdict).toBe('unlaunched');
   });
 
   /** User's resume of the job, which a reboot leaves waiting for it. */

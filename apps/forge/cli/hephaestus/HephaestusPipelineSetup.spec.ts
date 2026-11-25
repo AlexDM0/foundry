@@ -155,7 +155,7 @@ afterEach(async () => {
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one setup end to end', () => {
   test('the agent\'s relayed finding, question, constitution and proposal and User\'s answer bring S1 to an Apply that waits for its commit', async () => {
-    await run(['pipeline', 'setup']);
+    await run(['pipeline', 'setup', '--agent', process.execPath]);
     const { agentJobId } = setupRecord();
     if (agentJobId === null) throw new Error('the setup start launched no pipeline agent');
     await untilTheAgentSessionIsLive(agentJobId);

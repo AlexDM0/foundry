@@ -3,6 +3,7 @@
  * and the facts the forge serves, under Gaia's names and Gaia's unions. Gaia's own contract, never the forge's (decision 51).
  */
 import type { PAGE_CONTRACT_VERSIONS }                                   from '../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardAgentDocument }                                       from './BoardAgentDocuments.ts';
 import type { BoardDecisionDocument, BoardQuestionHistoryEntryDocument } from './BoardDecisionDocuments.ts';
 import type {
   BoardAttentionEntryDocument,
@@ -74,6 +75,7 @@ export interface BoardDocument {
   readonly pipeline:             BoardPipelineFactsDocument;
   /** The board's Assistant switch as the forge holds it: off until the board turns it on, and off while no readable pipeline is stored. */
   readonly assistantIsOn:        boolean;
+  readonly agent:                BoardAgentDocument;
   readonly pictureLimits:        BoardPictureLimitsDocument | null;
   readonly limits:               BoardLimitsDocument;
   readonly notices:              readonly BoardNoticeDocument[];

@@ -8,7 +8,6 @@ import type {
   EntityChangeRefusalReason,
   GateCandidacy,
   PipelineCheckState,
-  PipelineSetup,
   PipelineSetupMode,
   PipelineSetupStep,
   PipelineSetupStepState,
@@ -20,10 +19,8 @@ import type {
 } from '../@types/PipelineSetup.ts';
 
 /** The steps in the order the setup walks them; a record walks `entities` only while its step states hold it. */
-/** The setup record's stored format, the only one read: an older record is set up anew. */
-export const PIPELINE_SETUP_FORMAT_VERSION = 2 satisfies PipelineSetup['formatVersion'];
 
-export const PIPELINE_SETUP_STEPS = ['billing', 'research', 'entities', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
+export const PIPELINE_SETUP_STEPS = ['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
 
 export const PIPELINE_SETUP_STEP_STATES = ['not-started', 'in-progress', 'done', 'needs-recheck'] as const satisfies readonly PipelineSetupStepState[];
 

@@ -168,8 +168,8 @@ describe('a malformed file', () => {
 
   test('an unknown key at every level is refused with a reason naming it', () => {
     expect(reasonOf(minimalWith({ checks: 'bun test' })))
-      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, '
-        + 'assistant, ticketWriting');
+      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, '
+        + 'entities, assistant, agent, tools, ticketWriting');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, cache: true }] }))).toContain('gates[0]."cache" is not a pipeline key');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', network: [] }] }))).toContain('prepare[0]."network" is not a pipeline key');
     expect(reasonOf(minimalWith({ phases: { ...NO_PHASES, deploy: [] } }))).toContain('phases."deploy" is not a pipeline key');
@@ -381,6 +381,29 @@ describe('the ticket writing keys', () => {
       .toBe('entities.shared.agents.reviewer.documents.spec is never; the reviewer always reads the spec');
     expect(reasonOf(entityWith({ reReviewer: { documents: { plan: 'always' } } })))
       .toBe('entities.shared.agents.reReviewer."documents" is not a pipeline key; the keys are model, effort, instructions');
+  });
+});
+
+describe('the agent and the tools', () => {
+  test('a pipeline keeps its agent, following the machine or pinned to a path, and its tools, written after every other key but the ticket writing route', () => {
+    const agent = { vendor: 'example-agent', program: { pinned: '/opt/example/bin/agent' } };
+    const tools = [{ name: 'bun', path: '/home/example/.bun/bin/bun' }, { name: 'make', path: 'C:\\Tools\\make.exe' }];
+    const reading = readingOf(minimalWith({ agent, tools }));
+    expect(reading).toEqual({ verdict: 'readable', pipeline: { ...MINIMAL_PIPELINE, agent, tools } });
+    expect(readingOf(minimalWith({ agent: { vendor: 'example-agent', program: { follows: 'machine' } } }))).toMatchObject({ verdict: 'readable' });
+    if (reading.verdict !== 'readable') throw new Error('the pipeline did not read');
+    expect(Object.keys(JSON.parse(PipelineFile.contentsOf(reading.pipeline)) as object).slice(-2)).toEqual(['agent', 'tools']);
+  });
+
+  test.each([
+    ['an agent naming both', { agent: { vendor: 'example-agent', program: { follows: 'machine', pinned: '/opt/agent' } } }, 'agent.program names neither follows nor pinned alone'],
+    ['an agent following another', { agent: { vendor: 'example-agent', program: { follows: 'elsewhere' } } }, 'agent.program.follows is not machine'],
+    ['a relative pinned program', { agent: { vendor: 'example-agent', program: { pinned: 'bin/agent' } } }, 'agent.program.pinned is not an absolute path'],
+    ['an agent with no vendor', { agent: { program: { follows: 'machine' } } }, 'agent.vendor is not a name'],
+    ['a tool named twice', { tools: [{ name: 'bun', path: '/a/bun' }, { name: 'bun', path: '/b/bun' }] }, 'tools names "bun" twice'],
+    ['a tool at a relative path', { tools: [{ name: 'bun', path: 'bin/bun' }] }, 'tools[0].path is not an absolute path'],
+  ])('%s is malformed with its reason', (_case, fields, reason) => {
+    expect(reasonOf(minimalWith(fields))).toBe(reason);
   });
 });
 

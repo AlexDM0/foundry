@@ -31,12 +31,21 @@ const PROMPT_BY_TARGET: Readonly<Record<PathChoiceTarget, string>> = {
   file:   'Choose a file',
 };
 
+/**
+ * A file chooser opens in the home folder with hidden files shown, since programs such as an agent's install under hidden folders like
+ * `~/.local/bin`.
+ */
+const CHOOSER_OPTIONS_BY_TARGET: Readonly<Record<PathChoiceTarget, string>> = {
+  folder: '',
+  file:   ' default location (path to home folder) with invisibles',
+};
+
 /** The script brings its dialog to the front first: the server that runs it has no window of its own. */
 function scriptLinesOf(what: PathChoiceTarget): readonly string[] {
   return [
     'activate',
     'try',
-    `return POSIX path of (choose ${what} with prompt "${PROMPT_BY_TARGET[what]}")`,
+    `return POSIX path of (choose ${what} with prompt "${PROMPT_BY_TARGET[what]}"${CHOOSER_OPTIONS_BY_TARGET[what]})`,
     `on error number ${USER_CANCELLED_ERROR_NUMBER}`,
     'return ""',
     'end try',

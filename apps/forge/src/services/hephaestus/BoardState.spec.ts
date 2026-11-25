@@ -25,6 +25,7 @@ import type { Pipeline }                                          from '../../li
 import type { MergeTargetOf }                                     from '../../lib/tracker-model/AirlockClaims.ts';
 import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }   from '../../shared/constants/HephaestusLimits.ts';
 import { boardFixture, ticketFixture }                            from '../../testing/BoardFixtures.ts';
+import { EXAMPLE_AGENT_FACTS }                                    from '../../testing/ExampleAgentFacts.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
@@ -210,6 +211,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
       mergeForecasting,
       agentTakesPictures,
       pipelineSources,
+      agent:          { ...EXAMPLE_AGENT_FACTS },
     };
   }
 
@@ -325,6 +327,7 @@ describeWhenGitIsRecorded('the main line texts of a state read', () => {
       usage:              EXAMPLE_STATE.usage,
       mergeForecasting:   null,
       agentTakesPictures: true,
+      agent:              { ...EXAMPLE_AGENT_FACTS },
       pipelineSources:    {
         ...NO_PIPELINE_SOURCES,
         pipelineReading: { verdict: 'readable', pipeline: BRIEFED_PIPELINE },

@@ -36,18 +36,21 @@ describe('the footer', () => {
 });
 
 describe('the agent state', () => {
-  test('drafts while the agent runs, is ready once it says so, and is not running with no job', () => {
+  test('drafts while the agent runs, is ready once it says so, is not running with no job, and never drafts while forge did not launch it', () => {
     const setup = constitutionSetup();
-    expect(ConstitutionStepModel.agentStateOf(setup)).toBe('drafting');
-    expect(ConstitutionStepModel.agentStateOf({ ...setup, record: { ...setup.record, readyToContinue: ['constitution'] } })).toBe('ready');
-    expect(ConstitutionStepModel.agentStateOf({ ...setup, agentJobState: null })).toBe('not-running');
+    expect(ConstitutionStepModel.agentStateOf(setup, 'running')).toBe('drafting');
+    expect(ConstitutionStepModel.agentStateOf({ ...setup, record: { ...setup.record, readyToContinue: ['constitution'] } }, 'running')).toBe('ready');
+    expect(ConstitutionStepModel.agentStateOf(setup, 'stopped')).toBe('not-running');
+    expect(ConstitutionStepModel.agentStateOf(setup, 'not-launched')).toBe('not-launched');
   });
 
-  test('the panel head says it drafts, is ready or does not run', () => {
-    const setup = constitutionSetup();
-    expect(ConstitutionStepModel.panelStatusOf(setup)).toEqual({ tone: 'working', text: 'Drafting' });
-    expect(ConstitutionStepModel.panelStatusOf({ ...setup, record: { ...setup.record, readyToContinue: ['constitution'] } })).toEqual({ tone: 'ready', text: 'Draft ready' });
-    expect(ConstitutionStepModel.panelStatusOf({ ...setup, agentJobState: null })).toEqual({ tone: 'idle', text: 'Not running' });
+  test('the status line and the panel head say it drafts, is ready, does not run or is not launched', () => {
+    expect(ConstitutionStepModel.panelStatusOf('drafting')).toEqual({ tone: 'working', text: 'Drafting' });
+    expect(ConstitutionStepModel.panelStatusOf('ready')).toEqual({ tone: 'ready', text: 'Draft ready' });
+    expect(ConstitutionStepModel.panelStatusOf('not-running')).toEqual({ tone: 'idle', text: 'Not running' });
+    expect(ConstitutionStepModel.panelStatusOf('not-launched')).toEqual({ tone: 'failed', text: 'Not launched' });
+    expect(ConstitutionStepModel.statusLineOf('not-launched')).toBe('Pipeline agent · not launched');
+    expect(ConstitutionStepModel.entityStatusLineOf('not-launched', 'web')).toBe('Pipeline agent · not launched');
   });
 });
 

@@ -10,6 +10,7 @@ import { createInterface } from 'node:readline';
 import type { AgentAdapter }                    from '../src/lib/agent-launch/AgentAdapter.ts';
 import { claudeCodeAdapterFor }                 from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
 import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { ProgramCheckRun }                 from '../src/lib/program-check/ProgramCheck.ts';
 import {
   agentVariableOf,
   executableSearchPath,
@@ -67,6 +68,8 @@ export interface CommandContext {
   onStopSignal:            (listener: () => void) => () => void;
   /** What Hephaestus launches its sessions through: the agent port's adapter, or the scripted fake agent under the fake-agent switch. */
   agentAdapter:            AgentAdapter;
+  /** How a chosen agent program is run once with its version arguments; absent runs it for real. A spec passes a recorded run. */
+  programCheckRun?:        ProgramCheckRun;
 }
 
 /** The one place outside the agent port's adapter that chooses it; a spec-spawned binary always gets the fake. */

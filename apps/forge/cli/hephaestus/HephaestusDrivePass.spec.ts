@@ -12,7 +12,8 @@
  * a job whose child is gone with no end of its own takes the start's cause and waits for User's resume, a child that ended keeps the cause
  * of its end, and new work still launches. An Assistant switched off and on again while live ends `closed`, also when its turn never ends,
  * and a fresh one boots; one switched off ends `closed` also while a usage limit holds; the `assistant` key taken out of the pipeline by
- * hand winds a live one down; an install change after that holds the board.
+ * hand winds a live one down; an install change after that holds the board. A job not launched for its agent's program launches at a sweep
+ * once the program resolves, which no wake reports, and a refusal that resolved before its hold is never recorded.
  * Beside Hephaestus, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/hephaestus/HephaestusDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -38,10 +39,10 @@ import { MachineLimitsFile }                                    from '../../src/
 import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { createWindowsExecutableResolver }                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
 import type { Job, StartKind }                                  from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
+import type { AgentProgramResolution }                          from '../../src/services/control/AgentPrograms.ts';
 import type { StartClassificationVerdict }                      from '../../src/services/hephaestus/@types/StartClassification.ts';
 import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                   from '../../src/services/hephaestus/BoardChildren.ts';
@@ -235,21 +236,59 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
   });
 
-  test('on Windows an npm claude.cmd first on PATH launches no session and is noticed in words naming the install command, with no spawn-failed end', async () => {
-    const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\claude.cmd';
-    const fakeFiles: Readonly<Record<string, string>> = { claude: shimPath };
-    const windowsResolver = createWindowsExecutableResolver({ lookUp: (name) => (Object.hasOwn(fakeFiles, name) ? fakeFiles[name] ?? null : null), realPathOf: (path) => path });
-    const adapter: AgentAdapter = { ...fakeAgentAdapter(), programPathOf: (_resolver, forbiddenRoots) => windowsResolver.absolutePathOf('claude', forbiddenRoots) };
-    const drivePass = await drivePassWith(adapter);
+  test('a job whose agent program does not run stands not launched, stored and noticed in words, and launches by itself once the program differs', async () => {
+    const shimPath = 'C:\\Users\\example\\AppData\\Roaming\\npm\\example-agent.cmd';
+    let resolution: AgentProgramResolution = { verdict: 'not-launched', notLaunched: { cause: 'batch-target', programPath: shimPath } };
+    const adapter = fakeAgentAdapter();
+    const drivePass = await drivePassWith(adapter, undefined, undefined, { agentProgramOf: () => resolution });
     await passOnce(drivePass);
     await passOnce(drivePass);
 
+    const storedJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
+    expect(storedJob).toMatchObject({ state: 'running', notLaunched: { cause: 'batch-target', programPath: shimPath } });
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
       kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
     }));
     const noticeTexts = drivePass.state().notices.map(HephaestusWording.noticeTextOf);
-    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: ${shimPath} is a batch file`))).toContain('irm https://claude.ai/install.ps1 | iex');
+    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
+    const notLaunchedLines = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"job-not-launched"'));
+    expect(notLaunchedLines.filter((line) => line.includes(`"jobId":"${buildJobId()}"`))).toHaveLength(1);
+
+    resolution = { verdict: 'found', programPath: process.execPath };
+    await passUntilBuildSessionSpawned(drivePass);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())?.notLaunched).toBeUndefined();
+    expect(storedLogTextOf(repositoryDirectory)).toContain('"job-launch-retried"');
+  });
+
+  test('a program fixed outside the board, which no wake reports, launches a not-launched job at the next sweep', async () => {
+    let resolution: AgentProgramResolution = { verdict: 'not-launched', notLaunched: { cause: 'not-there', programPath: '/example/bin/example-agent' } };
+    const drivePass = await drivePassWith(fakeAgentAdapter(), undefined, undefined, { agentProgramOf: () => resolution });
+    await passOnce(drivePass);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())?.notLaunched).toBeDefined();
+
+    resolution = { verdict: 'found', programPath: process.execPath };
+    drivePass.sweep();
+    await drivePass.idle();
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())?.notLaunched, hephaestusLog.join('\n')).toBeUndefined();
+    expect(storedLogTextOf(repositoryDirectory)).toContain('"job-launch-retried"');
+  });
+
+  test('a refusal whose program resolves before the pass records it is not recorded, and the job launches in the passes that follow', async () => {
+    let buildLaunchesRefused = 0;
+    const drivePass = await drivePassWith(fakeAgentAdapter(), undefined, undefined, {
+      agentProgramOf: (_board, job): AgentProgramResolution => {
+        if (job.kind !== 'build' || buildLaunchesRefused > 0) return { verdict: 'found', programPath: process.execPath };
+        buildLaunchesRefused += 1;
+        return { verdict: 'not-launched', notLaunched: { cause: 'no-agent-chosen', programPath: null } };
+      },
+    });
+    await passOnce(drivePass);
+
+    expect(buildLaunchesRefused).toBe(1);
+    expect(storedLogTextOf(repositoryDirectory)).not.toContain('"job-not-launched"');
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())?.notLaunched).toBeUndefined();
+    expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict, hephaestusLog.join('\n')).not.toBe('unlaunched');
   });
 
   test('a launch no Talos takes leaves the job for the next pass, which launches it once Talos serves', async () => {

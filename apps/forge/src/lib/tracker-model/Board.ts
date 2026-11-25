@@ -26,6 +26,7 @@ import type {
   PipelineApplyChanged,
   PipelineChanged,
   PipelineSetupChanged,
+  PipelineSetupStartedOver,
   ReviewBarRequest,
   ReviewBarStarted,
   ReviewRecorded,
@@ -85,6 +86,7 @@ import type {
   JobEnding,
   JobEventCursor,
   JobLaunch,
+  JobNotLaunched,
   JobOutcome,
   JobStopMode,
   LostLineKind,
@@ -106,10 +108,12 @@ import type { QuestionOptionNotes }           from './@types/OptionConsequences.
 import type {
   EntityKey,
   Pipeline,
+  PipelineAgent,
   PipelineApproval,
   PipelineBilling,
   PipelineGate,
   PipelineStep,
+  PipelineTool,
   TicketWritingRoute
 } from './@types/Pipeline.ts';
 import type {
@@ -1042,6 +1046,41 @@ export class Board {
     return this.records.pipeline?.assistant === true;
   }
 
+  /**
+   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. With no
+   * stored pipeline an open record takes it alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
+   */
+  setAgent(agent: PipelineAgent, at: string): Logged {
+    const setup = this.pipelineSetup();
+    if (this.records.pipeline === null && setup !== null) {
+      return { logged: [...this.pipelineSetups.setSetupAgent(setup.setupId, agent, at).logged, ...this.jobRules.retryNotLaunched(at).logged] };
+    }
+    const changed = this.trackerChanges.setAgent(agent, at);
+    this.pipelineSetups.followAgentChange(agent);
+    return { logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+  }
+
+  /** The tools whose folders an agent's search path holds, in an open update's draft too; `null` follows the pipeline's programs again. */
+  setTools(tools: readonly PipelineTool[] | null, at: string): PipelineChanged {
+    const changed = this.trackerChanges.setTools(tools, at);
+    this.pipelineSetups.followToolsChange(tools);
+    return changed;
+  }
+
+  /** The agent named in the stored pipeline, else in the open setup record; `null` when neither names one. */
+  agentOfForge(): PipelineAgent | null {
+    return this.records.pipeline?.agent ?? this.pipelineSetup()?.agent ?? null;
+  }
+
+  recordNotLaunched(jobId: string, notLaunched: JobNotLaunched, at: string): JobChanged {
+    return this.jobRules.recordNotLaunched(jobId, notLaunched, at);
+  }
+
+  /** User's look again, or a program that changed since the refusal: each refused launch, or each `isDue` picks, is tried again. */
+  retryNotLaunched(at: string, isDue?: (job: Readonly<Job>) => boolean): Logged {
+    return this.jobRules.retryNotLaunched(at, isDue);
+  }
+
   recordPipelineJudgedBy(ticketId: string, greenTree: string | null, stamp: GateRunStamp | null, at: string): void {
     this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, stamp, at);
   }
@@ -1188,6 +1227,12 @@ export class Board {
     return this.pipelineSetups.setSetupBilling(setupId, billing, at);
   }
 
+  /** The record's agent; every launch its earlier program refused is tried again. */
+  setSetupAgent(setupId: string, agent: PipelineAgent, at: string): PipelineSetupChanged {
+    const changed = this.pipelineSetups.setSetupAgent(setupId, agent, at);
+    return { setup: changed.setup, logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+  }
+
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
     return this.pipelineSetups.continueSetupStep(setupId, step, at);
   }
@@ -1276,8 +1321,12 @@ export class Board {
     return this.pipelineSetups.discardDraft(setupId, at);
   }
 
-  startOverSetup(setupId: string, at: string): PipelineSetupChanged {
+  startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
     return this.pipelineSetups.startOverSetup(setupId, at);
+  }
+
+  discardUnreadableSetup(at: string): PipelineSetupStartedOver | null {
+    return this.pipelineSetups.discardUnreadableSetup(at);
   }
 
   /** Refuses `no-gate-to-check` and `pipeline-check-running`; Hephaestus runs the check, one per entity the draft touched. */

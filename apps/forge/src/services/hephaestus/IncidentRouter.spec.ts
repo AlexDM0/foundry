@@ -1,7 +1,8 @@
 /**
  * Hephaestus's incident routing outside the policy. What matters: a running build or review whose event cursor stands still for
- * `QUIET_JOB_SWEEPS` sweeps opens one `quiet-job` incident, a count and never a clock, while a moving cursor or a job waiting on an answer
- * never does; and the defaults taken since Hephaestus last started are the warning state `jobs` and Hephaestus's notices show.
+ * `QUIET_JOB_SWEEPS` sweeps opens one `quiet-job` incident, a count and never a clock, while a moving cursor, a job waiting on an answer
+ * or one whose launch stands refused never does; and the defaults taken since Hephaestus last started are the warning state `jobs` and
+ * Hephaestus's notices show.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -62,6 +63,11 @@ describe('the quiet-job watch', () => {
     const moving = Array.from({ length: 10 }, (_unused, i) => [jobFixture({ id: 'J1', eventCursor: { instance: 1, sequence: i } })]);
     expect(sweepsUntilDue(moving, 2)).toBeNull();
     expect(sweepsUntilDue(Array.from({ length: 10 }, () => [{ ...QUIET_BUILD, state: 'waiting-for-answer' as const }]), 2)).toBeNull();
+  });
+
+  test('a running job whose launch stands refused is never due, since it has no session to be quiet', () => {
+    const notLaunched = { ...QUIET_BUILD, notLaunched: { cause: 'not-there', programPath: '/opt/example/bin/agent' } } as const;
+    expect(sweepsUntilDue(Array.from({ length: 10 }, () => [notLaunched]), 2)).toBeNull();
   });
 
   test('opens one quiet-job incident whose default asks User, and none while one is open for the job', () => {

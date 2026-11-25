@@ -371,7 +371,7 @@ describe('monorepo mode', () => {
           ...setup.record,
           currentStep: 'constitution',
           stepStates:  {
-            billing: 'done', research: 'done', entities: 'done', constitution: constitutionStep, design: 'not-started', apply: 'not-started',
+            billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: constitutionStep, design: 'not-started', apply: 'not-started',
           },
           draft: { ...draft, entities: { ...draft.entities, admin: ADMIN_ENTITY } },
         },

@@ -33,7 +33,14 @@ import { CLAUDE_CODE_CONFIGURATION_NAMES }                    from './constants/
 import { CLAUDE_CODE_DISPLAY_NAME, CLAUDE_CODE_PROMPT_FILLS } from './constants/ClaudeCodePromptFills.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
-const CLAUDE_PROGRAM_NAME = 'claude';
+
+/** `claude --version` prints its version and the product's name, `2.1.327 (Claude Code)`. */
+const CLAUDE_VERSION_ARGUMENTS = ['--version'] as const;
+const CLAUDE_VERSION_ANSWER = /^(\d+\.\d+\.\d+\S*) \(Claude Code\)$/m;
+
+function claudeVersionOf(versionOutput: string): string | null {
+  return CLAUDE_VERSION_ANSWER.exec(versionOutput.trim())?.[1] ?? null;
+}
 
 export const CLAUDE_JOB_FILE_NAMES = {
   settings:     'settings.json',
@@ -368,7 +375,10 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
     installer:              CLAUDE_CODE_INSTALLER,
     promptFills:            CLAUDE_CODE_PROMPT_FILLS,
     credentialPathsOf:      (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
-    programPathOf:          (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
+    programFileName:        facts.programFileName,
+    vendorProgramFolders:   facts.vendorProgramFolders,
+    versionArguments:       CLAUDE_VERSION_ARGUMENTS,
+    versionOf:              claudeVersionOf,
     programRepairOf:        claudeProgramRepairOf,
     planOf:                 (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
     sessionIdOf:            claudeSessionIdOf,

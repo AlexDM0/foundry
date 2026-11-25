@@ -238,6 +238,11 @@ export interface PipelineSetupChanged extends Logged {
   setup: Readonly<PipelineSetup>;
 }
 
+/** The record a start over removed; `null` when it could not be read, so no move could name its agents. */
+export interface PipelineSetupStartedOver extends Logged {
+  setup: Readonly<PipelineSetup> | null;
+}
+
 /** The gate profile run as the move left it. */
 export interface GateProfileChanged extends Logged {
   run: Readonly<GateProfileRun>;

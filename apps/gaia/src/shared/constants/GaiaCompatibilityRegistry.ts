@@ -17,8 +17,8 @@ const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
 const COMMANDS_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
 /** Gaia 4.0 names a restarting forge's condition `restarting` and the look of a failed restart `restart-failed` in the fleet document. */
 const FLEET_NAMING_THE_RESTART_IN: SystemVersion = { major: 4, minor: 0 };
-/** Gaia 4.1 relays a ticket's spec and plan. */
-const TICKET_DOCUMENTS_ADDED_IN: SystemVersion = { major: 4, minor: 1 };
+/** Gaia 4.2 relays a ticket's spec and plan. */
+const TICKET_DOCUMENTS_ADDED_IN: SystemVersion = { major: 4, minor: 2 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {

@@ -126,6 +126,28 @@ export interface Airlock {
   phase:     AirlockPhase;
 }
 
+/**
+ * Why a job's session did not launch, nothing spawned: the forge names no agent, an agent of another vendor than this forge's program
+ * runs, its machine's program of the vendor is not set, or the program the choice names cannot run where it lies.
+ */
+export type JobNotLaunchedCause =
+  | 'no-agent-chosen'
+  | 'other-vendor'
+  | 'no-machine-program'
+  | 'relative-path'
+  | 'inside-forbidden-root'
+  | 'batch-target'
+  | 'not-there'
+  | 'not-executable'
+  | 'no-adapter';
+
+/** A launch refused for its agent's program: no pass tries it again until the program the forge names differs, or User looks again. */
+export interface JobNotLaunched {
+  cause:       JobNotLaunchedCause;
+  /** The program the forge named when the launch was refused; `null` when it named none. */
+  programPath: string | null;
+}
+
 /** What User asked of a live job: `stop` and `wind-down` hold its ticket, `fresh` stops it for a fresh agent on the same worktree. */
 export type JobStopMode = 'stop' | 'wind-down' | 'fresh';
 
@@ -192,6 +214,8 @@ export interface Job {
   entity?:             EntityKey;
   /** The stage of the ticket the job runs, from 1; set with `entity`. */
   stage?:              number;
+  /** Written only while the job's launch stands refused for its agent's program; the job keeps its state and no pass launches it. */
+  notLaunched?:        JobNotLaunched;
 }
 
 export interface JobLaunch {

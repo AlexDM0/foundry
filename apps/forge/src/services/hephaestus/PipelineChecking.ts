@@ -45,7 +45,8 @@ export interface PipelineCheckingContext {
   mainLine:              string;
   platformPorts:         Pick<PlatformPorts, 'shellLine'>;
   gateSlots:             Pick<GateRunSlots, 'tryAcquireAfterRealGates' | 'release'>;
-  gateEnvironment:       () => Readonly<Record<string, string>>;
+  /** The environment a check's lines run in, whose search path holds the tools its steps run. */
+  gateEnvironment:       (checkedSteps: Pick<PipelineCheckStart, 'prepare' | 'gates'>) => Readonly<Record<string, string>>;
   /** Confines each line of the check in its worktree, as a gate of Hephaestus's is confined; `checkName` names the check's own profile. */
   confinedLineIn:        (worktreePath: string, checkName: string) => GateLineConfiner;
   hold:                  <Result>(mutate: (hold: PipelineCheckHold) => Result) => Promise<Result>;
@@ -150,13 +151,14 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
     const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
     if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) };
     const { signal: stopSignal } = running.stopController;
+    const checkedSteps = rootedStartOf(started);
     const record = await context.runProposalTwice({
       shellLine:      platformPorts.shellLine,
-      environment:    context.gateEnvironment(),
+      environment:    context.gateEnvironment(checkedSteps),
       confinedLineOf: context.confinedLineIn(worktreePath, checkName),
       runLine:        (lineRequest) => context.runLine({ ...lineRequest, stopSignal }),
       childFolder:    join(runsFolder, checkName),
-      ...rootedStartOf(started),
+      ...checkedSteps,
       directory:      worktreePath,
       projectPrefix,
       snapshotCommit,

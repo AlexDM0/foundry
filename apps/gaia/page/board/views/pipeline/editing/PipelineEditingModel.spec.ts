@@ -28,9 +28,10 @@ describe('the panel head', () => {
     expect(PipelineEditingModel.versionStepTextOf(null)).toBeNull();
   });
 
-  test('says whether the agent runs', () => {
-    expect(PipelineEditingModel.agentStatusOf(null)).toEqual({ tone: 'idle', text: 'Not running' });
+  test('says whether the agent runs, and that forge did not launch it rather than Running', () => {
+    expect(PipelineEditingModel.agentStatusOf('stopped')).toEqual({ tone: 'idle', text: 'Not running' });
     expect(PipelineEditingModel.agentStatusOf('running')).toEqual({ tone: 'working', text: 'Running' });
+    expect(PipelineEditingModel.agentStatusOf('not-launched')).toEqual({ tone: 'failed', text: 'Not launched' });
   });
 });
 

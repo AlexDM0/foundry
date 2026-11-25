@@ -8,6 +8,9 @@ const HOME_CREDENTIAL_NAMES = ['.ssh', '.aws', '.netrc', '.git-credentials'] as 
 /** Claude Code's login where no keychain holds it, as on Linux; on macOS it is the fallback when the keychain is unavailable. */
 const CLAUDE_CREDENTIALS_FILE_NAME = '.credentials.json';
 const ANTHROPIC_PROFILE_FOLDER = ['.config', 'anthropic'] as const;
+const PROGRAM_FILE_NAME = 'claude';
+/** The older local install; the native installer links into the platform's own program folders. */
+const VENDOR_PROGRAM_FOLDERS = [['.claude', 'local']] as const;
 
 function configFolderOf(homeDirectory: string, configFolderVariable: string | undefined): string {
   return claudeConfigFolderOf(homeDirectory, configFolderVariable, posix.join);
@@ -31,6 +34,8 @@ export const POSIX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFa
   credentialPathsOf,
   sandboxSettingsApply: true,
   sandboxDenyShape:     'path-rules',
+  programFileName:      PROGRAM_FILE_NAME,
+  vendorProgramFolders: VENDOR_PROGRAM_FOLDERS,
 });
 
 export const LINUX_CLAUDE_HOST_FACTS: AgentHostFacts = Object.freeze<AgentHostFacts>({ ...POSIX_CLAUDE_HOST_FACTS, sandboxDenyShape: 'mount-points' });

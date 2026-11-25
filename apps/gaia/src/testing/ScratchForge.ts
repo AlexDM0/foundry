@@ -15,7 +15,7 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import {
   realProcessRun,
@@ -77,6 +77,7 @@ const NO_PROCESS_MATCHED_EXIT_CODE = 1;
 const MONITOR_FOLDER_NAME = '.forge-monitor';
 const SHORT_HOME_LINK_NAME = 'home';
 const REGISTRY_FILE_NAME = 'projects.json';
+const RUNTIME_EXAMPLE_PATH = '/Users/example/.bun/bin/bun';
 
 export function forgeProgramToRun(recordingName: string): string {
   const forgeProgram = forgeProgramToRecordFrom();
@@ -90,6 +91,20 @@ function refuseOutsideTheScratchRoot(workingDirectory: string): void {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The agent a board document offers on this machine: its first vendor, pinned to the first place its installers put a program that is
+ * there. A scratch forge runs its fake agent, so nothing here names a vendor.
+ */
+export function agentAtTheFoundPlaceOf(boardDocument: Record<string, unknown>): { vendor: string; program: { pinned: string } } {
+  const agent = isRecord(boardDocument['agent']) ? boardDocument['agent'] : {};
+  const vendors = Array.isArray(agent['vendors']) ? agent['vendors'] as unknown[] : [];
+  const places = Array.isArray(agent['places']) ? agent['places'] as unknown[] : [];
+  const firstVendor = vendors.find(isRecord);
+  const foundPlace = places.filter(isRecord).find((place) => place['found'] === true);
+  if (firstVendor === undefined || foundPlace === undefined) throw new Error(`The board offers no agent at a found place: ${JSON.stringify(agent)}`);
+  return { vendor: String(firstVendor['vendor']), program: { pinned: String(foundPlace['path']) } };
 }
 
 /**
@@ -122,8 +137,15 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   const shortHomeLinkFolder = mkdtempSync(join(scratchForgeLinkRoot(), 'forge-'));
   const shortForgeHome = join(shortHomeLinkFolder, SHORT_HOME_LINK_NAME);
   symlinkSync(forgeHome, shortForgeHome);
+  // Bun's installer's folder under the forge's home holds the runtime, so the fake agent's program is found where installers put one.
+  mkdirSync(join(forgeHome, '.bun', 'bin'), { recursive: true });
+  symlinkSync(process.execPath, join(forgeHome, '.bun', 'bin', basename(process.execPath)));
   const repositories: string[]   = [];
-  const exampleValues: ExampleValue[] = [{ drawn: program, example: '/Users/example/.bun/bin/forge' }];
+  // The fake agent's program is the runtime the forge runs on, so the board's agent names this machine's runtime.
+  const exampleValues: ExampleValue[] = [
+    { drawn: program, example: '/Users/example/.bun/bin/forge' },
+    { drawn: process.execPath, example: RUNTIME_EXAMPLE_PATH },
+  ];
 
   function forgeEnvironmentFor(workingDirectory: string): Record<string, string> {
     return {

@@ -57,10 +57,12 @@ import { EntityWorkModel }                                                from '
 import { FlowActivityPanel }                                              from './live/FlowActivityPanel.tsx';
 import type { StampFormat }                                               from './live/FlowActivityPanelModel.ts';
 import { ForgeLevelLive }                                                 from './live/ForgeLevelLive.tsx';
+import { ForgeSettings }                                                  from './live/ForgeSettings.tsx';
 import { LiveFooter }                                                     from './live/LiveFooter.tsx';
 import { LivePipelineModel, type LivePipelineFacts, type LiveToastView }  from './live/LivePipelineModel.ts';
 import { MinimalPipelineNote }                                            from './live/MinimalPipelineNote.tsx';
 import { MinimalPipelineNoteModel }                                       from './live/MinimalPipelineNoteModel.ts';
+import { AgentStep }                                                      from './setup/AgentStep.tsx';
 import { BillingStep }                                                    from './setup/BillingStep.tsx';
 import { ConstitutionStep }                                               from './setup/ConstitutionStep.tsx';
 import { DesignStep }                                                     from './setup/DesignStep.tsx';
@@ -386,6 +388,7 @@ function ScreenContent({
     );
   }
   if (screen.screen === 'setup-step' && screen.step === 'billing') return <BillingStep facts={facts} replacesUnreadablePipeline={false} />;
+  if (screen.screen === 'setup-step' && screen.step === 'agent' && setup !== null) return <AgentStep facts={facts} setup={setup} />;
   if (screen.screen === 'setup-step' && screen.step === 'research' && setup !== null) {
     return <ResearchStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} route={route} />;
   }
@@ -394,7 +397,8 @@ function ScreenContent({
   }
   const constitutionIsShown = (screen.screen === 'setup-step' && screen.step === 'constitution') || screen.screen === 'constitution-edit';
   if (constitutionIsShown && setup !== null) return <ConstitutionStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} route={route} />;
-  if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
+  if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} jobs={facts.jobs} />;
+  if (screen.screen === 'forge-settings') return <ForgeSettings facts={facts} />;
   if (screen.screen === 'setup-step' && screen.step === 'design' && setup !== null) {
     return (
       <DesignStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} route={route} />

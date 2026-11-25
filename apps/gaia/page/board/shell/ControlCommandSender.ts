@@ -8,6 +8,7 @@ import { useContext, useState } from 'react';
 
 import type { BoardCommandDocument }                           from '../../@types/board/BoardCommandDocument.ts';
 import type { BoardCommandResult, CommandOutcome }             from '../api/BoardCommandClient.ts';
+import type { ForgeRefusalFacts }                              from '../api/RefusalOf.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
 export const UNREACHABLE_WORDING = 'Hephaestus could not be reached. Try again.';
@@ -41,42 +42,76 @@ function commandsOf(command: SentCommands | null): readonly BoardCommandDocument
   return isCommandList(command) ? command : [command];
 }
 
-/** `command` is `null` while the form behind it is not complete: the sender stays disabled. */
-export function useControlCommand(command: SentCommands | null, options: ControlCommandOptions = {}): ControlCommandSender {
-  const { answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied } = options;
+export interface ControlCommandSequenceSender {
+  /** Whether the board lets a control act now and no send is on its way. */
+  readonly canSend:         boolean;
+  readonly refusal:         string | null;
+  /** The code and facts of the last send's refusal when the forge refused it, `null` otherwise. */
+  readonly forgeRefusal:    ForgeRefusalFacts | null;
+  /** The commands of the last send the forge applied, in order: every one, or those before the one it did not apply. */
+  readonly appliedCommands: readonly BoardCommandDocument[];
+  /** Sends the commands in order, stopping at the first one the forge does not apply; `true` once every one was applied. */
+  readonly sendCommands:    (commands: readonly BoardCommandDocument[]) => Promise<boolean>;
+}
+
+/** A sender whose commands are named at the moment they are sent, such as a program's path chosen in the system's dialog. */
+export function useControlCommandSequence(options: ControlCommandOptions = {}): ControlCommandSequenceSender {
+  const { answeredWhileInstallHeld = false, onApplied } = options;
   const {
     availability, commandClient, onInstallHeld, onSessionLost, onRefused
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [forgeRefusal, setForgeRefusal] = useState<ForgeRefusalFacts | null>(null);
   const [sending, setSending] = useState(false);
-  const commands = commandsOf(command);
-  const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && commands.length > 0;
+  const [appliedCommands, setAppliedCommands] = useState<readonly BoardCommandDocument[]>([]);
+  const canSend = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending;
 
-  const outcomeOfEvery = async (): Promise<CommandOutcome> => {
+  const outcomeOfEvery = async (commands: readonly BoardCommandDocument[]): Promise<{ readonly outcome: CommandOutcome; readonly applied: BoardCommandDocument[] }> => {
     let outcome: CommandOutcome = { verdict: 'unreachable' };
+    const applied: BoardCommandDocument[] = [];
     for (const each of commands) {
       outcome = await commandClient.send(each);
-      if (outcome.verdict !== 'applied') return outcome;
+      if (outcome.verdict !== 'applied') return { outcome, applied };
+      applied.push(each);
     }
-    return outcome;
+    return { outcome, applied };
   };
 
-  const send = async (): Promise<void> => {
-    if (!enabled) return;
+  const sendCommands = async (commands: readonly BoardCommandDocument[]): Promise<boolean> => {
+    if (!canSend || commands.length === 0) return false;
     setSending(true);
     setRefusal(null);
-    const outcome = await outcomeOfEvery();
+    setForgeRefusal(null);
+    setAppliedCommands([]);
+    const { outcome, applied } = await outcomeOfEvery(commands);
     setSending(false);
+    setAppliedCommands(applied);
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
     if (outcome.verdict === 'refused') {
       setRefusal(outcome.refusal);
+      setForgeRefusal(outcome.forgeRefusal ?? null);
       onRefused?.(outcome.refusal);
     }
     if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
     if (outcome.verdict === 'outcome-unknown') setRefusal(OUTCOME_UNKNOWN_WORDING);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
     if (outcome.verdict === 'no-session') onSessionLost?.();
+    return outcome.verdict === 'applied';
   };
 
-  return { enabled, refusal, send };
+  return {
+    canSend, refusal, forgeRefusal, appliedCommands, sendCommands
+  };
+}
+
+/** `command` is `null` while the form behind it is not complete: the sender stays disabled. */
+export function useControlCommand(command: SentCommands | null, options: ControlCommandOptions = {}): ControlCommandSender {
+  const { hasNothingToSend = false } = options;
+  const sequence = useControlCommandSequence(options);
+  const commands = commandsOf(command);
+  const enabled = sequence.canSend && !hasNothingToSend && commands.length > 0;
+  const send = async (): Promise<void> => {
+    if (enabled) await sequence.sendCommands(commands);
+  };
+  return { enabled, refusal: sequence.refusal, send };
 }

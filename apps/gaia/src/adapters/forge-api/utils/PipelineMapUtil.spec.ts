@@ -1,7 +1,8 @@
 /**
  * The pipeline mapper against its own contract, on parts the recorded board does not hold. What matters: every typed draft edit a refusal's
  * fix may carry keeps its target and values, an edit within an entity included; a pipeline's absent parts stay absent rather than taking a
- * forge default; billing by an API key keeps its budget; every history entry keeps its kind and fields; the recorded pipeline maps; and a
+ * forge default; billing by an API key keeps its budget; an agent that follows the machine and the forge's own tool list keep their form;
+ * a tools edit keeps a tool named alone without a path; every history entry keeps its kind and fields; the recorded pipeline maps; and a
  * pipeline in the spec-then-plan route keeps its route and the documents its builder reads, which a pipeline without them never gains.
  */
 import { describe, expect, test }         from 'bun:test';
@@ -46,6 +47,11 @@ describe('draftEditOf', () => {
       expected: { target: 'role', role: 'assistant', value: { model: 'opus', effort: null, instructions: null } },
     },
     { edit: { target: 'airlock', value: {} }, expected: { target: 'airlock', value: { reReview: null } } },
+    {
+      edit:     { target: 'tools', value: [{ name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'gh' }] },
+      expected: { target: 'tools', value: [{ name: 'bun', path: '/Users/example/.bun/bin/bun' }, { name: 'gh', path: null }] },
+    },
+    { edit: { target: 'tools', value: null }, expected: { target: 'tools', value: null } },
     { edit: { target: 'approval', approval: 'merge', value: true }, expected: { target: 'approval', approval: 'merge', value: true } },
     { edit: { target: 'entity', entityKey: 'web', value: null }, expected: { target: 'entity', entityKey: 'web', value: null } },
     {
@@ -99,6 +105,8 @@ describe('pipelineFactsOf', () => {
         agents:           {},
         approvals:        {},
         billing:          { mode: 'api', maximumBudgetDollars: 2.5 },
+        agent:            null,
+        tools:            null,
         reach:            [],
         entities:         null,
       },
@@ -107,6 +115,16 @@ describe('pipelineFactsOf', () => {
       application:     null,
       entityPipelines: {},
     });
+  });
+
+  test('keeps a stored pipeline\'s agent that follows the machine, and the forge\'s own tool list', async () => {
+    const document = await recordedDocument();
+    if (document.pipeline.readingVerdict !== 'readable') throw new Error('The recorded pipeline is readable.');
+    const [vendor] = document.agent.vendors;
+    const agent = { vendor: vendor?.vendor ?? '', program: { follows: 'machine' } } as const;
+    const tools = [{ name: 'git', path: '/usr/bin/git' }];
+    const applied = { ...document.pipeline, pipeline: { ...document.pipeline.pipeline, agent, tools } };
+    expect(PipelineMapUtil.pipelineFactsOf({ ...document, pipeline: applied }).applied).toMatchObject({ pipeline: { agent, tools } });
   });
 
   test('keeps a stored pipeline the forge cannot read, with its reason', async () => {

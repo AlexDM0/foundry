@@ -4,6 +4,7 @@
  */
 import type { EntityKey, JobState }                               from '../constants/BoardVocabulary.ts';
 import type { MONITOR_INTERRUPTION_CAUSES }                       from '../constants/MonitorInterruptionCauses.ts';
+import type { AgentProgramRefusalCause }                          from './BoardAgentDocuments.ts';
 import type { BoardJobOffersDocument, BoardJobStopHoldsDocument } from './BoardReadingDocuments.ts';
 
 
@@ -81,6 +82,14 @@ export interface BoardJobAirlockDocument {
   readonly phase: string;
 }
 
+/** Why the job's session did not launch: the cause, the program the forge named, and the forge's sentence. */
+export interface BoardJobNotLaunchedDocument {
+  readonly cause:       AgentProgramRefusalCause;
+  /** `null` when the forge named no program. */
+  readonly programPath: string | null;
+  readonly sentence:    string;
+}
+
 /** A job on the board. */
 export interface BoardJobDocument {
   readonly id:            string;
@@ -109,6 +118,8 @@ export interface BoardJobDocument {
   readonly intake:        BoardJobIntakeDocument | null;
   /** On a forge with entities: the entity whose stage the job runs. */
   readonly entity:        EntityKey | null;
+  /** Set while the job's launch stands refused for its agent's program: the forge does not try it again until that changes. From forge 4.1. */
+  readonly notLaunched:   BoardJobNotLaunchedDocument | null;
   readonly live:          BoardJobLiveFactsDocument;
   readonly stopHolds:     BoardJobStopHoldsDocument;
   readonly offers:        BoardJobOffersDocument;

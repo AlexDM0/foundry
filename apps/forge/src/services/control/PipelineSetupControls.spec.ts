@@ -26,6 +26,7 @@ import type { ControlCommand }                                    from '../../sh
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }       from '../../testing/EchoedControlContext.ts';
+import { EXAMPLE_PIPELINE_AGENT }                                 from '../../testing/ExamplePipelineAgent.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }   from '../../testing/FixtureRecordAllocation.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                from '../../testing/LockTakers.ts';
 import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
@@ -102,7 +103,9 @@ function operationRefusalOf(attempt: () => unknown): OperationRefusal {
 /** A board whose open record S1 is a first setup at the design step. */
 function boardAtDesign(agentJobId: string | null = null): BoardFixture {
   const opened = boardFixture();
-  apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+  apply(opened, {
+    kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: EXAMPLE_PIPELINE_AGENT
+  });
   for (const step of ['research', 'constitution'] as const) {
     apply(opened, {
       kind: 'pipeline-setup-step', setupId: 'S1', step, move: 'continue'
@@ -201,7 +204,9 @@ describe('starting a record', () => {
   test('pipeline-setup-start opens S1 with the billing sent, and a second start refuses setup-in-progress', () => {
     const fixture = boardFixture();
 
-    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 25 }, replacesUnreadablePipeline: true });
+    apply(fixture, {
+      kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 25 }, replacesUnreadablePipeline: true, agent: EXAMPLE_PIPELINE_AGENT
+    });
 
     expect(fixture.board.pipelineSetup()).toMatchObject({
       setupId: 'S1', mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 25 }, replacesUnreadablePipeline: true
@@ -513,10 +518,34 @@ describe('the message to the pipeline agent', () => {
 });
 
 describe('the record\'s pipeline agent', () => {
+  test('a start with no agent launches none, and the agent step\'s Continue launches it once the record holds an agent', () => {
+    const fixture = boardFixture();
+    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    expect([fixture.board.jobs(), fixture.board.pipelineSetup()?.currentStep]).toEqual([[], 'agent']);
+
+    apply(fixture, { kind: 'pipeline-setup-agent', setupId: 'S1', agent: EXAMPLE_PIPELINE_AGENT });
+    apply(fixture, {
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'agent', move: 'continue'
+    });
+    expect(fixture.board.jobs().map((job) => [job.id, job.kind, job.state])).toEqual([['J1', 'pipeline-agent', 'launching']]);
+    expect([fixture.board.pipelineSetup()?.agentJobId, fixture.board.pipelineSetup()?.currentStep]).toEqual(['J1', 'research']);
+  });
+
+  test('an agent of the wrong shape is refused malformed-setup-command naming agent, with the Board untouched', () => {
+    const fixture = boardFixture();
+    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    const misshapen = { kind: 'pipeline-setup-agent', setupId: 'S1', agent: { vendor: 'example-agent', program: { follows: 'elsewhere' } } };
+    const refusal = thrownBy(() => apply(fixture, misshapen as unknown as ControlCommand));
+    expect(refusal instanceof OperationRefusal && refusal.detail).toEqual({ kind: 'malformed-setup-command', commandKind: 'pipeline-setup-agent', field: 'agent' });
+    expect(fixture.board.pipelineSetup()?.agent).toBeNull();
+  });
+
   test('pipeline-setup-start launches it, recorded launching with no ticket, and the record names it', () => {
     const fixture = boardFixture();
 
-    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    apply(fixture, {
+      kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: EXAMPLE_PIPELINE_AGENT
+    });
 
     expect(fixture.board.jobs().map((job) => [job.id, job.kind, job.state, job.ticketIds])).toEqual([['J1', 'pipeline-agent', 'launching', []]]);
     expect(fixture.board.pipelineSetup()?.agentJobId).toBe('J1');
@@ -539,6 +568,19 @@ describe('the record\'s pipeline agent', () => {
 
     expect(fixture.board.pipelineSetup()).toBeNull();
     expect(fixture.board.jobById('J1')).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
+  });
+
+  test('a start over removes an unreadable record and stops every pipeline agent, since none has a record left to serve', () => {
+    const fixture = boardFixture({ pipelineSetup: { verdict: 'malformed', reason: 'formatVersion is 2' } });
+    const { job } = fixture.board.launchJob({
+      kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
+    }, CHANGED_AT);
+    fixture.board.moveJob(job.id, 'running', CHANGED_AT);
+
+    apply(fixture, { kind: 'pipeline-setup-start-over', setupId: 'S4' });
+
+    expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'removed' });
+    expect(fixture.board.jobById(job.id)).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
   });
 });
 

@@ -3,6 +3,7 @@
  * own kind name, so a view reads as the Bridge's, with Gaia's payload. No view applies a command before the forge answers.
  */
 import type { PAGE_CONTRACT_VERSIONS }                                                         from '../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardPipelineAgentDocument, BoardToolRequestDocument }                           from './BoardAgentDocuments.ts';
 import type { BoardBillingDocument, BoardConstitutionSourcesDocument, BoardDraftEditDocument } from './BoardPipelineDocuments.ts';
 import type {
   BoardGatePhase,
@@ -36,6 +37,13 @@ export type BoardResumeTargetDocument = { readonly jobId: string } | { readonly 
 export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
 export type BoardCommandDocument = BoardTicketDocumentCommandDocument | { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
+  | { readonly kind: 'agent-look-again' }
+  /** This machine's program of the vendor, for every forge that follows it; kept only once it runs. */
+  | { readonly kind: 'machine-agent-program-set'; readonly vendor: string; readonly programPath: string }
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgentDocument }
+  | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: BoardPipelineAgentDocument }
+  /** `null` follows the pipeline's programs again. */
+  | { readonly kind: 'pipeline-tools-set'; readonly tools: readonly BoardToolRequestDocument[] | null }
   | { readonly kind: 'hephaestus-pause' }
   | { readonly kind: 'hephaestus-unpause' }
   | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
@@ -90,7 +98,13 @@ export type BoardCommandDocument = BoardTicketDocumentCommandDocument | { readon
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: BoardAnswerFormDocument }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: BoardBillingDocument }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  | { readonly kind: 'pipeline-setup-start'; readonly billing: BoardBillingDocument; readonly replacesUnreadablePipeline: boolean }
+  | {
+    readonly kind:                       'pipeline-setup-start';
+    readonly billing:                    BoardBillingDocument;
+    readonly replacesUnreadablePipeline: boolean;
+    /** `null`: the record opens at the agent step. */
+    readonly agent:                      BoardPipelineAgentDocument | null;
+  }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: BoardSetupStep; readonly move: 'continue' }
   | { readonly kind: 'pipeline-update-start'; readonly entity: string | null }

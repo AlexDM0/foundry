@@ -474,7 +474,7 @@ testWhenGitIsRecorded('runs of two entities that share a slow gate\'s name each 
   };
   const { board } = boardFixture({ pipeline });
   board.openSetup({
-    mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, CHANGED_AT);
   const profiling = profilingWith(() => Promise.resolve(passedRun(SLOW_GATE_MILLISECONDS)), (mutate) => Promise.resolve(mutate({ board, at: CHANGED_AT })));
 

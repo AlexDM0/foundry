@@ -4,6 +4,8 @@
  * Entities are mapped and validated in full, a whitelist that names a package included; a setup record's draft is read the same way but
  * for the entities' set check, so it may hold the refusals User has not resolved yet.
  */
+import { posix, win32 } from 'node:path';
+
 import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase }   from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
@@ -15,6 +17,7 @@ import {
   type InstructionEntry,
   PIPELINE_FORMAT_VERSION,
   type Pipeline,
+  type PipelineAgent,
   type PipelineAgentRole,
   type PipelineAirlock,
   type PipelineApproval,
@@ -26,6 +29,7 @@ import {
   type PipelinePhaseOrders,
   type PipelineReview,
   type PipelineStep,
+  type PipelineTool,
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -65,6 +69,8 @@ const PIPELINE_KEYS = [
   'reach',
   'entities',
   'assistant',
+  'agent',
+  'tools',
   'ticketWriting'
 ] as const satisfies readonly (keyof Pipeline)[];
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
@@ -90,6 +96,9 @@ const ENTITY_KINDS         = ['app', 'package', 'root'] as const satisfies reado
 const REPOSITORY_ROOT_HOME = '/';
 const ENTITY_AGENT_ROLES   = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly EntityAgentRole[];
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
+const AGENT_KEYS           = ['vendor', 'program'] as const;
+const AGENT_PROGRAM_CHOICES = ['follows', 'pinned'] as const;
+const TOOL_KEYS            = ['name', 'path'] as const;
 const APPROVALS            = ['tickets', 'merge', 'spec', 'plan'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS            = ['name', 'run', 'in'] as const satisfies readonly (keyof PipelineStep)[];
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'forgeOnly'] as const satisfies readonly (keyof PipelineGate)[];
@@ -424,6 +433,45 @@ function billingOf(value: unknown): Mapped<PipelineBilling | undefined> {
   return { value: { mode, maxBudgetUsd } };
 }
 
+/** A program is named by an absolute path of either platform's form, so a file read on another host is judged the same. */
+function absolutePathOf(value: unknown, path: string): Mapped<string> {
+  return typeof value === 'string' && (posix.isAbsolute(value) || win32.isAbsolute(value)) ? { value } : problemOf(`${path} is not an absolute path`);
+}
+
+/** A vendor and its program: `{follows: "machine"}`, or `{pinned: <absolute path>}`, never both. */
+function agentOf(value: unknown): Mapped<PipelineAgent | undefined> {
+  if (value === undefined) return { value: undefined };
+  const record = closedRecordOf(value, 'agent', AGENT_KEYS);
+  if ('problem' in record) return record;
+  const { vendor, program } = record.value;
+  if (typeof vendor !== 'string' || vendor.trim() === '') return problemOf('agent.vendor is not a name');
+  const choice = closedRecordOf(program, 'agent.program', AGENT_PROGRAM_CHOICES);
+  if ('problem' in choice) return choice;
+  const { follows, pinned } = choice.value;
+  if (follows !== undefined && pinned === undefined) return follows === 'machine' ? { value: { vendor, program: { follows } } } : problemOf('agent.program.follows is not machine');
+  if (follows !== undefined || pinned === undefined) return problemOf('agent.program names neither follows nor pinned alone');
+  const pinnedPath = absolutePathOf(pinned, 'agent.program.pinned');
+  return 'problem' in pinnedPath ? pinnedPath : { value: { vendor, program: { pinned: pinnedPath.value } } };
+}
+
+/** Each tool once by its name, at the absolute path it was found at. */
+function toolsOf(value: unknown): Mapped<PipelineTool[] | undefined> {
+  if (value === undefined) return { value: undefined };
+  if (!Array.isArray(value)) return problemOf('tools is not a list');
+  const tools: PipelineTool[] = [];
+  for (const [index, tool] of value.entries()) {
+    const record = closedRecordOf(tool, `tools[${index}]`, TOOL_KEYS);
+    if ('problem' in record) return record;
+    const { name } = record.value;
+    if (typeof name !== 'string' || name.trim() === '') return problemOf(`tools[${index}].name is not a name`);
+    if (tools.some((known) => known.name === name)) return problemOf(`tools names ${JSON.stringify(name)} twice`);
+    const toolPath = absolutePathOf(record.value['path'], `tools[${index}].path`);
+    if ('problem' in toolPath) return toolPath;
+    tools.push({ name, path: toolPath.value });
+  }
+  return { value: tools };
+}
+
 function sharedNameProblemOf(prepare: readonly PipelineStep[], gates: readonly PipelineGate[]): { problem: string } | null {
   const shared = prepare.find((step) => gates.some((gate) => gate.name === step.name));
   return shared === undefined ? null : problemOf(`${JSON.stringify(shared.name)} names both a prepare step and a gate`);
@@ -577,6 +625,8 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
   const reach        = repositoryPathsOf(document['reach'], 'reach');
   const entities     = entitiesOf(document['entities']);
   const assistant    = assistantOf(document['assistant']);
+  const agent        = agentOf(document['agent']);
+  const tools        = toolsOf(document['tools']);
   const ticketWriting = ticketWritingOf(document['ticketWriting']);
   if ('problem' in review) return review;
   if ('problem' in airlock) return airlock;
@@ -587,6 +637,8 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
   if ('problem' in reach) return reach;
   if ('problem' in entities) return entities;
   if ('problem' in assistant) return assistant;
+  if ('problem' in agent) return agent;
+  if ('problem' in tools) return tools;
   if ('problem' in ticketWriting) return ticketWriting;
   const entitySetProblem = purpose === 'stored' ? entitySetProblemOf(entities.value) : null;
   if (entitySetProblem !== null) return entitySetProblem;
@@ -603,6 +655,8 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
       ...(reach.value === undefined ? {} : { reach: reach.value }),
       ...(entities.value === undefined ? {} : { entities: entities.value }),
       ...(assistant.value === undefined ? {} : { assistant: assistant.value }),
+      ...(agent.value === undefined ? {} : { agent: agent.value }),
+      ...(tools.value === undefined ? {} : { tools: tools.value }),
       ...(ticketWriting.value === undefined ? {} : { ticketWriting: ticketWriting.value }),
     },
   };
@@ -674,5 +728,5 @@ function draftContentsOf(pipeline: Readonly<Pipeline>): string {
 }
 
 export const PipelineFile = Object.freeze({
-  read, contentsOf, documentReadingOf, draftReadingOf, draftContentsOf, entitiesInAFolderReadingOf, storedDocumentOf, billingOf
+  read, contentsOf, documentReadingOf, draftReadingOf, draftContentsOf, entitiesInAFolderReadingOf, storedDocumentOf, billingOf, agentOf
 });

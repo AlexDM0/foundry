@@ -26,6 +26,7 @@ import { FLINT_SLOT_CUES, type FlintSlotCue }                            from '.
 import { FLINT_SLOT_HABITATS }                                           from '../../../flint/FlintSlotHabitats.ts';
 import { StateToneUtil }                                                 from '../../../utils/StateToneUtil.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }           from '../entities/PipelineLevelModel.ts';
+import { AgentSessionModel, type AgentSessionState, type SessionJob }    from './AgentSessionModel.ts';
 
 export const PIPELINE_AGENT_SPEAKER = 'Pipeline agent';
 
@@ -94,6 +95,8 @@ const ENTITY_RESEARCH_TEXT = 'Reading';
 
 /** The panel head's word for an agent with no job on the board. */
 const STOPPED_TEXT = 'Stopped';
+
+const NOT_LAUNCHED_TEXT = 'Not launched';
 
 const WORKING_STRIPS: Readonly<Record<BoardSetupQuestionStep, AgentStripView>> = Object.freeze({
   research:     RESEARCH_STRIP,
@@ -263,34 +266,39 @@ function messageCommandOf(agentJobId: string | null, text: string): BoardCommand
 
 /**
  * A question of the step that waits on User comes first, on every step; the design then says its proposal is ready once the agent suggests
- * to continue past the design, as the panel head does; a stopped agent, with no job on the board, shows no work; else research reads, the
+ * to continue past the design, as the panel head does; an agent whose launch forge refused, or a stopped one, shows no work; else research reads, the
  * constitution drafts and the design designs. An entity's research session reads that entity, which the strip names.
  */
 function agentStripOf(
   step: BoardSetupQuestionStep,
   record: { readonly questions: readonly BoardSetupQuestionDocument[]; readonly readyToContinue: BoardSetupRecordDocument['readyToContinue'] },
-  agentJobState: BoardJobState | null,
+  sessionState: AgentSessionState,
   entityKey: string | null = null
 ): AgentStripView {
   const { flintHabitat } = WORKING_STRIPS[step];
   const questionIsOpen = record.questions.some((question) => question.step === step && question.answer === null);
   if (questionIsOpen) return { text: QUESTION_OPEN_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER };
   if (step === 'design' && record.readyToContinue.includes('design')) return PROPOSAL_READY_STRIP;
-  if (agentJobState === null) return { text: STOPPED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
+  if (sessionState === 'not-launched') return { text: NOT_LAUNCHED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
+  if (sessionState === 'stopped') return { text: STOPPED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
   if (step === 'research' && entityKey !== null) return { ...RESEARCH_STRIP, text: ENTITY_RESEARCH_TEXT, entityKey };
   return WORKING_STRIPS[step];
 }
 
-function composerTagOf(agentJobState: BoardJobState | null): TagProps {
-  return agentJobState === null ? STOPPED_TAG : RUNNING_TAG;
+const NOT_LAUNCHED_TAG: TagProps = { text: 'Not launched', tone: 'error' };
+
+/** A job whose launch forge refused reads as not launched, never as the Running its state names. */
+function composerTagOf(sessionState: AgentSessionState): TagProps {
+  if (sessionState === 'not-launched') return NOT_LAUNCHED_TAG;
+  return sessionState === 'stopped' ? STOPPED_TAG : RUNNING_TAG;
 }
 
-/** The session one level's chat holds: its agent's job, the job's state, and the questions and findings of that session alone. */
+/** The session one level's chat holds: its agent's job, the session's state, and the questions and findings of that session alone. */
 export interface LevelSession {
-  readonly agentJobId:    string | null;
-  readonly agentJobState: BoardJobState | null;
-  readonly questions:     readonly BoardSetupQuestionDocument[];
-  readonly findings:      readonly BoardResearchFindingDocument[];
+  readonly agentJobId:   string | null;
+  readonly sessionState: AgentSessionState;
+  readonly questions:    readonly BoardSetupQuestionDocument[];
+  readonly findings:     readonly BoardResearchFindingDocument[];
 }
 
 /** The line over the chat that counts the open questions of the other levels, each level a link. */
@@ -303,8 +311,15 @@ type LevelSessionFacts = Pick<BoardPipelineSetupDocument, 'record' | 'agentJobSt
 
 const PANEL_TITLE = PIPELINE_AGENT_SPEAKER;
 
-/** The forge's session is the record's own; an entity's is its part of the record, with no job and no question until it has one. */
-function levelSessionOf(setup: LevelSessionFacts, level: PipelineLevel | null): LevelSession {
+interface LevelPart {
+  readonly agentJobId:    string | null;
+  readonly agentJobState: BoardJobState | null;
+  readonly questions:     readonly BoardSetupQuestionDocument[];
+  readonly findings:      readonly BoardResearchFindingDocument[];
+}
+
+/** The forge's part is the record's own; an entity's is its part of the record, with no job and no question until it has one. */
+function levelPartOf(setup: LevelSessionFacts, level: PipelineLevel | null): LevelPart {
   const { record } = setup;
   if (level === null || PipelineLevelModel.isForgeLevel(level)) {
     return {
@@ -320,6 +335,17 @@ function levelSessionOf(setup: LevelSessionFacts, level: PipelineLevel | null): 
     agentJobState: facts?.agentJobState ?? null,
     questions:     part?.questions ?? [],
     findings:      part?.findings ?? [],
+  };
+}
+
+/** The session of one level, its state read with the board's jobs, so a job whose launch forge refused reads as not launched. */
+function levelSessionOf(setup: LevelSessionFacts, level: PipelineLevel | null, jobs: readonly SessionJob[]): LevelSession {
+  const part = levelPartOf(setup, level);
+  return {
+    agentJobId:   part.agentJobId,
+    sessionState: AgentSessionModel.sessionStateOf(part.agentJobId, part.agentJobState, jobs),
+    questions:    part.questions,
+    findings:     part.findings,
   };
 }
 
@@ -344,7 +370,7 @@ function otherLevelQuestionsOf(setup: LevelSessionFacts, level: PipelineLevel): 
   const entityKeys = Object.keys(setup.record.entities ?? {});
   const counted = [FORGE_LEVEL, ...entityKeys.map((key) => PipelineLevelModel.entityLevelOf(key))]
     .filter((other) => !PipelineLevelModel.levelsAreEqual(other, level))
-    .map((other) => ({ level: other, openCount: openCountOf(levelSessionOf(setup, other).questions) }))
+    .map((other) => ({ level: other, openCount: openCountOf(levelPartOf(setup, other).questions) }))
     .filter((entry) => entry.openCount > 0);
   if (counted.length === 0) return null;
   const levels = counted.map((entry) => entry.level);

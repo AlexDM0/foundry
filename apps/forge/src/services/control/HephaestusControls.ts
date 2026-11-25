@@ -11,11 +11,13 @@ function refuseRuntimeOnly(command: ControlCommand): never {
 }
 
 export const HEPHAESTUS_CONTROLS = {
-  'hephaestus-pause':        (_command: ControlCommand, change: BoardTransaction) => change.board.setHephaestusState('paused', change.at),
-  'hephaestus-unpause':      (_command: ControlCommand, change: BoardTransaction) => change.board.setHephaestusState('running', change.at),
-  'hephaestus-stop':         refuseRuntimeOnly,
-  'hephaestus-restart':      refuseRuntimeOnly,
-  'talos-restart':           refuseRuntimeOnly,
+  'hephaestus-pause':          (_command: ControlCommand, change: BoardTransaction) => change.board.setHephaestusState('paused', change.at),
+  'hephaestus-unpause':        (_command: ControlCommand, change: BoardTransaction) => change.board.setHephaestusState('running', change.at),
+  'hephaestus-stop':           refuseRuntimeOnly,
+  'hephaestus-restart':        refuseRuntimeOnly,
+  'talos-restart':             refuseRuntimeOnly,
   // The limit lives in the monitor folder, not in a board, so `POST /api/commands` sets it outside any hold.
-  'machine-agent-limit-set': refuseRuntimeOnly,
+  'machine-agent-limit-set':   refuseRuntimeOnly,
+  // The machine's agent programs live in the monitor folder too, written outside any hold once the program ran.
+  'machine-agent-program-set': refuseRuntimeOnly,
 } as const;

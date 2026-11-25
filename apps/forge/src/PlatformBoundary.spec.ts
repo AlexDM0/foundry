@@ -231,6 +231,7 @@ describe('the scan saw the tree', () => {
       'src/lib/git/GitProcess.ts',
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
+      'src/lib/program-check/ProgramCheck.ts',
       'src/lib/talos/Talos.ts',
       'src/services/hephaestus/GpgDirectories.ts',
       'src/services/hephaestus/InstallChangeWatch.ts',

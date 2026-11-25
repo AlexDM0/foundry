@@ -8,11 +8,13 @@ import type { ResumeWaitsOfJobs }                         from '../../../adapter
 import { BoardStateIngestion }                            from '../../../adapters/forge-api/BoardStateIngestion.ts';
 import { BoardDocumentMapUtil }                           from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
 import { createMarkdownRenderer }                         from '../../../lib/markdown-render/MarkdownRenderer.ts';
+import type { BoardAgent }                                from '../../../shared/@types/board/BoardAgent.ts';
 import type { BoardRelayRefusal }                         from '../../../shared/@types/board/BoardRelayVerdict.ts';
 import type { ForgeBoard }                                from '../../../shared/@types/board/ForgeBoard.ts';
 import type { BoardRelayLog }                             from '../@types/BoardRelayLogEntry.ts';
 import { BoardRelayAnswers }                              from '../BoardRelayAnswers.ts';
 import { forgeAccessVerdictFor, type ForgeAccessSources } from '../ForgeAccess.ts';
+import { createMachineProgramFollowers }                  from '../MachineProgramFollowers.ts';
 
 export interface BoardStateRoute {
   readonly answerFor: (trackerId: string) => Promise<Response>;
@@ -29,15 +31,37 @@ const JSON_CONTENT_TYPE = 'application/json;charset=utf-8';
 
 const NO_RESUME_WAITS: ResumeWaitsOfJobs = new Map();
 
+/** The vendor whose followers a forge's settings name: its chosen agent's, else the first the forge can run. */
+function vendorOf(agent: BoardAgent): string | null {
+  return agent.choice?.vendor ?? agent.vendors.find((vendor) => vendor.supported)?.vendor ?? null;
+}
+
 /** Presence lists only interrupted jobs and jobs whose lost line waits, so a board without either is not worth a second read. */
 function boardHoldsWaitingWork(board: ForgeBoard): boolean {
   return board.jobs.some((job) => job.state === 'interrupted' || job.lostLine !== null);
 }
 
-export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog): BoardStateRoute {
+/** `monotonicNow` holds off another forge whose board could not be read, while counting who follows this machine's program. */
+export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog, monotonicNow: () => number): BoardStateRoute {
   const readsByTrackerId = new Map<string, ForgeBoardReads>();
   const ingestion = new BoardStateIngestion();
   const { renderMarkdown } = createMarkdownRenderer();
+  const machineProgramFollowers = createMachineProgramFollowers({ readAgentOf: agentReadOf, monotonicNow });
+
+  /** Another forge's agent, read only to count who follows this machine's program; `null` while its board cannot be read. */
+  async function agentReadOf(trackerId: string): Promise<BoardAgent | null> {
+    const accessVerdict = await forgeAccessVerdictFor(trackerId, sources);
+    if (accessVerdict.verdict === 'refused') return null;
+    const answer = await sources.forgeClient.boardOf(accessVerdict.access);
+    return answer.verdict === 'answered' ? ingestion.boardOf(trackerId, answer.document).board?.agent ?? null : null;
+  }
+
+  function otherFollowersOf(board: ForgeBoard): number | null {
+    machineProgramFollowers.noteBoardRead(board.trackerId, board.agent);
+    const vendor = vendorOf(board.agent);
+    if (vendor === null) return 0;
+    return machineProgramFollowers.otherFollowersOf(board.trackerId, vendor, sources.readings().map((reading) => reading.trackerId));
+  }
 
   async function boardReadAfresh(trackerId: string): Promise<BoardRead> {
     const accessVerdict = await forgeAccessVerdictFor(trackerId, sources);
@@ -62,7 +86,8 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
     const board = boardHoldsWaitingWork(reading.board)
       ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId)).board ?? reading.board
       : reading.board;
-    return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown)) };
+    const boardDocument = BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown, otherFollowersOf(board));
+    return { verdict: 'read', boardDocumentJson: JSON.stringify(boardDocument) };
   }
 
   /**

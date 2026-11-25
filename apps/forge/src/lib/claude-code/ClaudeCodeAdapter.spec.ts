@@ -16,8 +16,8 @@ import { fakeAgentAdapter }                      from '../../testing/FakeAgentAd
 import { AGENT_ENDING_NAMES, type AgentAdapter } from '../agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan, StandingReply }   from '../agent-launch/AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }               from '../agent-launch/AgentLaunchRequest.ts';
-import { POSIX_LAUNCH_ENVIRONMENT }              from '../agent-launch/PosixLaunchEnvironment.ts';
-import { WINDOWS_LAUNCH_ENVIRONMENT }            from '../agent-launch/WindowsLaunchEnvironment.ts';
+import { createPosixLaunchEnvironment }          from '../agent-launch/PosixLaunchEnvironment.ts';
+import { createWindowsLaunchEnvironment }        from '../agent-launch/WindowsLaunchEnvironment.ts';
 import type { WorkerProfile }                    from '../agent-launch/WorkerProfile.ts';
 import type { AgentHostFacts }                   from './AgentHostFacts.ts';
 import {
@@ -26,7 +26,8 @@ import {
   claudeSessionIdOf,
   createClaudeCodeAdapter
 } from './ClaudeCodeAdapter.ts';
-import { POSIX_CLAUDE_HOST_FACTS } from './PosixClaudeHostFacts.ts';
+import { POSIX_CLAUDE_HOST_FACTS }   from './PosixClaudeHostFacts.ts';
+import { WINDOWS_CLAUDE_HOST_FACTS } from './WindowsClaudeHostFacts.ts';
 
 const REPOSITORY = '/Users/example/development/example-repository';
 const CLAUDE_CODE_ADAPTER = claudeCodeAdapterFor('darwin');
@@ -420,7 +421,7 @@ describe('the child environment', () => {
     ['EXAMPLE_SECRET', 'dropped'],
   ];
 
-  for (const [hostName, launchEnvironment] of [['macOS and Linux', POSIX_LAUNCH_ENVIRONMENT], ['Windows', WINDOWS_LAUNCH_ENVIRONMENT]] as const) {
+  for (const [hostName, launchEnvironment] of [['macOS and Linux', createPosixLaunchEnvironment(() => [])], ['Windows', createWindowsLaunchEnvironment(() => [])]] as const) {
     test.each(FORWARDING_TABLE)(`on ${hostName}, %s %s to the launched session`, (name, verdict) => {
       const inherited   = Object.fromEntries(FORWARDING_TABLE.map(([variableName]) => [variableName, `value-of-${variableName}`]));
       const environment = launchEnvironment.launchEnvironmentOf(inherited, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
@@ -438,7 +439,7 @@ describe('the child environment', () => {
       CLAUDE_CODE_OAUTH_TOKEN: 'example-oauth-token',
     };
     const billedPlanOf = (billing: AgentLaunchRequest['billing']): AgentLaunchPlan => {
-      const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(hephaestusEnvironment, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
+      const environment = createPosixLaunchEnvironment(() => []).launchEnvironmentOf(hephaestusEnvironment, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
       return CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment, ...(billing === undefined ? {} : { billing }) }));
     };
 
@@ -475,7 +476,7 @@ describe('the child environment', () => {
   });
 
   test('a gate, given no vendor variables, gets none of the login variables', () => {
-    const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf({ ANTHROPIC_API_KEY: 'example-key', CLAUDE_CONFIG_DIR: '/srv/claude-config' }, {});
+    const environment = createPosixLaunchEnvironment(() => []).launchEnvironmentOf({ ANTHROPIC_API_KEY: 'example-key', CLAUDE_CONFIG_DIR: '/srv/claude-config' }, {});
     expect(environment).toEqual({});
   });
 
@@ -585,17 +586,17 @@ describe('the program a plan spawns', () => {
     });
   }
 
-  test('the adapter asks the resolver for claude, under the forbidden roots it is given', () => {
-    const asked: unknown[] = [];
-    const answer = { verdict: 'found', path: CLAUDE_PROGRAM_PATH } as const;
-    const resolver: Parameters<AgentAdapter['programPathOf']>[0] = {
-      absolutePathOf: (name, forbiddenRoots) => {
-        asked.push([name, forbiddenRoots]);
-        return answer;
-      },
-    };
-    expect(CLAUDE_CODE_ADAPTER.programPathOf(resolver, [REPOSITORY])).toBe(answer);
-    expect(asked).toEqual([['claude', [REPOSITORY]]]);
+  test('the adapter names only its program\'s file name and the older local install under the home folder, no folder of the system', () => {
+    expect([CLAUDE_CODE_ADAPTER.programFileName, CLAUDE_CODE_ADAPTER.vendorProgramFolders]).toEqual(['claude', [['.claude', 'local']]]);
+    const windowsAdapter = createClaudeCodeAdapter(WINDOWS_CLAUDE_HOST_FACTS);
+    expect([windowsAdapter.programFileName, windowsAdapter.vendorProgramFolders]).toEqual(['claude.exe', []]);
+  });
+
+  test('a program answers as Claude Code only with its version and the product\'s name, which `claude --version` prints', () => {
+    expect(CLAUDE_CODE_ADAPTER.versionArguments).toEqual(['--version']);
+    expect(CLAUDE_CODE_ADAPTER.versionOf('2.1.327 (Claude Code)\n')).toBe('2.1.327');
+    expect(CLAUDE_CODE_ADAPTER.versionOf('1.3.2\n')).toBeNull();
+    expect(CLAUDE_CODE_ADAPTER.versionOf('')).toBeNull();
   });
 });
 
@@ -622,8 +623,11 @@ describe('the credentials and the repair', () => {
     'not-a-program-name':     null,
     'not-on-search-path':     null,
     'relative-search-folder': null,
+    'relative-path':          null,
     'inside-forbidden-root':  null,
-    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and put its folder first on PATH',
+    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and choose that program',
+    'not-there':              null,
+    'not-executable':         null,
     'no-adapter':             null,
   };
   for (const [cause, repair] of Object.entries(REPAIR_BY_CAUSE)) {

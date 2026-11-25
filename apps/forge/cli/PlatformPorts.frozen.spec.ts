@@ -6,7 +6,7 @@ import { dirname }      from 'node:path';
 import { expect, test } from 'bun:test';
 
 import type { AgentLaunchRequest }                     from '../src/lib/agent-launch/AgentLaunchRequest.ts';
-import { POSIX_LAUNCH_ENVIRONMENT }                    from '../src/lib/agent-launch/PosixLaunchEnvironment.ts';
+import { createPosixLaunchEnvironment }                from '../src/lib/agent-launch/PosixLaunchEnvironment.ts';
 import { createDarwinSeatbelt, seatbeltProfileTextOf } from '../src/lib/gate-confinement/DarwinSeatbelt.ts';
 import type { ConfinementPlan }                        from '../src/lib/gate-confinement/GateConfinement.ts';
 import { platformPortsFor }                            from '../src/lib/platform-ports/PlatformPortsFor.ts';
@@ -17,7 +17,15 @@ import { agentAdapterOfThisProcess }                   from './CommandContext.ts
 import frozenTable                                     from './FrozenPlatformPorts.json';
 
 const ports = platformPortsFor('darwin', {
-  userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product'
+  userShell:                    () => undefined,
+  commandInterpreter:           () => undefined,
+  systemRoot:                   () => undefined,
+  localApplicationDataFolder:   () => undefined,
+  roamingApplicationDataFolder: () => undefined,
+  programFilesFolder:           () => undefined,
+  programExtensions:            () => undefined,
+  monitorFolderName:            '.example-monitor',
+  pipeNamePrefix:               'example-product'
 });
 const claudeCodeAdapter = agentAdapterOfThisProcess();
 const { launchFiles } = frozenTable;
@@ -69,5 +77,5 @@ test('the written settings file of every fixed request equals the frozen bytes, 
 
 test('the launch environment of the fixed job equals the one the agent launch file was taken with', () => {
   const [settingsEntry] = frozenTable.settingsFiles;
-  expect(POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(launchFiles.inherited, launchFiles.jobVariables)).toEqual(settingsEntry?.request.environment ?? {});
+  expect(createPosixLaunchEnvironment(() => []).launchEnvironmentOf(launchFiles.inherited, launchFiles.jobVariables)).toEqual(settingsEntry?.request.environment ?? {});
 });

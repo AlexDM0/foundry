@@ -25,6 +25,7 @@ import type { LogRecordFieldsOf }                                               
 import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
 import type { CrashedComponent }                                                     from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
+import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                                        from '../../src/services/hephaestus/BoardChildren.ts';
 import { CodeVersion }                                                               from '../../src/services/hephaestus/CodeVersion.ts';
@@ -73,6 +74,7 @@ import { branchNamesOf }              from '../../src/shared/BranchNames.ts';
 import {
   agentVariableIsSet,
   environmentCopy,
+  fakeAgentIsOn,
   hephaestusPollIntervalOverride,
   outlivingProgramEnvironment
 } from '../../src/shared/Environment.ts';
@@ -84,6 +86,7 @@ import {
   HEPHAESTUS_STOP_WAIT_MILLISECONDS,
   RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
@@ -495,6 +498,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const branchNames = branchNamesOf(progress.branchNamespace ?? null);
   const mergeForecastCache = createMergeForecastCache();
   const mainLineReads = new MainLineReads(workspace.rootDirectory);
+  // A run of an agent program that ended is published by a pass, so the views read whether the program runs.
+  const agentProgramCheckContext = agentCommandPreparationContextOf(context, preparedForgeAt(context, workspace.rootDirectory, boardStore.reads)).check;
+  const agentProgramChecks = new AgentProgramChecks(agentProgramCheckContext, () => current?.drivePass.wake(true));
   // Shown in the monitor snapshot only; until the program on disk answered, the code in memory stands in for it.
   let codeVersionOnDisk = codeVersion;
   const installWatch = createInstallChangeWatch({
@@ -694,7 +700,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         broker:           () => broker,
         monitorStream:    () => monitorStream,
         monitorFacts:     monitorFactsNow,
-        wake:             () => drivePass?.wake(),
+        wake:             (forced) => drivePass?.wake(forced),
         launchesHeld:     () => hephaestusState()?.runtimeState === 'held-by-install-change',
         notices:          () => hephaestusState()?.notices ?? [],
         hephaestus:       hephaestusFactsNow,
@@ -703,6 +709,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         mainLineReads,
         silentSweepsOf:   (jobId: string) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
         effectReadings:   () => drivePass?.effectReadings ?? null,
+        agentProgramChecks,
         onRuntimeCommand: async (command: RuntimeHephaestusCommand): Promise<RuntimeCommandOutcome> => {
           log(`${command.kind} received${'now' in command && command.now ? ' (now)' : ''}.`);
           if (current === null || (handingOver && !preflightRunning)) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
@@ -770,6 +777,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           mainLine,
           mergeForecastCache,
           mainLineReads,
+          agentProgramChecks,
         });
         ownBroker.publishState(read.state, TicketDocumentsAssembly.fingerprintsOf({
           loadedRecords: read.board.ticketDocumentRecords(), tickets: read.board.tickets(), pipeline: read.board.pipeline(), jobs: read.board.jobs()
@@ -853,6 +861,8 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         unwatchHatchFolder:        (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
         afterPass:                 publishState,
         startClassification:       admission.classification,
+        // The fake agent's runtime is its program, so a scratch forge that names no agent still launches its scripted sessions.
+        ...(fakeAgentIsOn() ? { agentProgramWhenNoneIsChosen: process.execPath } : {}),
       });
       const startedPass = drivePass;
       startedPass.effectReadings.onChanged(ownBroker.announceTicketDocuments);

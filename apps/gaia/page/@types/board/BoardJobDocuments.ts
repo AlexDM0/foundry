@@ -2,6 +2,7 @@
  * The jobs of a forge's board as the page reads them: each live job with its facts, the stop holds and the offers the forge serves for it, the
  * jobs that left the board, each open ticket's forecast, and the merge queue.
  */
+import type { BoardJobNotLaunchedDocument } from './BoardAgentDocuments.ts';
 import type {
   BoardInterruptionCause,
   BoardJobState,
@@ -94,6 +95,8 @@ export interface BoardJobDocument {
   readonly stopRequest:   BoardJobStopRequest | null;
   readonly intake:        BoardJobIntakeDocument | null;
   readonly entity:        string | null;
+  /** Set while the job's launch stands refused for its agent's program: the forge does not try it again until that changes. */
+  readonly notLaunched:   BoardJobNotLaunchedDocument | null;
   readonly live:          BoardJobLiveFactsDocument;
   readonly stopHolds:     BoardJobStopHoldsDocument;
   readonly offers:        BoardJobOffersDocument;

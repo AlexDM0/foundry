@@ -5,12 +5,14 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
-import type { AgentAdapter }                            from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { defaultSpecPlatformPorts }                     from '../../src/testing/DefaultSpecPlatformPorts.ts';
-import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
-import { requireTrackerIsolation, SHARED_SCRATCH_ROOT } from '../../src/testing/TrackerIsolation.ts';
-import type { CommandContext }                          from '../CommandContext.ts';
+import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { PlatformPorts }                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { ProgramCheckRun }                                 from '../../src/lib/program-check/ProgramCheck.ts';
+import { defaultSpecPlatformPorts }                             from '../../src/testing/DefaultSpecPlatformPorts.ts';
+import { fakeAgentAdapter }                                     from '../../src/testing/FakeAgentAdapter.ts';
+import { recordedProgramCheckRun, RUNTIME_ANSWERS_ITS_VERSION } from '../../src/testing/RecordedProgramChecks.ts';
+import { requireTrackerIsolation, SHARED_SCRATCH_ROOT }         from '../../src/testing/TrackerIsolation.ts';
+import type { CommandContext }                                  from '../CommandContext.ts';
 
 export interface CapturedCommandContext extends CommandContext {
   outputText:     () => string;
@@ -42,6 +44,8 @@ export interface CapturedCommandContextOptions {
   temporaryDirectories?:    readonly string[];
   /** By default the fake agent's. */
   agentAdapter?:            AgentAdapter;
+  /** By default the recorded run of a program that answers its version, for the runtime alone; any other program has no answer. */
+  programCheckRun?:         ProgramCheckRun;
 }
 
 const DEFAULT_SPEC_CLOCK_READING = '2026-09-18T20:11:03Z';
@@ -78,6 +82,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
 
   return {
     agentAdapter:            options.agentAdapter ?? fakeAgentAdapter(),
+    programCheckRun:         options.programCheckRun ?? recordedProgramCheckRun(RUNTIME_ANSWERS_ITS_VERSION),
     currentDirectory:        options.currentDirectory,
     now:                     options.now ?? (() => new Date(DEFAULT_SPEC_CLOCK_READING)),
     standardOutput:          (text: string) => { outputLines.push(text); },

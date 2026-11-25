@@ -301,13 +301,17 @@ function resumeWaitTextOf(waitsFor: BoardResumeWait): string {
   return RESUME_WAIT_TEXT[waitsFor];
 }
 
-/** A job's raw state, or the words of the wait its interruption names: a network outage, or the forge's lost supervision. */
-function stateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'>): string {
+/**
+ * A job's raw state, or the words of the wait its interruption names: a network outage, or the forge's lost supervision; a job whose launch
+ * forge refused reads as not launched, never as the running its state names.
+ */
+function stateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'> & Partial<Pick<AgentJobDocument, 'notLaunched'>>): string {
+  if (JobStateUtil.launchIsRefused(job)) return 'not launched';
   const waitState = JobStateUtil.interruptionWaitStateOf(job);
   return waitState === null ? job.state : DisplayStateWordingUtil.labelOf(waitState);
 }
 
-function panelStateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'>, launchedText: string | null): string {
+function panelStateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'> & Partial<Pick<AgentJobDocument, 'notLaunched'>>, launchedText: string | null): string {
   return launchedText === null ? stateTextOf(job) : `${stateTextOf(job)} · ${launchedText}`;
 }
 

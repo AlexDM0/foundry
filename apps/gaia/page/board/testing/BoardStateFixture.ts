@@ -14,6 +14,7 @@ import type {
   BoardTicketDocument
 } from '../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTicketStatus } from '../../@types/board/BoardVocabulary.ts';
+import { exampleBoardAgent }      from './AgentFixture.ts';
 import { EXAMPLE_BOARD_LIMITS }   from './PageLimitsFixture.ts';
 
 export const FIXTURE_NOW = new Date('2026-10-29T12:00:00');
@@ -178,6 +179,7 @@ export function exampleAgentJob(changes: Partial<BoardJobDocument> & Pick<BoardJ
     stopRequest:   null,
     intake:        null,
     entity:        null,
+    notLaunched:   null,
     live:          {
       calls:                  12,
       callBudget:             150,
@@ -283,6 +285,7 @@ export function boardStateFixture(changes: Partial<BoardDocument> = {}): BoardDo
     concurrency:  { limit: 4, agentsInFlight: 1 },
     launchSlots:  { limit: 4, slotJobIds: ['J12'], inProgressTicketIdsWithoutJob: [] },
     usage:        { resetsAt: null, window: null, windows: [] },
+    agent:        exampleBoardAgent(),
     page:         {
       progress: {
         startedAt: '2026-10-20T08:00:00', view: { kind: 'auto' }, hephaestusSetting: 'running', tasks: FIXTURE_TASKS, log: []

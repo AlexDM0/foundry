@@ -13,17 +13,18 @@ import type {
   BoardSetupEditDocument,
   BoardSetupSummaryDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { BOARD_GATE_PHASES }   from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil } from '../../../conversation/ChatTurnWordingUtil.ts';
-import type { PanelStatus }    from '../PipelinePanel.tsx';
-import type { FlowPageWords }  from '../PipelineViewModel.ts';
-import { ChangeListModel }     from '../apply/ChangeListModel.ts';
-import { PipelineLevelModel }  from '../entities/PipelineLevelModel.ts';
-import type { PipelineLevel }  from '../entities/PipelineLevelModel.ts';
-import type { FlowShowTarget } from '../flow/FlowSelection.ts';
-import { PipelinePhaseModel }  from '../flow/PipelinePhaseModel.ts';
+import { BOARD_GATE_PHASES }                                 from '../../../../@types/board/BoardVocabulary.ts';
+import { ChatTurnWordingUtil }                               from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }                                  from '../PipelinePanel.tsx';
+import type { FlowPageWords }                                from '../PipelineViewModel.ts';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState } from '../agent-panel/AgentSessionModel.ts';
+import { ChangeListModel }                                   from '../apply/ChangeListModel.ts';
+import { PipelineLevelModel }                                from '../entities/PipelineLevelModel.ts';
+import type { PipelineLevel }                                from '../entities/PipelineLevelModel.ts';
+import type { FlowShowTarget }                               from '../flow/FlowSelection.ts';
+import { PipelinePhaseModel }                                from '../flow/PipelinePhaseModel.ts';
 
-export type DesignAgentState = 'designing' | 'ready' | 'not-running';
+export type DesignAgentState = 'designing' | 'ready' | 'not-launched' | 'not-running';
 
 /** Apply's look: disabled with its reason while a question is open, and the footer's hint beside it. */
 export interface ApplyAvailability {
@@ -33,9 +34,10 @@ export interface ApplyAvailability {
 }
 
 const PANEL_STATUSES: Readonly<Record<DesignAgentState, PanelStatus>> = {
-  'designing':   { tone: 'working', text: 'Designing' },
-  'ready':       { tone: 'ready', text: 'Proposal ready' },
-  'not-running': { tone: 'idle', text: 'Not running' },
+  'designing':    { tone: 'working', text: 'Designing' },
+  'ready':        { tone: 'ready', text: 'Proposal ready' },
+  'not-launched': NOT_LAUNCHED_PANEL_STATUS,
+  'not-running':  { tone: 'idle', text: 'Not running' },
 };
 
 const APPLY_DISABLED_REASON = 'Answer the open question first';
@@ -44,14 +46,15 @@ const GATE_PREFIX = 'gate:';
 
 const PREPARE_PREFIX = 'prepare:';
 
-function agentStateOf(setup: BoardPipelineSetupDocument): DesignAgentState {
-  if (setup.agentJobState === null) return 'not-running';
+function agentStateOf(setup: BoardPipelineSetupDocument, sessionState: AgentSessionState): DesignAgentState {
+  if (sessionState === 'not-launched') return 'not-launched';
+  if (sessionState === 'stopped') return 'not-running';
   return setup.record.readyToContinue.includes('design') ? 'ready' : 'designing';
 }
 
 /** The panel head's dot and word: "Proposal ready", as drawn. */
-function panelStatusOf(setup: BoardPipelineSetupDocument): PanelStatus {
-  return PANEL_STATUSES[agentStateOf(setup)];
+function panelStatusOf(agentState: DesignAgentState): PanelStatus {
+  return PANEL_STATUSES[agentState];
 }
 
 /** "1 prepare step · 3 build gates · 3 review gates · 3 merge gates", from the facts' summary. */

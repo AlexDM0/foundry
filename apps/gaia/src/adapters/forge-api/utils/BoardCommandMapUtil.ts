@@ -64,6 +64,7 @@ import type {
 } from '../../../shared/@types/board/BoardPipeline.ts';
 import type * as Gaia                              from '../../../shared/@types/board/BoardVocabulary.ts';
 import type { BoardCommentAnchor, BoardLineRange } from '../../../shared/@types/board/TicketDocuments.ts';
+import { BoardAgentMapUtil }                       from './BoardAgentMapUtil.ts';
 
 export type ContractCommand = ForgeControlCommand | ForgeBoardCommand | ForgeTicketDocumentCommand;
 
@@ -118,6 +119,7 @@ const ENTITY_KIND = { app: 'app', package: 'package', root: 'root' } as const sa
 
 const SETUP_STEP = {
   billing:      'billing',
+  agent:        'agent',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',
@@ -280,6 +282,8 @@ function draftEditOut(edit: BoardDraftEdit): PipelineDraftEditDocument {
       return { target: 'role', role: PIPELINE_AGENT_ROLE[edit.role], value: agentStepSettingsOut(edit.value) };
     case 'airlock':
       return { target: 'airlock', value: edit.value === null ? null : reReviewOut(edit.value.reReview) };
+    case 'tools':
+      return { target: 'tools', value: edit.value === null ? null : edit.value.map(BoardAgentMapUtil.toolRequestOut) };
     case 'approval':
       return { target: 'approval', approval: PIPELINE_APPROVAL[edit.approval], value: edit.value };
     case 'ticket-writing':
@@ -298,15 +302,17 @@ function draftEditOut(edit: BoardDraftEdit): PipelineDraftEditDocument {
 }
 
 const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command: BoardCommandOf<Kind>) => ContractCommandOf<Kind> } = {
-  'hephaestus-pause':        (command) => ({ kind: command.kind }),
-  'hephaestus-unpause':      (command) => ({ kind: command.kind }),
-  'hephaestus-stop':         (command) => ({ kind: command.kind, now: command.now }),
-  'hephaestus-restart':      (command) => ({ kind: command.kind, now: command.now }),
-  'concurrency-set':         (command) => ({ kind: command.kind, limit: command.limit }),
-  'interrupted-work-resume': (command) => ({ kind: command.kind, target: resumeTargetOut(command.target) }),
-  'chart-range-set':         (command) => ({ kind: command.kind, range: chartRangeOut(command.range) }),
-  'decision-answer':         (command) => ({ kind: command.kind, decisionId: command.decisionId, answer: answerOut(command.answer) }),
-  'gate-profile-start':      (command) => ({
+  'hephaestus-pause':          (command) => ({ kind: command.kind }),
+  'hephaestus-unpause':        (command) => ({ kind: command.kind }),
+  'hephaestus-stop':           (command) => ({ kind: command.kind, now: command.now }),
+  'hephaestus-restart':        (command) => ({ kind: command.kind, now: command.now }),
+  'concurrency-set':           (command) => ({ kind: command.kind, limit: command.limit }),
+  'machine-agent-program-set': (command) => ({ kind: command.kind, vendor: command.vendor, programPath: command.programPath }),
+  'agent-look-again':          (command) => ({ kind: command.kind }),
+  'interrupted-work-resume':   (command) => ({ kind: command.kind, target: resumeTargetOut(command.target) }),
+  'chart-range-set':           (command) => ({ kind: command.kind, range: chartRangeOut(command.range) }),
+  'decision-answer':           (command) => ({ kind: command.kind, decisionId: command.decisionId, answer: answerOut(command.answer) }),
+  'gate-profile-start':        (command) => ({
     kind:     command.kind,
     setupId:  command.setupId,
     gateName: command.gateName,
@@ -369,9 +375,17 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
     questionId: command.questionId,
     answer:     answerOut(command.answer),
   }),
-  'pipeline-setup-billing':    (command) => ({ kind: command.kind, setupId: command.setupId, billing: billingOut(command.billing) }),
-  'pipeline-setup-resume':     (command) => ({ kind: command.kind, setupId: command.setupId }),
-  'pipeline-setup-start':      (command) => ({ kind: command.kind, billing: billingOut(command.billing), replacesUnreadablePipeline: command.replacesUnreadablePipeline }),
+  'pipeline-agent-set':     (command) => ({ kind: command.kind, agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
+  'pipeline-setup-agent':   (command) => ({ kind: command.kind, setupId: command.setupId, agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
+  'pipeline-tools-set':     (command) => ({ kind: command.kind, tools: command.tools === null ? null : command.tools.map(BoardAgentMapUtil.toolRequestOut) }),
+  'pipeline-setup-billing': (command) => ({ kind: command.kind, setupId: command.setupId, billing: billingOut(command.billing) }),
+  'pipeline-setup-resume':  (command) => ({ kind: command.kind, setupId: command.setupId }),
+  'pipeline-setup-start':   (command) => ({
+    kind:                       command.kind,
+    billing:                    billingOut(command.billing),
+    replacesUnreadablePipeline: command.replacesUnreadablePipeline,
+    ...(command.agent === null ? {} : { agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
+  }),
   'pipeline-setup-start-over': (command) => ({ kind: command.kind, setupId: command.setupId }),
   'pipeline-setup-step':       (command) => ({
     kind:    command.kind,

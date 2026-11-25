@@ -1,7 +1,8 @@
 /**
  * The live flow's footer bar (A5Live), as FlowLive draws it: the green Applied pill, the applied version with its time and who applied
  * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View stored pipeline
- * opens the stored text, and Update pipeline opens an update of it with `pipeline-update-start` and moves to `pipeline/edit`.
+ * opens the stored text, Forge settings the forge's agent and tools, and Update pipeline opens an update of it with `pipeline-update-start`
+ * and moves to `pipeline/edit`.
  */
 import { useState } from 'react';
 import {
@@ -11,12 +12,13 @@ import {
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardNavigation }   from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }        from '../../../shell/CommandButton.tsx';
-import { StateToneUtil }        from '../../../utils/StateToneUtil.ts';
-import { UPDATE_START_COMMAND } from '../flow/PipelineFlowEditSender.ts';
-import type { LiveFooterView }  from './LivePipelineModel.ts';
-import { PipelineFileDialog }   from './PipelineFileDialog.tsx';
+import { useBoardHrefOf, useBoardNavigation } from '../../../shell/BoardRouteLinks.ts';
+import { CommandButton }                      from '../../../shell/CommandButton.tsx';
+import { StateToneUtil }                      from '../../../utils/StateToneUtil.ts';
+import { PipelineViewModel }                  from '../PipelineViewModel.ts';
+import { UPDATE_START_COMMAND }               from '../flow/PipelineFlowEditSender.ts';
+import type { LiveFooterView }                from './LivePipelineModel.ts';
+import { PipelineFileDialog }                 from './PipelineFileDialog.tsx';
 
 const EDIT_ROUTE = Object.freeze({ tab: 'pipeline', item: 'edit' } as const);
 
@@ -26,6 +28,7 @@ export interface LiveFooterProps {
 
 export function LiveFooter({ footer }: LiveFooterProps) {
   const navigateTo = useBoardNavigation();
+  const hrefOf = useBoardHrefOf();
   const [fileIsShown, setFileIsShown] = useState(false);
   return (
     <>
@@ -41,6 +44,7 @@ export function LiveFooter({ footer }: LiveFooterProps) {
         )}
         end={(
           <>
+            <Button label="Forge settings" href={hrefOf(PipelineViewModel.forgeSettingsRoute)} />
             <Button label="View stored pipeline" expanded={fileIsShown} onPress={() => setFileIsShown(true)} />
             <CommandButton label="Update pipeline" command={UPDATE_START_COMMAND} primary onApplied={() => navigateTo(EDIT_ROUTE)} />
           </>

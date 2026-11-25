@@ -59,6 +59,7 @@ function renderPanel(level: PipelineLevel | null) {
       followTranscript={transcripts.follow}
       todayCalendarDate="2026-11-12"
       composerPlaceholder="Ask for a change, or ask why"
+      jobs={[]}
       levelShown={level === null ? null : { level, hrefOf: (other) => BoardRouter.fragmentOf(FIXTURE_TRACKER_ID, PipelineLevelModel.routeAtLevel(other, 'setup/design')) }}
     />
   ));

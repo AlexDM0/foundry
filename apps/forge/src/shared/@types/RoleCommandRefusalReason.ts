@@ -11,4 +11,5 @@ export type RoleCommandRefusalReason =
   | 'job-serves-no-setup'
   | 'need-outside-an-entity'
   | 'need-incomplete'
-  | 'need-for-sealed-package';
+  | 'need-for-sealed-package'
+  | 'tools-set-by-user-only';

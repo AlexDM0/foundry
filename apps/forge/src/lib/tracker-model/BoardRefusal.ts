@@ -109,6 +109,8 @@ export type BoardRefusalDetail =
   | { reason: 'phase-order-not-a-reorder'; phase: GatePhase; names: readonly string[]; phaseGateNames: readonly string[] }
   | { reason: 'approval-without-pipeline'; approval: string }
   | { reason: 'assistant-without-pipeline' }
+  | { reason: 'agent-without-pipeline' }
+  | { reason: 'tools-without-pipeline' }
   | { reason: 'reach-without-pipeline' }
   /** A `gate` write of the forge's own steps, gates or reach while each entity of `entityKeys` holds its own. */
   | { reason: 'pipeline-set-per-entity'; entityKeys: readonly string[] }
@@ -135,6 +137,7 @@ export type BoardRefusalDetail =
   /** E94: the draft turns a stored pipeline without entities into entities while these tickets are in progress, in review or reviewed. */
   | { reason: 'entities-while-tickets-in-flight'; setupId: string; ticketIds: readonly string[] }
   | { reason: 'billing-cap-not-positive'; maxBudgetUsd: number }
+  | { reason: 'setup-agent-not-chosen'; setupId: string }
   | { reason: 'setup-step-not-current'; setupId: string; step: PipelineSetupStep; currentStep: PipelineSetupStep }
   | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }
   | { reason: 'setup-step-not-continued'; setupId: string; step: PipelineSetupStep }

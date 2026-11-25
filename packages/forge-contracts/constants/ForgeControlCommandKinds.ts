@@ -1,6 +1,6 @@
 /**
  * Every command kind a client may send to `POST /api/v3/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
- * `ForgeBoardCommand`, then the ticket document kinds of `ForgeTicketDocumentCommand` from forge 4.1, each in its contract's order. A kind
+ * `ForgeBoardCommand`, then the ticket document kinds of `ForgeTicketDocumentCommand` from forge 4.2, each in its contract's order. A kind
  * the forge takes only from its own command line is in none of them.
  */
 import type { ForgeBoardCommand, ForgeTicketDocumentCommand } from '../@types/BoardCommand.ts';
@@ -18,6 +18,8 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',
+  'machine-agent-program-set',
+  'agent-look-again',
   'chart-range-set',
   'decision-answer',
   'gate-profile-start',
@@ -30,6 +32,7 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'merge-accept',
   'merge-update',
   'pipeline-agent-advise',
+  'pipeline-agent-set',
   'pipeline-apply',
   'pipeline-apply-cancel',
   'pipeline-assistant-set',
@@ -38,12 +41,14 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'pipeline-draft-discard',
   'pipeline-draft-edit',
   'pipeline-draft-undo',
+  'pipeline-setup-agent',
   'pipeline-setup-answer',
   'pipeline-setup-billing',
   'pipeline-setup-resume',
   'pipeline-setup-start',
   'pipeline-setup-start-over',
   'pipeline-setup-step',
+  'pipeline-tools-set',
   'pipeline-update-start',
   'ticket-deliver-by-hand',
   'ticket-hold',

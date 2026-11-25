@@ -227,11 +227,11 @@ describe('the agent strip', () => {
   test('a stopped job shows no work on any step, yet an open question still waits and a ready proposal stays ready', () => {
     const idle = { questions: [], readyToContinue: [] };
     expect([
-      PipelineAgentPanelModel.agentStripOf('research', idle, null),
-      PipelineAgentPanelModel.agentStripOf('constitution', idle, null),
-      PipelineAgentPanelModel.agentStripOf('design', idle, null),
-      PipelineAgentPanelModel.agentStripOf('research', { ...idle, questions: [openQuestionOn('research')] }, null),
-      PipelineAgentPanelModel.agentStripOf('design', { ...idle, readyToContinue: ['design'] }, null),
+      PipelineAgentPanelModel.agentStripOf('research', idle, 'stopped'),
+      PipelineAgentPanelModel.agentStripOf('constitution', idle, 'stopped'),
+      PipelineAgentPanelModel.agentStripOf('design', idle, 'stopped'),
+      PipelineAgentPanelModel.agentStripOf('research', { ...idle, questions: [openQuestionOn('research')] }, 'stopped'),
+      PipelineAgentPanelModel.agentStripOf('design', { ...idle, readyToContinue: ['design'] }, 'stopped'),
     ].map(partsOf)).toEqual([
       ['Stopped', 'research-slot', 'agent-is-idle'],
       ['Stopped', 'constitution-slot', 'agent-is-idle'],
@@ -239,5 +239,29 @@ describe('the agent strip', () => {
       ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
       ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
     ]);
+  });
+
+  test('a job forge did not launch shows no work either, never Reading the repository, while an open question still waits', () => {
+    const idle = { questions: [], readyToContinue: [] };
+    expect([
+      PipelineAgentPanelModel.agentStripOf('research', idle, 'not-launched'),
+      PipelineAgentPanelModel.agentStripOf('constitution', idle, 'not-launched'),
+      PipelineAgentPanelModel.agentStripOf('research', { ...idle, questions: [openQuestionOn('research')] }, 'not-launched'),
+    ].map(partsOf)).toEqual([
+      ['Not launched', 'research-slot', 'agent-is-idle'],
+      ['Not launched', 'constitution-slot', 'agent-is-idle'],
+      ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
+    ]);
+  });
+});
+
+describe('the composer\'s tag', () => {
+  test('reads Running while the job runs or stops, Stopped with none, and Not launched, never Running, for a job forge did not launch', () => {
+    expect([
+      PipelineAgentPanelModel.composerTagOf('running').text,
+      PipelineAgentPanelModel.composerTagOf('stopping').text,
+      PipelineAgentPanelModel.composerTagOf('stopped').text,
+      PipelineAgentPanelModel.composerTagOf('not-launched'),
+    ]).toEqual(['Running', 'Running', 'Stopped: a message resumes it', { text: 'Not launched', tone: 'error' }]);
   });
 });

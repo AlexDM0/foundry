@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { launchEnvironmentFor } from './LaunchEnvironmentFor.ts';
 
-const windows = launchEnvironmentFor('win32');
+const windows = launchEnvironmentFor('win32', () => []);
 
 const WINDOWS_NAMES = [
   'Path',

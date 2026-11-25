@@ -8,6 +8,7 @@
  */
 import { describe, expect, test }                                                                    from 'bun:test';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { EXAMPLE_NOT_LAUNCHED }                                                                      from '../../../testing/AgentFixture.ts';
 import { pipelineBoardStateOf }                                                                      from '../../../testing/PipelineFixture.ts';
 import { PipelineViewModel }                                                                         from '../PipelineViewModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel }                                                           from '../entities/PipelineLevelModel.ts';
@@ -54,7 +55,7 @@ function researchFacts(changes: Partial<BoardPipelineSetupDocument['record']> = 
       'design-system': { ...(entityFacts['design-system'] ?? setupEntityFactsOf(setup)), agentJobState: null },
     },
   };
-  return { setup: setupAtResearch, shownEntities: PipelineViewModel.entitiesShownOf(board) };
+  return { setup: setupAtResearch, shownEntities: PipelineViewModel.entitiesShownOf(board), jobs: [] };
 }
 
 function setupEntityFactsOf(setup: BoardPipelineSetupDocument): NonNullable<BoardPipelineSetupDocument['entities']>[string] {
@@ -109,6 +110,14 @@ describe('the rows', () => {
     const [forge, web] = EntitySessionListModel.rowsOf(researchFacts(), WEB_LEVEL);
     expect([forge?.findingCount, web?.findingCount, web?.openQuestionCount, web?.selected]).toEqual([1, 2, 1, true]);
     expect(web?.accessibleName).toBe('web, app, Researching, 2 findings, 1 open question');
+  });
+
+  test('a session whose launch forge refused reads not launched, never researching, and keeps its stop', () => {
+    const facts = { ...researchFacts(), jobs: [{ id: 'J5', notLaunched: EXAMPLE_NOT_LAUNCHED }] };
+    const web = EntitySessionListModel.rowsOf(facts, WEB_LEVEL)[1];
+    expect([web?.state, web?.stateText, web?.stopCommand?.kind]).toEqual(['not-launched', 'Not launched', 'job-stop']);
+    expect(EntitySessionListModel.panelStatusOf(EntitySessionListModel.selectedSessionOf(facts, WEB_LEVEL).state)).toEqual({ tone: 'failed', text: 'Not launched' });
+    expect(EntitySessionListModel.footerCountsOf(EntitySessionListModel.rowsOf(facts, FORGE_LEVEL))).toBe('1 not launched · 1 stopped · 1 not started · 1 open question');
   });
 
   test('the counts name the entities\' states, then every open research question', () => {

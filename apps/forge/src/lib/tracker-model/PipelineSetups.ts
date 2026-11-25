@@ -7,49 +7,57 @@
  * and draft revision, so a retried Apply never refuses the pipeline it stored itself. On a draft over entities the forge has no
  * constitution of its own: each entity's drafted text is what the commit writes, and an entity with no draft adopts the file main holds.
  */
-import type { Logged, PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
-import type { LogRecord }                                          from './@types/LogRecord.ts';
+import type {
+  Logged,
+  PipelineApplyChanged,
+  PipelineSetupChanged,
+  PipelineSetupStartedOver
+} from './@types/BoardChanges.ts';
+import type { LogRecord } from './@types/LogRecord.ts';
 import type {
   EntityKey,
   Pipeline,
+  PipelineAgent,
   PipelineBilling,
   PipelineEntity,
   PipelineGate,
-  PipelineStep
+  PipelineStep,
+  PipelineTool
 } from './@types/Pipeline.ts';
-import type {
-  ApplyFinishing,
-  ApplyHolding,
-  ApplyMainReading,
-  ApplyRefusal,
-  ApplyRequesting,
-  ConstitutionDraft,
-  ConstitutionEdit,
-  ConstitutionSetting,
-  ConstitutionSources,
-  DraftEditRequest,
-  EntityChangeRefusalReason,
-  EntityDraftEdit,
-  MainConstitution,
-  PipelineDraftEdit,
-  PipelineCheckEnding,
-  PipelineCheckStart,
-  PipelineSetup,
-  PipelineSetupEntity,
-  PipelineSetupOpening,
-  PipelineSetupStep,
-  PipelineSetupStepState,
-  PipelineSetupStepStates,
-  ResearchFindingRecording,
-  SetupEdit,
-  SetupEditAuthor,
-  SetupQuestion,
-  SetupQuestionAsking,
-  SetupQuestionReply,
-  SetupQuestionStep,
-  SnapshotRefusal,
-  SourceAnnotation,
-  SourceAnnotationKind
+import {
+  type ApplyFinishing,
+  type ApplyHolding,
+  type ApplyMainReading,
+  type ApplyRefusal,
+  type ApplyRequesting,
+  type ConstitutionDraft,
+  type ConstitutionEdit,
+  type ConstitutionSetting,
+  type ConstitutionSources,
+  type DraftEditRequest,
+  type EntityChangeRefusalReason,
+  type EntityDraftEdit,
+  type MainConstitution,
+  PIPELINE_SETUP_FORMAT_VERSION,
+  type PipelineDraftEdit,
+  type PipelineCheckEnding,
+  type PipelineCheckStart,
+  type PipelineSetup,
+  type PipelineSetupEntity,
+  type PipelineSetupOpening,
+  type PipelineSetupStep,
+  type PipelineSetupStepState,
+  type PipelineSetupStepStates,
+  type ResearchFindingRecording,
+  type SetupEdit,
+  type SetupEditAuthor,
+  type SetupQuestion,
+  type SetupQuestionAsking,
+  type SetupQuestionReply,
+  type SetupQuestionStep,
+  type SnapshotRefusal,
+  type SourceAnnotation,
+  type SourceAnnotationKind
 } from './@types/PipelineSetup.ts';
 import type { TicketStatus }                     from './@types/Ticket.ts';
 import type { BoardRecords }                     from './BoardRecords.ts';
@@ -68,7 +76,6 @@ import {
   LAYOUT_FINDINGS_PROPOSING_ENTITIES,
   MINIMUM_SETUP_QUESTION_OPTIONS,
   PENDING_APPLY_REQUEST_STATES,
-  PIPELINE_SETUP_FORMAT_VERSION,
   PIPELINE_SETUP_STEPS,
   SETUP_EDIT_ID_PREFIX,
   SETUP_ID_PREFIX,
@@ -88,7 +95,7 @@ function isEntityChangeRefusalReason(reason: string): reason is EntityChangeRefu
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
 const UPDATE_STEP_STATES: Readonly<PipelineSetupStepStates> = {
-  billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+  billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
 };
 
 /** The SOURCES tick that selects each kind of source a constitution line may name. */
@@ -98,24 +105,38 @@ const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof Constitut
   'installed-default': 'installedDefault',
 };
 
-/** A first setup starts with the billing User chose, so it opens at the research, the agent's first step. */
+/** A first setup starts with the billing and the agent User chose, so it opens at the research, the pipeline agent's first step. */
 const FIRST_SETUP_STEP_STATES: Readonly<PipelineSetupStepStates> = {
-  billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+  billing: 'done', agent: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+};
+
+/** A first setup with no agent chosen opens at the agent step: no pipeline agent can launch before it is done. */
+const AGENT_FIRST_STEP_STATES: Readonly<PipelineSetupStepStates> = {
+  billing: 'done', agent: 'in-progress', research: 'not-started', constitution: 'not-started', design: 'not-started', apply: 'not-started'
 };
 
 /** The step states with `entities` not started, in the order the steps are walked. */
 function stepStatesWalkingEntitiesOf(stepStates: Readonly<PipelineSetupStepStates>): PipelineSetupStepStates {
   const {
-    billing, research, constitution, design, apply
+    billing, agent, research, constitution, design, apply
   } = stepStates;
   return {
-    billing, research, entities: 'not-started', constitution, design, apply
+    billing, agent, research, entities: 'not-started', constitution, design, apply
   };
 }
 
-/** Research is still the current step: a first setup opens there, and billing reopens before it. */
+/** Research is still the current step: a first setup opens there, and billing and the agent reopen before it. */
 function researchIsCurrent(setup: Readonly<PipelineSetup>): boolean {
-  return setup.currentStep === 'billing' || setup.currentStep === 'research';
+  return setup.currentStep === 'billing' || setup.currentStep === 'agent' || setup.currentStep === 'research';
+}
+
+function agentCopyOf(agent: Readonly<PipelineAgent>): PipelineAgent {
+  return { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
+}
+
+/** The agent's program as a log record names it: `machine`, or the pinned path. */
+function programWordOf(agent: Readonly<PipelineAgent>): string {
+  return 'pinned' in agent.program ? agent.program.pinned : 'machine';
 }
 
 function stepIndexOf(step: PipelineSetupStep): number {
@@ -269,15 +290,17 @@ export class PipelineSetups {
     if (opening.mode !== 'setup' && stored === null) throw new BoardRefusal({ reason: 'no-pipeline-to-update', mode: opening.mode });
 
     const isUpdate = opening.mode !== 'setup';
-    const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...FIRST_SETUP_STEP_STATES };
+    const opensAtAgent = !isUpdate && opening.agent === null;
+    const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...opensAtAgent ? AGENT_FIRST_STEP_STATES : FIRST_SETUP_STEP_STATES };
     const setup: PipelineSetup = {
       formatVersion:              PIPELINE_SETUP_FORMAT_VERSION,
       setupId:                    `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`,
       mode:                       opening.mode,
       baseContentHash:            isUpdate && stored !== null ? PipelineUtil.contentHashOf(stored) : null,
       stepStates,
-      currentStep:                isUpdate ? 'design' : 'research',
+      currentStep:                isUpdate ? 'design' : opensAtAgent ? 'agent' : 'research',
       billing:                    billingCopyOf(opening.billing),
+      agent:                      opening.agent === null ? null : agentCopyOf(opening.agent),
       agentJobId:                 null,
       snapshotCommit:             null,
       readyToContinue:            [],
@@ -307,9 +330,35 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-billing-set', setupId, fields }, at)], setup };
   }
 
+  /** The agent the record's pipeline agent runs on and Apply stores; a change never reopens a step. */
+  setSetupAgent(setupId: string, agent: PipelineAgent, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    setup.agent = agentCopyOf(agent);
+    this.store(setup);
+    const fields = { vendor: agent.vendor, program: programWordOf(agent) };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-agent-set', setupId, fields }, at)], setup };
+  }
+
+  /** The open record's agent follows a change of the forge's agent, so its pipeline agent runs on the same one; nothing is logged twice. */
+  followAgentChange(agent: PipelineAgent): void {
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict !== 'readable') return;
+    reading.setup.agent = agentCopyOf(agent);
+    this.store(reading.setup);
+  }
+
+  /** The open record's draft follows a change of the forge's tools, so its Apply never writes the older list back; nothing is logged twice. */
+  followToolsChange(tools: readonly PipelineTool[] | null): void {
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict !== 'readable' || reading.setup.draft === null) return;
+    if (tools === null) delete reading.setup.draft.tools;
+    else reading.setup.draft.tools = tools.map((tool) => ({ name: tool.name, path: tool.path }));
+    this.store(reading.setup);
+  }
+
   /**
    * User's Continue on the current step: it is done, and the next step opens; on a step that needs a recheck, this is its only exit. It
-   * waits while the draft's entities hold a refusal.
+   * waits while the draft's entities hold a refusal. The agent step is done only once the record holds an agent.
    */
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
@@ -318,6 +367,7 @@ export class PipelineSetups {
       reason: 'setup-step-not-current', setupId, step, currentStep: setup.currentStep
     });
     refuseStandingEntityRefusals(setup);
+    if (step === 'agent' && setup.agent === null) throw new BoardRefusal({ reason: 'setup-agent-not-chosen', setupId });
 
     const walkedSteps = walkedStepsOf(setup);
     const nextStep    = walkedSteps[walkedSteps.indexOf(step) + 1] ?? 'apply';
@@ -646,12 +696,25 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-draft-discarded', setupId, fields: { revision: setup.draftRevision } }, at)], setup };
   }
 
-  /** Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. */
-  startOverSetup(setupId: string, at: string): PipelineSetupChanged {
-    const setup = this.requireMovableSetup(setupId);
+  /**
+   * Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. A record that cannot be read is removed
+   * whatever id the move names, since its own id cannot be read: starting over is the one way out of an unreadable record.
+   */
+  /**
+   * The start over a new start runs first when the stored record cannot be read, so an old format never blocks a setup: `null` while the
+   * record reads or none is stored. The unreadable record is the newest one this board numbered.
+   */
+  discardUnreadableSetup(at: string): PipelineSetupStartedOver | null {
+    if (this.records.pipelineSetupReading.verdict !== 'malformed') return null;
+    const newestNumber = Math.max(FIRST_SETUP_NUMBER, (this.records.progress.nextSetupId ?? FIRST_SETUP_NUMBER) - 1);
+    return this.startOverSetup(`${SETUP_ID_PREFIX}${newestNumber}`, at);
+  }
+
+  startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
+    const discarded = this.records.pipelineSetupReading.verdict === 'malformed' ? null : this.requireMovableSetup(setupId);
     this.records.pipelineSetupReading = { verdict: 'absent' };
     this.records.pipelineSetupChanged = true;
-    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup: discarded };
   }
 
   /**
@@ -1067,6 +1130,7 @@ export class PipelineSetups {
    */
   private appliedPipelineOf(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): Pipeline {
     const applied = structuredClone(setup.draft ?? this.basePipeline()) as Pipeline;
+    if (setup.agent !== null) applied.agent = agentCopyOf(setup.agent);
     const { mainConstitution } = reading;
     if (!draftHasEntities(setup)) {
       if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };

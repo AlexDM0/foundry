@@ -53,7 +53,7 @@ sentence the command line prints, which may name a command. A bare verb such as 
 | `GET /api/monitor/events` | bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | a monitor, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 413, 423, 500 | a monitor, `stop`, `restart`, `update` |
-| `GET /api/tickets/<ticket>/documents` | bearer token | `ForgeTicketDocumentsDocument` of the ticket, read fresh for this request, from forge 4.1, see [A ticket's documents](#a-tickets-documents) | 401 `unauthorized`; 404 `{refusal, fields, text}`, the refusal document of `no-readable-ticket` for a reference that names no ticket, of `ticket-has-no-documents` for a ticket with no documents record, or of `unreadable-file-in-the-way` for a ticket whose documents record cannot be read; 500 `read-failed` when the read throws | a monitor |
+| `GET /api/tickets/<ticket>/documents` | bearer token | `ForgeTicketDocumentsDocument` of the ticket, read fresh for this request, from forge 4.2, see [A ticket's documents](#a-tickets-documents) | 401 `unauthorized`; 404 `{refusal, fields, text}`, the refusal document of `no-readable-ticket` for a reference that names no ticket, of `ticket-has-no-documents` for a ticket with no documents record, or of `unreadable-file-in-the-way` for a ticket whose documents record cannot be read; 500 `read-failed` when the read throws | a monitor |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: 'picture-too-large', fields, text}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: 'picture-type-unsupported', fields, text}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | a monitor |
 | `GET /api/pictures/<id>` | bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | a monitor |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
@@ -138,7 +138,7 @@ The route reads a board command whole (see [Board commands](#board-commands)); f
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
 | 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a board command that does not read as its `ForgeBoardCommand`, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
-| 413 | `{controlVersion, refusal: 'body-too-large', fields: {bytes, boundBytes}, text}` | From forge 4.1, a body larger than `COMMAND_BODY_BOUND_BYTES` (1 MiB), which a ticket document's save of a whole document stays within. The body is read no further and nothing was written. |
+| 413 | `{controlVersion, refusal: 'body-too-large', fields: {bytes, boundBytes}, text}` | From forge 4.2, a body larger than `COMMAND_BODY_BOUND_BYTES` (1 MiB), which a ticket document's save of a whole document stays within. The body is read no further and nothing was written. |
 | 409 | `{controlVersion, refusal: <code>, fields, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; `fields` are the facts its detail names, without the field the code already says (a board refusal's `reason`, another detail's `kind`); from forge 1.21 the sentence is the one the command line prints (`OperationRefusalWordingUtil.messageOf`), which may name a command, and a client shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `hephaestus-stop`, `hephaestus-restart`, `talos-restart` and `machine-agent-limit-set` is refused, a job stop included. A restart lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
@@ -176,10 +176,13 @@ limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and write
 
 ### Control contract 3
 
-The control contract is what a monitor may send and what it gets back. It names nine kinds, `CONTROL_CONTRACT_KINDS` in
+The control contract is what a monitor may send and what it gets back. It names ten kinds, `CONTROL_CONTRACT_KINDS` in
 `src/shared/constants/HephaestusApiContracts.ts`: `hephaestus-pause`, `hephaestus-unpause`, `hephaestus-stop {now}`,
 `hephaestus-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
-forge 1.20, `interrupted-work-resume {target}`, and, from forge 1.23, `talos-restart`. Each answer carries
+forge 1.20, `interrupted-work-resume {target}`, from forge 1.23, `talos-restart`, and, from forge 4.1,
+`machine-agent-program-set {vendor, programPath}`: this machine's program of an agent vendor, which every forge that
+follows the machine starts, run once with its version arguments before it is stored in `<monitor>/config.json` and
+refused 409 `agent-program-does-not-run` when it does not run, as `machine agent <path>` does, in no hold. Each answer carries
 `controlVersion` 3. A 200 answers `outcome` `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
 and a 423 answer `refusal`, a code, `fields`, its facts (`{}` on a 400 and a 423), and `text`, from forge 1.21 the sentence the
 command line prints; a 401 answers `unauthorized`. A `concurrency-set` `limit`
@@ -204,18 +207,22 @@ client sends it only to a forge that new or newer.
 
 From forge 1.21 the contract also names the board's commands, the kinds a view sends: `ForgeBoardCommand` in
 `forge-contracts/BoardCommand`, listed as `BOARD_COMMAND_CONTRACT_KINDS` in `src/shared/constants/HephaestusApiContracts.ts`.
-They are part of the contract under `controlVersion` 3, with the answers of control contract 3. The 35 kinds of 4.0 are
-`chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
-`job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-apply`,
+They are part of the contract under `controlVersion` 3, with the answers of control contract 3. The 39 kinds are
+`agent-look-again` (from forge 4.1: the forge runs its agent's program once again, so the views read whether it runs,
+and launches every job that stood not launched, the `gate look-again` verb), `chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
+`job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-agent-set`
+(from forge 4.1, `{ agent }`, the forge's agent, the `gate agent` verb), `pipeline-apply`,
 `pipeline-apply-cancel`, `pipeline-assistant-set` (the Assistant's switch, `{ on }`, the `gate assistant` verb),
 `pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
-`pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-answer`, `pipeline-setup-billing`,
-`pipeline-setup-resume`, `pipeline-setup-start`, `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-agent` (from forge 4.1, `{ setupId, agent }`, the
+`pipeline agent` verb), `pipeline-setup-answer`, `pipeline-setup-billing`, `pipeline-setup-resume`,
+`pipeline-setup-start` (with an optional `agent` from forge 4.1), `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-tools-set` (from forge 4.1, `{ tools }`, each `{ name, path? }` or `null`, the `gate tools` verb),
 `pipeline-update-start`, `ticket-deliver-by-hand`, `ticket-hold`, `ticket-network`, `ticket-park`, `ticket-priority`,
 `ticket-ready`, `ticket-unhold` and `tracker-clear`. A kind in neither list may change without raising the system
 version.
 
-From forge 4.1 the list also holds User's nine moves on a ticket's documents, `ForgeTicketDocumentCommand` in
+From forge 4.2 the list also holds User's nine moves on a ticket's documents, `ForgeTicketDocumentCommand` in
 `forge-contracts/BoardCommand`, each naming `ticketReference` and `document` (`spec` or `plan`):
 `ticket-document-save` `{baseVersion, markdown}` (`baseVersion` the version the text was made on, `null` for the first),
 `ticket-document-comment` `{anchor, text}` (`anchor` a `CommentAnchorDocument`, or `null` for a message on no lines),
@@ -232,9 +239,19 @@ The route reads a body of a board kind field by field into its `ForgeBoardComman
 (`BoardCommandMappingUtil.controlCommandOf`). A missing or misshapen field answers 400 `malformed-body`; a key the kind
 does not name is left behind.
 
+An `agent`, `{ vendor, program }`, names its program as `{ follows: 'machine' }` or `{ pinned: <absolute path> }`. A
+command that carries one (`pipeline-agent-set`, `pipeline-setup-agent`, `pipeline-setup-start`) runs that program once
+with the vendor's version arguments before the hold, bounded by 10 seconds, and answers 409
+`agent-program-does-not-run`, writing nothing, when it is not there, cannot run, fails, outlives the bound or answers as
+another program. That run searches what a launch searches: the folders of the forge's approved tools, the program's own
+folder and the system's; a run that fails names the first line it printed. A tool sent by its name alone, in
+`pipeline-tools-set` or a draft's `tools` edit, is found in the places installers put programs before the hold, and one
+found nowhere answers 409 `tool-not-found`. One sent with its path that is no program there, or that lies inside a
+registered forge's repository or this forge's worktrees, answers 409 `tool-refused`.
+
 `pipeline-draft-edit` carries typed edits, `PipelineDraftEditDocument`, each addressed by its `target`: `gate`
 `{name, value}`, `phase-order` `{phase, names}`, `prepare` `{name, value}`, `prepare-order` `{names}`, `review`,
-`constitution` and `airlock` `{value}`, `role` `{role, value}`, `approval` `{approval, value}`, `entity`
+`constitution`, `airlock` and, from forge 4.1, `tools` `{value}`, `role` `{role, value}`, `approval` `{approval, value}`, `entity`
 `{entityKey, value}` (an entity's kind, homes and summary) and `within-entity` `{entityKey, edit}`, whose `edit` is a
 steps edit, `role` of an entity's own role, `whitelist`, `reach`, `depends-on` or `concurrency` `{value}`. A `null`
 value removes what the edit names. An edit written as a field string, `{field, value}`, is no typed edit: the route
@@ -276,7 +293,7 @@ Pass, at every [sweep](../glossary.md#sweep), and once at start. Each reads the 
 | `usage` | `BoardState.usage` | It changed |
 | `profile` | One `profileRuns` entry | That gate profile run appeared or changed |
 | `pipeline` | `{pipeline, pipelineSetup, pipelineFlow}` of the `BoardState` | The stored pipeline, the setup record, its draft or the flow changed; always directly before `board`, so the flow can animate its marks |
-| `documents` | `{ticketId}` | From forge 4.1: what the ticket's documents serve changed, its record or, beside it, the ticket's status, a document's review switch or its live agent, so a client that shows them reads [the ticket's documents](#a-tickets-documents) again; a publish that changed only a record sends it and then `board`. Its effect reading changed: sent at once, between publishes, with no `board` |
+| `documents` | `{ticketId}` | From forge 4.2: what the ticket's documents serve changed, its record or, beside it, the ticket's status, a document's review switch or its live agent, so a client that shows them reads [the ticket's documents](#a-tickets-documents) again; a publish that changed only a record sends it and then `board`. Its effect reading changed: sent at once, between publishes, with no `board` |
 | `board` | The whole `BoardState` | Anything changed; always last |
 
 On connect, before any other event, the stream sends one `handshake` event, `data: {"systemVersion": …}`, the `current`
@@ -612,7 +629,7 @@ session's last line from the board document.
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while Hephaestus starts too. This forge answers `4.1` and `4.0`.
+moment the server answers, while Hephaestus starts too. This forge answers `4.2` and `4.0`.
 
 Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no page, no browser
 session and no one-time code for one, no contract for a framed page and no record of framing origins; the monitor and
@@ -631,7 +648,15 @@ the process's state while it restarts is `restarting` in the summary, the monito
 of a failed restart is `restart-failed`, and the board document carries that failure as `restartWarning`. The minimum is
 4.0 too: no client built for forge 3 is served, and the registry keeps nothing for one.
 
-Forge 4.1 only adds, for a board whose pipeline writes a ticket as a spec, then a plan: the endpoint of [a ticket's
+Forge 4.1 adds each forge's agent, only adding: the board document's `agent` (the vendors, the forge's choice, this
+machine's program, the places its installers use, whether the program runs and the tools), a job's `notLaunched`, the
+pipeline's `agent` and `tools`, the setup step `agent` and the record's `agent` and `tools`, the draft field `tools`,
+the board commands `pipeline-setup-agent`, `pipeline-agent-set`, `pipeline-tools-set` and `agent-look-again`, and the
+control command `machine-agent-program-set`. No endpoint changes its version. The vendors list the agent forge runs,
+which can be chosen, then each vendor forge names before it can run it (Codex, GitHub Copilot), with `supported` false,
+for a view to show as coming later; the names come from forge, so a client names no vendor of its own.
+
+Forge 4.2 only adds, for a board whose pipeline writes a ticket as a spec, then a plan: the endpoint of [a ticket's
 documents](#a-tickets-documents), User's nine commands on them, the `documents` event, a ticket's `documents` summary on
 the board document, the 413 of a command body over its bound, and the new members of the board's unions (job kinds and
 roles, the pipeline's route and documents, the readiness gaps). Most new members reach a client only once a board sets
@@ -679,7 +704,7 @@ id check are the same. An answer carries no endpoint version. A version or an en
 | profiles/{profileRunId}/stream | `GET /api/v1/profiles/<P>/stream?after=<line>`, from 1.22 |
 | pictures | `POST /api/v1/pictures`, from 1.22 |
 | pictures/{pictureId} | `GET /api/v1/pictures/<id>`, from 1.22 |
-| tickets/{ticketId}/documents | `GET /api/v1/tickets/<ticket>/documents`, from 4.1 |
+| tickets/{ticketId}/documents | `GET /api/v1/tickets/<ticket>/documents`, from 4.2 |
 
 Forge 4.0 serves the summary, the monitor, its stream, the board and the board's event stream, whose `board` event
 carries the board's state, at their next version and the older one no more: `/api/v2/summary`, `/api/v4/monitor`,
@@ -829,10 +854,13 @@ The document serves as finished facts what a view would otherwise recompute with
 | The open decisions in answering order, and the ones an Assistant escalated | `openDecisionIds`, `escalatedDecisionIds` | a reader |
 | Each ticket's resolved priority, status classes and repeat-review round | `page.tickets[].facts` | a reader |
 | The board command kinds each ticket accepts now, and the priorities it may move to | `page.tickets[].offers` | a reader |
-| From forge 4.1, on a ticket with a documents record only: each document's standing, its head's number and its newest approved number, and `buildHeld` while they keep a committed ticket from its build | `page.tickets[].documents` | a reader |
+| From forge 4.2, on a ticket with a documents record only: each document's standing, its head's number and its newest approved number, and `buildHeld` while they keep a committed ticket from its build | `page.tickets[].documents` | a reader |
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
 | The refusal an Apply of the current draft meets now, as `POST /api/v3/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
+| The forge's agent: the vendors with whether each can be chosen, the choice, this machine's program, the program a launch starts, where the installers put it (each found or not), whether it ran since Hephaestus started (`runs` with its version, or why not, worded), and the tools with where each was found, whether the forge's list holds it and which prepare step or gate runs it | `agent` | forge (the sentence of a program that does not run) |
+| Why a job stands not launched: its cause, the program the forge named and the sentence | `jobs[].notLaunched` | forge |
+| The design's tools: each program the draft runs, found now, the draft's own list where it keeps one | `pipelineSetup.record.tools` | a reader |
 | Each refusal the draft's entities hold, with the entities it names, the row that shows it, a sentence of what is wrong and that Continue and Apply wait for its fix, and the one gesture that resolves it as typed draft edits | `pipelineSetup.entityRefusals` | forge |
 | The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
 | A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |
@@ -843,7 +871,7 @@ readiness, a domain list) is judged only when it comes. A reader words state nam
 
 ## A ticket's documents
 
-`GET /api/tickets/<ticket>/documents`, from forge 4.1 at `GET /api/v1/tickets/<ticket>/documents`, answers one
+`GET /api/tickets/<ticket>/documents`, from forge 4.2 at `GET /api/v1/tickets/<ticket>/documents`, answers one
 `ForgeTicketDocumentsDocument` (`packages/forge-contracts`, `TicketDocumentsDocument`) for a ticket whose pipeline
 writes it as a spec, then a plan. `<ticket>` reads as a command's ticket reference without its `#`, which a URL keeps
 as its fragment: `4` and `004` name one ticket. A ticket whose documents record cannot be read answers 404 with the

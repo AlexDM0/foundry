@@ -41,7 +41,7 @@ function recordWith(changes: Partial<Pick<BoardSetupRecordDocument, 'edits' | 's
   return {
     edits:      [],
     stepStates: {
-      billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      billing: 'done', agent: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     },
     ...changes,
   };

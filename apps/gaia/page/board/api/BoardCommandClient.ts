@@ -3,12 +3,12 @@
  * answer into how the command ended. A refusal is the forge's sentence, which the board shows verbatim and never words itself; `install-held`
  * means launches are held for an install change. The client holds no token: Gaia's server alone speaks to the forge.
  */
-import { PAGE_CONTRACT_VERSIONS }          from '../../../src/shared/constants/PageContractVersions.ts';
-import { ContractVersionUtil }             from '../../../src/shared/utils/ContractVersionUtil.ts';
-import type { BoardCommandDocument }       from '../../@types/board/BoardCommandDocument.ts';
-import type { BoardCommandAnswerDocument } from '../../@types/board/BoardRelayDocuments.ts';
-import { BoardApiPaths }                   from './BoardApiPaths.ts';
-import { refusalTextOf }                   from './RefusalOf.ts';
+import { PAGE_CONTRACT_VERSIONS }                                     from '../../../src/shared/constants/PageContractVersions.ts';
+import { ContractVersionUtil }                                        from '../../../src/shared/utils/ContractVersionUtil.ts';
+import type { BoardCommandDocument }                                  from '../../@types/board/BoardCommandDocument.ts';
+import type { BoardCommandAnswerDocument }                            from '../../@types/board/BoardRelayDocuments.ts';
+import { BoardApiPaths }                                              from './BoardApiPaths.ts';
+import { forgeRefusalFactsOf, refusalTextOf, type ForgeRefusalFacts } from './RefusalOf.ts';
 import {
   BROWSER_RELAY_REQUEST_SENDER,
   jsonBodyOf,
@@ -25,7 +25,8 @@ export interface BoardCommandResult {
 
 export type CommandOutcome =
   | { readonly verdict: 'applied'; readonly outcome: 'done' | 'nothing-to-do'; readonly result: BoardCommandResult }
-  | { readonly verdict: 'refused'; readonly refusal: string }
+  /** `forgeRefusal` is the forge's code and facts when the forge refused, for a view that offers a way past it. */
+  | { readonly verdict: 'refused'; readonly refusal: string; readonly forgeRefusal?: ForgeRefusalFacts }
   | { readonly verdict: 'install-held'; readonly refusal: string }
   | { readonly verdict: 'unreachable' }
   /** The command was sent, so the forge may have applied it, but no answer came back: a resend could apply it twice. */
@@ -57,10 +58,15 @@ function outcomeOfAnswer(answer: BoardCommandAnswerDocument): CommandOutcome | n
   switch (answer.outcome) {
     case 'applied':
       return appliedOutcomeOf(answer.applied);
-    case 'refused':
+    case 'refused': {
+      const refusal = refusalTextOf(answer.refusal);
+      const forgeRefusal = forgeRefusalFactsOf(answer.refusal);
+      if (refusal === null) return null;
+      return forgeRefusal === null ? { verdict: 'refused', refusal } : { verdict: 'refused', refusal, forgeRefusal };
+    }
     case 'install-held': {
       const refusal = refusalTextOf(answer.refusal);
-      return refusal === null ? null : { verdict: answer.outcome, refusal };
+      return refusal === null ? null : { verdict: 'install-held', refusal };
     }
     case 'unreachable':
       return { verdict: 'unreachable' };

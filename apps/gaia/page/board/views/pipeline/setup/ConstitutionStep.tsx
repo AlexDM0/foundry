@@ -30,6 +30,7 @@ import { PipelinePage }                                                         
 import { PipelinePanel }                                                                   from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts }                                       from '../PipelineViewModel.ts';
 import { AgentMeter }                                                                      from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                                                               from '../agent-panel/AgentSessionModel.ts';
 import { PipelineAgentPanel }                                                              from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                                                         from '../agent-panel/PipelineAgentPanelModel.ts';
 import { ConstitutionStateTag }                                                            from '../entities/ConstitutionStateTag.tsx';
@@ -81,7 +82,7 @@ function SingleConstitutionStep({
   const [view, setView] = useState<ConstitutionView>('edit');
   const { record } = setup;
   const mode = ConstitutionStepModel.stepModeOf(record.mode);
-  const agentState = ConstitutionStepModel.agentStateOf(setup);
+  const agentState = ConstitutionStepModel.agentStateOf(setup, AgentSessionModel.setupSessionStateOf(setup, facts.jobs));
   const now = useTickingNow(clock, false);
   const outlineText = ConstitutionStepModel.outlineTextOf(setup.constitutionOutline);
   const main = (
@@ -90,7 +91,7 @@ function SingleConstitutionStep({
         <View gap="two">
           <span className="board-pipeline-constitution-status" data-state={agentState}>
             <span className="board-pipeline-constitution-status-dot" data-state={agentState} aria-hidden="true" />
-            {ConstitutionStepModel.statusLineOf(setup)}
+            {ConstitutionStepModel.statusLineOf(agentState)}
           </span>
           <ViewTitle
             title="The constitution"
@@ -134,7 +135,7 @@ function SingleConstitutionStep({
     <PipelinePanel
       label="Pipeline agent"
       title="Pipeline agent"
-      status={ConstitutionStepModel.panelStatusOf(setup)}
+      status={ConstitutionStepModel.panelStatusOf(agentState)}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
     >
       <PipelineAgentPanel
@@ -143,6 +144,7 @@ function SingleConstitutionStep({
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder="For example: small commits, one subject line each"
+        jobs={facts.jobs}
         beforeChat={(
           <>
             <ReadBy setup={setup} />
@@ -305,12 +307,12 @@ function MonorepoConstitutionStep({
   const shownEntity = constitutions.find((constitution) => constitution.entityKey === entityKey) ?? null;
   const levelFacts = entityKey === null ? facts : EntityLevelFactsModel.factsAtEntityOf(facts, entityKey);
   const levelSetup = entityKey === null ? setup : ConstitutionStepModel.entitySetupOf(levelFacts.pipeline.setup ?? setup, entityKey);
-  const agentState = ConstitutionStepModel.agentStateOf(levelSetup);
+  const agentState = ConstitutionStepModel.agentStateOf(levelSetup, AgentSessionModel.setupSessionStateOf(levelSetup, facts.jobs));
   const panel = (
     <PipelinePanel
       label="Pipeline agent"
       title={PipelineAgentPanelModel.panelTitleOf(level)}
-      status={ConstitutionStepModel.panelStatusOf(levelSetup)}
+      status={ConstitutionStepModel.panelStatusOf(agentState)}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
     >
       <PipelineAgentPanel
@@ -319,6 +321,7 @@ function MonorepoConstitutionStep({
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder="For example: pages stay server components"
+        jobs={facts.jobs}
         levelShown={{ level, hrefOf: levelHrefOf }}
         {...(shownEntity === null || shownEntity.state === 'kept-for-a-person'
           ? {}
@@ -397,7 +400,7 @@ function MonorepoConstitutionStep({
           {breadcrumb}
           <span className="board-pipeline-constitution-status" data-state={agentState}>
             <span className="board-pipeline-constitution-status-dot" data-state={agentState} aria-hidden="true" />
-            {ConstitutionStepModel.entityStatusLineOf(levelSetup, shownKey)}
+            {ConstitutionStepModel.entityStatusLineOf(agentState, shownKey)}
             <ConstitutionStateTag state={state} />
           </span>
           <ViewTitle

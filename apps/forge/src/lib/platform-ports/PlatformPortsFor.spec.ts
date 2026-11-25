@@ -16,7 +16,15 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { type PlatformPorts, platformPortsFor }           from './PlatformPortsFor.ts';
 
 const HOST_FACTS = {
-  userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product'
+  userShell:                    () => undefined,
+  commandInterpreter:           () => undefined,
+  systemRoot:                   () => undefined,
+  localApplicationDataFolder:   () => undefined,
+  roamingApplicationDataFolder: () => undefined,
+  programFilesFolder:           () => undefined,
+  programExtensions:            () => undefined,
+  monitorFolderName:            '.example-monitor',
+  pipeNamePrefix:               'example-product'
 };
 
 const SUPPORTED_PLATFORMS: string[] = ['darwin', 'linux', 'win32'];
@@ -63,6 +71,7 @@ const ADAPTER_PROBES: Readonly<Record<keyof PlatformPorts, (ports: PlatformPorts
     const message = thrownMessageOf(() => ports.dataFolders.systemFolder());
     return message === null || !message.includes('no data folders exist');
   },
+  programFolders:    (ports) => ports.programFolders.installFoldersOf('/home/example').length > 0,
   launchEnvironment: (ports) => ports.launchEnvironment.inheritedVariableNames.length > 0,
 };
 
@@ -100,4 +109,10 @@ describe(`on the unknown platform ${UNKNOWN_PLATFORM}`, () => {
 test('on win32 the host\'s SystemRoot reaches the data folders, so a Windows installed off C: names its own system folder', () => {
   const ports = platformPortsFor('win32', { ...HOST_FACTS, systemRoot: () => 'D:\\Windows' });
   expect(ports.dataFolders.systemFolder()).toBe('D:\\Windows\\System32');
+});
+
+test('on win32 the host\'s SystemRoot ends every agent\'s search path, and its application folders hold program folders', () => {
+  const ports = platformPortsFor('win32', { ...HOST_FACTS, systemRoot: () => 'D:\\Windows', roamingApplicationDataFolder: () => 'D:\\Users\\example\\AppData\\Roaming', });
+  expect(ports.launchEnvironment.withSearchFolders({}, ['D:\\Tools'])['Path']?.split(';').slice(0, 2)).toEqual(['D:\\Tools', 'D:\\Windows\\System32']);
+  expect(ports.programFolders.installFoldersOf('D:\\Users\\example')).toContain('D:\\Users\\example\\AppData\\Roaming\\npm');
 });

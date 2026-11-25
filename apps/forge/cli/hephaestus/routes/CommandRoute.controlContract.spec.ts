@@ -25,6 +25,7 @@ import { requireWorkspace }                              from '../../../src/serv
 import type { ControlCommandOf }                         from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../../src/shared/OperationRefusal.ts';
 import { CONTROL_CONTRACT_KINDS }                        from '../../../src/shared/constants/HephaestusApiContracts.ts';
+import { fakeAgentAdapter }                              from '../../../src/testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                        from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                     from '../../../src/testing/ToolGuard.ts';
@@ -51,15 +52,17 @@ type ContractBody<Kind extends ContractKind> = Extract<ForgeControlCommand, { ki
 
 /** Each kind of the control contract, its body as a monitor sends it, and the outcomes its answer may carry. */
 const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommand['kind']]: { body: ContractBody<Kind>; outcomes: readonly string[] } } = {
-  'hephaestus-pause':        { body: { kind: 'hephaestus-pause' }, outcomes: ['done', 'nothing-to-do'] },
-  'hephaestus-unpause':      { body: { kind: 'hephaestus-unpause' }, outcomes: ['done', 'nothing-to-do'] },
-  'hephaestus-stop':         { body: { kind: 'hephaestus-stop', now: false }, outcomes: ['done'] },
-  'hephaestus-restart':      { body: { kind: 'hephaestus-restart', now: true }, outcomes: ['done'] },
-  'talos-restart':           { body: { kind: 'talos-restart' }, outcomes: ['done', 'nothing-to-do'] },
-  'concurrency-set':         { body: { kind: 'concurrency-set', limit: 3 }, outcomes: ['done', 'nothing-to-do'] },
-  'job-stop-all':            { body: { kind: 'job-stop-all', mode: 'wind-down' }, outcomes: ['done', 'nothing-to-do'] },
-  'machine-agent-limit-set': { body: { kind: 'machine-agent-limit-set', limit: 2 }, outcomes: ['done'] },
-  'interrupted-work-resume': { body: { kind: 'interrupted-work-resume', target: 'network-outage' }, outcomes: ['nothing-to-do'] },
+  'hephaestus-pause':          { body: { kind: 'hephaestus-pause' }, outcomes: ['done', 'nothing-to-do'] },
+  'hephaestus-unpause':        { body: { kind: 'hephaestus-unpause' }, outcomes: ['done', 'nothing-to-do'] },
+  'hephaestus-stop':           { body: { kind: 'hephaestus-stop', now: false }, outcomes: ['done'] },
+  'hephaestus-restart':        { body: { kind: 'hephaestus-restart', now: true }, outcomes: ['done'] },
+  'talos-restart':             { body: { kind: 'talos-restart' }, outcomes: ['done', 'nothing-to-do'] },
+  'concurrency-set':           { body: { kind: 'concurrency-set', limit: 3 }, outcomes: ['done', 'nothing-to-do'] },
+  'job-stop-all':              { body: { kind: 'job-stop-all', mode: 'wind-down' }, outcomes: ['done', 'nothing-to-do'] },
+  'machine-agent-limit-set':   { body: { kind: 'machine-agent-limit-set', limit: 2 }, outcomes: ['done'] },
+  // The runtime answers its version in the recorded run, as the fake agent's program.
+  'machine-agent-program-set': { body: { kind: 'machine-agent-program-set', vendor: fakeAgentAdapter().vendor, programPath: process.execPath }, outcomes: ['done'] },
+  'interrupted-work-resume':   { body: { kind: 'interrupted-work-resume', target: 'network-outage' }, outcomes: ['nothing-to-do'] },
 };
 
 /** A body of each kind with a field: the field of the wrong type, or missing. */
@@ -68,6 +71,7 @@ const MALFORMED_BODIES: readonly Record<string, unknown>[] = [
   { kind: 'hephaestus-restart', now: 1 },
   { kind: 'machine-agent-limit-set', limit: 'two' },
   { kind: 'machine-agent-limit-set' },
+  { kind: 'machine-agent-program-set', vendor: 'example-agent' },
   { kind: 'concurrency-set', limit: 'three' },
   { kind: 'concurrency-set' },
   { kind: 'job-stop-all', mode: 'fresh' },
@@ -96,7 +100,7 @@ function progressRecordPath(): string {
   return localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath;
 }
 
-function routeRequest(launchesHeld = false): CommandRouteRequest {
+function routeRequest(launchesHeld = false, wake: CommandRouteRequest['wake'] = () => undefined): CommandRouteRequest {
   const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const workspace = requireWorkspace(repositoryDirectory);
   return {
@@ -106,13 +110,13 @@ function routeRequest(launchesHeld = false): CommandRouteRequest {
     boardStore:          boardStoreIn(context, workspace),
     launchesHeld:        () => launchesHeld,
     onRuntimeCommand:    () => Promise.resolve('done' as const),
-    wake:                () => undefined,
+    wake,
     machineAgentCeiling: MACHINE_AGENT_CEILING,
   };
 }
 
 describeWhenGitIsRecorded('the control contract', () => {
-  test('names exactly the nine kinds of the contract, each a kind the command route takes', () => {
+  test('names exactly the ten kinds of the contract, each a kind the command route takes', () => {
     expect(Object.keys(CONTRACT_BODIES).sort()).toEqual([...CONTROL_CONTRACT_KINDS].sort());
     expect(CONTROL_CONTRACT_KINDS.filter((kind) => !COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
   });
@@ -125,6 +129,13 @@ describeWhenGitIsRecorded('the control contract', () => {
       expect(outcomes).toContain(String((answer.body as Record<string, unknown>)['outcome']));
     });
   }
+
+  test('a machine agent program set wakes a forced pass, since the machine\'s config is outside the board the pass fingerprints', async () => {
+    const wakes: (boolean | undefined)[] = [];
+    const answer = await answerControlCommand(CONTRACT_BODIES['machine-agent-program-set'].body, routeRequest(false, (forced) => wakes.push(forced)));
+    expect(answer.status).toBe(200);
+    expect(wakes).toEqual([true]);
+  });
 
   test('a body of a contract kind with a field of the wrong type or none answers 400 with its code and sentence, and writes nothing', async () => {
     const progressBefore = readFileSync(progressRecordPath(), 'utf8');

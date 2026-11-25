@@ -85,6 +85,7 @@ import type {
 } from '../../shared/@types/board/BoardPipeline.ts';
 import type { BoardRefusal }                             from '../../shared/@types/board/BoardRefusal.ts';
 import type { BoardQuestionAnswer, BoardQuestionOption } from '../../shared/@types/board/BoardTicket.ts';
+import { BoardAgentDocumentMapUtil }                     from './BoardAgentDocumentMapUtil.ts';
 
 /** Each value of a record mapped, its keys kept. */
 function recordOutOf<ModelValue, PageValue, Key extends string>(
@@ -202,6 +203,8 @@ function pipelineDefinitionOut(pipeline: BoardPipelineDefinition): BoardPipeline
     agents:           partialRecordOutOf(pipeline.agents, agentStepSettingsOut),
     approvals:        partialRecordOutOf(pipeline.approvals, (approved) => approved),
     billing:          pipeline.billing === null ? null : billingOut(pipeline.billing),
+    agent:            pipeline.agent === null ? null : BoardAgentDocumentMapUtil.pipelineAgentOut(pipeline.agent),
+    tools:            pipeline.tools === null ? null : pipeline.tools.map((tool) => ({ name: tool.name, path: tool.path })),
     reach:            pipeline.reach,
     entities:         nullableRecordOutOf(pipeline.entities, pipelineEntityOut),
     ...pipeline.ticketWriting === undefined ? {} : { ticketWriting: pipeline.ticketWriting },
@@ -333,6 +336,7 @@ function setupRecordOut(record: BoardSetupRecord): BoardSetupRecordDocument {
     mode:       record.mode,
     stepStates: {
       billing:      record.stepStates.billing,
+      agent:        record.stepStates.agent,
       research:     record.stepStates.research,
       entities:     record.stepStates.entities,
       constitution: record.stepStates.constitution,
@@ -341,6 +345,8 @@ function setupRecordOut(record: BoardSetupRecord): BoardSetupRecordDocument {
     },
     currentStep:     record.currentStep,
     billing:         billingOut(record.billing),
+    agent:           record.agent === null ? null : BoardAgentDocumentMapUtil.pipelineAgentOut(record.agent),
+    tools:           record.tools.map(BoardAgentDocumentMapUtil.toolOut),
     agentJobId:      record.agentJobId,
     snapshotCommit:  record.snapshotCommit,
     readyToContinue: record.readyToContinue,
@@ -455,6 +461,8 @@ function draftEditOut(edit: BoardDraftEdit): BoardDraftEditDocument {
       };
     case 'within-entity':
       return { target: 'within-entity', entityKey: edit.entityKey, edit: entityDraftEditOut(edit.edit) };
+    case 'tools':
+      return { target: 'tools', value: edit.value === null ? null : edit.value.map(BoardAgentDocumentMapUtil.toolRequestOut) };
     default:
       return stepsDraftEditOut(edit);
   }

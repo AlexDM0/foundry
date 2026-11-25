@@ -64,7 +64,7 @@ export function commitWorktreeOf(repository: string, jobId: string, worktreesRoo
 export function requestConstitutionApply(board: Board, resumesBoard = false): string {
   board.addGate({ name: PLANTED_MERGE_GATE, run: 'bun test' }, HARNESS_AT, ['merge']);
   const { setupId } = board.openSetup({
-    mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: MAIN_CONSTITUTION, storedAnnotations: []
+    mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: MAIN_CONSTITUTION, storedAnnotations: []
   }, HARNESS_AT).setup;
   board.editConstitution(setupId, { revision: 0, markdown: DRAFT_CONSTITUTION_TEXT }, HARNESS_AT);
   board.requestApply(setupId, { draftRevision: 0, resumesBoard, mainConstitution: MAIN_CONSTITUTION }, HARNESS_AT);

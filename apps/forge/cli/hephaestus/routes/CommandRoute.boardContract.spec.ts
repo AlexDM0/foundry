@@ -45,6 +45,7 @@ type KindsAreTheSame = [ListedBoardKind] extends [BoardCommandKind] ? ([BoardCom
 const LIST_COVERS_THE_CONTRACT_BOTH_WAYS: KindsAreTheSame = true;
 
 const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
+  'agent-look-again':                 true,
   'chart-range-set':                  true,
   'decision-answer':                  true,
   'gate-profile-start':               true,
@@ -57,6 +58,7 @@ const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
   'merge-accept':                     true,
   'merge-update':                     true,
   'pipeline-agent-advise':            true,
+  'pipeline-agent-set':               true,
   'pipeline-apply':                   true,
   'pipeline-apply-cancel':            true,
   'pipeline-assistant-set':           true,
@@ -65,12 +67,14 @@ const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
   'pipeline-draft-discard':           true,
   'pipeline-draft-edit':              true,
   'pipeline-draft-undo':              true,
+  'pipeline-setup-agent':             true,
   'pipeline-setup-answer':            true,
   'pipeline-setup-billing':           true,
   'pipeline-setup-resume':            true,
   'pipeline-setup-start':             true,
   'pipeline-setup-start-over':        true,
   'pipeline-setup-step':              true,
+  'pipeline-tools-set':               true,
   'pipeline-update-start':            true,
   'ticket-deliver-by-hand':           true,
   'ticket-hold':                      true,

@@ -40,7 +40,7 @@ function harnessWithAnEntityApply(): { current: AirlocksHarness; setupId: string
   const { board } = current;
   board.addGate({ name: 'merge-tests', run: 'bun test' }, HARNESS_AT, ['merge']);
   const { setupId } = board.openSetup({
-    mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode: 'update', billing: { mode: 'subscription' }, agent: null, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, HARNESS_AT).setup;
   board.editDraft(setupId, {
     by:       'user',
