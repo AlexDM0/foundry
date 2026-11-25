@@ -3,9 +3,10 @@
  * source line and column where it starts, so a selection maps back to the source; a character reference draws the character it names; a
  * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the
  * marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference mark of the effect reading (`1`, in the
- * warning look while its place is unresolved, the words it quotes then underlined). The caller may place its own part after the
- * innermost such block that holds a line, such as an agent's proposed edit or the comment popover, and frame the part with that block, as
- * an edit with the lines it replaces. The text an open comment points at stays marked.
+ * warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold an editor's caret line carry
+ * `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's proposed edit or
+ * the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open comment points at stays
+ * marked.
  */
 import {
   createContext,
@@ -64,6 +65,8 @@ export interface DocumentBlocksProps {
   readonly parts?:          readonly PlacedPart[];
   /** The text an open comment points at, drawn marked. */
   readonly markedRange?:    MarkedRange | null;
+  /** The line the caret stands on in an editor beside, whose blocks carry `data-caret`. */
+  readonly caretLine?:      number | null;
   readonly onNodeComment?:  (diagram: DiagramBlock, node: DiagramNode) => void;
   readonly nodeOfferOf?:    (diagram: DiagramBlock, node: DiagramNode) => string;
 }
@@ -253,6 +256,7 @@ function lineAttributesOf(lines: SourceLines, props: DocumentBlocksProps) {
     'data-to-line':   lines.to,
     'data-commented': (props.commentedLines ?? []).some((commented) => overlaps(lines, commented)) ? '' : undefined,
     'data-replaced':  (props.replacedLines ?? []).some((replaced) => overlaps(lines, replaced)) ? '' : undefined,
+    'data-caret':     props.caretLine !== undefined && props.caretLine !== null && lineIsIn(props.caretLine, lines) ? '' : undefined,
   };
 }
 

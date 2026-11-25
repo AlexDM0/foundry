@@ -31,8 +31,6 @@
 
 .board-document-build { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.board-document-build[data-held] { color: var(--warn-ink); }
-
 .board-document-draft-pill {
   display: inline-flex; align-items: center; height: 22px; padding: 0 9px; font-size: var(--fs-small); color: var(--link);
   border: 1px dashed var(--accent-outline); border-radius: var(--r-pill);
@@ -62,15 +60,21 @@
   font-size: var(--fs-micro); font-weight: 700; letter-spacing: var(--letter-spacing-micro); text-transform: uppercase; color: var(--ink-muted);
 }
 
-.board-document-link { color: var(--link); }
+.board-document-link { color: var(--link); text-decoration: underline; }
 
 .board-document-link-button { padding: 0; font: inherit; color: var(--link); text-decoration: underline; background: none; border: 0; cursor: pointer; }
 
-/* The document as a reader sees it. */
+/* The document as a reader sees it: a measure of 780px inside its padding, so the card spans the page as the artboards draw it. */
 .board-document-article {
-  max-width: 780px; margin: 0 auto; padding: 40px 56px; color: var(--ink); background: var(--surface);
+  box-sizing: content-box; max-width: 780px; margin: 0 auto; padding: 40px 56px; color: var(--ink); background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
+
+/* A plan reads narrower, under its notice, beside a narrower agent. */
+.board-document-page[data-document="plan"] :is(.board-document-article, .board-document-notice) { box-sizing: border-box; max-width: 760px; }
+
+/* The block of the line the caret stands on, in Split's preview. */
+.board-document-article[data-follows-caret] [data-caret]:not(:has([data-caret])) { background: var(--wash); border-radius: var(--r-1); }
 
 .board-document-context { margin: -8px 0 16px; font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -172,15 +176,16 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-popover-section { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.board-document-popover-quote { font-size: 12.5px; color: var(--ink); }
+.board-document-popover-quote { padding: 6px 8px; font-size: 12.5px; color: var(--ink); background: var(--wash); border-radius: var(--r-2); }
 
-.board-document-popover-label { font-size: var(--fs-small); color: var(--ink-muted); }
+/* The popover's field is the one input while it is open, so it carries the accent edge. */
+.board-document-popover .board-document-popover-input { min-height: 0; resize: none; border-color: var(--accent-edge); }
 
-.board-document-popover-input { min-height: 0; resize: vertical; }
+.board-document-popover .board-document-popover-input:focus { outline: 2px solid var(--link-tint); }
 
 .board-document-popover-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
-.board-document-popover-foot > .board-document-note { flex: 1 1 200px; }
+.board-document-popover-foot > .board-document-note { flex: 1 1 200px; font-size: var(--fs-micro); line-height: 1.35; }
 
 /* An agent's edit, inline where it lands, in one frame with the lines it replaces, and as the chat's diff card. */
 .board-document-proposal {
@@ -215,9 +220,9 @@ blockquote.board-document-quote { border: 0; }
   display: grid; grid-template-columns: 28px 14px 1fr; gap: 4px; padding: 2px 10px; font: 12px/18px var(--font-mono); color: var(--ink);
 }
 
-.board-document-diff-line[data-sign="removed"] { background: var(--change-removed-fill); }
+.board-document-diff-line[data-sign="removed"] > .board-document-diff-text { text-decoration: line-through; color: var(--ink-muted); }
 
-.board-document-diff-line[data-sign="added"] { background: var(--change-new-fill); }
+.board-document-diff-line[data-sign="added"] { background: var(--link-tint); }
 
 .board-document-diff-number,
 .board-document-diff-sign { color: var(--ink-muted); text-align: right; }
@@ -229,20 +234,22 @@ blockquote.board-document-quote { border: 0; }
 /* The notice over a plan the spec moved under. */
 .board-document-notice {
   display: flex; flex-direction: column; gap: 8px; max-width: 780px; margin: 0 auto 16px; padding: 14px 18px;
-  color: var(--ink); background: var(--warn-tint); border: 1px solid var(--line); border-radius: var(--r-3);
+  color: var(--ink); background: var(--warn-tint); border: 1px solid var(--accent-edge); border-radius: var(--r-2);
 }
 
 .board-document-notice-title { font-weight: 600; color: var(--warn-ink); }
 
 .board-document-notice-sentence { font-size: var(--fs-tab); }
 
-.board-document-notice-change { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--surface); border-radius: var(--r-2); }
+.board-document-notice-change {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; font-size: 12.5px; background: var(--surface); border-radius: var(--r-2);
+}
 
 .board-document-notice-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-tab); }
 
-.board-document-removed { text-decoration: line-through; color: var(--ink-muted); background: var(--change-removed-fill); }
+.board-document-removed { text-decoration: line-through; color: var(--ink-muted); }
 
-.board-document-inserted { color: var(--ink); background: var(--change-new-fill); }
+.board-document-inserted { padding: 1px 0; color: var(--ink); background: var(--link-tint); border-bottom: 2px solid var(--accent-edge); }
 
 /* Code and Split. */
 .board-document-code-view {
@@ -258,12 +265,17 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-split > .board-document-code-view { flex: 1 1 420px; }
 
+/* Each pane is at most as tall as Split, so it scrolls inside itself and the preview can follow the caret while the editor stays put. */
+.board-document-split > :is(.board-document-code-view, .board-document-split-preview) { max-height: 100%; }
+
 .board-document-split-preview {
   display: flex; flex: 1 1 420px; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
 .board-document-split-preview > .board-document-article { margin: 0; padding: 20px 28px; border: 0; }
+
+.board-document-split-preview > .board-document-pane-head { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 
 /* What the plan names. */
 .board-document-effect {
@@ -319,13 +331,17 @@ blockquote.board-document-quote { border: 0; }
   background: var(--surface); border-left: 1px solid var(--line);
 }
 
-.board-document-agent-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+/* Split and a plan give the document more room: the agent's side is narrower there. */
+.board-document-page:is([data-view="split"], [data-document="plan"]) .board-document-agent { flex-basis: 360px; max-width: 420px; }
+
+/* The mode switch or Stop stands on the title's row, at its end; the line under the name wraps beside it. */
+.board-document-agent-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 
 .board-document-agent-dot { flex: none; width: 8px; height: 8px; background: var(--line-strong); border-radius: var(--r-pill); }
 
 .board-document-agent-dot[data-working] { background: var(--signal); }
 
-.board-document-agent-title { display: flex; flex: 1 1 160px; flex-direction: column; min-width: 0; }
+.board-document-agent-title { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
 
 .board-document-agent-name { font-size: 15px; font-weight: 600; }
 
@@ -334,10 +350,13 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-chat-items { display: flex; flex-direction: column; gap: 16px; }
 
-.board-document-edit-notice {
+.board-document-edit-notice,
+.board-document-board-note {
   margin: 0; padding: 10px 12px; font-size: var(--fs-small); color: var(--ink-muted); background: var(--wash);
   border: 1px dashed var(--line-strong); border-radius: var(--r-2);
 }
+
+.board-document-activity { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
 .board-document-message { display: flex; flex-direction: column; align-self: flex-end; gap: 6px; max-width: 92%; }
 
@@ -350,13 +369,27 @@ button.board-document-anchor { cursor: pointer; }
 
 button.board-document-anchor:hover { background: var(--wash); }
 
-.board-document-anchor[data-answering] { border-color: var(--accent-outline); }
+.board-document-anchor[data-answering] { border-color: var(--accent-edge); }
+
+.board-document-anchor[data-answering] .board-document-anchor-name,
+.board-document-queued .board-document-anchor-name,
+.board-document-anchor-show { color: var(--link); }
+
+.board-document-anchor-show { white-space: nowrap; }
+
+.board-document-anchor-quote { color: var(--ink); }
 
 .board-document-bubble { padding: 10px 12px; font-size: var(--fs-tab); white-space: pre-wrap; background: var(--wash); border-radius: var(--r-3); }
 
 .board-document-agent-turn { max-width: 94%; font-size: var(--fs-tab); }
 
-.board-document-agent-turn > p { margin: 0 0 8px; }
+.board-document-agent-turn :is(.board-document-paragraph, .board-document-list-item) { margin: 0 0 8px; font-size: var(--fs-tab); line-height: 1.5; }
+
+.board-document-agent-turn > :last-child { margin-bottom: 0; }
+
+.board-document-agent-turn .board-document-inline-code { padding: 0; font-size: 12px; background: none; }
+
+.board-document-chat-proposal { display: flex; flex-direction: column; gap: 8px; }
 
 .board-document-chat-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -382,7 +415,7 @@ button.board-document-anchor:hover { background: var(--wash); }
 .board-document-composer-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 
 .board-document-queued {
-  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: var(--fs-small); border: 1px dashed var(--line-strong);
+  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: var(--fs-small); border: 1px dashed var(--accent-edge);
   border-radius: var(--r-2);
 }
 

@@ -156,7 +156,7 @@ function DocumentsHead({
           </a>
         ))}
       </div>
-      <span className="board-document-build" data-held={head.buildText.endsWith('held') ? '' : undefined}>{head.buildText}</span>
+      <span className="board-document-build">{head.buildText}</span>
       {head.isDraft ? <span className="board-document-draft-pill">Draft</span> : null}
       <span className="board-document-mono board-document-note">{head.stateLine}</span>
       <span className="board-document-head-gap" />
@@ -297,7 +297,7 @@ export function TicketDocumentsPage({
   })();
 
   return (
-    <div className="board-document-page" data-view={view}>
+    <div className="board-document-page" data-view={view} data-document={shown}>
       <DocumentsHead
         project={project}
         ticket={ticket}
@@ -329,6 +329,8 @@ export function TicketDocumentsPage({
           place={place}
           chat={chat}
           strip={strip}
+          view={view}
+          draftIsOpen={draft !== null}
           proposalMode={document.proposalMode}
           headNumber={versionNumber}
           settled={settled}

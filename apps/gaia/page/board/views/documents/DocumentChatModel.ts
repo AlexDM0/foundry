@@ -14,23 +14,26 @@ import type {
   BoardLineRangeDocument,
   BoardTicketDocumentDocument
 } from '../../../@types/board/TicketDocumentsDocument.ts';
-import { ChatThreadModelUtil, type ToolCall }    from '../../conversation/ChatThreadModel.ts';
-import { CommentPopoverModel }                   from './CommentPopoverModel.ts';
-import { ProposalModel, type OpenProposalModel } from './ProposalModel.ts';
+import { ChatThreadModelUtil, type ToolCall }        from '../../conversation/ChatThreadModel.ts';
+import { CommentPopoverModel, type AnchorLineParts } from './CommentPopoverModel.ts';
+import { ProposalModel, type OpenProposalModel }     from './ProposalModel.ts';
 
 export interface ChatMessageItem {
-  readonly kind:       'message';
-  readonly key:        string;
-  readonly messageId:  string;
+  readonly kind:        'message';
+  readonly key:         string;
+  readonly messageId:   string;
   /** "C2 · § 4 Acceptance › A3 · line 29 · Preview"; `null` for a message about the whole document. */
-  readonly anchorLine: string | null;
-  readonly quote:      string | null;
+  readonly anchorLine:  string | null;
+  readonly anchorParts: AnchorLineParts | null;
+  readonly quote:       string | null;
   /** Where the comment stands on the head version, which its card jumps to; `null` when unanchored or orphaned. */
-  readonly placement:  BoardLineRangeDocument | null;
-  readonly orphaned:   boolean;
+  readonly placement:   BoardLineRangeDocument | null;
+  readonly orphaned:    boolean;
   /** The agent is answering it now. */
-  readonly answering:  boolean;
-  readonly text:       string;
+  readonly answering:   boolean;
+  /** An edit the agent proposed for it waits on User. */
+  readonly hasOpenEdit: boolean;
+  readonly text:        string;
 }
 
 export interface ChatBoardNoteItem {
@@ -47,9 +50,11 @@ export interface ChatAgentTurnItem {
 }
 
 export interface ChatProposalItem {
-  readonly kind:     'proposal';
-  readonly key:      string;
-  readonly proposal: OpenProposalModel;
+  readonly kind:          'proposal';
+  readonly key:           string;
+  readonly proposal:      OpenProposalModel;
+  /** The comment an Apply closes, `null` for an edit that answers none. */
+  readonly closesComment: number | null;
 }
 
 export interface ChatProposalNoteItem {
@@ -68,9 +73,10 @@ export interface ChatEffectCardItem {
 export type DocumentChatItem = ChatMessageItem | ChatBoardNoteItem | ChatAgentTurnItem | ChatProposalItem | ChatProposalNoteItem | ChatEffectCardItem;
 
 export interface QueuedMessageItem {
-  readonly messageId:  string;
-  readonly anchorLine: string | null;
-  readonly text:       string;
+  readonly messageId:   string;
+  readonly anchorLine:  string | null;
+  readonly anchorParts: AnchorLineParts | null;
+  readonly text:        string;
 }
 
 export interface DocumentChat {
@@ -100,26 +106,34 @@ function turnsOf(entries: readonly BoardTranscriptEntryDocument[]): BoardTranscr
   return turns;
 }
 
-function messageItemOf(message: BoardDocumentMessageDocument, answering: boolean): ChatMessageItem | ChatBoardNoteItem {
+function anchorPartsOf(message: BoardDocumentMessageDocument): AnchorLineParts | null {
+  return message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLinePartsOf(message.commentNumber, message.anchor, message.placement);
+}
+
+function anchorLineOf(message: BoardDocumentMessageDocument): string | null {
+  return message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement);
+}
+
+function messageItemOf(message: BoardDocumentMessageDocument, answering: boolean, hasOpenEdit: boolean): ChatMessageItem | ChatBoardNoteItem {
   if (message.from === 'board') return { kind: 'board-note', key: message.messageId, text: message.text };
   return {
-    kind:       'message',
-    key:        message.messageId,
-    messageId:  message.messageId,
-    anchorLine: message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement),
-    quote:      message.anchor === null ? null : message.anchor.diagram?.nodeLabel ?? message.anchor.quote,
-    placement:  message.placement,
-    orphaned:   message.orphaned,
+    kind:        'message',
+    key:         message.messageId,
+    messageId:   message.messageId,
+    anchorLine:  anchorLineOf(message),
+    anchorParts: anchorPartsOf(message),
+    quote:       message.anchor === null ? null : message.anchor.diagram?.nodeLabel ?? message.anchor.quote,
+    placement:   message.placement,
+    orphaned:    message.orphaned,
     answering,
-    text:       message.text,
+    hasOpenEdit,
+    text:        message.text,
   };
 }
 
 function queuedItemOf(message: BoardDocumentMessageDocument): QueuedMessageItem {
   return {
-    messageId:  message.messageId,
-    anchorLine: message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement),
-    text:       message.text,
+    messageId: message.messageId, anchorLine: anchorLineOf(message), anchorParts: anchorPartsOf(message), text: message.text
   };
 }
 
@@ -138,7 +152,15 @@ function runningCallOf(entries: readonly BoardTranscriptEntryDocument[]): ToolCa
 }
 
 function proposalItemOf(document: BoardTicketDocumentDocument, proposal: BoardDocumentProposalDocument): DocumentChatItem[] {
-  if (proposal.state === 'proposed') return [{ kind: 'proposal', key: proposal.proposalId, proposal: ProposalModel.openProposalOf(document.document, proposal) }];
+  if (proposal.state === 'proposed') {
+    const answered = document.messages.find((message) => message.messageId === proposal.answersMessageId) ?? null;
+    return [{
+      kind:          'proposal',
+      key:           proposal.proposalId,
+      proposal:      ProposalModel.openProposalOf(document.document, proposal),
+      closesComment: answered?.commentNumber ?? null,
+    }];
+  }
   const note = ProposalModel.settledNoteOf(proposal);
   return note === null ? [] : [{ kind: 'proposal-note', key: proposal.proposalId, text: note }];
 }
@@ -171,9 +193,15 @@ function documentChatOf(
   const turnOfProposal = (proposal: BoardDocumentProposalDocument): number | null => (
     proposal.answersMessageId === null ? null : turnOfMessage.get(proposal.answersMessageId) ?? null
   );
+  const messagesWithOpenEdits = new Set(document.proposals.flatMap((proposal) => (
+    proposal.state === 'proposed' && proposal.answersMessageId !== null ? [proposal.answersMessageId] : []
+  )));
+  const itemOf = (message: BoardDocumentMessageDocument): ChatMessageItem | ChatBoardNoteItem => (
+    messageItemOf(message, message === answeringMessage, messagesWithOpenEdits.has(message.messageId))
+  );
 
   const items: DocumentChatItem[] = turnItems.flatMap((agentItems, turnNumber) => [
-    ...shown.filter((message) => takenIn(message) === turnNumber).map((message) => messageItemOf(message, message === answeringMessage)),
+    ...shown.filter((message) => takenIn(message) === turnNumber).map(itemOf),
     ...agentItems,
     ...document.proposals.filter((proposal) => turnOfProposal(proposal) === turnNumber).flatMap((proposal) => proposalItemOf(document, proposal)),
   ]);
@@ -181,7 +209,7 @@ function documentChatOf(
   return {
     items: [
       ...items,
-      ...shown.filter((message) => takenIn(message) === null).map((message) => messageItemOf(message, false)),
+      ...shown.filter((message) => takenIn(message) === null).map(itemOf),
       ...document.proposals.filter((proposal) => turnOfProposal(proposal) === null).flatMap((proposal) => proposalItemOf(document, proposal)),
       ...effectCardOf(effectReading),
     ],
