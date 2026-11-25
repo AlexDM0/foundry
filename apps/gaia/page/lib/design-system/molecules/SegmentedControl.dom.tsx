@@ -4,9 +4,12 @@
  * handed to `optionRef`; the group is named by its label element; a size sets `data-size`; `mono` sets `data-mono`; `separated` sets
  * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; a disabled
  * segment cannot be clicked; a name of its own names the group where no label shows, and a group named both ways does not compile; a
- * trailing part sits last in the tray and sets `data-trailing`, its buttons no segments, and separated segments take none by type; and a
- * label is text, never markup.
+ * trailing part sits last in the tray and sets `data-trailing`, its buttons no segments, and separated segments take none by type; a
+ * segment of a set height keeps its label on one line, and a disabled one fades to the disabled ink every control shares; and a label is
+ * text, never markup.
  */
+import { readFileSync } from 'node:fs';
+
 import {
   cleanup,
   fireEvent,
@@ -24,6 +27,8 @@ import { Menu, MenuItem }                       from './Menu.tsx';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 
 type ExampleSpan = 'hour' | 'day' | 'all';
+
+const STYLESHEETS_OF_THE_CONTROL = ['../styles/tokens.css', './SegmentedControl.css'];
 
 const OPTIONS: readonly SegmentOption<ExampleSpan>[] = [
   {
@@ -145,6 +150,28 @@ describe('the segmented control', () => {
     const buttons = [...screen.getByRole('group', { name: 'Finished work' }).querySelectorAll('button')];
     buttons.forEach((button) => fireEvent.click(button));
     expect([buttons.map((button) => button.disabled), chosen]).toEqual([[true, false], ['day']]);
+  });
+
+  test('a segment of a set height keeps its label on one line, and a disabled one fades to the disabled ink', () => {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = STYLESHEETS_OF_THE_CONTROL.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+    document.head.append(stylesheet);
+    const options: readonly SegmentOption<ExampleSpan>[] = [{ value: 'hour', label: 'If you approved it', disabled: true }, { value: 'day', label: '1d' }];
+    render(
+      <>
+        <SegmentedControl accessibleName="Finished work" options={options} selected="day" onSelect={() => undefined} size="compact" />
+        <span style={{ color: 'var(--ink-disabled)' }}>Disabled ink</span>
+      </>,
+    );
+    const [disabledSegment, enabledSegment] = [...screen.getByRole('group', { name: 'Finished work' }).querySelectorAll('button')];
+    const looks = [disabledSegment, enabledSegment].map((segment) => {
+      const computedStyle = segment === undefined ? null : getComputedStyle(segment);
+      return { whiteSpace: computedStyle?.whiteSpace, color: computedStyle?.color };
+    });
+    const disabledInk = getComputedStyle(screen.getByText('Disabled ink')).color;
+    stylesheet.remove();
+    expect(looks.map((look) => look.whiteSpace)).toEqual(['nowrap', 'nowrap']);
+    expect([looks[0]?.color, looks[1]?.color === disabledInk]).toEqual([disabledInk, false]);
   });
 
   test('a name of its own names the group where no label shows, and a group named both ways does not compile', () => {
