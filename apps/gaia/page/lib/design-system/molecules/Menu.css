@@ -91,6 +91,14 @@
 }
 .design-system-menu-popover[data-motion="out"] { animation: design-system-drop var(--motion-fast) var(--ease-out) reverse both; }
 .design-system-menu-popover[data-trigger="insert"][data-motion="out"] { animation: design-system-menu var(--motion-fast) var(--ease-out) reverse both; }
+/* The caret trigger: a 20px quiet chevron, ink-muted until hovered or open. */
+.design-system-menu-button[data-trigger="caret"] {
+  display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0;
+  color: var(--ink-muted); background: transparent; border: 0; border-radius: var(--r-2); cursor: pointer;
+}
+.design-system-menu-button[data-trigger="caret"]:hover,
+.design-system-menu-button[data-trigger="caret"][aria-expanded="true"] { color: var(--ink); }
+.design-system-menu-caret-glyph { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 /* The segment trigger: a segment of the tray it trails, ink-muted until hovered, filled in ink while pressed, as tall as the segments
    beside it when the tray sets their height. */
 .design-system-menu-button[data-trigger="segment"] {

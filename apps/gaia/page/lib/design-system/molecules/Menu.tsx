@@ -2,8 +2,8 @@
  * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
  * panel's own and the focus back on the trigger, and an item closes it by its `closing`. The insert trigger is a round plus on a line,
  * named by `triggerName`, that pulses while closed and opens its popover beside itself. The segment trigger sits as the last segment of a
- * `SegmentedControl` tray, pressed while the tray's choice is one of its items. The popover drops in on open and leaves the same way, inert
- * while it goes.
+ * `SegmentedControl` tray, pressed while the tray's choice is one of its items. The caret trigger is a small chevron beside what it opens
+ * alternatives to, such as a tab, named by `triggerName`. The popover drops in on open and leaves the same way, inert while it goes.
  */
 import {
   useId,
@@ -19,9 +19,10 @@ import { usePresence }  from '../utils/Presence.ts';
 
 /**
  * `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look, `insert`
- * a round plus that adds something where it sits, `segment` a segment of the `SegmentedControl` tray it trails.
+ * a round plus that adds something where it sits, `segment` a segment of the `SegmentedControl` tray it trails, `caret` a quiet chevron
+ * beside what it offers alternatives to.
  */
-export type MenuTrigger = 'outlined' | 'icon' | 'button' | 'insert' | 'segment';
+export type MenuTrigger = 'outlined' | 'icon' | 'button' | 'insert' | 'segment' | 'caret';
 
 /** `solid` in the link colour, `dashed` in a quiet grey. */
 export type MenuInsertStyle = 'solid' | 'dashed';
@@ -36,7 +37,7 @@ export interface MenuProps {
   /** The menu's accessible name. */
   readonly label:           string;
   readonly trigger:         MenuTrigger;
-  /** What the trigger holds; the insert trigger draws its own plus and shows none. */
+  /** What the trigger holds; the insert and caret triggers draw their own glyph and show none. */
   readonly triggerContent?: ReactNode;
   /** The insert trigger's look; it needs the `insert` trigger. */
   readonly insertStyle?:    MenuInsertStyle;
@@ -129,7 +130,15 @@ export function Menu({
               <path d="M6 1.5v9 M1.5 6h9" />
             </svg>
           )
-          : triggerContent}
+          : null}
+        {trigger === 'caret'
+          ? (
+            <svg className="design-system-menu-caret-glyph" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M2.5 4 L5 6.5 L7.5 4" />
+            </svg>
+          )
+          : null}
+        {trigger === 'insert' || trigger === 'caret' ? null : triggerContent}
       </button>
       {/* The items are buttons; their click is read as it bubbles, to close the menu after the item acted. */}
       <div

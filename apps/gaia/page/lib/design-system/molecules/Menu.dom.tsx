@@ -1,13 +1,12 @@
 /**
- * The menu in a happy-dom document. What matters: the trigger opens and closes it and says so in `aria-expanded`; Esc closes it and hands
- * the focus back to the trigger, caught before a side panel's own Esc, which finds it handled; a pointer down or focus outside closes it; a
- * caller may hold whether it is open, told each open and close instead; an item closes it by its `closing`, handing the focus back or
- * leaving it, while a `stays-open` item, a toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its
- * hint, a checked item says so and shows its check, a pressed one only says so; a wide menu marks its popover; an item's description shows
- * under its label and describes it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a
- * button; the insert trigger draws its own plus under its name, says whether it is open in `aria-expanded`, carries its style, and its open
- * menu leads with its heading; the segment trigger says whether it is pressed, and no other trigger does; and the words are text, never
- * markup.
+ * The menu in a happy-dom document. What matters: the trigger opens and closes it and says so in `aria-expanded`; Esc closes it and hands the focus back
+ * to the trigger, caught before a side panel's own Esc, which finds it handled; a pointer down or focus outside closes it; a caller may hold whether it
+ * is open, told each open and close instead; an item closes it by its `closing`, handing the focus back or leaving it, while a `stays-open` item, a
+ * toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its hint, a checked item says so and shows its check, a
+ * pressed one only says so; a wide menu marks its popover; an item's description shows under its label and describes it, leaving its name to the label
+ * and hint; a separator is a separator; a button trigger is drawn as a button; the insert trigger draws its own plus under its name, says whether it is
+ * open in `aria-expanded`, carries its style, and its open menu leads with its heading; the caret trigger draws its own chevron under its name; the
+ * segment trigger says whether it is pressed, and no other trigger does; and the words are text, never markup.
  */
 import {
   cleanup,
@@ -271,6 +270,19 @@ describe('the trigger', () => {
       .toEqual(['true', 'insert', 'design-system-menu-heading', 'Add after the writer']);
     fireEvent.click(trigger);
     expect([trigger.getAttribute('aria-expanded'), screen.queryByText('Add after the writer')]).toEqual(['false', null]);
+  });
+
+  test('the caret trigger draws its own chevron under its name and shows no content', () => {
+    render(
+      <Menu label="Example views" trigger="caret" align="start" triggerName="Example views" triggerContent="ignored">
+        <MenuItem label="Example one" closing="return-focus" onChoose={NOTHING} />
+      </Menu>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Example views' });
+    expect([trigger.getAttribute('data-trigger'), trigger.querySelector('svg.design-system-menu-caret-glyph')?.getAttribute('aria-hidden'), trigger.textContent])
+      .toEqual(['caret', 'true', '']);
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'Example views' }).getAttribute('data-trigger')).toBe('caret');
   });
 
   test('a trigger other than insert carries no insert style', () => {
