@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { BoardFlowNodeDocument, BoardGateCacheMarkDocument, BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardGatePhase }                                                               from '../../../../@types/board/BoardVocabulary.ts';
+import { EXAMPLE_BOARD_LIMITS }                                                              from '../../../testing/PageLimitsFixture.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName }                                    from '../../../testing/PipelineFixture.ts';
 import { PipelineFlowModel, type FlowWording }                                               from './PipelineFlowModel.ts';
 
@@ -316,12 +317,16 @@ describe('the spec-then-plan route', () => {
     expect(specReview.highlighted).toBe(false);
   });
 
-  test('the route reads one ticket where the draft names none, and each choice sends one edit, one ticket as the key removed', () => {
-    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2'))).toBe('one-ticket');
-    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2-spec-then-plan'))).toBe('spec-then-plan');
-    expect(PipelineFlowModel.ticketWritingRouteOfDraft(null)).toBe('one-ticket');
+  test('the route reads the served default where the draft names none, and each choice sends one edit, the default as the key removed', () => {
+    const served = EXAMPLE_BOARD_LIMITS;
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2'), served)).toBe('one-ticket');
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(examplePipelineOf('A2-spec-then-plan'), served)).toBe('spec-then-plan');
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(null, served)).toBe('one-ticket');
     expect(PipelineFlowModel.TICKET_WRITING_CHOICES.map((choice) => choice.label)).toEqual(['One ticket', 'Spec, then plan']);
-    expect(PipelineFlowModel.ticketWritingEditOf('spec-then-plan')).toEqual({ target: 'ticket-writing', value: 'spec-then-plan' });
-    expect(PipelineFlowModel.ticketWritingEditOf('one-ticket')).toEqual({ target: 'ticket-writing', value: null });
+    expect(PipelineFlowModel.ticketWritingEditOf('spec-then-plan', served)).toEqual({ target: 'ticket-writing', value: 'spec-then-plan' });
+    expect(PipelineFlowModel.ticketWritingEditOf('one-ticket', served)).toEqual({ target: 'ticket-writing', value: null });
+    const otherForge = { defaultTicketWritingRoute: 'spec-then-plan' } as const;
+    expect(PipelineFlowModel.ticketWritingRouteOfDraft(null, otherForge)).toBe('spec-then-plan');
+    expect(PipelineFlowModel.ticketWritingEditOf('spec-then-plan', otherForge)).toEqual({ target: 'ticket-writing', value: null });
   });
 });

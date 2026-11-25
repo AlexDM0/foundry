@@ -1,9 +1,10 @@
 /**
  * The Pipeline documents section's model, pure: when the builder and the reviewer read each document of a ticket (the spec and the plan),
- * the role's defaults, the rows with their choices (the reviewer always reads the spec), the rules a Save stores (only those that differ
- * from the default, as an absent rule is the default), and the reviewer's read-only line on what the builder reads.
+ * the role's defaults and fixed documents as the forge serves them, the rows with their choices, the rules a Save stores (only those that
+ * differ from the default, as an absent rule is the default), and the reviewer's read-only line on what the builder reads.
  */
-import type { BoardAgentStepSettingsDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { BoardDocumentReadingRole, BoardLimitsDocument } from '../../../../@types/board/BoardFactDocuments.ts';
+import type { BoardAgentStepSettingsDocument }                from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   BOARD_DOCUMENT_READING_RULES,
   BOARD_TICKET_DOCUMENT_KINDS,
@@ -12,7 +13,10 @@ import {
 } from '../../../../@types/board/BoardVocabulary.ts';
 
 /** The roles a pipeline document is given to; the re-reviewers read the reviewer's rules. */
-export type DocumentReadingRole = 'builder' | 'reviewer';
+export type DocumentReadingRole = BoardDocumentReadingRole;
+
+/** What a role reads where its pipeline stores no rule, and the documents it reads at that rule whatever is stored, as the forge serves them. */
+export type DocumentReadingDefaults = Pick<BoardLimitsDocument, 'defaultDocumentsOfRole' | 'fixedDocumentsOfRole'>;
 
 export type DocumentReadingRules = Readonly<Record<BoardTicketDocumentKind, BoardDocumentReadingRule>>;
 
@@ -31,12 +35,6 @@ export interface DocumentRowView {
   readonly selected:  BoardDocumentReadingRule;
 }
 
-/** What a role reads where its pipeline stores no rule, as the forge decides it. */
-const DEFAULT_DOCUMENTS_OF_ROLE: Readonly<Record<DocumentReadingRole, DocumentReadingRules>> = Object.freeze({
-  builder:  Object.freeze({ spec: 'always', plan: 'always' }),
-  reviewer: Object.freeze({ spec: 'always', plan: 'if-person-approved' }),
-});
-
 const RULE_LABELS: Readonly<Record<BoardDocumentReadingRule, string>> = Object.freeze({
   'always':             'Always',
   'if-person-approved': 'If you approved it',
@@ -46,9 +44,6 @@ const RULE_LABELS: Readonly<Record<BoardDocumentReadingRule, string>> = Object.f
 const DOCUMENT_TITLES: Readonly<Record<BoardTicketDocumentKind, string>> = Object.freeze({ spec: 'Spec', plan: 'Plan' });
 
 const ROLE_WORDS: Readonly<Record<DocumentReadingRole, string>> = Object.freeze({ builder: 'builder', reviewer: 'reviewer' });
-
-/** The reviewer checks the change against the spec's Acceptance, so it reads the spec at every version. */
-const REVIEWER_FIXED_RULES: Readonly<Partial<Record<BoardTicketDocumentKind, BoardDocumentReadingRule>>> = Object.freeze({ spec: 'always' });
 
 const REVIEWER_HINTS: Readonly<Partial<Record<BoardTicketDocumentKind, string>>> = Object.freeze({ plan: 'An agent-only plan is another agent\'s opinion; leave it out.', });
 
@@ -69,31 +64,36 @@ function isDocumentReadingRole(role: string): role is DocumentReadingRole {
   return role === 'builder' || role === 'reviewer';
 }
 
-function defaultRulesOf(role: DocumentReadingRole): DocumentReadingRules {
-  return DEFAULT_DOCUMENTS_OF_ROLE[role];
+function defaultRulesOf(role: DocumentReadingRole, defaults: DocumentReadingDefaults): DocumentReadingRules {
+  return defaults.defaultDocumentsOfRole[role];
 }
 
-/** The stored rules over the role's defaults; the reviewer's spec stays at its fixed rule whatever is stored. */
-function rulesOf(role: DocumentReadingRole, stored: BoardAgentStepSettingsDocument['documents'] | undefined): DocumentReadingRules {
-  const defaults = defaultRulesOf(role);
-  const ruleOf = (document: BoardTicketDocumentKind): BoardDocumentReadingRule => {
-    const fixed = role === 'reviewer' ? REVIEWER_FIXED_RULES[document] : undefined;
-    return fixed ?? stored?.[document] ?? defaults[document];
-  };
+/** The rule a role reads a document at whatever its pipeline stores, `null` for a document whose rule it may choose. */
+function fixedRuleOf(role: DocumentReadingRole, document: BoardTicketDocumentKind, defaults: DocumentReadingDefaults): BoardDocumentReadingRule | null {
+  return defaults.fixedDocumentsOfRole[role].includes(document) ? defaults.defaultDocumentsOfRole[role][document] : null;
+}
+
+/** The stored rules over the role's defaults; a fixed document stays at its rule whatever is stored. */
+function rulesOf(role: DocumentReadingRole, stored: BoardAgentStepSettingsDocument['documents'] | undefined, defaults: DocumentReadingDefaults): DocumentReadingRules {
+  const ruleOf = (document: BoardTicketDocumentKind): BoardDocumentReadingRule => (
+    fixedRuleOf(role, document, defaults) ?? stored?.[document] ?? defaults.defaultDocumentsOfRole[role][document]
+  );
   return { spec: ruleOf('spec'), plan: ruleOf('plan') };
 }
 
 /** The rules a Save stores: each that differs from the role's default; none at all when every rule is the default. */
-function storedRulesOf(role: DocumentReadingRole, rules: DocumentReadingRules): Partial<Record<BoardTicketDocumentKind, BoardDocumentReadingRule>> | null {
-  const defaults = defaultRulesOf(role);
-  const differing = BOARD_TICKET_DOCUMENT_KINDS.filter((document) => rules[document] !== defaults[document]);
+function storedRulesOf(
+  role: DocumentReadingRole, rules: DocumentReadingRules, defaults: DocumentReadingDefaults
+): Partial<Record<BoardTicketDocumentKind, BoardDocumentReadingRule>> | null {
+  const defaultRules = defaultRulesOf(role, defaults);
+  const differing = BOARD_TICKET_DOCUMENT_KINDS.filter((document) => rules[document] !== defaultRules[document]);
   if (differing.length === 0) return null;
   return Object.fromEntries(differing.map((document) => [document, rules[document]]));
 }
 
-function rowsOf(role: DocumentReadingRole, rules: DocumentReadingRules): DocumentRowView[] {
+function rowsOf(role: DocumentReadingRole, rules: DocumentReadingRules, defaults: DocumentReadingDefaults): DocumentRowView[] {
   return BOARD_TICKET_DOCUMENT_KINDS.map((document) => {
-    const fixed = role === 'reviewer' ? REVIEWER_FIXED_RULES[document] ?? null : null;
+    const fixed = fixedRuleOf(role, document, defaults);
     return {
       document,
       title:     DOCUMENT_TITLES[document],

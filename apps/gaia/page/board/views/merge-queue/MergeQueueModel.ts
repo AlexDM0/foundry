@@ -5,7 +5,7 @@
  * nothing itself: the order, the predictions and the reasons arrive as served facts. With merge approval on, the tickets waiting for User's
  * accept show apart, each with its prediction against the target's tip.
  */
-import type { BoardNoticeDocument }                                          from '../../../@types/board/BoardFactDocuments.ts';
+import type { BoardLimitsDocument, BoardNoticeDocument }                     from '../../../@types/board/BoardFactDocuments.ts';
 import type { BoardMergeCandidateDocument, BoardMergeQueueDocument }         from '../../../@types/board/BoardJobDocuments.ts';
 import type { BoardMergeTargetDocument }                                     from '../../../@types/board/BoardJobDocuments.ts';
 import type { BoardAppliedPipelineDocument }                                 from '../../../@types/board/BoardPipelineDocuments.ts';
@@ -120,8 +120,8 @@ function targetOf(facts: BoardMergeTargetDocument, notices: readonly BoardNotice
 }
 
 /** With merge approval on in the applied pipeline, User's press order sets the train; otherwise the five keys do. */
-function orderTextOf(applied: BoardAppliedPipelineDocument): string {
-  const mergeApprovalIsOn = applied.readingVerdict === 'readable' && applied.pipeline.approvals.merge === true;
+function orderTextOf(applied: BoardAppliedPipelineDocument, defaults: Pick<BoardLimitsDocument, 'defaultApprovals'>): string {
+  const mergeApprovalIsOn = applied.readingVerdict === 'readable' && (applied.pipeline.approvals.merge ?? defaults.defaultApprovals.merge);
   return mergeApprovalIsOn ? PRESS_ORDER_TEXT : FIVE_KEY_ORDER_TEXT;
 }
 

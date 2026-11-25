@@ -6,10 +6,10 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 4.2 meets V1 to V5, V9, V11 and V12: it answers `/api/versions` with current 4.2 and minimum 4.0, serves identity 1, summary 3, monitor 6
+Forge 4.2 meets V1 to V5, V9, V11 to V13: it answers `/api/versions` with current 4.2 and minimum 4.0, serves identity 1, summary 3, monitor 6
 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
 documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.2: 4.1 adds each forge's agent and meets V11,
-4.2 adds a ticket's documents and meets V12. Since 2.0 forge serves no page of its own, so the
+4.2 adds a ticket's documents and meets V12, and serves the pipeline's defaults and meets V13. Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
 
@@ -134,6 +134,20 @@ board read, so the board names only where each stands.
 **Acceptance.** Met: forge 4.2 serves them, `ForgeCompatibilityRegistry` dates the endpoint 4.2, and the `hephaestus-fetch-ticket-documents`
 recording reads each answer.
 
+### V13. Serve every default a client shows or resets to (Must, met in 4.2)
+
+**Requirement.** Defaults are forge's, and a client requests them. The board document's `limits` names what a pipeline means where it
+says nothing: `defaultAgentPairOfRole` (each role's model and effort), `defaultInstructionsOfRole` (each role's instruction list),
+`defaultDocumentsOfRole` (the rule by which the builder and the reviewer read the spec and the plan), `fixedDocumentsOfRole` (the
+documents a role reads at its default rule whatever the pipeline stores, the reviewer's spec), `defaultApprovals` (whether each approval
+is on) and `defaultTicketWritingRoute`. Forge adds them in 4.2, a minor.
+
+**Reason.** A client that keeps its own copy of a default drifts from forge the day forge changes it: a dialog would show, reset to and
+store against a default forge no longer applies.
+
+**Acceptance.** Met: Gaia's pipeline dialogs, the forge level, the change list, the Apply summary and the merge queue read each default from
+the served limits, and Reset to default puts back the served values; no default of forge's is a constant in Gaia's page or server.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.2) and keeps nothing for an older forge: forge 1, 2 or 3,
@@ -150,6 +164,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 | V11 | Only the vendors forge lists: no card stands for one it does not name. |
 | V12 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
+| V13 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
 
 ## 4. Order for forge
 

@@ -1,10 +1,11 @@
 /** MonoApply's "What is stored, per level": one line for the forge, then one per entity, each key in mono beside what Apply stores for it. */
 import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { MonoId, Text, View }                   from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { ApprovalDefaults }                from '../entities/ForgeLevelPageModel.ts';
 import { LevelSummaryListModel }                from './LevelSummaryListModel.ts';
 
-export function LevelSummaryList({ draft }: { readonly draft: BoardPipelineDefinitionDocument | null }) {
-  const levels = LevelSummaryListModel.levelsOf(draft);
+export function LevelSummaryList({ draft, defaults }: { readonly draft: BoardPipelineDefinitionDocument | null; readonly defaults: ApprovalDefaults }) {
+  const levels = LevelSummaryListModel.levelsOf(draft, defaults);
   if (levels.length === 0) return null;
   return (
     <View gap="eight">

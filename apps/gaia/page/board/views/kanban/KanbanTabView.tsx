@@ -18,7 +18,12 @@ export function KanbanTabView({
   const surroundings = useKanbanTabSurroundings();
   const hrefOf = useBoardHrefOf();
   if (route.item === MERGE_QUEUE_ITEM) {
-    return <MergeQueueView targets={MergeQueueModel.mergeQueueModelOf(board.mergeQueue, board.notices)} orderText={MergeQueueModel.orderTextOf(board.pipeline.applied)} />;
+    return (
+      <MergeQueueView
+        targets={MergeQueueModel.mergeQueueModelOf(board.mergeQueue, board.notices)}
+        orderText={MergeQueueModel.orderTextOf(board.pipeline.applied, board.limits)}
+      />
+    );
   }
   return (
     <KanbanView

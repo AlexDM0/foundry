@@ -26,10 +26,10 @@ import type {
   BoardViewRangeDocument,
   TicketDocumentSummaryDocument,
 } from 'forge-contracts/BoardPageDocuments';
-import type { BoardAppliedPipelineDocument, InstructionEntryDocument } from 'forge-contracts/BoardPipelineDocuments';
-import type { BoardAttentionEntryDocument, BoardNoticeDocument }       from 'forge-contracts/BoardReadingDocuments';
-import type { ForgeBoardDocument }                                     from 'forge-contracts/ForgeBoardDocument';
-import type { ForgeRefusalDocument }                                   from 'forge-contracts/ForgeRefusalDocument';
+import type { AgentPairDocument, BoardAppliedPipelineDocument, InstructionEntryDocument } from 'forge-contracts/BoardPipelineDocuments';
+import type { BoardAttentionEntryDocument, BoardNoticeDocument }                          from 'forge-contracts/BoardReadingDocuments';
+import type { ForgeBoardDocument }                                                        from 'forge-contracts/ForgeBoardDocument';
+import type { ForgeRefusalDocument }                                                      from 'forge-contracts/ForgeRefusalDocument';
 
 import type { BoardDecision, BoardQuestionHistoryEntry }      from '../../../shared/@types/board/BoardDecision.ts';
 import type { BoardAttentionEntry, BoardLimits, BoardNotice } from '../../../shared/@types/board/BoardFacts.ts';
@@ -44,8 +44,8 @@ import type {
   BoardMergeQueue,
   BoardTicketForecast,
 } from '../../../shared/@types/board/BoardJob.ts';
-import type { BoardInstruction, BoardPipelineFacts } from '../../../shared/@types/board/BoardPipeline.ts';
-import type { BoardRefusal }                         from '../../../shared/@types/board/BoardRefusal.ts';
+import type { BoardAgentPair, BoardInstruction, BoardPipelineFacts } from '../../../shared/@types/board/BoardPipeline.ts';
+import type { BoardRefusal }                                         from '../../../shared/@types/board/BoardRefusal.ts';
 import type {
   BoardDraftQuestion,
   BoardEpic,
@@ -84,6 +84,14 @@ function instructionOf(entry: InstructionEntryDocument): BoardInstruction {
   if (entry.kind === 'default-brief') return { kind: 'default-brief', role: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.pipelineAgentRole, entry.role) };
   if (entry.kind === 'file') return { kind: 'file', path: entry.path };
   return { kind: 'constitution' };
+}
+
+function agentPairOf(pair: AgentPairDocument): BoardAgentPair {
+  return { model: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.agentModel, pair.model), effort: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.agentEffort, pair.effort) };
+}
+
+function documentReadingRulesOf(rules: BoardLimitsDocument['defaultDocumentsOfRole']['builder']): BoardLimits['defaultDocumentsOfRole']['builder'] {
+  return VocabularyMapUtil.keyedRecordOf(VOCABULARIES.ticketDocumentKind, rules, (rule) => VocabularyMapUtil.gaiaValueOf(VOCABULARIES.documentReadingRule, rule));
 }
 
 function ticketDocumentSummaryOf(summary: TicketDocumentSummaryDocument): BoardTicketDocumentSummary {
@@ -479,6 +487,17 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
     firstRepeatReviewRound:     limits.firstRepeatReviewRound,
     defaultInstructionsOfRole:  VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, limits.defaultInstructionsOfRole, (entries) => entries.map(instructionOf)),
     reReviewThresholdStepLines: limits.reReviewThresholdStepLines,
+    defaultAgentPairOfRole:     VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineAgentRole, limits.defaultAgentPairOfRole, agentPairOf),
+    defaultDocumentsOfRole:     {
+      builder:  documentReadingRulesOf(limits.defaultDocumentsOfRole.builder),
+      reviewer: documentReadingRulesOf(limits.defaultDocumentsOfRole.reviewer),
+    },
+    fixedDocumentsOfRole: {
+      builder:  VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.ticketDocumentKind, limits.fixedDocumentsOfRole.builder),
+      reviewer: VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.ticketDocumentKind, limits.fixedDocumentsOfRole.reviewer),
+    },
+    defaultApprovals:          VocabularyMapUtil.keyedRecordOf(VOCABULARIES.pipelineApproval, limits.defaultApprovals, (isOn) => isOn),
+    defaultTicketWritingRoute: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketWritingRoute, limits.defaultTicketWritingRoute),
   };
 }
 

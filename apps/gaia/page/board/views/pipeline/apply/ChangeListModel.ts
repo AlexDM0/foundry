@@ -23,8 +23,9 @@ import {
   type BoardPipelineAgentRole,
   type BoardPipelineApproval
 } from '../../../../@types/board/BoardVocabulary.ts';
-import { PipelineFlowModel } from '../flow/PipelineFlowModel.ts';
-import { GatesAreaModel }    from '../gates/GatesAreaModel.ts';
+import type { ApprovalDefaults } from '../entities/ForgeLevelPageModel.ts';
+import { PipelineFlowModel }     from '../flow/PipelineFlowModel.ts';
+import { GatesAreaModel }        from '../gates/GatesAreaModel.ts';
 
 export interface ChangeRowView {
   readonly field:      string;
@@ -57,6 +58,8 @@ export interface ChangeListEditing {
   readonly base:        BoardPipelineDefinitionDocument | null;
   readonly draft:       BoardPipelineDefinitionDocument | null;
   readonly profileRuns: readonly BoardGateProfileRunDocument[];
+  /** What an approval or a route the pipeline leaves out reads as, as the forge serves it. */
+  readonly defaults:    ApprovalDefaults;
 }
 
 /** What a field names: its title and the kind of thing it is. */
@@ -155,10 +158,8 @@ const APPROVAL_OF_FIELD: Readonly<Record<string, BoardPipelineApproval>> = Objec
   'approval:plan':    'plan',
 });
 
-/** An absent `merge` approval is off; an absent `tickets`, `spec` or `plan` approval is on. */
-function approvalIsOn(pipeline: BoardPipelineDefinitionDocument | null, approval: BoardPipelineApproval): boolean {
-  const value = pipeline?.approvals?.[approval];
-  return approval === 'merge' ? value === true : value !== false;
+function approvalIsOn(pipeline: BoardPipelineDefinitionDocument | null, approval: BoardPipelineApproval, defaults: ApprovalDefaults): boolean {
+  return pipeline?.approvals?.[approval] ?? defaults.defaultApprovals[approval];
 }
 
 function switchWordOf(on: boolean): string {
@@ -247,13 +248,15 @@ function editingRowOf(row: ChangeRowView, change: BoardPipelineChangeDocument, e
   }
   const approval = APPROVAL_OF_FIELD[change.field];
   if (approval !== undefined) {
-    const isOn = approvalIsOn(editing.draft, approval);
-    const location = `switch · ${switchWordOf(approvalIsOn(editing.base, approval))} → ${switchWordOf(isOn)}`;
+    const isOn = approvalIsOn(editing.draft, approval, editing.defaults);
+    const location = `switch · ${switchWordOf(approvalIsOn(editing.base, approval, editing.defaults))} → ${switchWordOf(isOn)}`;
     if (approval !== 'merge') return { ...row, location };
     return { ...row, location, note: isOn ? HUMAN_CODE_REVIEW_ON_TEXT : HUMAN_CODE_REVIEW_OFF_TEXT };
   }
   if (change.field === TICKET_WRITING_FIELD) {
-    const routeOf = (pipeline: BoardPipelineDefinitionDocument | null): string => PipelineFlowModel.ticketWritingLabelOf(PipelineFlowModel.ticketWritingRouteOfDraft(pipeline));
+    const routeOf = (pipeline: BoardPipelineDefinitionDocument | null): string => PipelineFlowModel.ticketWritingLabelOf(
+      PipelineFlowModel.ticketWritingRouteOfDraft(pipeline, editing.defaults),
+    );
     return { ...row, location: `Ticket phase · ${routeOf(editing.base)} → ${routeOf(editing.draft)}` };
   }
   return row;

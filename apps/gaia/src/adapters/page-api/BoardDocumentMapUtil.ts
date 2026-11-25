@@ -137,6 +137,22 @@ function limitsOut(limits: BoardLimits): BoardLimitsDocument {
       (instructions) => instructions.map(PipelineDocumentMapUtil.instructionOut),
     ),
     reReviewThresholdStepLines: limits.reReviewThresholdStepLines,
+    defaultAgentPairOfRole:     PipelineDocumentMapUtil.recordOutOf(limits.defaultAgentPairOfRole, (pair) => ({ model: pair.model, effort: pair.effort })),
+    defaultDocumentsOfRole:     {
+      builder:  { spec: limits.defaultDocumentsOfRole.builder.spec, plan: limits.defaultDocumentsOfRole.builder.plan },
+      reviewer: { spec: limits.defaultDocumentsOfRole.reviewer.spec, plan: limits.defaultDocumentsOfRole.reviewer.plan },
+    },
+    fixedDocumentsOfRole: {
+      builder:  [...limits.fixedDocumentsOfRole.builder],
+      reviewer: [...limits.fixedDocumentsOfRole.reviewer],
+    },
+    defaultApprovals: {
+      tickets: limits.defaultApprovals.tickets,
+      merge:   limits.defaultApprovals.merge,
+      spec:    limits.defaultApprovals.spec,
+      plan:    limits.defaultApprovals.plan,
+    },
+    defaultTicketWritingRoute: limits.defaultTicketWritingRoute,
   };
 }
 

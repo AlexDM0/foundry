@@ -6,6 +6,7 @@
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDocument }        from '../../../../@types/board/BoardDocument.ts';
+import type { BoardLimitsDocument }  from '../../../../@types/board/BoardFactDocuments.ts';
 import type {
   BoardDraftEditDocument,
   BoardFlowNodeDocument,
@@ -443,13 +444,16 @@ const TICKET_WRITING_CHOICES: readonly { readonly value: BoardTicketWritingRoute
   BOARD_TICKET_WRITING_ROUTES.map((value) => ({ value, label: TICKET_WRITING_ROUTE_LABELS[value] })),
 );
 
-/** An absent route is one ticket, so choosing one ticket removes the key and the stored pipeline stays as it was before the choice. */
-function ticketWritingEditOf(route: BoardTicketWritingRoute): BoardDraftEditDocument {
-  return { target: 'ticket-writing', value: route === 'one-ticket' ? null : route };
+/** The route a draft that names none writes a ticket by, as the forge serves it. */
+export type TicketWritingDefaults = Pick<BoardLimitsDocument, 'defaultTicketWritingRoute'>;
+
+/** An absent route is the default, so choosing the default removes the key and the stored pipeline stays as it was before the choice. */
+function ticketWritingEditOf(route: BoardTicketWritingRoute, defaults: TicketWritingDefaults): BoardDraftEditDocument {
+  return { target: 'ticket-writing', value: route === defaults.defaultTicketWritingRoute ? null : route };
 }
 
-function ticketWritingRouteOfDraft(draft: Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null): BoardTicketWritingRoute {
-  return draft?.ticketWriting ?? 'one-ticket';
+function ticketWritingRouteOfDraft(draft: Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null, defaults: TicketWritingDefaults): BoardTicketWritingRoute {
+  return draft?.ticketWriting ?? defaults.defaultTicketWritingRoute;
 }
 
 /** "Spec, then plan": the route as its choice reads. */

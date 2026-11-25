@@ -105,7 +105,7 @@ export function ForgeLevelPage({ facts, selection, entityHrefOf }: ForgeLevelPag
         <section className="board-forge-level-section" aria-label="Ticket phase">
           <PhaseKicker phase="ticket" text="Ticket phase · every entity" />
           <Text typeRole="section" element="h3">Tickets</Text>
-          <TicketWritingChoice draft={draft} editSender={editSender} />
+          <TicketWritingChoice draft={draft} defaults={facts.limits} editSender={editSender} />
           {ticketWritingNodes.map((node) => (
             <div key={node.nodeId} className="board-forge-level-step">
               <StepCard
@@ -119,12 +119,12 @@ export function ForgeLevelPage({ facts, selection, entityHrefOf }: ForgeLevelPag
               />
             </div>
           ))}
-          {ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft).map((view) => <ApprovalRow key={view.approval} view={view} editSender={editSender} />)}
+          {ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft, facts.limits).map((view) => <ApprovalRow key={view.approval} view={view} editSender={editSender} />)}
         </section>
         <section className="board-forge-level-section" aria-label="Merge and the Airlock">
           <PhaseKicker phase="merge" text="Merge phase · every entity" />
           <Text typeRole="section" element="h3">Merge and the Airlock</Text>
-          <ApprovalRow view={ForgeLevelPageModel.mergeApprovalViewOf(draft)} editSender={editSender} />
+          <ApprovalRow view={ForgeLevelPageModel.mergeApprovalViewOf(draft, facts.limits)} editSender={editSender} />
           <Row between centerY gap="twelve">
             <View>
               <Text bold>Conflict re-review</Text>

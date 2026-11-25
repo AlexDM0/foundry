@@ -205,7 +205,7 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
     <section className="board-pipeline-phase" aria-label={PipelinePhaseModel.phaseLabelOf(phase, phases)} data-phase={phase} data-stage={flow.toolbarStage}>
       <PhaseHead flow={flow} phase={phase} phases={phases} onOpen={selection.openPhaseOf} />
       {editSender.refusal === null ? null : <span className="board-refusal" role="status">{editSender.refusal}</span>}
-      {phase === 'ticket' ? <TicketWritingChoice draft={draft} editSender={editSender} /> : null}
+      {phase === 'ticket' ? <TicketWritingChoice draft={draft} defaults={facts.limits} editSender={editSender} /> : null}
       {stepRow.length === 0 ? null : <div className="board-pipeline-phase-steps">{stepRow}</div>}
       {gatePhase === null
         ? <TicketReadiness flow={flow} />

@@ -4,6 +4,7 @@
  */
 import type { BoardDraftEditDocument, BoardPipelineReviewDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { AgentStepDialogModel, type AgentStepForm }                 from './AgentStepDialogModel.ts';
+import type { DocumentReadingDefaults }                             from './PipelineDocumentsSectionModel.ts';
 import { RereviewSettingsModel, type ReReviewForm }                 from './RereviewSettingsModel.ts';
 
 const REVIEW_STEP_WORDS = Object.freeze({
@@ -26,11 +27,13 @@ export type ReviewStepTab = 'review' | 're-review';
 /** The review's name the draft keeps; a review the draft lacks is the default step. */
 const DEFAULT_REVIEW_NAME = 'review';
 
-function saveEditsOf(review: BoardPipelineReviewDocument | null | undefined, reviewerForm: AgentStepForm, reReviewForm: ReReviewForm): BoardDraftEditDocument[] {
+function saveEditsOf(
+  review: BoardPipelineReviewDocument | null | undefined, reviewerForm: AgentStepForm, reReviewForm: ReReviewForm, defaults: DocumentReadingDefaults
+): BoardDraftEditDocument[] {
   const reviewValue: BoardPipelineReviewDocument = { name: review?.name ?? DEFAULT_REVIEW_NAME, reReview: RereviewSettingsModel.reReviewOf(reReviewForm) };
   return [
-    AgentStepDialogModel.roleEditOf('reviewer', reviewerForm),
-    ...(reReviewForm.isOn ? [AgentStepDialogModel.roleEditOf('reReviewer', reReviewForm.settings)] : []),
+    AgentStepDialogModel.roleEditOf('reviewer', reviewerForm, defaults),
+    ...(reReviewForm.isOn ? [AgentStepDialogModel.roleEditOf('reReviewer', reReviewForm.settings, defaults)] : []),
     { target: 'review', value: reviewValue },
   ];
 }

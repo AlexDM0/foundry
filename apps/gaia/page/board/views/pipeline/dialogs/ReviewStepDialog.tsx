@@ -61,7 +61,7 @@ export function ReviewStepDialog({
   const reReviewSwitch = useRef<HTMLElement | null>(null);
   const words = ReviewStepDialogModel.WORDS;
   const documentWords = PipelineDocumentsSectionModel.WORDS;
-  const readsDocuments = PipelineFlowModel.ticketWritingRouteOfDraft(draft) === 'spec-then-plan';
+  const readsDocuments = PipelineFlowModel.ticketWritingRouteOfDraft(draft, limits) === 'spec-then-plan';
   const reset = (): void => {
     setReviewerForm(AgentStepDialogModel.resetFormOf('reviewer', limits));
     setReReviewForm(RereviewSettingsModel.resetFormOf('review', limits));
@@ -112,7 +112,7 @@ export function ReviewStepDialog({
           canSave={editSender.enabled}
           refusal={editSender.refusal}
           onCancel={onClose}
-          onSave={() => editSender.sendEdits(ReviewStepDialogModel.saveEditsOf(draft?.review, reviewerForm, reReviewForm))}
+          onSave={() => editSender.sendEdits(ReviewStepDialogModel.saveEditsOf(draft?.review, reviewerForm, reReviewForm, limits))}
         />
       )}
     >
@@ -156,13 +156,16 @@ export function ReviewStepDialog({
                       <PipelineDocumentsSection
                         role="reviewer"
                         rules={reviewerForm.documents}
+                        defaults={limits}
                         onChange={(documents) => setReviewerForm({ ...reviewerForm, documents })}
                       />
                       <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
                         <StepFact term={documentWords.runsTerm} description={documentWords.reviewerRuns} />
                         <StepFact
                           term={documentWords.builderTerm}
-                          description={PipelineDocumentsSectionModel.builderReadingTextOf(PipelineDocumentsSectionModel.rulesOf('builder', draft?.agents.builder?.documents))}
+                          description={PipelineDocumentsSectionModel.builderReadingTextOf(
+                            PipelineDocumentsSectionModel.rulesOf('builder', draft?.agents.builder?.documents, limits),
+                          )}
                         />
                       </Card>
                     </>

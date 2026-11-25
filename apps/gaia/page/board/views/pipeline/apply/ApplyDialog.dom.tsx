@@ -29,6 +29,7 @@ import type { BoardForgeRefusalDocument }                   from '../../../../@t
 import type { BoardRoute }                                  from '../../../shell/BoardRouter.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
 import { onBoard }                                          from '../../../testing/OnBoard.ts';
+import { EXAMPLE_BOARD_LIMITS }                             from '../../../testing/PageLimitsFixture.ts';
 import {
   exampleEntity,
   pipelineBoardStateOf,
@@ -245,6 +246,7 @@ describe('E94 before Apply', () => {
         concurrencyLimit={2}
         onClose={() => undefined}
         storedPipeline={pipelineBoardStateOf('A5').pipeline.applied}
+        defaults={EXAMPLE_BOARD_LIMITS}
       />
     ));
     return controls;

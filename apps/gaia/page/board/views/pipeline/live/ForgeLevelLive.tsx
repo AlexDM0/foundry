@@ -114,7 +114,10 @@ export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
   const flow = facts.pipeline.flow ?? null;
   const livePipeline = facts.pipeline.applied.readingVerdict === 'readable' ? facts.pipeline.applied.pipeline : null;
   const ticketWritingNodes = ForgeLevelPageModel.ticketWritingNodesOf(flow?.nodes ?? []);
-  const approvals = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(livePipeline), ForgeLevelPageModel.mergeApprovalViewOf(livePipeline)];
+  const approvals = [
+    ...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(livePipeline, facts.limits),
+    ForgeLevelPageModel.mergeApprovalViewOf(livePipeline, facts.limits),
+  ];
   return (
     <div className="board-forge-level">
       <section className="board-forge-level-section" aria-label="Ticket phase">

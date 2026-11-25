@@ -7,6 +7,7 @@ import type { BoardDraftEditDocument, BoardPipelineAirlockDocument }        from
 import type { BoardDerivedSettingsSource, BoardMergePlacement }             from '../../../../@types/board/BoardVocabulary.ts';
 import { PipelineLevelModel, type PipelineLevel }                           from '../entities/PipelineLevelModel.ts';
 import { AgentStepDialogModel }                                             from './AgentStepDialogModel.ts';
+import type { DocumentReadingDefaults }                                     from './PipelineDocumentsSectionModel.ts';
 import { RereviewSettingsModel, type ReReviewForm, type ReReviewLevelPart } from './RereviewSettingsModel.ts';
 
 export interface MergeStepHead {
@@ -47,10 +48,10 @@ function conflictTextOf(derivedFrom: BoardDerivedSettingsSource | null): string 
 }
 
 /** The forge's part is the merge train alone, an entity's the conflict re-reviewer alone, while the forge has the re-review on. */
-function saveEditsOf(reReviewForm: ReReviewForm, levelPart: ReReviewLevelPart = 'whole'): BoardDraftEditDocument[] {
+function saveEditsOf(reReviewForm: ReReviewForm, defaults: DocumentReadingDefaults, levelPart: ReReviewLevelPart = 'whole'): BoardDraftEditDocument[] {
   const airlockValue: BoardPipelineAirlockDocument = { reReview: RereviewSettingsModel.reReviewOf(reReviewForm) };
   const airlockEdits: BoardDraftEditDocument[] = levelPart === 'conflict-re-reviewer' ? [] : [{ target: 'airlock', value: airlockValue }];
-  const reReviewerEdits = reReviewForm.isOn && levelPart !== 'merge-train' ? [AgentStepDialogModel.roleEditOf('conflictReReviewer', reReviewForm.settings)] : [];
+  const reReviewerEdits = reReviewForm.isOn && levelPart !== 'merge-train' ? [AgentStepDialogModel.roleEditOf('conflictReReviewer', reReviewForm.settings, defaults)] : [];
   return [...airlockEdits, ...reReviewerEdits];
 }
 

@@ -676,6 +676,10 @@ const INSTRUCTION_RULE = {
 
 const CONCURRENCY_BOUNDS_SHAPE = { lowest: 'whole-number', ceiling: 'whole-number', default: 'whole-number' } as const satisfies ShapeOf<BoardConcurrencyBoundsDocument>;
 
+const AGENT_PAIR_SHAPE = { model: vocabularyRule('agentModel'), effort: vocabularyRule('agentEffort') } as const satisfies ShapeOf<AgentPairDocument>;
+
+const DOCUMENT_RULES_SHAPE = keyedByVocabularyShape('ticketDocumentKind', vocabularyRule('documentReadingRule'));
+
 const LIMITS_SHAPE = {
   tickStepLadderMinutes:      WHOLE_NUMBER_LIST,
   maximumTicksPerAxis:        'whole-number',
@@ -700,9 +704,12 @@ const LIMITS_SHAPE = {
   firstRepeatReviewRound:     'whole-number',
   defaultInstructionsOfRole:  { object: keyedByVocabularyShape('pipelineAgentRole', { eachOf: INSTRUCTION_RULE }) },
   reReviewThresholdStepLines: 'whole-number',
+  defaultAgentPairOfRole:     { object: keyedByVocabularyShape('pipelineAgentRole', { object: AGENT_PAIR_SHAPE }) },
+  defaultDocumentsOfRole:     { object: { builder: { object: DOCUMENT_RULES_SHAPE }, reviewer: { object: DOCUMENT_RULES_SHAPE } } },
+  fixedDocumentsOfRole:       { object: { builder: vocabularyListRule('ticketDocumentKind'), reviewer: vocabularyListRule('ticketDocumentKind') } },
+  defaultApprovals:           { object: keyedByVocabularyShape('pipelineApproval', 'boolean') },
+  defaultTicketWritingRoute:  vocabularyRule('ticketWritingRoute'),
 } as const satisfies ShapeOf<BoardLimitsDocument>;
-
-const AGENT_PAIR_SHAPE = { model: vocabularyRule('agentModel'), effort: vocabularyRule('agentEffort') } as const satisfies ShapeOf<AgentPairDocument>;
 
 const STEP_SHAPE = { name: 'text', run: 'text', in: OPTIONAL_TEXT } as const satisfies ShapeOf<PipelineStepDocument>;
 

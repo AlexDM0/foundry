@@ -282,6 +282,7 @@ function DesignPage({
             onClose={selection.closeApply}
             {...(onApplySent === undefined ? {} : { onApplySent })}
             storedPipeline={facts.pipeline.applied}
+            defaults={facts.limits}
             pendingTicketWithoutEntityCount={ApplyDialogModel.pendingTicketWithoutEntityCountOf(facts.page.tickets)}
             {...(shown === null ? {} : { entityHrefOf: (entityKey: string) => levelHrefOf(PipelineLevelModel.entityLevelOf(entityKey)) })}
           />

@@ -4,7 +4,7 @@
  * so no line names it.
  */
 import type { BoardPipelineDefinitionDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { ForgeLevelPageModel }                                               from '../entities/ForgeLevelPageModel.ts';
+import { ForgeLevelPageModel, type ApprovalDefaults }                        from '../entities/ForgeLevelPageModel.ts';
 
 export interface LevelSummaryView {
   /** `forge-level` for the Forge level, else `entity-<key>`. */
@@ -27,8 +27,8 @@ function listedText(items: readonly string[]): string {
 }
 
 /** "Human ticket review on, human code review off, conflict re-review over 750 lines". */
-function forgeTextOf(draft: BoardPipelineDefinitionDocument): string {
-  const approvalViews = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft), ForgeLevelPageModel.mergeApprovalViewOf(draft)];
+function forgeTextOf(draft: BoardPipelineDefinitionDocument, defaults: ApprovalDefaults): string {
+  const approvalViews = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft, defaults), ForgeLevelPageModel.mergeApprovalViewOf(draft, defaults)];
   const approvals = approvalViews.map((approval, index) => {
     const title = index === 0 ? approval.title : approval.title.toLowerCase();
     return `${title} ${approval.isOn ? 'on' : 'off'}`;
@@ -54,10 +54,10 @@ function entityTextOf(entity: BoardPipelineEntityDocument): string {
   return parts.join(' · ');
 }
 
-function levelsOf(draft: BoardPipelineDefinitionDocument | null): LevelSummaryView[] {
+function levelsOf(draft: BoardPipelineDefinitionDocument | null, defaults: ApprovalDefaults): LevelSummaryView[] {
   if (draft === null || draft.entities === null) return [];
   const forge: LevelSummaryView = {
-    key: 'forge-level', name: 'Forge', nameIsKey: false, text: forgeTextOf(draft)
+    key: 'forge-level', name: 'Forge', nameIsKey: false, text: forgeTextOf(draft, defaults)
   };
   const entities = Object.entries(draft.entities).map(([entityKey, entity]: [string, BoardPipelineEntityDocument]) => ({
     key: `entity-${entityKey}`, name: entityKey, nameIsKey: true, text: entityTextOf(entity)

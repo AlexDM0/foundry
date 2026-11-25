@@ -783,7 +783,15 @@ function pipelineBoardState(pipelineChanges: Partial<BoardPipelineFactsDocument>
       workerEffort:               WORKER_SETTINGS.effort,
       reworkRoundThresholdLines:  FIXTURE_THRESHOLD_LINES,
       reReviewThresholdStepLines: FIXTURE_RE_REVIEW_THRESHOLD_STEP_LINES,
-      defaultInstructionsOfRole:  {
+      defaultAgentPairOfRole:     {
+        ...base.limits.defaultAgentPairOfRole,
+        productOwner:       WORKER_SETTINGS,
+        builder:            WORKER_SETTINGS,
+        reviewer:           WORKER_SETTINGS,
+        reReviewer:         WORKER_SETTINGS,
+        conflictReReviewer: WORKER_SETTINGS,
+      },
+      defaultInstructionsOfRole: {
         ...base.limits.defaultInstructionsOfRole,
         reReviewer:         [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'reReviewer' }],
         conflictReReviewer: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'conflictReReviewer' }],

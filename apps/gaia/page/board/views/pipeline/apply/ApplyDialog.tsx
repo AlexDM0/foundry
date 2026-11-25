@@ -16,6 +16,7 @@ import {
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }                          from '../../../shell/BoardRouteLinks.ts';
+import type { ApprovalDefaults }                   from '../entities/ForgeLevelPageModel.ts';
 import { ApplyDialogModel, type ApplyRefusalView } from './ApplyDialogModel.ts';
 import { ApplyFoot, ApplyPendingState }            from './ApplyPendingState.tsx';
 import { ConstitutionCommitList }                  from './ConstitutionCommitList.tsx';
@@ -36,6 +37,8 @@ export interface ApplyDialogProps {
   readonly pendingTicketWithoutEntityCount?: number;
   /** Where an entity's level opens, for the entities worth a look; absent, they show no link. */
   readonly entityHrefOf?:                    (entityKey: string) => string;
+  /** What an approval or a route the draft leaves out reads as, as the forge serves it. */
+  readonly defaults:                         ApprovalDefaults;
 }
 
 function ApplyRefusal({ refusal }: { readonly refusal: ApplyRefusalView }) {
@@ -80,7 +83,7 @@ function WorthALook({ setup, entityHrefOf }: Pick<ApplyDialogProps, 'setup' | 'e
 
 export function ApplyDialog({
   setup, pendingTicketCount, concurrencyLimit, onClose, onApplySent, storedPipeline, pendingTicketWithoutEntityCount = 0,
-  entityHrefOf
+  entityHrefOf, defaults
 }: ApplyDialogProps) {
   const { record, applyState } = setup;
   const [resumesBoard, setResumesBoard] = useState(applyState?.resumesBoard ?? true);
@@ -114,7 +117,7 @@ export function ApplyDialog({
       <View gap="eighteen">
         {refusal === null ? null : <ApplyRefusal refusal={refusal} />}
         {constitutionNote === null ? null : <Text element="p" muted>{constitutionNote}</Text>}
-        {overEntities ? <LevelSummaryList draft={record.draft} /> : null}
+        {overEntities ? <LevelSummaryList draft={record.draft} defaults={defaults} /> : null}
         {overEntities ? <ConstitutionCommitList record={record} /> : null}
         {overEntities ? <WorthALook setup={setup} {...(entityHrefOf === undefined ? {} : { entityHrefOf })} /> : null}
         {choosesResume && refusal === null

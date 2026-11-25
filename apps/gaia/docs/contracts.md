@@ -98,7 +98,7 @@ fleet document and the commands and dates `commands` at 2.0; Gaia 3.0 named a fo
 Gaia 4.0 names a restarting forge's condition and the look of a failed restart in it, dates `fleet` and `events` at 4.0, and raised its
 minimum supported to 4.0; Gaia 4.1 only adds the forge's agent to the board (its keys `agent` and a job's `notLaunched`, the setup step
 `agent`, the record's `agent` and `tools`) and the agent's board commands; Gaia 4.2 only adds a ticket's documents, their route
-`forgeTicketDocuments` and the board's spec-then-plan route; every route reads a body of at most 65,536 bytes, the picture upload one of at
+`forgeTicketDocuments`, the board's spec-then-plan route and the pipeline defaults the forge serves in the board's `limits`; every route reads a body of at most 65,536 bytes, the picture upload one of at
 most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES` and the board commands route one of at most `TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES`, which only a
 ticket document's save, an edited proposal and a comment's quote may pass 65,536 bytes for (`src/lib/local-http-guards/BoundedBody.ts`),
 since Bun's own bound is one for the whole server.

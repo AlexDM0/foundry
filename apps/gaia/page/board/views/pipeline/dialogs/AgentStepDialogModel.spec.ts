@@ -1,11 +1,11 @@
 /**
  * The agent step dialog's model. What matters: the form starts from the draft's stored settings, else the pair the facts resolved, else
- * the worker defaults the forge serves in its limits, and from the served default list of the role where the draft stores none; Reset is
- * the served defaults, so a forge with other defaults gives other forms; a Save is one edit of the role
+ * the role's default pair the forge serves in its limits, and from the served default list of the role where the draft stores none; Reset
+ * is the served defaults, so a forge with other defaults gives other forms; a Save is one edit of the role
  * carrying model, effort and the entries in order; the meter level is the effort's place plus one (low 1 … max 5); every effort has a
  * hint, xhigh's the one the plan words; and the builder's Fixes line names the merge before review. The spec and plan agents are agent
- * steps of the Ticket phase whose Reset is the forge's own pair for each; the builder's and the reviewer's forms carry when they read the
- * pipeline documents, the stored rules over the role's defaults, and a Save stores only the rules that differ from those defaults.
+ * steps of the Ticket phase whose Reset is the pair the forge serves for each; the builder's and the reviewer's forms carry when they read
+ * the pipeline documents, the stored rules over the served defaults, and a Save stores only the rules that differ from those defaults.
  */
 import { describe, expect, test }                                         from 'bun:test';
 import type { BoardInstructionDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -33,33 +33,31 @@ describe('the form a dialog opens on', () => {
     });
   });
 
-  test('falls back to the worker defaults with neither', () => {
+  test('falls back to the role\'s served defaults with neither', () => {
     expect(AgentStepDialogModel.formOf('reviewer', null, null, LIMITS))
-      .toEqual({
-        model: LIMITS.workerModel, effort: LIMITS.workerEffort, entries: LIMITS.defaultInstructionsOfRole.reviewer, documents: { spec: 'always', plan: 'if-person-approved' }
-      });
+      .toEqual({ ...LIMITS.defaultAgentPairOfRole.reviewer, entries: LIMITS.defaultInstructionsOfRole.reviewer, documents: { spec: 'always', plan: 'if-person-approved' } });
   });
 
-  test('reads the worker pair and the default list from the limits the forge serves, never its own copy', () => {
+  test('reads the pair, the default list and the documents from the limits the forge serves, never its own copy', () => {
     const otherForge = {
       ...LIMITS,
-      workerModel:               'sonnet' as const,
-      workerEffort:              'low' as const,
+      defaultAgentPairOfRole:    { ...LIMITS.defaultAgentPairOfRole, reviewer: { model: 'sonnet', effort: 'low' } as const },
       defaultInstructionsOfRole: { ...LIMITS.defaultInstructionsOfRole, reviewer: [{ kind: 'file', path: 'docs/example-review.md' } as const] },
+      defaultDocumentsOfRole:    { ...LIMITS.defaultDocumentsOfRole, reviewer: { spec: 'always', plan: 'never' } as const },
     };
     expect(AgentStepDialogModel.formOf('reviewer', null, null, otherForge))
-      .toMatchObject({ model: 'sonnet', effort: 'low', entries: [{ kind: 'file', path: 'docs/example-review.md' }] });
-    expect(AgentStepDialogModel.resetFormOf('reviewer', otherForge)).toMatchObject({ model: 'sonnet', effort: 'low' });
+      .toMatchObject({
+        model: 'sonnet', effort: 'low', entries: [{ kind: 'file', path: 'docs/example-review.md' }], documents: { spec: 'always', plan: 'never' }
+      });
+    expect(AgentStepDialogModel.resetFormOf('reviewer', otherForge)).toMatchObject({ model: 'sonnet', effort: 'low', documents: { spec: 'always', plan: 'never' } });
   });
 
-  test('Reset is the defaults: the worker pair and the default list with the constitution first', () => {
+  test('Reset is the served defaults: the role\'s pair, the default list with the constitution first, and its documents', () => {
     const entries: BoardInstructionDocument[] = [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }];
-    expect(AgentStepDialogModel.resetFormOf('builder', LIMITS)).toEqual({
-      model: LIMITS.workerModel, effort: LIMITS.workerEffort, entries, documents: { spec: 'always', plan: 'always' }
-    });
+    expect(AgentStepDialogModel.resetFormOf('builder', LIMITS)).toEqual({ ...LIMITS.defaultAgentPairOfRole.builder, entries, documents: { spec: 'always', plan: 'always' } });
   });
 
-  test('a document agent falls back to its own pair, Reset puts it back, and it reads no pipeline document', () => {
+  test('a document agent falls back to the pair the forge serves for it, Reset puts it back, and it reads no pipeline document', () => {
     expect(AgentStepDialogModel.formOf('specAgent', null, null, LIMITS)).toEqual({
       model: 'sonnet', effort: 'medium', entries: LIMITS.defaultInstructionsOfRole.specAgent, documents: null
     });
@@ -68,6 +66,8 @@ describe('the form a dialog opens on', () => {
     expect(AgentStepDialogModel.resetFormOf('planAgent', LIMITS)).toEqual({
       model: 'opus', effort: 'high', entries: LIMITS.defaultInstructionsOfRole.planAgent, documents: null
     });
+    const otherForge = { ...LIMITS, defaultAgentPairOfRole: { ...LIMITS.defaultAgentPairOfRole, planAgent: { model: 'fable', effort: 'max' } as const } };
+    expect(AgentStepDialogModel.resetFormOf('planAgent', otherForge)).toMatchObject({ model: 'fable', effort: 'max' });
   });
 
   test('the stored documents rules stand over the role\'s defaults, and the reviewer reads the spec always whatever is stored', () => {
@@ -93,14 +93,14 @@ describe('a Save', () => {
     const entries = [{ kind: 'default-brief', role: 'builder' } as const, { kind: 'file', path: 'docs/example-brief.md' } as const];
     const edit = AgentStepDialogModel.roleEditOf('builder', {
       model: 'haiku', effort: 'max', entries, documents: { spec: 'always', plan: 'always' }
-    });
+    }, LIMITS);
     expect(edit).toEqual({ target: 'role', role: 'builder', value: { model: 'haiku', effort: 'max', instructions: entries } });
   });
 
   test('stores only the documents rules that differ from the role\'s default', () => {
     const edit = AgentStepDialogModel.roleEditOf('reviewer', {
       model: 'opus', effort: 'high', entries: [], documents: { spec: 'always', plan: 'never' }
-    });
+    }, LIMITS);
     expect(edit).toEqual({
       target: 'role',
       role:   'reviewer',
