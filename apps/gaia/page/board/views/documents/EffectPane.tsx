@@ -1,8 +1,10 @@
 /**
  * "What the plan names": the closable pane beside the plan with the effect reading of its head. It says what the reading read and how
  * long it took, the legend of change marks, the folder tree of the places the plan names with their reference numbers, and the places it
- * could not resolve with the reason and a hint. The reading is not saved: Refresh reads the head again.
+ * could not resolve, each a warning card with the reason and a hint. The reading is not saved: Refresh reads the head again.
  */
+import type { CSSProperties } from 'react';
+
 import type { BoardEffectReadingDocument }            from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button, IconButton, MicroCapsLabel }         from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useControlCommand }                          from '../../shell/ControlCommandSender.ts';
@@ -49,7 +51,7 @@ export function EffectPane({
           <div
             key={row.key}
             className="board-document-tree-row"
-            data-depth={row.depth}
+            style={{ '--tree-depth': row.depth } as CSSProperties}
             data-kind={row.kind}
             data-change={row.kind === 'entry' ? row.change : undefined}
             title={row.kind === 'entry' ? row.detail : undefined}
@@ -73,7 +75,7 @@ export function EffectPane({
                     {' '}
                     <span className="board-document-mono">{item.named}</span>
                   </span>
-                  <span>{item.reason}</span>
+                  <span className="board-document-unresolved-reason">{item.reason}</span>
                   <span className="board-document-note">{item.hint}</span>
                 </div>
               ))}

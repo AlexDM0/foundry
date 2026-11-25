@@ -1,9 +1,9 @@
 /**
  * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the
  * source line and column where it starts, so a selection maps back to the source; a character reference draws the character it names; a
- * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of
- * a paragraph, heading or list item go the marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference
- * mark of the effect reading (`1`, in the warning look while its place is unresolved). The caller may place its own part after the
+ * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the
+ * marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference mark of the effect reading (`1`, in the
+ * warning look while its place is unresolved, the words it quotes then underlined). The caller may place its own part after the
  * innermost such block that holds a line, such as an agent's proposed edit or the comment popover, and frame the part with that block, as
  * an edit with the lines it replaces. The text an open comment points at stays marked.
  */
@@ -39,6 +39,9 @@ export interface ReferenceMark {
   readonly reference:  number;
   readonly line:       number;
   readonly unresolved: boolean;
+  /** The words of the plan the reference reads, and the lines they stand on. */
+  readonly quote:      string;
+  readonly quoteLines: SourceLines;
 }
 
 /** A part of the caller's, placed after the innermost paragraph, heading, list item or other block that holds its line. */
@@ -69,6 +72,10 @@ const CHECKBOX_GLYPHS = { checked: '☑', unchecked: '☐' } as const;
 
 const HEADING_ELEMENTS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
 
+function unresolvedPlacesOf(props: DocumentBlocksProps): UnresolvedPlace[] {
+  return (props.referenceMarks ?? []).filter((mark) => mark.unresolved);
+}
+
 function overlaps(lines: SourceLines, other: SourceLines): boolean {
   return lines.from <= other.to && other.from <= lines.to;
 }
@@ -92,45 +99,97 @@ function characterOf(reference: string): string {
 
 const MarkedRangeContext = createContext<MarkedRange | null>(null);
 
+interface SourceTextProps {
+  readonly text:       string;
+  readonly start:      SourcePosition;
+  readonly className?: string | undefined;
+}
+
 /** A piece of source text, carrying where it starts, with the part of it inside the marked range drawn marked. */
-function SourceText({ text, start }: { readonly text: string; readonly start: SourcePosition }) {
+function SourceText({ text, start, className }: SourceTextProps) {
   const markedRange = useContext(MarkedRangeContext);
   const marked = markedRange === null ? null : DocumentSelectionModel.markedOffsetsInSpan(start, text, markedRange);
-  if (marked === null) return <span data-source-line={start.line} data-source-column={start.column}>{text}</span>;
+  if (marked === null) return <span className={className} data-source-line={start.line} data-source-column={start.column}>{text}</span>;
   const startOf = (offset: number) => DocumentSelectionModel.positionInSpan(start, text, offset);
   const markedStart = startOf(marked.from);
   const afterStart = startOf(marked.to);
+  const markedClassName = className === undefined ? 'board-document-marked' : `board-document-marked ${className}`;
   return (
     <>
-      {marked.from === 0 ? null : <span data-source-line={start.line} data-source-column={start.column}>{text.slice(0, marked.from)}</span>}
-      <mark className="board-document-marked" data-source-line={markedStart.line} data-source-column={markedStart.column}>{text.slice(marked.from, marked.to)}</mark>
-      {marked.to === text.length ? null : <span data-source-line={afterStart.line} data-source-column={afterStart.column}>{text.slice(marked.to)}</span>}
+      {marked.from === 0 ? null : <span className={className} data-source-line={start.line} data-source-column={start.column}>{text.slice(0, marked.from)}</span>}
+      <mark className={markedClassName} data-source-line={markedStart.line} data-source-column={markedStart.column}>{text.slice(marked.from, marked.to)}</mark>
+      {marked.to === text.length ? null : <span className={className} data-source-line={afterStart.line} data-source-column={afterStart.column}>{text.slice(marked.to)}</span>}
     </>
   );
 }
 
-function Spans({ spans }: { readonly spans: readonly MarkdownSpan[] }) {
-  return spans.map((span, position) => <Span key={position} span={span} />);
+type UnresolvedPlace = Pick<ReferenceMark, 'quote' | 'quoteLines'>;
+
+interface TextPiece {
+  readonly text:       string;
+  readonly offset:     number;
+  readonly unresolved: boolean;
 }
 
-function Span({ span }: { readonly span: MarkdownSpan }) {
+function quotesAt(line: number, places: readonly UnresolvedPlace[]): string[] {
+  return places.filter((place) => place.quote !== '' && lineIsIn(line, place.quoteLines)).map((place) => place.quote);
+}
+
+/** A text cut where an unresolved place's quote stands in it, so the quote alone is underlined. */
+function piecesOf(text: string, quotes: readonly string[]): TextPiece[] {
+  const pieces: TextPiece[] = [];
+  let offset = 0;
+  while (offset < text.length) {
+    const found = quotes
+      .map((quote) => ({ quote, at: text.indexOf(quote, offset) }))
+      .filter((match) => match.at >= 0)
+      .sort((a, b) => a.at - b.at)[0];
+    if (found === undefined) break;
+    if (found.at > offset) pieces.push({ text: text.slice(offset, found.at), offset, unresolved: false });
+    pieces.push({ text: found.quote, offset: found.at, unresolved: true });
+    offset = found.at + found.quote.length;
+  }
+  if (offset < text.length || pieces.length === 0) pieces.push({ text: text.slice(offset), offset, unresolved: false });
+  return pieces;
+}
+
+function TextSpan({ span, places }: { readonly span: Extract<MarkdownSpan, { readonly kind: 'text' }>; readonly places: readonly UnresolvedPlace[] }) {
+  return piecesOf(span.text, quotesAt(span.start.line, places)).map((piece) => {
+    const start = DocumentSelectionModel.positionInSpan(span.start, span.text, piece.offset);
+    const className = piece.unresolved ? 'board-document-unresolved-place' : undefined;
+    return <SourceText key={piece.offset} text={piece.text} start={start} className={className} />;
+  });
+}
+
+function Spans({ spans, places }: { readonly spans: readonly MarkdownSpan[]; readonly places: readonly UnresolvedPlace[] }) {
+  return spans.map((span, position) => <Span key={position} span={span} places={places} />);
+}
+
+function Span({ span, places }: { readonly span: MarkdownSpan; readonly places: readonly UnresolvedPlace[] }) {
   switch (span.kind) {
     case 'text':
-      return <SourceText text={span.text} start={span.start} />;
+      return <TextSpan span={span} places={places} />;
     case 'code':
-      return <code className="board-document-inline-code"><SourceText text={span.text} start={span.start} /></code>;
+      return (
+        <code
+          className="board-document-inline-code"
+          data-unresolved={quotesAt(span.start.line, places).some((quote) => span.text.includes(quote)) ? '' : undefined}
+        >
+          <SourceText text={span.text} start={span.start} />
+        </code>
+      );
     case 'reference':
       return <span data-source-line={span.start.line} data-source-column={span.start.column}>{characterOf(span.reference)}</span>;
     case 'strong':
-      return <strong><Spans spans={span.spans} /></strong>;
+      return <strong><Spans spans={span.spans} places={places} /></strong>;
     case 'emphasis':
-      return <em><Spans spans={span.spans} /></em>;
+      return <em><Spans spans={span.spans} places={places} /></em>;
     case 'deleted':
-      return <del><Spans spans={span.spans} /></del>;
+      return <del><Spans spans={span.spans} places={places} /></del>;
     case 'link':
       return span.href === null
-        ? <Spans spans={span.spans} />
-        : <a className="board-document-link" href={span.href} target="_blank" rel="noreferrer noopener"><Spans spans={span.spans} /></a>;
+        ? <Spans spans={span.spans} places={places} />
+        : <a className="board-document-link" href={span.href} target="_blank" rel="noreferrer noopener"><Spans spans={span.spans} places={places} /></a>;
     case 'line-break':
       return <br />;
   }
@@ -196,7 +255,7 @@ function ListItem({ item, props }: { readonly item: MarkdownListItem; readonly p
         <span className="board-document-item-text">
           {item.blocks.map((block, position) => (
             block.kind === 'paragraph'
-              ? <Fragment key={position}><Spans spans={block.spans} />{' '}</Fragment>
+              ? <Fragment key={position}><Spans spans={block.spans} places={unresolvedPlacesOf(props)} />{' '}</Fragment>
               : <Block key={position} block={block} props={props} />
           ))}
           <Marks lines={item.lines} props={props} nestedItems={nestedItems} />
@@ -224,13 +283,19 @@ function DiagramFigure({ block, props }: { readonly block: DiagramBlock; readonl
 
 function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonly props: DocumentBlocksProps }) {
   const attributes = lineAttributesOf(block.lines, props);
+  const places = unresolvedPlacesOf(props);
   switch (block.kind) {
     case 'heading': {
       const Heading = HEADING_ELEMENTS[Math.min(Math.max(block.depth, 1), HEADING_ELEMENTS.length) - 1] ?? 'h6';
-      return <Heading className="board-document-heading" {...attributes}><Spans spans={block.spans} /><Marks lines={block.lines} props={props} nestedItems={[]} /></Heading>;
+      return (
+        <Heading className="board-document-heading" {...attributes}>
+          <Spans spans={block.spans} places={places} />
+          <Marks lines={block.lines} props={props} nestedItems={[]} />
+        </Heading>
+      );
     }
     case 'paragraph':
-      return <p className="board-document-paragraph" {...attributes}><Spans spans={block.spans} /><Marks lines={block.lines} props={props} nestedItems={[]} /></p>;
+      return <p className="board-document-paragraph" {...attributes}><Spans spans={block.spans} places={places} /><Marks lines={block.lines} props={props} nestedItems={[]} /></p>;
     case 'list': {
       const items = block.items.map((item, position) => <ListItem key={position} item={item} props={props} />);
       return block.ordered
@@ -258,9 +323,9 @@ function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonl
     case 'table':
       return (
         <table className="board-document-table" {...attributes}>
-          <thead><tr>{block.header.map((cell, position) => <th key={position}><Spans spans={cell} /></th>)}</tr></thead>
+          <thead><tr>{block.header.map((cell, position) => <th key={position}><Spans spans={cell} places={places} /></th>)}</tr></thead>
           <tbody>
-            {block.rows.map((row, rowPosition) => <tr key={rowPosition}>{row.map((cell, position) => <td key={position}><Spans spans={cell} /></td>)}</tr>)}
+            {block.rows.map((row, rowPosition) => <tr key={rowPosition}>{row.map((cell, position) => <td key={position}><Spans spans={cell} places={places} /></td>)}</tr>)}
           </tbody>
         </table>
       );

@@ -350,4 +350,20 @@ describe('Preview', () => {
     const marks = [...document.querySelectorAll('.board-document-reference')].map((mark) => `${mark.textContent}${mark.hasAttribute('data-unresolved') ? '?' : ''}`);
     expect(marks).toEqual(['1', '2?', '3', '4', '5', '6?']);
   });
+
+  test('underlines the words of each unresolved place, each piece still on its source column', () => {
+    renderPreview(PLAN_MARKDOWN, 'plan');
+    const underlinedCode = [...document.querySelectorAll('.board-document-inline-code[data-unresolved]')].map((code) => code.textContent);
+    expect(underlinedCode).toEqual(['utils/networkUtil.ts']);
+    const places = [...document.querySelectorAll<HTMLElement>('.board-document-unresolved-place')];
+    expect(places.map((place) => place.textContent)).toEqual(['the settings page']);
+    const line = lineOf(PLAN_MARKDOWN, 'the settings page');
+    const column = (PLAN_MARKDOWN.split('\n')[line - 1] ?? '').indexOf('the settings page') + 1;
+    expect([places[0]?.dataset['sourceLine'], places[0]?.dataset['sourceColumn']]).toEqual([String(line), String(column)]);
+    expect(places[0]?.nextElementSibling?.textContent).toBe(', hidden until the toggle ticket ships.');
+    select('settings');
+    fireEvent.mouseUp(screen.getByRole('article', { name: 'The plan' }));
+    const popover = screen.getByRole('dialog', { name: 'Comment for the plan agent' });
+    expect(within(popover).getByText(/^C1 · /u).textContent).toContain(`line ${line}`);
+  });
 });

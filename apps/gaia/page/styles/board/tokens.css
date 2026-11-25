@@ -173,3 +173,8 @@
 :root {
   --wave-narrow-band: color-mix(in oklch, var(--link) 6%, transparent);
 }
+
+/* What the effect pane sets on each row of its tree (`EffectPane.tsx`), at rest: the root's depth. */
+:root {
+  --tree-depth: 0;
+}

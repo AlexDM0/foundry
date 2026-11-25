@@ -137,6 +137,9 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-reference[data-unresolved] { color: var(--warn-ink); background: var(--warn-tint); }
 
+.board-document-unresolved-place,
+.board-document-inline-code[data-unresolved] { text-decoration: underline dashed var(--warn-edge); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+
 .board-document-diagram { margin: 14px 0 6px; padding: 14px 18px 18px; background: var(--wash); border: 1px solid var(--line); border-radius: var(--r-3); }
 
 .board-document-diagram-caption {
@@ -280,15 +283,16 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-effect-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; padding: 12px 16px; overflow: auto; }
 
-.board-document-tree-row { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 6px; font: 12.5px/22px var(--font-mono); }
+.board-document-tree-row {
+  display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 6px; padding: 0 6px 0 calc(6px + var(--tree-depth) * 14px);
+  font: 12.5px/22px var(--font-mono); border-radius: var(--r-1);
+}
 
 .board-document-tree-row[data-kind="folder"] { color: var(--ink-muted); }
 
-.board-document-tree-row[data-depth="1"] { padding-left: 14px; }
-
-.board-document-tree-row[data-depth="2"] { padding-left: 28px; }
-
 .board-document-tree-sigil { font-weight: 700; color: var(--ink-muted); }
+
+.board-document-tree-row[data-change="unresolved"] { background: var(--warn-tint); }
 
 .board-document-tree-row[data-change="unresolved"] .board-document-tree-sigil { color: var(--warn-ink); }
 
@@ -296,7 +300,14 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-unresolved { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 
-.board-document-unresolved-item { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-small); }
+.board-document-unresolved-item {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; font-size: var(--fs-small); color: var(--ink-muted);
+  background: var(--surface); border: 1px solid var(--warn-edge); border-radius: var(--r-2);
+}
+
+.board-document-unresolved-item > :first-child { color: var(--ink); }
+
+.board-document-unresolved-reason { color: var(--warn-ink); }
 
 .board-document-effect-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
 
