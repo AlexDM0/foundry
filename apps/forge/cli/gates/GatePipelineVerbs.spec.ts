@@ -1,13 +1,14 @@
 /**
  * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
  * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write the one format, a gate in every
- * phase unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per phase, the
- * content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate that runs in
- * only some, since a line with none reads as every phase; a step or gate folder stays in the repository, `/` leading for its root; the
- * reach holds repository paths and needs a stored pipeline; a malformed file is refused, never overwritten, and a refused write leaves the
- * progress file, the pipeline and the log as they were, a pipeline with entities byte for byte, since each entity's steps, gates and
- * reach are set in the pipeline builder; the Assistant's switch is the board's own, off until `gate assistant on`, and needs a stored
- * pipeline; a gate the forge alone runs is `--forge-only`, and the flag's earlier name is an unknown option. An older file is
+ * phase unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per
+ * phase, the content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate
+ * that runs in only some, since a line with none reads as every phase; a step or gate folder stays in the repository, `/` leading for its
+ * root; the reach holds repository paths and needs a stored pipeline; a malformed file is refused, never overwritten, and a refused write
+ * leaves the progress file, the pipeline and the log as they were, a pipeline with entities byte for byte, since each entity's steps, gates
+ * and reach are set in the pipeline builder; the Assistant's switch is the board's own, off until `gate assistant on`, and needs a stored
+ * pipeline; `gate approval` switches ticket, merge, spec and plan review, the last two listed only in the spec-then-plan route; a gate the
+ * forge alone runs is `--forge-only`, and the flag's earlier name is an unknown option. An older file is
  * `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
@@ -159,6 +160,33 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
       expect.stringContaining('"approval":"merge","state":"on"'),
       expect.stringContaining('"approval":"merge","state":"off"'),
     ]);
+  });
+
+  test('gate approval spec and plan write approvals.spec and approvals.plan, log each change, and gate list prints them in the route', async () => {
+    await run(['gate', 'none']);
+    await run(['gate', 'approval', 'spec', 'off']);
+    await run(['gate', 'approval', 'plan', 'off']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { spec: false, plan: false },
+    });
+    expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-approval-set"'))).toEqual([
+      expect.stringContaining('"approval":"spec","state":"off"'),
+      expect.stringContaining('"approval":"plan","state":"off"'),
+    ]);
+    expect((await run(['gate', 'list'])).outputText()).not.toContain('Spec review');
+
+    writeFileSync(pipelineFilePath(), `${JSON.stringify({ ...JSON.parse(readFileSync(pipelineFilePath(), 'utf8')), ticketWriting: 'spec-then-plan' })}\n`);
+    await run(['gate', 'approval', 'plan', 'on']);
+    expect((await run(['gate', 'list'])).outputText()).toContain('Spec review: off\nPlan review: on');
+  });
+
+  test('gate approval refuses an approval it does not know at exit 1, and writes nothing', async () => {
+    await run(['gate', 'none']);
+    const before  = storedFiles();
+    const refused = await runWithExitCode(['gate', 'approval', 'build', 'off']);
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain('Name the approval: tickets, merge, spec or plan.');
+    expect(storedFiles()).toEqual(before);
   });
 
   test('gate add refuses the earlier name of --forge-only as an unknown option, and writes nothing', async () => {

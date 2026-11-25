@@ -50,12 +50,13 @@ code, both in parentheses. A Hatch reply file carries the code as data, in `deta
 **Exit codes follow the status,** so check the exit code in a script, never the wording. A relayed refusal keeps its
 status through the reply, so a session exits as a direct run would.
 
-**The API has three answers of its own.** All three come from the same route, and a client shows them as sent.
+**The API has four answers of its own.** All four come from the same route, and a client shows them as sent.
 
 | Answer | Shown as | Cause | What to do |
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the client's control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
 | 423 | `The install version changed, so launches are held until the board is updated.` in a banner | Launches are held for an install change. | Update the board: run `update`. |
+| 413 | `The command body is larger than Hephaestus reads, so nothing was done.` | From forge 4.1, a command body past `COMMAND_BODY_BOUND_BYTES` (1 MiB). Its code is `body-too-large`. | A client defect: a whole document's save stays within it. |
 | 400 | `The command body is not a control command this Hephaestus knows` | The body is not a known control command, or a field of a [control contract](hephaestus-api.md#control-contract-3) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Hephaestus API](hephaestus-api.md). |
 
 ## When something was written
@@ -200,7 +201,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>24 sentences</summary>
+<summary>25 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -214,6 +215,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside Hephaestus or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | |
 | `waits on a question for the user; a chat turn would answer it` | `job-awaits-user-answer` | `job message --incident` while the job or its ticket waits on an `agent-question`. | Answer the decision. | |
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | |
+| `it takes messages and stops through that document only` | `job-is-document-agent` | `job message`, `job wind-down` or `job stop` at a spec or plan agent. | Comment on the document, or stop its turn there. | [cli.md](../cli.md#job-message) |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | |
 | `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
 | `Name the build job that declares the need` | `need-declare-without-job` | A `need-declare` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#need-declare) |
@@ -232,6 +234,34 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `still runs on the worktree of #<ticket>; stop it first` | `worktree-in-use` | `worktree repair` `recreate` or `unlock` with a job on the ticket. | Run `job stop`, then repair. | |
 | `holds uncommitted work that could not be saved to a patch` | `worktree-has-uncommitted-work` | `recreate` found changes it could not read or save, or no job ever ran on the ticket, so there is no job folder to name for the patch. | Save the work by hand, then repair. | [runbook](../operations/runbook.md) |
 | `Git refused the <step> repair of the worktree` | `worktree-repair-failed` | Git failed the repair step. The sentence ends with git's reason. | Fix what git names. A `recreate` patch may already be saved in the job folder. | [runbook](../operations/runbook.md) |
+
+</details>
+
+### Ticket documents
+
+Words here: [ticket documents](../glossary.md#ticket-documents), [spec agent, plan agent](../glossary.md#spec-agent-plan-agent).
+A client sends these as board commands and reads them in a 409, or in the documents endpoint's 404; a spec or plan agent
+reads its own through the Hatch.
+
+<details open>
+<summary>14 sentences</summary>
+
+| Printed words | Code | Cause | What to do | Home |
+| --- | --- | --- | --- | --- |
+| `has no spec or plan: only a ticket written as a spec, then a plan, has them` | `ticket-has-no-documents` | A document command, or the documents endpoint, on a ticket with no documents record: outside the spec-then-plan route, or a draft whose documents never opened. | Set the route, then write or comment on the draft's spec. | [cli.md](../cli.md#ticket-documents) |
+| `cannot be changed: the ticket is` | `document-not-editable` | A save, comment, Apply or Discard once an agent picked the ticket up, or a save, Apply or Discard on a document whose review is off. | Talk to the agent; with the review off it writes the document. | [cli.md](../cli.md#ticket-documents) |
+| `read it again first` | `document-version-moved` | A save, approval or effect reading named a version that is no longer the head or that the document never held, or a comment's lines that its version does not hold. | Read the document again and act on its head. | [cli.md](../cli.md#ticket-documents) |
+| `overlaps a later change` | `document-merge-conflict` | A save made on an older version changed lines another save of User changed since. | Read it again and make the change there. | [cli.md](../cli.md#ticket-documents) |
+| `characters, more than the` | `document-too-long` | A save or an agent's proposal past `TICKET_DOCUMENT_CHARACTER_LIMIT` characters. | Shorten the document. | |
+| `has no message` | `document-unknown-message` | A withdraw named a message the document does not hold. | Read the document again. | |
+| `so it can no longer be withdrawn` | `document-message-not-queued` | A withdraw of a message Hephaestus already wrote to the agent. | Nothing: the agent has it. | |
+| `has no proposal` | `document-unknown-proposal` | An Apply or Discard named a proposal the document does not hold. | Read the document again. | |
+| `not open` | `document-proposal-not-open` | An Apply or Discard of a proposal already applied, discarded or conflicted. | Read the document again. | |
+| `so its agent approves it when it is ready` | `document-review-is-off` | User's approval of a document whose review is off. | Nothing: the pipeline approves it at its agent's ready. | [cli.md](../cli.md#ticket-documents) |
+| `waits until its spec is approved` | `plan-before-approved-spec` | A save, comment or approval of the plan before its spec was ever approved. | Approve the spec first. | |
+| `so it cannot be approved` | `spec-acceptance-unnumbered` | An approval, or an agent's ready with the review off, of a spec whose head has no numbered `## Acceptance` item. | Number the Acceptance items `A1.`, `A2.`, … | |
+| `is not the live agent of the` | `document-agent-not-live` | A `document` verb from a job that is not the one agent of that ticket document, or one Hephaestus did not stamp. | Never printed to User: a defect or a stale agent. | [cli.md](../cli.md#document-verbs) |
+| `changed its read-only snapshot` | `document-snapshot-touched` | A spec or plan agent's turn changed its snapshot, so Customs refused every request of that turn and ended the job. | Comment again: a fresh agent starts on a clean snapshot. | [cli.md](../cli.md#document-verbs) |
 
 </details>
 
@@ -592,6 +622,8 @@ At commit e408bd50 a one-off script, not kept in the repository, matched every `
 `src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/lib/tracker-model/BoardRefusal.ts` and every
 key of `RoleCommandRefusalReason` to a `Code` cell here, and every code here to the source. No spec keeps this page in
 step; rerun the comparison after changing a wording.
+The counts below are that commit's. The rows under [Ticket documents](#ticket-documents), `job-is-document-agent` and
+the 413 `body-too-large` came after it, by hand, and no comparison has run since.
 
 | Measure | Count |
 | --- | --- |

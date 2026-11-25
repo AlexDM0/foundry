@@ -53,7 +53,7 @@ sentence the command line prints, which may name a command. A bare verb such as 
 | `GET /api/monitor/events` | bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | a monitor, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 413, 423, 500 | a monitor, `stop`, `restart`, `update` |
-| `GET /api/tickets/<ticket>/documents` | bearer token | `ForgeTicketDocumentsDocument` of the ticket, read fresh for this request, from forge 4.1, see [A ticket's documents](#a-tickets-documents) | 401 `unauthorized`; 404 `{refusal, fields, text}`, the refusal document of `no-readable-ticket` for a reference that names no ticket, or of `ticket-has-no-documents` for a ticket with no documents record; 500 `read-failed` when the read throws | a monitor |
+| `GET /api/tickets/<ticket>/documents` | bearer token | `ForgeTicketDocumentsDocument` of the ticket, read fresh for this request, from forge 4.1, see [A ticket's documents](#a-tickets-documents) | 401 `unauthorized`; 404 `{refusal, fields, text}`, the refusal document of `no-readable-ticket` for a reference that names no ticket, of `ticket-has-no-documents` for a ticket with no documents record, or of `unreadable-file-in-the-way` for a ticket whose documents record cannot be read; 500 `read-failed` when the read throws | a monitor |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: 'picture-too-large', fields, text}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: 'picture-type-unsupported', fields, text}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | a monitor |
 | `GET /api/pictures/<id>` | bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | a monitor |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
@@ -276,7 +276,7 @@ Pass, at every [sweep](../glossary.md#sweep), and once at start. Each reads the 
 | `usage` | `BoardState.usage` | It changed |
 | `profile` | One `profileRuns` entry | That gate profile run appeared or changed |
 | `pipeline` | `{pipeline, pipelineSetup, pipelineFlow}` of the `BoardState` | The stored pipeline, the setup record, its draft or the flow changed; always directly before `board`, so the flow can animate its marks |
-| `documents` | `{ticketId}` | From forge 4.1: the ticket's documents record changed, so a client that shows them reads [the ticket's documents](#a-tickets-documents) again; a publish that changed only a record sends it and then `board`. Its effect reading changed: sent at once, between publishes, with no `board` |
+| `documents` | `{ticketId}` | From forge 4.1: what the ticket's documents serve changed, its record or, beside it, the ticket's status, a document's review switch or its live agent, so a client that shows them reads [the ticket's documents](#a-tickets-documents) again; a publish that changed only a record sends it and then `board`. Its effect reading changed: sent at once, between publishes, with no `board` |
 | `board` | The whole `BoardState` | Anything changed; always last |
 
 On connect, before any other event, the stream sends one `handshake` event, `data: {"systemVersion": …}`, the `current`
@@ -845,7 +845,9 @@ readiness, a domain list) is judged only when it comes. A reader words state nam
 
 `GET /api/tickets/<ticket>/documents`, from forge 4.1 at `GET /api/v1/tickets/<ticket>/documents`, answers one
 `ForgeTicketDocumentsDocument` (`packages/forge-contracts`, `TicketDocumentsDocument`) for a ticket whose pipeline
-writes it as a spec, then a plan. `<ticket>` reads as a command's ticket reference: `4`, `004` and `#4` name one ticket.
+writes it as a spec, then a plan. `<ticket>` reads as a command's ticket reference without its `#`, which a URL keeps
+as its fragment: `4` and `004` name one ticket. A ticket whose documents record cannot be read answers 404 with the
+refusal document of `unreadable-file-in-the-way`, never `ticket-has-no-documents`.
 `TicketDocumentsAssembly.ticketDocumentsOf` in `src/services/hephaestus/TicketDocumentsAssembly.ts` builds it from one
 reading of the board, through `TicketDocumentsMappingUtil`, which names every field. It holds:
 

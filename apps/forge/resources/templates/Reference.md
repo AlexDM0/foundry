@@ -105,6 +105,15 @@ beside the Report, Wanted and Acceptance. `ticket ready` refuses a draft whose `
 item (`acceptance-unnumbered`) or that has no `## Brief` holding a non-blank line (`brief-missing`), so every
 ticket that builds carries both.
 
+**A ticket with a spec and a plan.** Where the pipeline writes a ticket as a spec, then a plan (`ticketWriting`
+`spec-then-plan`), the product owner's body holds only `## Report` and `## Wanted`, and the ticket's spec and plan
+take the rest: the spec's approved version holds the numbered Acceptance, and the plan's approved version takes the
+place of the Brief. Such a ticket is readied by the approval that leaves both documents approved, and `ticket ready`
+judges `acceptance-unnumbered` from the spec, never `brief-missing`, and refuses a ticket whose spec is not approved
+(`spec-unapproved`), whose plan is not approved (`plan-unapproved`) or whose plan was approved on an older spec
+(`plan-out-of-date`). A ticket with documents is judged by them ever after; one whose documents cannot be read is
+never ready, and its build is held.
+
 ## The Brief template
 
 What only the filer knows goes into the `## Brief`, at the end of the ticket body when it is filed: where the work
@@ -138,6 +147,8 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
 | `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity` and no path on its `Work belongs in:` line outside that entity (`work-outside-entity`); ready-for-review too when User runs it without `--incident` | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
+| `intake close` where the pipeline writes a spec, then a plan | draft, each with its `## Report` and `## Wanted` and, in a forge with entities, an `entity`; one without stays draft with nothing opened | draft, unchanged | none | `Draft` | — | `Ticket #003 opened its spec and plan`, one per ticket |
+| the approval, User's or the pipeline's at its agent's ready, that leaves a draft's spec and plan both approved | draft, its spec holding a numbered Acceptance and, in a forge with entities, an `entity` and no path on its plan's `Work belongs in:` line outside that entity | committed | created `committed`, at any priority | `To do` | — | the approval's line, then `Ticket #003 committed` |
 | `ticket submit`, `intake close` with ticket review on | draft, each complete one, with no path on its `Work belongs in:` line outside its `entity` in a forge with entities; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
 | `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` and no path on its `Work belongs in:` line outside that entity in a forge with entities; an incomplete one stays draft | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | committed; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
@@ -242,8 +253,9 @@ on standard input with `--file <path>` or `--file -`.
 - Send the whole constitution each time. A source names one full line of the text, without its line ending, and
   `occurrence` counts equal lines from 1. One line takes one source. A source path is relative to the repository.
 - A proposal edit names one field of the draft (`gate:<name>`, `phase-order:<phase>`, `prepare:<name>`,
-  `prepare-order`, `role:<role>`, `review`, `airlock`, `approval:<approval>` or `constitution`) and one summary
-  sentence. The draft that the edits make must be a valid `pipeline.json`, so send a gate and its phase order together.
+  `prepare-order`, `role:<role>`, `review`, `airlock`, `approval:<approval>`, `ticket-writing` or
+  `constitution`) and one summary sentence. The draft that the edits make must be a valid `pipeline.json`, so send a
+  gate and its phase order together.
 - `pipeline ready` only tells User that the step can continue. It does not move a step.
 - The pipeline agent may also run `{{program}} question options`. It cannot run a ticket command.
 

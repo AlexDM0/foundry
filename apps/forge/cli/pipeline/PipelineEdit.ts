@@ -21,7 +21,7 @@ function fieldEditOf(written: string, usage: string): PipelineFieldEdit {
   const field          = separatorIndex === -1 ? written : written.slice(0, separatorIndex);
   if (!PipelineDraftEditUtil.fieldIsWellFormed(field)) {
     refuseUsage(`"${field}" is not a draft field: gate:<name>, phase-order:<phase>, prepare:<name>, prepare-order, role:<role>, review, `
-      + 'airlock, approval:<approval> or constitution.', usage);
+      + 'airlock, approval:<approval>, ticket-writing or constitution.', usage);
   }
   if (separatorIndex === -1) refuseUsage(`Give ${field} a value after =, as JSON: null removes it.`, usage);
   const valueText = written.slice(separatorIndex + 1);

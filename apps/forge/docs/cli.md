@@ -28,6 +28,7 @@ Look a command up by its first word, or a stored file by its name.
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
+| `document` | [Document verbs](#document-verbs) |
 | `range`, `namespace`, `clear` | [The board's lifetime](#the-boards-lifetime) |
 
 | stored file | section |
@@ -47,6 +48,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/tickets/<id>-<slug>.md` | [The ticket file](#datafoldertickets003-double-click-a-role-to-edit-itmd) |
 | `<data>/epics/<key>.md` | [The epic file](#dataepicscheckout-redesignmd) |
 | `<data>/filing-cabinet/D<n>.json` | [The filing draft](#datafiling-cabinetd1json) |
+| `<data>/ticket-documents/<ticketId>/` | [A ticket's documents](#dataticket-documentsticketid) |
 
 - [About this page](#about-this-page)
 - [Conventions](#conventions): [locking](#locking), [help and options](#help-and-options), [the Next
@@ -241,7 +243,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 |---|---|---|---|---|
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, and the `.lock` directory | `<data>/` | `init` only | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
-| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the eight instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant>.md` | `init`, `update` | none |
+| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the ten instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md`, `AssistantBrief.md`, `SpecAgentBrief.md` and `PlanAgentBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant\|specAgent\|planAgent>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The agent's session-start entry running `forge hook session-start`, written by the agent adapter; for Claude Code a `SessionStart` hook, kept current in `.claude/settings.json` when that file already holds it | for Claude Code `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
 | [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-pipeline/` into the folder the agent loads instruction bundles from, each with its `.gitignore` entry | for Claude Code `.claude/skills/forge-po/`, `.claude/skills/forge-pipeline/` | `init`, `update` | none |
 | [6](#6-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
@@ -914,6 +916,7 @@ before the first listing is out of reach, as it is on POSIX.
 | `gate none [--json]` | Store an empty gate list and empty phases on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>` from the gates and from every phase, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `committed` at once. Any other approval or switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`approval-without-pipeline`), since a file holding only the switch would read as no gates on purpose. No role an agent runs under may relay it. |
+| `gate approval spec\|plan on\|off [--json]` | Switch User's review of a [ticket document](#ticket-documents), stored as `approvals.spec` or `approvals.plan` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. On, as with no key, User approves the document; off, the pipeline approves it at its agent's ready, and User reads it and talks to its agent but does not edit it. `gate list` prints both switches in the spec-then-plan route. Refused as `gate approval tickets` is. |
 | `gate approval merge on\|off [--json]` | Switch merge approval, stored as `approvals.merge` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. Off, as with no key, the Airlocks work as without it. On, on every target (the main line, each group integration and the group release), a ticket in review done waits for merge until User runs `merge accept`: see [Merge approval](#merge-approval). Refused as `gate approval tickets` is. |
 | `gate assistant on\|off [--json]` | Switch the board's [Assistant](#the-assistant), stored as `assistant: true` in `pipeline.json` while on and as no key while off, with one log line (`Assistant set on`, kind `pipeline-assistant-set`). A new board has it off. On, the next pass boots an Assistant. Off, no pass boots one; a live one is asked to wind down in the same hold (`job-stop-requested`, mode `wind-down`), finishes its turn and ends `closed`, and every open incident takes its default with the cause `assistant-off`, one delivered in a turn still open once that turn closes. A wind-down once asked stands when the switch goes on again: that Assistant ends, and the next pass boots a fresh one. One that is interrupted or quiet while it winds down ends `closed` too, never a failed boot. Where the `assistant` key leaves `pipeline.json` another way, the next pass asks a live Assistant to wind down the same way. Any other switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`assistant-without-pipeline`). A pipeline with entities takes it. It prints what `gate approval` prints. No role an agent runs under may relay it. |
 | `gate reach <path>…\|none [--json]` | Store the repository paths besides the project that a ticket may change as `reach` in `pipeline.json`, with one log line (`Reach set to <paths>`, kind `pipeline-reach-set`). Each path starts with `/`, the repository's root, and holds no `..` or backslash; `none` clears the list. A path named twice is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`reach-without-pipeline`). No role an agent runs under may relay it. |
@@ -1728,6 +1731,9 @@ resumes its session by id in the same folder with the text as its first line.
   [Commands](reference/hephaestus-api.md#commands).
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
   `agent-question`, and `job-is-product-owner` for User's product-owner session.
+- A spec or plan agent takes no `job message`, `job wind-down` or `job stop` (`job-is-document-agent`): a message to it
+  goes through its document's queue, and its running turn stops with `ticket-document-turn-stop`, so every line it takes
+  is counted against its turns.
 
 #### `resume`
 
@@ -1855,9 +1861,16 @@ one refuses every request of the turn `document-snapshot-touched`, logs `ticket-
 incident `document-snapshot-touched` on the ticket and ends the job `failed`. Each move is refused
 `document-agent-not-live` unless its job is the one document agent on the board for its ticket's document.
 
-The snapshot belongs to the ticket: `<worktrees>/document-agent/<ticketId>/`, checked out at main's tip at each launch
-of an instance and shared by the ticket's spec and plan agents. Once no document agent of the ticket is on the board,
-a waiting one included, Hephaestus removes it, and names one the removal leaves in `hephaestus.log`.
+The snapshot belongs to the ticket document: `<worktrees>/document-agent/<ticketId>-<document>/`, so the spec's and the
+plan's agents never move or dirty each other's. It is checked out at main's tip at each launch of an instance, and
+reset and cleaned there when an earlier session left it changed. Once no agent of the document is on the board, a
+waiting one included, Hephaestus removes it, and names one the removal leaves in `hephaestus.log`. Hephaestus alone
+adds, resets and removes these snapshots, as the pipeline agent's, so no job's V14 counts their HEADs, and Regrouping
+never names the `document-agent` folder a leftover worktree.
+
+A turn cut short, by a crash, a usage limit or a stop of the session, is a turn end too: Customs runs on the snapshot as
+the turn left it and its requests apply or are refused there, before a next instance resets the snapshot. A stopped
+agent whose session ended waits or closes only once those requests were settled.
 
 ### The board's lifetime
 
@@ -2376,8 +2389,12 @@ offset of the machine that wrote them and are displayed as written, never re-par
 A ticket's documents: `record.json` and one `<contentHash>.md` per version, written before the record names it and
 never rewritten. The record holds `version` (1), `ticketId`, `openedAt` and `documents`, one per kind in the order spec,
 plan, each with its `versions`, `approvals`, `messages`, `proposals`, `proposalMode`, optional `readyAtNumber` and its
-next message, comment and proposal numbers. An optional key is written only once set. A record that cannot be read, or
-names a version whose text is missing or changed, is listed as unreadable and never overwritten.
+next message, comment and proposal numbers. An optional key is written only once set. A version's file holds its text
+byte for byte, a leading byte order mark kept, since the hash was taken over it. A record that cannot be read, or
+names a version whose text is missing or changed, is listed as unreadable and never overwritten: `status` and every
+write report it on standard error, its ticket is never ready and a committed one's build is held, and the documents
+endpoint answers it as unreadable. A folder with no file is no record: `clear --all` removes each ticket's folder with
+its files.
 
 ### `<data>/progress.json`
 
@@ -2513,8 +2530,8 @@ The board's state. The example shows the shape; the tables below give each key's
 | key | optional | value |
 |---|---|---|
 | `id` | no | `J<n>`. |
-| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner` or `pipeline-agent`. |
-| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge, refresh or constitution commit job. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
+| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner`, `pipeline-agent`, `document-agent` or `effect-reading`. |
+| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner`, `pipeline-agent`, `spec-agent`, `plan-agent` or `effect-reader`, or null for a merge, refresh or constitution commit job. A `document-agent` job's role names its document, `spec-agent` or `plan-agent`; an `effect-reading` job's is `effect-reader`. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, or the build or review job in `merging-main` a conflict re-reviewer works under, else null. |
 | `attempt` | no | From 1. |
@@ -3416,6 +3433,15 @@ beside the Report, Wanted and Acceptance. `ticket ready` refuses a draft whose `
 item (`acceptance-unnumbered`) or that has no `## Brief` holding a non-blank line (`brief-missing`), so every
 ticket that builds carries both.
 
+**A ticket with a spec and a plan.** Where the pipeline writes a ticket as a spec, then a plan (`ticketWriting`
+`spec-then-plan`), the product owner's body holds only `## Report` and `## Wanted`, and the ticket's spec and plan
+take the rest: the spec's approved version holds the numbered Acceptance, and the plan's approved version takes the
+place of the Brief. Such a ticket is readied by the approval that leaves both documents approved, and `ticket ready`
+judges `acceptance-unnumbered` from the spec, never `brief-missing`, and refuses a ticket whose spec is not approved
+(`spec-unapproved`), whose plan is not approved (`plan-unapproved`) or whose plan was approved on an older spec
+(`plan-out-of-date`). A ticket with documents is judged by them ever after; one whose documents cannot be read is
+never ready, and its build is held.
+
 ### `<data>/epics/checkout-redesign.md`
 
 The file name is the key, and an epic is known by it: a file whose `key` says otherwise is listed as ignored. The CLI
@@ -3502,6 +3528,8 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
 | `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity` and no path on its `Work belongs in:` line outside that entity (`work-outside-entity`); ready-for-review too when User runs it without `--incident` | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
+| `intake close` where the pipeline writes a spec, then a plan | draft, each with its `## Report` and `## Wanted` and, in a forge with entities, an `entity`; one without stays draft with nothing opened | draft, unchanged | none | `Draft` | — | `Ticket #003 opened its spec and plan`, one per ticket |
+| the approval, User's or the pipeline's at its agent's ready, that leaves a draft's spec and plan both approved | draft, its spec holding a numbered Acceptance and, in a forge with entities, an `entity` and no path on its plan's `Work belongs in:` line outside that entity | committed | created `committed`, at any priority | `To do` | — | the approval's line, then `Ticket #003 committed` |
 | `ticket submit`, `intake close` with ticket review on | draft, each complete one, with no path on its `Work belongs in:` line outside its `entity` in a forge with entities; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
 | `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` and no path on its `Work belongs in:` line outside that entity in a forge with entities; an incomplete one stays draft | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | committed; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |

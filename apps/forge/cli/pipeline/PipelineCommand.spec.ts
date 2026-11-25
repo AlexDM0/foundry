@@ -199,6 +199,8 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
       expect(exitCode, commandLine.join(' ')).toBe(1);
     }
     expect(storedFiles()).toEqual(before);
+    const unknownField = await runWithExitCode(['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'gates=[]']);
+    expect(unknownField.context.errorText()).toContain('approval:<approval>, ticket-writing or constitution');
   });
 
   test('outside a job the pipeline agent\'s verbs name the record first and apply its moves; a misshapen payload writes nothing', async () => {

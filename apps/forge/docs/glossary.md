@@ -633,8 +633,8 @@ merge or refresh job runs no agent of its own.
 
 ### job kind
 
-`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner` or
-`pipeline-agent`. It differs from a job's [role](#role).
+`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner`,
+`pipeline-agent`, `document-agent` or `effect-reading`. It differs from a job's [role](#role).
 
 ### job state
 
@@ -954,8 +954,8 @@ It decides the [round verdict](#round-verdict), against the pipeline's `review.r
 ### role
 
 `JobRole`, what an agent is in a job: `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`,
-`product-owner` or `pipeline-agent`. A [merge agent](#merge-agent) takes its [last worker](#last-worker)'s role, or
-`conflict-re-reviewer`.
+`product-owner`, `pipeline-agent`, `spec-agent`, `plan-agent` or `effect-reader`. A [merge agent](#merge-agent) takes
+its [last worker](#last-worker)'s role, or `conflict-re-reviewer`; a `document-agent` job's role names its document.
 
 ### role brief
 
@@ -1029,6 +1029,13 @@ turns it into `pipeline.json`.
 This build under `PRODUCT_NAMES`, whose names differ from the [released program](#released-program)'s so both fit on one
 machine. It alone refuses an install beside the other's data folder (`older-program-present`).
 
+### spec agent, plan agent
+
+The `document-agent` jobs (roles `spec-agent` and `plan-agent`; `specAgent` and `planAgent` in `pipeline.json`) that
+write a ticket's [ticket documents](#ticket-documents) in the spec-then-plan route, each in a read-only snapshot of the
+main line of its own, through its relayed `document` verbs. The plan agent writes for one approved spec version, its
+job's attempt.
+
 ### source mutant
 
 One text rewritten in one module as Bun bundles it (`src/testing/SourceMutant.ts`), so a claim can be watched failing. A
@@ -1086,6 +1093,12 @@ The code's name for a [row](#row).
 ### ticket
 
 A Markdown work item, `<data>/tickets/`, known by its frontmatter `id` such as `#003`, never by its file name.
+
+### ticket documents
+
+A ticket's spec and plan in the spec-then-plan route, stored in `<data>/ticket-documents/<ticketId>/`
+(`src/lib/tracker-model/TicketDocuments.ts`). The approved spec holds the Acceptance and the approved plan takes the
+place of the Brief; a ticket with documents is judged by them ever after. Home: [cli.md](cli.md#ticket-documents).
 
 ### ticket hold
 

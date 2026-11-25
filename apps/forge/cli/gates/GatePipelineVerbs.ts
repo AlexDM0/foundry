@@ -36,7 +36,7 @@ export const GATE_PIPELINE_USAGE = {
   none:      `${PROGRAM} gate none [--json]`,
   remove:    `${PROGRAM} gate remove <name> [--json]`,
   list:      `${PROGRAM} gate list [--json]`,
-  approval:  `${PROGRAM} gate approval tickets|merge on|off [--json]`,
+  approval:  `${PROGRAM} gate approval tickets|merge|spec|plan on|off [--json]`,
   assistant: `${PROGRAM} gate assistant on|off [--json]`,
   reach:     `${PROGRAM} gate reach <path>…|none [--json]`,
 } as const;
@@ -176,7 +176,7 @@ export async function setApproval(commandArguments: ArgumentParser, context: Com
   commandArguments.rejectUnknownOptions(['json'], usage);
   commandArguments.rejectExtraPositionals(SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT, usage);
   const [, approval, switchState] = commandArguments.positionals();
-  if (approval !== 'tickets' && approval !== 'merge') refuseUsage('Name the approval: tickets or merge.', usage);
+  if (approval !== 'tickets' && approval !== 'merge' && approval !== 'spec' && approval !== 'plan') refuseUsage('Name the approval: tickets, merge, spec or plan.', usage);
   if (switchState !== 'on' && switchState !== 'off') refuseUsage('Write on or off.', usage);
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-approval-set', approval, on: switchState === 'on' });
 }
@@ -220,9 +220,12 @@ function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map((gate) => gateLineOf(gate, pipeline.phases));
   const ticketReview  = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
   const mergeApproval = `Merge approval: ${pipeline.approvals?.merge === true ? 'on' : 'off'}`;
+  const documentReviews = pipeline.ticketWriting === 'spec-then-plan'
+    ? [`Spec review: ${pipeline.approvals?.spec === false ? 'off' : 'on'}`, `Plan review: ${pipeline.approvals?.plan === false ? 'off' : 'on'}`]
+    : [];
   const assistant     = `Assistant: ${pipeline.assistant === true ? 'on' : 'off'}`;
   const reach = pipeline.reach === undefined ? [] : [`Reach: ${pipeline.reach.join(' ')}`];
-  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, assistant, ...reach].join('\n');
+  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, ...documentReviews, assistant, ...reach].join('\n');
 }
 
 /** Takes no lock and writes nothing; a pipeline the store judges malformed, older or out of place is refused, since nothing could be listed from it. */

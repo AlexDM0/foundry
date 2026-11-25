@@ -352,7 +352,10 @@ never carries it.
                               exit 1 with nothing written when a ticket named is not a draft
                               ticket, or is incomplete: \`acceptance-unnumbered\` with no numbered
                               Acceptance item, \`brief-missing\` with no \`## Brief\` holding a
-                              non-blank line, each ticket named. \`ticket add\` files every ticket
+                              non-blank line, each ticket named. A ticket with a spec and a plan
+                              is judged by them: \`acceptance-unnumbered\` read from the spec,
+                              then \`spec-unapproved\`, \`plan-unapproved\` or \`plan-out-of-date\`,
+                              and no \`brief-missing\`. \`ticket add\` files every ticket
                               as a draft ticket, with no row; only \`ticket unready\` returns a
                               committed one there.
                               It also readies a ticket in ready-for-review; only User does that.
@@ -586,13 +589,16 @@ never carries it.
                               overwrite it. Each row records its gate phase and that phase's hash
                               at its next gate run. --json prints {pipeline, contentHash,
                               phaseHashes}.
-  gate approval tickets|merge on|off [--json]
+  gate approval tickets|merge|spec|plan on|off [--json]
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's
                               ticket ready; off, it becomes committed at once. One log line.
                               Refused at exit 1 while no pipeline is stored: set the gates first.
                               Merge approval, approvals.merge, is off without the key; on, a
-                              reviewed ticket waits for merge until User's merge accept.
+                              reviewed ticket waits for merge until User's merge accept. Spec
+                              and plan review, approvals.spec and approvals.plan, are on
+                              without the key; off, the pipeline approves that document at its
+                              agent's ready.
   gate assistant on|off [--json]
                               Switch the board's Assistant, stored as assistant, off without
                               the key. On, a pass boots one; off, a live one finishes its turn
@@ -822,6 +828,9 @@ never carries it.
                               (\`ticket-without-entity\`, \`work-outside-entity\`); Hephaestus
                               ends the job once its session ends. --set is stored on the job and
                               decides nothing. Under the product owner's own job it names no job.
+                              In the spec-then-plan route a draft with its \`## Report\` and
+                              \`## Wanted\` stays a draft and opens its spec and plan instead, and
+                              a forge with entities refuses one with no entity.
   intake title <J> -- <title> [--json]
                               Logged intake-titled: a short title for the intake, kept on the job;
                               a later title replaces it (job-not-intake for another kind of job).
@@ -858,7 +867,8 @@ never carries it.
                               the SOURCES ticks (contributing, research, installed-default); edit
                               sets draft fields in one move, --set repeating (gate:<name>,
                               phase-order:<phase>, prepare:<name>, prepare-order, role:<role>,
-                              review, airlock, approval:<approval>, constitution), each to a JSON
+                              review, airlock, approval:<approval>, ticket-writing,
+                              constitution), each to a JSON
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
                               every proposed change; check has Hephaestus run the gates the
