@@ -104,7 +104,7 @@ function prepareEditsOf(source: BoardPipelineEntityDocument, target: BoardPipeli
   });
 }
 
-/** Each role the source sets a model or effort for, with the target's own briefs kept. */
+/** Each role the source sets a model or effort for, with the target's own briefs and document reading rules kept. */
 function agentEditsOf(source: BoardPipelineEntityDocument, target: BoardPipelineEntityDocument, targetKey: string): BoardDraftEditDocument[] {
   return BOARD_ENTITY_AGENT_ROLES.flatMap((role) => {
     const settings = source.agents[role];
@@ -114,6 +114,7 @@ function agentEditsOf(source: BoardPipelineEntityDocument, target: BoardPipeline
       model:        settings.model ?? own?.model ?? null,
       effort:       settings.effort ?? own?.effort ?? null,
       instructions: own?.instructions ?? null,
+      ...(own?.documents === undefined ? {} : { documents: own.documents }),
     };
     return sameValue(value, own) ? [] : [withinEntityOf(targetKey, { target: 'role', role, value })];
   });

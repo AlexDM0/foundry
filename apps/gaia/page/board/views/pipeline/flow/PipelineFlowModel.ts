@@ -452,6 +452,11 @@ function ticketWritingRouteOfDraft(draft: Pick<BoardPipelineDefinitionDocument, 
   return draft?.ticketWriting ?? 'one-ticket';
 }
 
+/** "Spec, then plan": the route as its choice reads. */
+function ticketWritingLabelOf(route: BoardTicketWritingRoute): string {
+  return TICKET_WRITING_ROUTE_LABELS[route];
+}
+
 function switchEditOf(switchView: FlowSwitchView): BoardDraftEditDocument {
   return { target: 'approval', approval: switchView.approval, value: !switchView.checked };
 }
@@ -505,5 +510,6 @@ export const PipelineFlowModel = Object.freeze({
   slotViewOf,
   switchEditOf,
   ticketWritingEditOf,
+  ticketWritingLabelOf,
   ticketWritingRouteOfDraft,
 });

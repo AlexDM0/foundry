@@ -1,10 +1,15 @@
 /**
- * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, a ruled row per document (the spec, then
- * the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. The reviewer's spec stays at
- * Always, its other choices shown disabled. The rules are the form's: nothing is sent until the dialog's Save.
+ * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, with the New pill beside it, a ruled row per
+ * document (the spec, then the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. The
+ * reviewer's spec stays at Always, its other choices shown disabled. The rules are the form's: nothing is sent until the dialog's Save.
  */
-import { useId }                                                                              from 'react';
-import { Row, SegmentedControl, Text }                                                        from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { useId } from 'react';
+import {
+  Row,
+  SegmentedControl,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { PipelineDocumentsSectionModel, type DocumentReadingRole, type DocumentReadingRules } from './PipelineDocumentsSectionModel.ts';
 
 export interface PipelineDocumentsSectionProps {
@@ -20,6 +25,7 @@ export function PipelineDocumentsSection({ role, rules, onChange }: PipelineDocu
     <section className="board-pipeline-dialog-instructions" aria-labelledby={titleId}>
       <Row gap="ten" centerY wrap>
         <Text typeRole="title" id={titleId}>{words.title}</Text>
+        <Tag text={words.newPill} tone="state" stateTone="accent" />
         <Text muted>{words.lead}</Text>
       </Row>
       <div className="board-pipeline-dialog-brief">

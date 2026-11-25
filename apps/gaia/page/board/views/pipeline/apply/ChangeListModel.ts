@@ -20,9 +20,11 @@ import {
   type BoardChangeKind,
   type BoardEditAuthor,
   type BoardGatePhase,
-  type BoardPipelineAgentRole
+  type BoardPipelineAgentRole,
+  type BoardPipelineApproval
 } from '../../../../@types/board/BoardVocabulary.ts';
-import { GatesAreaModel } from '../gates/GatesAreaModel.ts';
+import { PipelineFlowModel } from '../flow/PipelineFlowModel.ts';
+import { GatesAreaModel }    from '../gates/GatesAreaModel.ts';
 
 export interface ChangeRowView {
   readonly field:      string;
@@ -77,6 +79,8 @@ const ROLE_TITLES: Readonly<Record<BoardPipelineAgentRole, string>> = Object.fre
 
 const PHASE_TITLES: Readonly<Record<BoardGatePhase, string>> = Object.freeze({ build: 'Build gates', review: 'Review gates', merge: 'Merge gates' });
 
+const TICKET_WRITING_FIELD = 'ticket-writing';
+
 const CHANGE_WORDS: Readonly<Record<BoardChangeKind, string>> = Object.freeze({ changed: 'changed', new: 'new', removed: 'removed' });
 
 const AUTHOR_WORDS: Readonly<Record<BoardEditAuthor, string>> = Object.freeze({ agent: 'Pipeline agent', user: 'User' });
@@ -113,7 +117,7 @@ function fieldWordsOf(field: string): FieldWords {
       return { title: 'Human spec review', place: 'switch' };
     case 'approval:plan':
       return { title: 'Human plan review', place: 'switch' };
-    case 'ticket-writing':
+    case TICKET_WRITING_FIELD:
       return { title: 'How a ticket is written', place: 'Ticket phase' };
     default:
       return { title: 'Constitution', place: 'CONSTITUTION.md' };
@@ -144,9 +148,17 @@ function gateLocationOf(name: string, flow: BoardPipelineFlowDocument | null): s
   return phases.length === 0 ? 'gate' : `${phaseListOf(phases)} gate`;
 }
 
-/** An absent `tickets` approval is on; an absent `merge` approval is off. */
-function approvalIsOn(pipeline: BoardPipelineDefinitionDocument | null, field: 'approval:tickets' | 'approval:merge'): boolean {
-  return field === 'approval:tickets' ? pipeline?.approvals?.tickets !== false : pipeline?.approvals?.merge === true;
+const APPROVAL_OF_FIELD: Readonly<Record<string, BoardPipelineApproval>> = Object.freeze({
+  'approval:tickets': 'tickets',
+  'approval:merge':   'merge',
+  'approval:spec':    'spec',
+  'approval:plan':    'plan',
+});
+
+/** An absent `merge` approval is off; an absent `tickets`, `spec` or `plan` approval is on. */
+function approvalIsOn(pipeline: BoardPipelineDefinitionDocument | null, approval: BoardPipelineApproval): boolean {
+  const value = pipeline?.approvals?.[approval];
+  return approval === 'merge' ? value === true : value !== false;
 }
 
 function switchWordOf(on: boolean): string {
@@ -233,11 +245,16 @@ function editingRowOf(row: ChangeRowView, change: BoardPipelineChangeDocument, e
       ...(benchmark === null ? {} : { note: benchmark.statusText, benchmark }),
     };
   }
-  if (change.field === 'approval:tickets' || change.field === 'approval:merge') {
-    const isOn = approvalIsOn(editing.draft, change.field);
-    const location = `switch · ${switchWordOf(approvalIsOn(editing.base, change.field))} → ${switchWordOf(isOn)}`;
-    if (change.field === 'approval:tickets') return { ...row, location };
+  const approval = APPROVAL_OF_FIELD[change.field];
+  if (approval !== undefined) {
+    const isOn = approvalIsOn(editing.draft, approval);
+    const location = `switch · ${switchWordOf(approvalIsOn(editing.base, approval))} → ${switchWordOf(isOn)}`;
+    if (approval !== 'merge') return { ...row, location };
     return { ...row, location, note: isOn ? HUMAN_CODE_REVIEW_ON_TEXT : HUMAN_CODE_REVIEW_OFF_TEXT };
+  }
+  if (change.field === TICKET_WRITING_FIELD) {
+    const routeOf = (pipeline: BoardPipelineDefinitionDocument | null): string => PipelineFlowModel.ticketWritingLabelOf(PipelineFlowModel.ticketWritingRouteOfDraft(pipeline));
+    return { ...row, location: `Ticket phase · ${routeOf(editing.base)} → ${routeOf(editing.draft)}` };
   }
   return row;
 }

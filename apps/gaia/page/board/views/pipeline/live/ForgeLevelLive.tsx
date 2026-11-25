@@ -1,6 +1,7 @@
 /**
  * The forge level of a live monorepo pipeline (MonoLive), in place of the phases: what every entity shares, as it runs now. The Ticket
- * phase holds the product owner's step with the drafts it writes and the two approvals as they are applied; the merge train lists the
+ * phase holds the steps that write a ticket in the applied route (the product owner's, or the spec's and the plan's) with the drafts in
+ * them, and the approvals as they are applied; the merge train lists the
  * ticket in the Airlock and the queue behind it, each with its entity; the board's jobs in flight stand against its limit, and each
  * entity's jobs against its cap with the tickets waiting for a slot; and a note says that gates belong to an entity. After the first
  * Apply over entities, the Ticket phase also counts the product owner's entity assignments and opens their progress. Nothing here
@@ -112,20 +113,20 @@ function EntityConcurrency({ facts }: { readonly facts: LivePipelineFacts }) {
 export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
   const flow = facts.pipeline.flow ?? null;
   const livePipeline = facts.pipeline.applied.readingVerdict === 'readable' ? facts.pipeline.applied.pipeline : null;
-  const ticketNode = flow?.nodes.find((node) => node.nodeKind === 'ticket-creation') ?? null;
-  const approvals = ForgeLevelPageModel.approvalViewsOf(livePipeline);
+  const ticketWritingNodes = ForgeLevelPageModel.ticketWritingNodesOf(flow?.nodes ?? []);
+  const approvals = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(livePipeline), ForgeLevelPageModel.mergeApprovalViewOf(livePipeline)];
   return (
     <div className="board-forge-level">
       <section className="board-forge-level-section" aria-label="Ticket phase">
         <PhaseKicker phase="ticket" text="Ticket phase · every entity" />
         <Text typeRole="section" element="h3">Tickets</Text>
-        {flow === null || ticketNode === null
+        {flow === null
           ? null
-          : (
-            <div className="board-forge-level-step">
+          : ticketWritingNodes.map((node) => (
+            <div key={node.nodeId} className="board-forge-level-step">
               <StepCard
-                view={PipelineFlowModel.nodeViewOf(ticketNode, PipelineFlowModel.flowWordingOf(facts))}
-                occupants={FlowActivityPanelModel.occupantChipsOf(flow, ticketNode.nodeId)}
+                view={PipelineFlowModel.nodeViewOf(node, PipelineFlowModel.flowWordingOf(facts))}
+                occupants={FlowActivityPanelModel.occupantChipsOf(flow, node.nodeId)}
                 questionCount={0}
                 selected={false}
                 editable={false}
@@ -133,7 +134,7 @@ export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
                 onEdits={() => undefined}
               />
             </div>
-          )}
+          ))}
         <EntityAssignmentLine assignment={facts.pipeline.entityAssignment} />
         {approvals.map((approval) => (
           <View key={approval.approval}>

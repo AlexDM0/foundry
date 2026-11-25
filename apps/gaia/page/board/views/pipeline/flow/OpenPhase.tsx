@@ -7,12 +7,11 @@
  * an add choice the forge would set is not offered, and the gates table offers to copy the phase's gates to another entity.
  */
 
-import { useId, type ReactNode }                                           from 'react';
-import type { BoardPipelineDefinitionDocument, BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { ReactNode }                 from 'react';
+import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   Button,
   Row,
-  SegmentedControl,
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
@@ -29,7 +28,7 @@ import { FlowActivityPanelModel, type OccupantChipView }                    from
 import { FlowGlyph }                                                      from './FlowGlyph.tsx';
 import { selectedGateRowKeyOf, selectedStepNodeIdOf, type FlowSelection } from './FlowSelection.ts';
 import { InsertSlot }                                                     from './InsertSlot.tsx';
-import { usePipelineFlowEditSender, type PipelineFlowEditSender }         from './PipelineFlowEditSender.ts';
+import { usePipelineFlowEditSender }                                      from './PipelineFlowEditSender.ts';
 import { PipelineFlowModel, type FlowSlotView }                           from './PipelineFlowModel.ts';
 import {
   ENTITY_PHASES,
@@ -38,7 +37,8 @@ import {
   type PhaseStepItem,
   type PipelinePhase
 } from './PipelinePhaseModel.ts';
-import { StepCard } from './StepCard.tsx';
+import { StepCard }            from './StepCard.tsx';
+import { TicketWritingChoice } from './TicketWritingChoice.tsx';
 
 export interface OpenPhaseProps {
   readonly facts:     PipelineViewFacts;
@@ -115,38 +115,6 @@ function PhaseHead({
           : <Button compact label={PipelinePhaseModel.nextLabelOf(nextPhase)} onPress={() => onOpen(nextPhase)} />}
       </div>
     </header>
-  );
-}
-
-const TICKET_WRITING_TITLE = 'How a ticket is written';
-
-const TICKET_WRITING_LEAD = 'Each document gets its own agent, and its own review if you want one.';
-
-interface TicketWritingChoiceProps {
-  readonly draft:      Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null;
-  readonly editSender: PipelineFlowEditSender;
-}
-
-/** One ticket, or a spec, then a plan: a press sends the one `ticket-writing` edit, and the choice already made sends nothing. */
-function TicketWritingChoice({ draft, editSender }: TicketWritingChoiceProps) {
-  const titleId = useId();
-  const route = PipelineFlowModel.ticketWritingRouteOfDraft(draft);
-  return (
-    <section className="board-pipeline-ticket-writing" aria-labelledby={titleId}>
-      <Row centerY gap="ten" wrap>
-        <Text typeRole="lead" bold element="h3" id={titleId}>{TICKET_WRITING_TITLE}</Text>
-        <Text muted>{TICKET_WRITING_LEAD}</Text>
-      </Row>
-      <SegmentedControl
-        labelledBy={titleId}
-        options={PipelineFlowModel.TICKET_WRITING_CHOICES.map((choice) => ({ ...choice, disabled: !editSender.enabled }))}
-        selected={route}
-        size="standard"
-        onSelect={(chosen) => {
-          if (chosen !== route) editSender.sendEdits([PipelineFlowModel.ticketWritingEditOf(chosen)]);
-        }}
-      />
-    </section>
   );
 }
 

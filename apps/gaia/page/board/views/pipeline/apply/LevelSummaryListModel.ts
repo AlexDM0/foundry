@@ -28,7 +28,8 @@ function listedText(items: readonly string[]): string {
 
 /** "Human ticket review on, human code review off, conflict re-review over 750 lines". */
 function forgeTextOf(draft: BoardPipelineDefinitionDocument): string {
-  const approvals = ForgeLevelPageModel.approvalViewsOf(draft).map((approval, index) => {
+  const approvalViews = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft), ForgeLevelPageModel.mergeApprovalViewOf(draft)];
+  const approvals = approvalViews.map((approval, index) => {
     const title = index === 0 ? approval.title : approval.title.toLowerCase();
     return `${title} ${approval.isOn ? 'on' : 'off'}`;
   });

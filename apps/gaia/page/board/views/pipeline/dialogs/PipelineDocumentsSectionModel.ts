@@ -54,6 +54,8 @@ const REVIEWER_HINTS: Readonly<Partial<Record<BoardTicketDocumentKind, string>>>
 
 const WORDS = Object.freeze({
   title:            'Pipeline documents',
+  /** The pill beside the title: the section is new to these dialogs. */
+  newPill:          'New',
   lead:             'Read after the brief, in pipeline order',
   explanationTerm:  'If you approved it',
   explanation:      'gives the last version a person approved. A plan changed since then, or one the pipeline approved, is given at your approved version, or left out.',

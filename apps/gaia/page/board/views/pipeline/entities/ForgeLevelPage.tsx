@@ -1,6 +1,7 @@
 /**
- * The forge level of a monorepo's design (MonoDesignForge), in place of the phases: what every entity shares. The Ticket phase holds the
- * product owner's step, whose dialog sets its agent, and Human ticket review; the merge train holds Human code review and the Airlock's
+ * The forge level of a monorepo's design (MonoDesignForge), in place of the phases: what every entity shares. The Ticket phase holds how a
+ * ticket is written, the steps that write it, whose dialogs set their agents (the product owner's, or the spec's and the plan's), and its
+ * reviews (Human ticket review, or Human spec and plan review); the merge train holds Human code review and the Airlock's
  * conflict re-review, set in the merge step dialog; the board limit is the board's own setting, which applies at once, outside the
  * proposal, with each entity's cap under it; then a note that the forge level holds no gates, and the table of the entities, each linking
  * to its level. A switch goes to the draft through the flow's edit sender.
@@ -21,6 +22,7 @@ import type { FlowSelection }                                     from '../flow/
 import { usePipelineFlowEditSender, type PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
 import { PipelineFlowModel }                                      from '../flow/PipelineFlowModel.ts';
 import { StepCard }                                               from '../flow/StepCard.tsx';
+import { TicketWritingChoice }                                    from '../flow/TicketWritingChoice.tsx';
 import { EntityOverviewTable }                                    from './EntityOverviewTable.tsx';
 import { ForgeLevelPageModel, type ApprovalView }                 from './ForgeLevelPageModel.ts';
 import { PhaseKicker }                                            from './PhaseKicker.tsx';
@@ -92,9 +94,9 @@ export function ForgeLevelPage({ facts, selection, entityHrefOf }: ForgeLevelPag
   const draft = record?.draft ?? livePipeline;
   const editSender = usePipelineFlowEditSender(record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision });
   const nodes = facts.pipeline.flow?.nodes ?? [];
-  const ticketNode = nodes.find((node) => node.nodeKind === 'ticket-creation') ?? null;
+  const ticketWritingNodes = ForgeLevelPageModel.ticketWritingNodesOf(nodes);
   const airlockNode = ForgeLevelPageModel.airlockMergeNodeOf(nodes);
-  const [ticketsApproval, mergeApproval] = ForgeLevelPageModel.approvalViewsOf(draft);
+  const wording = PipelineFlowModel.flowWordingOf(facts);
   const entityFacts = facts.pipeline.setup?.entities ?? {};
   return (
     <div className="board-forge-level">
@@ -103,27 +105,26 @@ export function ForgeLevelPage({ facts, selection, entityHrefOf }: ForgeLevelPag
         <section className="board-forge-level-section" aria-label="Ticket phase">
           <PhaseKicker phase="ticket" text="Ticket phase · every entity" />
           <Text typeRole="section" element="h3">Tickets</Text>
-          {ticketNode === null
-            ? null
-            : (
-              <div className="board-forge-level-step">
-                <StepCard
-                  view={PipelineFlowModel.nodeViewOf(ticketNode, PipelineFlowModel.flowWordingOf(facts))}
-                  occupants={null}
-                  questionCount={0}
-                  selected={false}
-                  editable={editSender.enabled}
-                  onOpen={selection.open}
-                  onEdits={editSender.sendEdits}
-                />
-              </div>
-            )}
-          {ticketsApproval === undefined ? null : <ApprovalRow view={ticketsApproval} editSender={editSender} />}
+          <TicketWritingChoice draft={draft} editSender={editSender} />
+          {ticketWritingNodes.map((node) => (
+            <div key={node.nodeId} className="board-forge-level-step">
+              <StepCard
+                view={PipelineFlowModel.nodeViewOf(node, wording)}
+                occupants={null}
+                questionCount={0}
+                selected={false}
+                editable={editSender.enabled}
+                onOpen={selection.open}
+                onEdits={editSender.sendEdits}
+              />
+            </div>
+          ))}
+          {ForgeLevelPageModel.ticketPhaseApprovalViewsOf(draft).map((view) => <ApprovalRow key={view.approval} view={view} editSender={editSender} />)}
         </section>
         <section className="board-forge-level-section" aria-label="Merge and the Airlock">
           <PhaseKicker phase="merge" text="Merge phase · every entity" />
           <Text typeRole="section" element="h3">Merge and the Airlock</Text>
-          {mergeApproval === undefined ? null : <ApprovalRow view={mergeApproval} editSender={editSender} />}
+          <ApprovalRow view={ForgeLevelPageModel.mergeApprovalViewOf(draft)} editSender={editSender} />
           <Row between centerY gap="twelve">
             <View>
               <Text bold>Conflict re-review</Text>

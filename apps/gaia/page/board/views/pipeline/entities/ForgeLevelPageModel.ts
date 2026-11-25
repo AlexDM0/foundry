@@ -1,13 +1,14 @@
 /**
- * The forge level's page, pure: the two approvals every entity shares with the hint of each state and the edit a switch sends, the merge
- * train's conflict re-review, the board limit and the entity caps under it, worded in jobs, and the footer's count of the entities and their
- * gates. The board limit is the board's setting, sent by its own control at once; every other setting here is a draft field.
+ * The forge level's page, pure: the approvals every entity shares, those of the Ticket phase as the route writes a ticket, with the hint of
+ * each state and the edit a switch sends; the steps that write a ticket in the route the flow draws; the merge train's conflict re-review,
+ * the board limit and the entity caps under it, worded in jobs, and the footer's count of the entities and their gates. The board limit is
+ * the board's setting, sent by its own control at once; every other setting here is a draft field.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                              from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                           from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardConcurrencyBoundsDocument }                                                 from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardDraftEditDocument, BoardFlowNodeDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardPipelineApproval }                                                          from '../../../../@types/board/BoardVocabulary.ts';
+import type { BoardPipelineApproval, BoardPipelineNodeKind, BoardTicketWritingRoute }          from '../../../../@types/board/BoardVocabulary.ts';
 
 export interface ApprovalView {
   readonly approval: BoardPipelineApproval;
@@ -35,19 +36,38 @@ const APPROVAL_DEFAULTS: Readonly<Record<BoardPipelineApproval, boolean>> = Obje
   tickets: true, merge: false, spec: true, plan: true
 });
 
-const APPROVALS: readonly BoardPipelineApproval[] = Object.freeze(['tickets', 'merge']);
+/** The Ticket phase's reviews in each route: Human ticket review of one ticket, Human spec and plan review of a spec, then a plan. */
+const TICKET_PHASE_APPROVALS: Readonly<Record<BoardTicketWritingRoute, readonly BoardPipelineApproval[]>> = Object.freeze({
+  'one-ticket':     ['tickets'],
+  'spec-then-plan': ['spec', 'plan'],
+});
+
+/** The steps that write a ticket: one ticket's, or the spec's and then the plan's. */
+const TICKET_WRITING_NODE_KINDS: ReadonlySet<BoardPipelineNodeKind> = new Set(['ticket-creation', 'spec-writing', 'plan-writing']);
 
 function countText(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function approvalViewsOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null): ApprovalView[] {
-  return APPROVALS.map((approval) => {
-    const isOn = draft?.approvals?.[approval] ?? APPROVAL_DEFAULTS[approval];
-    return {
-      approval, title: APPROVAL_TITLES[approval], isOn, hint: isOn ? APPROVAL_HINTS[approval].on : APPROVAL_HINTS[approval].off
-    };
-  });
+function approvalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null, approval: BoardPipelineApproval): ApprovalView {
+  const isOn = draft?.approvals?.[approval] ?? APPROVAL_DEFAULTS[approval];
+  return {
+    approval, title: APPROVAL_TITLES[approval], isOn, hint: isOn ? APPROVAL_HINTS[approval].on : APPROVAL_HINTS[approval].off
+  };
+}
+
+/** The Ticket phase's switches in the route the draft writes a ticket by. */
+function ticketPhaseApprovalViewsOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals' | 'ticketWriting'> | null): ApprovalView[] {
+  return TICKET_PHASE_APPROVALS[draft?.ticketWriting ?? 'one-ticket'].map((approval) => approvalViewOf(draft, approval));
+}
+
+function mergeApprovalViewOf(draft: Pick<BoardPipelineDefinitionDocument, 'approvals'> | null): ApprovalView {
+  return approvalViewOf(draft, 'merge');
+}
+
+/** The flow's steps that write a ticket, in its order. */
+function ticketWritingNodesOf(nodes: readonly BoardFlowNodeDocument[]): BoardFlowNodeDocument[] {
+  return nodes.filter((node) => TICKET_WRITING_NODE_KINDS.has(node.nodeKind));
 }
 
 function approvalEditOf(view: ApprovalView): BoardDraftEditDocument {
@@ -100,7 +120,9 @@ function entityKeysOf(draft: Pick<BoardPipelineDefinitionDocument, 'entities'> |
 }
 
 export const ForgeLevelPageModel = Object.freeze({
-  approvalViewsOf,
+  ticketPhaseApprovalViewsOf,
+  mergeApprovalViewOf,
+  ticketWritingNodesOf,
   approvalEditOf,
   conflictReReviewTextOf,
   airlockMergeNodeOf,

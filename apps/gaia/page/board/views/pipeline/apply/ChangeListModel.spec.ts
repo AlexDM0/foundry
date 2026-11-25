@@ -81,6 +81,23 @@ describe('while an applied pipeline is edited', () => {
     });
   });
 
+  test('Human spec and plan review say what they switched, and the route what it moved from and to', () => {
+    const base = pipelineBoardStateOf('A6-drawn-changes');
+    const editing = PipelineEditingModel.changeListEditingOf(base);
+    if (editing === null || editing.base === null || editing.draft === null) throw new Error('the fixture A6-drawn-changes has no editing');
+    const specThenPlan = {
+      ...editing,
+      base:  { ...editing.base, approvals: { ...editing.base.approvals, spec: false, plan: true } },
+      draft: { ...editing.draft, approvals: { ...editing.draft.approvals, plan: false }, ticketWriting: 'spec-then-plan' as const },
+    };
+    const changes = ['approval:spec', 'approval:plan', 'ticket-writing'].map((field) => ({ field, changeKind: 'changed' as const, editId: null }));
+    expect(ChangeListModel.changeRowsOf(changes, [], specThenPlan).map((row) => row.location)).toEqual([
+      'switch · off → on',
+      'switch · on → off',
+      'Ticket phase · One ticket → Spec, then plan',
+    ]);
+  });
+
   test('only a new gate offers a benchmark in its last phase, not benchmarked until User presses', () => {
     const rows = drawnEditingRows();
     expect(rows.filter((row) => row.benchmark !== null).map((row) => row.field)).toEqual(['gate:a11y']);

@@ -1,5 +1,6 @@
 /**
- * The forge level's page. What matters: each approval reads its `pipeline.json` default while absent and its switch sends the other state;
+ * The forge level's page. What matters: each approval reads its `pipeline.json` default while absent and its switch sends the other state,
+ * the Ticket phase's as the route writes a ticket;
  * the merge train's re-review reads as its threshold or Off; the board limit is sent only when it changed and stays in its bounds, and
  * every count is worded in jobs; the footer counts the entities and their gates, and a root kept for a person is never "without gates".
  */
@@ -21,13 +22,18 @@ const BOUNDS = EXAMPLE_BOARD_LIMITS.concurrency;
 
 describe('the approvals', () => {
   test('read their defaults while absent, and a switch sends the other state', () => {
-    const views = ForgeLevelPageModel.approvalViewsOf(DRAFT);
+    const views = [...ForgeLevelPageModel.ticketPhaseApprovalViewsOf(DRAFT), ForgeLevelPageModel.mergeApprovalViewOf(DRAFT)];
     expect(views.map((view) => [view.approval, view.isOn])).toEqual([['tickets', true], ['merge', false]]);
-    expect(views[1]?.hint).toBe('Off: a green review goes straight to the merge train.');
-    const merge = views[1];
-    if (merge === undefined) throw new Error('no merge approval');
+    const merge = ForgeLevelPageModel.mergeApprovalViewOf(DRAFT);
+    expect(merge.hint).toBe('Off: a green review goes straight to the merge train.');
     expect(ForgeLevelPageModel.approvalEditOf(merge)).toEqual({ target: 'approval', approval: 'merge', value: true });
-    expect(ForgeLevelPageModel.approvalViewsOf({ approvals: { tickets: false } })[0]?.isOn).toBe(false);
+    expect(ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { tickets: false } })[0]?.isOn).toBe(false);
+  });
+
+  test('of the Ticket phase follow the route: Human spec and plan review where a ticket is written as a spec, then a plan', () => {
+    const views = ForgeLevelPageModel.ticketPhaseApprovalViewsOf({ approvals: { plan: false }, ticketWriting: 'spec-then-plan' });
+    expect(views.map((view) => [view.title, view.isOn])).toEqual([['Human spec review', true], ['Human plan review', false]]);
+    expect(views[1]?.hint).toBe('Off: the plan agent approves the plan when it is ready.');
   });
 
   test('the merge train\'s re-review reads as its threshold, or Off', () => {

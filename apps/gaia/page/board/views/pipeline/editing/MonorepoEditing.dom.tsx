@@ -1,6 +1,7 @@
 /**
  * Editing a pipeline over entities (MonoEditing, MonoApplyChanges) in a happy-dom document, through the Pipeline view against fake
- * controls. What matters: each level is its own page beside the entity rail, the forge's or the entity's; the Changes tab groups every
+ * controls. What matters: each level is its own page beside the entity rail, the forge's or the entity's; the forge level offers how a
+ * ticket is written and draws the route's writing steps and reviews; the Changes tab groups every
  * level's changes, the forge first, each with its count, and names the entities the check covers; a copy's set undoes with one press as
  * `pipeline-draft-undo` with `wholeBatch`, while each of its edits still undoes alone; the footer counts the changes and the levels they
  * are in; the agent's tab is the session of the level shown; Apply changes groups its rows by level, a copy's set as one row, and groups
@@ -42,6 +43,18 @@ function boardRemovingRoot(): BoardDocument {
   return withPipelineFacts(board, { flow: { ...flow, changeList: [...flow.changeList, { field: 'entity:root', changeKind: 'removed', editId: null }] } });
 }
 
+/** The editing board with its draft writing each ticket as a spec, then a plan, and its flow drawing that route's steps. */
+function boardWritingSpecThenPlan(): BoardDocument {
+  const board = pipelineBoardStateOf('mono-editing');
+  const flow = board.pipeline.flow ?? null;
+  const setup = board.pipeline.setup ?? null;
+  const routeNodes = pipelineBoardStateOf('A2-spec-then-plan').pipeline.flow?.nodes.filter((node) => node.nodeId.includes('spec') || node.nodeId.includes('plan')) ?? [];
+  if (flow === null || setup === null || setup.record.draft === null) throw new Error('the fixture mono-editing has no flow or no draft');
+  const nodes = [...routeNodes, ...flow.nodes.filter((node) => node.nodeKind !== 'ticket-creation' && node.nodeKind !== 'human-ticket-review')];
+  const draft = { ...setup.record.draft, ticketWriting: 'spec-then-plan' as const, approvals: { ...setup.record.draft.approvals, plan: false } };
+  return withPipelineFacts(board, { flow: { ...flow, nodes }, setup: { ...setup, record: { ...setup.record, draft } } });
+}
+
 function renderEditing(route: BoardRoute = FORGE_ROUTE, board: BoardDocument = pipelineBoardStateOf('mono-editing')) {
   const controls = fakeControls();
   controls.render(onBoard(<PipelineView facts={board} route={route} {...pipelineViewServicesOf()} />));
@@ -68,6 +81,22 @@ describe('the page of a level', () => {
     expect(screen.getByRole('navigation', { name: 'Pipeline levels' })).toBeDefined();
     expect(within(footer()).getByText('4 changes in 3 levels · version 1 → 2')).toBeDefined();
     expect(within(footer()).getByText('The board keeps running on version 1 until Apply.')).toBeDefined();
+  });
+
+  test('the forge level offers how a ticket is written, and in a spec, then a plan, its two writing steps and their reviews', async () => {
+    const controls = renderEditing(FORGE_ROUTE, boardWritingSpecThenPlan());
+    const ticketPhase = screen.getByRole('region', { name: 'Ticket phase' });
+    const choice = within(ticketPhase).getByRole('group', { name: 'How a ticket is written' });
+    expect(within(choice).getByRole('button', { name: 'Spec, then plan' }).getAttribute('aria-pressed')).toBe('true');
+    expect([...ticketPhase.querySelectorAll<HTMLElement>('[data-step-node-id]')].map((step) => step.dataset['stepNodeId'])).toEqual(['spec-writing', 'plan-writing']);
+    expect(within(ticketPhase).queryByRole('switch', { name: 'Human ticket review' })).toBeNull();
+    expect(within(ticketPhase).getByRole('switch', { name: 'Human spec review' }).getAttribute('aria-checked')).toBe('true');
+    await clickSettled(within(ticketPhase).getByRole('switch', { name: 'Human plan review' }));
+    await clickSettled(within(choice).getByRole('button', { name: 'One ticket' }));
+    expect(controls.sent).toMatchObject([
+      { kind: 'pipeline-draft-edit', edits: [{ target: 'approval', approval: 'plan', value: true }] },
+      { kind: 'pipeline-draft-edit', edits: [{ target: 'ticket-writing', value: null }] },
+    ]);
   });
 
   test('an entity\'s level names the entity, and its agent tab is that entity\'s session', async () => {

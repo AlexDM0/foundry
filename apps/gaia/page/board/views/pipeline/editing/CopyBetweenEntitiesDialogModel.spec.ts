@@ -1,8 +1,8 @@
 /**
- * The copy of one entity's settings to others. What matters: a gate goes with its definition and its place at the end of each copied
- * phase, a gate of the same name replaces the target's own and the preview says so; what the target already holds as the source does makes
- * no edit; prepare steps and agent settings go only when ticked, the settings keeping the target's briefs; the source is never its own
- * target; and the whole set goes as one `pipeline-draft-edit` marked as a copy, or nothing when no edit is left.
+ * The copy of one entity's settings to others. What matters: a gate goes with its definition and its place at the end of each copied phase,
+ * a gate of the same name replaces the target's own and the preview says so; what the target already holds as the source does makes no
+ * edit; prepare steps and agent settings go only when ticked, the settings keeping the target's briefs and document reading rules; the
+ * source is never its own target; and the whole set goes as one `pipeline-draft-edit` marked as a copy, or nothing when no edit is left.
  */
 import { describe, expect, test }                                                                    from 'bun:test';
 import type { BoardDraftEditDocument, BoardPipelineDefinitionDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -70,6 +70,49 @@ describe('prepare steps and agent settings', () => {
         edit:      { target: 'role', role: 'builder', value: { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }] } },
       },
     ]);
+  });
+});
+
+describe('the agent settings of a copy', () => {
+  const adminReadingNoPlan = exampleEntity('app', ['/apps/admin'], {
+    agents: {
+      builder: {
+        model: 'opus', effort: 'high', instructions: null, documents: { plan: 'never' }
+      }
+    },
+  });
+  const draft = examplePipeline({ entities: { web: WEB, admin: adminReadingNoPlan } });
+  const request = { fromEntityKey: 'web', toEntityKeys: ['admin'], parts: ['agent-settings'] as const };
+
+  test('keep the target\'s document reading rules, so a copy that sets the same model and effort sends nothing', () => {
+    expect(CopyBetweenEntitiesDialogModel.copyEditsOf(draft, request)).toEqual([]);
+  });
+
+  test('keep them in the role edit a copy of another model sends', () => {
+    const otherModel = examplePipeline({
+      entities: {
+        web:   WEB,
+        admin: {
+          ...adminReadingNoPlan,
+          agents: {
+            builder: {
+              model: 'sonnet', effort: 'high', instructions: null, documents: { plan: 'never' }
+            }
+          }
+        }
+      }
+    });
+    expect(CopyBetweenEntitiesDialogModel.copyEditsOf(otherModel, request)).toEqual([{
+      target:    'within-entity',
+      entityKey: 'admin',
+      edit:      {
+        target: 'role',
+        role:   'builder',
+        value:  {
+          model: 'opus', effort: 'high', instructions: null, documents: { plan: 'never' }
+        }
+      },
+    }]);
   });
 });
 
