@@ -1,5 +1,5 @@
 /**
- * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, with the New pill beside it, a ruled row per
+ * The Pipeline documents section of the builder's and the reviewer's dialogs: under its title, with the orange New pill beside it, a ruled row per
  * document (the spec, then the plan) with Always, If you approved it and Never, and the line that says what If you approved it gives. A
  * document the forge fixes for the role (the reviewer's spec) stays at its rule, its other choices shown disabled. The rules are the
  * form's: nothing is sent until the dialog's Save.
@@ -35,7 +35,7 @@ export function PipelineDocumentsSection({
     <section className="board-pipeline-dialog-instructions" aria-labelledby={titleId}>
       <Row gap="ten" centerY wrap>
         <Text typeRole="title" id={titleId}>{words.title}</Text>
-        <Tag text={words.newPill} tone="state" stateTone="accent" />
+        <Tag text={words.newPill} tone="warn" />
         <Text muted>{words.lead}</Text>
       </Row>
       <div className="board-pipeline-dialog-brief">

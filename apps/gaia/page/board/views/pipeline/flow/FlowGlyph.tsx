@@ -1,6 +1,7 @@
 /**
- * The small line drawings of the Focus layout, hidden from the accessibility tree: each step kind's mark, the add card's plus, the check of
- * a readiness line, the chevron between phase tabs and the arrow between steps. They stroke in the current colour.
+ * The small line drawings of the Focus layout, hidden from the accessibility tree: each step kind's mark (an agent's diamond, User's
+ * ring), the add card's plus, the check of a readiness line, the chevron between phase tabs and the arrow between steps. They stroke in
+ * the current colour.
  */
 import type { ReactNode } from 'react';
 
@@ -14,24 +15,8 @@ interface GlyphDrawing {
 }
 
 const GLYPH_DRAWINGS: Readonly<Record<FlowGlyphName, GlyphDrawing>> = Object.freeze({
-  agent: {
-    viewBox: '0 0 14 14',
-    shapes:  (
-      <>
-        <rect x="2" y="4" width="10" height="8" rx="2" />
-        <path d="M7 1.8 V4 M5.2 7.4 V8.6 M8.8 7.4 V8.6" />
-      </>
-    ),
-  },
-  you: {
-    viewBox: '0 0 14 14',
-    shapes:  (
-      <>
-        <circle cx="7" cy="4.6" r="2.4" />
-        <path d="M2.4 12.2 C2.4 9.8 4.4 8.6 7 8.6 C9.6 8.6 11.6 9.8 11.6 12.2" />
-      </>
-    ),
-  },
+  agent: { viewBox: '0 0 14 14', shapes: <path d="M7 3 L11 7 L7 11 L3 7 Z" /> },
+  you:   { viewBox: '0 0 14 14', shapes: <circle cx="7" cy="7" r="3.6" /> },
   gates: {
     viewBox: '0 0 14 14',
     shapes:  (

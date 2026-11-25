@@ -1,17 +1,17 @@
 /**
- * The design step's model, pure: the agent's state and the panel head's status, the footer's count of the proposed steps and gates, whether Apply
- * may open while a question is open, the Changes tab's name, and the agent's newest change with the step it shows on the flow and the
- * Undo it sends. Every count comes from the facts; Apply's state reads the open question count, and Hephaestus's refusal stays the
- * authority. In monorepo mode the page is one level's: its title row, its newest agent change, and the open questions of every level,
- * since a question in any entity holds Apply as one question does in single mode.
+ * The design step's model, pure: the agent's state and the panel head's status, whether Apply may open while a question is open, the
+ * Changes tab's name, and the agent's newest change with the step it shows on the flow, the words of its link, and the Undo it sends.
+ * Every count comes from the facts; Apply's state reads the open question count, and Hephaestus's refusal stays the authority. In monorepo
+ * mode the page is one level's: its title row, its newest agent change, and the open questions of every level, since a question in any
+ * entity holds Apply as one question does in single mode.
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
 import type {
+  BoardPipelineDefinitionDocument,
   BoardPipelineFlowDocument,
   BoardPipelineSetupDocument,
-  BoardSetupEditDocument,
-  BoardSetupSummaryDocument
+  BoardSetupEditDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_GATE_PHASES }                                 from '../../../../@types/board/BoardVocabulary.ts';
 import { ChatTurnWordingUtil }                               from '../../../conversation/ChatTurnWordingUtil.ts';
@@ -22,7 +22,11 @@ import { ChangeListModel }                                   from '../apply/Chan
 import { PipelineLevelModel }                                from '../entities/PipelineLevelModel.ts';
 import type { PipelineLevel }                                from '../entities/PipelineLevelModel.ts';
 import type { FlowShowTarget }                               from '../flow/FlowSelection.ts';
-import { PipelinePhaseModel }                                from '../flow/PipelinePhaseModel.ts';
+import { PipelineFlowModel, type TicketWritingDefaults }     from '../flow/PipelineFlowModel.ts';
+import { PipelinePhaseModel, type PipelinePhase }            from '../flow/PipelinePhaseModel.ts';
+
+/** The draft whose route a ticket-writing change names; null before the agent proposes one. */
+type TicketWritingDraft = Pick<BoardPipelineDefinitionDocument, 'ticketWriting'> | null;
 
 export type DesignAgentState = 'designing' | 'ready' | 'not-launched' | 'not-running';
 
@@ -55,12 +59,6 @@ function agentStateOf(setup: BoardPipelineSetupDocument, sessionState: AgentSess
 /** The panel head's dot and word: "Proposal ready", as drawn. */
 function panelStatusOf(agentState: DesignAgentState): PanelStatus {
   return PANEL_STATUSES[agentState];
-}
-
-/** "1 prepare step · 3 build gates · 3 review gates · 3 merge gates", from the facts' summary. */
-function footerSummaryOf(summary: Pick<BoardSetupSummaryDocument, 'prepareStepCount' | 'gateCountByPhase'>): string {
-  const gates = BOARD_GATE_PHASES.map((phase) => ChatTurnWordingUtil.countTextOf(summary.gateCountByPhase[phase], `${phase} gate`, `${phase} gates`));
-  return [ChatTurnWordingUtil.countTextOf(summary.prepareStepCount, 'prepare step', 'prepare steps'), ...gates].join(' · ');
 }
 
 function applyAvailabilityOf(openQuestionCount: number): ApplyAvailability {
@@ -114,9 +112,12 @@ function flowTargetOf(field: string | string, flow: BoardPipelineFlowDocument): 
   return node === undefined ? null : { phase: PipelinePhaseModel.phaseOfNode(flow, node.nodeId), item: { kind: 'step', nodeId: node.nodeId } };
 }
 
-/** "Show typecheck on the flow". */
-function showLinkTextOf(field: string): string {
-  return `Show ${ChangeListModel.fieldWordsOf(field).title} on the flow`;
+/** "Build · typecheck": the phase the change shows in, then what it changed, or for how a ticket is written the route it now takes. */
+function showLinkTextOf(field: string, phase: PipelinePhase, ticketWriting: TicketWritingDraft, defaults: TicketWritingDefaults): string {
+  const subject = field === 'ticket-writing'
+    ? PipelineFlowModel.ticketWritingLabelOf(PipelineFlowModel.ticketWritingRouteOfDraft(ticketWriting, defaults)).toLowerCase()
+    : ChangeListModel.fieldWordsOf(field).title;
+  return `${PipelinePhaseModel.phaseNameOf(phase)} · ${subject}`;
 }
 
 /** The newest agent edit of the level shown; an entity's as the field inside it, so its step shows on the entity's flow. */
@@ -159,7 +160,6 @@ export const DesignStepModel = Object.freeze({
   levelPageWordsOf,
   agentStateOf,
   panelStatusOf,
-  footerSummaryOf,
   applyAvailabilityOf,
   changesTabNameOf,
   discardCommandOf,
