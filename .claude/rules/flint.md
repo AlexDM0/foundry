@@ -38,7 +38,8 @@ paths:
   box that keeps Flint inside stands it by these. `apps/gaia/page/lib/flint/gestures/GestureCatalog.extent.spec.ts`,
   `apps/gaia/page/lib/flint/emotes/EmoteCatalog.extent.spec.ts` and
   `apps/gaia/page/lib/flint/attendants/AttendantCatalog.extent.spec.ts` hold each to what it draws, through
-  `apps/gaia/page/lib/flint/testing/DrawnExtentMeasure.ts`.
+  `apps/gaia/page/lib/flint/testing/DrawnExtentMeasure.ts`; `apps/gaia/page/lib/flint/mind/utils/StanceUtil.fit.spec.ts`
+  holds that what fits a small box by those extents is drawn inside it, the attendants included.
   Gaia draws Flint at 0.75 pixels for one unit; what plays in a strip's 60 by 50 pixel slot fits it, which
   `apps/gaia/page/board/flint/FlintStripSlot.spec.ts` holds.
 - Each design value is a named constant with its unit in its name: a value of the core in

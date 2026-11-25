@@ -4,7 +4,7 @@
  * behaviour left above its floor comes down at the body rate, while its floor still follows the box at once when the page scrolls; and
  * under reduced motion it stands still and on its floor. In a box that keeps Flint inside, it rests its attendants' reach from each wall,
  * and a gesture laid over the rest waits while Flint walks to where the gesture's extent fits, turning when that is nearer, and then
- * plays there; under reduced motion at once.
+ * plays there, with an emote given meanwhile; under reduced motion at once.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,6 +21,7 @@ import {
   HOME_BOX,
   perceptionOf
 } from '../../testing/MindRun.ts';
+import type { WanderState } from './WanderBehaviour.ts';
 
 const LOWEST_X = HOME_BOX.leftX + 20;
 const HIGHEST_X = HOME_BOX.rightX - 20;
@@ -127,12 +128,26 @@ describe('in a box that keeps Flint inside', () => {
     run.change((state) => ({ ...state, motion: { ...state.motion, positionX: (SLOT_BOX.leftX + SLOT_BOX.rightX) / 2, facing: 1 } }));
     run.give('research');
     run.frame();
-    expect([run.state().gesture, run.state().pendingIntent?.intent, run.state().motion.walkDirection, run.state().motion.facing]).toEqual([null, 'research', -1, -1]);
+    const waiting = run.state();
+    const waitingIntent = (waiting.behaviour as WanderState).deferredPlay?.gesture?.intent;
+    expect([waiting.gesture, waitingIntent, waiting.motion.walkDirection, waiting.motion.facing]).toEqual([null, 'research', -1, -1]);
     const { extent } = intendedGestureOf('research').form;
     const stepped = run.runFor(500);
     expect(stepped.motion).toMatchObject({ positionX: SLOT_BOX.rightX - extent.frontUnits, facing: 1 });
     expect(stepped.motion.positionX - extent.backUnits).toBeGreaterThanOrEqual(SLOT_BOX.leftX);
     expect(stepped.gesture?.intent).toBe('research');
+  });
+
+  test('an emote given while the gesture waits waits beside it, and both play once Flint stands where they fit', () => {
+    const run = runInSlot();
+    run.change((state) => ({ ...state, motion: { ...state.motion, positionX: (SLOT_BOX.leftX + SLOT_BOX.rightX) / 2, facing: 1 } }));
+    run.give('ask');
+    run.frame();
+    run.give('thinking');
+    run.frame();
+    expect([run.state().gesture, run.state().emote]).toEqual([null, null]);
+    const played = run.runFor(500);
+    expect([played.gesture?.intent, played.emote?.name]).toEqual(['ask', 'thinking']);
   });
 
   test('near a wall it turns where the gesture fits facing the other way, and plays at once', () => {
