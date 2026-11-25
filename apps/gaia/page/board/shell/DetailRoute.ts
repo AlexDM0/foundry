@@ -1,12 +1,12 @@
 /**
- * Which detail the hash route opens in place over a board tab, and the fragment that opens it. The panel opens over Kanban, Waves,
- * Progress, Epics and Tickets alike, so a route keeps its tab and names the item after it: `#<tab>/<form>/<id>`. A second click on what
+ * Which detail the hash route opens in place over a board tab, and the fragment that opens it. The panel opens over Tickets, Kanban,
+ * Waves, Gantt and Epics alike, so a route keeps its tab and names the item after it: `#<place>/<form>/<id>`. A second click on what
  * is open closes it; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`. The ticket form opens on a section,
  * `#<tab>/ticket/<id>/<section>`, Overview with none; the section is where the form stands, never which item it is.
  */
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 
-export const DETAIL_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets'] as const;
+export const DETAIL_TABS = ['tickets', 'kanban', 'waves', 'gantt', 'epics'] as const;
 
 export type DetailTab = typeof DETAIL_TABS[number];
 

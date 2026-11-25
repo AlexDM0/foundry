@@ -340,7 +340,7 @@ describe('reorder and Delete', () => {
     const build = screen.getByRole('region', { name: 'Build gates' });
     const head = build.querySelector<HTMLElement>('.board-pipeline-gates-head');
     if (head === null) throw new Error('the Build gates table has no head');
-    expect(within(head).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([['12', '#forge/example-tracker/kanban/ticket/12']]);
+    expect(within(head).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([['12', '#forge/example-tracker/tickets/ticket/12']]);
     expect(within(head).getByText('Now:')).toBeDefined();
     expect(build.querySelectorAll('.board-pipeline-gate-row a')).toHaveLength(0);
     cleanup();

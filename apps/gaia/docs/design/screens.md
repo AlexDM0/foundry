@@ -161,10 +161,11 @@ segment is URL-encoded.
 | `#forges?forge=<trackerId>` | Forges with that forge's row in view |
 | `#forges/add` | Forges with the "Add a repository" dialog open |
 | `#forge/<trackerId>` | The forge's board in place, at the tab this browser last chose, else the first it shows |
-| `#forge/<trackerId>/<tab>` | The board at a tab: `kanban`, `waves`, `progress`, `epics`, `tickets`, `agents`, `questions`, `assistant`, `intake`, `pipeline` |
-| `#forge/<trackerId>/<tab>/<item>` | The board with an item open: `questions/<decisionId>`, `kanban/ticket/<ticketId>`, `kanban/draft/<draftId>`, `agents/<jobId>`; an incident opens `assistant` alone |
+| `#forge/<trackerId>/<place>` | The board at a place: `tickets`, `progress/kanban`, `progress/waves`, `progress/gantt`, `epics`, `agents`, `questions`, `assistant`, `intake`, `pipeline` |
+| `#forge/<trackerId>/<place>/<item>` | The board with an item open: `questions/<decisionId>`, `tickets/ticket/<ticketId>`, `tickets/draft/<draftId>`, `agents/<jobId>`; an incident opens `assistant` alone |
 
-A path after the tracker id that names no board tab, and the form with `#` before the tab (`#forge/<trackerId>/#questions/E2`), open the
+An old board link (`kanban`, `waves`, `progress`) is redirected to the route it names (`board-menu.md`, "Routes"). A path after the
+tracker id that names no board place, and the form with `#` before the tab (`#forge/<trackerId>/#questions/E2`), open the
 forge at its default tab. A malformed escape in an item reads as no item, and in the tracker id as no forge. Any empty, unknown or
 malformed fragment is Attention, never an error. A tab the board does not show (Waves with no dependency, Epics with no epic, every tab
 but Pipeline on a board with no readable pipeline) falls back to the first tab it shows. The launcher's one-time `#session=<code>`

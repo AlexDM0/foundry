@@ -172,7 +172,7 @@ function TicketRow({
       <td className="board-ticket-mono">
         {row.task === null
           ? null
-          : <a href={hrefOf({ tab: 'progress', item: DetailRoute.itemTextOf({ form: 'task-row', taskId: row.task.taskId }) })}>{row.task.labelText}</a>}
+          : <a href={hrefOf({ tab: 'gantt', item: DetailRoute.itemTextOf({ form: 'task-row', taskId: row.task.taskId }) })}>{row.task.labelText}</a>}
       </td>
     </tr>
   );

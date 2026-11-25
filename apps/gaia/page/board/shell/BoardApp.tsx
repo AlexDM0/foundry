@@ -34,7 +34,9 @@ import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from './Board
 import { BoardGoToContext, BoardTrackerContext }                   from './BoardRouteLinks.ts';
 import {
   BoardRouter,
+  DEFAULT_PROGRESS_VIEW,
   DEFAULT_TAB,
+  PROGRESS_VIEW_CHOICE_NAME,
   TAB_CHOICE_NAME,
   type BoardRoute,
   type BoardTab
@@ -160,6 +162,10 @@ export function BoardApp({
   useEffect(() => {
     if (boardIsRead) boardStore.writeChoice(TAB_CHOICE_NAME, shownRoute.tab, DEFAULT_TAB);
   }, [boardIsRead, boardStore, shownRoute.tab]);
+  const progressViewToOpen = BoardRouter.progressViewToOpenOf(shownRoute.tab, boardStore.readChoice(PROGRESS_VIEW_CHOICE_NAME), shownTabs);
+  useEffect(() => {
+    if (boardIsRead && BoardRouter.isProgressView(shownRoute.tab)) boardStore.writeChoice(PROGRESS_VIEW_CHOICE_NAME, shownRoute.tab, DEFAULT_PROGRESS_VIEW);
+  }, [boardIsRead, boardStore, shownRoute.tab]);
 
   const streamIsDown = connectionIsLost(connection);
   const installIsHeld = installRefusal !== null || boardIsHeld;
@@ -262,6 +268,7 @@ export function BoardApp({
                       model={headerModel}
                       selectedTab={shownRoute.tab}
                       shownTabs={shownTabs}
+                      progressViewToOpen={progressViewToOpen}
                       activityIsLive={connection === 'live'}
                       sidePanelIsOpen={shownQuestion !== null}
                       clock={boardClock}

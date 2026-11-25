@@ -1,7 +1,8 @@
 /**
  * The hash router. What matters: every route of `docs/design/screens.md`, the shell reads to its view and back to the same fragment; a forge's board is
- * read and written in one form, `#forge/<trackerId>[/<tab>[/<item segments>]]`, and the form with `#` before the tab reads as the forge
- * with no tab; a malformed escape reads as no segment; anything unknown or malformed is Attention, never a throw.
+ * read and written in one form, `#forge/<trackerId>[/<place>[/<item segments>]]`, and the form with `#` before the place reads as the forge
+ * with no tab; an old board link is redirected to its route's own fragment and no other fragment is; a place the server names reads as an
+ * address does; a malformed escape reads as no segment; anything unknown or malformed is Attention, never a throw.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,11 +34,13 @@ describe('reading a fragment', () => {
   test('a board route reads its tab and its item, whose encoded segments read whole with the separator between them', () => {
     expect([
       '#forge/invoice-service-2b9e/agents/J11',
-      '#forge/invoice-service-2b9e/kanban/ticket/T%2042',
+      '#forge/invoice-service-2b9e/tickets/ticket/T%2042',
+      '#forge/invoice-service-2b9e/progress/kanban/merge-queue',
       '#forge/invoice-service-2b9e/pipeline',
     ].map((fragment) => HashRouter.routeOf(fragment))).toEqual(([
       { tab: 'agents', item: 'J11' },
-      { tab: 'kanban', item: 'ticket/T 42' },
+      { tab: 'tickets', item: 'ticket/T 42' },
+      { tab: 'kanban', item: 'merge-queue' },
       { tab: 'pipeline', item: null },
     ] as const).map((boardRoute): GaiaRoute => ({ view: 'forge', trackerId: 'invoice-service-2b9e', boardRoute })));
   });
@@ -50,7 +53,33 @@ describe('reading a fragment', () => {
   test('a malformed escape in the item reads as no item, and in the tracker id as no forge', () => {
     expect(HashRouter.routeOf('#forge/invoice-service-2b9e/agents/%E0%A4%A'))
       .toEqual({ view: 'forge', trackerId: 'invoice-service-2b9e', boardRoute: { tab: 'agents', item: null } });
+    expect(HashRouter.routeOf('#forge/invoice-service-2b9e/progress/gantt/%E0%A4%A'))
+      .toEqual({ view: 'forge', trackerId: 'invoice-service-2b9e', boardRoute: { tab: 'gantt', item: null } });
     expect(HashRouter.routeOf('#forge/%E0%A4%A/agents/J11')).toEqual(DEFAULT_ROUTE);
+  });
+
+  test('an old board link is redirected to its route\'s own fragment, and no other fragment is', () => {
+    expect([
+      '#forge/invoice-service-2b9e/kanban/ticket/T%2042',
+      '#forge/invoice-service-2b9e/kanban',
+      '#forge/invoice-service-2b9e/waves',
+      '#forge/invoice-service-2b9e/progress/task-row/3',
+    ].map((fragment) => HashRouter.redirectOf(fragment))).toEqual([
+      '#forge/invoice-service-2b9e/tickets/ticket/T%2042',
+      '#forge/invoice-service-2b9e/progress/kanban',
+      '#forge/invoice-service-2b9e/progress/waves',
+      '#forge/invoice-service-2b9e/progress/gantt/task-row/3',
+    ]);
+    expect(['#forge/invoice-service-2b9e/progress/kanban', '#forge/invoice-service-2b9e/tickets', '#forge/invoice-service-2b9e', '#agents', '#kanban']
+      .map((fragment) => HashRouter.redirectOf(fragment))).toEqual([null, null, null, null, null]);
+  });
+
+  test('a place the server names reads as an address does, an old one as the route it names', () => {
+    expect([
+      HashRouter.servedBoardFragmentOf('invoice-service-2b9e', { tab: 'kanban', item: 'ticket/001' }),
+      HashRouter.servedBoardFragmentOf('invoice-service-2b9e', { tab: 'questions', item: 'E2' }),
+      HashRouter.servedBoardFragmentOf('invoice-service-2b9e', null),
+    ]).toEqual(['#forge/invoice-service-2b9e/tickets/ticket/001', '#forge/invoice-service-2b9e/questions/E2', '#forge/invoice-service-2b9e']);
   });
 
   test('the Agents view keeps its filters in the query, and the Forges view names the forge to bring into view', () => {
@@ -79,7 +108,8 @@ describe('writing a fragment', () => {
       { view: 'forges', addingARepository: true, forgeInView: null },
       { view: 'forges', addingARepository: false, forgeInView: 'legacy-importer-0e7d' },
       { view: 'forge', trackerId: 'example-storefront-7c41', boardRoute: { tab: 'questions', item: 'E2' } },
-      { view: 'forge', trackerId: 'example-storefront-7c41', boardRoute: { tab: 'kanban', item: 'ticket/042' } },
+      { view: 'forge', trackerId: 'example-storefront-7c41', boardRoute: { tab: 'tickets', item: 'ticket/042' } },
+      { view: 'forge', trackerId: 'example-storefront-7c41', boardRoute: { tab: 'waves', item: null } },
       { view: 'forge', trackerId: 'example-storefront-7c41', boardRoute: null },
     ];
     expect(routes.map((route) => HashRouter.fragmentOf(route))).toEqual([
@@ -89,7 +119,8 @@ describe('writing a fragment', () => {
       '#forges/add',
       '#forges?forge=legacy-importer-0e7d',
       '#forge/example-storefront-7c41/questions/E2',
-      '#forge/example-storefront-7c41/kanban/ticket/042',
+      '#forge/example-storefront-7c41/tickets/ticket/042',
+      '#forge/example-storefront-7c41/progress/waves',
       '#forge/example-storefront-7c41',
     ]);
     expect(routes.map((route) => HashRouter.routeOf(HashRouter.fragmentOf(route)))).toEqual(routes);

@@ -1,14 +1,11 @@
 /**
  * Gaia's routes are hash fragments, so the page needs no server route and a link survives a server restart. A forge's board is
- * `#forge/<trackerId>[/<tab>[/<item segments>]]`, each segment encoded; a path after the tracker id that names no board tab opens the forge
- * at its default tab. Any fragment Gaia does not know is Attention.
+ * `#forge/<trackerId>[/<place>[/<item segments>]]`, each segment encoded; a path after the tracker id that names no board place opens the
+ * forge at its default tab, and an old link's place is redirected to the route it names (`BoardRouter`). Any fragment Gaia does not know
+ * is Attention.
  */
-import {
-  BOARD_TABS,
-  BoardRouter,
-  type BoardRoute,
-  type BoardTab
-} from '../board/shell/BoardRouter.ts';
+import type { FleetDocumentBoardRoute } from '../@types/FleetDocument.ts';
+import { BoardRouter, type BoardRoute } from '../board/shell/BoardRouter.ts';
 
 export type GaiaRoute =
   | { readonly view: 'attention' }
@@ -29,6 +26,8 @@ export interface HashSurroundings {
   readonly currentFragment: () => string;
   readonly followFragment:  (listener: () => void) => () => void;
   readonly goTo:            (fragment: string) => void;
+  /** Puts a fragment in place of the current one without a new history entry, so Back never returns to a redirected link. */
+  readonly replaceFragment: (fragment: string) => void;
 }
 
 export const DEFAULT_ROUTE: GaiaRoute = { view: 'attention' };
@@ -39,6 +38,7 @@ const QUERY_SEPARATOR = '?';
 const PATH_SEPARATOR = '/';
 const FRAGMENT_MARK = '#';
 const FORGE_PREFIX = `forge${PATH_SEPARATOR}`;
+const PROGRESS_PLACE = 'progress';
 
 /** A segment that does not decode, such as a lone `%`, reads as no segment. */
 function decodedSegmentOf(segment: string | undefined): string | null {
@@ -50,17 +50,18 @@ function decodedSegmentOf(segment: string | undefined): string | null {
   }
 }
 
-function isBoardTab(name: string): name is BoardTab {
-  return (BOARD_TABS as readonly string[]).includes(name);
+/** A malformed segment reads as none: the whole item, or after a Progress view's segment the item after it. */
+function readablePlaceSegmentsOf(placeName: string, decodedItemSegments: readonly (string | null)[]): string[] {
+  const readableSegments = decodedItemSegments.filter((segment) => segment !== null);
+  if (readableSegments.length === decodedItemSegments.length) return readableSegments;
+  const [viewSegment] = decodedItemSegments;
+  return placeName === PROGRESS_PLACE && BoardRouter.isProgressView(viewSegment) ? [viewSegment] : [];
 }
 
-/** The board's part of a forge's path; a malformed item segment reads as no item, and a path naming no board tab as no route. */
+/** The board's part of a forge's path; a malformed item segment reads as no item, and a path naming no board place as no route. */
 function boardRouteOf(segments: readonly string[]): BoardRoute | null {
-  const [tabName = '', ...itemSegments] = segments;
-  if (!isBoardTab(tabName)) return null;
-  const decodedItemSegments = itemSegments.map(decodedSegmentOf);
-  const itemIsReadable = decodedItemSegments.length > 0 && decodedItemSegments.every((segment) => segment !== null);
-  return { tab: tabName, item: itemIsReadable ? decodedItemSegments.join(PATH_SEPARATOR) : null };
+  const [placeName = '', ...itemSegments] = segments;
+  return BoardRouter.routeOfPlace(placeName, readablePlaceSegmentsOf(placeName, itemSegments.map(decodedSegmentOf)));
 }
 
 function forgeRouteOf(afterView: string): GaiaRoute {
@@ -125,6 +126,22 @@ function fragmentOf(route: GaiaRoute): string {
   }
 }
 
+/** A forge's board at a place the server names, by the same reading as an address, so a place named before the Progress views read as its view. */
+function servedBoardFragmentOf(trackerId: string, servedRoute: FleetDocumentBoardRoute | null): string {
+  const boardRoute = servedRoute === null ? null : BoardRouter.routeOfPlace(servedRoute.tab, servedRoute.item?.split(PATH_SEPARATOR) ?? []);
+  return fragmentOf({ view: 'forge', trackerId, boardRoute });
+}
+
+/** The fragment an old board link is redirected to, the route's own; `null` for every other fragment. */
+function redirectOf(fragment: string): string | null {
+  const withoutMark = fragment.startsWith(FRAGMENT_MARK) ? fragment.slice(1) : fragment;
+  if (!withoutMark.startsWith(FORGE_PREFIX)) return null;
+  const [, placeName, ...itemSegments] = withoutMark.slice(FORGE_PREFIX.length).split(PATH_SEPARATOR);
+  if (placeName === undefined || !BoardRouter.placeIsOld(placeName, itemSegments.map((segment) => decodedSegmentOf(segment) ?? ''))) return null;
+  const route = routeOf(fragment);
+  return route.view === 'forge' && route.boardRoute !== null ? fragmentOf(route) : null;
+}
+
 function browserHashSurroundings(): HashSurroundings {
   return {
     currentFragment: () => window.location.hash,
@@ -135,11 +152,16 @@ function browserHashSurroundings(): HashSurroundings {
     goTo: (fragment) => {
       window.location.hash = fragment;
     },
+    replaceFragment: (fragment) => {
+      window.history.replaceState(window.history.state, '', fragment);
+    },
   };
 }
 
 export const HashRouter = {
   routeOf,
   fragmentOf,
+  redirectOf,
+  servedBoardFragmentOf,
   browserHashSurroundings,
 } as const;

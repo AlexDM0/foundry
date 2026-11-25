@@ -112,8 +112,8 @@ describe('the Apply refusal the forge serves', () => {
       title:       'Apply is refused',
       text:        SERVED_IN_FLIGHT_REFUSAL.text,
       ticketLinks: [
-        { ticketId: '14', text: 'Open 14', route: { tab: 'kanban', item: 'ticket/14' } },
-        { ticketId: '15', text: 'Open 15', route: { tab: 'kanban', item: 'ticket/15' } },
+        { ticketId: '14', text: 'Open 14', route: { tab: 'tickets', item: 'ticket/14' } },
+        { ticketId: '15', text: 'Open 15', route: { tab: 'tickets', item: 'ticket/15' } },
       ],
       disabledReason: SERVED_IN_FLIGHT_REFUSAL.text,
     });

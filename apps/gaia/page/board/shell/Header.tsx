@@ -12,6 +12,7 @@ import {
   CountBadge,
   type CountBadgeColours,
   type LinkTabItem,
+  MenuItem,
   type StepperStep,
   Tabs,
   Text
@@ -23,8 +24,14 @@ import type { QuestionNotifier }              from '../views/questions/QuestionA
 import { ActivityStrip }                      from './ActivityStrip.tsx';
 import type { BoardClock }                    from './BoardClock.ts';
 import { useBoardHrefOf, useBoardNavigation } from './BoardRouteLinks.ts';
-import type { BoardRoute, BoardTab }          from './BoardRouter.ts';
-import { useChangedSinceMount }               from './ChangedSinceMount.ts';
+import {
+  BoardRouter,
+  type BoardMenuEntry,
+  type BoardRoute,
+  type BoardTab,
+  type ProgressView
+} from './BoardRouter.ts';
+import { useChangedSinceMount } from './ChangedSinceMount.ts';
 import type {
   HeaderFigureLane,
   HeaderModel,
@@ -41,34 +48,36 @@ import type {
 import { WaitingOnUserPill } from './WaitingOnUserPill.tsx';
 
 export interface HeaderProps {
-  readonly project:          string;
-  readonly model:            HeaderModel;
-  readonly selectedTab:      BoardTab;
+  readonly project:            string;
+  readonly model:              HeaderModel;
+  readonly selectedTab:        BoardTab;
   /** The tabs the board shows, in order. */
-  readonly shownTabs:        readonly BoardTab[];
+  readonly shownTabs:          readonly BoardTab[];
+  /** The view the Progress entry opens and names: the one open now, else the one this viewer opened last. */
+  readonly progressViewToOpen: ProgressView;
   /** While the event stream is down the strip's dots go quiet and its times stand still. */
-  readonly activityIsLive:   boolean;
+  readonly activityIsLive:     boolean;
   /** A ticket detail or the question panel is open; it holds the page's one Flint slot, so the strip shows none. */
-  readonly sidePanelIsOpen:  boolean;
-  readonly clock:            BoardClock;
+  readonly sidePanelIsOpen:    boolean;
+  readonly clock:              BoardClock;
   /** What the tab bar holds at its right end: the finished-work filter on a board tab. */
-  readonly tabBarEnd?:       ReactNode;
+  readonly tabBarEnd?:         ReactNode;
   /** A figure pointing at a Kanban lane was followed; the link itself opens the tab. */
-  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
+  readonly onShowLane?:        (lane: HeaderFigureLane) => void;
   /** `null` before the first board, which shows no pill. */
-  readonly waitingOnUser:    WaitingOnUser | null;
-  readonly tabCounts:        TabCounts;
-  readonly questionNotifier: QuestionNotifier;
+  readonly waitingOnUser:      WaitingOnUser | null;
+  readonly tabCounts:          TabCounts;
+  readonly questionNotifier:   QuestionNotifier;
   /** The page's stamp slices the inbox shows full stamps by; `null` on a board that serves no page. */
-  readonly timestampSlices:  TimestampSlices | null;
+  readonly timestampSlices:    TimestampSlices | null;
 }
 
 export const TAB_LABELS: Readonly<Record<BoardTab, string>> = {
+  tickets:   'Tickets',
   kanban:    'Kanban',
   waves:     'Waves',
-  progress:  'Progress',
+  gantt:     'Gantt',
   epics:     'Epics',
-  tickets:   'Tickets',
   agents:    'Agents',
   questions: 'Questions',
   assistant: 'Assistant',
@@ -76,6 +85,10 @@ export const TAB_LABELS: Readonly<Record<BoardTab, string>> = {
   pipeline:  'Pipeline',
   documents: 'Documents',
 };
+
+const PROGRESS_ENTRY_LABEL = 'Progress';
+
+const PROGRESS_MENU_LABEL = 'Progress views';
 
 const COUNT_BADGE_OF_TONE: Readonly<Record<TabCountTone, CountBadgeColours & { readonly marked?: boolean }>> = {
   waiting:   { tone: 'state', stateTone: StateToneUtil.toneOf('ready-for-review') },
@@ -154,8 +167,35 @@ function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatis
   );
 }
 
-function tabItemOf(tab: BoardTab, tabCount: TabCount | undefined, hrefOf: (route: BoardRoute) => string): LinkTabItem<BoardTab> {
-  const item = { key: tab, label: TAB_LABELS[tab], href: hrefOf({ tab, item: null }) };
+interface MenuEntrySurroundings {
+  readonly shownTabs:          readonly BoardTab[];
+  readonly selectedTab:        BoardTab;
+  readonly progressViewToOpen: ProgressView;
+  readonly hrefOf:             (route: BoardRoute) => string;
+  readonly navigate:           (route: BoardRoute) => void;
+}
+
+/** The Progress entry names the view it opens, and its menu offers every Progress view the board shows, the open one pressed. */
+function progressMenuFieldsOf(surroundings: MenuEntrySurroundings): Pick<LinkTabItem<BoardMenuEntry>, 'subLabel' | 'menuLabel' | 'menuItems'> {
+  const {
+    shownTabs, selectedTab, progressViewToOpen, navigate
+  } = surroundings;
+  return {
+    subLabel:  TAB_LABELS[progressViewToOpen],
+    menuLabel: PROGRESS_MENU_LABEL,
+    menuItems: BoardRouter.shownProgressViewsOf(shownTabs).map((view) => (
+      <MenuItem key={view} label={TAB_LABELS[view]} pressed={view === selectedTab} closing="keep-focus" onChoose={() => navigate({ tab: view, item: null })} />
+    )),
+  };
+}
+
+function tabItemOf(entry: BoardMenuEntry, tabCount: TabCount | undefined, surroundings: MenuEntrySurroundings): LinkTabItem<BoardMenuEntry> {
+  const href = surroundings.hrefOf(BoardRouter.routeOfMenuEntry(entry, surroundings.progressViewToOpen));
+  const item: LinkTabItem<BoardMenuEntry> = entry === 'progress'
+    ? {
+      key: entry, label: PROGRESS_ENTRY_LABEL, href, ...progressMenuFieldsOf(surroundings)
+    }
+    : { key: entry, label: TAB_LABELS[entry], href };
   if (tabCount === undefined) return item;
   return { ...item, countBadge: <CountBadge count={tabCount.count} {...COUNT_BADGE_OF_TONE[tabCount.tone]} />, accessibleName: tabCount.ariaLabel };
 }
@@ -189,11 +229,15 @@ function SetupHeader({ project, model, setupSteps }: SetupHeaderProps) {
 }
 
 export function Header({
-  project, model, selectedTab, shownTabs, activityIsLive, sidePanelIsOpen, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts, questionNotifier, timestampSlices
+  project, model, selectedTab, shownTabs, progressViewToOpen, activityIsLive, sidePanelIsOpen, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts, questionNotifier,
+  timestampSlices
 }: HeaderProps) {
   const hrefOf = useBoardHrefOf();
   const navigate = useBoardNavigation();
   if (model.setupSteps !== null) return <SetupHeader project={project} model={model} setupSteps={model.setupSteps} />;
+  const menuEntrySurroundings: MenuEntrySurroundings = {
+    shownTabs, selectedTab, progressViewToOpen, hrefOf, navigate
+  };
   return (
     <header className="board-header">
       <div className="board-head-title-row">
@@ -214,7 +258,6 @@ export function Header({
                   isLive={activityIsLive}
                   timestampSlices={timestampSlices}
                   notifier={questionNotifier}
-                  onShowLane={onShowLane}
                 />
               )}
           </div>
@@ -227,9 +270,9 @@ export function Header({
             label="Views"
             mode="links"
             size="page"
-            items={shownTabs.map((tab) => tabItemOf(tab, tabCounts[tab], hrefOf))}
-            selectedKey={selectedTab}
-            onSelect={(tab) => navigate({ tab, item: null })}
+            items={BoardRouter.shownMenuEntriesOf(shownTabs).map((entry) => tabItemOf(entry, tabCounts[entry], menuEntrySurroundings))}
+            selectedKey={BoardRouter.menuEntryOf(selectedTab)}
+            onSelect={(entry) => navigate(BoardRouter.routeOfMenuEntry(entry, progressViewToOpen))}
           />
         </div>
         {tabBarEnd}

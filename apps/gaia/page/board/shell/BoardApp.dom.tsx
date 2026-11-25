@@ -1,13 +1,13 @@
 /**
- * The board's shell for one forge against fake services, in a happy-dom document. What matters: `BOARD_TAB_VIEWS` names a view for every
- * tab, and the main area holds the routed tab's view and no other; the header's tabs go to their routes through `goTo` under the mounted
- * forge; a lost stream disables every control; the board reads itself at the start and again after `board-changed`; the stored tab opens a
- * route naming none; a detail tab opens the detail panel on the routed item, which closes through `goTo`; and the board root, keyed by its
+ * The board's shell for one forge against fake services, in a happy-dom document. What matters: `BOARD_TAB_VIEWS` names a view for every tab, and the
+ * main area holds the routed tab's view and no other; the header's menu goes to its routes through `goTo` under the mounted forge, and the Progress view
+ * shown is remembered per board; a lost stream disables every control; the board reads itself at the start and again after `board-changed`; the stored
+ * tab opens a route naming none; a detail tab opens the detail panel on the routed item, which closes through `goTo`; and the board root, keyed by its
  * tracker id, unmounts one forge's board, its Flint with it, before it mounts another's, so the document never holds two Flints
- * (`.claude/rules/flint.md`). The Questions tab is drawn by its view, the question panel shows beside it, and `questions/<id>` opens it at
- * that question. The Kanban is drawn under the filter line, a card opens the detail panel over it, a header figure outlines its lane, and
- * its item `merge-queue` draws the Merge queue's detail. The Pipeline tab is drawn on a board with a readable pipeline and on one in
- * setup, where it is the only tab and the header holds the setup steps, the entities step among them in monorepo mode.
+ * (`.claude/rules/flint.md`). The Questions tab is drawn by its view, the question panel shows beside it, and `questions/<id>` opens it at that
+ * question. The Kanban is drawn under the filter line, a card opens the detail panel over it, a header figure outlines its lane, and its item
+ * `merge-queue` draws the Merge queue's detail. The Pipeline tab is drawn on a board with a readable pipeline and on one in setup, where it is the only
+ * tab and the header holds the setup steps, the entities step among them in monorepo mode.
  */
 import {
   act,
@@ -211,7 +211,7 @@ describe('the detail panel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       await Promise.resolve();
     });
-    expect(fake.followed.at(-1)).toBe(boardHrefOf('kanban'));
+    expect(fake.followed.at(-1)).toBe(boardHrefOf('progress/kanban'));
   });
 
   test('opens over no tab that is not a detail tab', async () => {
@@ -228,11 +228,25 @@ describe('the header\'s tabs', () => {
     renderedBoard(fake, { tab: 'kanban', item: null });
     await fake.answerReads(servingBoard());
     const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
-    expect(tabs[0]?.getAttribute('href')).toBe(boardHrefOf('kanban'));
+    expect(tabs[0]?.getAttribute('href')).toBe(boardHrefOf('tickets'));
     tabs[0]?.focus();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'ArrowRight' });
-    // No ticket of the fixture depends on another, so Waves is not shown and Progress follows the Kanban.
-    expect(fake.followed.at(-1)).toBe(boardHrefOf('progress'));
+    expect(fake.followed.at(-1)).toBe(boardHrefOf('progress/kanban'));
+  });
+
+  test('the Progress view shown is remembered for this board, and the Progress entry opens it from another tab', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'gantt', item: null });
+    await fake.answerReads(servingBoard());
+    expect(fake.storage.get(`gaia:board:${FIXTURE_TRACKER_ID}:progress-view`)).toBe('gantt');
+    cleanup();
+    renderedBoard(fake, { tab: 'agents', item: null });
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('link', { name: 'Progress Gantt' }).getAttribute('href')).toBe(boardHrefOf('progress/gantt'));
+    cleanup();
+    renderedBoard(fake, { tab: 'kanban', item: null });
+    await fake.answerReads(servingBoard());
+    expect(fake.storage.has(`gaia:board:${FIXTURE_TRACKER_ID}:progress-view`)).toBe(false);
   });
 });
 
@@ -287,7 +301,7 @@ describe('the board root', () => {
     expect(flintHandles.map((handle) => (handle === null ? 'removed' : 'made'))).toEqual(['made', 'removed', 'made']);
     expect(document.querySelectorAll(`[${FLINT_OVERLAY_ATTRIBUTE}]`)).toHaveLength(1);
     const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
-    expect(tabs[0]?.getAttribute('href')).toBe(`#forge/${OTHER_TRACKER_ID}/kanban`);
+    expect(tabs[0]?.getAttribute('href')).toBe(`#forge/${OTHER_TRACKER_ID}/tickets`);
   });
 });
 
@@ -325,7 +339,7 @@ describe('the Kanban', () => {
       fireEvent.click(document.querySelector('.board-kanban-card[data-ticket-id="3"]') ?? document.body);
       await Promise.resolve();
     });
-    expect(fake.followed.at(-1)).toBe(boardHrefOf('kanban/ticket/3'));
+    expect(fake.followed.at(-1)).toBe(boardHrefOf('progress/kanban/ticket/3'));
     cleanup();
     renderedBoard(fake, { tab: 'kanban', item: 'ticket/3' }, BOARD_TAB_VIEWS);
     await fake.answerReads(servingBoard());

@@ -27,12 +27,12 @@ describe('occupantChipsOf', () => {
     const flow = liveFlow();
     expect(FlowActivityPanelModel.occupantChipsOf(flow, 'builder')).toEqual([
       {
-        key: 'ticket-14', text: '14', route: { tab: 'kanban', item: 'ticket/14' }, state: 'in-progress'
+        key: 'ticket-14', text: '14', route: { tab: 'tickets', item: 'ticket/14' }, state: 'in-progress'
       },
     ]);
     expect(FlowActivityPanelModel.occupantChipsOf(flow, 'ticket-creation')).toEqual([
       {
-        key: 'draft-D3', text: 'D3 drafting', route: { tab: 'kanban', item: 'draft/D3' }, state: 'draft'
+        key: 'draft-D3', text: 'D3 drafting', route: { tab: 'tickets', item: 'draft/D3' }, state: 'draft'
       },
     ]);
     expect(FlowActivityPanelModel.occupantChipsOf(flow, 'review')).toEqual([]);
@@ -47,10 +47,10 @@ describe('inFlightChipsOf', () => {
   test('a ticket in flight is a chip in the in-progress colours that links to its detail, in the facts\' order', () => {
     expect(FlowActivityPanelModel.inFlightChipsOf(['14', '9'])).toEqual([
       {
-        key: 'ticket-14', text: '14', route: { tab: 'kanban', item: 'ticket/14' }, state: 'in-progress'
+        key: 'ticket-14', text: '14', route: { tab: 'tickets', item: 'ticket/14' }, state: 'in-progress'
       },
       {
-        key: 'ticket-9', text: '9', route: { tab: 'kanban', item: 'ticket/9' }, state: 'in-progress'
+        key: 'ticket-9', text: '9', route: { tab: 'tickets', item: 'ticket/9' }, state: 'in-progress'
       },
     ]);
   });

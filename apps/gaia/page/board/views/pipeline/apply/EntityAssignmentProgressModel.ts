@@ -30,7 +30,7 @@ export interface EntityAssignmentView {
   readonly rows:      readonly EntityAssignmentRowView[];
 }
 
-const KANBAN_TAB = 'kanban' as const;
+const TICKETS_TAB = 'tickets' as const;
 
 const LEAD = 'These tickets were filed before the pipeline had entities, and a ticket needs one before it can build. The product owner '
   + 'reads each ticket and the files it names, and assigns the entity itself. A ticket builds as soon as it has one.';
@@ -64,7 +64,7 @@ function rowOf(ticket: BoardEntityAssignmentTicketDocument, isRunning: boolean):
   const state = rowStateOf(ticket, isRunning);
   return {
     ticketId:    ticket.ticketId,
-    ticketRoute: { tab: KANBAN_TAB, item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.ticketId }) },
+    ticketRoute: { tab: TICKETS_TAB, item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.ticketId }) },
     title:       ticket.title ?? MISSING_TITLE,
     reason:      reasonOf(ticket, state),
     state,

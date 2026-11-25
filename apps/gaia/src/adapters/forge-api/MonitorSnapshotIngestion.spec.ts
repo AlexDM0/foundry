@@ -88,7 +88,7 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     'Ticket #001 filed: Search suggestions',
     {
       category:   'needs-user',
-      boardRoute: { tab: 'kanban', item: 'ticket/001' },
+      boardRoute: { tab: 'tickets', item: 'ticket/001' },
     },
   ],
   [
@@ -189,7 +189,7 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
         stamp:                   recorded.draftTicketFiledAt,
         stampWord:               'filed',
         actionLabel:             'Ready',
-        boardRoute:              { tab: 'kanban', item: 'ticket/001' },
+        boardRoute:              { tab: 'tickets', item: 'ticket/001' },
       },
       {
         key:                     'decision:E1',

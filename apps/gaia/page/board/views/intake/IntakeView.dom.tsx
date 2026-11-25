@@ -214,7 +214,7 @@ describe('the selected chat', () => {
     controls.render(intakeViewOf(BOARD, 'J7'));
     const aside = screen.getByRole('complementary', { name: 'Drafts of J7' });
     const draft = within(aside).getByRole('link', { name: '#060 Export as CSV' });
-    expect(draft.getAttribute('href')).toBe(boardHrefOf('kanban/ticket/060'));
+    expect(draft.getAttribute('href')).toBe(boardHrefOf('tickets/ticket/060'));
     expect(within(aside).getByText('Close intake offers #060 and #063 to ready.')).toBeDefined();
     await clickSettled(within(aside).getByRole('button', { name: 'Close intake' }));
     expect(controls.sent).toEqual([{

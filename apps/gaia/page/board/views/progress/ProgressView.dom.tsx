@@ -84,7 +84,7 @@ function renderProgress(boardState: BoardDocument = BOARD, storedEntries: Iterab
     removeItem: (key) => storage.delete(key),
   }));
   const routed = routedOnTab(
-    'progress',
+    'gantt',
     <ProgressView board={boardState} boardStore={boardStore} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
   );
   const rendered = render(routed.element);
@@ -137,9 +137,9 @@ describe('the chart', () => {
     fireEvent.click(screen.getByRole('link', { name: '#5' }));
 
     expect(navigatedRoutes).toEqual([
-      { tab: 'progress', item: 'task-row/1' },
-      { tab: 'progress', item: 'task-row/1' },
-      { tab: 'progress', item: 'task-row/1' },
+      { tab: 'gantt', item: 'task-row/1' },
+      { tab: 'gantt', item: 'task-row/1' },
+      { tab: 'gantt', item: 'task-row/1' },
     ]);
   });
 
@@ -191,10 +191,10 @@ describe('the review-rows choice', () => {
   });
 });
 
-test('opens with the title row: the tab name as a heading over its sentence', () => {
+test('opens with the title row: the view\'s name, Gantt, as a heading over its sentence', () => {
   renderProgress();
 
-  expect(screen.getByRole('heading', { level: 2, name: 'Progress' })).not.toBeNull();
+  expect(screen.getByRole('heading', { level: 2, name: 'Gantt' })).not.toBeNull();
   expect(screen.getByText(/^Each ticket's builds and reviews over time/)).not.toBeNull();
 });
 
@@ -307,7 +307,7 @@ describe('the finished-work window', () => {
   function renderInWindow(boardState: BoardDocument, cutoffEpochMilliseconds: number) {
     const finishedWorkWindow = { choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00') } as const;
     const view = <ProgressView board={boardState} boardStore={memoryBoardStore()} nowEpochMilliseconds={finishedWorkWindow.nowEpochMilliseconds} todayCalendarDate="2026-09-18" />;
-    return render(routedOnTab('progress', <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>{view}</FinishedWorkWindowContext.Provider>).element);
+    return render(routedOnTab('gantt', <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>{view}</FinishedWorkWindowContext.Provider>).element);
   }
 
   test('draws no row that finished before the window, and every open row', () => {
@@ -329,7 +329,7 @@ describe('the finished-work window', () => {
     }));
     const viewOf = (cutoffEpochMilliseconds: number) => {
       const finishedWorkWindow = { choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00') } as const;
-      return routedOnTab('progress', (
+      return routedOnTab('gantt', (
         <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
           <ProgressView board={WINDOW_BOARD} boardStore={boardStore} nowEpochMilliseconds={finishedWorkWindow.nowEpochMilliseconds} todayCalendarDate="2026-09-18" />
         </FinishedWorkWindowContext.Provider>
@@ -359,7 +359,7 @@ test('moves a tick label near the right edge to the left of its line', () => {
 
 test('marks nothing on the first board, then each moved or new row until its highlight has played', () => {
   const view = (boardState: BoardDocument) => routedOnTab(
-    'progress',
+    'gantt',
     <ProgressView board={boardState} boardStore={memoryBoardStore()} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
   ).element;
   const firstBoard = exampleProgressBoard({ tasks: [exampleProgressTask(1, { status: 'committed' }), exampleProgressTask(2, { status: 'committed' })] });
@@ -392,7 +392,7 @@ describe('the board range and clear controls', () => {
       removeItem: (key) => storage.delete(key),
     }));
     const routed = routedOnTab(
-      'progress',
+      'gantt',
       <ProgressView board={BOARD} boardStore={boardStore} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
     );
     render(<ControlSurroundingsContext.Provider value={fake.surroundings}>{routed.element}</ControlSurroundingsContext.Provider>);

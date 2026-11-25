@@ -35,7 +35,7 @@ describe('the rows', () => {
       ['22', 'Give Button a loading state', 'Assigned by you: Touches packages/design-system/', 'assigned', 'design-system'],
       ['23', 'No longer on the board', 'The product owner has not assigned it yet.', 'waiting', 'Waiting'],
     ]);
-    expect(view.rows[0]?.ticketRoute).toEqual({ tab: 'kanban', item: 'ticket/21' });
+    expect(view.rows[0]?.ticketRoute).toEqual({ tab: 'tickets', item: 'ticket/21' });
   });
 
   test('once the product owner ended, an unassigned ticket has no entity', () => {

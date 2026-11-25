@@ -6,6 +6,8 @@
 /* Lanes share the width, stretch to the tallest and grow with their cards (the page scrolls, never a lane); a narrow window scrolls the
    board sideways and the frame fades the edge it can still scroll to. */
 .board-kanban { display: flex; flex-direction: column; gap: 14px; }
+/* The head's link to Tickets while drafts wait on User: orange, the colour of what waits on User. */
+.board-kanban-drafts-link { align-self: flex-start; font-weight: 600; color: var(--link); }
 .board-kanban-frame { position: relative; }
 .board-kanban-frame::before,
 .board-kanban-frame::after { content: ""; position: absolute; top: 0; bottom: var(--sp-1); z-index: 3; width: 40px; pointer-events: none; opacity: 0; transition: opacity var(--motion-fast); }

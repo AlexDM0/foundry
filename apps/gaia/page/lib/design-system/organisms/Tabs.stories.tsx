@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState }            from 'react';
 
 import { CountBadge }           from '../atoms/CountBadge.tsx';
+import { MenuItem }             from '../molecules/Menu.tsx';
 import { Tabs, type TabsProps } from './Tabs.tsx';
 
 type ExampleTab = 'overview' | 'agents' | 'log';
@@ -41,6 +42,28 @@ export const Links: Story = {
     items: [
       { key: 'overview', label: 'Overview', href: '#overview' },
       { key: 'agents', label: 'Agents', href: '#agents' },
+      { key: 'log', label: 'Log', href: '#log' },
+    ],
+  },
+};
+export const LinksWithMenu: Story = {
+  args: {
+    mode:  'links',
+    items: [
+      { key: 'overview', label: 'Overview', href: '#overview' },
+      {
+        key:       'agents',
+        label:     'Agents',
+        href:      '#agents/list',
+        subLabel:  'List',
+        menuLabel: 'Agents views',
+        menuItems: (
+          <>
+            <MenuItem label="List" pressed closing="return-focus" onChoose={() => undefined} />
+            <MenuItem label="Grid" closing="return-focus" onChoose={() => undefined} />
+          </>
+        ),
+      },
       { key: 'log', label: 'Log', href: '#log' },
     ],
   },

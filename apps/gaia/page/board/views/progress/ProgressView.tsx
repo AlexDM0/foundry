@@ -1,10 +1,9 @@
 /**
- * The Progress tab: its title row, the range control and the row options above one card holding the Gantt chart of `ProgressModel`, its
- * sticky head carrying the column names in the pinned cell and the axis ticks on the track, its rows grouped by epic on a board with
- * epics. Bars, ticks, spans and the now line are placed through the `style` prop. The range, the name column, the folded groups and the
- * review-rows choice are kept per viewer under their keys. A row opens its row detail in place; its number links to its ticket on
- * Tickets, an epic head's name to that epic. The tab is the timeline habitat of Flint
- * (`UseTimelineHabitat.ts`).
+ * The Gantt, the Progress view of that name: its title row, the range control and the row options above one card holding the Gantt chart of
+ * `ProgressModel`, its sticky head carrying the column names in the pinned cell and the axis ticks on the track, its rows grouped by epic on a board
+ * with epics. Bars, ticks, spans and the now line are placed through the `style` prop. The range, the name column, the folded groups and the review-rows
+ * choice are kept per viewer under their keys. A row opens its row detail in place; its number links to its ticket on Tickets, an epic head's name to
+ * that epic. The tab is the timeline habitat of Flint (`UseTimelineHabitat.ts`).
  */
 
 import {
@@ -362,7 +361,7 @@ export function ProgressView({
   return (
     <div className="board-progress-view" data-name-column={nameColumnWidth} ref={viewElement} data-flint-workplace="">
       <ViewTitle
-        title="Progress"
+        title="Gantt"
         lead="Each ticket's builds and reviews over time, grouped by epic. Click a row to open it. Click its number to open the ticket."
       />
       <Row centerY between gap="twelve">
@@ -391,7 +390,7 @@ export function ProgressView({
           />
         </Menu>
       </Row>
-      <section ref={chartRef} className="board-progress-chart" aria-label="Progress chart" style={chartStyle}>
+      <section ref={chartRef} className="board-progress-chart" aria-label="Gantt chart" style={chartStyle}>
         <div className="board-progress-row board-progress-chart-head">
           <div className="board-progress-name">
             <span className="board-progress-column-name" data-column="id">ID</span>

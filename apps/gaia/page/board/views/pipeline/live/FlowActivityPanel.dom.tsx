@@ -35,10 +35,10 @@ describe('the activity aside', () => {
     expect(within(panel).getByRole('heading', { name: 'Now · 4 items' })).toBeDefined();
     const rows = [...panel.querySelectorAll<HTMLAnchorElement>('.design-system-activity-row')];
     expect(rows.map((row) => [row.querySelector('.design-system-activity-row-id')?.textContent, row.getAttribute('href')])).toEqual([
-      ['D3', '#forge/example-tracker/kanban/draft/D3'],
-      ['14', '#forge/example-tracker/kanban/ticket/14'],
-      ['15', '#forge/example-tracker/kanban/ticket/15'],
-      ['12', '#forge/example-tracker/kanban/ticket/12'],
+      ['D3', '#forge/example-tracker/tickets/draft/D3'],
+      ['14', '#forge/example-tracker/tickets/ticket/14'],
+      ['15', '#forge/example-tracker/tickets/ticket/15'],
+      ['12', '#forge/example-tracker/tickets/ticket/12'],
     ]);
     expect(rows.map((row) => [row.dataset['status'], row.querySelector('.design-system-effort-meter') !== null])).toEqual([
       ['step', true],

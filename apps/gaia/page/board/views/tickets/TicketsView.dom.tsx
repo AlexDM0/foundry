@@ -120,7 +120,7 @@ describe('the table', () => {
     const waiting = document.querySelector('tr[data-ticket-id="003"] .board-waiting-on');
     expect([waiting?.textContent, waiting?.querySelector('a')?.getAttribute('href')]).toEqual(['waiting on #002', boardHrefOf('tickets/ticket-row/002')]);
     const task = document.querySelector('tr[data-ticket-id="001"] td:last-child a');
-    expect([task?.textContent, task?.getAttribute('href')]).toEqual(['#001', boardHrefOf('progress/task-row/3')]);
+    expect([task?.textContent, task?.getAttribute('href')]).toEqual(['#001', boardHrefOf('progress/gantt/task-row/3')]);
   });
 
   test('a click, Enter or Space on a row opens its row form, and a link inside the row stays its own', () => {

@@ -46,7 +46,7 @@ const CONSTITUTION_NOTE = 'Apply commits CONSTITUTION.md to main, then stores th
 
 const SINGLE_DESCRIPTION = 'The board starts using it as shown on the flow.';
 
-const KANBAN_TAB = 'kanban' as const;
+const TICKETS_TAB = 'tickets' as const;
 
 const APPLY_REFUSED_TITLE = 'Apply is refused';
 
@@ -116,7 +116,7 @@ function ticketLinkOf(ticketId: string): TicketLinkView {
   return {
     ticketId,
     text:  `Open ${ticketId}`,
-    route: { tab: KANBAN_TAB, item: DetailRoute.itemTextOf({ form: 'ticket', ticketId }) },
+    route: { tab: TICKETS_TAB, item: DetailRoute.itemTextOf({ form: 'ticket', ticketId }) },
   };
 }
 

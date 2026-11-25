@@ -1,16 +1,17 @@
 /**
- * The header in a mounted board. What matters: the title row carries Forge's mark, the wordmark and the project as the one `h1`, and the
- * state pill reads Running with its dot only while live; the header offers no forge control and no theme button, which are Gaia's own
- * outside the board, and no concurrency field, which lives on the Agents tab; the status details read as one line; the figures link to
- * their tabs under the mounted forge, a lane's figure asks for its lane and the agents figure says what it counts; the arrow keys, Home and
- * End move along the tabs and go to them; the activity strip shows one chip per job holding a launch slot and none for a session job, the
- * counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds Flint's slot only on the
- * Kanban tab with no side panel open, cued by the first running chip, and ticks from the injected clock only while it is live; the Waiting
- * on User pill names the total and the escalated, opens its inbox in the served order with each action at its served target's route,
- * closes on Esc (handing the focus back), a pointer outside or a followed link, and its ages tick only while live; and the tabs count what
- * waits on User in their tones, with no badge at zero. In setup (no readable pipeline) the header holds only the brand, the title, the
- * Setting up pill, the new-code notice and the setup step bar, whose done steps show a check and link to their route, whose current step
- * is `aria-current="step"` and which says which step this is; with a pipeline set the Pipeline tab is last.
+ * The header in a mounted board. What matters: the title row carries Forge's mark, the wordmark and the project as the one `h1`, and the state pill
+ * reads Running with its dot only while live; the header offers no forge control and no theme button, which are Gaia's own outside the board, and no
+ * concurrency field, which lives on the Agents tab; the status details read as one line; the figures link to their tabs under the mounted forge, a
+ * lane's figure asks for its lane and the agents figure says what it counts; the menu comes in its order, Progress naming the view it opens, its menu
+ * offering the Progress views the board shows, the open one pressed, and going to the one chosen (`docs/design/board-menu.md`); the arrow keys, Home and
+ * End move along the menu and go to an entry's route; the activity strip shows one chip per job holding a launch slot and none for a session job, the
+ * counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds Flint's slot only on the Kanban tab
+ * with no side panel open, cued by the first running chip, and ticks from the injected clock only while it is live; the Waiting on User pill names the
+ * total and the escalated, opens its inbox in the served order with each action at its served target's route, closes on Esc (handing the focus back), a
+ * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero. In
+ * setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice and the setup step bar, whose done
+ * steps show a check and link to their route, whose current step is `aria-current="step"` and which says which step this is; with a pipeline set the
+ * Pipeline tab is last.
  */
 import {
   act,
@@ -49,12 +50,12 @@ import {
   WAITING_FIXTURE_NOW,
   waitingOnUserBoard
 } from '../testing/WaitingOnUserFixture.ts';
-import type { QuestionNotifier }                from '../views/questions/QuestionAlerts.ts';
-import type { BoardClock }                      from './BoardClock.ts';
-import { BoardRouter, type BoardTab }           from './BoardRouter.ts';
-import { Header }                               from './Header.tsx';
-import { headerModelOf, type HeaderFigureLane } from './HeaderModel.ts';
-import { WaitingOnUserModel }                   from './WaitingOnUserModel.ts';
+import type { QuestionNotifier }                         from '../views/questions/QuestionAlerts.ts';
+import type { BoardClock }                               from './BoardClock.ts';
+import { BoardRouter, type BoardTab, type ProgressView } from './BoardRouter.ts';
+import { Header }                                        from './Header.tsx';
+import { headerModelOf, type HeaderFigureLane }          from './HeaderModel.ts';
+import { WaitingOnUserModel }                            from './WaitingOnUserModel.ts';
 
 const STILL_CLOCK: BoardClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined };
 
@@ -93,18 +94,20 @@ function tickingClock(startsAt: Date = FIXTURE_NOW): { clock: BoardClock; advanc
 }
 
 interface HeaderSurroundings {
-  readonly activityIsLive?:  boolean;
-  readonly clock?:           BoardClock;
-  readonly connection?:      ConnectionState;
-  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
-  readonly notifier?:        QuestionNotifier;
+  readonly activityIsLive?:     boolean;
+  readonly clock?:              BoardClock;
+  readonly connection?:         ConnectionState;
+  readonly onShowLane?:         (lane: HeaderFigureLane) => void;
+  readonly notifier?:           QuestionNotifier;
   /** The board the pill and the tab counts read; without it the header shows no pill and no count. */
-  readonly waitingBoard?:    BoardDocument;
+  readonly waitingBoard?:       BoardDocument;
   /** Every tab but Pipeline unless given: the board says nothing of a pipeline. */
-  readonly shownTabs?:       readonly BoardTab[];
+  readonly shownTabs?:          readonly BoardTab[];
   /** The Kanban unless given. */
-  readonly selectedTab?:     BoardTab;
-  readonly sidePanelIsOpen?: boolean;
+  readonly selectedTab?:        BoardTab;
+  /** The Kanban unless given. */
+  readonly progressViewToOpen?: ProgressView;
+  readonly sidePanelIsOpen?:    boolean;
 }
 
 function headerElementOf(board: BoardDocument, surroundings: HeaderSurroundings, wrap: (view: ReactElement) => ReactElement): ReactElement {
@@ -116,6 +119,7 @@ function headerElementOf(board: BoardDocument, surroundings: HeaderSurroundings,
       model={headerModelOf(board, FIXTURE_NOW, surroundings.connection ?? 'live')}
       selectedTab={surroundings.selectedTab ?? 'kanban'}
       shownTabs={surroundings.shownTabs ?? BoardRouter.shownTabsOf(null, null, null)}
+      progressViewToOpen={surroundings.progressViewToOpen ?? 'kanban'}
       activityIsLive={surroundings.activityIsLive ?? true}
       sidePanelIsOpen={surroundings.sidePanelIsOpen ?? false}
       clock={surroundings.clock ?? STILL_CLOCK}
@@ -203,7 +207,7 @@ describe('the forge\'s controls and the status details', () => {
 describe('the figures and the tabs', () => {
   test('the lane figures open the Kanban, incidents their tab, tokens nothing, and no figure counts the open questions', () => {
     renderedHeader(servingBoard());
-    expect(screen.getByRole('link', { name: 'Show 1 / 4 agents working on Kanban' }).getAttribute('href')).toBe(boardHrefOf('kanban'));
+    expect(screen.getByRole('link', { name: 'Show 1 / 4 agents working on Kanban' }).getAttribute('href')).toBe(boardHrefOf('progress/kanban'));
     expect(screen.queryByRole('link', { name: /open questions/u })).toBeNull();
     expect(screen.getByRole('link', { name: 'Show 0 open incidents on Assistant' }).getAttribute('href')).toBe(boardHrefOf('assistant'));
     expect(screen.queryByRole('link', { name: /tokens today/u })).toBeNull();
@@ -231,21 +235,61 @@ describe('the figures and the tabs', () => {
     };
     tabs[0]?.focus();
     pressed('ArrowRight');
-    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Waves', boardHrefOf('waves')]);
+    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Progress·Kanban', boardHrefOf('progress/kanban')]);
     pressed('End');
     expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Intake', boardHrefOf('intake')]);
     pressed('ArrowRight');
-    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Kanban', boardHrefOf('kanban')]);
+    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Tickets', boardHrefOf('tickets')]);
     pressed('ArrowLeft');
     pressed('Home');
-    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Kanban', boardHrefOf('kanban')]);
+    expect([document.activeElement?.textContent, followed.at(-1)]).toEqual(['Tickets', boardHrefOf('tickets')]);
   });
 
-  test('the tabs follow the order given and mark the selected one', () => {
+  test('the menu comes in its order, Progress standing for its views and marked while one of them is open', () => {
     renderedHeader(servingBoard());
     const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Kanban', 'Waves', 'Progress', 'Epics', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
-    expect(tabs[0]?.getAttribute('aria-current')).toBe('page');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Tickets', 'Progress·Kanban', 'Epics', 'Agents', 'Questions', 'Assistant', 'Intake']);
+    expect(tabs.map((tab) => tab.getAttribute('aria-current'))).toEqual([null, 'page', null, null, null, null, null]);
+  });
+
+  test('a ticket\'s documents stand under Tickets', () => {
+    renderedHeader(servingBoard(), { selectedTab: 'documents' });
+    expect(screen.getByRole('link', { name: 'Tickets' }).getAttribute('aria-current')).toBe('page');
+  });
+});
+
+describe('the Progress entry', () => {
+  test('names the view it opens and leads to it, the one this viewer opened last while another entry is open', () => {
+    renderedHeader(servingBoard(), { selectedTab: 'agents', progressViewToOpen: 'gantt' });
+    const progress = screen.getByRole('link', { name: 'Progress Gantt' });
+    expect([progress.getAttribute('href'), progress.getAttribute('aria-current')]).toEqual([boardHrefOf('progress/gantt'), null]);
+  });
+
+  test('its caret opens a menu of the Progress views the board shows, the open one pressed, and a choice goes to its view', () => {
+    const followed = renderedHeader(servingBoard(), { selectedTab: 'waves', progressViewToOpen: 'waves' });
+    fireEvent.click(screen.getByRole('button', { name: 'Progress views' }));
+    const menu = screen.getByRole('dialog', { name: 'Progress views' });
+    expect(within(menu).getAllByRole('button').map((item) => [item.textContent, item.getAttribute('aria-pressed')]))
+      .toEqual([['Kanban', 'false'], ['Waves', 'true'], ['Gantt', 'false']]);
+    act(() => {
+      fireEvent.click(within(menu).getByRole('button', { name: 'Gantt' }));
+    });
+    expect([followed.at(-1), screen.queryByRole('dialog', { name: 'Progress views' })]).toEqual([boardHrefOf('progress/gantt'), null]);
+  });
+
+  test('offers no Waves on a board without waves', () => {
+    renderedHeader(servingBoard(), { shownTabs: BoardRouter.shownTabsOf(false, true, true) });
+    fireEvent.click(screen.getByRole('button', { name: 'Progress views' }));
+    expect(within(screen.getByRole('dialog', { name: 'Progress views' })).getAllByRole('button').map((item) => item.textContent)).toEqual(['Kanban', 'Gantt']);
+  });
+
+  test('a resting mouse opens its menu, and leaving the entry closes it', () => {
+    renderedHeader(servingBoard());
+    const group = screen.getByRole('button', { name: 'Progress views' }).closest('.design-system-tab-group') ?? document.body;
+    fireEvent.pointerOver(group, { pointerType: 'mouse' });
+    expect(screen.getByRole('dialog', { name: 'Progress views' })).toBeDefined();
+    fireEvent.pointerOut(group, { pointerType: 'mouse', relatedTarget: document.body });
+    expect(screen.queryByRole('dialog', { name: 'Progress views' })).toBeNull();
   });
 });
 
@@ -385,12 +429,12 @@ describe('waiting on User', () => {
       row.querySelector('.board-ask-side a')?.textContent,
       row.querySelector('.board-ask-side a')?.getAttribute('href')])).toEqual([
       ['E3', 'Answer', boardHrefOf('questions/E3')],
-      ['D2', 'Answer', boardHrefOf('kanban/draft/D2')],
+      ['D2', 'Answer', boardHrefOf('tickets/draft/D2')],
       ['E2', 'Answer', boardHrefOf('questions/E2')],
-      ['#009', 'Ready', boardHrefOf('kanban/ticket/009')],
-      ['#006', 'Review', boardHrefOf('kanban/ticket/006')],
-      ['#005', 'Accept', boardHrefOf('kanban/ticket/005')],
-      ['#015', 'Ready', boardHrefOf('kanban/ticket/015')],
+      ['#009', 'Ready', boardHrefOf('tickets/ticket/009')],
+      ['#006', 'Review', boardHrefOf('tickets/ticket/006')],
+      ['#005', 'Accept', boardHrefOf('tickets/ticket/005')],
+      ['#015', 'Ready', boardHrefOf('tickets/ticket/015')],
       ['E4', 'Answer', boardHrefOf('questions/E4')],
     ]);
     const escalatedAction = rows[0]?.querySelector('.board-ask-side a');
@@ -425,14 +469,10 @@ describe('waiting on User', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  test('Drafts on Kanban asks for the Ready lane', () => {
-    const lanes: HeaderFigureLane[] = [];
-    renderedWaitingHeader(waitingOnUserBoard(), { onShowLane: (lane) => lanes.push(lane) });
+  test('Drafts on Tickets leads to Tickets', () => {
+    renderedWaitingHeader(waitingOnUserBoard());
     opened();
-    act(() => {
-      fireEvent.click(within(inbox()).getByRole('link', { name: 'Drafts on Kanban' }));
-    });
-    expect(lanes).toEqual(['ready']);
+    expect(within(inbox()).getByRole('link', { name: 'Drafts on Tickets' }).getAttribute('href')).toBe(boardHrefOf('tickets'));
   });
 
   test('with nothing waiting the pill stays, neutral, and the inbox says nothing waits', () => {
@@ -481,9 +521,9 @@ describe('the tab counts', () => {
     return screen.getAllByRole('link').find((link) => link.classList.contains('design-system-tab') && name.test(link.textContent ?? '')) ?? document.body;
   }
 
-  test('Questions shows the escalated count with its dot, Kanban the rose count and the Assistant the grey one, each naming what it counts', () => {
+  test('Questions shows the escalated count with its dot, Tickets and Progress the rose count and the Assistant the grey one, each naming what it counts', () => {
     renderedWaitingHeader(waitingOnUserBoard());
-    const badges = [/^Questions/u, /^Kanban/u, /^Assistant/u].map((name) => {
+    const badges = [/^Tickets/u, /^Progress/u, /^Questions/u, /^Assistant/u].map((name) => {
       const badge = tab(name).querySelector('.design-system-count-badge');
       return [tab(name).getAttribute('aria-label'),
         badge?.textContent,
@@ -492,8 +532,9 @@ describe('the tab counts', () => {
         badge?.querySelector('.design-system-count-badge-dot') !== null];
     });
     expect(badges).toEqual([
+      ['Tickets, 4 wait on User', '4', 'state', 'accent-outline', false],
+      ['Progress, 1 waits on User', '1', 'state', 'accent-outline', false],
       ['Questions, 3 questions wait on User, 1 escalated', '3', 'error', null, true],
-      ['Kanban, 5 wait on User', '5', 'state', 'accent-outline', false],
       ['Assistant, 1 incident the Assistant is settling', '1', 'neutral', null, false],
     ]);
   });

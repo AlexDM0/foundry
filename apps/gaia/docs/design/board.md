@@ -51,23 +51,22 @@ A job state looks like the display state nearest its meaning:
 
 ## Kanban lanes and card shapes
 
-The Kanban has six lanes, in this order, and no lane of the drafts' own. A lane's head takes its colours from the display state
-it names.
+The Kanban has six lanes, in this order, and holds no draft: a draft ticket, a ticket for User's review and a filing draft live in
+Tickets only (`board-menu.md`, "The Kanban without drafts"). A lane's head takes its colours from the display state it names.
 
 Built in: `page/board/views/kanban/KanbanModel.ts`.
 Held by: `page/board/views/kanban/KanbanModel.spec.ts`.
 
 | Lane | Head colours of | Tickets in it | Empty text | Head hover leads with |
 | --- | --- | --- | --- | --- |
-| Ready | `committed` | `draft`, `ready-for-review`, `committed` | "Nothing waiting to start." | – |
+| Ready | `committed` | `committed` | "Nothing waiting to start." | – |
 | Building | `in-progress` | `in-progress` | "Nothing being built." | – |
 | In review | `reviewing` | `in-review` | "Nothing in review." | – |
 | Merge queue | `reviewed` | `reviewed`, and any ticket queued for the merge | "Nothing awaiting merge." | "by priority" |
 | Done | `delivered` | `delivered` | "Nothing done yet." | "newest first" |
 | Abandoned | `abandoned` | `abandoned` | "Nothing abandoned." | "newest first" |
 
-A card waits for a person or never started in the states `draft`, `ready-for-review`, `paused`, `in-review` and `abandoned`, and
-is drawn dashed. A card in `in-progress`, `reviewing` or `re-review` pulses while the board is live.
+A card waits for a person in the states `paused`, `in-review` and `abandoned`, and is drawn dashed. A card in `in-progress`, `reviewing` or `re-review` pulses while the board is live.
 
 ## The dependency model
 
@@ -292,7 +291,7 @@ view mounts with are no change.
 | | A ticket with `foundInReview` and no `introducedBy` appears | `review-filed-a-ticket` | `bug-jar` |
 | | A ticket with `introducedBy` appears | – | `chase-bug` from the row or card of the ticket it names; `escaped-bug` (`bug-source-is-not-shown`) when that is not on the page |
 | `epics` (Epics) | A ticket's `epics` gets a key | `ticket-joined-an-epic` | `ribbon` |
-| `timeline` (Progress) | A ticket becomes `in-progress` | – | `lay-bar-along` the row of the ticket's own task; `lay-bar` (`started-bar-is-not-shown`) when that row is not shown |
+| `timeline` (Gantt) | A ticket becomes `in-progress` | – | `lay-bar-along` the row of the ticket's own task; `lay-bar` (`started-bar-is-not-shown`) when that row is not shown |
 | `chat` (Intake) | A filing draft's state becomes `researching`, or a draft appears researching | `draft-is-researching` | `research` |
 
 Built in: `page/board/flint/UseHabitatHappenings.ts`, `page/board/flint/QuestionsSpriteModel.ts`,

@@ -98,7 +98,9 @@ function KanbanWithFilters({ board, store }: { readonly board: BoardDocument; re
         filters={filters}
         boardStore={store}
         streamIsLive
-        mergeQueueHref="#forge/example-tracker/kanban/merge-queue"
+        mergeQueueHref="#forge/example-tracker/progress/kanban/merge-queue"
+        draftsWaitingCount={0}
+        ticketsHref="#forge/example-tracker/tickets"
         onShowAllFinished={() => undefined}
         onChooseEntity={choices.chooseEntity}
       />

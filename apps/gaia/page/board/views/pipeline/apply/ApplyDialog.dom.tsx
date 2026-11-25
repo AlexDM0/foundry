@@ -257,7 +257,7 @@ describe('E94 before Apply', () => {
     const alert = within(applyDialog()).getByRole('alert');
     expect(within(alert).getByText('Apply is refused')).toBeDefined();
     expect(within(alert).getByText(SERVED_IN_FLIGHT_REFUSAL.text)).toBeDefined();
-    expect(within(alert).getByRole('link', { name: 'Open 14' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/ticket/14');
+    expect(within(alert).getByRole('link', { name: 'Open 14' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/ticket/14');
     expect(button(applyDialog(), 'Apply').disabled).toBe(true);
     expect(within(applyDialog()).queryByRole('checkbox', { name: /Resume the board/u })).toBeNull();
   });

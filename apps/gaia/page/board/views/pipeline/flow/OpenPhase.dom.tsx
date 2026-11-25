@@ -277,13 +277,13 @@ describe('live and editing marks', () => {
     renderPhase('A5', 'build');
     const chipsOn = (nodeId: string) => [...stepOf(nodeId).querySelectorAll<HTMLAnchorElement>('a.design-system-tag')]
       .map((chip) => [chip.textContent, chip.getAttribute('href')]);
-    expect(chipsOn('builder')).toEqual([['14', '#forge/example-tracker/kanban/ticket/14']]);
-    expect(chipsOn('merge-before-review')).toEqual([['15 · catching up', '#forge/example-tracker/kanban/ticket/15']]);
-    expect(chipsOn('gates-build')).toEqual([['12', '#forge/example-tracker/kanban/ticket/12']]);
+    expect(chipsOn('builder')).toEqual([['14', '#forge/example-tracker/tickets/ticket/14']]);
+    expect(chipsOn('merge-before-review')).toEqual([['15 · catching up', '#forge/example-tracker/tickets/ticket/15']]);
+    expect(chipsOn('gates-build')).toEqual([['12', '#forge/example-tracker/tickets/ticket/12']]);
     expect([within(stepOf('builder')).getByText('Working'), within(stepOf('gates-build')).getByText('Running')]).toHaveLength(2);
     cleanup();
     renderPhase('A5', 'ticket');
-    expect(within(stepOf('ticket-creation')).getByRole('link', { name: 'D3 drafting' }).getAttribute('href')).toBe('#forge/example-tracker/kanban/draft/D3');
+    expect(within(stepOf('ticket-creation')).getByRole('link', { name: 'D3 drafting' }).getAttribute('href')).toBe('#forge/example-tracker/tickets/draft/D3');
     expect(within(stepOf('human-ticket-review')).getByText('No ticket here now')).toBeDefined();
   });
 

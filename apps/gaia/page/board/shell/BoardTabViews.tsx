@@ -45,11 +45,11 @@ function PipelineTabView({ board, route, services }: BoardTabViewProps) {
 }
 
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
+  tickets:   ({ board, boardStore }) => <TicketsView board={board} boardStore={boardStore} />,
   kanban:    KanbanTabView,
   waves:     WavesTabView,
-  progress:  ProgressTabView,
+  gantt:     ProgressTabView,
   epics:     ({ board, route, connection }) => <EpicsView board={board} pointedEpicKey={DetailRoute.pointedEpicKeyOf(route)} connection={connection} />,
-  tickets:   ({ board, boardStore }) => <TicketsView board={board} boardStore={boardStore} />,
   questions: QuestionsTabView,
   agents:    ({ board, route, services }) => (
     <AgentsView

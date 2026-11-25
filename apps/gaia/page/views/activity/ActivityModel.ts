@@ -164,7 +164,7 @@ function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerI
       categoryWord: CATEGORY_WORDS[entry.category],
       dotRole:      dotRoleOf(entry, forges.get(entry.trackerId)),
       text:         entry.text,
-      href:         entry.boardRoute === null ? null : HashRouter.fragmentOf({ view: 'forge', trackerId: entry.trackerId, boardRoute: entry.boardRoute }),
+      href:         entry.boardRoute === null ? null : HashRouter.servedBoardFragmentOf(entry.trackerId, entry.boardRoute),
     }));
 }
 

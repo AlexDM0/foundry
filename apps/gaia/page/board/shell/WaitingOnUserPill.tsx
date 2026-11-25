@@ -10,7 +10,6 @@ import { StateToneUtil }                          from '../utils/StateToneUtil.t
 import type { TimestampSlices }                   from '../utils/TimeUtil.ts';
 import type { QuestionNotifier }                  from '../views/questions/QuestionAlerts.ts';
 import type { BoardClock }                        from './BoardClock.ts';
-import type { HeaderFigureLane }                  from './HeaderModel.ts';
 import { useEndPlacementOrStartWhenNarrow }       from './NarrowWindowPlacement.ts';
 import { WaitingOnUserInbox }                     from './WaitingOnUserInbox.tsx';
 import { WaitingOnUserModel, type WaitingOnUser } from './WaitingOnUserModel.ts';
@@ -21,13 +20,12 @@ export interface WaitingOnUserPillProps {
   readonly isLive:          boolean;
   readonly timestampSlices: TimestampSlices | null;
   readonly notifier:        QuestionNotifier;
-  readonly onShowLane:      ((lane: HeaderFigureLane) => void) | undefined;
 }
 
 const INBOX_LABEL = 'Waiting on User';
 
 export function WaitingOnUserPill({
-  waiting, clock, isLive, timestampSlices, notifier, onShowLane
+  waiting, clock, isLive, timestampSlices, notifier
 }: WaitingOnUserPillProps) {
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLSpanElement | null>(null);
@@ -64,7 +62,6 @@ export function WaitingOnUserPill({
             isLive={isLive}
             timestampSlices={timestampSlices}
             notifier={notifier}
-            onShowLane={onShowLane}
             onNavigate={() => setIsOpen(false)}
           />
         </Popover>

@@ -64,7 +64,7 @@ describe('the fleet document mapper', () => {
     };
     const reading = ForgeReadingMapUtil.fullReadingOf({ ...recordedSnapshot, attention: monitorEntries }, storefrontFacts, storefrontIdentity, EXAMPLE_READ_STAMP);
     const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [servingFleetForgeOf(reading)] });
-    expect(fleetDocument.forges[0]?.attention.map(({ boardRoute }) => boardRoute)).toEqual([{ tab: 'kanban', item: 'ticket/001' }, { tab: 'questions', item: 'E2' }]);
+    expect(fleetDocument.forges[0]?.attention.map(({ boardRoute }) => boardRoute)).toEqual([{ tab: 'tickets', item: 'ticket/001' }, { tab: 'questions', item: 'E2' }]);
   });
 
   test('stamps the fleet contract version it was built for', () => {

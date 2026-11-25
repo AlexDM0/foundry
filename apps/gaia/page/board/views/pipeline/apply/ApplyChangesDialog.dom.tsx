@@ -85,7 +85,7 @@ describe('the rows', () => {
     const tickets = within(applyChangesDialog()).getByRole('list', { name: 'Tickets in flight' });
     expect(within(tickets).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['14', '15']);
     expect(within(tickets).getAllByRole('link').map((chip) => [chip.className, chip.getAttribute('href')])).toEqual([
-      ['design-system-tag', '#forge/example-tracker/kanban/ticket/14'], ['design-system-tag', '#forge/example-tracker/kanban/ticket/15'],
+      ['design-system-tag', '#forge/example-tracker/tickets/ticket/14'], ['design-system-tag', '#forge/example-tracker/tickets/ticket/15'],
     ]);
   });
 });

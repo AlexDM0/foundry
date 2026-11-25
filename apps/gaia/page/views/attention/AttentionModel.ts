@@ -265,7 +265,7 @@ function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
 }
 
 function forgeInPlaceHrefOf(trackerId: string, boardRoute: FleetDocumentBoardRoute | null): string {
-  return HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute });
+  return HashRouter.servedBoardFragmentOf(trackerId, boardRoute);
 }
 
 /** The document sums today over the forges that report it, so with none reporting, its zero is not a count. */

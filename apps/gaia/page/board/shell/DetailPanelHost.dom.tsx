@@ -147,7 +147,7 @@ describe('the ticket form\'s sections', () => {
       window.dispatchEvent(new HashChangeEvent('hashchange'));
       await Promise.resolve();
     });
-    expect(window.location.hash).toBe(`${FORGE_PREFIX}kanban/ticket/002/activity`);
+    expect(window.location.hash).toBe(`${FORGE_PREFIX}progress/kanban/ticket/002/activity`);
     expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Activity' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('No log line names this ticket or its row.')).toBeTruthy();
