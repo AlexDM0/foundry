@@ -100,25 +100,36 @@ function characterOf(reference: string): string {
 const MarkedRangeContext = createContext<MarkedRange | null>(null);
 
 interface SourceTextProps {
-  readonly text:       string;
-  readonly start:      SourcePosition;
-  readonly className?: string | undefined;
+  readonly text:        string;
+  readonly start:       SourcePosition;
+  readonly unresolved?: boolean;
+}
+
+function SourceRun({ text, start, unresolved }: SourceTextProps) {
+  return unresolved === true
+    ? <span className="board-document-unresolved-place" data-source-line={start.line} data-source-column={start.column}>{text}</span>
+    : <span data-source-line={start.line} data-source-column={start.column}>{text}</span>;
 }
 
 /** A piece of source text, carrying where it starts, with the part of it inside the marked range drawn marked. */
-function SourceText({ text, start, className }: SourceTextProps) {
+function SourceText({ text, start, unresolved = false }: SourceTextProps) {
   const markedRange = useContext(MarkedRangeContext);
   const marked = markedRange === null ? null : DocumentSelectionModel.markedOffsetsInSpan(start, text, markedRange);
-  if (marked === null) return <span className={className} data-source-line={start.line} data-source-column={start.column}>{text}</span>;
+  if (marked === null) return <SourceRun text={text} start={start} unresolved={unresolved} />;
   const startOf = (offset: number) => DocumentSelectionModel.positionInSpan(start, text, offset);
   const markedStart = startOf(marked.from);
   const afterStart = startOf(marked.to);
-  const markedClassName = className === undefined ? 'board-document-marked' : `board-document-marked ${className}`;
   return (
     <>
-      {marked.from === 0 ? null : <span className={className} data-source-line={start.line} data-source-column={start.column}>{text.slice(0, marked.from)}</span>}
-      <mark className={markedClassName} data-source-line={markedStart.line} data-source-column={markedStart.column}>{text.slice(marked.from, marked.to)}</mark>
-      {marked.to === text.length ? null : <span className={className} data-source-line={afterStart.line} data-source-column={afterStart.column}>{text.slice(marked.to)}</span>}
+      {marked.from === 0 ? null : <SourceRun text={text.slice(0, marked.from)} start={start} unresolved={unresolved} />}
+      <mark
+        className={unresolved ? 'board-document-marked board-document-unresolved-place' : 'board-document-marked'}
+        data-source-line={markedStart.line}
+        data-source-column={markedStart.column}
+      >
+        {text.slice(marked.from, marked.to)}
+      </mark>
+      {marked.to === text.length ? null : <SourceRun text={text.slice(marked.to)} start={afterStart} unresolved={unresolved} />}
     </>
   );
 }
@@ -156,8 +167,7 @@ function piecesOf(text: string, quotes: readonly string[]): TextPiece[] {
 function TextSpan({ span, places }: { readonly span: Extract<MarkdownSpan, { readonly kind: 'text' }>; readonly places: readonly UnresolvedPlace[] }) {
   return piecesOf(span.text, quotesAt(span.start.line, places)).map((piece) => {
     const start = DocumentSelectionModel.positionInSpan(span.start, span.text, piece.offset);
-    const className = piece.unresolved ? 'board-document-unresolved-place' : undefined;
-    return <SourceText key={piece.offset} text={piece.text} start={start} className={className} />;
+    return <SourceText key={piece.offset} text={piece.text} start={start} unresolved={piece.unresolved} />;
   });
 }
 
