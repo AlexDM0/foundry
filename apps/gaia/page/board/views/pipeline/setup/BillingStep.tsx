@@ -6,13 +6,11 @@
  * choice and continues, which launches the pipeline agent and opens the research. Reopened while the record stands past it, a billing
  * change is saved to the record, and the way out is back to the current step. Back to agent leads to the step before.
  */
-import { useId, useState }                                           from 'react';
+import { useState }                                                  from 'react';
 import type { BoardPipelineSetupDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   ActionBar,
   Button,
-  ChoiceInput,
-  ChoiceOption,
   Row,
   Tag,
   Text,
@@ -27,6 +25,7 @@ import { PipelinePage }                                                 from '..
 import { PipelinePanel, PipelinePanelBody }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
 import { AgentChoiceModel }                                             from '../agent/AgentChoiceModel.ts';
+import { BillingCards }                                                 from '../agent/BillingCards.tsx';
 import { AgentMeter }                                                   from '../agent-panel/AgentMeter.tsx';
 import { AgentSessionModel }                                            from '../agent-panel/AgentSessionModel.ts';
 import { PIPELINE_AGENT_FLINT_LABEL }                                   from '../agent-panel/AgentStrip.tsx';
@@ -41,81 +40,6 @@ import { SetupStepHead, SetupTitleRow } from './SetupIntro.tsx';
 export interface BillingStepProps {
   readonly facts: PipelineViewFacts;
   readonly setup: BoardPipelineSetupDocument;
-}
-
-interface BillingCardsProps {
-  readonly cards:    readonly BillingCard[];
-  readonly choice:   BillingChoice;
-  readonly onChoose: (choice: BillingChoice) => void;
-}
-
-function CapPerLaunch({ choice, onChoose }: Omit<BillingCardsProps, 'cards'>) {
-  return (
-    <span className="board-pipeline-billing-cap">
-      Cap per launch
-      <span className="board-pipeline-billing-cap-field">
-        $
-        <input
-          className="board-pipeline-billing-cap-input"
-          type="text"
-          inputMode="decimal"
-          value={choice.capText}
-          placeholder="none"
-          aria-label="Cap per launch in US dollars"
-          onFocus={() => onChoose({ ...choice, mode: 'api' })}
-          onChange={(event) => onChoose({ mode: 'api', capText: event.currentTarget.value })}
-        />
-      </span>
-      <Text typeRole="small" subtle>Optional</Text>
-    </span>
-  );
-}
-
-/** The variable the key must be in, as forge serves it, and the cap per launch where a launch takes one. */
-function KeyFacts({ card, choice, onChoose }: Omit<BillingCardsProps, 'cards'> & { readonly card: BillingCard }) {
-  return (
-    <View gap="six">
-      {card.keyVariableName === null
-        ? null
-        : (
-          <Row centerY gap="six" wrap>
-            <Text muted>Read from</Text>
-            <Text mono>{card.keyVariableName}</Text>
-          </Row>
-        )}
-      {card.capsEachLaunch ? <CapPerLaunch choice={choice} onChoose={onChoose} /> : null}
-    </View>
-  );
-}
-
-function BillingCards({ cards, choice, onChoose }: BillingCardsProps) {
-  const groupName = useId();
-  return (
-    <div className="board-pipeline-billing-cards">
-      {cards.map((card) => (
-        <ChoiceOption
-          key={card.mode}
-          label={card.label}
-          description={card.description}
-          chosen={choice.mode === card.mode}
-          variant="card"
-          tone="question"
-          size="roomy"
-          input={(
-            <ChoiceInput
-              type="radio"
-              name={groupName}
-              checked={choice.mode === card.mode}
-              accessibleName={card.label}
-              onChange={() => onChoose({ ...choice, mode: card.mode })}
-            />
-          )}
-          {...(card.isDefault ? { marks: <Tag text="Default" tone="neutral" /> } : {})}
-          {...(card.mode === 'api' ? { facts: <KeyFacts card={card} choice={choice} onChoose={onChoose} /> } : {})}
-        />
-      ))}
-    </div>
-  );
 }
 
 /** The panel's introduction before the agent starts: Flint waving, and what it does once started. */

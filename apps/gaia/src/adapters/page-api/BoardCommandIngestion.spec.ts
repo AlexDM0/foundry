@@ -93,6 +93,7 @@ describe('commandOf, on a body it refuses', () => {
     const agentSet = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-agent-set'];
     const followingTheForge = { ...agentSet, agent: { vendor: 'example-agent', program: { follows: 'forge' } } };
     expect(readingOf(followingTheForge)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['agent.program'] });
+    expect(readingOf({ ...agentSet, billing: { mode: 'credit' } })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['billing'] });
     const { agent: _agent, ...setupStartWithoutAgent } = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-start'];
     expect(readingOf(setupStartWithoutAgent)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['agent'] });
     const toolWithoutPath = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-tools-set'], tools: [{ name: 'gh' }] };

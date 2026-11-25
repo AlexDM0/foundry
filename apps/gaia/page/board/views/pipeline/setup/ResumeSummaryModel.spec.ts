@@ -93,6 +93,10 @@ describe('the current step\'s chips', () => {
 
   test('a stopped pipeline agent resumes with its conversation', () => {
     expect(stepOf(setupOf('A0b-stopped'), 'design').chips).toEqual([{ text: 'Pipeline agent J4 stopped · resumes with its conversation', tone: 'neutral' }]);
+  });
+
+  test('a first setup at its billing step names no agent to resume: none started yet', () => {
+    expect(stepOf(setupOf('A0b-at-billing'), 'billing').chips).toEqual([{ text: 'Pipeline agent not started', tone: 'neutral' }]);
     const stopped = setupOf('A0b-stopped');
     expect(ResumeSummaryModel.leadTextOf(stopped, sessionStateOf(stopped))).toBe('Every step was saved as it happened. Setup stopped during the pipeline design.');
   });

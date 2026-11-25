@@ -145,7 +145,12 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   'pipeline-setup-agent': {
     ...VERSION, kind: 'pipeline-setup-agent', setupId: 'S2', agent: { vendor: 'example-agent', program: { follows: 'machine' } }
   },
-  'pipeline-agent-set':        { ...VERSION, kind: 'pipeline-agent-set', agent: { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } } },
+  'pipeline-agent-set': {
+    ...VERSION,
+    kind:    'pipeline-agent-set',
+    agent:   { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } },
+    billing: { mode: 'api', maximumBudgetDollars: 4 },
+  },
   'pipeline-tools-set':        { ...VERSION, kind: 'pipeline-tools-set', tools: [{ name: 'gh', path: null }] },
   'agent-look-again':          { ...VERSION, kind: 'agent-look-again' },
   'machine-agent-program-set': {

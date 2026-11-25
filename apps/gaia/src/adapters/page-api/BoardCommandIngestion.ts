@@ -304,7 +304,7 @@ const TICKET_DOCUMENT_HEAD = { ...PASSED_OVER_HEAD, ticketId: 'text', document: 
 const COMMAND_SHAPES = {
   'agent-look-again':          { ...PASSED_OVER_HEAD },
   'machine-agent-program-set': { ...PASSED_OVER_HEAD, vendor: 'text', programPath: 'text' },
-  'pipeline-agent-set':        { ...PASSED_OVER_HEAD, agent: PIPELINE_AGENT_RULE },
+  'pipeline-agent-set':        { ...PASSED_OVER_HEAD, agent: PIPELINE_AGENT_RULE, billing: { optional: BILLING_RULE } },
   'pipeline-setup-agent':      { ...PASSED_OVER_HEAD, setupId: 'text', agent: PIPELINE_AGENT_RULE },
   'pipeline-tools-set':        { ...PASSED_OVER_HEAD, tools: TOOL_REQUESTS_RULE },
   'hephaestus-pause':          { ...PASSED_OVER_HEAD },
@@ -602,7 +602,7 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
     case 'machine-agent-program-set':
       return { kind: document.kind, vendor: document.vendor, programPath: document.programPath };
     case 'pipeline-agent-set':
-      return { kind: document.kind, agent: pipelineAgentIn(document.agent) };
+      return { kind: document.kind, agent: pipelineAgentIn(document.agent), ...(document.billing === undefined ? {} : { billing: billingIn(document.billing) }) };
     case 'pipeline-setup-agent':
       return { kind: document.kind, setupId: document.setupId, agent: pipelineAgentIn(document.agent) };
     case 'pipeline-tools-set':

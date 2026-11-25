@@ -127,7 +127,8 @@ describe('contractCommandOf', () => {
     const followingAgent = { vendor: 'example-agent', program: { follows: 'machine' } } as const;
     const pinnedAgent = { vendor: 'example-agent', program: { pinned: programPath } };
     expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-setup-agent'))).toEqual({ kind: 'pipeline-setup-agent', setupId: 'S2', agent: followingAgent });
-    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-agent-set'))).toEqual({ kind: 'pipeline-agent-set', agent: pinnedAgent });
+    const billedByKey = { mode: 'api', maxBudgetUsd: 4 } as const;
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-agent-set'))).toEqual({ kind: 'pipeline-agent-set', agent: pinnedAgent, billing: billedByKey });
     const machineProgram = BoardCommandMapUtil.contractCommandOf(exampleCommandOf('machine-agent-program-set'));
     expect(machineProgram).toEqual({ kind: 'machine-agent-program-set', vendor: 'example-agent', programPath });
     expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('agent-look-again'))).toEqual({ kind: 'agent-look-again' });

@@ -2,7 +2,8 @@
  * A0bResume, the resume summary, as FlowResume draws it: a centred column of the page's title row, the setup steps in a vertical stepper,
  * each with its status and its summary, a done step with Open, the current step with its open questions and its pipeline agent, and the
  * note when main moved since the research; the footer counts the done steps and offers Start over, which asks first in the footer, and
- * Resume, which reopens the agent and goes to the current step.
+ * Resume, which reopens the agent and goes to the current step; before a first setup's billing, which no agent starts before, it only goes
+ * there.
  */
 import { useState }                        from 'react';
 import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -64,7 +65,8 @@ export function ResumeSummary({ setup, jobs }: ResumeSummaryProps) {
   const hrefOf = useBoardHrefOf();
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const mainMovedText = ResumeSummaryModel.mainMovedTextOf(setup);
-  const { currentStep } = setup.record;
+  const currentStepRoute = PipelineViewModel.setupStepRouteOf(setup.record.currentStep);
+  const resumeCommand = ResumeSummaryModel.resumeCommandOf(setup);
   return (
     <div className="board-pipeline-resume">
       <div className="board-pipeline-resume-column">
@@ -111,13 +113,17 @@ export function ResumeSummary({ setup, jobs }: ResumeSummaryProps) {
               end={(
                 <>
                   <Button label="Start over" onPress={() => setConfirmingStartOver(true)} />
-                  <CommandButton
-                    label={ResumeSummaryModel.resumeLabelOf(setup)}
-                    command={ResumeSummaryModel.resumeCommandOf(setup)}
-                    primary
-                    attention
-                    onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf(currentStep))}
-                  />
+                  {resumeCommand === null
+                    ? <Button label={ResumeSummaryModel.resumeLabelOf(setup)} emphasis="primary" attention href={hrefOf(currentStepRoute)} />
+                    : (
+                      <CommandButton
+                        label={ResumeSummaryModel.resumeLabelOf(setup)}
+                        command={resumeCommand}
+                        primary
+                        attention
+                        onApplied={() => navigateTo(currentStepRoute)}
+                      />
+                    )}
                 </>
               )}
             />

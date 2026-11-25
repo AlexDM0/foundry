@@ -72,12 +72,12 @@ export interface BillingFooterLines {
 }
 
 /** The ways the record's agent bills, its default first, as its vendor serves them; none while the forge names none. */
-function billingOptionsOf(facts: BillingFacts, record: BoardSetupRecordDocument): readonly BoardAgentBillingOptionDocument[] {
+function billingOptionsOf(facts: BillingFacts, record: Pick<BoardSetupRecordDocument, 'agent'>): readonly BoardAgentBillingOptionDocument[] {
   const vendor = AgentChoiceModel.chosenVendorOf(facts.agent, record.agent);
   return facts.agent.vendors.find((known) => known.vendor === vendor)?.billingOptions ?? [];
 }
 
-function displayNameOf(agent: BoardAgentDocument, record: BoardSetupRecordDocument): string {
+function displayNameOf(agent: BoardAgentDocument, record: Pick<BoardSetupRecordDocument, 'agent'>): string {
   return AgentChoiceModel.displayNameOf(agent, AgentChoiceModel.chosenVendorOf(agent, record.agent));
 }
 
@@ -89,7 +89,8 @@ function descriptionOf(option: BoardAgentBillingOptionDocument, displayName: str
   return 'Billed to the API key in Hephaestus\'s environment. The key is never stored.';
 }
 
-function billingCardsOf(facts: BillingFacts, record: BoardSetupRecordDocument): readonly BillingCard[] {
+/** The cards of the agent a record names: a setup record's, or the forge's stored one as its settings pass it. */
+function billingCardsOf(facts: BillingFacts, record: Pick<BoardSetupRecordDocument, 'agent'>): readonly BillingCard[] {
   const displayName = displayNameOf(facts.agent, record);
   return billingOptionsOf(facts, record).map((option, i) => ({
     mode:            option.mode,

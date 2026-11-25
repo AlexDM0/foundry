@@ -3,7 +3,8 @@
  * machine's program, the path and that it runs; a program kept for every forge, when other forges follow this machine's, asks first and
  * names how many, and sends nothing until confirmed; unticked it pins the program with `pipeline-agent-set`; Look again sends
  * `agent-look-again`; Edit tools lists each tool with where it was found or that the machine lacks it, and keeps the edited list whole with
- * `pipeline-tools-set`, a tool added by name for forge to find; and the live footer leads here.
+ * `pipeline-tools-set`, a tool added by name for forge to find; the billing shows only while the pipeline bills a way the agent does not, and
+ * saves the chosen way with the agent as it is, in one `pipeline-agent-set`; and the live footer leads here.
  */
 import {
   cleanup,
@@ -18,12 +19,12 @@ import {
   test
 } from 'bun:test';
 
-import { ProgramFileChooserContext }                        from '../../../shell/ProgramFileChooser.ts';
-import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR } from '../../../testing/AgentFixture.ts';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
-import { onBoard }                                          from '../../../testing/OnBoard.ts';
-import { pipelineBoardStateOf, pipelineViewServicesOf }     from '../../../testing/PipelineFixture.ts';
-import { PipelineView }                                     from '../PipelineView.tsx';
+import { ProgramFileChooserContext }                                              from '../../../shell/ProgramFileChooser.ts';
+import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR }                       from '../../../testing/AgentFixture.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
+import { onBoard }                                                                from '../../../testing/OnBoard.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { PipelineView }                                                           from '../PipelineView.tsx';
 
 afterEach(() => {
   cleanup();
@@ -33,11 +34,11 @@ afterEach(() => {
 const SETTINGS_ROUTE = { tab: 'pipeline', item: 'settings' } as const;
 const CHOSEN_PATH = '/Users/example/tools/example-agent';
 
-function renderSettings() {
+function renderSettings(fixture: PipelineFixtureName = 'forge-settings') {
   const controls = fakeControls();
   controls.render(
     <ProgramFileChooserContext value={() => Promise.resolve(CHOSEN_PATH)}>
-      {onBoard(<PipelineView facts={pipelineBoardStateOf('forge-settings')} route={SETTINGS_ROUTE} {...pipelineViewServicesOf()} />)}
+      {onBoard(<PipelineView facts={pipelineBoardStateOf(fixture)} route={SETTINGS_ROUTE} {...pipelineViewServicesOf()} />)}
     </ProgramFileChooserContext>,
   );
   return controls;
@@ -83,6 +84,24 @@ describe('the agent', () => {
     const controls = renderSettings();
     await clickSettled(screen.getByRole('button', { name: 'Look again' }));
     expect(controls.sent).toEqual([{ ...SENT_COMMAND_VERSION, kind: 'agent-look-again' }]);
+  });
+});
+
+describe('the billing', () => {
+  test('is not shown while the pipeline\'s billing is a way the agent bills', () => {
+    renderSettings();
+    expect(screen.queryByRole('heading', { name: 'Billing' })).toBeNull();
+  });
+
+  test('shows while the pipeline bills a way the agent does not, and saves the chosen way with the agent as it is', async () => {
+    const controls = renderSettings('forge-settings-billing-not-offered');
+    expect(screen.getByRole('heading', { name: 'Billing' })).toBeDefined();
+    expect(screen.getByText('The pipeline bills by an API key, which Example Agent does not offer, so no job launches. Choose how Example Agent bills.')).toBeDefined();
+    expect(screen.queryByLabelText('API key')).toBeNull();
+    await clickSettled(screen.getByRole('button', { name: 'Save billing' }));
+    expect(controls.sent).toEqual([{
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-agent-set', agent: { vendor: EXAMPLE_AGENT_VENDOR, program: { follows: 'machine' } }, billing: { mode: 'subscription' }
+    }]);
   });
 });
 

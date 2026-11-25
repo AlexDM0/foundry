@@ -375,7 +375,11 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
     questionId: command.questionId,
     answer:     answerOut(command.answer),
   }),
-  'pipeline-agent-set':     (command) => ({ kind: command.kind, agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
+  'pipeline-agent-set': (command) => ({
+    kind:  command.kind,
+    agent: BoardAgentMapUtil.pipelineAgentOut(command.agent),
+    ...(command.billing === undefined ? {} : { billing: billingOut(command.billing) }),
+  }),
   'pipeline-setup-agent':   (command) => ({ kind: command.kind, setupId: command.setupId, agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
   'pipeline-tools-set':     (command) => ({ kind: command.kind, tools: command.tools === null ? null : command.tools.map(BoardAgentMapUtil.toolRequestOut) }),
   'pipeline-setup-billing': (command) => ({ kind: command.kind, setupId: command.setupId, billing: billingOut(command.billing) }),

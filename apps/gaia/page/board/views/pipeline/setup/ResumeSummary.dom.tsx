@@ -1,7 +1,8 @@
 /**
  * The resume summary against fake controls. What matters: the bare `#pipeline` of an open setup shows it in place of the landing; each
  * step row shows its status and summary, a done row Open; Start over asks first and sends only on the confirm; the main-moved note shows
- * only while main moved; the footer counts the done steps; Resume sends the record's id and then opens the current step.
+ * only while main moved; the footer counts the done steps; Resume sends the record's id and then opens the current step, but before a
+ * first setup's billing it sends nothing and only opens the billing step.
  */
 import {
   cleanup,
@@ -93,6 +94,14 @@ describe('the resume summary', () => {
     await clickSettled(screen.getByRole('button', { name: 'Resume pipeline design' }));
     expect(controls.sent).toEqual([{ ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-resume', setupId: 'S1' }]);
     expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/design');
+  });
+
+  test('before a first setup\'s billing, Resume sends nothing, since forge starts no agent without a billing, and opens the billing step', () => {
+    const controls = renderResume('A0b-at-billing');
+    const resume = screen.getByRole('link', { name: 'Resume billing' });
+    expect(resume.getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/billing');
+    fireEvent.click(resume);
+    expect(controls.sent).toEqual([]);
   });
 
   test('a pending Apply names the constitution commit on its row', () => {

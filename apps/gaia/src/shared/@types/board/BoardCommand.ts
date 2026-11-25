@@ -39,7 +39,8 @@ export type BoardCommand =
   | BoardTicketDocumentCommand
   | { readonly kind: 'agent-look-again' }
   | { readonly kind: 'machine-agent-program-set'; readonly vendor: string; readonly programPath: string }
-  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgent }
+  /** A billing sent with the agent is stored with it; forge refuses a change that would leave a billing the new vendor does not bill by. */
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgent; readonly billing?: BoardBilling }
   | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: BoardPipelineAgent }
   | { readonly kind: 'pipeline-tools-set'; readonly tools: readonly BoardToolRequest[] | null }
   | { readonly kind: 'hephaestus-pause' }

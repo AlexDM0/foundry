@@ -83,6 +83,7 @@ export type PipelineFixtureName =
   | 'agent-step-refused'
   | 'A5-no-agent'
   | 'forge-settings'
+  | 'forge-settings-billing-not-offered'
   | 'A3b'
   | 'A3b-anchored-line-edited'
   | 'A2'
@@ -1401,6 +1402,11 @@ function billingStepState(billing: BoardBillingDocument | null): BoardDocument {
 
 const NOT_RUNNING_CHECK = { verdict: 'does-not-run', cause: EXAMPLE_NOT_LAUNCHED.cause, text: EXAMPLE_NOT_LAUNCHED.text } as const;
 
+/** The example agent as a vendor that bills only by its login. */
+const LOGIN_ONLY_VENDORS = exampleBoardAgent().vendors.map((vendor) => ({ ...vendor, billingOptions: vendor.billingOptions.filter((option) => option.mode === 'subscription'), }));
+
+const LOGIN_ONLY_AGENT = exampleBoardAgent({ vendors: LOGIN_ONLY_VENDORS });
+
 const UNCHOSEN_AGENT = exampleBoardAgent({
   choice: null, machineProgramPath: null, programPath: null, check: null, otherForgesFollowingMachine: 0
 });
@@ -1430,7 +1436,15 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     applied: { ...APPLIED_PIPELINE, pipeline: examplePipeline({ ...APPLIED_PIPELINE.pipeline, agent: null }) },
     flow:    liveFlow({ occupants: [], ticketIdsInFlight: [] }),
   }, { agent: UNCHOSEN_AGENT }),
-  'forge-settings':     () => pipelineBoardState({ applied: APPLIED_PIPELINE, flow: liveFlow({ occupants: [], ticketIdsInFlight: [] }) }),
+  'forge-settings':                     () => pipelineBoardState({ applied: APPLIED_PIPELINE, flow: liveFlow({ occupants: [], ticketIdsInFlight: [] }) }),
+  // A pipeline billed by an API key, which this forge's agent does not offer: it bills only by its login, so no job launches.
+  'forge-settings-billing-not-offered': () => pipelineBoardState(
+    {
+      applied: { ...APPLIED_PIPELINE, pipeline: { ...PROPOSED_PIPELINE, billing: { mode: 'api', maximumBudgetDollars: null } } },
+      flow:    liveFlow({ occupants: [], ticketIdsInFlight: [] }),
+    },
+    { agent: LOGIN_ONLY_AGENT },
+  ),
   'A0':                 () => pipelineBoardState({}),
   'A0-unreadable':      () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 5 }\n' } }),
   'A0b-running':        () => setupState(setupRecord()),

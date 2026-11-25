@@ -1,6 +1,7 @@
 /**
  * The resume summary's model, pure: each setup step with its status and the summary the facts give it, the current step's chips (open
- * questions, the pipeline agent's job), the footer's count of the done steps, the commands of Resume and Start over, and the note that
+ * questions, the pipeline agent's job), the footer's count of the done steps, the commands of Resume (none before a first setup's billing)
+ * and Start over, and the note that
  * main moved since the research. Every word comes from the facts' counts and values; the record's statuses decide, a time never does.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                                 from '../../../../../src/shared/constants/PageContractVersions.ts';
@@ -105,9 +106,13 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
   }
 }
 
-/** A job whose launch forge refused reads as not launched, never as the starting its state names. */
+/**
+ * A job whose launch forge refused reads as not launched, never as the starting its state names; a record no agent served yet has none to
+ * resume.
+ */
 function agentChipTextOf(facts: BoardPipelineSetupDocument, sessionState: AgentSessionState): string {
-  const agent = facts.record.agentJobId === null ? 'Pipeline agent' : `Pipeline agent ${facts.record.agentJobId}`;
+  if (facts.record.agentJobId === null) return 'Pipeline agent not started';
+  const agent = `Pipeline agent ${facts.record.agentJobId}`;
   if (sessionState === 'not-launched') return `${agent} not launched`;
   return facts.agentJobState === null
     ? `${agent} stopped · resumes with its conversation`
@@ -157,7 +162,12 @@ function resumeLabelOf(facts: BoardPipelineSetupDocument): string {
   return `Resume ${stepWordsOf(facts.record.currentStep)}`;
 }
 
-function resumeCommandOf(facts: BoardPipelineSetupDocument): BoardCommandDocument {
+/**
+ * The resume command; `null` for a first setup with no billing yet, which forge refuses to resume, since no pipeline agent starts before the
+ * billing step chose one: Resume then only goes to the current step.
+ */
+function resumeCommandOf(facts: BoardPipelineSetupDocument): BoardCommandDocument | null {
+  if (facts.record.mode === 'setup' && facts.record.billing === null) return null;
   return { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-resume', setupId: facts.record.setupId };
 }
 

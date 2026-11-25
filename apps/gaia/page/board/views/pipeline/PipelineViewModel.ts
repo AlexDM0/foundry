@@ -188,15 +188,13 @@ function agentChoiceRouteOf(facts: Pick<BoardDocument, 'pipeline'>): BoardRoute 
 
 /**
  * The way to fix a job forge did not launch, with its control's words: a billing its vendor does not offer is chosen again at the billing
- * step while a first setup is open, else with the agent in the forge's settings, which show no billing; any other cause is the agent's
- * program, where the agent is chosen.
+ * step while a first setup is open, else in the forge's settings, which show the billing while it is not a way the agent bills; any other
+ * cause is the agent's program, where the agent is chosen.
  */
 function notLaunchedFixOf(facts: Pick<BoardDocument, 'pipeline' | 'agent'>, cause: BoardAgentProgramRefusalCause): NotLaunchedFix {
   const route = agentChoiceRouteOf(facts);
   if (cause === 'billing-not-offered') {
-    return facts.pipeline.setup?.record.mode === 'setup'
-      ? { label: 'Choose how the agent bills', route: setupStepRouteOf('billing') }
-      : { label: 'Choose this forge\'s agent', route };
+    return { label: 'Choose how the agent bills', route: facts.pipeline.setup?.record.mode === 'setup' ? setupStepRouteOf('billing') : route };
   }
   if (route === SETUP_LANDING_ROUTE) return { label: 'Set up the pipeline', route };
   const displayName = AgentChoiceModel.displayNameOf(facts.agent, AgentChoiceModel.chosenVendorOf(facts.agent, facts.agent.choice));

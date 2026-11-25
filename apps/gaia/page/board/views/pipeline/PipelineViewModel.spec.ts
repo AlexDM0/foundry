@@ -172,10 +172,10 @@ describe('where a job forge did not launch is fixed', () => {
       .toEqual({ label: 'Choose the Example Agent program…', route: pipelineRoute('settings') });
   });
 
-  test('a billing its vendor does not offer leads to the billing step while a first setup is open, else to the forge\'s agent', () => {
+  test('a billing its vendor does not offer leads to the billing step while a first setup is open, else to the forge\'s settings\' billing', () => {
     expect(PipelineViewModel.notLaunchedFixOf(pipelineBoardStateOf('A1'), 'billing-not-offered'))
       .toEqual({ label: 'Choose how the agent bills', route: pipelineRoute('setup/billing') });
     expect(PipelineViewModel.notLaunchedFixOf(pipelineBoardStateOf('A5'), 'billing-not-offered'))
-      .toEqual({ label: 'Choose this forge\'s agent', route: pipelineRoute('settings') });
+      .toEqual({ label: 'Choose how the agent bills', route: pipelineRoute('settings') });
   });
 });

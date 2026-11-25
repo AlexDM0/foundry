@@ -40,7 +40,8 @@ export type BoardCommandDocument = BoardTicketDocumentCommandDocument | { readon
   | { readonly kind: 'agent-look-again' }
   /** This machine's program of the vendor, for every forge that follows it; kept only once it runs. */
   | { readonly kind: 'machine-agent-program-set'; readonly vendor: string; readonly programPath: string }
-  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgentDocument }
+  /** A billing sent with the agent is stored with it, as the forge's settings send it when the stored billing is not the agent's. */
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: BoardPipelineAgentDocument; readonly billing?: BoardBillingDocument }
   | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: BoardPipelineAgentDocument }
   /** `null` follows the pipeline's programs again. */
   | { readonly kind: 'pipeline-tools-set'; readonly tools: readonly BoardToolRequestDocument[] | null }
