@@ -20,7 +20,6 @@ import { OutputUtil }                                     from '../../utils/Outp
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import type { InstalledFileTexts }                        from '../InstalledFileGeneration.ts';
-import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
 import {
   IGNORE_OUTCOME_WORDS,
   optOutFlagsGiven,
@@ -113,7 +112,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
       + `Run \`${PRODUCT_NAMES.PROGRAM} update\` in ${existingWorkspace.rootDirectory} instead to refresh what the tracker writes into the repository.`,
     );
   }
-  refuseBesideAnOlderProgram(workspace.rootDirectory);
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
 
   // Every installed text is computed before the first write, so a template that will not read leaves no tracker and no file behind.

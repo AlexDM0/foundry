@@ -115,8 +115,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   adapter must pass.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, Hephaestus port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
-  folder, marker, key and removal derives from it. The build is `forge` beside the released program, and
-  `init` and `update` refuse `older-program-present` where the released program's data folder exists.
+  folder, marker, key and removal derives from it. The build is `forge` beside the released program; it keeps its own
+  `.forge/` and ignores the released program's data folder.
 
 ### Errors and exit codes
 

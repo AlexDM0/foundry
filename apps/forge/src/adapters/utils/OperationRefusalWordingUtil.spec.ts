@@ -82,20 +82,6 @@ test('no tracker at the AGENT_PROGRESS_ROOT directory is worded naming the varia
   expect(message).toContain(ROOT_OVERRIDE_VARIABLE);
 });
 
-test('an older program\'s data folder at the root is worded naming the folder, both programs and where to run instead', () => {
-  const refusal = new OperationRefusal('refused', {
-    kind:                'older-program-present',
-    rootDirectory:       '/example/repository',
-    olderDataFolderPath: '/example/repository/.agent-progress',
-    program:             'forge',
-    olderProgram:        'agent-progress',
-  });
-  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    '/example/repository/.agent-progress holds what agent-progress keeps for /example/repository, and forge is built to run '
-    + 'beside it only in a repository agent-progress does not track, so nothing was written. Run forge in a scratch repository instead.',
-  );
-});
-
 test('no tracker found above the start directory is worded naming that directory and `agent-progress init`', () => {
   const refusal = new OperationRefusal('refused', { kind: 'no-tracker-found', searchedFrom: '/example/untracked' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(

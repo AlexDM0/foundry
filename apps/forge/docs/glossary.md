@@ -1027,7 +1027,7 @@ turns it into `pipeline.json`.
 ### side-by-side build
 
 This build under `PRODUCT_NAMES`, whose names differ from the [released program](#released-program)'s so both fit on one
-machine. It alone refuses an install beside the other's data folder (`older-program-present`).
+machine. Each keeps its own data folder and ignores the other's, so both may track one repository.
 
 ### spec agent, plan agent
 

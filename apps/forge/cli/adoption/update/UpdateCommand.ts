@@ -16,7 +16,6 @@ import { INSTALL_VERSION }                                from '../../constants/
 import { HephaestusRemote }                               from '../../hephaestus/HephaestusRemote.ts';
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
-import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
 import {
   optOutFlagsGiven,
   recordInstallVersion,
@@ -48,7 +47,6 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   // Under --json only the answer reaches standard output; the report lines of the refresh go nowhere.
   const output = answersInJson ? (_line: string) => undefined : context.standardOutput;
   const workspace          = requireWorkspace(context.currentDirectory);
-  refuseBesideAnOlderProgram(workspace.rootDirectory);
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
   const installedFileTexts = installedFileTextsFor(context.agentAdapter.promptFills);
   const report             = refreshTrackedRepository({

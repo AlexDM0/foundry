@@ -331,9 +331,6 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'install-version-mismatch': {
     kind: 'install-version-mismatch', rootDirectory: ROOT, manifestFilePath: `${ROOT}/version.json`, installVersion: 30, mismatch: { reason: 'unversioned' }
   },
-  'older-program-present': {
-    kind: 'older-program-present', rootDirectory: ROOT, olderDataFolderPath: `${ROOT}/.older`, program: 'example-build', olderProgram: 'example-release'
-  },
   'no-readable-ticket':    { kind: 'no-readable-ticket', reference: '999' },
   'malformed-ticket-file': {
     kind: 'malformed-ticket-file', filePath: `${ROOT}/004.md`, line: 2, reason: 'Example reason'

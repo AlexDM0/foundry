@@ -404,8 +404,8 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 #### `init` and `update` refusals
 
 Both are refused at exit 1, writing nothing, over files a later program installed ([Install version](#install-version)).
-This build also refuses `init` `older-program-present` at exit 1, like `update`, while the root holds the released
-program's `.agent-progress/` folder, writing nothing.
+A root that also holds the released program's `.agent-progress/` folder is no reason to refuse: forge keeps its
+own `.forge/`.
 
 `init` is also refused:
 

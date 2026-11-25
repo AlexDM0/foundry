@@ -1,10 +1,9 @@
 /**
  * A build named beside the released program reaches none of the released program's files, and the released program none of the side-by-side
- * build's. The cases that matter: the other program's root variable is ignored by the binary; `init` and `update` refuse a repository the
- * released program tracks while the names differ, and never otherwise; an `update` leaves the other program's installed files byte for byte
- * and installs its own skills under its own names; and the skill folders of the two are their own. Every expected name
- * derives from the constant, and each case runs under both sets of names, the refusal through its names parameter and the binary once as
- * built and once preloaded to be the other program, so flipping the constant edits no case here.
+ * build's. The cases that matter: the other program's root variable is ignored by the binary; `init` and `update` work beside the other
+ * program's data folder and leave it untouched; an `update` leaves the other program's installed files byte for byte and installs its own
+ * skills under its own names; and the skill folders of the two are their own. Every expected name derives from the constant, and each case
+ * runs the binary once as built and once preloaded to be the other program, so flipping the constant edits no case here.
  */
 import {
   existsSync,
@@ -15,7 +14,6 @@ import {
 import { join } from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
-import { OperationRefusal }        from '../src/shared/OperationRefusal.ts';
 import {
   ORIGINAL_PRODUCT_NAMES,
   PRODUCT_NAMES,
@@ -27,14 +25,12 @@ import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../
 import { type RecordedGitStage, useRecordedGit }                       from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                      from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                   from '../src/testing/ToolGuard.ts';
-import { refuseBesideAnOlderProgram }                                  from './adoption/OlderProgramRefusal.ts';
 import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/AgentInstall.ts';
 import { type AgentProgressResult, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                 from './testing/InitializedScratchRepository.ts';
 import {
   binaryInitInANewRepositoryOf,
   COMMON_FOLDER_AT_THE_ROOT,
-  GIT_VERSION,
   initOnAnExistingTrackerOf,
   refreshOfAnIgnoringRepositoryOf
 } from './testing/RecordedGitStages.ts';
@@ -85,31 +81,6 @@ function hookSettingsOf(productNames: Readonly<ProductNames>): string {
   return `${JSON.stringify({ hooks: { SubagentStop: [{ matcher: '', hooks: [hookCommand] }] } }, null, 2)}\n`;
 }
 
-test('the refusal beside an older program holds under both sets of names: the side-by-side build refuses, the released program never does', () => {
-  const repositoryDirectory = scratchRepository();
-  mkdirSync(join(repositoryDirectory, ORIGINAL_PRODUCT_NAMES.DATA_FOLDER));
-
-  expect(() => refuseBesideAnOlderProgram(repositoryDirectory, SIDE_BY_SIDE_PRODUCT_NAMES)).toThrow(OperationRefusal);
-  expect(() => refuseBesideAnOlderProgram(repositoryDirectory, ORIGINAL_PRODUCT_NAMES)).not.toThrow();
-  try {
-    refuseBesideAnOlderProgram(repositoryDirectory, SIDE_BY_SIDE_PRODUCT_NAMES);
-  } catch (error) {
-    expect(error instanceof OperationRefusal ? error.detail : null).toEqual({
-      kind:                'older-program-present',
-      rootDirectory:       repositoryDirectory,
-      olderDataFolderPath: join(repositoryDirectory, ORIGINAL_PRODUCT_NAMES.DATA_FOLDER),
-      program:             SIDE_BY_SIDE_PRODUCT_NAMES.PROGRAM,
-      olderProgram:        ORIGINAL_PRODUCT_NAMES.PROGRAM,
-    });
-  }
-});
-
-test('no refusal without the released program\'s data folder, under either set of names', () => {
-  const repositoryDirectory = scratchRepository();
-  expect(() => refuseBesideAnOlderProgram(repositoryDirectory, SIDE_BY_SIDE_PRODUCT_NAMES)).not.toThrow();
-  expect(() => refuseBesideAnOlderProgram(repositoryDirectory, ORIGINAL_PRODUCT_NAMES)).not.toThrow();
-});
-
 test('each program\'s skill folders are its own', () => {
   expect(INSTALLED_SKILL_NAMES).toEqual(installedSkillNamesFor(PRODUCT_NAMES));
   expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['forge-po', 'forge-pipeline']);
@@ -126,25 +97,19 @@ describeWhenGitIsRecorded('two programs side by side, each run as a binary', () 
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('init and update refuse older-program-present at exit 1 beside the released program\'s data folder, and the released program never does', async () => {
+  test('init and update work beside the other program\'s data folder and leave it untouched', async () => {
     for (const side of BOTH_PROGRAMS) {
       const repositoryDirectory = scratchRepository();
       const run                 = binaryRunAs(side, repositoryDirectory);
       expect((await run(['init', '--project', 'Example Agency'], binaryInitInANewRepositoryOf(side.names))).exitCode).toBe(0);
-      mkdirSync(join(repositoryDirectory, ORIGINAL_PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
+      const otherProgressPath = join(repositoryDirectory, side.otherNames.DATA_FOLDER, 'progress.json');
+      mkdirSync(join(repositoryDirectory, side.otherNames.DATA_FOLDER), { recursive: true });
+      writeFileSync(otherProgressPath, '{ "example": "the other program\'s tracker" }\n');
 
-      const isTheReleasedProgram = side.names.PROGRAM === ORIGINAL_PRODUCT_NAMES.PROGRAM;
-      // The refusal comes after `init` read the root and the git version, and before `update` asks git anything.
-      const initStage   = isTheReleasedProgram ? initOnAnExistingTrackerOf(side.names) : [COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION];
-      const updateStage = isTheReleasedProgram ? refreshOfAnIgnoringRepositoryOf(side.names) : [];
-      for (const outcome of [await run(['init'], initStage), await run(['update'], updateStage)]) {
-        if (isTheReleasedProgram) {
-          expect(outcome.exitCode, outcome.standardError).toBe(0);
-        } else {
-          expect(outcome.exitCode, side.names.PROGRAM).toBe(1);
-          expect(outcome.standardError).toContain(`${join(repositoryDirectory, ORIGINAL_PRODUCT_NAMES.DATA_FOLDER)} holds what ${ORIGINAL_PRODUCT_NAMES.PROGRAM} keeps`);
-        }
+      for (const outcome of [await run(['init'], initOnAnExistingTrackerOf(side.names)), await run(['update'], refreshOfAnIgnoringRepositoryOf(side.names))]) {
+        expect(outcome.exitCode, outcome.standardError).toBe(0);
       }
+      expect(readFileSync(otherProgressPath, 'utf8')).toBe('{ "example": "the other program\'s tracker" }\n');
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

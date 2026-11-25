@@ -26,7 +26,6 @@ import { TicketPhraseUtil }                                  from './TicketPhras
 
 type InstallVersionMismatchDetail = Extract<OperationRefusalDetail, { kind: 'install-version-mismatch' }>;
 
-type OlderProgramPresentDetail = Extract<OperationRefusalDetail, { kind: 'older-program-present' }>;
 
 type GitBelowFloorDetail = Extract<OperationRefusalDetail, { kind: 'git-below-floor' }>;
 
@@ -809,13 +808,6 @@ function olderPipelineText(filePath: string, channel: RefusalChannel): string {
     + `again${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
 }
 
-function olderProgramPresentText({
-  rootDirectory, olderDataFolderPath, program, olderProgram
-}: OlderProgramPresentDetail, channel: RefusalChannel): string {
-  return `${olderDataFolderPath} holds what ${olderProgram} keeps for ${rootDirectory}, and ${program} is built to run beside it only in a `
-    + `repository ${olderProgram} does not track, so nothing was written. ${adviceFor(channel, `Run ${program} in`, 'Use')} a scratch repository instead.`;
-}
-
 function gitBelowFloorText({ foundVersion, floorVersion }: GitBelowFloorDetail, channel: RefusalChannel): string {
   const tryAgain = adviceFor(channel, 'run the command again', 'try again');
   return foundVersion === null
@@ -887,8 +879,6 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return holdJournalUnremovableText(detail.journalFilePath, detail.reason);
     case 'install-version-mismatch':
       return installVersionMismatchSentenceOf(detail, channel);
-    case 'older-program-present':
-      return olderProgramPresentText(detail, channel);
     case 'no-readable-ticket':
       return sentencesOf(
         `There is no readable ticket ${detail.reference}.`,

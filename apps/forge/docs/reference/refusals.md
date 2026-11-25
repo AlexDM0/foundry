@@ -541,7 +541,6 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `carry no install version` | `install-version-mismatch` `unversioned` | `version.json` is missing beside installed files. | Run `update`. | |
 | `gives no install version` | `install-version-mismatch` `unreadable` | `version.json` does not parse or holds no whole number. | Run `update`. | |
 | `is a directory where forge keeps its install version file` | `install-version-mismatch` `manifest-is-a-directory` | A directory sits at the path. `init` and `update` refuse too. | Remove it, then run `update`. | |
-| `is built to run beside it only in a repository` | `older-program-present` | The root holds the released program's data folder. | Use a scratch repository. | |
 
 </details>
 

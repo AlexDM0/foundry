@@ -118,9 +118,8 @@ commit, unless your global ignore covers the file. Never run `git add .` here, a
 **`init` never writes `CLAUDE.md`.** Your conventions stay yours. What an earlier install left there, `init` leaves;
 remove it by hand.
 
-`init` is refused in a repository the released program tracks. If `.agent-progress/` exists at the root, it exits 1 and
-says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
-cannot adopt that repository: run `forge` in one without that folder.
+A repository the released program tracks can be adopted too: `forge` keeps its own `.forge/` beside
+`.agent-progress/` and never reads or writes the latter.
 
 ## Start Hephaestus
 
@@ -377,7 +376,6 @@ Anything else is in the [Runbook](runbook.md), which also has
 | Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
-| Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Starting detached | `cli/hephaestus/StartCommand.ts` | `startDetached` | `cli/hephaestus/StartCommand.integration.spec.ts` |
 | The port | `src/services/hephaestus/HephaestusPort.ts` | `HephaestusPort` | `src/services/hephaestus/HephaestusServer.integration.spec.ts` |
 | A new board is paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
