@@ -634,8 +634,9 @@ of a failed restart is `restart-failed`, and the board document carries that fai
 Forge 4.1 only adds, for a board whose pipeline writes a ticket as a spec, then a plan: the endpoint of [a ticket's
 documents](#a-tickets-documents), User's nine commands on them, the `documents` event, a ticket's `documents` summary on
 the board document, the 413 of a command body over its bound, and the new members of the board's unions (job kinds and
-roles, the pipeline's route and documents, the readiness gaps). A new member reaches a client only once a board sets the
-route. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
+roles, the pipeline's route and documents, the readiness gaps). Most new members reach a client only once a board sets
+the route; the board's `limits.defaultInstructionsOfRole` names the defaults of the two new roles, `specAgent` and
+`planAgent`, on every board, an added key a client that reads the record by its known keys passes over. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
 stays 6 and `summary` 3.
 
 The system version is set by interoperability, never by a package's version:

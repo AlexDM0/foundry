@@ -70,12 +70,20 @@ function instructionEntryOf(entry: InstructionEntryDocument): InstructionEntry {
   }
 }
 
+function documentReadingRulesOf(documents: NonNullable<AgentStepSettingsDocument['documents']>): NonNullable<AgentStepSettings['documents']> {
+  return {
+    ...(documents.spec === undefined ? {} : { spec: documents.spec }),
+    ...(documents.plan === undefined ? {} : { plan: documents.plan }),
+  };
+}
+
 function agentSettingsOf(settings: AgentStepSettingsDocument | null): AgentStepSettings | null {
   if (settings === null) return null;
   return {
     ...(settings.model === undefined ? {} : { model: settings.model }),
     ...(settings.effort === undefined ? {} : { effort: settings.effort }),
     ...(settings.instructions === undefined ? {} : { instructions: settings.instructions.map(instructionEntryOf) }),
+    ...(settings.documents === undefined ? {} : { documents: documentReadingRulesOf(settings.documents) }),
   };
 }
 

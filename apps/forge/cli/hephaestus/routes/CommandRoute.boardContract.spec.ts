@@ -1,11 +1,12 @@
 /**
- * The board's command kinds of the contract a view sends to `POST /api/v3/commands`, under `controlVersion` 3. What
- * matters: `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` and `ForgeTicketDocumentCommand` kinds, both
- * ways, which the typecheck and a runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route
- * answers 200 `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit
- * inside an entity lands, and an edit written as a field string is malformed; a ticket document command whose anchor holds a key it does
- * not name answers 400 and writes nothing; a save on a ticket with no documents record answers 409 `ticket-has-no-documents` and writes
- * nothing, and once the record is open the same save answers 200 and stores version 1 with its text.
+ * The board's command kinds of the contract a view sends to `POST /api/v3/commands`, under `controlVersion` 3. What matters:
+ * `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` and `ForgeTicketDocumentCommand` kinds, both ways, which
+ * the typecheck and a runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route answers 200
+ * `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit inside an
+ * entity lands, a role edit keeps the document reading rules it sends, and an edit written as a field string is malformed; a ticket
+ * document command whose anchor holds a key it does not name answers 400 and writes nothing; a save on a ticket with no documents record
+ * answers 409 `ticket-has-no-documents` and writes nothing, and once the record is open the same save answers 200 and stores version 1 with
+ * its text.
  */
 import { readFileSync } from 'node:fs';
 
@@ -162,7 +163,7 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
     expect(progressText()).toBe(progressBefore);
   });
 
-  test('a typed draft edit inside an entity lands, and an edit written as a field string is malformed', async () => {
+  test('a typed draft edit inside an entity lands, a role edit keeps its document reading rules, and an edit written as a field string is malformed', async () => {
     const startBody: ForgeBoardCommand = { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false };
     const started = await recordedGit.playStage(MAIN_WITHOUT_A_CONSTITUTION, async () => await answerOf(startBody));
     expect(started.status).toBe(200);
@@ -173,11 +174,13 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
       edits:         [
         { target: 'entity', entityKey: 'web', value: { kind: 'root', home: ['/'] } },
         { target: 'within-entity', entityKey: 'web', edit: { target: 'concurrency', value: 2 } },
+        { target: 'role', role: 'reviewer', value: { effort: 'high', documents: { plan: 'always' } } },
       ],
     };
 
     expect(await answerOf(typedEdit)).toEqual({ status: 200, body: { controlVersion: 3, outcome: 'done', result: expect.anything() } });
     expect(storedSetup().draft?.entities?.['web']?.concurrency).toBe(2);
+    expect(storedSetup().draft?.agents?.reviewer).toEqual({ effort: 'high', documents: { plan: 'always' } });
     const fieldStringEdit = {
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 1, edits: [{ field: 'entity:web/concurrency', value: 3 }]
     };

@@ -1,6 +1,7 @@
 /**
  * The contract's board command mapped into forge's. What matters: each kind maps to forge's command of the same kind with equal fields,
- * optional fields kept only when sent, a comment's anchor too; a typed draft edit of each target maps to the model's edit; and the mapped
+ * optional fields kept only when sent, a comment's anchor too; a typed draft edit of each target maps to the model's edit, a role's
+ * document reading rules kept at the top level and inside an entity; and the mapped
  * command shares no array with the contract's, so the model may change it without touching what was read.
  */
 import { describe, expect, test } from 'bun:test';
