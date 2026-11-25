@@ -55,7 +55,9 @@ describe('contractCommandOf', () => {
 
   test('maps an answer\'s choices, a budget in dollars, a resume\'s target and a chart window', () => {
     const answer = BoardCommandMapUtil.contractCommandOf(exampleCommandOf('decision-answer'));
-    expect(answer).toEqual({ kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['a', 'bc'] } });
+    expect(answer).toEqual({ kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['b'], note: 'Keep the old basket too.' } });
+    const withoutNote = BoardCommandMapUtil.contractCommandOf({ kind: 'decision-answer', decisionId: 'E3', answer: { form: 'letters', choices: ['a', 'bc'] } });
+    expect(withoutNote).toEqual({ kind: 'decision-answer', decisionId: 'E3', answer: { form: 'letters', choices: ['a', 'bc'] } });
     const billing = BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-setup-billing'));
     expect(billing).toEqual({ kind: 'pipeline-setup-billing', setupId: 'S2', billing: { mode: 'api', maxBudgetUsd: 12.5 } });
     expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('interrupted-work-resume'))).toEqual({ kind: 'interrupted-work-resume', target: { ticketReference: '002' } });

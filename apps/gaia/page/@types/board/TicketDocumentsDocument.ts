@@ -72,6 +72,8 @@ export interface BoardCommentAnchorDocument {
 export interface BoardDocumentMessageDocument {
   readonly messageId:      string;
   readonly commentNumber:  number | null;
+  /** The decision this message answers, the document agent's own question, anchored where the question was; `null` on any other. */
+  readonly decisionId:     string | null;
   readonly anchor:         BoardCommentAnchorDocument | null;
   /** The anchor's lines at the head version; `null` when unanchored or orphaned. */
   readonly placement:      BoardLineRangeDocument | null;

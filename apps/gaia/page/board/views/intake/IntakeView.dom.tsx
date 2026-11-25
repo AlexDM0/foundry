@@ -86,7 +86,7 @@ const BOARD: BoardDocument = intakeBoardOf({
     askedBy:   'product-owner',
     openedAt:  EXAMPLE_SESSION_RECORD_AT,
     questions: [{
-      question: 'CSV or JSON?', header: 'Format', multiSelect: false, options: [{ label: 'CSV', ...OPTION }, { label: 'JSON', ...OPTION }]
+      question: 'CSV or JSON?', header: 'Format', multiSelect: false, options: [{ letter: 'a', label: 'CSV', ...OPTION }, { letter: 'b', label: 'JSON', ...OPTION }]
     }],
   })],
   tickets: [

@@ -4,17 +4,23 @@
  * carries no id lists; every forecast step keeps its kind; an interrupted job keeps its cause and its lost line, and takes what it waits
  * for from presence, `null` where presence lists it not; a refusal and a question's
  * answer keep the forge's values unchanged; the recorded board maps whole; and the board in the spec-then-plan route keeps a ticket's
- * documents summary only on the ticket that has documents.
+ * documents summary only on the ticket that has documents, each draft's stage, wait and agent, and a spec agent's question with its letters,
+ * its document, its anchor and its placement on the head.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { ResumeWaitsOfJobs }                                                               from '../@types/ResumeWaitsOfJobs.ts';
-import { BoardStateIngestion }                                                                  from '../BoardStateIngestion.ts';
-import { recordedBoardDocumentOf }                                                              from '../testing/BoardDocuments.ts';
-import { RECORDED_BOOKSHOP_TRACKER_ID, RECORDED_TICKET_IDS, recordedSpecThenPlanBoardDocument } from '../testing/TicketDocumentsRecordings.ts';
-import { BoardMapUtil }                                                                         from './BoardMapUtil.ts';
-import { PipelineMapUtil }                                                                      from './PipelineMapUtil.ts';
+import type { ResumeWaitsOfJobs }     from '../@types/ResumeWaitsOfJobs.ts';
+import { BoardStateIngestion }        from '../BoardStateIngestion.ts';
+import { recordedBoardDocumentOf }    from '../testing/BoardDocuments.ts';
+import {
+  RECORDED_BOOKSHOP_TRACKER_ID,
+  RECORDED_TICKET_IDS,
+  recordedQuestionBoardDocumentOf,
+  recordedSpecThenPlanBoardDocument
+} from '../testing/TicketDocumentsRecordings.ts';
+import { BoardMapUtil }    from './BoardMapUtil.ts';
+import { PipelineMapUtil } from './PipelineMapUtil.ts';
 
 const EXAMPLE_TRACKER_ID = 'example-tracker';
 
@@ -128,6 +134,41 @@ describe('the board in the spec-then-plan route', () => {
       buildHeld: false,
     });
     expect(Object.hasOwn(ticketsById.get(RECORDED_TICKET_IDS.withoutDocuments) ?? {}, 'documents')).toBe(false);
+  });
+
+  test('keeps each draft\'s stage, what waits on User, its agent and when the wait began, and no wait once nothing waits', async () => {
+    const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedQuestionBoardDocumentOf('ticket-documents-question-open'));
+    if (reading.board === null) throw new Error(`The board with a question does not ingest: ${reading.reason.invalidKeys.join(', ')}`);
+    const draftOf = (ticketId: string) => reading.board?.page.tickets.find((ticket) => ticket.id === ticketId)?.draft;
+    expect(draftOf(RECORDED_TICKET_IDS.withDocuments)).toEqual({
+      stage: 'spec', waitsOnUser: 'answer', agent: null, waitingSince: reading.board.decisions[0]?.openedAt ?? ''
+    });
+    expect(draftOf(RECORDED_TICKET_IDS.withoutDocuments)).toEqual({
+      stage: 'spec', waitsOnUser: null, agent: null, waitingSince: null
+    });
+  });
+
+  test('keeps a spec agent\'s question with its lettered options, its document, its anchor and where its line stands on the head', async () => {
+    const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedQuestionBoardDocumentOf('ticket-documents-question-open'));
+    const [question] = reading.board?.decisions ?? [];
+    expect(question?.questions[0]?.options.map((option) => [option.letter, option.recommended])).toEqual([['a', true], ['b', false], ['c', false]]);
+    expect([question?.document, question?.placement]).toEqual(['spec', { from: 3, to: 3 }]);
+    expect(question?.anchor).toEqual({
+      view:             'code',
+      versionNumber:    1,
+      lines:            { from: 3, to: 3 },
+      columns:          null,
+      sectionPath:      ['Search by author'],
+      quote:            null,
+      surroundingLines: { from: 1, to: 5 },
+      diagram:          null,
+    });
+  });
+
+  test('a decision no document agent asked names no document, anchor or placement', async () => {
+    const reading = new BoardStateIngestion().boardOf(EXAMPLE_TRACKER_ID, await recordedDocument());
+    const decision = reading.board?.decisions[0];
+    expect([decision?.document, decision?.anchor, decision?.placement]).toEqual([null, null, null]);
   });
 
   test('reads the default instructions of the spec and plan agents as of every other role', async () => {

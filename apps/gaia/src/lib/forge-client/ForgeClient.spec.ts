@@ -899,6 +899,7 @@ interface TicketDocumentsOutcomeCase {
 const SPEC_TICKET_ID = '001';
 const TICKET_WITHOUT_DOCUMENTS_ID = '002';
 const UNKNOWN_TICKET_ID = '999';
+const EXAMPLE_NOTED_ANSWER = { form: 'letters', choices: ['b'], note: 'Example note' };
 
 const TICKET_DOCUMENTS_OUTCOME_CASES: readonly TicketDocumentsOutcomeCase[] = [
   {
@@ -959,6 +960,43 @@ const TICKET_DOCUMENTS_OUTCOME_CASES: readonly TicketDocumentsOutcomeCase[] = [
       status:  404,
       body:    { refusal: 'no-readable-ticket', fields: { reference: UNKNOWN_TICKET_ID }, text: expect.stringContaining('There is no readable ticket 999.') },
     },
+  },
+  {
+    call:      'boardOf',
+    situation: 'ticket-documents-question-open',
+    callShape: 'GET /api/v4/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
+    expected:  { verdict: 'answered', document: expect.objectContaining({ decisions: [expect.objectContaining({ id: 'E1', document: 'spec' })] }) },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'ticket-documents-question-open',
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, {
+      kind: 'ticket-document-approve', ticketReference: SPEC_TICKET_ID, document: 'spec', version: 1,
+    }),
+    expected: { verdict: 'answered', status: 409, body: expect.objectContaining({ refusal: 'document-has-open-questions' }) },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'ticket-documents-question-answered',
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'decision-answer', decisionId: 'E1', answer: EXAMPLE_NOTED_ANSWER }),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 3, outcome: 'done' }) },
+  },
+  {
+    call:      'ticketDocumentsOf',
+    situation: 'ticket-documents-question-answered',
+    callShape: `GET /api/v1/tickets/${SPEC_TICKET_ID}/documents with bearer`,
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).ticketDocumentsOf(ACCESS, SPEC_TICKET_ID),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ ticketId: SPEC_TICKET_ID }) },
+  },
+  {
+    call:      'boardOf',
+    situation: 'ticket-documents-question-answered',
+    callShape: 'GET /api/v4/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
+    expected:  { verdict: 'answered', document: expect.objectContaining({ decisions: [] }) },
   },
 ];
 

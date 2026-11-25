@@ -49,11 +49,14 @@ const AGENT_QUESTION: BoardDecisionDocument = {
   askedBy:   'builder',
   context:   '',
   openedAt:  AT,
+  document:  null,
+  anchor:    null,
+  placement: null,
   questions: [{
     question:    `Which store should the cache use? ${PLANTED}`,
     header:      'Store',
     multiSelect: false,
-    options:     [exampleOption({ label: 'Disk', description: 'Survives a restart' }), exampleOption({ label: 'Memory', description: 'Faster' })],
+    options:     [exampleOption({ letter: 'a', label: 'Disk', description: 'Survives a restart' }), exampleOption({ letter: 'b', label: 'Memory', description: 'Faster' })],
   }],
 };
 
@@ -65,13 +68,13 @@ const ESCALATED: BoardDecisionDocument = {
       question:    'The Brief names bridge/old/, which does not exist. Where?',
       header:      'ticket',
       multiSelect: false,
-      options:     [exampleOption({ label: 'bridge/views/' })]
+      options:     [exampleOption({ letter: 'a', label: 'bridge/views/' })]
     },
     {
       question:    'Which targets?',
       header:      'Targets',
       multiSelect: true,
-      options:     [exampleOption({ label: 'main' }), exampleOption({ label: 'group' })]
+      options:     [exampleOption({ letter: 'a', label: 'main' }), exampleOption({ letter: 'b', label: 'group' })]
     },
   ],
 };
@@ -206,9 +209,14 @@ describe('beside the board', () => {
         ...AGENT_QUESTION.questions[0] ?? { question: '', header: '', multiSelect: false },
         options: [
           exampleOption({
-            label: 'Disk', description: 'Survives a restart', touches: ['src/cache/DiskStore.ts'], tradeOff: 'Slower reads', acceptanceEffect: 'meets A1'
+            letter:           'a',
+            label:            'Disk',
+            description:      'Survives a restart',
+            touches:          ['src/cache/DiskStore.ts'],
+            tradeOff:         'Slower reads',
+            acceptanceEffect: 'meets A1'
           }),
-          exampleOption({ label: 'Memory', description: 'Faster' }),
+          exampleOption({ letter: 'b', label: 'Memory', description: 'Faster' }),
         ],
       }],
     };

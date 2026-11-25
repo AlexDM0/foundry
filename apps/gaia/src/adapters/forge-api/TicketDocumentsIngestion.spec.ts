@@ -1,8 +1,8 @@
 /**
  * The ticket documents ingestion against the answers a scratch forge at the supported version gave (`hephaestus-fetch-ticket-documents`).
- * What matters: the documents read whole, the Markdown kept as source text; the forge's two 404 refusals keep their code, fields and
- * sentence unchanged; and a body that breaks the shape, or any other status, maps nothing and names its keys. The endpoint version is
- * the one forge's registry serves the supported forge.
+ * What matters: the documents read whole, the Markdown kept as source text, an answer to the spec agent's question naming its decision;
+ * the forge's two 404 refusals keep their code, fields and sentence unchanged; and a body that breaks the shape, or any other status,
+ * maps nothing and names its keys. The endpoint version is the one forge's registry serves the supported forge.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -34,6 +34,17 @@ describe('ticketDocumentsOf', () => {
     });
     expect(spec?.markdown).toContain('```mermaid\nflowchart LR\n');
     expect(ticketDocuments.effectReadings).toEqual([]);
+  });
+
+  test('reads User\'s answer to the spec agent\'s question as a message on the question\'s line that names the decision and no comment', async () => {
+    const { status, body } = await recordedTicketDocumentsAnswerOf('ticket-documents-question-answered');
+    const reading = INGESTION.ticketDocumentsOf(status, body);
+    if (reading.verdict !== 'read') throw new Error(`The answered documents read as ${reading.verdict}.`);
+    const [answer] = reading.ticketDocuments.documents[0]?.messages ?? [];
+    expect(answer).toMatchObject({
+      decisionId: 'E1', commentNumber: null, placement: { from: 3, to: 3 }, from: 'person', state: 'queued'
+    });
+    expect(answer?.text).toContain('Any part of a name');
   });
 
   test('keeps a ticket with no documents and an unknown ticket as the forge\'s refusals, code, fields and sentence unchanged', async () => {

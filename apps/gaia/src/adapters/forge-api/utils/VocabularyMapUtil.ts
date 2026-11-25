@@ -65,7 +65,9 @@ import type {
   DocumentProposalState,
   DocumentReadingRule,
   DocumentStanding,
+  DraftStage,
   DraftState,
+  DraftWait,
   EffectChange,
   EntityAgentRole,
   EntityKind,
@@ -365,6 +367,16 @@ const DOCUMENT_STANDING = {
   'out-of-date':            'out-of-date',
 } as const satisfies Record<DocumentStanding, Gaia.BoardDocumentStanding>;
 
+const DRAFT_STAGE = {
+  'spec':          'spec',
+  'spec-review':   'spec-review',
+  'plan':          'plan',
+  'plan-review':   'plan-review',
+  'ticket-review': 'ticket-review',
+} as const satisfies Record<DraftStage, Gaia.BoardDraftStage>;
+
+const DRAFT_WAIT = { answer: 'answer', proposal: 'proposal', approval: 'approval' } as const satisfies Record<DraftWait, Gaia.BoardDraftWait>;
+
 const DOCUMENT_MESSAGE_STATE = {
   queued: 'queued', sent: 'sent', applied: 'applied', withdrawn: 'withdrawn'
 } as const satisfies Record<DocumentMessageState, Gaia.BoardDocumentMessageState>;
@@ -648,6 +660,8 @@ const BOARD_VOCABULARIES = {
   documentReadingRule:      DOCUMENT_READING_RULE,
   proposalMode:             PROPOSAL_MODE,
   documentStanding:         DOCUMENT_STANDING,
+  draftStage:               DRAFT_STAGE,
+  draftWait:                DRAFT_WAIT,
   documentMessageState:     DOCUMENT_MESSAGE_STATE,
   documentProposalState:    DOCUMENT_PROPOSAL_STATE,
   effectChange:             EFFECT_CHANGE,

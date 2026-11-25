@@ -86,6 +86,7 @@ describe('boardOf, on the board of a forge at work', () => {
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
     expect(board.decisions[0]?.questions[0]?.options).toEqual([
       {
+        letter:           'a',
         label:            'Card first',
         description:      'The card form opens at once.',
         recommended:      true,
@@ -94,7 +95,7 @@ describe('boardOf, on the board of a forge at work', () => {
         acceptanceEffect: null,
       },
       {
-        label: 'Choice first', description: 'The shopper picks a way to pay first.', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+        letter: 'b', label: 'Choice first', description: 'The shopper picks a way to pay first.', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
       },
     ]);
   });

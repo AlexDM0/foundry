@@ -327,3 +327,38 @@ describe('boardDocumentOf, on a ticket with documents', () => {
     expect(otherMappedTickets.filter((ticket) => 'documents' in ticket)).toEqual([]);
   });
 });
+
+describe('boardDocumentOf, on a ticket being written and a spec agent\'s question', () => {
+  test('carries a draft\'s stage, wait, agent and wait start to its page field, and none on a ticket not being written', async () => {
+    const board = await recordedBoardModel();
+    const [firstTicket, ...otherTickets] = board.page.tickets;
+    if (firstTicket === undefined) throw new Error('The recorded board holds a ticket.');
+    const draft = {
+      stage:       'spec-review',
+      waitsOnUser: 'approval',
+      agent:       {
+        jobId: 'J4', role: 'spec-agent', tokens: 1200, since: '2026-11-25T09:00:00+01:00'
+      },
+      waitingSince: '2026-11-25T09:30:00+01:00',
+    } as const;
+    const boardWithDraft: ForgeBoard = { ...board, page: { ...board.page, tickets: [{ ...firstTicket, draft }, ...otherTickets] } };
+    const [mappedTicket, ...otherMappedTickets] = BoardDocumentMapUtil.boardDocumentOf(boardWithDraft, markdownLeftAsWritten).page.tickets;
+    expect(mappedTicket?.draft).toEqual(draft);
+    expect(otherMappedTickets.filter((ticket) => 'draft' in ticket)).toEqual([]);
+  });
+
+  test('carries a question\'s document, anchor and placement, and each option\'s letter', async () => {
+    const board = await recordedBoardModel();
+    const [decision] = board.decisions;
+    if (decision === undefined) throw new Error('The recorded board holds a decision.');
+    const anchor = {
+      view: 'code', versionNumber: 2, lines: { from: 6, to: 6 }, columns: null, sectionPath: ['Behaviour'], quote: null, surroundingLines: { from: 4, to: 8 }, diagram: null,
+    } as const;
+    const question = {
+      ...decision, document: 'spec', anchor, placement: { from: 7, to: 7 }
+    } as const;
+    const [mapped] = BoardDocumentMapUtil.boardDocumentOf({ ...board, decisions: [question] }, markdownLeftAsWritten).decisions;
+    expect([mapped?.document, mapped?.anchor, mapped?.placement]).toEqual(['spec', anchor, { from: 7, to: 7 }]);
+    expect(mapped?.questions[0]?.options.map((option) => option.letter)).toEqual(decision.questions[0]?.options.map((option) => option.letter));
+  });
+});

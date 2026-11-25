@@ -153,7 +153,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
           question:    'Where?',
           header:      'Tokens',
           multiSelect: false,
-          options:     [exampleOption({ label: 'Keep the tokens' }), exampleOption({ label: 'Split them', recommended: true })],
+          options:     [exampleOption({ letter: 'a', label: 'Keep the tokens' }), exampleOption({ letter: 'b', label: 'Split them', recommended: true })],
         }],
       }],
     });
@@ -171,7 +171,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
           question:    'Where?',
           header:      'Tokens',
           multiSelect: false,
-          options:     [exampleOption({ label: 'Keep the tokens (Recommended)' }), exampleOption({ label: 'Split them' })],
+          options:     [exampleOption({ letter: 'a', label: 'Keep the tokens (Recommended)' }), exampleOption({ letter: 'b', label: 'Split them' })],
         }],
       }],
     });

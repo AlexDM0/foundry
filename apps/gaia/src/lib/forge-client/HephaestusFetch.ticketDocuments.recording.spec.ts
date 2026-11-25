@@ -4,8 +4,10 @@
  * with two draft tickets and a stored pipeline in the spec-then-plan route, whose builder reads the plan only once User approved it. It
  * saves the first draft's spec through the commands endpoint, which opens the draft's documents; no message is sent, so no agent launches.
  * It records that save with the board's events up to the `documents` event, the documents and the board read after it, the second draft's
- * refusal as a ticket with no documents, and an unknown ticket's. The values the run draws are recorded as example values; the forge's
- * install and code versions stamp it.
+ * refusal as a ticket with no documents, and an unknown ticket's. Then the stopped board is given the spec agent's open question on a line
+ * of the spec, as an earlier Hephaestus leaves it in the forge's own store, since the fake agent asks none: it records the board with that
+ * question and the draft that waits on it, the spec's refused approval, the answer, an option with a note, and the documents and the board
+ * read after it. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -52,6 +54,11 @@ const BOOKSHOP = {
   processId:         48_213,
 } as const;
 const PIPELINE_STORE_PATH = ['.forge', 'pipeline.json'] as const;
+const PROGRESS_STORE_PATH = ['.forge', 'progress.json'] as const;
+const CONFLICT_STATUS = 409;
+/** The spec's line the agent's question changes, in the example spec's first version. */
+const QUESTION_LINE = 3;
+const QUESTION_NOTE = 'Keep the example search by title as it is.';
 const UNKNOWN_TICKET_REFERENCE = '999';
 /** A product owner's ticket in the spec-then-plan route: its Report and its Wanted. */
 const DRAFT_TICKET_BODY = '## Report\nA shopper cannot find an example book by its author.\n\n## Wanted\nSearch finds a book by its author.\n';
@@ -146,6 +153,48 @@ function storeTheSpecThenPlanRoute(): void {
   writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, agents, ticketWriting: 'spec-then-plan' }, null, 2)}\n`);
 }
 
+/**
+ * The spec agent's open question on the spec's third line, with its three options, the first recommended, as `document ask` opens it; the
+ * fake agent asks none, so the stopped board is given it as the forge stores it.
+ */
+function leaveTheSpecAgentsOpenQuestion(): void {
+  const progressPath = join(repository, ...PROGRESS_STORE_PATH);
+  const progress = JSON.parse(readFileSync(progressPath, 'utf8')) as Record<string, unknown>;
+  const question = {
+    id:        'E1',
+    kind:      'agent-question',
+    ticketIds: [specTicketId],
+    jobId:     null,
+    askedBy:   'spec-agent',
+    requestId: null,
+    questions: [{
+      question:    'Does a search by author also match a part of the author\'s name?',
+      header:      'spec',
+      multiSelect: false,
+      options:     [
+        {
+          label: 'Whole names only', description: '', isRecommended: true, touches: ['apps/web/search.ts'], acceptanceEffect: 'A1 holds as written.'
+        },
+        {
+          label: 'Any part of a name', description: '', isRecommended: false, acceptanceEffect: 'A1 needs a second item for a part of a name.'
+        },
+        { label: 'Leave it to the plan', description: '', isRecommended: false },
+      ],
+    }],
+    context:  '',
+    openedAt: String(progress['startedAt']),
+    document: 'spec',
+    anchor:   {
+      view:             'code',
+      versionNumber:    1,
+      lines:            { from: QUESTION_LINE, to: QUESTION_LINE },
+      sectionPath:      ['Search by author'],
+      surroundingLines: { from: 1, to: QUESTION_LINE + 2 },
+    },
+  };
+  writeFileSync(progressPath, `${JSON.stringify({ ...progress, decisions: [question], nextDecisionId: 2 }, null, 2)}\n`);
+}
+
 function followTheLiveHephaestus(): void {
   const hephaestus = scratchForge.registryEntryOf(trackerIdDrawn)?.['hephaestus'] as { url: string; processId: number; tokenPath: string } | undefined;
   if (hephaestus === undefined) throw new Error('the registry names no live Hephaestus');
@@ -218,6 +267,32 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
     expect(recordOf(recordOf(board['pipeline'])['pipeline'])['ticketWriting']).toBe('spec-then-plan');
     const ticketsWithDocuments = listOf(recordOf(board['page'])['tickets']).filter((ticket) => ticket['documents'] !== undefined);
     expect(ticketsWithDocuments.map((ticket) => ticket['id'])).toEqual([specTicketId]);
+  }, STEP_TIMEOUT_MILLISECONDS);
+
+  test('serves the spec agent\'s open question anchored on its line, refuses the spec\'s approval while it is open, and takes its answer', async () => {
+    await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
+    leaveTheSpecAgentsOpenQuestion();
+    await scratchForge.runForDocument(repository, ['start', '--json']);
+    followTheLiveHephaestus();
+    const openBoard = bodyOf(await keptRequest('ticket-documents-question-open', requestOf('GET', forgeEndpointPathOf('board'))));
+    expect(listOf(openBoard['decisions'])[0]).toMatchObject({ id: 'E1', document: 'spec', placement: { from: QUESTION_LINE, to: QUESTION_LINE } });
+    const draft = listOf(recordOf(openBoard['page'])['tickets']).find((ticket) => ticket['id'] === specTicketId)?.['draft'];
+    expect(draft).toMatchObject({ stage: 'spec', waitsOnUser: 'answer' });
+    const approval = {
+      kind: 'ticket-document-approve', ticketReference: specTicketId, document: 'spec', version: 1
+    };
+    const refused = await keptRequest('ticket-documents-question-open', requestOf('POST', forgeEndpointPathOf('commands'), JSON.stringify(approval)));
+    expect(refused).toMatchObject({ status: CONFLICT_STATUS });
+    expect(bodyOf(refused)).toMatchObject({ refusal: 'document-has-open-questions' });
+    const answer = { kind: 'decision-answer', decisionId: 'E1', answer: { form: 'letters', choices: ['b'], note: QUESTION_NOTE } };
+    const answered = await keptRequest('ticket-documents-question-answered', requestOf('POST', forgeEndpointPathOf('commands'), JSON.stringify(answer)));
+    expect(answered).toMatchObject({ status: SUCCESS_STATUS });
+    const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId: specTicketId });
+    const documents = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', documentsPath)));
+    const spec = listOf(documents['documents']).find((document) => document['document'] === 'spec');
+    expect(listOf(spec?.['messages'])).toEqual([expect.objectContaining({ decisionId: 'E1', placement: { from: QUESTION_LINE, to: QUESTION_LINE } })]);
+    const answeredBoard = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', forgeEndpointPathOf('board'))));
+    expect(listOf(answeredBoard['decisions'])).toEqual([]);
   }, STEP_TIMEOUT_MILLISECONDS);
 
   test('refuses the documents of a ticket that has none, and of a reference that names no ticket, each with its code and sentence', async () => {

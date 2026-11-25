@@ -252,7 +252,7 @@ const DRAFT_EDIT_RULE: FieldRule = {
 
 const ANSWER_RULE: FieldRule = {
   anyShapeOf: [
-    { form: { oneOf: ['letters'] }, choices: 'text-list' } as const satisfies ShapeOf<Extract<BoardAnswerFormDocument, { form: 'letters' }>>,
+    { form: { oneOf: ['letters'] }, choices: 'text-list', note: { optional: 'text' } } as const satisfies ShapeOf<Extract<BoardAnswerFormDocument, { form: 'letters' }>>,
     { form: { oneOf: ['text'] }, text: 'text' } as const satisfies ShapeOf<Extract<BoardAnswerFormDocument, { form: 'text' }>>,
   ],
 };
@@ -441,7 +441,9 @@ function chartRangeIn(range: BoardChartRangeDocument): BoardChartRange {
 }
 
 function answerIn(answer: BoardAnswerFormDocument): BoardAnswerForm {
-  return answer.form === 'letters' ? { form: 'letters', choices: answer.choices } : { form: 'text', text: answer.text };
+  if (answer.form === 'text') return { form: 'text', text: answer.text };
+  const note = answer.note?.trim() ?? '';
+  return { form: 'letters', choices: answer.choices, ...note === '' ? {} : { note } };
 }
 
 function picturesIn(pictures: readonly BoardPictureReferenceDocument[]): readonly BoardPictureReference[] {

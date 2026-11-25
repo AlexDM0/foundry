@@ -85,6 +85,7 @@ function messageOut(message: BoardDocumentMessage): BoardDocumentMessageDocument
   return {
     messageId:      message.messageId,
     commentNumber:  message.commentNumber,
+    decisionId:     message.decisionId,
     anchor:         message.anchor === null ? null : commentAnchorOut(message.anchor),
     placement:      nullableLineRangeOut(message.placement),
     orphaned:       message.orphaned,
@@ -185,4 +186,5 @@ function ticketDocumentsDocumentOf(ticketDocuments: BoardTicketDocuments): GaiaT
 export const TicketDocumentsDocumentMapUtil = {
   ticketDocumentsDocumentOf,
   commentAnchorOut,
+  lineRangeOut,
 } as const;

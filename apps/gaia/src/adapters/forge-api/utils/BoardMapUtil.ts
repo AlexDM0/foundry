@@ -23,6 +23,7 @@ import type {
   BoardPageTicketFactsDocument,
   BoardTaskDocument,
   BoardTicketDocument,
+  BoardTicketDraftDocument,
   BoardViewRangeDocument,
   TicketDocumentSummaryDocument,
 } from 'forge-contracts/BoardPageDocuments';
@@ -57,11 +58,13 @@ import type {
   BoardTask,
   BoardTicket,
   BoardTicketDocumentSummary,
+  BoardTicketDraft,
   BoardViewRange,
 } from '../../../shared/@types/board/BoardTicket.ts';
 import type { ForgeBoard }        from '../../../shared/@types/board/ForgeBoard.ts';
 import type { ResumeWaitsOfJobs } from '../@types/ResumeWaitsOfJobs.ts';
 import { BoardAgentMapUtil }      from './BoardAgentMapUtil.ts';
+import { TicketDocumentsMapUtil } from './TicketDocumentsMapUtil.ts';
 import { VocabularyMapUtil }      from './VocabularyMapUtil.ts';
 
 const VOCABULARIES = VocabularyMapUtil.vocabularies;
@@ -109,6 +112,17 @@ function ticketDocumentsSummaryOf(ticket: BoardTicketDocument): Pick<BoardTicket
   return { documents: { spec: ticketDocumentSummaryOf(spec), plan: ticketDocumentSummaryOf(plan), buildHeld } };
 }
 
+function ticketDraftOf(draft: BoardTicketDraftDocument): BoardTicketDraft {
+  return {
+    stage:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.draftStage, draft.stage),
+    waitsOnUser: draft.waitsOnUser === null ? null : VocabularyMapUtil.gaiaValueOf(VOCABULARIES.draftWait, draft.waitsOnUser),
+    agent:       draft.agent === null ? null : {
+      jobId: draft.agent.jobId, role: draft.agent.role, tokens: draft.agent.tokens, since: draft.agent.since
+    },
+    waitingSince: draft.waitingSince,
+  };
+}
+
 function ticketOf(ticket: BoardTicketDocument): BoardTicket {
   return {
     id:              ticket.id,
@@ -154,6 +168,7 @@ function ticketOf(ticket: BoardTicketDocument): BoardTicket {
       priorityChoices: VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.ticketPriority, ticket.offers.priorityChoices),
     },
     ...ticketDocumentsSummaryOf(ticket),
+    ...ticket.draft === undefined ? {} : { draft: ticketDraftOf(ticket.draft) },
   };
 }
 
@@ -399,6 +414,7 @@ function decisionOf(decision: BoardDecisionDocument): BoardDecision {
       header:      question.header,
       multiSelect: question.multiSelect,
       options:     question.options.map((option) => ({
+        letter:           option.letter,
         label:            option.label,
         description:      option.description,
         recommended:      option.recommended,
@@ -407,8 +423,11 @@ function decisionOf(decision: BoardDecisionDocument): BoardDecision {
         acceptanceEffect: option.acceptanceEffect ?? null,
       })),
     })),
-    context:  decision.context,
-    openedAt: decision.openedAt,
+    context:   decision.context,
+    openedAt:  decision.openedAt,
+    document:  decision.document === undefined ? null : VocabularyMapUtil.gaiaValueOf(VOCABULARIES.ticketDocumentKind, decision.document),
+    anchor:    decision.anchor === undefined ? null : TicketDocumentsMapUtil.commentAnchorOf(decision.anchor),
+    placement: decision.placement === undefined || decision.placement === null ? null : { from: decision.placement.from, to: decision.placement.to },
   };
 }
 

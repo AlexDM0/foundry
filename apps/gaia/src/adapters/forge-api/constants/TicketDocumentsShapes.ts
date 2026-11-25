@@ -41,7 +41,7 @@ function vocabularyRule(name: BoardVocabularyName): FieldRule {
   return { oneOf: VocabularyMapUtil.forgeValuesOf(VocabularyMapUtil.vocabularies[name]) };
 }
 
-const LINE_RANGE_SHAPE = { from: 'whole-number', to: 'whole-number' } as const satisfies ShapeOf<LineRangeDocument>;
+export const LINE_RANGE_SHAPE = { from: 'whole-number', to: 'whole-number' } as const satisfies ShapeOf<LineRangeDocument>;
 
 const COLUMN_RANGE_SHAPE = { from: 'whole-number', to: 'whole-number' } as const satisfies ShapeOf<ColumnRangeDocument>;
 
@@ -75,7 +75,7 @@ const DIAGRAM_ANCHOR_SHAPE = {
   nodeLabel:   'text',
 } as const satisfies ShapeOf<DiagramAnchorDocument>;
 
-const COMMENT_ANCHOR_SHAPE = {
+export const COMMENT_ANCHOR_SHAPE = {
   view:             { oneOf: FORGE_VALUES.commentView },
   versionNumber:    'whole-number',
   lines:            { object: LINE_RANGE_SHAPE },
@@ -89,6 +89,7 @@ const COMMENT_ANCHOR_SHAPE = {
 const MESSAGE_SHAPE = {
   messageId:      'text',
   commentNumber:  WHOLE_NUMBER_OR_NULL,
+  decisionId:     TEXT_OR_NULL,
   anchor:         { nullable: { object: COMMENT_ANCHOR_SHAPE } },
   placement:      LINE_RANGE_OR_NULL,
   orphaned:       'boolean',

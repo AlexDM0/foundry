@@ -18,9 +18,11 @@ export const RECORDED_TICKET_IDS = {
 } as const;
 
 const RECORDED_TICKET_ID_OF_SITUATION: Readonly<Record<TicketDocumentsSituation, string>> = {
-  'ticket-documents-saved':          RECORDED_TICKET_IDS.withDocuments,
-  'ticket-documents-absent':         RECORDED_TICKET_IDS.withoutDocuments,
-  'ticket-documents-unknown-ticket': RECORDED_TICKET_IDS.unknown,
+  'ticket-documents-saved':             RECORDED_TICKET_IDS.withDocuments,
+  'ticket-documents-absent':            RECORDED_TICKET_IDS.withoutDocuments,
+  'ticket-documents-unknown-ticket':    RECORDED_TICKET_IDS.unknown,
+  'ticket-documents-question-open':     RECORDED_TICKET_IDS.withDocuments,
+  'ticket-documents-question-answered': RECORDED_TICKET_IDS.withDocuments,
 };
 
 const EXAMPLE_ACCESS: HephaestusAccess = { hephaestusUrl: 'http://127.0.0.1:47100', bearerToken: 'example-token-0123456789abcdef' };
@@ -51,6 +53,22 @@ export async function recordedSpecThenPlanBoardDocument(): Promise<unknown> {
   const answer = await recordedTicketDocumentsClientOf('ticket-documents-saved').boardOf(EXAMPLE_ACCESS);
   if (answer.verdict !== 'answered') throw new Error(`The saved documents' answers hold no board document: ${answer.verdict}.`);
   return answer.document;
+}
+
+/** The board in one situation of the spec agent's question: the decision anchored on the spec and the draft that waits on it, or neither. */
+export async function recordedQuestionBoardDocumentOf(situation: Extract<TicketDocumentsSituation, `ticket-documents-question-${string}`>): Promise<unknown> {
+  const answer = await recordedTicketDocumentsClientOf(situation).boardOf(EXAMPLE_ACCESS);
+  if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no board document: ${answer.verdict}.`);
+  return answer.document;
+}
+
+/** A board command's answer in one situation of the spec agent's question: the refused approval, or the answer to the question. */
+export async function recordedQuestionCommandAnswerOf(
+  situation: Extract<TicketDocumentsSituation, `ticket-documents-question-${string}`>, kind: 'ticket-document-approve' | 'decision-answer'
+): Promise<{ readonly status: number; readonly body: unknown }> {
+  const answer = await recordedTicketDocumentsClientOf(situation).sendBoardCommand(EXAMPLE_ACCESS, { kind });
+  if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no command answer: ${answer.verdict}.`);
+  return { status: answer.status, body: answer.body };
 }
 
 export async function recordedDocumentsStreamEventsOf(): Promise<readonly ForgeStreamEvent[]> {

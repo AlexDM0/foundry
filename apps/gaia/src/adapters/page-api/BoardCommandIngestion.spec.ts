@@ -10,6 +10,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardCommandDocument }                                                      from '../../../page/@types/board/BoardCommandDocument.ts';
+import type { BoardAnswerForm }                                                           from '../../shared/@types/board/BoardCommand.ts';
 import { BOARD_COMMAND_BODY_BOUND_BYTES }                                                 from '../../shared/constants/Limits.ts';
 import { PAGE_CONTRACT_VERSIONS }                                                         from '../../shared/constants/PageContractVersions.ts';
 import { BoardCommandIngestion }                                                          from './BoardCommandIngestion.ts';
@@ -30,6 +31,14 @@ describe('commandOf, on a valid body', () => {
     const resume = EXAMPLE_BOARD_COMMAND_DOCUMENTS['interrupted-work-resume'];
     expect(readingOf({ ...resume, target: 'all' })).toEqual({ verdict: 'readable', command: { kind: 'interrupted-work-resume', target: 'all' } });
     expect(readingOf({ ...resume, target: { jobId: 'J1' } })).toEqual({ verdict: 'readable', command: { kind: 'interrupted-work-resume', target: { jobId: 'J1' } } });
+  });
+
+  test('reads an answer\'s note beside its letters, and a blank note as none', () => {
+    const answer = EXAMPLE_BOARD_COMMAND_DOCUMENTS['decision-answer'];
+    const withNote = { form: 'letters', choices: ['a'], note: 'Keep it short.' } as const;
+    const answerWith = (form: BoardAnswerForm) => ({ verdict: 'readable', command: { kind: 'decision-answer', decisionId: 'E2', answer: form } } as const);
+    expect(readingOf({ ...answer, answer: { ...withNote, note: '  Keep it short.  ' } })).toEqual(answerWith(withNote));
+    expect(readingOf({ ...answer, answer: { ...withNote, note: ' ' } })).toEqual(answerWith({ form: 'letters', choices: ['a'] }));
   });
 
   test('reads the Assistant\'s switch, on and off', () => {

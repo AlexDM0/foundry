@@ -86,7 +86,7 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
     }
   },
   'decision-answer': {
-    ...VERSION, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['a', 'bc'] }
+    ...VERSION, kind: 'decision-answer', decisionId: 'E2', answer: { form: 'letters', choices: ['b'], note: 'Keep the old basket too.' }
   },
   'gate-profile-start': {
     ...VERSION, kind: 'gate-profile-start', setupId: null, gateName: 'unit', phase: 'build', entity: 'web'

@@ -22,7 +22,7 @@ export const EXAMPLE_TODAY = '2026-10-29';
 export const EXAMPLE_FORMAT = { todayCalendarDate: EXAMPLE_TODAY, slices: EXAMPLE_TIMESTAMP_SLICES };
 
 /** An option as the board serves it: not recommended, with no consequence noted, unless the changes say otherwise. */
-export function exampleOption(changes: Partial<BoardDecisionOptionDocument> & Pick<BoardDecisionOptionDocument, 'label'>): BoardDecisionOptionDocument {
+export function exampleOption(changes: Partial<BoardDecisionOptionDocument> & Pick<BoardDecisionOptionDocument, 'label' | 'letter'>): BoardDecisionOptionDocument {
   return {
     description:      '',
     recommended:      false,
@@ -41,12 +41,16 @@ export const DARK_MODE_QUESTION: BoardDecisionDocument = {
   askedBy:   'builder',
   context:   'Acceptance A3 says no account component hard-codes a hex value, but src/account/Layout.tsx hard-codes six.',
   openedAt:  '2026-10-29T14:06:12+01:00',
+  document:  null,
+  anchor:    null,
+  placement: null,
   questions: [{
     question:    'Where should the account pages\' dark-mode colours live?',
     header:      'Tokens',
     multiSelect: false,
     options:     [
       exampleOption({
+        letter:           'a',
         label:            'Extend the shared theme tokens',
         description:      'Add account entries to the token file every page reads.',
         recommended:      true,
@@ -54,8 +58,8 @@ export const DARK_MODE_QUESTION: BoardDecisionDocument = {
         tradeOff:         'One place to change; the storefront reads the same file.',
         acceptanceEffect: 'meets A1 to A3 as written',
       }),
-      exampleOption({ label: 'A scoped stylesheet for the account pages', description: 'A new stylesheet only the account pages load.' }),
-      exampleOption({ label: 'Follow the system setting only', acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' }),
+      exampleOption({ letter: 'b', label: 'A scoped stylesheet for the account pages', description: 'A new stylesheet only the account pages load.' }),
+      exampleOption({ letter: 'c', label: 'Follow the system setting only', acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' }),
     ],
   }],
 };
@@ -68,11 +72,14 @@ export const PARKED_DECISION: BoardDecisionDocument = {
   askedBy:   'hephaestus',
   context:   '',
   openedAt:  '2026-10-29T13:40:00+01:00',
+  document:  null,
+  anchor:    null,
+  placement: null,
   questions: [{
     question:    'Example Storefront parked #005. Resume it?',
     header:      'Parked',
     multiSelect: false,
-    options:     [exampleOption({ label: 'Resume' }), exampleOption({ label: 'Abandon' })],
+    options:     [exampleOption({ letter: 'a', label: 'Resume' }), exampleOption({ letter: 'b', label: 'Abandon' })],
   }],
 };
 
@@ -85,10 +92,10 @@ export const TWO_QUESTION_DECISION: BoardDecisionDocument = {
   openedAt:  '2026-10-29T14:10:00+01:00',
   questions: [
     {
-      question: 'Which store?', header: 'Store', multiSelect: false, options: [exampleOption({ label: 'Disk' }), exampleOption({ label: 'Memory' })]
+      question: 'Which store?', header: 'Store', multiSelect: false, options: [exampleOption({ letter: 'a', label: 'Disk' }), exampleOption({ letter: 'b', label: 'Memory' })]
     },
     {
-      question: 'Which targets?', header: 'Targets', multiSelect: true, options: [exampleOption({ label: 'main' }), exampleOption({ label: 'group' })]
+      question: 'Which targets?', header: 'Targets', multiSelect: true, options: [exampleOption({ letter: 'a', label: 'main' }), exampleOption({ letter: 'b', label: 'group' })]
     },
   ],
 };

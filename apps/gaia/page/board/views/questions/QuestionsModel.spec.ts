@@ -13,7 +13,7 @@ const AT = '2026-10-29T20:00:00+01:00';
 
 function decisionOf(id: string, kind: string, questions: BoardDecisionDocument['questions'] = []): BoardDecisionDocument {
   return {
-    id, kind, ticketIds: ['042'], jobId: 'J3', askedBy: 'builder', questions, context: 'Example context', openedAt: AT
+    id, kind, ticketIds: ['042'], jobId: 'J3', askedBy: 'builder', questions, context: 'Example context', openedAt: AT, document: null, anchor: null, placement: null,
   };
 }
 
@@ -29,10 +29,22 @@ const ONE_QUESTION = [{
   multiSelect: false,
   options:     [
     {
-      label: 'Disk', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+      letter:           'a',
+      label:            'Disk',
+      description:      '',
+      recommended:      false,
+      touches:          [],
+      tradeOff:         null,
+      acceptanceEffect: null
     },
     {
-      label: 'Memory', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+      letter:           'b',
+      label:            'Memory',
+      description:      '',
+      recommended:      false,
+      touches:          [],
+      tradeOff:         null,
+      acceptanceEffect: null
     },
   ]
 }];

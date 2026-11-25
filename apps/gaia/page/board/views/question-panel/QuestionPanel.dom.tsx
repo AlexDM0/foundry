@@ -227,7 +227,7 @@ describe('the options and the answer', () => {
         question:    'Where?',
         header:      'Tokens',
         multiSelect: false,
-        options:     [exampleOption({ label: 'Keep the tokens (Recommended)' }), exampleOption({ label: 'Split them' })],
+        options:     [exampleOption({ letter: 'a', label: 'Keep the tokens (Recommended)' }), exampleOption({ letter: 'b', label: 'Split them' })],
       }],
     };
     renderPanel({ board: exampleQuestionPanelBoard({ decisions: [labelled] }) });
@@ -404,7 +404,11 @@ describe('the background', () => {
         header:      'Planted',
         multiSelect: false,
         options:     [exampleOption({
-          label: PLANTED, description: PLANTED, touches: [PLANTED], tradeOff: PLANTED
+          letter:      'a',
+          label:       PLANTED,
+          description: PLANTED,
+          touches:     [PLANTED],
+          tradeOff:    PLANTED
         })],
       }],
     };

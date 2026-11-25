@@ -28,6 +28,7 @@ import type {
   BoardTicketDocument,
   BoardTicketDocumentSummaryDocument,
   BoardTicketDocumentsSummaryDocument,
+  BoardTicketDraftDocument,
   BoardViewRangeDocument,
 } from '../../../page/@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptEntryDocument, ConversationDocument } from '../../../page/@types/board/ConversationDocument.ts';
@@ -57,13 +58,15 @@ import type {
   BoardTicket,
   BoardTicketDocumentSummary,
   BoardTicketDocumentsSummary,
+  BoardTicketDraft,
   BoardViewRange,
 } from '../../shared/@types/board/BoardTicket.ts';
-import type { BoardUsage, ForgeBoard } from '../../shared/@types/board/ForgeBoard.ts';
-import { PAGE_CONTRACT_VERSIONS }      from '../../shared/constants/PageContractVersions.ts';
-import { BoardAgentDocumentMapUtil }   from './BoardAgentDocumentMapUtil.ts';
-import { ForgeSentenceUtil }           from './ForgeSentenceUtil.ts';
-import { PipelineDocumentMapUtil }     from './PipelineDocumentMapUtil.ts';
+import type { BoardUsage, ForgeBoard }    from '../../shared/@types/board/ForgeBoard.ts';
+import { PAGE_CONTRACT_VERSIONS }         from '../../shared/constants/PageContractVersions.ts';
+import { BoardAgentDocumentMapUtil }      from './BoardAgentDocumentMapUtil.ts';
+import { ForgeSentenceUtil }              from './ForgeSentenceUtil.ts';
+import { PipelineDocumentMapUtil }        from './PipelineDocumentMapUtil.ts';
+import { TicketDocumentsDocumentMapUtil } from './TicketDocumentsDocumentMapUtil.ts';
 
 const BOARD_VERSION = { boardVersion: PAGE_CONTRACT_VERSIONS.gaiaBoard } as const;
 
@@ -168,6 +171,7 @@ function decisionOut(decision: BoardDecision): BoardDecisionDocument {
       header:      question.header,
       multiSelect: question.multiSelect,
       options:     question.options.map((option) => ({
+        letter:           option.letter,
         label:            option.label,
         description:      option.description,
         recommended:      option.recommended,
@@ -176,8 +180,11 @@ function decisionOut(decision: BoardDecision): BoardDecisionDocument {
         acceptanceEffect: option.acceptanceEffect,
       })),
     })),
-    context:  decision.context,
-    openedAt: decision.openedAt,
+    context:   decision.context,
+    openedAt:  decision.openedAt,
+    document:  decision.document,
+    anchor:    decision.anchor === null ? null : TicketDocumentsDocumentMapUtil.commentAnchorOut(decision.anchor),
+    placement: decision.placement === null ? null : TicketDocumentsDocumentMapUtil.lineRangeOut(decision.placement),
   };
 }
 
@@ -335,6 +342,17 @@ function ticketDocumentsSummaryOut(summary: BoardTicketDocumentsSummary): BoardT
   return { spec: ticketDocumentSummaryOut(summary.spec), plan: ticketDocumentSummaryOut(summary.plan), buildHeld: summary.buildHeld };
 }
 
+function ticketDraftOut(draft: BoardTicketDraft): BoardTicketDraftDocument {
+  return {
+    stage:       draft.stage,
+    waitsOnUser: draft.waitsOnUser,
+    agent:       draft.agent === null ? null : {
+      jobId: draft.agent.jobId, role: draft.agent.role, tokens: draft.agent.tokens, since: draft.agent.since
+    },
+    waitingSince: draft.waitingSince,
+  };
+}
+
 function ticketOut(ticket: BoardTicket, renderMarkdown: MarkdownRendering): BoardTicketDocument {
   return {
     id:              ticket.id,
@@ -377,6 +395,7 @@ function ticketOut(ticket: BoardTicket, renderMarkdown: MarkdownRendering): Boar
     },
     offers: { kinds: ticket.offers.kinds, priorityChoices: ticket.offers.priorityChoices },
     ...ticket.documents === undefined ? {} : { documents: ticketDocumentsSummaryOut(ticket.documents) },
+    ...ticket.draft === undefined ? {} : { draft: ticketDraftOut(ticket.draft) },
   };
 }
 

@@ -92,12 +92,16 @@ export type PresenceSituation = typeof PRESENCE_SITUATIONS[number];
 /**
  * Example Bookshop's board in the spec-then-plan route: `ticket-documents-saved` the save of a draft's spec, which opens its documents, then
  * the board's events up to the `documents` event, the documents and the board read after it; `ticket-documents-absent` a ticket with no
- * documents; `ticket-documents-unknown-ticket` a reference that names no ticket.
+ * documents; `ticket-documents-unknown-ticket` a reference that names no ticket; `ticket-documents-question-open` the board while the spec
+ * agent's question on a line of the spec is open, and the spec's approval it refuses; `ticket-documents-question-answered` the answer, an
+ * option with a note, then the documents and the board read after it.
  */
 export const TICKET_DOCUMENTS_SITUATIONS = [
   'ticket-documents-saved',
   'ticket-documents-absent',
   'ticket-documents-unknown-ticket',
+  'ticket-documents-question-open',
+  'ticket-documents-question-answered',
 ] as const;
 
 export type TicketDocumentsSituation = typeof TICKET_DOCUMENTS_SITUATIONS[number];

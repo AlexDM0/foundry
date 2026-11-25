@@ -8,9 +8,12 @@ import { describe, expect, test } from 'bun:test';
 import type { BoardDecisionDocument } from '../../@types/board/BoardDecisionDocuments.ts';
 import { DecisionAnswerUtil }         from './DecisionAnswerUtil.ts';
 
+const NO_DOCUMENT_QUESTION = { document: null, anchor: null, placement: null } as const;
+
 function decisionOf(id: string, questions: BoardDecisionDocument['questions']): BoardDecisionDocument {
+  const openedAt = '2026-10-29T20:00:00+01:00';
   return {
-    id, kind: 'agent-question', ticketIds: ['042'], jobId: 'J3', askedBy: 'builder', questions, context: 'Example context', openedAt: '2026-10-29T20:00:00+01:00'
+    id, kind: 'agent-question', ticketIds: ['042'], jobId: 'J3', askedBy: 'builder', questions, context: 'Example context', openedAt, ...NO_DOCUMENT_QUESTION,
   };
 }
 
@@ -20,10 +23,22 @@ const ONE_QUESTION = [{
   multiSelect: false,
   options:     [
     {
-      label: 'Disk', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+      letter:           'a',
+      label:            'Disk',
+      description:      '',
+      recommended:      false,
+      touches:          [],
+      tradeOff:         null,
+      acceptanceEffect: null
     },
     {
-      label: 'Memory', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+      letter:           'b',
+      label:            'Memory',
+      description:      '',
+      recommended:      false,
+      touches:          [],
+      tradeOff:         null,
+      acceptanceEffect: null
     },
   ]
 }];
@@ -35,13 +50,31 @@ const TWO_QUESTIONS = [
     multiSelect: true,
     options:     [
       {
-        label: 'main', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+        letter:           'a',
+        label:            'main',
+        description:      '',
+        recommended:      false,
+        touches:          [],
+        tradeOff:         null,
+        acceptanceEffect: null
       },
       {
-        label: 'group', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+        letter:           'b',
+        label:            'group',
+        description:      '',
+        recommended:      false,
+        touches:          [],
+        tradeOff:         null,
+        acceptanceEffect: null
       },
       {
-        label: 'none', description: '', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+        letter:           'c',
+        label:            'none',
+        description:      '',
+        recommended:      false,
+        touches:          [],
+        tradeOff:         null,
+        acceptanceEffect: null
       },
     ],
   },

@@ -19,9 +19,12 @@ export type BoardChartRange =
   | { readonly kind: 'automatic' }
   | { readonly kind: 'window'; readonly from: string; readonly to: string; readonly tickMinutes: number | null };
 
-/** The chosen option letters, one entry per question, or free text. */
+/**
+ * The chosen option letters, one entry per question, or free text. A `note` beside the letters is the user's own words on a decision of one
+ * question, sent with the chosen option; absent with none.
+ */
 export type BoardAnswerForm =
-  | { readonly form: 'letters'; readonly choices: readonly string[] }
+  | { readonly form: 'letters'; readonly choices: readonly string[]; readonly note?: string }
   | { readonly form: 'text'; readonly text: string };
 
 /** A picture uploaded first: its id, the sha256 of its bytes, and the file's name. */

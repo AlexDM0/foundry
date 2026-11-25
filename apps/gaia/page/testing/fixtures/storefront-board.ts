@@ -40,12 +40,16 @@ const RESET_LINK_QUESTION: BoardDecisionDocument = {
   askedBy:   'builder',
   context:   'The ticket says the link expires, but not after how long.',
   openedAt:  '2026-11-12T13:15:10.000Z',
+  document:  null,
+  anchor:    null,
+  placement: null,
   questions: [{
     question:    'How long should a password reset link stay valid?',
     header:      'Link lifetime',
     multiSelect: false,
     options:     [
       exampleOption({
+        letter:           'a',
         label:            'One hour',
         description:      'Long enough to find the email, short enough to limit a leaked link.',
         recommended:      true,
@@ -53,8 +57,8 @@ const RESET_LINK_QUESTION: BoardDecisionDocument = {
         tradeOff:         'A customer who waits longer asks for a new link.',
         acceptanceEffect: 'meets A1 and A2 as written',
       }),
-      exampleOption({ label: 'Twenty-four hours', description: 'The link survives a night.' }),
-      exampleOption({ label: 'Fifteen minutes', description: 'The shortest window the mail provider delivers within.' }),
+      exampleOption({ letter: 'b', label: 'Twenty-four hours', description: 'The link survives a night.' }),
+      exampleOption({ letter: 'c', label: 'Fifteen minutes', description: 'The shortest window the mail provider delivers within.' }),
     ],
   }],
 };

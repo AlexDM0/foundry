@@ -6,7 +6,9 @@
 import type {
   BoardDisplayState,
   BoardDocumentStanding,
+  BoardDraftStage,
   BoardDraftState,
+  BoardDraftWait,
   BoardOfferedCommandKind,
   BoardHephaestusSetting,
   BoardTaskStatus,
@@ -59,6 +61,23 @@ export interface BoardTicketDocumentsSummaryDocument {
   readonly buildHeld: boolean;
 }
 
+/** The live spec or plan agent writing a draft's stage. */
+export interface BoardDraftAgentDocument {
+  readonly jobId:  string;
+  readonly role:   string;
+  readonly tokens: number;
+  /** The job's newest launch, only ever shown; `null` while launching or when the forge's log lost it. */
+  readonly since:  string | null;
+}
+
+/** Where a ticket being written stands; `waitingSince` orders the drafts that wait on the user, oldest first, and is only ever shown. */
+export interface BoardTicketDraftDocument {
+  readonly stage:        BoardDraftStage;
+  readonly waitsOnUser:  BoardDraftWait | null;
+  readonly agent:        BoardDraftAgentDocument | null;
+  readonly waitingSince: string | null;
+}
+
 export interface BoardTicketDocument {
   readonly id:              string;
   readonly title:           string;
@@ -99,6 +118,8 @@ export interface BoardTicketDocument {
   readonly offers:          BoardTicketOffersDocument;
   /** Present only on a ticket in the spec-then-plan route. */
   readonly documents?:      BoardTicketDocumentsSummaryDocument;
+  /** Present only on a draft of the spec-then-plan route and a ticket in `ready-for-review`. */
+  readonly draft?:          BoardTicketDraftDocument;
 }
 
 export interface BoardTaskPhaseDocument {

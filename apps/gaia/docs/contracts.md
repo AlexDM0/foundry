@@ -193,6 +193,13 @@ is a separate document Gaia serves.
   forge's 404 for a ticket with no documents, or for no ticket, keeps its code, fields and sentence. The board carries only each
   ticket's documents summary, and the board stream's `documents` event asks the page to read them again. A stored pipeline's
   `ticketWriting` and a builder's or reviewer's `documents` read only where the forge serves them, so a one-ticket pipeline gains no key.
+- **A spec or plan agent's question** (forge 4.2, V15) is an open decision like any other, read with its `document`, its `anchor` (Gaia's
+  `BoardCommentAnchor`, mapped by the same mapper as a comment's) and its `placement` on the head, each `null` on a decision no document
+  agent asked; every option carries the forge's `letter`. Each ticket being written carries its `draft` (stage, what waits on User, its
+  agent, when the wait began), read only where the forge serves it. An answer to such a question is the board's `decision-answer` with an
+  optional `note` beside the letters, which the server trims and leaves out when blank; the forge's refusal of a document's approval while
+  the question is open, `document-has-open-questions`, reaches the page as the forge's sentence. The answer comes back on the documents as a
+  message whose `decisionId` names the decision.
 - **The jobs a network outage left waiting** are told from presence alone, by one rule (`src/features/fleet/utils/OutageEndingUtil.ts`):
   a job of the interrupted work whose cause is `network-outage` and which waits for an instruction. Each forge's count and the fleet's
   total are served in the fleet document, and `fleet-outage-resume` sends each forge whose API answers the forge's

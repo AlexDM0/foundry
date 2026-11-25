@@ -49,6 +49,7 @@ import type {
 } from 'forge-contracts/BoardMergeQueueDocument';
 import type {
   BoardAcceptanceItemDocument,
+  BoardDraftAgentDocument,
   BoardDraftAnswerDocument,
   BoardDraftQuestionDocument,
   BoardDraftQuestionOptionDocument,
@@ -69,6 +70,7 @@ import type {
   BoardTaskPhaseDocument,
   BoardTicketDocument,
   BoardTicketDocumentsSummaryDocument,
+  BoardTicketDraftDocument,
   BoardTicketSectionDocument,
   BoardTicketStageDocument,
   BoardViewRangeDocument,
@@ -157,6 +159,7 @@ import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument'
 
 import type { DocumentShape, FieldRule, ShapeOf }      from '../../../lib/json-value/DocumentShapeUtil.ts';
 import { VocabularyMapUtil, type BoardVocabularyName } from '../utils/VocabularyMapUtil.ts';
+import { COMMENT_ANCHOR_SHAPE, LINE_RANGE_SHAPE }      from './TicketDocumentsShapes.ts';
 
 const TEXT_OR_NULL = { nullable: 'text' } as const;
 const WHOLE_NUMBER_OR_NULL = { nullable: 'whole-number' } as const;
@@ -337,6 +340,17 @@ const TICKET_DOCUMENTS_SUMMARY_SHAPE = {
   buildHeld: 'boolean',
 } as const satisfies ShapeOf<BoardTicketDocumentsSummaryDocument>;
 
+const DRAFT_AGENT_SHAPE = {
+  jobId: 'text', role: 'text', tokens: 'whole-number', since: TEXT_OR_NULL
+} as const satisfies ShapeOf<BoardDraftAgentDocument>;
+
+const TICKET_DRAFT_SHAPE = {
+  stage:        vocabularyRule('draftStage'),
+  waitsOnUser:  { nullable: vocabularyRule('draftWait') },
+  agent:        { nullable: { object: DRAFT_AGENT_SHAPE } },
+  waitingSince: TEXT_OR_NULL,
+} as const satisfies ShapeOf<BoardTicketDraftDocument>;
+
 const TICKET_SECTION_SHAPE = { heading: 'text', markdown: 'text' } as const satisfies ShapeOf<BoardTicketSectionDocument>;
 
 const ACCEPTANCE_ITEM_SHAPE = { label: 'text', text: 'text', waived: 'boolean' } as const satisfies ShapeOf<BoardAcceptanceItemDocument>;
@@ -375,6 +389,7 @@ const TICKET_SHAPE = {
   facts:           { object: TICKET_FACTS_SHAPE },
   offers:          { object: TICKET_OFFERS_SHAPE },
   documents:       { optional: { object: TICKET_DOCUMENTS_SUMMARY_SHAPE } },
+  draft:           { optional: { object: TICKET_DRAFT_SHAPE } },
 } as const satisfies ShapeOf<BoardTicketDocument>;
 
 const TASK_PHASE_SHAPE = { status: vocabularyRule('taskStatus'), at: 'text' } as const satisfies ShapeOf<BoardTaskPhaseDocument>;
@@ -623,6 +638,7 @@ const MERGE_TARGET_SHAPE = {
 const MERGE_QUEUE_SHAPE = { queuedTicketIds: 'text-list', targets: { listOf: MERGE_TARGET_SHAPE } } as const satisfies ShapeOf<BoardMergeQueueDocument>;
 
 const DECISION_OPTION_SHAPE = {
+  letter:           'text',
   label:            'text',
   description:      'text',
   recommended:      'boolean',
@@ -647,6 +663,9 @@ const DECISION_SHAPE = {
   questions: { listOf: DECISION_QUESTION_SHAPE },
   context:   'text',
   openedAt:  'text',
+  document:  { optional: vocabularyRule('ticketDocumentKind') },
+  anchor:    { optional: { object: COMMENT_ANCHOR_SHAPE } },
+  placement: { optional: { nullable: { object: LINE_RANGE_SHAPE } } },
 } as const satisfies ShapeOf<BoardDecisionDocument>;
 
 const DELIVERY_TURN_SHAPE = { jobId: 'text', chatSequence: 'whole-number' } as const satisfies ShapeOf<BoardIncidentDeliveryTurnDocument>;

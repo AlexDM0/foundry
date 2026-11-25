@@ -220,8 +220,11 @@ export function exampleAskingDecision(changes: Partial<BoardDecisionDocument> & 
     questions: [{
       question: 'Should the example gift card skip payment?', header: 'Example', multiSelect: false, options: []
     }],
-    context:  '',
-    openedAt: '2026-10-29T11:51:00',
+    context:   '',
+    openedAt:  '2026-10-29T11:51:00',
+    document:  null,
+    anchor:    null,
+    placement: null,
     ...changes,
   };
 }

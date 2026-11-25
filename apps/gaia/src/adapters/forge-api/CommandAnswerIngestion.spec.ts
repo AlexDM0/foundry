@@ -1,14 +1,15 @@
 /**
  * The forge's answers to a board command, as a scratch forge recorded them. What matters: an applied command keeps its outcome and names
  * the job it started, an intake's product owner, or the version a document's save left at the head; the refusal of the recorded
- * `ticket-hold` keeps its code, fields and the forge's sentence unchanged, as does the refusal of a body the forge does not know; a held
- * launch reads as held with its refusal; a body at another control version, or one that is no answer, is unreadable and names its keys.
+ * `ticket-hold` keeps its code, fields and the forge's sentence unchanged, as do a spec's approval refused while its agent's question is
+ * open and the refusal of a body the forge does not know, and the answer to that question applies; a held launch reads as held with its
+ * refusal; a body at another control version, or one that is no answer, is unreadable and names its keys.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CommandAnswerIngestion }       from './CommandAnswerIngestion.ts';
-import { recordedCommandAnswerOf }      from './testing/BoardDocuments.ts';
-import { recordedDocumentSaveAnswerOf } from './testing/TicketDocumentsRecordings.ts';
+import { CommandAnswerIngestion }                                        from './CommandAnswerIngestion.ts';
+import { recordedCommandAnswerOf }                                       from './testing/BoardDocuments.ts';
+import { recordedDocumentSaveAnswerOf, recordedQuestionCommandAnswerOf } from './testing/TicketDocumentsRecordings.ts';
 
 const INGESTION = new CommandAnswerIngestion();
 
@@ -54,6 +55,17 @@ describe('answerOf, on the recorded answers', () => {
         sentence: 'There is no readable ticket 999. Run `forge ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed.',
       },
     });
+  });
+
+  test('keeps a spec\'s approval refused while its agent\'s question is open, and applies the answer to that question', async () => {
+    const refused = await recordedQuestionCommandAnswerOf('ticket-documents-question-open', 'ticket-document-approve');
+    expect(INGESTION.answerOf(refused.status, refused.body)).toMatchObject({
+      outcome: 'refused',
+      status:  409,
+      refusal: { code: 'document-has-open-questions', fields: { ticketId: '001', document: 'spec', decisionIds: ['E1'] } },
+    });
+    const answered = await recordedQuestionCommandAnswerOf('ticket-documents-question-answered', 'decision-answer');
+    expect(INGESTION.answerOf(answered.status, answered.body)).toMatchObject({ outcome: 'applied', applied: 'done' });
   });
 
   test('keeps the refusal of a command the forge does not know', async () => {

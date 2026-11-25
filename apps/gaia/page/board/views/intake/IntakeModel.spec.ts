@@ -23,7 +23,7 @@ const AT = EXAMPLE_SESSION_RECORD_AT;
 
 function decision(id: string, jobId: string, openedAt = AT): BoardDecisionDocument {
   return {
-    id, kind: 'agent-question', ticketIds: [], jobId, askedBy: 'product-owner', questions: [], context: '', openedAt
+    id, kind: 'agent-question', ticketIds: [], jobId, askedBy: 'product-owner', questions: [], context: '', openedAt, document: null, anchor: null, placement: null,
   };
 }
 

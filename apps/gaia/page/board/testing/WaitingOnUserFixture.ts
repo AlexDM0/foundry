@@ -19,7 +19,13 @@ function questionOf(question: string): BoardDecisionDocument['questions'] {
     header:      'Example',
     multiSelect: false,
     options:     [{
-      label: 'Yes', description: 'Example yes', recommended: false, touches: [], tradeOff: null, acceptanceEffect: null
+      letter:           'a',
+      label:            'Yes',
+      description:      'Example yes',
+      recommended:      false,
+      touches:          [],
+      tradeOff:         null,
+      acceptanceEffect: null
     }],
   }];
 }
@@ -32,6 +38,9 @@ function exampleDecision(changes: Partial<BoardDecisionDocument> & Pick<BoardDec
     askedBy:   'builder',
     questions: questionOf('Example question?'),
     context:   'Example context',
+    document:  null,
+    anchor:    null,
+    placement: null,
     ...changes,
   };
 }

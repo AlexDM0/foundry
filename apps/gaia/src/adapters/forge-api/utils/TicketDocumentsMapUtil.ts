@@ -106,6 +106,7 @@ function messageOf(message: DocumentMessageDocument): Gaia.BoardDocumentMessage 
   return {
     messageId:      message.messageId,
     commentNumber:  message.commentNumber,
+    decisionId:     message.decisionId,
     anchor:         message.anchor === null ? null : commentAnchorOf(message.anchor),
     placement:      nullableLineRangeOf(message.placement),
     orphaned:       message.orphaned,
@@ -218,4 +219,5 @@ const FORGE_VALUES = {
 export const TicketDocumentsMapUtil = {
   forgeValues: FORGE_VALUES,
   ticketDocumentsOf,
+  commentAnchorOf,
 } as const;

@@ -153,6 +153,7 @@ type MessageFields = Partial<BoardDocumentMessageDocument> & Pick<BoardDocumentM
 function message(fields: MessageFields): BoardDocumentMessageDocument {
   return {
     commentNumber:  null,
+    decisionId:     null,
     anchor:         null,
     placement:      null,
     orphaned:       false,

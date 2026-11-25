@@ -152,7 +152,8 @@ function chartRangeOut(range: BoardChartRange): ChartRangeRequest {
 }
 
 function answerOut(answer: BoardAnswerForm): DecisionAnswerFormDocument {
-  return answer.form === 'letters' ? { form: 'letters', choices: answer.choices } : { form: 'text', text: answer.text };
+  if (answer.form === 'text') return { form: 'text', text: answer.text };
+  return { form: 'letters', choices: answer.choices, ...answer.note === undefined ? {} : { note: answer.note } };
 }
 
 function picturesOut(pictures: readonly BoardPictureReference[]): Partial<Record<'pictures', readonly PictureReferenceDocument[]>> {
