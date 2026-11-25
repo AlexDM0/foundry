@@ -1,8 +1,8 @@
 /** The Happy emote: the happy eyes, two bounces, and the two glints. */
-import type { EmoteInput } from '../EmoteDefinition.ts';
-import { emoteDefinition } from '../EmoteDefinition.ts';
-import { EmoteMarkUtil }   from '../EmoteMarkUtil.ts';
-import { HAPPY_MOTION }    from './constants/HappyValues.ts';
+import type { EmoteInput }            from '../EmoteDefinition.ts';
+import { emoteDefinition }            from '../EmoteDefinition.ts';
+import { EmoteMarkUtil }              from '../EmoteMarkUtil.ts';
+import { HAPPY_EXTENT, HAPPY_MOTION } from './constants/HappyValues.ts';
 
 const { DURATION_MILLISECONDS } = HAPPY_MOTION;
 
@@ -14,6 +14,7 @@ function bounceLiftOf(input: EmoteInput): number {
 export const HAPPY_EMOTE = emoteDefinition({
   name:                 'happy',
   durationMilliseconds: DURATION_MILLISECONDS,
+  extent:               HAPPY_EXTENT,
   targetPose:           (input) => ({
     eyes:      { happiness: 1 },
     body:      { addedLift: bounceLiftOf(input) },

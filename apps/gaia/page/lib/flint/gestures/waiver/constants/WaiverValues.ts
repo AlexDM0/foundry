@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Waiver: one loop in which Flint initials a failed verdict and it becomes a grey tick; in milliseconds. */
 export const WAIVER_TIMELINE = {
   CYCLE_MILLISECONDS:          3400,
@@ -42,3 +44,11 @@ export const WAIVER_POSE = {
   DOUBT_LEAN_DEGREES:           7,
   DOUBT_RIGHT_EYE_HEIGHT_UNITS: 5,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const WAIVER_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      50.5,
+  aboveFloorUnits: 66.5,
+  belowFloorUnits: -3,
+};

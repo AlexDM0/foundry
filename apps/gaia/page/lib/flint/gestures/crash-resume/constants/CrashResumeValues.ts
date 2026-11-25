@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Crash resume: Flint flickers out, lies as an outline around one spark, and comes back,
  * in one action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
@@ -67,3 +69,11 @@ export const LOOK_AROUND = {
   BEHIND_EYE_SHIFT_UNITS: -3,
   AHEAD_EYE_SHIFT_UNITS:  6,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const CRASH_RESUME_EXTENT: DrawnExtent = {
+  backUnits:       24,
+  frontUnits:      22.5,
+  aboveFloorUnits: 60,
+  belowFloorUnits: 1,
+};

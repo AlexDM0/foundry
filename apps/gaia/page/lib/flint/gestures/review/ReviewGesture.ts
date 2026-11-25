@@ -3,18 +3,23 @@
  * a verdict, and starts again. One pentagon holds the glass at a fixed offset from the lens. Reading goes from left to right on the
  * screen whatever the facing ("Reading and writing direction", "Review"): facing left, `1 - along` takes the place of `along`.
  */
-import type { Facing }                                     from '../../SpriteGeometry.ts';
-import type { PosePart }                                   from '../../SpritePose.ts';
-import { HAND_SHAPE }                                      from '../../constants/HandShape.ts';
-import { LOOKING_GLASS_SHAPE }                             from '../../props/looking-glass/constants/LookingGlassValues.ts';
-import { SHEET_SHAPE }                                     from '../../props/shapes/constants/SheetShape.ts';
-import type { ReviewVerdict }                              from '../../props/sheet/SheetProp.ts';
-import type { GestureInput }                               from '../GestureDefinition.ts';
-import { gestureDefinition }                               from '../GestureDefinition.ts';
-import { ReadingLensUtil }                                 from '../ReadingLensUtil.ts';
-import type { WorkingVariant }                             from '../WorkingVariantPart.ts';
-import { workingVariantPartOf }                            from '../WorkingVariantPart.ts';
-import { REVIEW_GESTURE_VALUES, REVIEW_JAB, REVIEW_PACES } from './constants/ReviewValues.ts';
+import type { Facing }          from '../../SpriteGeometry.ts';
+import type { PosePart }        from '../../SpritePose.ts';
+import { HAND_SHAPE }           from '../../constants/HandShape.ts';
+import { LOOKING_GLASS_SHAPE }  from '../../props/looking-glass/constants/LookingGlassValues.ts';
+import { SHEET_SHAPE }          from '../../props/shapes/constants/SheetShape.ts';
+import type { ReviewVerdict }   from '../../props/sheet/SheetProp.ts';
+import type { GestureInput }    from '../GestureDefinition.ts';
+import { gestureDefinition }    from '../GestureDefinition.ts';
+import { ReadingLensUtil }      from '../ReadingLensUtil.ts';
+import type { WorkingVariant }  from '../WorkingVariantPart.ts';
+import { workingVariantPartOf } from '../WorkingVariantPart.ts';
+import {
+  REVIEW_EXTENTS,
+  REVIEW_GESTURE_VALUES,
+  REVIEW_JAB,
+  REVIEW_PACES,
+} from './constants/ReviewValues.ts';
 
 /** Where the review stands at one moment: the line being read and how far along it, or the verdict and how far through it. */
 interface ReviewMoment {
@@ -103,9 +108,15 @@ function reviewPartOf(input: GestureInput<WorkingVariant>): PosePart {
 export const REVIEW_GESTURE = gestureDefinition({
   name:    'review',
   intents: {
-    'review':       { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 0 },
-    'review-busy':  { variant: 'busy', durationMilliseconds: null, stillMomentMilliseconds: 0 },
-    'review-angry': { variant: 'angry', durationMilliseconds: null, stillMomentMilliseconds: 0 },
+    'review': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: REVIEW_EXTENTS.REVIEW
+    },
+    'review-busy': {
+      variant: 'busy', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: REVIEW_EXTENTS.REVIEW_BUSY
+    },
+    'review-angry': {
+      variant: 'angry', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: REVIEW_EXTENTS.REVIEW_ANGRY
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

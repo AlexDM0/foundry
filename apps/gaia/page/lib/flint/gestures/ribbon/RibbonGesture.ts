@@ -11,10 +11,11 @@ import type { GestureInput }               from '../GestureDefinition.ts';
 import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import {
+  RIBBON_EXTENT,
   RIBBON_EYES,
   RIBBON_HANDS,
   RIBBON_SHEETS,
-  RIBBON_TIMELINE
+  RIBBON_TIMELINE,
 } from './constants/RibbonValues.ts';
 
 /** The pentagons start this far out and come in with the outer sheets they push. */
@@ -84,7 +85,7 @@ function ribbonPartOf(input: GestureInput): PosePart {
 
 export const RIBBON_GESTURE = gestureDefinition({
   name:                  'ribbon',
-  intents:               { ribbon: singleFormOf(null, RIBBON_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { ribbon: singleFormOf(null, RIBBON_TIMELINE.STILL_MOMENT_MILLISECONDS, RIBBON_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

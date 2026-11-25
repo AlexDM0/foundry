@@ -2,7 +2,7 @@
  * Regrouping. What matters: the 4.6-second loop fades in four dim sparks; from 400, a
  * triangle of radius 6 points at each spark for 700 ms, 9 units short of it on the line from the body centre (from straight below at spark
  * 1, so the hand never covers spark 0), its corner along that line, with the eyes lifted towards it; no hand covers another spark; each
- * live spark lights with a spring, the dead spark 2 goes grey at 15% and narrows the eyes; a square sweeps from (44, -48) to (54, -38)
+ * live spark lights with a spring, the dead spark 2 goes grey at 15% and narrows the eyes; a square sweeps from (40, -48) to (50, -38)
  * while the dead spark falls 14 and fades; the live sparks bob with happy eyes; the sparks fade; reduced motion holds the look at the dead
  * spark; the part does not depend on the facing.
  */
@@ -21,10 +21,10 @@ function inputAt(elapsedMilliseconds: number, facing: Facing = 1): GestureInput<
 const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => REGROUP_GESTURE.targetPose(inputAt(elapsedMilliseconds, facing));
 const sparksAt = (elapsedMilliseconds: number) => partAt(elapsedMilliseconds).props?.regroupSparks?.sparks ?? [];
 
-const PLACES = [[28, -46], [38, -50], [48, -44], [50, -32]] as const;
+const PLACES = [[24, -46], [34, -50], [44, -44], [46, -32]] as const;
 
 test('regroup is one loop that reduced motion holds at 2400', () => {
-  expect(REGROUP_GESTURE.intents.regroup).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2400 });
+  expect(REGROUP_GESTURE.intents.regroup).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2400 });
 });
 
 describe('the loop', () => {
@@ -39,7 +39,7 @@ describe('the loop', () => {
   });
 
   test('from 400 + 700n: the triangle points at spark n from 9 units short of it, its corner along the line from where it points from', () => {
-    const POINTED_FROM = [[0, -24], [38, -24], [0, -24], [0, -24]] as const;
+    const POINTED_FROM = [[0, -24], [34, -24], [0, -24], [0, -24]] as const;
     PLACES.forEach(([placeX, placeY], i) => {
       const hand = partAt(400 + (700 * i) + 350).nearHand;
       const awayX = placeX - (POINTED_FROM[i]?.[0] ?? 0);
@@ -79,10 +79,10 @@ describe('the loop', () => {
     expect(sparksAt(2000)[2]).toMatchObject({ deadOpacity: 0.15, dimOpacity: 0, liveOpacity: 0 });
   });
 
-  test('3200 to 3900: a square of radius 6 sweeps from (44, -48) to (54, -38); the dead spark falls 14 and fades', () => {
+  test('3200 to 3900: a square of radius 6 sweeps from (40, -48) to (50, -38); the dead spark falls 14 and fades', () => {
     const part = partAt(3550);
     expect(part.nearHand).toEqual({
-      cornerCount: 4, centreX: 49, centreY: -43, radius: 6, turnDegrees: 45, placement: 'eased',
+      cornerCount: 4, centreX: 45, centreY: -43, radius: 6, turnDegrees: 45, placement: 'eased',
     });
     expect(sparksAt(3550)[2]).toMatchObject({ centreY: -37, deadOpacity: expect.closeTo(0.075, 5) });
   });

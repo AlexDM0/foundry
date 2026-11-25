@@ -13,10 +13,11 @@ import {
   DEATH_EYES,
   FED_SPARK,
   FORCED_STOP,
+  FORCED_STOP_EXTENT,
   LOOK_AT_PLUG,
   PLUG,
   PULL,
-  SOCKET_SPARKS
+  SOCKET_SPARKS,
 } from './constants/ForcedStopValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -80,7 +81,7 @@ function forcedStopPartOf(input: GestureInput): PosePart {
 
 export const FORCED_STOP_GESTURE = gestureDefinition({
   name:                  'forced-stop',
-  intents:               { 'forced-stop': singleFormOf(FORCED_STOP.DURATION_MILLISECONDS, FORCED_STOP.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'forced-stop': singleFormOf(FORCED_STOP.DURATION_MILLISECONDS, FORCED_STOP.STILL_MOMENT_MILLISECONDS, FORCED_STOP_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

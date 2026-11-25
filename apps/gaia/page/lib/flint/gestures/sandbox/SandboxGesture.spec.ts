@@ -19,7 +19,7 @@ function inputAt(elapsedMilliseconds: number, facing: Facing = 1): GestureInput<
 const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => SANDBOX_GESTURE.targetPose(inputAt(elapsedMilliseconds, facing));
 
 test('sandbox is one loop that reduced motion holds at the contact, 2150', () => {
-  expect(SANDBOX_GESTURE.intents.sandbox).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2150 });
+  expect(SANDBOX_GESTURE.intents.sandbox).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2150 });
 });
 
 describe('the loop', () => {

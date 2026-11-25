@@ -2,6 +2,7 @@
  * Which attendants are with Flint, as plain data the mind keeps: each member by its attendant and index, and when it joined. `attend`
  * sets the count of one attendant; a member keeps its place and its entrance while the count changes around it.
  */
+import type { DrawnExtent }         from '../SpriteGeometry.ts';
 import type { AttendantName }       from './AttendantCatalog.ts';
 import { ATTENDANT_CATALOG }        from './AttendantCatalog.ts';
 import type { AttendantMemberPose } from './AttendantDefinition.ts';
@@ -44,4 +45,9 @@ export function attendantMembersAt(roster: AttendantRoster, elapsedMilliseconds:
     });
     return [{ ...pose, name: presence.name, index: presence.index }];
   });
+}
+
+/** All that an attendant draws at its most members, with Flint's body. */
+export function attendantExtentOf(name: AttendantName): DrawnExtent | null {
+  return ATTENDANT_CATALOG.find((definition) => definition.name === name)?.extent ?? null;
 }

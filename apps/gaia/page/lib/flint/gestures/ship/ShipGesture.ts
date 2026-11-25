@@ -13,6 +13,7 @@ import { GestureTimelineUtil }               from '../GestureTimelineUtil.ts';
 import type { ShipState }                    from './ShipShelfProp.ts';
 import {
   SHIP_BODY,
+  SHIP_EXTENT,
   SHIP_EYES,
   SHIP_HANDS,
   SHIP_SHAPE,
@@ -107,7 +108,7 @@ function shipPartOf(input: GestureInput): PosePart {
 
 export const SHIP_GESTURE = gestureDefinition({
   name:                  'ship',
-  intents:               { ship: singleFormOf(SHIP_TIMELINE.DURATION_MILLISECONDS, SHIP_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { ship: singleFormOf(SHIP_TIMELINE.DURATION_MILLISECONDS, SHIP_TIMELINE.STILL_MOMENT_MILLISECONDS, SHIP_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

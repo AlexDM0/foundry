@@ -16,6 +16,7 @@ import type { StruckSparksState }          from './StruckSparksProp.ts';
 import {
   STRIKE_BODY,
   STRIKE_HAND,
+  STRIKE_SPARK_EXTENT,
   STRIKE_SPARK_TIMELINE,
   STRUCK_SMALL_SPARKS,
   STRUCK_WATCHER,
@@ -118,7 +119,7 @@ function strikeSparkPartOf(input: GestureInput): PosePart {
 
 export const STRIKE_SPARK_GESTURE = gestureDefinition({
   name:                  'strike-spark',
-  intents:               { 'strike-spark': singleFormOf(STRIKE_SPARK_TIMELINE.DURATION_MILLISECONDS, STRIKE_SPARK_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'strike-spark': singleFormOf(STRIKE_SPARK_TIMELINE.DURATION_MILLISECONDS, STRIKE_SPARK_TIMELINE.STILL_MOMENT_MILLISECONDS, STRIKE_SPARK_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

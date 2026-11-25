@@ -3,12 +3,12 @@
  * shakes its head and shows a cross above the post; admit unhooks the rope, steps aside with a tick and happy eyes, and lets the props
  * fade. Both loop.
  */
-import type { HandPose, PosePart }        from '../../SpritePose.ts';
-import type { GestureInput }              from '../GestureDefinition.ts';
-import { gestureDefinition }              from '../GestureDefinition.ts';
-import { GestureTimelineUtil }            from '../GestureTimelineUtil.ts';
-import type { BouncerBarrierState }       from './BouncerBarrierProp.ts';
-import { BOUNCER_POSE, BOUNCER_TIMELINE } from './constants/BouncerValues.ts';
+import type { HandPose, PosePart }                         from '../../SpritePose.ts';
+import type { GestureInput }                               from '../GestureDefinition.ts';
+import { gestureDefinition }                               from '../GestureDefinition.ts';
+import { GestureTimelineUtil }                             from '../GestureTimelineUtil.ts';
+import type { BouncerBarrierState }                        from './BouncerBarrierProp.ts';
+import { BOUNCER_EXTENTS, BOUNCER_POSE, BOUNCER_TIMELINE } from './constants/BouncerValues.ts';
 
 export type BouncerVariant = 'refuse' | 'admit';
 
@@ -89,8 +89,12 @@ function bouncerPartOf(input: GestureInput<BouncerVariant>): PosePart {
 export const BOUNCER_GESTURE = gestureDefinition({
   name:    'bouncer',
   intents: {
-    refuse: { variant: 'refuse', durationMilliseconds: null, stillMomentMilliseconds: BOUNCER_TIMELINE.STILL_MOMENT_MILLISECONDS },
-    admit:  { variant: 'admit', durationMilliseconds: null, stillMomentMilliseconds: BOUNCER_TIMELINE.STILL_MOMENT_MILLISECONDS },
+    refuse: {
+      variant: 'refuse', durationMilliseconds: null, stillMomentMilliseconds: BOUNCER_TIMELINE.STILL_MOMENT_MILLISECONDS, extent: BOUNCER_EXTENTS.REFUSE
+    },
+    admit: {
+      variant: 'admit', durationMilliseconds: null, stillMomentMilliseconds: BOUNCER_TIMELINE.STILL_MOMENT_MILLISECONDS, extent: BOUNCER_EXTENTS.ADMIT
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

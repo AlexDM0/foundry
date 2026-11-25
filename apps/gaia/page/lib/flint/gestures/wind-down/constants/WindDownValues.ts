@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Wind-down: Flint types slower, turns a dial down in three steps, and writes one last
  * line on a ticket, in one action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
@@ -57,3 +59,11 @@ export const LAST_TICKET = {
   LEAVE_Y_UNITS:               -6,
   LEAVING_EYE_HEIGHT_UNITS:    3,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const WIND_DOWN_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      60,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -1,
+};

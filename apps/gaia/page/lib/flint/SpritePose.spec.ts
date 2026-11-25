@@ -39,9 +39,9 @@ describe('the emote marks at rest', () => {
     ['question', 20, -54, 1.5],
     ['thinking-dots', 20, -54, 1.5],
     ['lightbulb', 20, -54, 1.5],
-    ['happy-glints', 20, -54, 1.5],
+    ['happy-glints', 20, -45, 1.5],
     ['sweat-beads', 0, -48, 1.5],
-    ['greeting', 38, -58, 1.5],
+    ['greeting', 38, -49.5, 1.3],
   ] as const)('the %s mark sits at (%d, %d) at scale %d', (name, anchorX, anchorY, scale) => {
     expect(emoteMarkAtRest(name)).toMatchObject({
       name, anchorX, anchorY, scale, innerScaleX: 1, innerScaleY: 1, opacity: 1,

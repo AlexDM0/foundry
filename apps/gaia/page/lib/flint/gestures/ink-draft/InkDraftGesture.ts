@@ -14,11 +14,12 @@ import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import { PEN, WRITING_EYES }               from '../constants/PenMotion.ts';
 import type { InkDraftSheetState }         from './InkDraftSheetProp.ts';
 import {
+  INK_DRAFT_EXTENT,
   INK_DRAFT_EYES,
   INK_DRAFT_SHEET,
   INK_DRAFT_SPARKS,
   INK_DRAFT_TIMELINE,
-  INK_DRAFT_TRACE
+  INK_DRAFT_TRACE,
 } from './constants/InkDraftValues.ts';
 
 /** The start corner, each corner the pen has passed, and its tip, after going around the outline for this long. */
@@ -89,7 +90,7 @@ function inkDraftPartOf(input: GestureInput): PosePart {
 
 export const INK_DRAFT_GESTURE = gestureDefinition({
   name:                  'ink-draft',
-  intents:               { 'ink-draft': singleFormOf(null, INK_DRAFT_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'ink-draft': singleFormOf(null, INK_DRAFT_TIMELINE.STILL_MOMENT_MILLISECONDS, INK_DRAFT_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

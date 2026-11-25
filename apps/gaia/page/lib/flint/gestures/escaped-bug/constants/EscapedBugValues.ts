@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Escaped bug: a bug leaves a landed block, Flint chases it with one pentagon and catches it on the third hit,
  * and traces it back to its block. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
@@ -106,3 +108,11 @@ export const ESCAPED_BUG_EYES = {
   HOLD_HEIGHT_UNITS:      6,
   TRACE_SLANT_DEGREES:    8,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const ESCAPED_BUG_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      64.5,
+  aboveFloorUnits: 77,
+  belowFloorUnits: -3,
+};

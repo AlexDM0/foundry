@@ -1,9 +1,9 @@
 /**
  * Bank the fire. What matters: Flint lands (hover 0) and leans -5 from the start; a
- * square of 6.5, turn 0, at (-4, -59) over the leaned tip (the design's (10, -56) never reaches Flint) pats two times, 4 down and back
+ * square of 5.5, turn 0, at (-4, -57.5) over the leaned tip (the design's (10, -56) never reaches Flint) pats two times, 3.5 down and back
  * in 300 ms each, set exactly so its lower corner meets the tip; after the first pat the tint is cooled 0.3 and the
  * height × 0.97, after the second 0.6; from 800 the hand goes, the tint goes on to 0.7 and the eyes to 2.5 by 2000; from 2000 the glow is
- * 0.35 + 0.15 × sin(t / 900) (faded in before) and only ember 2 of Sleep rises. A steady pose: no breath,
+ * 0.35 + 0.15 × sin(t / 900) (faded in before) and only ember 2 of Sleep rises, 0.6 of Sleep's way. A steady pose: no breath,
  * still moment 2500.
  */
 import { describe, expect, test } from 'bun:test';
@@ -22,14 +22,14 @@ function inputAt(elapsedMilliseconds: number, facing: Facing = 1): GestureInput<
 const partAt = (elapsedMilliseconds: number) => BANK_FIRE_GESTURE.targetPose(inputAt(elapsedMilliseconds));
 
 describe('the entrance', () => {
-  test('Flint lands and leans back; a square pats its top, 4 down at the middle of each pat', () => {
+  test('Flint lands and leans back; a square pats its top, 3.5 down at the middle of each pat', () => {
     const part = partAt(350);
     expect(part.body).toMatchObject({ hover: 0, leanDegrees: -5 });
     expect(part.nearHand).toEqual({
-      cornerCount: 4, centreX: -4, centreY: -55, radius: 6.5, turnDegrees: 0, placement: 'exact-position',
+      cornerCount: 4, centreX: -4, centreY: -54, radius: 5.5, turnDegrees: 0, placement: 'exact-position',
     });
-    expect(partAt(650).nearHand?.centreY).toBeCloseTo(-55, 9);
-    expect(partAt(100).nearHand).toMatchObject({ centreY: -59, placement: 'eased' });
+    expect(partAt(650).nearHand?.centreY).toBeCloseTo(-54, 9);
+    expect(partAt(100).nearHand).toMatchObject({ centreY: -57.5, placement: 'eased' });
   });
 
   test('no tint before the first pat; cooled 0.3 and 0.97 high after it; 0.6 after the second', () => {
@@ -55,11 +55,11 @@ describe('the banked fire', () => {
     expect(partAt(1600).sleep?.glowOpacity).toBe(0);
   });
 
-  test('only ember 2 of Sleep rises, from 2000', () => {
+  test('only ember 2 of Sleep rises, from 2000, 0.6 of Sleep\'s way up', () => {
     expect(partAt(1999).props).toBeUndefined();
     const sleepEmber = embersOf(0, 1, 3000)[2];
     expect(partAt(2000 + 3000 - 2100).props?.bankedEmber?.shown).toBe(1);
-    expect(partAt(2000 + 3000 - 2100).props?.bankedEmber?.ember).toEqual(sleepEmber);
+    expect(partAt(2000 + 3000 - 2100).props?.bankedEmber?.ember).toEqual(sleepEmber === undefined ? undefined : { ...sleepEmber, y: -44 + ((sleepEmber.y + 44) * 0.6) });
     expect(partAt(2000).props?.bankedEmber?.ember.opacity).toBe(0);
   });
 
@@ -73,6 +73,6 @@ describe('the banked fire', () => {
 });
 
 test('a steady pose with its still moment at 2500; the part does not depend on the facing', () => {
-  expect(BANK_FIRE_GESTURE.intents['bank-fire']).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2500 });
+  expect(BANK_FIRE_GESTURE.intents['bank-fire']).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2500 });
   expect(BANK_FIRE_GESTURE.targetPose(inputAt(2500, -1))).toEqual(partAt(2500));
 });

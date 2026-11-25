@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Ink the draft: one loop in which the pen goes around a draft and it becomes a ready ticket; in milliseconds. */
 export const INK_DRAFT_TIMELINE = {
   CYCLE_MILLISECONDS:        4200,
@@ -42,3 +44,11 @@ export const INK_DRAFT_SPARKS = {
   /** 0 is forward, negative is up: away from the paper, from its top left corner and from its top right corner. */
   ANGLES_DEGREES:      [-120, -60],
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const INK_DRAFT_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      62,
+  aboveFloorUnits: 68.5,
+  belowFloorUnits: -3,
+};

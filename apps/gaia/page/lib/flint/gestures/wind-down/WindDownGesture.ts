@@ -24,6 +24,7 @@ import {
   LAST_TICKET,
   SLOW_TYPING,
   WIND_DOWN,
+  WIND_DOWN_EXTENT,
 } from './constants/WindDownValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -173,7 +174,7 @@ function windDownPartOf(input: GestureInput): PosePart {
 
 export const WIND_DOWN_GESTURE = gestureDefinition({
   name:                  'wind-down',
-  intents:               { 'wind-down': singleFormOf(WIND_DOWN.DURATION_MILLISECONDS, WIND_DOWN.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'wind-down': singleFormOf(WIND_DOWN.DURATION_MILLISECONDS, WIND_DOWN.STILL_MOMENT_MILLISECONDS, WIND_DOWN_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

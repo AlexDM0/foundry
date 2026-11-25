@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Hatch: one loop of a note through a slot in a wall, in milliseconds and sprite units, for Flint facing right. */
 export const HATCH_TIMELINE = {
   CYCLE_MILLISECONDS:               4400,
@@ -68,3 +70,19 @@ export const HATCH_SHAPE = {
   STUB_WIDTH_UNITS:        5,
   STUB_HEIGHT_UNITS:       4,
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const HATCH_EXTENTS = {
+  HATCH: {
+    backUnits:       20,
+    frontUnits:      49,
+    aboveFloorUnits: 65.5,
+    belowFloorUnits: -3,
+  },
+  HATCH_QUEUED: {
+    backUnits:       20,
+    frontUnits:      49,
+    aboveFloorUnits: 70,
+    belowFloorUnits: -3,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

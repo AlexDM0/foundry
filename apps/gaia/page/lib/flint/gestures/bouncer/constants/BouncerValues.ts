@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Bouncer: a loop at a roped post, refused or admitted; in sprite units, for Flint facing right. */
 export const BOUNCER_TIMELINE = {
   CYCLE_MILLISECONDS:            2400,
@@ -61,3 +63,19 @@ export const BARRIER_SHAPE = {
   TICK_START_X_UNITS:       42,
   TICK_START_Y_UNITS:       -44,
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const BOUNCER_EXTENTS = {
+  REFUSE: {
+    backUnits:       23,
+    frontUnits:      51.5,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -3,
+  },
+  ADMIT: {
+    backUnits:       22,
+    frontUnits:      52.5,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -3,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

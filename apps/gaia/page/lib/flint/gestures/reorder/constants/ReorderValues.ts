@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Reorder: one loop in which the third card of a stack moves to the top; in milliseconds. */
 export const REORDER_TIMELINE = {
   CYCLE_MILLISECONDS:        3600,
@@ -45,3 +47,11 @@ export const REORDER_EYES = {
   HEIGHT_UNITS:       6,
   HIGHEST_LIFT_UNITS: -3,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const REORDER_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      73.5,
+  aboveFloorUnits: 60.5,
+  belowFloorUnits: -3,
+};

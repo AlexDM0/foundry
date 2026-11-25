@@ -86,6 +86,6 @@ describe('the resume', () => {
 });
 
 test('one action of 2800 ms; reduced motion holds 900; the part does not depend on the facing', () => {
-  expect(CRASH_RESUME_GESTURE.intents['crash-resume']).toEqual({ variant: 'normal', durationMilliseconds: 2800, stillMomentMilliseconds: 900 });
+  expect(CRASH_RESUME_GESTURE.intents['crash-resume']).toMatchObject({ variant: 'normal', durationMilliseconds: 2800, stillMomentMilliseconds: 900 });
   expect(CRASH_RESUME_GESTURE.targetPose(inputAt(900, -1))).toEqual(partAt(900));
 });

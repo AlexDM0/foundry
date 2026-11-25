@@ -14,6 +14,7 @@ import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import type { UnpluggedState }             from './UnpluggedSocketProp.ts';
 import {
+  UNPLUGGED_EXTENT,
   UNPLUGGED_EYES,
   UNPLUGGED_HAND,
   UNPLUGGED_SHAPE,
@@ -85,7 +86,7 @@ function unpluggedPartOf(input: GestureInput): PosePart {
 
 export const UNPLUGGED_GESTURE = gestureDefinition({
   name:                  'unplugged',
-  intents:               { unplugged: singleFormOf(null, UNPLUGGED_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { unplugged: singleFormOf(null, UNPLUGGED_TIMELINE.STILL_MOMENT_MILLISECONDS, UNPLUGGED_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

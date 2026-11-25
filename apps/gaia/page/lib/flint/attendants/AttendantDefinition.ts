@@ -3,7 +3,8 @@
  * walk, jump, drag and sleep, until the host takes it away with `attend(name, 0)`. The host gives a count; each member of that count is
  * placed by `memberPoseOf` and drawn by `shapesOf` around its own centre. The easing step shrinks a member that the host took away.
  */
-import type { Shape } from '../drawing/Shape.ts';
+import type { DrawnExtent } from '../SpriteGeometry.ts';
+import type { Shape }       from '../drawing/Shape.ts';
 
 export interface AttendantMemberInput {
   /** From 0, in the order the host added the members. */
@@ -28,6 +29,8 @@ export interface AttendantDefinition<Name extends string = string> {
   readonly name:         Name;
   /** The most members the host can give; a higher count is held to it. */
   readonly maximumCount: number;
+  /** All that its members draw at the maximum count, with Flint's body; Flint at rest in a box that keeps it inside stands where it fits. */
+  readonly extent:       DrawnExtent;
   memberPoseOf(input: AttendantMemberInput): AttendantMemberPose;
   /** One member around its own centre, unturned and at scale 1; the renderer places, turns and scales it. */
   shapesOf(): readonly Shape[];

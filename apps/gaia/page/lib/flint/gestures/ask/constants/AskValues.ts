@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Needs an answer: Flint holds up a card with "?", and in its second variant knocks; sprite units, facing right. */
 export const ASK_TIMELINE = {
   /** Each period Flint looks at the card, in its last moment. */
@@ -12,10 +14,7 @@ export const ASK_TIMELINE = {
   KNOCK_STILL_MOMENT_MILLISECONDS: 245,
 } as const;
 
-/**
- * The card and its hand move up and down by `BOB_UNITS × sin(t / BOB_DIVISOR)`; the card turns back from upright by
- * `TURN × (1 + sin(t / TURN_DIVISOR)) / 2` around the hand, so its far edge never passes where it stands upright.
- */
+/** The card and its hand move up and down by `BOB_UNITS × sin(t / BOB_DIVISOR)`; the card turns by `TURN × sin(t / TURN_DIVISOR)` around the hand. */
 export const ASK_POSE = {
   LEAN_DEGREES:              3,
   EYE_HEIGHT_UNITS:          8,
@@ -70,3 +69,19 @@ export const KNOCK_ARCS_SHAPE = {
     { FROM: -65, TO: -30 },
   ],
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const ASK_EXTENTS = {
+  ASK: {
+    backUnits:       20,
+    frontUnits:      48.5,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -3,
+  },
+  ASK_KNOCK: {
+    backUnits:       20,
+    frontUnits:      45.5,
+    aboveFloorUnits: 60,
+    belowFloorUnits: -3,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

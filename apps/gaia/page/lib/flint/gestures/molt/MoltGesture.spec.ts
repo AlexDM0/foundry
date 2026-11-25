@@ -94,6 +94,6 @@ describe('the shed, from 900', () => {
 });
 
 test('one action of 3000 ms; reduced motion holds 1500; the part does not depend on the facing', () => {
-  expect(MOLT_GESTURE.intents.molt).toEqual({ variant: 'normal', durationMilliseconds: 3000, stillMomentMilliseconds: 1500 });
+  expect(MOLT_GESTURE.intents.molt).toMatchObject({ variant: 'normal', durationMilliseconds: 3000, stillMomentMilliseconds: 1500 });
   expect(MOLT_GESTURE.targetPose(inputAt(1500, -1))).toEqual(partAt(1500));
 });

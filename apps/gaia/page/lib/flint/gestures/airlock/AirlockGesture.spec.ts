@@ -88,7 +88,7 @@ test('the eyes follow the block, from an eye shift of 4 to 7; eye height 6 and l
 });
 
 test('reduced motion holds 1800: both doors closed, the hand turning the chamber, the block landing', () => {
-  expect(AIRLOCK_GESTURE.intents.airlock).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1800 });
+  expect(AIRLOCK_GESTURE.intents.airlock).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1800 });
   const still = partAt(AIRLOCK_GESTURE.intents.airlock.stillMomentMilliseconds);
   expect(still.nearHand?.cornerCount).toBe(6);
   expect(still.props?.airlockChamber?.doorOpenings).toEqual([0, 0]);

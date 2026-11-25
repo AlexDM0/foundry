@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** The research gesture: four studies of equal length in turn; `sin(t / n)` names `n` as a divisor. */
 export const RESEARCH = {
   STUDY_MILLISECONDS:        2600,
@@ -97,7 +99,9 @@ export const BOOK_SHAPE = {
   TILT_DEGREES:             20,
   TILT_CENTRE_X_UNITS:      39,
   TILT_CENTRE_Y_UNITS:      -27,
-  DROP_UNITS:               13,
+  DROP_UNITS:               11,
+  /** The book is held this much nearer to Flint than its own coordinates, so its far edge stays in a strip's slot. */
+  HELD_IN_UNITS:            3,
 } as const;
 
 /** The hologram of research, in sprite units, for Flint facing right. */
@@ -129,7 +133,7 @@ export const HOLOGRAM_SHAPE = {
 export const SEARCH_BAR_SHAPE = {
   X_UNITS:             26,
   Y_UNITS:             -47,
-  WIDTH_UNITS:         28,
+  WIDTH_UNITS:         26,
   HEIGHT_UNITS:        8,
   CORNER_RADIUS_UNITS: 4,
   STROKE_UNITS:        1,
@@ -142,3 +146,11 @@ export const SEARCH_BAR_SHAPE = {
   FULL_QUERY_UNITS:    14,
   QUERY_STROKE_UNITS:  1.5,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const RESEARCH_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      53,
+  aboveFloorUnits: 59,
+  belowFloorUnits: 0,
+};

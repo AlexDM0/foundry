@@ -21,6 +21,7 @@ import { GestureMarkUtil }                 from '../GestureMarkUtil.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import type { EscapedBugState }            from './EscapedBugProp.ts';
 import {
+  ESCAPED_BUG_EXTENT,
   ESCAPED_BUG_EYES,
   ESCAPED_BUG_HAND,
   ESCAPED_BUG_HITS,
@@ -141,7 +142,7 @@ function escapedBugPartOf(input: GestureInput): PosePart {
 
 export const ESCAPED_BUG_GESTURE = gestureDefinition({
   name:                  'escaped-bug',
-  intents:               { 'escaped-bug': singleFormOf(null, ESCAPED_BUG_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'escaped-bug': singleFormOf(null, ESCAPED_BUG_TIMELINE.STILL_MOMENT_MILLISECONDS, ESCAPED_BUG_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

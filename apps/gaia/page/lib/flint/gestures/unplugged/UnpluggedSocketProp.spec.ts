@@ -8,7 +8,7 @@ import { expect, test } from 'bun:test';
 import { UNPLUGGED_SOCKET_PROP } from './UnpluggedSocketProp.ts';
 
 const PLUGGED_IN = {
-  ...UNPLUGGED_SOCKET_PROP.hidden, shown: 1, sceneOpacity: 1, plugX: 42, isConnected: true, pulseAlong: 1, pulseOpacity: 1,
+  ...UNPLUGGED_SOCKET_PROP.hidden, shown: 1, sceneOpacity: 1, plugX: 40, isConnected: true, pulseAlong: 1, pulseOpacity: 1,
 };
 
 function shapesOf(state: typeof PLUGGED_IN): ReturnType<typeof UNPLUGGED_SOCKET_PROP.shapesOf>['shapes'] {
@@ -24,7 +24,7 @@ test('the cable and its pulse, the prongs and the plug, then the plate, its slot
 test('the cable follows the plug: from its left edge to the start of the curve, then through (24, -10) to the floor at (12, 2)', () => {
   expect(shapesOf({ ...PLUGGED_IN, plugX: 34 })[0]).toMatchObject({ pathData: 'M34 -28 L30 -27 Q24 -10 12 2' });
   expect(shapesOf(PLUGGED_IN)[0]).toMatchObject({
-    pathData: 'M42 -28 L38 -27 Q24 -10 12 2', stroke: 'graphite', strokeWidth: 1.4, fill: 'none'
+    pathData: 'M40 -28 L36 -27 Q24 -10 12 2', stroke: 'graphite', strokeWidth: 1.4, fill: 'none'
   });
 });
 
@@ -34,22 +34,22 @@ test('the pulse is a light circle of 2 on the cable: at its end, on the floor', 
   });
 });
 
-test('the plug is 6 by 4 with two prongs of 2 on its socket side; the plate at (48, -34), 6 by 12, with slots at the prongs', () => {
+test('the plug is 6 by 4 with two prongs of 2 on its socket side; the plate at (46, -34), 6 by 12, with slots at the prongs', () => {
   const shapes = shapesOf(PLUGGED_IN);
   expect(shapes[4]).toMatchObject({
-    x: 42, y: -30, width: 6, height: 4, fill: 'graphite'
+    x: 40, y: -30, width: 6, height: 4, fill: 'graphite'
   });
   expect(shapes[2]).toMatchObject({
-    x: 48, y: -29.2, width: 2, height: 0.8
+    x: 46, y: -29.2, width: 2, height: 0.8
   });
   expect(shapes[5]).toMatchObject({
-    x: 48, y: -34, width: 6, height: 12, cornerRadius: 1, fill: 'graphite'
+    x: 46, y: -34, width: 6, height: 12, cornerRadius: 1, fill: 'graphite'
   });
-  expect(shapes[6]).toMatchObject({ x: 48.5, fill: 'done' });
+  expect(shapes[6]).toMatchObject({ x: 46.5, fill: 'done' });
   expect(shapesOf({ ...PLUGGED_IN, isConnected: false })[6]).toMatchObject({ fill: 'hardware' });
   expect(shapes[8]).toMatchObject({ stroke: 'alarm', strokeWidth: 1 });
 });
 
 test('a held hand sits on the plug', () => {
-  expect(UNPLUGGED_SOCKET_PROP.gripOf?.(PLUGGED_IN)).toEqual({ x: 38, y: -28 });
+  expect(UNPLUGGED_SOCKET_PROP.gripOf?.(PLUGGED_IN)).toEqual({ x: 36, y: -28 });
 });

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Regrouping: Flint counts its Watchers, sweeps away the dead one and is happy; in sprite units, facing right. */
 export const REGROUP_TIMELINE = {
   CYCLE_MILLISECONDS:           4600,
@@ -20,16 +22,16 @@ export const REGROUP_TIMELINE = {
 export const REGROUP_SPARKS = {
   PLACES: [
     {
-      X_UNITS: 28, Y_UNITS: -46, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
+      X_UNITS: 24, Y_UNITS: -46, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
     },
     {
-      X_UNITS: 38, Y_UNITS: -50, POINTED_FROM_X_UNITS: 38, POINTED_FROM_Y_UNITS: -24,
+      X_UNITS: 34, Y_UNITS: -50, POINTED_FROM_X_UNITS: 34, POINTED_FROM_Y_UNITS: -24,
     },
     {
-      X_UNITS: 48, Y_UNITS: -44, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
+      X_UNITS: 44, Y_UNITS: -44, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
     },
     {
-      X_UNITS: 50, Y_UNITS: -32, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
+      X_UNITS: 46, Y_UNITS: -32, POINTED_FROM_X_UNITS: 0, POINTED_FROM_Y_UNITS: -24,
     },
   ],
   DEAD_INDEX:               2,
@@ -54,9 +56,9 @@ export const REGROUP_HANDS = {
   SWEEPING_CORNER_COUNT:     4,
   SWEEPING_RADIUS_UNITS:     6,
   SWEEPING_TURN_DEGREES:     45,
-  SWEEP_START_X_UNITS:       44,
+  SWEEP_START_X_UNITS:       40,
   SWEEP_START_Y_UNITS:       -48,
-  SWEEP_END_X_UNITS:         54,
+  SWEEP_END_X_UNITS:         50,
   SWEEP_END_Y_UNITS:         -38,
 } as const;
 
@@ -70,3 +72,11 @@ export const REGROUP_EYES = {
   /** The body centre the lift is measured from. */
   LIFT_CENTRE_Y_UNITS: -24,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const REGROUP_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      54,
+  aboveFloorUnits: 63,
+  belowFloorUnits: -3,
+};

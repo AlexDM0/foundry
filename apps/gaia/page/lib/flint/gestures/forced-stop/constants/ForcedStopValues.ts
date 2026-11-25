@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Forced stop: Flint pulls a plug and a spark dies, in one action; in sprite units, for
  * Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
@@ -86,3 +88,11 @@ export const LOOK_AT_PLUG = {
   STARTS_MILLISECONDS: 1200,
   EYE_LIFT_UNITS:      2,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const FORCED_STOP_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      54,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -0.5,
+};

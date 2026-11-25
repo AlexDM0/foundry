@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Slots: the concurrency limit, as three sockets on a rail. In `slots` a spark falls into each socket; in
  * `slots-full` every socket has its spark and a ticket finds no free one. In milliseconds from the start of the cycle, and in sprite units
@@ -81,3 +83,19 @@ export const SLOTS_EYES = {
   LIFT_LOWEST_UNITS:   -3,
   LIFT_HIGHEST_UNITS:  2,
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const SLOTS_EXTENTS = {
+  SLOTS: {
+    backUnits:       20,
+    frontUnits:      55,
+    aboveFloorUnits: 68,
+    belowFloorUnits: -3,
+  },
+  SLOTS_FULL: {
+    backUnits:       20,
+    frontUnits:      55,
+    aboveFloorUnits: 69.5,
+    belowFloorUnits: -3,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

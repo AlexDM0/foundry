@@ -2,10 +2,10 @@
  * The Idea emote: wide eyes, one hop, and the lightbulb, whose rays show and
  * flicker after a moment. Under reduced motion the rays show without the flicker.
  */
-import type { EmoteInput } from '../EmoteDefinition.ts';
-import { emoteDefinition } from '../EmoteDefinition.ts';
-import { EmoteMarkUtil }   from '../EmoteMarkUtil.ts';
-import { IDEA_MOTION }     from './constants/IdeaValues.ts';
+import type { EmoteInput }          from '../EmoteDefinition.ts';
+import { emoteDefinition }          from '../EmoteDefinition.ts';
+import { EmoteMarkUtil }            from '../EmoteMarkUtil.ts';
+import { IDEA_EXTENT, IDEA_MOTION } from './constants/IdeaValues.ts';
 
 const { DURATION_MILLISECONDS } = IDEA_MOTION;
 
@@ -18,6 +18,7 @@ function raysOpacityOf(input: EmoteInput): number {
 export const IDEA_EMOTE = emoteDefinition({
   name:                 'idea',
   durationMilliseconds: DURATION_MILLISECONDS,
+  extent:               IDEA_EXTENT,
   targetPose:           (input) => {
     const innerScale = EmoteMarkUtil.entranceSpringOf(input);
     return {

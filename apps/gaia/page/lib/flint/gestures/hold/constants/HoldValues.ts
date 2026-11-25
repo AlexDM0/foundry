@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Held: Flint clamps a ready ticket and holds up a flat palm; sprite units, for Flint facing right. */
 export const HOLD_TIMELINE = {
   /** The ticket fades in and the clamp slides down until the fastening starts. */
@@ -31,3 +33,11 @@ export const HELD_TICKET_SHAPE = {
   CLAMP_PATH:        'M33 -49 H43 V-39 H40 V-46 H36 V-39 H33Z',
   CLAMP_SLIDE_UNITS: 8,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const HOLD_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      46.5,
+  aboveFloorUnits: 64.5,
+  belowFloorUnits: -3,
+};

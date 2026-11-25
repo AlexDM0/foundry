@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Ship: a delivered ticket. Two pentagons lift a landed block onto a shelf, a tick shows, and Flint salutes. In
  * milliseconds from the start of the action, and in sprite units for Flint facing right.
@@ -64,3 +66,11 @@ export const SHIP_BODY = {
   SALUTE_LEAN_DEGREES:  -3,
   SALUTE_HEIGHT_FACTOR: 1.03,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const SHIP_EXTENT: DrawnExtent = {
+  backUnits:       21.5,
+  frontUnits:      57,
+  aboveFloorUnits: 64.5,
+  belowFloorUnits: -3,
+};

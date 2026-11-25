@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Grab: two pentagons reach from the body centre to the target and close on it, or on nothing. */
 export const GRAB_GESTURE_VALUES = {
   DURATION_MILLISECONDS:   900,
@@ -19,3 +21,11 @@ export const GRAB_GESTURE_VALUES = {
   CAUGHT_EYE_HEIGHT_UNITS: 10,
   MISSED_EYE_HEIGHT_UNITS: 4,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const GRAB_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      56.5,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -3,
+};

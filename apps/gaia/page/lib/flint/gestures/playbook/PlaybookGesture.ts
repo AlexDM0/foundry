@@ -12,6 +12,7 @@ import type { PlaybookBookState }          from './PlaybookBookProp.ts';
 import {
   PLAYBOOK_BODY,
   PLAYBOOK_BOOK_SHAPE,
+  PLAYBOOK_EXTENT,
   PLAYBOOK_EYES,
   PLAYBOOK_HANDS,
   PLAYBOOK_TIMELINE,
@@ -101,7 +102,7 @@ function playbookPartOf(input: GestureInput): PosePart {
 
 export const PLAYBOOK_GESTURE = gestureDefinition({
   name:                  'playbook',
-  intents:               { playbook: singleFormOf(null, PLAYBOOK_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { playbook: singleFormOf(null, PLAYBOOK_TIMELINE.STILL_MOMENT_MILLISECONDS, PLAYBOOK_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

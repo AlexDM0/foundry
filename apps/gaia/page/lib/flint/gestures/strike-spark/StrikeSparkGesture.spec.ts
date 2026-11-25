@@ -117,7 +117,7 @@ describe('the Watcher', () => {
 });
 
 test('one action of 1500 ms; reduced motion holds 900: the Watcher in place, the hand gone, the happy eyes', () => {
-  expect(STRIKE_SPARK_GESTURE.intents['strike-spark']).toEqual({ variant: 'normal', durationMilliseconds: 1500, stillMomentMilliseconds: 900 });
+  expect(STRIKE_SPARK_GESTURE.intents['strike-spark']).toMatchObject({ variant: 'normal', durationMilliseconds: 1500, stillMomentMilliseconds: 900 });
   const still = partAt(STRIKE_SPARK_GESTURE.intents['strike-spark'].stillMomentMilliseconds);
   expect(still.nearHand).toBeNull();
   expect(still.eyes?.happiness).toBe(1);

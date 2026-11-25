@@ -99,6 +99,6 @@ describe('the last ticket', () => {
 });
 
 test('one action of 3200 ms; reduced motion holds 1500, on the dial', () => {
-  expect(WIND_DOWN_GESTURE.intents['wind-down']).toEqual({ variant: 'normal', durationMilliseconds: 3200, stillMomentMilliseconds: 1500 });
+  expect(WIND_DOWN_GESTURE.intents['wind-down']).toMatchObject({ variant: 'normal', durationMilliseconds: 3200, stillMomentMilliseconds: 1500 });
   expect(partAt(1500).nearHand?.cornerCount).toBe(6);
 });

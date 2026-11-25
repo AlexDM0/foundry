@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Ribbon: one loop in which three tickets of one epic are bundled with a ribbon; in milliseconds. */
 export const RIBBON_TIMELINE = {
   CYCLE_MILLISECONDS:        4000,
@@ -55,3 +57,11 @@ export const RIBBON_HANDS = {
 
 /** While Flint bundles, the eyes of writing: the nearest of an existing animation. */
 export const RIBBON_EYES = { HEIGHT_UNITS: 6 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const RIBBON_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      62,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -3,
+};

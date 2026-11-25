@@ -17,6 +17,7 @@ import { GestureMarkUtil }                      from '../GestureMarkUtil.ts';
 import { GestureTimelineUtil }                  from '../GestureTimelineUtil.ts';
 import type { HatchPaperState, HatchWallState } from './HatchWallProp.ts';
 import {
+  HATCH_EXTENTS,
   HATCH_FACE,
   HATCH_HAND,
   HATCH_SHAPE,
@@ -140,8 +141,12 @@ function hatchPartOf(input: GestureInput<HatchVariant>): PosePart {
 export const HATCH_GESTURE = gestureDefinition({
   name:    'hatch',
   intents: {
-    'hatch':        { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: HATCH_TIMELINE.STILL_MOMENT_MILLISECONDS },
-    'hatch-queued': { variant: 'queued', durationMilliseconds: null, stillMomentMilliseconds: HATCH_TIMELINE.QUEUED_STILL_MOMENT_MILLISECONDS },
+    'hatch': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: HATCH_TIMELINE.STILL_MOMENT_MILLISECONDS, extent: HATCH_EXTENTS.HATCH
+    },
+    'hatch-queued': {
+      variant: 'queued', durationMilliseconds: null, stillMomentMilliseconds: HATCH_TIMELINE.QUEUED_STILL_MOMENT_MILLISECONDS, extent: HATCH_EXTENTS.HATCH_QUEUED
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

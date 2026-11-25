@@ -11,7 +11,7 @@ import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import { snapSparksAt }                    from '../SnapSparks.ts';
 import { BLOCK_PRESS }                     from '../constants/BlockPress.ts';
-import { MERGE_TIMELINE }                  from './constants/MergeValues.ts';
+import { MERGE_EXTENT, MERGE_TIMELINE }    from './constants/MergeValues.ts';
 
 /** The press of the two blocks, the snap with its sparks and happy eyes, and the merged block leaving, in each cycle. */
 function mergePartOf(input: GestureInput): PosePart {
@@ -51,7 +51,7 @@ function mergePartOf(input: GestureInput): PosePart {
 
 export const MERGE_GESTURE = gestureDefinition({
   name:                  'merge',
-  intents:               { merge: singleFormOf(null, MERGE_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { merge: singleFormOf(null, MERGE_TIMELINE.STILL_MOMENT_MILLISECONDS, MERGE_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

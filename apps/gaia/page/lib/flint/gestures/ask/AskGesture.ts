@@ -1,7 +1,6 @@
 /**
  * Needs an answer: a loop in which Flint holds up a card with "?". In `ask` one pentagon holds it,
- * the two bob and the card sways back from upright around the hand, so its reach is its upright far edge, stroke included, and Flint looks
- * at it each 3 seconds. In `ask-knock` Flint faces the user, holds a
+ * the two bob and the card sways around the hand, and Flint looks at it each 3 seconds. In `ask-knock` Flint faces the user, holds a
  * smaller, lower card in the far hand and knocks twice in each cycle with a square knuckle, with two arcs that fade after each knock.
  */
 import type { PosePart }       from '../../SpritePose.ts';
@@ -10,10 +9,10 @@ import type { GestureInput }   from '../GestureDefinition.ts';
 import { gestureDefinition }   from '../GestureDefinition.ts';
 import { GestureTimelineUtil } from '../GestureTimelineUtil.ts';
 import {
-  ASK_CARD_SHAPE,
+  ASK_EXTENTS,
   ASK_KNOCK_POSE,
   ASK_POSE,
-  ASK_TIMELINE
+  ASK_TIMELINE,
 } from './constants/AskValues.ts';
 
 type AskVariant = 'normal' | 'knock';
@@ -33,8 +32,7 @@ function askPartOf(elapsedMilliseconds: number): PosePart {
         shown:       1,
         scale:       1,
         offsetY:     ASK_POSE.BOB_UNITS * Math.sin(elapsedMilliseconds / ASK_POSE.BOB_DIVISOR_MILLISECONDS),
-        // A negative turn tilts the card's top back, towards Flint.
-        turnDegrees: -ASK_POSE.TURN_DEGREES * (1 + Math.sin(elapsedMilliseconds / ASK_POSE.TURN_DIVISOR_MILLISECONDS)) / 2,
+        turnDegrees: ASK_POSE.TURN_DEGREES * Math.sin(elapsedMilliseconds / ASK_POSE.TURN_DIVISOR_MILLISECONDS),
       },
     },
   };
@@ -92,14 +90,17 @@ function askKnockPartOf(elapsedMilliseconds: number): PosePart {
 export const ASK_GESTURE = gestureDefinition({
   name:    'ask',
   intents: {
-    'ask':       { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: ASK_TIMELINE.ASK_STILL_MOMENT_MILLISECONDS },
-    'ask-knock': { variant: 'knock', durationMilliseconds: null, stillMomentMilliseconds: ASK_TIMELINE.KNOCK_STILL_MOMENT_MILLISECONDS },
+    'ask': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: ASK_TIMELINE.ASK_STILL_MOMENT_MILLISECONDS, extent: ASK_EXTENTS.ASK
+    },
+    'ask-knock': {
+      variant: 'knock', durationMilliseconds: null, stillMomentMilliseconds: ASK_TIMELINE.KNOCK_STILL_MOMENT_MILLISECONDS, extent: ASK_EXTENTS.ASK_KNOCK
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,
   verdict:               null,
-  forwardReachUnits:     ASK_CARD_SHAPE.X_UNITS + ASK_CARD_SHAPE.WIDTH_UNITS + (ASK_CARD_SHAPE.STROKE_UNITS / 2),
   targetPose:            (input: GestureInput<AskVariant>) => (input.variant === 'knock'
     ? askKnockPartOf(input.elapsedMilliseconds)
     : askPartOf(input.elapsedMilliseconds)),

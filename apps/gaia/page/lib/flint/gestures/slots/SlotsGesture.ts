@@ -21,6 +21,7 @@ import { GestureMarkUtil }                               from '../GestureMarkUti
 import { GestureTimelineUtil }                           from '../GestureTimelineUtil.ts';
 import type { SlotsSparkState, SlotsState, SocketLight } from './SlotRailProp.ts';
 import {
+  SLOTS_EXTENTS,
   SLOTS_EYES,
   SLOTS_FULL,
   SLOTS_POINTER,
@@ -165,8 +166,12 @@ function slotsPartOf(input: GestureInput<SlotsVariant>): PosePart {
 export const SLOTS_GESTURE = gestureDefinition({
   name:    'slots',
   intents: {
-    'slots':      { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: SLOTS_TIMELINE.STILL_MOMENT_MILLISECONDS },
-    'slots-full': { variant: 'full', durationMilliseconds: null, stillMomentMilliseconds: SLOTS_TIMELINE.FULL_STILL_MOMENT_MILLISECONDS },
+    'slots': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: SLOTS_TIMELINE.STILL_MOMENT_MILLISECONDS, extent: SLOTS_EXTENTS.SLOTS
+    },
+    'slots-full': {
+      variant: 'full', durationMilliseconds: null, stillMomentMilliseconds: SLOTS_TIMELINE.FULL_STILL_MOMENT_MILLISECONDS, extent: SLOTS_EXTENTS.SLOTS_FULL
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

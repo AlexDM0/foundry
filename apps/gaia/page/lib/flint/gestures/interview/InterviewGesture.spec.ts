@@ -88,7 +88,7 @@ describe('the end', () => {
 });
 
 test('reduced motion holds the pen in the middle of the first line', () => {
-  expect(INTERVIEW_GESTURE.intents.interview).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1800 });
+  expect(INTERVIEW_GESTURE.intents.interview).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1800 });
   expect(partAt(1800).props?.interviewNotepad?.writtenLengths[0]).toBeCloseTo(10 * (300 / 700));
   expect(partAt(1800).nearHand?.cornerCount).toBe(3);
 });

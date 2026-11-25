@@ -6,7 +6,7 @@ import type { EmoteMarkPoseOf, PosePart } from '../../SpritePose.ts';
 import type { EmoteInput }                from '../EmoteDefinition.ts';
 import { emoteDefinition }                from '../EmoteDefinition.ts';
 import { EmoteMarkUtil }                  from '../EmoteMarkUtil.ts';
-import { NERVOUS_MOTION }                 from './constants/NervousValues.ts';
+import { NERVOUS_EXTENT, NERVOUS_MOTION } from './constants/NervousValues.ts';
 
 const { DURATION_MILLISECONDS } = NERVOUS_MOTION;
 
@@ -27,5 +27,6 @@ export function nervousPartOf(input: EmoteInput, mark: EmoteMarkPoseOf<'sweat-be
 export const NERVOUS_EMOTE = emoteDefinition({
   name:                 'nervous',
   durationMilliseconds: DURATION_MILLISECONDS,
+  extent:               NERVOUS_EXTENT,
   targetPose:           (input) => nervousPartOf(input, EmoteMarkUtil.leavingMarkOf('sweat-beads', input, DURATION_MILLISECONDS)),
 });

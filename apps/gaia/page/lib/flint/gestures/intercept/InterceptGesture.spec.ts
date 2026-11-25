@@ -2,7 +2,7 @@
  * Assistant intercept. What matters: the envelope fades in over 300 ms as it flies in
  * turned -20 degrees, so it never shows at once at the start of a cycle, and
  * two pentagons reach for it from 450 with wide eyes; at 700 it is caught exactly where the flight ends, with a hop of 4; it is pulled to
- * (34, -30) as the far hand goes and the near hand holds its lower corner; it opens and its paper rises while Flint reads; then the outcome
+ * (28, -30) as the far hand goes and the near hand holds its lower corner; it opens and its paper rises while Flint reads; then the outcome
  * alternates by cycle, handled first (paper back, envelope into Flint, tick, happy eyes) and passed up next (lifted, flown up and faded,
  * eyes up); the hands go at 3200; reduced motion holds the reading; the part does not depend on the facing.
  */
@@ -24,7 +24,7 @@ const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => INTERCEPT_GE
 const envelopeAt = (elapsedMilliseconds: number) => partAt(elapsedMilliseconds).props?.interceptEnvelope;
 
 test('intercept is one loop that reduced motion holds at 1500', () => {
-  expect(INTERCEPT_GESTURE.intents.intercept).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1500 });
+  expect(INTERCEPT_GESTURE.intents.intercept).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1500 });
 });
 
 test('the outcome alternates by cycle, handled first', () => {
@@ -32,9 +32,9 @@ test('the outcome alternates by cycle, handled first', () => {
 });
 
 describe('the catch and the reading', () => {
-  test('0 to 700: the envelope flies from (58, -20) to (36, -40), turned -20 degrees, closed; no hand before 450', () => {
+  test('0 to 700: the envelope flies from (36, -20) to (30, -38), turned -20 degrees, closed; no hand before 450', () => {
     expect(envelopeAt(350)).toMatchObject({
-      x: 47, y: -30, turnDegrees: -20, scale: 1, flapDepth: 5, paperRise: 0,
+      x: 33, y: -29, turnDegrees: -20, scale: 1, flapDepth: 5, paperRise: 0,
     });
     expect(partAt(350).nearHand).toBeNull();
     expect(partAt(350).farHand).toBeNull();
@@ -52,14 +52,14 @@ describe('the catch and the reading', () => {
     expect(part.nearHand?.centreY).toBeCloseTo((envelope?.y ?? 0) + 6 + 2.5);
   });
 
-  test('700: the catch places the envelope exactly at (36, -40); a hop of 4 follows; the near hand holds it', () => {
-    expect(envelopeAt(700)).toMatchObject({ x: 36, y: -40, turnDegrees: -20 });
+  test('700: the catch places the envelope exactly at (30, -38); a hop of 4 follows; the near hand holds it', () => {
+    expect(envelopeAt(700)).toMatchObject({ x: 30, y: -38, turnDegrees: -20 });
     expect(partAt(850).body?.addedLift).toBeCloseTo(4);
     expect(partAt(700).nearHand?.placement).toEqual({ heldTo: 'interceptEnvelope' });
   });
 
-  test('700 to 1000: the hands pull it to (34, -30) and turn it level; the far hand goes away', () => {
-    expect(envelopeAt(1000)).toMatchObject({ x: 34, y: -30, turnDegrees: 0 });
+  test('700 to 1000: the hands pull it to (28, -30) and turn it level; the far hand goes away', () => {
+    expect(envelopeAt(1000)).toMatchObject({ x: 28, y: -30, turnDegrees: 0 });
     expect(partAt(849).farHand).not.toBeNull();
     expect(partAt(850).farHand).toBeNull();
   });
@@ -82,10 +82,10 @@ describe('handled, in the first cycle', () => {
 
   test('2500 to 3000: the envelope goes to (10, -22) and its scale to 0; the tick and the happy eyes show; the hand stays', () => {
     expect(envelopeAt(2750)).toMatchObject({
-      x: 22, y: -26, scale: 0.5, tickOpacity: 1,
+      x: 19, y: -26, scale: 0.5, tickOpacity: 1,
     });
     expect(partAt(2750).eyes).toEqual({ happiness: 1 });
-    expect(partAt(2750).nearHand).toMatchObject({ centreX: 30, centreY: -24, placement: 'eased' });
+    expect(partAt(2750).nearHand).toMatchObject({ centreX: 24, centreY: -24, placement: 'eased' });
   });
 
   test('3200 to 3800: the hand goes away and the tick fades', () => {
@@ -95,15 +95,15 @@ describe('handled, in the first cycle', () => {
 });
 
 describe('passed up, in the second cycle', () => {
-  test('2200 to 2700: the hand lifts the envelope to (34, -56), the eyes looking up', () => {
-    expect(envelopeAt(CYCLE_MILLISECONDS + 2450)).toMatchObject({ x: 34, y: -43, tickOpacity: 0 });
+  test('2200 to 2700: the hand lifts the envelope to (28, -44), the eyes looking up', () => {
+    expect(envelopeAt(CYCLE_MILLISECONDS + 2450)).toMatchObject({ x: 28, y: -37, tickOpacity: 0 });
     expect(partAt(CYCLE_MILLISECONDS + 2450).nearHand?.placement).toEqual({ heldTo: 'interceptEnvelope' });
     expect(partAt(CYCLE_MILLISECONDS + 2450).eyes).toEqual({ lift: -3 });
   });
 
-  test('2700 to 3200: the envelope flies up to y -80 and fades; the hand stays where it let go', () => {
-    expect(envelopeAt(CYCLE_MILLISECONDS + 2950)).toMatchObject({ y: -68, envelopeOpacity: 0.5 });
-    expect(partAt(CYCLE_MILLISECONDS + 2950).nearHand).toMatchObject({ centreX: 30, centreY: -50, placement: 'eased' });
+  test('2700 to 3200: the envelope flies up to y -50 and fades; the hand stays where it let go', () => {
+    expect(envelopeAt(CYCLE_MILLISECONDS + 2950)).toMatchObject({ y: -47, envelopeOpacity: 0.5 });
+    expect(partAt(CYCLE_MILLISECONDS + 2950).nearHand).toMatchObject({ centreX: 24, centreY: -38, placement: 'eased' });
   });
 });
 

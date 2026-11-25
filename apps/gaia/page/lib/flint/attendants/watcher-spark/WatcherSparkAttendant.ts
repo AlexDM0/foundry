@@ -1,19 +1,21 @@
 /**
- * Spark companion: one spark for each Watcher the host counts, in a zigzag behind Flint. Each spark
+ * Spark companion: one spark for each Watcher the host counts, in an arc up along Flint's back. Each spark
  * bobs, turns and pulses on its own phase, and enters with the spring of an emote mark. Under reduced motion it holds still at scale 1.
  */
-import { SPRING }              from '../../constants/Motion.ts';
-import { SparkShapeUtil }      from '../../props/shapes/SparkShapeUtil.ts';
-import { AnimationCurveUtil }  from '../../utils/AnimationCurveUtil.ts';
-import { attendantDefinition } from '../AttendantDefinition.ts';
-import { WATCHER_SPARK }       from './constants/WatcherSparkValues.ts';
+import { SPRING }                              from '../../constants/Motion.ts';
+import { SparkShapeUtil }                      from '../../props/shapes/SparkShapeUtil.ts';
+import { AnimationCurveUtil }                  from '../../utils/AnimationCurveUtil.ts';
+import { attendantDefinition }                 from '../AttendantDefinition.ts';
+import { WATCHER_SPARK, WATCHER_SPARK_EXTENT } from './constants/WatcherSparkValues.ts';
 
 export const WATCHER_SPARK_ATTENDANT = attendantDefinition({
   name:         'watcher-spark',
   maximumCount: WATCHER_SPARK.MAXIMUM_COUNT,
+  extent:       WATCHER_SPARK_EXTENT,
   memberPoseOf: (input) => {
-    const restX = WATCHER_SPARK.FIRST_X_UNITS - (WATCHER_SPARK.ZIGZAG_X_UNITS * (input.index % 2));
-    const restY = WATCHER_SPARK.FIRST_Y_UNITS + (WATCHER_SPARK.STEP_Y_UNITS * input.index);
+    const place = WATCHER_SPARK.PLACES[Math.min(input.index, WATCHER_SPARK.PLACES.length - 1)] ?? WATCHER_SPARK.PLACES[0];
+    const restX = place.X_UNITS;
+    const restY = place.Y_UNITS;
     if (input.reducedMotion) {
       return {
         x: restX, y: restY, turnDegrees: WATCHER_SPARK.TURN_START_DEGREES, scale: 1,

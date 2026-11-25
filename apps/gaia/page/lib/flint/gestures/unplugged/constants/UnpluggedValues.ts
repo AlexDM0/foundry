@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Unplugged: the event stream is down, then it is back. Flint looks from the plug to the socket, pushes the
  * plug in, and the stream flows down the cable. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
@@ -20,9 +22,9 @@ export const UNPLUGGED_TIMELINE = {
   STILL_MOMENT_MILLISECONDS:    2600,
 } as const;
 
-/** The socket plate on the wall at (48, -34), its slots at the heights of the plug's prongs, and the plug's place before and after. */
+/** The socket plate on the wall at (46, -34), its slots at the heights of the plug's prongs, and the plug's place before and after. */
 export const UNPLUGGED_SHAPE = {
-  PLATE_X_UNITS:             48,
+  PLATE_X_UNITS:             46,
   PLATE_Y_UNITS:             -34,
   PLATE_WIDTH_UNITS:         6,
   PLATE_HEIGHT_UNITS:        12,
@@ -31,8 +33,8 @@ export const UNPLUGGED_SHAPE = {
   SLOT_INSET_UNITS:          0.5,
   SLOT_WIDTH_UNITS:          2,
   SLOT_HEIGHT_UNITS:         1.2,
-  PLUG_OUT_X_UNITS:          34,
-  PLUG_IN_X_UNITS:           42,
+  PLUG_OUT_X_UNITS:          32,
+  PLUG_IN_X_UNITS:           40,
   PLUG_Y_UNITS:              -30,
 } as const;
 
@@ -68,7 +70,7 @@ export const UNPLUGGED_WARNING = {
 
 /** Three small sparks fly back out of the socket's face as the sparks of Strike a spark do: 16 units in 400 ms, turning 180 and fading. */
 export const UNPLUGGED_SPARKS = {
-  FROM_X_UNITS:        48,
+  FROM_X_UNITS:        46,
   FROM_Y_UNITS:        -28,
   ANGLES_DEGREES:      [-160, -130, -100],
   TRAVEL_UNITS:        16,
@@ -90,3 +92,11 @@ export const UNPLUGGED_EYES = {
   AT_SOCKET_LIFT_UNITS:    -1,
   PLUGGED_IN_HEIGHT_UNITS: 10,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const UNPLUGGED_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      52,
+  aboveFloorUnits: 59,
+  belowFloorUnits: 0,
+};

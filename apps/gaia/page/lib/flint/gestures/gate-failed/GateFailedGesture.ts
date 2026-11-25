@@ -9,16 +9,21 @@ import type {
   HandPose,
   PosePart,
 } from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }                                   from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                                              from '../../constants/HandShape.ts';
-import type { GestureInput }                                       from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }                         from '../GestureDefinition.ts';
-import { GestureTimelineUtil }                                     from '../GestureTimelineUtil.ts';
-import { TypingUtil }                                              from '../TypingUtil.ts';
-import { TYPING_HANDS, NORMAL_TYPING }                             from '../constants/TypingHands.ts';
-import { NORMAL_WORKING_VARIANT }                                  from '../constants/WorkingVariantValues.ts';
-import type { GateNoteState }                                      from './GateNoteProp.ts';
-import { GATE_FAILED_POSE, GATE_FAILED_TIMELINE, GATE_NOTE_SHAPE } from './constants/GateFailedValues.ts';
+import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
+import type { GestureInput }               from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
+import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
+import { TypingUtil }                      from '../TypingUtil.ts';
+import { TYPING_HANDS, NORMAL_TYPING }     from '../constants/TypingHands.ts';
+import { NORMAL_WORKING_VARIANT }          from '../constants/WorkingVariantValues.ts';
+import type { GateNoteState }              from './GateNoteProp.ts';
+import {
+  GATE_FAILED_EXTENT,
+  GATE_FAILED_POSE,
+  GATE_FAILED_TIMELINE,
+  GATE_NOTE_SHAPE,
+} from './constants/GateFailedValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
 
@@ -102,7 +107,7 @@ function gateFailedPartOf(input: GestureInput): PosePart {
 
 export const GATE_FAILED_GESTURE = gestureDefinition({
   name:                  'gate-failed',
-  intents:               { 'gate-failed': singleFormOf(GATE_FAILED_TIMELINE.DURATION_MILLISECONDS, GATE_FAILED_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'gate-failed': singleFormOf(GATE_FAILED_TIMELINE.DURATION_MILLISECONDS, GATE_FAILED_TIMELINE.STILL_MOMENT_MILLISECONDS, GATE_FAILED_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

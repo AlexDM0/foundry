@@ -14,6 +14,7 @@ import type { FuelGaugeState }     from './FuelGaugeProp.ts';
 import {
   EMPTY_GAUGE,
   OUT_OF_FUEL,
+  OUT_OF_FUEL_EXTENTS,
   REFUEL,
   REFUEL_SPARKS,
 } from './constants/OutOfFuelValues.ts';
@@ -113,8 +114,12 @@ function refuelPartOf(elapsedMilliseconds: number): PosePart {
 export const OUT_OF_FUEL_GESTURE = gestureDefinition({
   name:    'out-of-fuel',
   intents: {
-    'out-of-fuel': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: OUT_OF_FUEL.STILL_MOMENT_MILLISECONDS },
-    'refuel':      { variant: 'refuel', durationMilliseconds: REFUEL.DURATION_MILLISECONDS, stillMomentMilliseconds: REFUEL.STILL_MOMENT_MILLISECONDS },
+    'out-of-fuel': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: OUT_OF_FUEL.STILL_MOMENT_MILLISECONDS, extent: OUT_OF_FUEL_EXTENTS.OUT_OF_FUEL
+    },
+    'refuel': {
+      variant: 'refuel', durationMilliseconds: REFUEL.DURATION_MILLISECONDS, stillMomentMilliseconds: REFUEL.STILL_MOMENT_MILLISECONDS, extent: OUT_OF_FUEL_EXTENTS.REFUEL
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

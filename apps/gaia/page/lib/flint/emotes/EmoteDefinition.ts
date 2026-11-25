@@ -3,8 +3,8 @@
  * function of its age. An emote is a layer over the behaviour and the gesture, and its mark hides the mark a gesture shows. Its name is
  * its intent on the fixed intent list.
  */
-import type { Facing }   from '../SpriteGeometry.ts';
-import type { PosePart } from '../SpritePose.ts';
+import type { DrawnExtent, Facing } from '../SpriteGeometry.ts';
+import type { PosePart }            from '../SpritePose.ts';
 
 export interface EmoteInput {
   /** Milliseconds since the emote started: the `age` of a formula, and its `t`. */
@@ -17,6 +17,8 @@ export interface EmoteInput {
 export interface EmoteDefinition<Name extends string = string> {
   readonly name:                 Name;
   readonly durationMilliseconds: number;
+  /** All that Flint draws while the emote shows, its body included; in a box that keeps Flint inside, Flint stands where it fits. */
+  readonly extent:               DrawnExtent;
   targetPose(input: EmoteInput): PosePart;
 }
 

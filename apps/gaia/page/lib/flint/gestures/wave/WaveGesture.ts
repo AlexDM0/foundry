@@ -2,15 +2,15 @@
  * Wave, with its "Hi!" mark, and the wave of a peek around a corner: in the
  * sideways pose the hand keeps its distance ahead of the body on the screen, and the eye shift of the pop-in stays.
  */
-import type { PosePart }                   from '../../SpritePose.ts';
-import { emoteMarkAtRest }                 from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
-import { SPRING }                          from '../../constants/Motion.ts';
-import { AnimationCurveUtil }              from '../../utils/AnimationCurveUtil.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import { WAVE_GESTURE_VALUES }             from './constants/WaveValues.ts';
+import type { PosePart }                    from '../../SpritePose.ts';
+import { emoteMarkAtRest }                  from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }            from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                       from '../../constants/HandShape.ts';
+import { SPRING }                           from '../../constants/Motion.ts';
+import { AnimationCurveUtil }               from '../../utils/AnimationCurveUtil.ts';
+import type { GestureInput }                from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf }  from '../GestureDefinition.ts';
+import { WAVE_EXTENT, WAVE_GESTURE_VALUES } from './constants/WaveValues.ts';
 
 function wavePartOf(input: GestureInput): PosePart {
   const rock = Math.sin(input.elapsedMilliseconds / WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS);
@@ -36,7 +36,7 @@ function wavePartOf(input: GestureInput): PosePart {
 export const WAVE_GESTURE = gestureDefinition({
   name:                  'wave',
   // Under reduced motion the hand stands upright, at a rock of 0, and the mark is fully grown.
-  intents:               { wave: singleFormOf(WAVE_GESTURE_VALUES.DURATION_MILLISECONDS, Math.PI * WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS) },
+  intents:               { wave: singleFormOf(WAVE_GESTURE_VALUES.DURATION_MILLISECONDS, Math.PI * WAVE_GESTURE_VALUES.ROCK_DIVISOR_MILLISECONDS, WAVE_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

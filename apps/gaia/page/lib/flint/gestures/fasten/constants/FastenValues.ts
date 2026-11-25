@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Fasten: one hexagon at the bolt waits for a share of each cycle, turns, then waits again. */
 export const FASTEN_GESTURE_VALUES = {
   HAND_RADIUS_UNITS:      8,
@@ -19,3 +21,11 @@ export const BOLT_SHAPE = {
   /** It slides this far in from the side away from Flint as it fades in. */
   SLIDE_UNITS:  8,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const FASTEN_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      64,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -3,
+};

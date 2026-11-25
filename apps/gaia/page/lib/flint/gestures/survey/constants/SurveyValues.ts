@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Survey: the onboarder reads a repository and proposes a pipeline. Flint measures a blueprint, thinks, sets
  * three posts with lamps, and the lamps pass. In milliseconds from the start of the cycle, and in sprite units for Flint facing right.
@@ -86,3 +88,11 @@ export const SURVEY_EYES = {
   LIFT_LOWEST_UNITS:    -3,
   LIFT_HIGHEST_UNITS:   3,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const SURVEY_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      49,
+  aboveFloorUnits: 65.5,
+  belowFloorUnits: -3,
+};

@@ -1,13 +1,14 @@
 /**
  * Copy in the agent panel. What matters: Flint walks below the agent's row and then shows that agent's state with the gesture of its
  * intent; a new intent changes the gesture; a target that is gone, or an intent that is no gesture, ends the copy; under reduced motion
- * Flint stands below the row at once. In a slot that keeps Flint inside, the card of Needs an answer fits: in a slot of 50 by 50 pixels
- * at three quarters of a pixel to a unit Flint stands at the slot's back end facing into it, and in one of 100 pixels in its middle.
+ * Flint stands below the row at once. In a slot that keeps Flint inside, Flint stands where the declared extent of the copied gesture
+ * fits: in a strip's slot of 60 by 50 pixels at three quarters of a pixel to a unit, all of Needs an answer and of research stays in, and in
+ * one of 100 pixels Flint stands in its middle.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { BODY_SHAPE }               from '../../constants/BodyShape.ts';
-import { ASK_GESTURE }              from '../../gestures/ask/AskGesture.ts';
+import { intendedGestureOf }        from '../../IntentMeaning.ts';
+import type { GestureIntent }       from '../../gestures/GestureCatalog.ts';
 import type { PerceivedCopyTarget } from '../../mind/Perception.ts';
 import {
   AGENTS,
@@ -62,33 +63,28 @@ test('under reduced motion Flint stands below the row at once', () => {
 
 describe('a slot that keeps Flint inside', () => {
   const PIXELS_FOR_ONE_UNIT = 0.75;
-  const HALF_BODY_WIDTH_UNITS = BODY_SHAPE.WIDTH_UNITS / 2;
-  const CARD_REACH_UNITS = ASK_GESTURE.forwardReachUnits ?? 0;
 
-  function askingIn(sidePixels: number) {
-    const sideUnits = sidePixels / PIXELS_FOR_ONE_UNIT;
+  function copyingIn(widthPixels: number, heightPixels: number, intent: GestureIntent) {
     const box = {
-      leftX: 700, rightX: 700 + sideUnits, topY: 500 - sideUnits, floorY: 500
+      leftX: 700, rightX: 700 + (widthPixels / PIXELS_FOR_ONE_UNIT), topY: 500 - (heightPixels / PIXELS_FOR_ONE_UNIT), floorY: 500
     };
-    const slot = habitatOf('slot', box, { keepsFlintInside: true, copyTarget: { centreX: 700 + (sideUnits / 2), intent: 'ask' } });
+    const slot = habitatOf('slot', box, { keepsFlintInside: true, copyTarget: { centreX: (box.leftX + box.rightX) / 2, intent } });
     const run = createMindRun(undefined, perceptionOf({ habitats: [CHAT, slot] }));
     run.frame({ storedHabitatId: 'slot' });
     run.give('copy');
-    const state = run.runUntil((candidate) => candidate.gesture?.intent === 'ask');
+    const state = run.runUntil((candidate) => candidate.gesture?.intent === intent);
     const { positionX, facing } = state.motion;
-    const back = positionX - (facing * HALF_BODY_WIDTH_UNITS);
-    const cardEdge = positionX + (facing * CARD_REACH_UNITS);
-    return { box, positionX, inside: [back, cardEdge].every((edgeX) => edgeX >= box.leftX && edgeX <= box.rightX), };
+    const { extent } = intendedGestureOf(intent).form;
+    const drawnEdges = [positionX - (facing * extent.backUnits), positionX + (facing * extent.frontUnits)];
+    return { box, positionX, inside: drawnEdges.every((edgeX) => edgeX >= box.leftX && edgeX <= box.rightX) };
   }
 
-  test('in a 50px slot the card of Needs an answer fits: Flint stands at the back end and faces into the slot', () => {
-    const { box, positionX, inside } = askingIn(50);
-    expect(inside).toBe(true);
-    expect(Math.min(positionX - box.leftX, box.rightX - positionX)).toBeLessThan(HALF_BODY_WIDTH_UNITS + 1);
+  test.each(['ask', 'research', 'type'] as const)('in a strip\'s slot of 60 by 50 pixels all that %s draws stays in', (intent) => {
+    expect(copyingIn(60, 50, intent).inside).toBe(true);
   });
 
   test('in a 100px slot the card fits with Flint in the middle, as before', () => {
-    const { box, positionX, inside } = askingIn(100);
+    const { box, positionX, inside } = copyingIn(100, 100, 'ask');
     expect(inside).toBe(true);
     expect(Math.abs(positionX - ((box.leftX + box.rightX) / 2))).toBeLessThanOrEqual(4);
   });

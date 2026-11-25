@@ -55,7 +55,7 @@ test('the bar lies behind Flint whatever the facing: the renderer mirrors it', (
 });
 
 test('one intent, a loop that goes on while Flint walks and stops when it jumps; reduced motion holds 700 ms', () => {
-  expect(LAY_BAR_GESTURE.intents).toEqual({ 'lay-bar': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 700 } });
+  expect(LAY_BAR_GESTURE.intents).toMatchObject({ 'lay-bar': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 700 } });
   expect(LAY_BAR_GESTURE.continuesWhileWalking).toBe(true);
   expect(LAY_BAR_GESTURE.continuesWhileJumping).toBe(false);
 });

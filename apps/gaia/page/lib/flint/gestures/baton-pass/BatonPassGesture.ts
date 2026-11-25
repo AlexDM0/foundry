@@ -9,12 +9,17 @@ import type {
   HandPose,
   PosePart,
 } from '../../SpritePose.ts';
-import type { GestureInput }                                          from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }                            from '../GestureDefinition.ts';
-import { GestureMarkUtil }                                            from '../GestureMarkUtil.ts';
-import { GestureTimelineUtil }                                        from '../GestureTimelineUtil.ts';
-import type { BatonState }                                            from './BatonProp.ts';
-import { BATON_PASS_FLICKER, BATON_PASS_MOTION, BATON_PASS_TIMELINE } from './constants/BatonPassValues.ts';
+import type { GestureInput }               from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
+import { GestureMarkUtil }                 from '../GestureMarkUtil.ts';
+import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
+import type { BatonState }                 from './BatonProp.ts';
+import {
+  BATON_PASS_EXTENT,
+  BATON_PASS_FLICKER,
+  BATON_PASS_MOTION,
+  BATON_PASS_TIMELINE,
+} from './constants/BatonPassValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
 
@@ -111,7 +116,7 @@ function batonPassPartOf(input: GestureInput): PosePart {
 
 export const BATON_PASS_GESTURE = gestureDefinition({
   name:                  'baton-pass',
-  intents:               { 'baton-pass': singleFormOf(BATON_PASS_TIMELINE.DURATION_MILLISECONDS, BATON_PASS_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'baton-pass': singleFormOf(BATON_PASS_TIMELINE.DURATION_MILLISECONDS, BATON_PASS_TIMELINE.STILL_MOMENT_MILLISECONDS, BATON_PASS_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

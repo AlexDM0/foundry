@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Incident fuse: an incident's default move when nobody settles it. A fuse burns down to the envelope, the
  * flame goes out, and Flint stamps the envelope. In sprite units, for Flint facing right; the envelope is placed by its top left corner.
@@ -86,3 +88,11 @@ export const INCIDENT_BODY = {
   NERVOUS_SHAKE_UNITS:                0.6,
   NERVOUS_SHAKE_DIVISOR_MILLISECONDS: 22,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const INCIDENT_FUSE_EXTENT: DrawnExtent = {
+  backUnits:       27.5,
+  frontUnits:      53.5,
+  aboveFloorUnits: 69,
+  belowFloorUnits: -3,
+};

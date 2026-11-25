@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Assistant intercept: an incident goes to the Assistant before it goes to the user. The cycles alternate
  * between the two outcomes, handled first. In sprite units, for Flint facing right; the envelope is placed by its top left corner.
@@ -24,18 +26,18 @@ export const INTERCEPT_TIMELINE = {
 } as const;
 
 export const INTERCEPT_ENVELOPE = {
-  FLIGHT_START_X_UNITS: 58,
+  FLIGHT_START_X_UNITS: 36,
   FLIGHT_START_Y_UNITS: -20,
-  CATCH_X_UNITS:        36,
-  CATCH_Y_UNITS:        -40,
+  CATCH_X_UNITS:        30,
+  CATCH_Y_UNITS:        -38,
   FLIGHT_TURN_DEGREES:  -20,
-  HELD_X_UNITS:         34,
+  HELD_X_UNITS:         28,
   HELD_Y_UNITS:         -30,
   TUCKED_X_UNITS:       10,
   TUCKED_Y_UNITS:       -22,
-  LIFTED_Y_UNITS:       -56,
-  FLOWN_Y_UNITS:        -80,
-  TICK_START_X_UNITS:   36,
+  LIFTED_Y_UNITS:       -44,
+  FLOWN_Y_UNITS:        -50,
+  TICK_START_X_UNITS:   30,
   TICK_START_Y_UNITS:   -48,
 } as const;
 
@@ -83,3 +85,11 @@ export const INTERCEPT_LETTER_SHAPE = {
   LINE_Y_UNITS:            [2.5, 5],
   LINE_STROKE_UNITS:       1,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const INTERCEPT_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      52,
+  aboveFloorUnits: 63.5,
+  belowFloorUnits: -3,
+};

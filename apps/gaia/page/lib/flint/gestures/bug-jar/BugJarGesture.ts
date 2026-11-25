@@ -23,6 +23,7 @@ import { NORMAL_WORKING_VARIANT }          from '../constants/WorkingVariantValu
 import type { BugJarState }                from './BugJarProp.ts';
 import {
   BUG_JAR_BUG,
+  BUG_JAR_EXTENT,
   BUG_JAR_EYES,
   BUG_JAR_READING,
   BUG_JAR_SHAPE,
@@ -178,7 +179,7 @@ function bugJarPartOf(input: GestureInput): PosePart {
 
 export const BUG_JAR_GESTURE = gestureDefinition({
   name:                  'bug-jar',
-  intents:               { 'bug-jar': singleFormOf(null, BUG_JAR_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'bug-jar': singleFormOf(null, BUG_JAR_TIMELINE.STILL_MOMENT_MILLISECONDS, BUG_JAR_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

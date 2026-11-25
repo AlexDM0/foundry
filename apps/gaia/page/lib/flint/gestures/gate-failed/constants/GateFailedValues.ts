@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Gate failed: one action in which a failed check falls onto the keyboard; sprite units, Flint facing right. */
 export const GATE_FAILED_TIMELINE = {
   DURATION_MILLISECONDS:           2400,
@@ -43,3 +45,11 @@ export const GATE_NOTE_SHAPE = {
   HEIGHT_UNITS:       12,
   STROKE_UNITS:       1.2,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const GATE_FAILED_EXTENT: DrawnExtent = {
+  backUnits:       22,
+  frontUnits:      45,
+  aboveFloorUnits: 79,
+  belowFloorUnits: -1,
+};

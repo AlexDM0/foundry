@@ -1,6 +1,6 @@
 /**
  * Baton pass. What matters: it is one action of 2.6 seconds; the pentagon holds the baton
- * upright, the toss takes it to y -66 with a full turn and the hand away; the flicker sets the fill opacity at once at each of its four
+ * upright, the toss takes it to y -50 with a full turn and the hand away; the flicker sets the fill opacity at once at each of its four
  * moments and only the outline shows until 1300; the return is filled, bright and glowing, both fading to nothing at 1800, with a hop and
  * wide eyes; the baton falls back to the hand that shows again from 1350; the catch squashes the body for 120 ms; the happy eyes and glints
  * show to 2200; the baton and hand then fade; reduced motion holds 1700; the part does not depend on the facing.
@@ -25,7 +25,7 @@ function inputAt(elapsedMilliseconds: number, facing: Facing = 1): GestureInput<
 const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => BATON_PASS_GESTURE.targetPose(inputAt(elapsedMilliseconds, facing));
 
 test('baton pass is one action of 2600 ms that reduced motion holds at 1700', () => {
-  expect(BATON_PASS_GESTURE.intents['baton-pass']).toEqual({ variant: 'normal', durationMilliseconds: 2600, stillMomentMilliseconds: 1700 });
+  expect(BATON_PASS_GESTURE.intents['baton-pass']).toMatchObject({ variant: 'normal', durationMilliseconds: 2600, stillMomentMilliseconds: 1700 });
 });
 
 describe('the action', () => {
@@ -40,11 +40,11 @@ describe('the action', () => {
     });
   });
 
-  test('300 to 700: the toss takes the baton up to y -66, slowing, with a full turn; the hand goes away', () => {
-    expect(partAt(500).props?.baton).toMatchObject({ centreY: -58, turnDegrees: 180 });
+  test('300 to 700: the toss takes the baton up to y -50, slowing, with a full turn; the hand goes away', () => {
+    expect(partAt(500).props?.baton).toMatchObject({ centreY: -46, turnDegrees: 180 });
     expect(partAt(500).nearHand).toBeNull();
-    expect(partAt(700).props?.baton).toMatchObject({ centreY: -66, turnDegrees: 0 });
-    expect(partAt(1000).props?.baton?.centreY).toBe(-66);
+    expect(partAt(700).props?.baton).toMatchObject({ centreY: -50, turnDegrees: 0 });
+    expect(partAt(1000).props?.baton?.centreY).toBe(-50);
   });
 
   test('500 to 950: the flicker sets the fill opacity at once to 1, 0.2, 0.8 and 0; only the outline shows until 1300, eyes 1 high', () => {
@@ -60,21 +60,21 @@ describe('the action', () => {
     expect(drawn.body.fillOpacity).toBe(0.2);
   });
 
-  test('1300: filled at once, bright and glowing, fading in a straight line to 1800, with one hop of 5 and eyes 10 high', () => {
+  test('1300: filled at once, bright and glowing, fading in a straight line to 1800, with one hop of 3 and eyes 10 high', () => {
     const part = partAt(1300);
     expect(part.body).toMatchObject({ fillOpacity: 1, tint: { role: 'emberLight', amount: 0.8 } });
     expect(part.sleep).toEqual({ glowOpacity: 0.6 });
     expect(part.exactFields).toEqual(['fill-opacity', 'tint']);
     expect(partAt(1550).body?.tint?.amount).toBeCloseTo(0.4);
     expect(partAt(1550).sleep?.glowOpacity).toBeCloseTo(0.3);
-    expect(partAt(1450).body?.addedLift).toBeCloseTo(5);
+    expect(partAt(1450).body?.addedLift).toBeCloseTo(3);
     expect(partAt(1400).eyes?.height).toBe(10);
     expect(partAt(1800).body?.tint?.amount).toBe(0);
     expect(partAt(1800).sleep).toBeUndefined();
   });
 
   test('1100 to 1500: the baton falls back with p²; the pentagon shows again from 1350', () => {
-    expect(partAt(1300).props?.baton?.centreY).toBeCloseTo(-58);
+    expect(partAt(1300).props?.baton?.centreY).toBeCloseTo(-46);
     expect(partAt(1349).nearHand).toBeNull();
     expect(partAt(1350).nearHand).toMatchObject({ centreX: 28, centreY: -26 });
     expect(partAt(1500).props?.baton?.centreY).toBe(-34);

@@ -17,6 +17,7 @@ import { snapSparksAt }                                   from '../SnapSparks.ts
 import { BLOCK_PRESS }                                    from '../constants/BlockPress.ts';
 import type { ConflictBlocksState, ConflictShavingState } from './ConflictBlocksProp.ts';
 import {
+  CONFLICT_EXTENT,
   CONFLICT_FILE,
   CONFLICT_PRESS,
   CONFLICT_SHAVINGS,
@@ -143,7 +144,7 @@ function conflictPartOf(input: GestureInput): PosePart {
 
 export const CONFLICT_GESTURE = gestureDefinition({
   name:                  'conflict',
-  intents:               { conflict: singleFormOf(null, CONFLICT_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { conflict: singleFormOf(null, CONFLICT_TIMELINE.STILL_MOMENT_MILLISECONDS, CONFLICT_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

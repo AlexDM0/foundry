@@ -11,11 +11,12 @@ import { gestureDefinition, singleFormOf }   from '../GestureDefinition.ts';
 import { GestureTimelineUtil }               from '../GestureTimelineUtil.ts';
 import { chainLinkCentreOf }                 from './ChainedSheetsProp.ts';
 import {
+  CHAIN_EXTENT,
   CHAIN_EYES,
   CHAIN_HAND,
   CHAIN_LINKS,
   CHAIN_SHEETS,
-  CHAIN_TIMELINE
+  CHAIN_TIMELINE,
 } from './constants/ChainValues.ts';
 
 const AT_REST = Object.freeze({ x: 0, y: 0 });
@@ -82,7 +83,7 @@ function chainPartOf(input: GestureInput): PosePart {
 
 export const CHAIN_GESTURE = gestureDefinition({
   name:                  'chain',
-  intents:               { chain: singleFormOf(null, CHAIN_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { chain: singleFormOf(null, CHAIN_TIMELINE.STILL_MOMENT_MILLISECONDS, CHAIN_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

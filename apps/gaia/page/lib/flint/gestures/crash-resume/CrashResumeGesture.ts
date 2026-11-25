@@ -15,12 +15,13 @@ import type { CrashSparkState }            from './CrashSparkProp.ts';
 import {
   CORE_SPARK,
   CRASH_RESUME,
+  CRASH_RESUME_EXTENT,
   FLICKER,
   HEAD_SHAKE,
   LOOK_AROUND,
   RESTORE,
   SHOCK,
-  SLUMP
+  SLUMP,
 } from './constants/CrashResumeValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -104,7 +105,7 @@ function crashResumePartOf(input: GestureInput): PosePart {
 
 export const CRASH_RESUME_GESTURE = gestureDefinition({
   name:                  'crash-resume',
-  intents:               { 'crash-resume': singleFormOf(CRASH_RESUME.DURATION_MILLISECONDS, CRASH_RESUME.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'crash-resume': singleFormOf(CRASH_RESUME.DURATION_MILLISECONDS, CRASH_RESUME.STILL_MOMENT_MILLISECONDS, CRASH_RESUME_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

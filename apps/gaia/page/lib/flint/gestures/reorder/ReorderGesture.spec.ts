@@ -82,7 +82,7 @@ describe('the loop of 3600 ms', () => {
 });
 
 test('reduced motion holds the card on top of the stack with the happy eyes', () => {
-  expect(REORDER_GESTURE.intents.reorder).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2200 });
+  expect(REORDER_GESTURE.intents.reorder).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2200 });
   expect(partAt(2200).props?.reorderStack).toMatchObject({ movedCardX: 30, movedCardY: -42 });
   expect(partAt(2200).eyes?.happiness).toBe(1);
 });

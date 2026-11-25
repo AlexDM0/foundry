@@ -13,6 +13,7 @@ import type { ClaimVerdict }                 from './CustomsListProp.ts';
 import {
   CUSTOMS_BODY,
   CUSTOMS_CLAIM_TIMELINE,
+  CUSTOMS_EXTENT,
   CUSTOMS_EYES,
   CUSTOMS_HAND,
   CUSTOMS_LIST_SHAPE,
@@ -122,7 +123,7 @@ function customsPartOf(input: GestureInput): PosePart {
 
 export const CUSTOMS_GESTURE = gestureDefinition({
   name:                  'customs',
-  intents:               { customs: singleFormOf(null, CUSTOMS_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { customs: singleFormOf(null, CUSTOMS_TIMELINE.STILL_MOMENT_MILLISECONDS, CUSTOMS_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

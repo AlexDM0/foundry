@@ -14,7 +14,8 @@ import {
   ANGRY_TYPING,
   BUSY_TYPING,
   KEYBOARD_JOLT,
-  TYPING_SLAM,
+  TYPE_EXTENTS,
+  TYPING_SLAM
 } from './constants/TypeValues.ts';
 
 interface Taps {
@@ -75,9 +76,15 @@ function typePartOf(input: GestureInput<WorkingVariant>): PosePart {
 export const TYPE_GESTURE = gestureDefinition({
   name:    'type',
   intents: {
-    'type':       { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 0 },
-    'type-busy':  { variant: 'busy', durationMilliseconds: null, stillMomentMilliseconds: 0 },
-    'type-angry': { variant: 'angry', durationMilliseconds: null, stillMomentMilliseconds: 0 },
+    'type': {
+      variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: TYPE_EXTENTS.TYPE
+    },
+    'type-busy': {
+      variant: 'busy', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: TYPE_EXTENTS.TYPE_BUSY
+    },
+    'type-angry': {
+      variant: 'angry', durationMilliseconds: null, stillMomentMilliseconds: 0, extent: TYPE_EXTENTS.TYPE_ANGRY
+    },
   },
   continuesWhileWalking: false,
   continuesWhileJumping: false,

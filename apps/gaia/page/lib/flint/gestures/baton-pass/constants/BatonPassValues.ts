@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Baton pass: a new generation of Hephaestus, in one action; in sprite units, for Flint facing right. */
 export const BATON_PASS_TIMELINE = {
   DURATION_MILLISECONDS:       2600,
@@ -34,7 +36,7 @@ export const BATON_PASS_MOTION = {
   HAND_CENTRE_Y_UNITS:      -26,
   BATON_CENTRE_X_UNITS:     28,
   HELD_CENTRE_Y_UNITS:      -34,
-  TOSSED_CENTRE_Y_UNITS:    -66,
+  TOSSED_CENTRE_Y_UNITS:    -50,
   TOSS_TURN_DEGREES:        360,
   WORKING_EYE_SHIFT_UNITS:  6,
   WATCHING_EYE_LIFT_UNITS:  -3,
@@ -42,7 +44,7 @@ export const BATON_PASS_MOTION = {
   RETURN_EYE_HEIGHT_UNITS:  10,
   RETURN_TINT_AMOUNT:       0.8,
   RETURN_GLOW_OPACITY:      0.6,
-  HOP_UNITS:                5,
+  HOP_UNITS:                3,
   CATCH_WIDTH_FACTOR:       1.05,
   CATCH_HEIGHT_FACTOR:      0.95,
 } as const;
@@ -56,3 +58,11 @@ export const BATON_SHAPE = {
   GLOW_RADIUS_UNITS:   6,
   GLOW_OPACITY:        0.4,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const BATON_PASS_EXTENT: DrawnExtent = {
+  backUnits:       21,
+  frontUnits:      36.5,
+  aboveFloorUnits: 62.5,
+  belowFloorUnits: -2,
+};

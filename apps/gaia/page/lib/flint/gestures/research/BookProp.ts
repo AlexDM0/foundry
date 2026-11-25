@@ -40,7 +40,7 @@ export const BOOK_PROP = propDefinition({
   shapesOf: (state: BookState) => ({
     opacity:   state.shown,
     transform: [
-      { translateX: 0, translateY: BOOK_SHAPE.DROP_UNITS },
+      { translateX: -BOOK_SHAPE.HELD_IN_UNITS, translateY: BOOK_SHAPE.DROP_UNITS },
       { rotateDegrees: BOOK_SHAPE.TILT_DEGREES, aboutX: BOOK_SHAPE.TILT_CENTRE_X_UNITS, aboutY: BOOK_SHAPE.TILT_CENTRE_Y_UNITS },
     ],
     shapes: [
