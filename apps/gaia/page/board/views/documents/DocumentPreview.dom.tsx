@@ -4,7 +4,8 @@
  * that ends on a chip and one that ends on the next block's edge; a diagram node the frame reports under the pointer offers a comment on its own source
  * line, until a moment after the pointer left it or the diagram is drawn again; the frame is told the dark theme; a message from any
  * window but the diagram's own frame is dropped; a comment's chip stands after its text, ticked once applied;
- * the plan's reference marks follow their sentences, unresolved ones marked; the selected text stays marked while its popover is open; and
+ * the plan's reference marks follow their sentences, glued to them, unresolved ones marked; the plan's context line stands under its
+ * title; the selected text stays marked while its popover is open; and
  * an agent's edit shares one frame with the line it replaces, which alone is struck.
  */
 import { readFileSync } from 'node:fs';
@@ -349,6 +350,37 @@ describe('Preview', () => {
     renderPreview(PLAN_MARKDOWN, 'plan');
     const marks = [...document.querySelectorAll('.board-document-reference')].map((mark) => `${mark.textContent}${mark.hasAttribute('data-unresolved') ? '?' : ''}`);
     expect(marks).toEqual(['1', '2?', '3', '4', '5', '6?']);
+  });
+
+  test('glues each mark to the sentence it follows, before the code block its list item holds after the sentence', () => {
+    renderPreview(PLAN_MARKDOWN, 'plan');
+    const contractMark = [...document.querySelectorAll('.board-document-reference')].find((mark) => mark.textContent === '3');
+    expect(contractMark?.previousSibling?.textContent).toBe('\u2060');
+    expect(contractMark?.compareDocumentPosition(document.querySelector('.board-document-code') as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  test('draws the lead under the document\'s title, and above a document that opens with none', () => {
+    const renderWithLead = (markdown: string): void => {
+      fakeControls().render(onBoard(
+        <DocumentPreview
+          place={{ ticketId: '004', document: 'plan' }}
+          markdown={markdown}
+          versionNumber={2}
+          messages={[]}
+          proposals={[]}
+          referenceMarks={[]}
+          draft={null}
+          onDraft={() => undefined}
+          settled={false}
+          lead={<p className="board-document-context">On spec v5</p>}
+        />,
+      ));
+    };
+    renderWithLead(PLAN_MARKDOWN);
+    expect(screen.getByRole('heading', { level: 1 }).nextElementSibling?.textContent).toBe('On spec v5');
+    cleanup();
+    renderWithLead('## Approach\n\nNo title.');
+    expect(screen.getByRole('article', { name: 'The plan' }).firstElementChild?.textContent).toBe('On spec v5');
   });
 
   test('underlines the words of each unresolved place, each piece still on its source column', () => {

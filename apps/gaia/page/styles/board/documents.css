@@ -72,7 +72,7 @@
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
-.board-document-context { margin: -8px 0 16px; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-document-context { margin: 0 0 10px; font-size: var(--fs-body); color: var(--ink-muted); }
 
 .board-document-heading { margin: 28px 0 8px; line-height: 1.3; }
 
@@ -97,8 +97,11 @@ h2.board-document-heading { font-size: 17px; }
 }
 
 .board-document-code {
-  margin: 0 0 10px; padding: 12px 14px; overflow: auto; font: 12.5px/20px var(--font-mono); background: var(--wash); border-radius: var(--r-2);
+  margin: 0 0 10px; padding: 10px 12px; overflow: auto; font: 12px/1.55 var(--font-mono); background: var(--wash); border: 1px solid var(--line);
+  border-radius: var(--r-2);
 }
+
+.board-document-item-text > .board-document-code { margin: 6px 0 4px; }
 
 .board-document-quote { margin: 0 0 6px; padding: 0; font-size: var(--fs-tab); color: var(--ink-muted); }
 
@@ -131,11 +134,17 @@ blockquote.board-document-quote { border: 0; }
 .board-document-chip[data-applied] { color: var(--ink-muted); border-color: var(--line-strong); }
 
 .board-document-reference {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 3px;
-  vertical-align: 3px; font: 600 var(--fs-micro)/1 var(--font-mono); color: var(--link); background: var(--link-tint); border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 4px;
+  box-sizing: content-box; vertical-align: 2px; font: var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
 }
 
-.board-document-reference[data-unresolved] { color: var(--warn-ink); background: var(--warn-tint); }
+.board-document-reference[data-unresolved] { color: var(--warn-ink); border-color: var(--warn-edge); }
+
+.board-document-unresolved-item .board-document-reference { margin-left: 0; }
+
+/* Inline in the text, so the word joiner before it glues it to the last word: a line breaks before an inline-flex mark regardless. */
+:is(.board-document-paragraph, .board-document-item-text, .board-document-heading) > .board-document-reference { display: inline; padding: 1px 9px; }
 
 .board-document-unresolved-place,
 .board-document-inline-code[data-unresolved] { text-decoration: underline dashed var(--warn-edge); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
@@ -289,6 +298,14 @@ blockquote.board-document-quote { border: 0; }
 }
 
 .board-document-tree-row[data-kind="folder"] { color: var(--ink-muted); }
+
+.board-document-tree-row[data-root]:not(:first-child) { margin-top: 6px; }
+
+.board-document-tree-row[data-change="adds"] .board-document-tree-name { font-weight: 600; }
+
+.board-document-tree-row[data-change="removes"] .board-document-tree-name { text-decoration: line-through; }
+
+.board-document-tree-count { color: var(--ink-muted); }
 
 .board-document-tree-sigil { font-weight: 700; color: var(--ink-muted); }
 
