@@ -12,7 +12,10 @@ export const ASK_TIMELINE = {
   KNOCK_STILL_MOMENT_MILLISECONDS: 245,
 } as const;
 
-/** The card and its hand move up and down by `BOB_UNITS × sin(t / BOB_DIVISOR)`; the card turns by `TURN × sin(t / TURN_DIVISOR)` around the hand. */
+/**
+ * The card and its hand move up and down by `BOB_UNITS × sin(t / BOB_DIVISOR)`; the card turns back from upright by
+ * `TURN × (1 + sin(t / TURN_DIVISOR)) / 2` around the hand, so its far edge never passes where it stands upright.
+ */
 export const ASK_POSE = {
   LEAN_DEGREES:              3,
   EYE_HEIGHT_UNITS:          8,

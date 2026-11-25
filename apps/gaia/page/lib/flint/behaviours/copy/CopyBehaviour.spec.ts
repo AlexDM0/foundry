@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { BODY_SHAPE }               from '../../constants/BodyShape.ts';
-import { ASK_CARD_SHAPE }           from '../../gestures/ask/constants/AskValues.ts';
+import { ASK_GESTURE }              from '../../gestures/ask/AskGesture.ts';
 import type { PerceivedCopyTarget } from '../../mind/Perception.ts';
 import {
   AGENTS,
@@ -63,7 +63,7 @@ test('under reduced motion Flint stands below the row at once', () => {
 describe('a slot that keeps Flint inside', () => {
   const PIXELS_FOR_ONE_UNIT = 0.75;
   const HALF_BODY_WIDTH_UNITS = BODY_SHAPE.WIDTH_UNITS / 2;
-  const CARD_REACH_UNITS = ASK_CARD_SHAPE.X_UNITS + ASK_CARD_SHAPE.WIDTH_UNITS;
+  const CARD_REACH_UNITS = ASK_GESTURE.forwardReachUnits ?? 0;
 
   function askingIn(sidePixels: number) {
     const sideUnits = sidePixels / PIXELS_FOR_ONE_UNIT;
