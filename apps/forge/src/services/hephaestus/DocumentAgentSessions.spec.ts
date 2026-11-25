@@ -201,6 +201,7 @@ describe('the messages', () => {
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
 
     expect(fixture.sentLines().map((line) => JSON.parse(line) as unknown)).toEqual([{
+      messageId:     'M2',
       comment:       'C2',
       view:          'preview',
       document:      'spec',

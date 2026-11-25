@@ -25,20 +25,21 @@ function numberedTextOf(text: string): string {
 }
 
 /**
- * The payload of a delivered message: an anchored comment names its comment, view, lines at the head, columns, section, quote, surrounding
- * lines and diagram; an orphaned one keeps its quote and names no lines. User's answer to the agent's question names the decision it
- * answers, on the question's lines. A message from the board says so.
+ * The payload of a delivered message: every message names its own id, which an edit that answers it names in `answers`. An anchored
+ * comment names its comment, view, lines at the head, columns, section, quote, surrounding lines and diagram; an orphaned one keeps its
+ * quote and names no lines. User's answer to the agent's question names that question, on its lines. A message from the board says so.
  */
 function messagePayloadOf(message: Readonly<DocumentMessage>, document: TicketDocumentKind, headNumber: number | null): Record<string, unknown> {
   const { anchor } = message;
   const placement  = message.orphaned === true ? undefined : message.placement;
   return {
+    messageId: message.messageId,
     ...(message.commentNumber === undefined ? {} : { comment: `C${message.commentNumber}` }),
-    ...(message.decisionId === undefined ? {} : { answers: message.decisionId }),
+    ...(message.decisionId === undefined ? {} : { question: message.decisionId }),
     ...(message.from === 'board' ? { from: 'board' } : {}),
     ...(anchor === undefined ? {} : { view: anchor.view }),
     document,
-    version: headNumber,
+    version:   headNumber,
     ...(anchor === undefined ? {} : { sentOnVersion: anchor.versionNumber }),
     ...(placement === undefined ? {} : { lines: pairOf(placement) }),
     ...(anchor?.columns === undefined || placement === undefined ? {} : { columns: pairOf(anchor.columns) }),

@@ -160,7 +160,7 @@ export function BoardApp({
   // Before the first board its tabs are not known, so a stored tab such as Pipeline would be overwritten by the default.
   const boardIsRead = board !== null;
   useEffect(() => {
-    if (boardIsRead) boardStore.writeChoice(TAB_CHOICE_NAME, shownRoute.tab, DEFAULT_TAB);
+    if (boardIsRead && BoardRouter.tabIsStored(shownRoute.tab)) boardStore.writeChoice(TAB_CHOICE_NAME, shownRoute.tab, DEFAULT_TAB);
   }, [boardIsRead, boardStore, shownRoute.tab]);
   const progressViewToOpen = BoardRouter.progressViewToOpenOf(shownRoute.tab, boardStore.readChoice(PROGRESS_VIEW_CHOICE_NAME), shownTabs);
   useEffect(() => {

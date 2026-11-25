@@ -76,13 +76,13 @@ describe('the primary button', () => {
     });
   });
 
-  test('is locked while the agent\'s questions on the document are open, and says how many beside it', () => {
+  test('is locked while the agent\'s questions on the document are open, and says how many beside it, an unsaved edit or not', () => {
     expect(TicketDocumentsViewModel.headOf({
       documents: DOCUMENT_STATES.specWorking, ticket: documentsTicketOf(), shown: 'spec', editing: false, openQuestionCount: 2
     }).primaryAction).toMatchObject({ command: null, lockReason: OPEN_QUESTIONS_LOCK_REASON, openQuestionsText: '2 questions open' });
     expect(TicketDocumentsViewModel.headOf({
       documents: DOCUMENT_STATES.specWorking, ticket: documentsTicketOf(), shown: 'spec', editing: true, openQuestionCount: 1
-    }).primaryAction).toMatchObject({ command: null, lockReason: 'Your edit is not saved yet.', openQuestionsText: null });
+    }).primaryAction).toMatchObject({ command: null, lockReason: 'Your edit is not saved yet.', openQuestionsText: '1 question open' });
   });
 
   test('approves the plan, or approves it again once the spec moved under it', () => {

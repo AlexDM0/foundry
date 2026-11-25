@@ -366,7 +366,7 @@ describe('the spec agent asks User on the spec (artboard 11)', () => {
     expect(screen.queryByRole('link', { name: 'Next waiting on you ›' })).toBeNull();
   });
 
-  test('the question is marked on its line with its solid chip, and lists in the document\'s Open questions', async () => {
+  test('the question is marked on its line with its solid chip and lists in the document\'s Open questions, and E8, settled by its turn, leaves both', async () => {
     renderDocuments(SPEC_ASKS_DOCUMENTS, { board: asksBoardOf(false) });
     await settled();
     const article = screen.getByRole('article', { name: 'The spec' });
@@ -374,9 +374,10 @@ describe('the spec agent asks User on the spec (artboard 11)', () => {
     expect([chip.textContent, chip.hasAttribute('data-asks')]).toEqual(['E7', true]);
     expect(chip.closest<HTMLElement>('[data-from-line]')?.dataset['fromLine']).toBe(String(lineOf(SPEC_ASKS_DOCUMENTS.documents[0]?.markdown ?? '', 'The theme resolves once')));
     expect(article.querySelector('.board-document-questioned')?.textContent).toBe('With no setting the page falls back to light.');
-    expect(within(article).getByTitle('Question E8, answered').textContent).toBe('✓ E8');
+    const answered = within(article).getByTitle('Question E8, answered');
+    expect([answered.textContent, answered.hasAttribute('data-asks'), answered.hasAttribute('data-applied')]).toEqual(['✓ E8', false, true]);
     const openQuestions = within(article).getByRole('list', { name: 'The agent\'s questions' });
-    expect(openQuestions.textContent).toBe('E7 Does this ticket add the saved theme choice? waiting on youE8 Answered: Keep their colours, as A4 says.');
+    expect(openQuestions.textContent).toBe('E7 Does this ticket add the saved theme choice? waiting on you');
   });
 
   test('Answer sends the chosen option\'s letter with User\'s note, the recommended option chosen as the card opens', async () => {
@@ -449,5 +450,18 @@ describe('the spec agent asks User on the spec (artboard 11)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open question E7: Does this ticket add the saved theme choice?' }));
     expect(screen.getByRole('region', { name: 'Question E7' })).toBeTruthy();
     expect(screen.queryByRole('region', { name: 'Question E9' })).toBeNull();
+  });
+
+  test('a route naming a question unfolds that question, though another shares its line or its own lines are gone', async () => {
+    const sharing = { ...SAVED_CHOICE_QUESTION, id: 'E9' };
+    const gone = { ...SAVED_CHOICE_QUESTION, id: 'E10', placement: null };
+    const board = { ...asksBoardOf(false), decisions: [SAVED_CHOICE_QUESTION, sharing, gone] };
+    renderDocuments(SPEC_ASKS_DOCUMENTS, { board, route: BoardRouter.documentsRouteOf('004', 'spec', FALLBACK_LINE, 'E9') });
+    await settled();
+    expect([screen.queryByRole('region', { name: 'Question E9' }) !== null, screen.queryByRole('region', { name: 'Question E7' })]).toEqual([true, null]);
+    cleanup();
+    renderDocuments(SPEC_ASKS_DOCUMENTS, { board, route: BoardRouter.documentsRouteOf('004', 'spec', 2, 'E10') });
+    await settled();
+    expect([screen.queryByRole('region', { name: 'Question E10' }) !== null, screen.queryByRole('region', { name: 'Question E7' })]).toEqual([true, null]);
   });
 });

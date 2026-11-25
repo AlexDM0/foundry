@@ -1,8 +1,8 @@
 /**
- * What waits on User, pure, from the facts already on the board: open decisions (the ones an Assistant escalated apart), draft tickets,
- * filing drafts waiting on an answer, tickets ready for review and tickets waiting for User's merge accept. The board document's attention
- * and the monitor snapshot's `attention` are this one list. It orders by the stamp strings, which one writer wrote, so no clock
- * decides the order; ages are only shown.
+ * What waits on User, pure, from the facts already on the board: open decisions (the ones an Assistant escalated apart), draft tickets
+ * but one whose spec or plan an agent is writing, filing drafts waiting on an answer, tickets ready for review and tickets waiting for
+ * User's merge accept. The board document's attention and the monitor snapshot's `attention` are this one list. It orders by the stamp
+ * strings, which one writer wrote, so no clock decides the order; ages are only shown.
  */
 import type { DraftState }                          from '../../lib/tracker-model/@types/Draft.ts';
 import type { MonitorAttentionEntry }               from './@types/MonitorSnapshot.ts';
@@ -28,6 +28,8 @@ interface AttentionTicket {
   readonly status:  string;
   readonly filed?:  string;
   readonly updated: string;
+  /** Where a ticket being written stands; absent or `null` for a draft whose intake shapes it, which waits on User. */
+  readonly draft?:  { readonly waitsOnUser: string | null } | null;
 }
 
 interface AttentionDraft {
@@ -145,6 +147,11 @@ function mergeAcceptEntryOf(ticketId: string, target: string, ticket: AttentionT
   };
 }
 
+/** A spec-then-plan draft waits on User only while its stage names a wait; until then its agent writes it. */
+function draftWaitsOnUser(ticket: AttentionTicket): boolean {
+  return ticket.status === DRAFT_STATUS && (ticket.draft === undefined || ticket.draft === null || ticket.draft.waitsOnUser !== null);
+}
+
 function oldestFirst(first: AttentionEntry, second: AttentionEntry): number {
   if (first.stamp !== second.stamp) return first.stamp < second.stamp ? -1 : 1;
   if (first.key === second.key) return 0;
@@ -156,7 +163,7 @@ export function attentionEntriesOf(board: AttentionBoard): AttentionEntry[] {
   const tickets = board.page?.tickets ?? [];
   const ticketById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
   const decisions = OpenDecisionsUtil.openDecisionsOf(board).map(({ decision, escalated }) => decisionEntryOf(decision, escalated, board));
-  const draftTickets = tickets.filter((ticket) => ticket.status === DRAFT_STATUS).map(draftTicketEntryOf);
+  const draftTickets = tickets.filter(draftWaitsOnUser).map(draftTicketEntryOf);
   const filingDrafts = (board.page?.payload.boardFacts.drafts ?? []).filter((draft) => draft.state === WAITING_DRAFT_STATE).map(filingDraftEntryOf);
   const reviews = tickets.filter((ticket) => ticket.status === READY_FOR_REVIEW_STATUS).map(reviewEntryOf);
   const mergeAccepts = (board.mergeQueue?.targets ?? []).flatMap((target) => (target.waitingForMerge ?? [])

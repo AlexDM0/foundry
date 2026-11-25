@@ -34,7 +34,7 @@ export function KanbanTabView({
       streamIsLive={connection === 'live'}
       mergeQueueHref={hrefOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}
       draftsWaitingCount={WaitingOnUserModel.draftsWaitingCountOf(WaitingOnUserModel.waitingOnUserOf(board))}
-      ticketsHref={hrefOf({ tab: 'tickets', item: null })}
+      ticketsHref={hrefOf({ tab: 'tickets', item: 'in-draft' })}
       onShowAllFinished={surroundings.showAllFinished}
       laneHighlight={surroundings.laneHighlight}
       onLaneHighlightTaken={surroundings.takeLaneHighlight}

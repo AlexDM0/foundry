@@ -124,7 +124,7 @@ describe('drafts an agent writes', () => {
 
   test('a draft with no agent yet has nothing to watch, and its track has the agent\'s stage next', () => {
     const queued = model.writing.find((row) => row.idText === '#20');
-    expect([queued?.agent, queued?.watchRoute, queued?.steps.map((step) => step.status)]).toEqual([null, null, ['done', 'agent']]);
+    expect([queued?.agent, queued?.idleText, queued?.watchRoute, queued?.steps.map((step) => step.status)]).toEqual([null, 'no agent yet', null, ['done', 'agent']]);
   });
 
   test('only drafts count, and the segment waits on User', () => {
@@ -164,6 +164,12 @@ describe('the one-ticket route and filing drafts', () => {
     const researched = model.writing.find((row) => row.idText === 'D8');
     expect([waiting?.waitsText, waiting?.actionRoute, waiting?.ticketId, researched?.agent?.jobId])
       .toEqual(['2 questions to answer', { tab: 'tickets', item: 'draft/D7' }, null, 'J4']);
+  });
+
+  test('a filing draft whose session ended stands ready to resume, not as one waiting for its first agent', () => {
+    const board = exampleTicketsBoard({ tickets: [], filingDrafts: [exampleFilingDraft('D9', { state: 'resumable', claimOwner: null })] });
+    const resumable = InDraftModelUtil.inDraftModelOf(board, MOMENT, '');
+    expect(resumable.writing.map((row) => [row.idText, row.agent, row.idleText])).toEqual([['D9', null, 'ready to resume']]);
   });
 
   test('a ticket in review on the spec-then-plan route keeps its spec and plan checked before Ticket review', () => {

@@ -58,8 +58,8 @@ export interface BoardDraftAgentDocument {
 }
 
 /**
- * Where a ticket being written stands, from forge 4.2: its stage, what of it waits on the user, the agent writing it, and when the oldest
- * wait began, which orders the drafts a view walks and is only ever shown.
+ * Where a ticket being written stands, from forge 4.4: its stage, what of it waits on the user, the agent writing it, and when that wait
+ * began, which orders the drafts a view walks and is only ever shown.
  */
 export interface BoardTicketDraftDocument {
   readonly stage:        DraftStage;
@@ -67,7 +67,7 @@ export interface BoardTicketDraftDocument {
   readonly waitsOnUser:  DraftWait | null;
   /** `null` while no agent writes the stage's document. */
   readonly agent:        BoardDraftAgentDocument | null;
-  /** `null` with `waitsOnUser`. */
+  /** When the wait `waitsOnUser` names began, even when a wait it ranks before is older; `null` with `waitsOnUser`. */
   readonly waitingSince: string | null;
 }
 
@@ -121,7 +121,7 @@ export interface BoardTicketDocument {
   readonly offers:          BoardTicketOffersDocument;
   /** Present only on a ticket with a documents record. */
   readonly documents?:      BoardTicketDocumentsSummaryDocument;
-  /** From forge 4.2: present on a draft of the spec-then-plan route and on a ticket in `ready-for-review`. */
+  /** From forge 4.4: present on a draft of the spec-then-plan route and on a ticket in `ready-for-review`. */
   readonly draft?:          BoardTicketDraftDocument;
 }
 

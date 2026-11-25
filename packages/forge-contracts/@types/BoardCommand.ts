@@ -29,7 +29,7 @@ export type ChartRangeRequest =
   | { readonly kind: 'window'; readonly from: string; readonly to: string; readonly tickMinutes: number | null };
 
 /** The chosen option letters, `a` or `ac` per entry, or free text. */
-/** From forge 4.2 a `note` beside the letters is the user's own words on a one-question decision, taken with the chosen option. */
+/** From forge 4.4 a `note` beside the letters is the user's own words on a one-question decision, taken with the chosen option. */
 export type DecisionAnswerFormDocument =
   | { readonly form: 'letters'; readonly choices: readonly string[]; readonly note?: string }
   | { readonly form: 'text'; readonly text: string };

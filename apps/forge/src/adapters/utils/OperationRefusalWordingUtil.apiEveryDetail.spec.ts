@@ -56,6 +56,9 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'document-message-not-queued': {
     reason: 'document-message-not-queued', ticketId: '004', document: 'spec', messageId: 'M2', state: 'sent'
   },
+  'document-answer-not-withdrawn': {
+    reason: 'document-answer-not-withdrawn', ticketId: '004', document: 'spec', messageId: 'M2', decisionId: 'E7'
+  },
   'document-unknown-proposal': {
     reason: 'document-unknown-proposal', ticketId: '004', document: 'plan', proposalId: 'P9'
   },

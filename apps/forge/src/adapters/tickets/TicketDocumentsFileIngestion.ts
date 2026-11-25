@@ -7,6 +7,7 @@ import type {
   CommentAnchor,
   DiagramAnchor,
   DocumentApproval,
+  DocumentAnswer,
   DocumentMessage,
   DocumentProposal,
   DocumentVersion,
@@ -110,12 +111,26 @@ function anchorAt(value: unknown, where: string): CommentAnchor {
   };
 }
 
+function textOrNullAt(value: unknown, where: string): string | null {
+  return value === null ? null : textAt(value, where);
+}
+
+function answerAt(value: unknown, where: string): DocumentAnswer {
+  const fields = objectAt(value, where);
+  return {
+    question: textAt(fields['question'], `${where}.question`),
+    choice:   textOrNullAt(fields['choice'], `${where}.choice`),
+    note:     textOrNullAt(fields['note'], `${where}.note`),
+  };
+}
+
 function messageAt(value: unknown, where: string): DocumentMessage {
   const fields = objectAt(value, where);
   return {
     messageId: textAt(fields['messageId'], `${where}.messageId`),
     ...optional(fields, 'commentNumber', (number) => countAt(number, `${where}.commentNumber`)),
     ...optional(fields, 'decisionId', (decisionId) => textAt(decisionId, `${where}.decisionId`)),
+    ...optional(fields, 'answer', (answer) => answerAt(answer, `${where}.answer`)),
     ...optional(fields, 'anchor', (anchor) => anchorAt(anchor, `${where}.anchor`)),
     ...optional(fields, 'placement', (placement) => rangeAt(placement, `${where}.placement`)),
     ...optional(fields, 'orphaned', (orphaned) => (orphaned === true ? true as const : problem(`${where}.orphaned is not true`))),

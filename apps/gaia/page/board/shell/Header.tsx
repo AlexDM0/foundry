@@ -39,11 +39,12 @@ import type {
   SetupStepView
 } from './HeaderModel.ts';
 import { SetupStepBar } from './SetupStepBar.tsx';
-import type {
-  TabCount,
-  TabCounts,
-  TabCountTone,
-  WaitingOnUser
+import {
+  WaitingOnUserModel,
+  type TabCount,
+  type TabCounts,
+  type TabCountTone,
+  type WaitingOnUser
 } from './WaitingOnUserModel.ts';
 import { WaitingOnUserPill } from './WaitingOnUserPill.tsx';
 
@@ -184,7 +185,7 @@ function progressMenuFieldsOf(surroundings: MenuEntrySurroundings): Pick<LinkTab
     subLabel:  TAB_LABELS[progressViewToOpen],
     menuLabel: PROGRESS_MENU_LABEL,
     menuItems: BoardRouter.shownProgressViewsOf(shownTabs).map((view) => (
-      <MenuItem key={view} label={TAB_LABELS[view]} pressed={view === selectedTab} closing="keep-focus" onChoose={() => navigate({ tab: view, item: null })} />
+      <MenuItem key={view} label={TAB_LABELS[view]} pressed={view === selectedTab} closing="return-focus" onChoose={() => navigate({ tab: view, item: null })} />
     )),
   };
 }
@@ -197,7 +198,11 @@ function tabItemOf(entry: BoardMenuEntry, tabCount: TabCount | undefined, surrou
     }
     : { key: entry, label: TAB_LABELS[entry], href };
   if (tabCount === undefined) return item;
-  return { ...item, countBadge: <CountBadge count={tabCount.count} {...COUNT_BADGE_OF_TONE[tabCount.tone]} />, accessibleName: tabCount.ariaLabel };
+  // A name given beside the count replaces the label's own, so Progress names the view it opens there too.
+  const accessibleName = entry === 'progress'
+    ? `${PROGRESS_ENTRY_LABEL} ${TAB_LABELS[surroundings.progressViewToOpen]}, ${WaitingOnUserModel.waitingPhraseOf(tabCount.count)}`
+    : tabCount.ariaLabel;
+  return { ...item, countBadge: <CountBadge count={tabCount.count} {...COUNT_BADGE_OF_TONE[tabCount.tone]} />, accessibleName };
 }
 
 interface SetupHeaderProps {

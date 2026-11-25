@@ -20,22 +20,30 @@ import {
   test
 } from 'bun:test';
 
+import { useState } from 'react';
+
+import { MarkdownBlocks }                                   from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import type { BoardTranscriptEntryDocument }                from '../../../@types/board/ConversationDocument.ts';
 import type { GaiaTicketDocumentsDocument }                 from '../../../@types/board/TicketDocumentsDocument.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../testing/FakeControls.ts';
 import { onBoard }                                          from '../../testing/OnBoard.ts';
 import {
   DOCUMENT_STATES,
+  DOCUMENTS_TICKET_ID,
   PLAN_OUT_OF_DATE_TRANSCRIPT,
+  SAVED_CHOICE_QUESTION,
+  SPEC_ASKS_DOCUMENTS,
+  SPEC_TRANSCRIPT_ASKS,
   SPEC_TRANSCRIPT_IDLE,
   SPEC_TRANSCRIPT_SPLIT,
   SPEC_TRANSCRIPT_WORKING
 } from '../../testing/TicketDocumentsFixture.ts';
-import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
-import { DocumentChat }                                       from './DocumentChat.tsx';
-import { DocumentChatModel }                                  from './DocumentChatModel.ts';
-import { InlineProposal }                                     from './ProposalCard.tsx';
-import { ProposalModel }                                      from './ProposalModel.ts';
+import { DocumentAgentStripModelUtil, type DocumentViewMode }          from './DocumentAgentStripModel.ts';
+import { DocumentChat }                                                from './DocumentChat.tsx';
+import { DocumentChatModel, type DocumentChat as DocumentChatContent } from './DocumentChatModel.ts';
+import { DocumentQuestionsModel }                                      from './DocumentQuestionsModel.ts';
+import { InlineProposal }                                              from './ProposalCard.tsx';
+import { ProposalModel }                                               from './ProposalModel.ts';
 
 afterEach(cleanup);
 
@@ -220,5 +228,51 @@ describe('an edit inline', () => {
       proposalId:       'P3',
       replacementLines: [['- [ ] **A3** `bun run check:contrast` passes.']],
     }]);
+  });
+});
+
+describe('the open question (artboard 11)', () => {
+  test('comes to the chat\'s top as it unfolds, and not again when the agent\'s turn changes while User reads down its card', () => {
+    const spec = SPEC_ASKS_DOCUMENTS.documents[0];
+    if (spec === undefined) throw new Error('no spec');
+    const shownSpec = spec;
+    const questions = DocumentQuestionsModel.documentQuestionsOf({
+      decisions: [SAVED_CHOICE_QUESTION], messages: spec.messages, ticketId: DOCUMENTS_TICKET_ID, document: 'spec', blocks: MarkdownBlocks.blocksOf(spec.markdown),
+    });
+    const idle = DocumentChatModel.documentChatOf(spec, SPEC_TRANSCRIPT_ASKS, null, questions);
+    const strip = DocumentAgentStripModelUtil.stripOf({
+      document: spec, spec: null, chat: idle, effectReading: null, view: 'preview'
+    });
+    let showChat: (chat: DocumentChatContent) => void = () => undefined;
+
+    function ChatOverTurns() {
+      const [chat, setChat] = useState(idle);
+      showChat = setChat;
+      return (
+        <DocumentChat
+          place={PLACE}
+          chat={chat}
+          strip={strip}
+          view="preview"
+          draftIsOpen={false}
+          proposalMode="ask-first"
+          headNumber={shownSpec.head?.number ?? null}
+          settled={false}
+          expandedQuestionId="E7"
+          onJumpToAnchor={() => undefined}
+          onOpenEffect={null}
+        />
+      );
+    }
+    fakeControls().render(onBoard(<ChatOverTurns />));
+    const chatElement = document.querySelector<HTMLElement>('.board-document-chat');
+    const card = document.querySelector<HTMLElement>('.board-document-question[data-state="open"]');
+    if (chatElement === null || card === null) throw new Error('no chat or no open question');
+    card.getBoundingClientRect = () => ({ top: -100 }) as DOMRect;
+    chatElement.scrollTop = 500;
+    act(() => {
+      showChat({ ...idle, working: true });
+    });
+    expect(chatElement.scrollTop).toBe(500);
   });
 });

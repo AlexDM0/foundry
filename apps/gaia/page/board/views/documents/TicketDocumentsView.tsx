@@ -57,6 +57,7 @@ import { OutOfDateNotice }                                    from './OutOfDateN
 import { ProposalModel }                                      from './ProposalModel.ts';
 import type { DocumentPlace }                                 from './TicketDocumentCommands.ts';
 import {
+  OPEN_QUESTIONS_LOCK_REASON,
   OUT_OF_DATE_SUFFIX,
   TicketDocumentsViewModel,
   type DocumentsHeadModel,
@@ -77,21 +78,23 @@ const VIEW_OPTIONS: readonly SegmentOption<DocumentViewMode>[] = [
 const DOCUMENTS_PART = 'documents';
 
 export interface TicketDocumentsPageProps {
-  readonly project:      string;
-  readonly ticket:       BoardTicketDocument;
-  readonly documents:    GaiaTicketDocumentsDocument;
-  readonly shown:        BoardTicketDocumentKind;
-  readonly transcript:   readonly BoardTranscriptEntryDocument[];
+  readonly project:          string;
+  readonly ticket:           BoardTicketDocument;
+  readonly documents:        GaiaTicketDocumentsDocument;
+  readonly shown:            BoardTicketDocumentKind;
+  readonly transcript:       readonly BoardTranscriptEntryDocument[];
   /** Why the newest read failed while the page shows the documents as last read; `null` while they are current. */
-  readonly readFailure?: string | null;
+  readonly readFailure?:     string | null;
   /** What a screen of the visual pass shows mid-use; the page starts in Preview with nothing open. */
-  readonly atMount?:     PageStateAtMount;
+  readonly atMount?:         PageStateAtMount;
   /** The board's open decisions: the page shows the ones its document's agent asked on this ticket. */
-  readonly decisions?:   readonly BoardDecisionDocument[];
+  readonly decisions?:       readonly BoardDecisionDocument[];
   /** Where "Next waiting on you" goes; `null` while no other draft waits on User. */
-  readonly nextWaiting?: BoardRoute | null;
+  readonly nextWaiting?:     BoardRoute | null;
   /** The line of the head a link opened the page at; `null` for its top. */
-  readonly focusLine?:   number | null;
+  readonly focusLine?:       number | null;
+  /** The agent's question a link opened the page on; `null` for the one at the line. */
+  readonly focusQuestionId?: string | null;
 }
 
 /** A jump to lines User asked for, a new one at each ask, so asking again for the same lines scrolls again. */
@@ -123,6 +126,8 @@ export interface PageStateAtMount {
 function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
   const sender = useControlCommand(action.kind === 'approve' ? action.command : null);
   if (action.kind === 'approved-by-pipeline') return <span className="board-document-approved-by-pipeline">{action.label}</span>;
+  // A held approval names the open questions too, while an unsaved edit is the first reason it gives.
+  const heldAlsoByQuestions = action.openQuestionsText !== null && action.lockReason !== OPEN_QUESTIONS_LOCK_REASON ? [OPEN_QUESTIONS_LOCK_REASON] : [];
   const button = (
     <Button
       label={action.label}
@@ -130,7 +135,7 @@ function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
       compact
       disabled={!sender.enabled}
       onPress={() => void sender.send()}
-      {...(action.lockReason === null ? {} : { accessibleName: `${action.label}. ${action.lockReason}` })}
+      {...(action.lockReason === null ? {} : { accessibleName: [`${action.label}.`, action.lockReason, ...heldAlsoByQuestions].join(' ') })}
     />
   );
   return (
@@ -237,7 +242,8 @@ export function scrollToLines(container: HTMLElement | null, lines: BoardLineRan
 const NO_DECISIONS: readonly BoardDecisionDocument[] = [];
 
 export function TicketDocumentsPage({
-  project, ticket, documents, shown, transcript, readFailure = null, atMount = {}, decisions = NO_DECISIONS, nextWaiting = null, focusLine = null
+  project, ticket, documents, shown, transcript, readFailure = null, atMount = {}, decisions = NO_DECISIONS, nextWaiting = null, focusLine = null,
+  focusQuestionId = null
 }: TicketDocumentsPageProps) {
   const [view, setView] = useState<DocumentViewMode>(atMount.view ?? 'preview');
   const [draft, setDraft] = useState<CommentDraft | null>(atMount.draft ?? null);
@@ -245,7 +251,7 @@ export function TicketDocumentsPage({
   const [editedText, setEditedText] = useState<string | null>(atMount.editedText ?? null);
   const linesAtMount = atMount.jumpedTo ?? (focusLine === null ? undefined : { from: focusLine, to: focusLine });
   const [jump, setJump] = useState<JumpRequest | null>(linesAtMount === undefined ? null : { lines: linesAtMount });
-  const [chosenQuestionId, setChosenQuestionId] = useState<string | null>(null);
+  const [chosenQuestionId, setChosenQuestionId] = useState<string | null>(focusQuestionId);
   const [caretLine, setCaretLine] = useState<number | null>(atMount.caretLine ?? null);
   const main = useRef<HTMLElement>(null);
   const hrefOf = useBoardHrefOf();
@@ -254,9 +260,10 @@ export function TicketDocumentsPage({
   // Only an editor that is open holds text; Preview edits nothing.
   const editing = view !== 'preview' && document !== null && editedText !== null && editedText !== document.markdown;
   const blocks = useMemo(() => MarkdownBlocks.blocksOf(document?.markdown ?? ''), [document?.markdown]);
+  const agentTurns = useMemo(() => DocumentChatModel.agentTurnProgressOf(transcript), [transcript]);
   const questions = useMemo(() => DocumentQuestionsModel.documentQuestionsOf({
-    decisions, messages: document?.messages ?? [], ticketId: ticket.id, document: shown, blocks
-  }), [decisions, document?.messages, ticket.id, shown, blocks]);
+    decisions, messages: document?.messages ?? [], proposals: document?.proposals ?? [], agentTurns, ticketId: ticket.id, document: shown, blocks
+  }), [decisions, document?.messages, document?.proposals, agentTurns, ticket.id, shown, blocks]);
   const head = TicketDocumentsViewModel.headOf({
     documents, ticket, shown, editing, openQuestionCount: questions.open.length
   });
@@ -273,6 +280,11 @@ export function TicketDocumentsPage({
   if (focusLine !== focusLineJumpedTo) {
     setFocusLineJumpedTo(focusLine);
     if (focusLine !== null) setJump({ lines: { from: focusLine, to: focusLine } });
+  }
+  const [focusQuestionFollowed, setFocusQuestionFollowed] = useState(focusQuestionId);
+  if (focusQuestionId !== focusQuestionFollowed) {
+    setFocusQuestionFollowed(focusQuestionId);
+    if (focusQuestionId !== null) setChosenQuestionId(focusQuestionId);
   }
 
   // Each ask is a new request, so the same lines scroll again, and a change of view alone scrolls nowhere.
@@ -464,13 +476,14 @@ function nextWaitingRouteOf(board: BoardDocument, ticketId: string): BoardRoute 
 }
 
 function DocumentsOfTicket({
-  board, services, ticketId, shown, focusLine
+  board, services, ticketId, shown, focusLine, focusQuestionId
 }: {
-  readonly board:     BoardDocument;
-  readonly services:  BoardServices;
-  readonly ticketId:  string;
-  readonly shown:     BoardTicketDocumentKind;
-  readonly focusLine: number | null;
+  readonly board:           BoardDocument;
+  readonly services:        BoardServices;
+  readonly ticketId:        string;
+  readonly shown:           BoardTicketDocumentKind;
+  readonly focusLine:       number | null;
+  readonly focusQuestionId: string | null;
 }) {
   const { read, lastDocuments } = useTicketDocuments(services, ticketId);
   const agentJobId = lastDocuments === null ? null : TicketDocumentsViewModel.documentOf(lastDocuments, shown)?.agentJobId ?? null;
@@ -490,6 +503,7 @@ function DocumentsOfTicket({
         decisions={board.decisions}
         nextWaiting={nextWaitingRouteOf(board, ticketId)}
         focusLine={focusLine}
+        focusQuestionId={focusQuestionId}
       />
     );
   }
@@ -508,6 +522,7 @@ export function TicketDocumentsView({ board, route, services }: BoardTabViewProp
       ticketId={target.ticketId}
       shown={target.document}
       focusLine={target.line}
+      focusQuestionId={target.questionId}
     />
   );
 }

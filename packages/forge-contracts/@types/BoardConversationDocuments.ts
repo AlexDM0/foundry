@@ -9,7 +9,7 @@ import type { CommentAnchorDocument, LineRangeDocument } from './TicketDocuments
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface BoardDecisionOptionDocument {
-  /** From forge 4.2: the letter an answer names the option by, `a` for the first, as `decision-answer` takes it. */
+  /** From forge 4.4: the letter an answer names the option by, `a` for the first, as `decision-answer` takes it. */
   readonly letter:            string;
   /** As asked, with no mark of the recommendation, which `recommended` carries. */
   readonly label:             string;
@@ -42,7 +42,7 @@ export interface BoardDecisionDocument {
   readonly questions:  readonly BoardDecisionQuestionDocument[];
   readonly context:    string;
   readonly openedAt:   string;
-  /** From forge 4.2, only on a spec or plan agent's question: the document it asks on. */
+  /** From forge 4.4, only on a spec or plan agent's question: the document it asks on. */
   readonly document?:  TicketDocumentKind;
   /** With `document`: the lines the question changes, at the version the agent read. */
   readonly anchor?:    CommentAnchorDocument;

@@ -18,15 +18,14 @@ import type { Decision }                             from '../../lib/tracker-mod
 import type { LogRecord }                            from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { LineRange }                            from '../../lib/tracker-model/@types/TicketDocument.ts';
 import type { Board }                                from '../../lib/tracker-model/Board.ts';
-import { DraftProgressUtil }                         from '../../lib/tracker-model/utils/DraftProgressUtil.ts';
 import type { MergeForecast }                        from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { TicketWritingUtil }                         from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { PageTicket }                           from '../../shared/@types/PagePayload.ts';
 import { attentionEntriesOf }                        from '../../shared/monitor/AttentionEntries.ts';
 import { todayCalendarDateOf, todayFiguresOf }       from '../../shared/monitor/TodayFigures.ts';
 import { NoticeWordingUtil }                         from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                         from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState }                           from './BoardState.ts';
+import { DraftProgressReading }                      from './DraftProgressReading.ts';
 import { TicketDocumentsAssembly }                   from './TicketDocumentsAssembly.ts';
 
 /** One reading of the board: the state the monitor reads, the Board it was read from for the offers, and the clock's moment. */
@@ -57,15 +56,7 @@ function placementAtHeadOf(board: BoardDocumentSource['board'], decision: Readon
 /** Where the ticket stands while it is written, with the live facts of the agent writing it; `null` for a ticket not being written. */
 function draftOf(source: BoardDocumentSource, ticket: PageTicket): BoardTicketDraftDocument | null {
   const { state, board } = source;
-  const progress = DraftProgressUtil.progressOf({
-    ticketId:  ticket.id,
-    status:    ticket.status,
-    updated:   ticket.updated,
-    route:     TicketWritingUtil.routeOf(board.pipeline()),
-    documents: board.ticketDocumentRecordOf(ticket.id)?.record ?? null,
-    decisions: state.decisions,
-    jobs:      state.jobs,
-  });
+  const progress = DraftProgressReading.draftProgressOf(state, board, ticket);
   if (progress === null) return null;
   const agent = state.jobs.find((job) => job.id === progress.agentJobId) ?? null;
   return BoardPageMappingUtil.draftOf(progress, agent);
@@ -121,7 +112,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     limits:                BoardPageMappingUtil.limitsOf(state.page.payload.limits),
     notices:               BoardReadingMappingUtil.noticesOf(state.notices),
     warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
-    attention:             attentionEntriesOf(state).map(BoardReadingMappingUtil.attentionEntryOf),
+    attention:             attentionEntriesOf(DraftProgressReading.attentionBoardOf(state, board)).map(BoardReadingMappingUtil.attentionEntryOf),
     today:                 BoardReadingMappingUtil.todayOf(
       todayCalendarDate,
       todayFiguresOf(state, todayCalendarDate),

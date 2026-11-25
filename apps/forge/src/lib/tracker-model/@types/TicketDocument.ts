@@ -82,6 +82,15 @@ export interface CommentAnchor {
   diagram?:         DiagramAnchor;
 }
 
+/** User's answer to the document agent's question, in parts: its question, the option User chose and User's own words. */
+export interface DocumentAnswer {
+  question: string;
+  /** The chosen option's label; `null` for an answer of free text alone. */
+  choice:   string | null;
+  /** User's note beside the option, or the free text; `null` with neither. */
+  note:     string | null;
+}
+
 export interface DocumentMessage {
   /** `M<n>`. */
   messageId:       string;
@@ -89,6 +98,8 @@ export interface DocumentMessage {
   commentNumber?:  number;
   /** `E<n>`, only on User's answer to the document agent's own question, anchored where the question was. */
   decisionId?:     string;
+  /** Written with `decisionId`. */
+  answer?:         DocumentAnswer;
   /** As sent, never rewritten. */
   anchor?:         CommentAnchor;
   /** The anchor at the head version; absent when unanchored or orphaned. */

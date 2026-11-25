@@ -156,17 +156,42 @@ describe('a ticket\'s documents page', () => {
   });
 
   test('names the ticket and the document of its item, and nothing for an item of another form', () => {
-    expect(BoardRouter.documentOfRoute({ tab: 'documents', item: 'ticket/004/spec' })).toEqual({ ticketId: '004', document: 'spec', line: null });
-    const items = ['ticket/004/brief', 'ticket/004', 'draft/D1/spec', 'ticket/004/spec/extra', 'ticket/004/spec/line/0', 'ticket/004/spec/line/x', 'ticket/004/spec/line/3/4'];
+    expect(BoardRouter.documentOfRoute({ tab: 'documents', item: 'ticket/004/spec' })).toEqual({
+      ticketId: '004', document: 'spec', line: null, questionId: null
+    });
+    const items = [
+      'ticket/004/brief',
+      'ticket/004',
+      'draft/D1/spec',
+      'ticket/004/spec/extra',
+      'ticket/004/spec/line/0',
+      'ticket/004/spec/line/x',
+      'ticket/004/spec/line/3/4',
+      'ticket/004/spec/question/C3',
+      'ticket/004/spec/question/E7/line/3',
+    ];
     expect(items.map((item) => BoardRouter.documentOfRoute({ tab: 'documents', item }))).toEqual(items.map(() => null));
   });
 
   test('opens the document at a line of its head when its route names one', () => {
     const route = BoardRouter.documentsRouteOf('004', 'spec', 16);
     expect(route).toEqual({ tab: 'documents', item: 'ticket/004/spec/line/16' });
-    expect(BoardRouter.documentOfRoute(route)).toEqual({ ticketId: '004', document: 'spec', line: 16 });
+    expect(BoardRouter.documentOfRoute(route)).toEqual({
+      ticketId: '004', document: 'spec', line: 16, questionId: null
+    });
     expect(BoardRouter.fragmentOf('tracker-1', route)).toBe('#forge/tracker-1/documents/ticket/004/spec/line/16');
     expect(BoardRouter.documentOfRoute({ tab: 'kanban', item: 'ticket/004/spec' })).toBeNull();
+  });
+
+  test('names the agent\'s question it unfolds, so two questions on one line, or one whose lines are gone, each open their own', () => {
+    const route = BoardRouter.documentsRouteOf('004', 'spec', 14, 'E8');
+    expect(route).toEqual({ tab: 'documents', item: 'ticket/004/spec/line/14/question/E8' });
+    expect(BoardRouter.documentOfRoute(route)).toEqual({
+      ticketId: '004', document: 'spec', line: 14, questionId: 'E8'
+    });
+    expect(BoardRouter.documentOfRoute(BoardRouter.documentsRouteOf('004', 'plan', null, 'E2'))).toEqual({
+      ticketId: '004', document: 'plan', line: null, questionId: 'E2'
+    });
   });
 });
 

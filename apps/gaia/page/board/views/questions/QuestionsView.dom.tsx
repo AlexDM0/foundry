@@ -308,7 +308,7 @@ test('the view is a workplace of Flint', () => {
 });
 
 describe('a spec agent\'s question in the inbox', () => {
-  test('opens its document at the line it asks on now, else where it asked, and no other question offers a document', () => {
+  test('opens its document at the line it asks on now, else where it asked, on that question, and no other question offers a document', () => {
     const anchor = {
       view: 'code', versionNumber: 4, lines: { from: 14, to: 14 }, columns: null, sectionPath: ['3 Behaviour'], quote: null, surroundingLines: { from: 12, to: 16 }, diagram: null,
     } as const;
@@ -318,8 +318,9 @@ describe('a spec agent\'s question in the inbox', () => {
     const gone = { ...onSpec, id: 'E8', placement: null };
     fakeControls().render(inBoard(<QuestionsView board={{ ...BOARD, decisions: [onSpec, gone, AGENT_QUESTION], openDecisionIds: ['E7', 'E8', 'E2'] }} notifier={notifierSpy()} />));
     expect(within(screen.getByRole('listitem', { name: 'Question E7' })).getByRole('link', { name: 'Open the spec at line 16' }).getAttribute('href'))
-      .toBe(boardHrefOf('documents/ticket/004/spec/line/16'));
-    expect(within(screen.getByRole('listitem', { name: 'Question E8' })).getByRole('link', { name: 'Open the spec at line 14' })).toBeTruthy();
+      .toBe(boardHrefOf('documents/ticket/004/spec/line/16/question/E7'));
+    expect(within(screen.getByRole('listitem', { name: 'Question E8' })).getByRole('link', { name: 'Open the spec at line 14' }).getAttribute('href'))
+      .toBe(boardHrefOf('documents/ticket/004/spec/line/14/question/E8'));
     expect(within(screen.getByRole('listitem', { name: 'Question E2' })).queryByRole('link', { name: /^Open the/u })).toBeNull();
   });
 });

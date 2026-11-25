@@ -74,8 +74,9 @@ Per forge and per viewer, in this browser's storage through the board's preferen
 - Lanes, in order: Ready, Building, In review, Merge queue, Done, Abandoned (folded by default). Ready holds `committed` tickets only.
 - No draft ticket, no ticket for User's review and no filing draft is on the Kanban: Tickets holds them. Ready has no "Ready for review"
   or "Drafts" group; the Merge queue's "Waiting for User's accept" group still leads its lane.
-- While any of them waits on User, the head shows a link to Tickets under the title row, in the link (orange) ink at weight 600:
-  "1 draft waits on you", "3 drafts wait on you". It counts the same attention entries as the Tickets count.
+- While any of them waits on User, the head shows a link to Tickets' In draft (`tickets/in-draft`) under the title row, in the link
+  (orange) ink at weight 600: "1 draft waits on you", "3 drafts wait on you". It counts the same attention entries as the Tickets count,
+  where the forge lists no draft whose spec or plan agent is still writing it.
 
 ## Deviations from the artboard
 

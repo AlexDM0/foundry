@@ -444,9 +444,12 @@ function jobResumeIsHeld(job: Readonly<Job>, facts: PlaybookFacts): boolean {
   return job.ticketIds.some((ticketId) => facts.observations.ticketIdsTouchingAgentConfig.includes(ticketId));
 }
 
-/** A session stopped at its question resumes only once the question is answered, so the resume can carry the answer. */
+/**
+ * A session stopped at its question resumes only once the question is answered, so the resume can carry the answer. A document agent's
+ * question stops no session: its answer comes as the document's next message.
+ */
 function jobAwaitsAnAnswer(job: Readonly<Job>, facts: Pick<PlaybookFacts, 'decisions' | 'incidents'>): boolean {
-  return facts.decisions.some((decision) => decision.jobId === job.id)
+  return facts.decisions.some((decision) => decision.jobId === job.id && decision.document === undefined)
     || facts.incidents.some((incident) => incident.jobId === job.id && (incident.kind === 'system-question' || incident.kind === 'malformed-ticket'));
 }
 

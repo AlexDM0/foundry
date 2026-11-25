@@ -109,9 +109,14 @@ function draftsWaitingCountOf(waiting: WaitingOnUser): number {
   return waitingCountOf(waiting, DRAFT_KINDS);
 }
 
+/** `1 waits on User`, `4 wait on User`. */
+function waitingPhraseOf(count: number): string {
+  return `${count} ${waitsWord(count)} on User`;
+}
+
 function waitingTabCountOf(entryLabel: string, count: number): TabCount | null {
   if (count === 0) return null;
-  return { count, tone: 'waiting', ariaLabel: `${entryLabel}, ${count} ${waitsWord(count)} on User` };
+  return { count, tone: 'waiting', ariaLabel: `${entryLabel}, ${waitingPhraseOf(count)}` };
 }
 
 function assistantTabCountOf(board: WaitingOnUserBoard): TabCount | null {
@@ -144,5 +149,5 @@ function pillAriaLabelOf(waiting: WaitingOnUser): string {
 }
 
 export const WaitingOnUserModel = Object.freeze({
-  waitingOnUserOf, tabCountsOf, draftsWaitingCountOf, pillAriaLabelOf
+  waitingOnUserOf, tabCountsOf, draftsWaitingCountOf, waitingPhraseOf, pillAriaLabelOf
 });

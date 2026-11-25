@@ -9,6 +9,7 @@ import type { BoardDisplayState, BoardDraftStage, BoardTicketDocumentKind } from
 import { CountTextUtil }                                                    from '../../../shared/utils/CountTextUtil.ts';
 import { BoardRouter, type BoardRoute }                                     from '../../shell/BoardRouter.ts';
 import { DetailRoute }                                                      from '../../shell/DetailRoute.ts';
+import { DraftWordsUtil }                                                   from '../../utils/DraftWordsUtil.ts';
 import { IntakeModelUtil }                                                  from '../intake/IntakeModel.ts';
 import { TicketRowFactsUtil, type RowEpic, type RowMoment }                 from './TicketRowFactsUtil.ts';
 import { TicketsModel }                                                     from './TicketsModel.ts';
@@ -67,6 +68,8 @@ export interface DraftAgentModel {
 export interface WritingDraftRowModel extends DraftRowBase {
   /** `null` while no agent writes it yet. */
   readonly agent:      DraftAgentModel | null;
+  /** What stands beside the dashed dot while no agent writes it: "no agent yet", or a filing draft's "ready to resume". */
+  readonly idleText:   string;
   /** The page with its agent at work; `null` with no agent to watch. */
   readonly watchRoute: BoardRoute | null;
   readonly sinceText:  string | null;
@@ -95,6 +98,8 @@ const FILING_LABEL = 'Filing';
 const DONE_MARK = '✓ ';
 
 const FILING_DRAFT_WAITING_STATE = 'waiting';
+
+const NO_AGENT_YET_TEXT = 'no agent yet';
 
 /** The document a stage writes: the plan from its stage on, the spec before it. */
 function documentOfStage(stage: BoardDraftStage): BoardTicketDocumentKind {
@@ -218,13 +223,17 @@ function ticketRowOf(ticket: BoardTicketDocument, board: BoardDocument, moment: 
           tokensText: TicketRowFactsUtil.tokensTextOf(agent.tokens),
           dotState:   TicketRowFactsUtil.workingDotStateOf(agent.role),
         },
+      idleText:   NO_AGENT_YET_TEXT,
       watchRoute: agent === null ? null : documentRoute,
       sinceText:  agent === null ? null : TicketRowFactsUtil.runningTextOf(agent.since, moment),
     },
   };
 }
 
-/** A filing draft waits on User while it holds open questions for User; otherwise its claim owner, if any, works on it. */
+/**
+ * A filing draft waits on User while it holds open questions for User; otherwise its claim owner, if any, works on it, and one whose
+ * session ended stands ready to resume.
+ */
 function filingDraftRowOf(draft: BoardFilingDraftDocument, moment: RowMoment): DraftRow {
   const draftRoute: BoardRoute = { tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'draft', draftId: draft.id }) };
   const waits = draft.state === FILING_DRAFT_WAITING_STATE;
@@ -261,6 +270,7 @@ function filingDraftRowOf(draft: BoardFilingDraftDocument, moment: RowMoment): D
         : {
           jobId: draft.claimOwner, roleText: 'product owner', tokensText: null, dotState: 'in-progress'
         },
+      idleText:   draft.state === 'resumable' ? DraftWordsUtil.stateWordOf(draft.state).toLowerCase() : NO_AGENT_YET_TEXT,
       watchRoute: null,
       sinceText:  null,
     },

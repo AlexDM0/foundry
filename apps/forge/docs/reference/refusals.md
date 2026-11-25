@@ -255,6 +255,7 @@ reads its own through the Hatch.
 | `characters, more than the` | `document-too-long` | A save or an agent's proposal past `TICKET_DOCUMENT_CHARACTER_LIMIT` characters. | Shorten the document. | |
 | `has no message` | `document-unknown-message` | A withdraw named a message the document does not hold. | Read the document again. | |
 | `so it can no longer be withdrawn` | `document-message-not-queued` | A withdraw of a message Hephaestus already wrote to the agent. | Nothing: the agent has it. | |
+| `so it cannot be withdrawn` | `document-answer-not-withdrawn` | A withdraw of User's answer to the agent's question, which closed when User answered it. | Nothing: the agent gets the answer. | |
 | `has no proposal` | `document-unknown-proposal` | An Apply or Discard named a proposal the document does not hold. | Read the document again. | |
 | `not open` | `document-proposal-not-open` | An Apply or Discard of a proposal already applied, discarded or conflicted. | Read the document again. | |
 | `so its agent approves it when it is ready` | `document-review-is-off` | User's approval of a document whose review is off. | Nothing: the pipeline approves it at its agent's ready. | [cli.md](../cli.md#ticket-documents) |

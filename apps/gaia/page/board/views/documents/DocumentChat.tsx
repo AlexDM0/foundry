@@ -370,11 +370,15 @@ export function DocumentChat(props: DocumentChatProps) {
     place, chat, strip, proposalMode, settled, userEditNotice = null
   } = props;
   const chatElement = useRef<HTMLDivElement>(null);
+  const questionBroughtUp = useRef<string | null>(null);
   const { expandedQuestionId = null } = props;
   useLayoutEffect(() => {
+    // A question comes to the chat's top as it unfolds; a turn that changes under it later leaves where User scrolled in its card.
+    const bringsQuestion = expandedQuestionId !== questionBroughtUp.current;
+    questionBroughtUp.current = expandedQuestionId;
     const placeChatTop = (): void => {
       letChatTopFallBetweenItems(chatElement.current);
-      bringOpenQuestionToChatTop(chatElement.current);
+      if (bringsQuestion) bringOpenQuestionToChatTop(chatElement.current);
     };
     placeChatTop();
     // Items change height once the page's fonts load, so the chat's top edge is placed again then.

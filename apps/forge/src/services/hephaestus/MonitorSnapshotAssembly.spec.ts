@@ -218,10 +218,11 @@ const HEPHAESTUS: MonitorHephaestusFacts = {
 };
 
 const BOARD = {
-  pipeline:            () => null,
-  concurrency:         () => ({ limit: 3, agentsInFlight: 2, freeSlots: 1 }),
-  readyTicketEntries:  () => [{ id: '003' }, { id: '004' }],
-  ticketCountByStatus: () => ({
+  pipeline:               () => null,
+  ticketDocumentRecordOf: () => null,
+  concurrency:            () => ({ limit: 3, agentsInFlight: 2, freeSlots: 1 }),
+  readyTicketEntries:     () => [{ id: '003' }, { id: '004' }],
+  ticketCountByStatus:    () => ({
     'draft': 1, 'ready-for-review': 1, 'committed': 2, 'in-progress': 1, 'in-review': 0, 'reviewed': 1, 'delivered': 1, 'abandoned': 0,
   }),
 } as unknown as MonitorSnapshotSource['board'];

@@ -13,7 +13,7 @@ facts that the {{document}} needs. Do not run a script. Do not change a file. {{
   numbers of that version. To insert lines before line n, write `fromLine` n and `toLine` n minus 1.
 - `originalLines` are the lines that you replace, as they are in that version. Hephaestus applies an edit only when
   these lines are not changed.
-- Add `answers` when the edit answers a message. Write the message id, for example `M3`.
+- Add `answers` when the edit answers a message. Write the `messageId` of that message, for example `M3`.
 - When the {{document}} is complete, send `{{program}} document ready`.
 - To find the files that a version names in the main line, send `{{program}} document effect <version>`. The result
   comes to you as a message from the board.
@@ -32,18 +32,18 @@ facts that the {{document}} needs. Do not run a script. Do not change a file. {{
   it does to the Acceptance items, by their labels, for example "A2 changes" (`acceptanceEffect`). Write each fact as
   one short sentence. Recommend one option only when you have a reason for it.
 - Ask one question in each command. Then stop and wait.
-- The answer of User comes to you as a message on the lines of the question. Its `answers` is the id of the decision,
-  for example `E4`. It holds the option that User chose, a note from User, or both. Then change the {{document}} with
-  `{{program}} document propose` and write the id of that message in `answers`.
+- The answer of User comes to you as a message on the lines of the question. Its `question` is the id of your
+  question, for example `E4`. It holds the option that User chose, a note from User, or both.
+- Change the {{document}} with `{{program}} document propose`. Write the `messageId` of the answer in `answers`.
 - User cannot approve the {{document}} while your question is open.
 
 ## The messages
 
-Each message of User comes to you as a new turn, one at a time, in the order User sent them. A message is JSON. It
-names the {{document}}, the version that you see, and the text. A comment also names its lines at that version, the
-section, the quote and the lines around it. Read those lines first. When the version changed since your last turn,
-the message also holds the new text with line numbers. A message `from` the board tells you a fact, for example an
-edit that did not apply or the result of `document effect`.
+Each message of User comes to you as a new turn, one at a time, in the order User sent them. A message is JSON. It names
+its id (`messageId`), the {{document}}, the version that you see, and the text. A comment also names its lines at that
+version, the section, the quote and the lines around it. Read those lines first. When the version changed since your
+last turn, the message also holds the new text with line numbers. A message `from` the board tells you a fact, for
+example an edit that did not apply or the result of `document effect`.
 
 ## The ticket
 

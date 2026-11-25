@@ -3,7 +3,8 @@
  * document and a code-view anchor on the lines the agent named, at the version it read, with the headings above them; the agent's untrusted
  * JSON is checked field by field before the Board sees it; while the question is open nobody approves that document, the pipeline
  * included; and User's answer, an option with a note, goes to the document's agent as a message on the question's lines that names the
- * decision and holds no comment number, after which the document is approved as before.
+ * decision and holds no comment number, with the answer in parts, the option chosen apart from User's own words, which nobody withdraws,
+ * after which the document is approved as before.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -174,6 +175,7 @@ describe('User\'s answer', () => {
     expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.messages).toEqual([{
       messageId:  'M1',
       decisionId: 'E1',
+      answer:     { question: 'Where does the basket keep its items?', choice: 'Per forge', note: 'Keep the old basket too.' },
       anchor:     {
         view: 'code', versionNumber: 1, lines: { from: 6, to: 6 }, sectionPath: ['Basket', 'Behaviour'], surroundingLines: { from: 4, to: 8 }
       },
@@ -186,11 +188,25 @@ describe('User\'s answer', () => {
     expect(fixture.board.decisions()).toEqual([]);
   });
 
-  test('a free note alone is the answer', () => {
+  test('a free note alone is the answer, with no option chosen, its blank lines kept in the note', () => {
     const fixture = questionBoard();
     apply(fixture, QUESTION);
-    fixture.board.answerDecisionInForm('E1', { form: 'text', text: 'Ask the owner first.' }, CHANGED_AT);
-    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.messages[0]?.text).toBe('Where does the basket keep its items?\nAsk the owner first.');
+    fixture.board.answerDecisionInForm('E1', { form: 'text', text: 'Neither.\n\nAsk the owner first.' }, CHANGED_AT);
+    const [answer] = fixture.board.ticketDocuments().documentOf('004', 'spec')?.messages ?? [];
+    expect(answer?.text).toBe('Where does the basket keep its items?\nNeither.\n\nAsk the owner first.');
+    expect(answer?.answer).toEqual({ question: 'Where does the basket keep its items?', choice: null, note: 'Neither.\n\nAsk the owner first.' });
+  });
+
+  test('is never withdrawn, since its question closed when User answered it, and stays queued for the agent', () => {
+    const fixture = questionBoard();
+    apply(fixture, QUESTION);
+    fixture.board.answerDecisionInForm('E1', { form: 'letters', choices: ['a'] }, CHANGED_AT);
+    expect(refusalDetailOf(() => apply(fixture, {
+      kind: 'ticket-document-comment-withdraw', ticketReference: '004', document: 'spec', messageId: 'M1'
+    } as ControlCommand))).toEqual({
+      reason: 'document-answer-not-withdrawn', ticketId: '004', document: 'spec', messageId: 'M1', decisionId: 'E1'
+    });
+    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.messages[0]?.state).toBe('queued');
   });
 
   test('once answered, the spec is approved as before', () => {

@@ -107,6 +107,7 @@ function messageOf(message: DocumentMessageDocument): Gaia.BoardDocumentMessage 
     messageId:      message.messageId,
     commentNumber:  message.commentNumber,
     decisionId:     message.decisionId,
+    answer:         message.answer === null ? null : { question: message.answer.question, choice: message.answer.choice, note: message.answer.note },
     anchor:         message.anchor === null ? null : commentAnchorOf(message.anchor),
     placement:      nullableLineRangeOf(message.placement),
     orphaned:       message.orphaned,

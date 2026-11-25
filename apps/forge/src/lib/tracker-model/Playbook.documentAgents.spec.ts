@@ -5,7 +5,8 @@
  * version known by its head number, so a spec whose text went back to an approved older one still counts as newer; a plan the agent wrote
  * for an older spec is due too, and a waiting plan agent given an older spec is replaced for it; a queued message starts the agent, or
  * resumes the one waiting for it; nothing starts while an agent works the document, once an agent picked the
- * ticket up, or by itself after an agent failed; and a document agent's turn is first in line for a slot, before any build.
+ * ticket up, or by itself after an agent failed; an interrupted agent with its question open resumes at once, since its question stopped
+ * no session; and a document agent's turn is first in line for a slot, before any build.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -190,6 +191,32 @@ describe('a queued message', () => {
     expect(documentLaunchesOf(stepsOf({ documents: [], log: agentLaunched('J5', 'spec-agent', 1, 'failed') }))).toEqual([]);
     const documents: DocumentFixture[] = [{ kind: 'spec', messages: [documentMessageFixture('M1')] }];
     expect(documentLaunchesOf(stepsOf({ documents, log: agentLaunched('J5', 'spec-agent', 1, 'failed') }))).toHaveLength(1);
+  });
+});
+
+describe('an interrupted agent with its question open', () => {
+  test('resumes at once: the question stopped no session, and the answer comes as its next message', () => {
+    const facts = factsWith({
+      tickets:   [ticketOf('004', 'draft')],
+      jobs:      [LIVE_ASSISTANT, documentAgentJobFixture('004', 'spec', { state: 'interrupted', interruption: 'talos-lost' })],
+      decisions: [{
+        id:        'E1',
+        kind:      'agent-question',
+        ticketIds: ['004'],
+        jobId:     'J9',
+        askedBy:   'spec-agent',
+        requestId: null,
+        questions: [],
+        context:   '',
+        openedAt:  FIXTURE_AT,
+        document:  'spec',
+        anchor:    {
+          view: 'code', versionNumber: 1, lines: { from: 3, to: 3 }, sectionPath: ['Basket'], surroundingLines: { from: 1, to: 5 }
+        },
+      }],
+      ticketDocuments: Playbook.ticketDocumentFactsOf([ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }])]),
+    });
+    expect(Playbook.nextStepsOf(facts, FIXTURE_LIMITS).filter((step) => step.kind === 'resume-job')).toEqual([{ kind: 'resume-job', jobId: 'J9', instructed: false }]);
   });
 });
 

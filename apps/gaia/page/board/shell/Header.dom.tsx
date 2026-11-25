@@ -277,6 +277,19 @@ describe('the Progress entry', () => {
     expect([followed.at(-1), screen.queryByRole('dialog', { name: 'Progress views' })]).toEqual([boardHrefOf('progress/gantt'), null]);
   });
 
+  test('a choice hands the focus back to the caret, so the keyboard goes on from the entry', () => {
+    renderedHeader(servingBoard(), { selectedTab: 'waves', progressViewToOpen: 'waves' });
+    const caret = screen.getByRole('button', { name: 'Progress views' });
+    caret.focus();
+    fireEvent.click(caret);
+    const gantt = within(screen.getByRole('dialog', { name: 'Progress views' })).getByRole('button', { name: 'Gantt' });
+    gantt.focus();
+    act(() => {
+      fireEvent.click(gantt);
+    });
+    expect(document.activeElement).toBe(caret);
+  });
+
   test('offers no Waves on a board without waves', () => {
     renderedHeader(servingBoard(), { shownTabs: BoardRouter.shownTabsOf(false, true, true) });
     fireEvent.click(screen.getByRole('button', { name: 'Progress views' }));
@@ -469,10 +482,10 @@ describe('waiting on User', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  test('Drafts on Tickets leads to Tickets', () => {
+  test('Drafts on Tickets leads to Tickets\' In draft, whichever segment a Tickets view already open shows', () => {
     renderedWaitingHeader(waitingOnUserBoard());
     opened();
-    expect(within(inbox()).getByRole('link', { name: 'Drafts on Tickets' }).getAttribute('href')).toBe(boardHrefOf('tickets'));
+    expect(within(inbox()).getByRole('link', { name: 'Drafts on Tickets' }).getAttribute('href')).toBe(boardHrefOf('tickets/in-draft'));
   });
 
   test('with nothing waiting the pill stays, neutral, and the inbox says nothing waits', () => {
@@ -533,7 +546,7 @@ describe('the tab counts', () => {
     });
     expect(badges).toEqual([
       ['Tickets, 4 wait on User', '4', 'state', 'accent-outline', false],
-      ['Progress, 1 waits on User', '1', 'state', 'accent-outline', false],
+      ['Progress Kanban, 1 waits on User', '1', 'state', 'accent-outline', false],
       ['Questions, 3 questions wait on User, 1 escalated', '3', 'error', null, true],
       ['Assistant, 1 incident the Assistant is settling', '1', 'neutral', null, false],
     ]);

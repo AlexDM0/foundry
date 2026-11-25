@@ -16,10 +16,15 @@ import type {
   BoardLineRangeDocument,
   BoardTicketDocumentDocument
 } from '../../../@types/board/TicketDocumentsDocument.ts';
-import { ChatThreadModelUtil, type ToolCall }                               from '../../conversation/ChatThreadModel.ts';
-import { CommentPopoverModel, type AnchorLineParts }                        from './CommentPopoverModel.ts';
-import type { AnsweredQuestionModel, DocumentQuestions, OpenQuestionModel } from './DocumentQuestionsModel.ts';
-import { ProposalModel, type OpenProposalModel }                            from './ProposalModel.ts';
+import { ChatThreadModelUtil, type ToolCall }        from '../../conversation/ChatThreadModel.ts';
+import { CommentPopoverModel, type AnchorLineParts } from './CommentPopoverModel.ts';
+import type {
+  AgentTurnProgress,
+  AnsweredQuestionModel,
+  DocumentQuestions,
+  OpenQuestionModel
+} from './DocumentQuestionsModel.ts';
+import { ProposalModel, type OpenProposalModel } from './ProposalModel.ts';
 
 export interface ChatMessageItem {
   readonly kind:        'message';
@@ -207,6 +212,13 @@ function effectCardOf(reading: BoardEffectReadingDocument | null): ChatEffectCar
 
 const NO_QUESTIONS: DocumentQuestions = { open: [], answered: [] };
 
+/** The newest turn the transcript holds and whether the agent is still in it, for the answers its turns settle. */
+function agentTurnProgressOf(entries: readonly BoardTranscriptEntryDocument[]): AgentTurnProgress {
+  const turns = turnsOf(entries);
+  const working = turns.flatMap((turnEntries, turnNumber) => agentTurnItemsOf(turnEntries, turnNumber)).at(-1)?.working ?? false;
+  return { newestTurn: turns.length - 1, working };
+}
+
 function documentChatOf(
   document: BoardTicketDocumentDocument,
   entries: readonly BoardTranscriptEntryDocument[],
@@ -294,4 +306,6 @@ function userEditNoticeOf({
   return `You changed ${changed} while the agent works. It proposes against v${document.head.number}, so ${edit} lands on your text, not over it.`;
 }
 
-export const DocumentChatModel = Object.freeze({ documentChatOf, turnsOf, userEditNoticeOf });
+export const DocumentChatModel = Object.freeze({
+  documentChatOf, turnsOf, agentTurnProgressOf, userEditNoticeOf
+});

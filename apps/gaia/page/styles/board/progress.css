@@ -190,6 +190,8 @@ a.board-progress-number:hover { color: var(--ink); }
 }
 
 /* What changed since the previous board washes in its state's tint once; reduced motion holds a still outline for as long instead. */
+@keyframes board-changed { from { background-color: var(--s-tint); } }
+@keyframes board-changed-outline { from, to { outline: 2px solid var(--s-edge); outline-offset: -2px; } }
 @media (prefers-reduced-motion: no-preference) {
   .board-progress-rows > .board-progress-row[data-changed],
   .board-progress-rows > .board-progress-row[data-changed] > .board-progress-name { animation: board-changed 1200ms var(--ease-out); }

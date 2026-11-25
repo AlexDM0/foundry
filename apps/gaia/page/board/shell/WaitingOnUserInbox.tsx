@@ -175,7 +175,7 @@ export function WaitingOnUserInbox({
         )}
       <div className="board-attention-foot">
         <a href={hrefOf({ tab: 'questions', item: null })}>All questions</a>
-        <a href={hrefOf({ tab: 'tickets', item: null })}>Drafts on Tickets</a>
+        <a href={hrefOf({ tab: 'tickets', item: 'in-draft' })}>Drafts on Tickets</a>
         <span className="board-attention-foot-end"><NotificationAllowanceControl notifier={notifier} dense /></span>
       </div>
     </div>

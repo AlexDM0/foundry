@@ -27,6 +27,8 @@ artboard 0 from `page/testing/fixtures/storefront-tickets-board.ts` (`page/testi
 
 1. The segment the route names: `tickets/in-draft`, `tickets/active` or `tickets/finished`, so a link (such as a documents page's way back)
    opens that segment. A route naming a segment while the view is open shows it; a detail item (`tickets/ticket/<id>`) keeps the segment.
+   A choice of segment under a route that names one moves the route to the chosen segment, so a reload, a copied link or Back never
+   opens a segment User left.
 2. Else In draft while something there waits on User.
 3. Else the segment this viewer chose last on this forge: `gaia:board:<trackerId>:tickets-segment`, through the board's preference store
    (the same store as the Progress view's memory, `board-menu.md`). Choosing In draft, the default, removes the key.
@@ -78,7 +80,8 @@ The head "AGENT WRITING" in muted small capitals and its count. The rows line up
 fourth column holds the agent: a pulsing orange dot (teal for a review), the job id in mono at weight 600, its role in mono small capitals
 ("SPEC AGENT", "PLAN AGENT"), its tokens ("18k tokens"); then "Watch", a dense quiet button opening the document page with its agent at
 work; then how long the agent has run, to the second ("4m 12s"), in ink at weight 600. A draft no agent writes yet shows a dashed grey dot
-and "NO AGENT YET", and no Watch. A filing draft being researched names who holds it.
+and "NO AGENT YET", and no Watch. A filing draft being researched names who holds it; one whose session ended shows "READY TO RESUME"
+beside the dashed dot.
 
 ### The stage track
 
@@ -118,7 +121,8 @@ filter line's own choice does. A search looks through every finished ticket. An 
 ## Empty segments
 
 "No ticket is being written.", "No ticket is under way.", "No ticket finished in the last day." (the window's phrase); while a search
-narrows: "No draft matches the search.", "No active ticket matches the search.", "No finished ticket matches the search."
+narrows: "No draft matches the search.", "No active ticket matches the search.", "No finished ticket matches the search." In draft says
+so beside an intake too, which no search hides.
 
 ## Deviations from the artboard
 

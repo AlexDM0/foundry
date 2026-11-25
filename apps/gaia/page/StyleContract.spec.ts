@@ -22,6 +22,8 @@ import { dirname, join }                         from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import typescript                 from 'typescript';
 
+import { KEY_OPENER_SELECTOR } from './board/shell/DetailPanelHost.tsx';
+
 import {
   isAnimatedOutsideTheMotionQueries,
   movementSentencesOf,
@@ -712,6 +714,14 @@ function boardKeyframeSentencesOf(boardStylesheetTexts: readonly string[], gaiaS
   ];
 }
 
+/** Each board animation runs a keyframe a board stylesheet defines, or the library's, so no rule animates by a name nothing defines. */
+function undefinedBoardKeyframeSentencesOf(boardRules: readonly StylesheetRule[], definedKeyframeNames: ReadonlySet<string>): string[] {
+  return boardRules.flatMap((rule) => rule.declarations
+    .filter((declaration) => declaration.property === 'animation' || declaration.property === 'animation-name')
+    .flatMap((declaration) => declaration.value.split(/[\s,]+/u).filter((word) => word.startsWith('board-') && !definedKeyframeNames.has(word)))
+    .map((name) => `${rule.stylesheet}: ${rule.selector} runs ${name}, which no stylesheet defines`));
+}
+
 /** The design-system library's tokens, one of the two stylesheets a page links by path. */
 const PACKAGE_TOKENS_PATH = join(DESIGN_SYSTEM_LIBRARY_FOLDER, 'styles', 'tokens.css');
 const PACKAGE_TOKENS_TEXT = readFileSync(PACKAGE_TOKENS_PATH, 'utf8');
@@ -1129,6 +1139,15 @@ describe('the board\'s guards, on planted stylesheets and components', () => {
     ]);
   });
 
+  test('a board animation that runs a keyframe no stylesheet defines is named', () => {
+    const plantedRules = stylesheetRulesOf(
+      'planted.css',
+      '.board-row[data-changed] { animation: board-changed 1200ms var(--ease-out); } .board-dot { animation-name: board-pulse; }',
+    );
+    expect(undefinedBoardKeyframeSentencesOf(plantedRules, new Set(['board-pulse'])))
+      .toEqual(['planted.css: .board-row[data-changed] runs board-changed, which no stylesheet defines']);
+  });
+
   test('a board keyframe not named board- and a board- keyframe outside the board stylesheets are each named', () => {
     expect(boardKeyframeSentencesOf(['@keyframes board-pulse { to { opacity: 0; } } @keyframes pulse { to { opacity: 0; } }'], ['@keyframes board-wash { to { opacity: 0; } }']))
       .toEqual(['@keyframes pulse is a board keyframe not named board-', '@keyframes board-wash is defined outside the board stylesheets']);
@@ -1265,5 +1284,17 @@ describe('the board\'s stylesheets', () => {
 
   test('every keyframe of the board is named board- and defined only in a board stylesheet', () => {
     expect(boardKeyframeSentencesOf([...BOARD_STYLESHEET_TEXTS.values()], MOTION_STYLESHEETS)).toEqual([]);
+  });
+
+  test('every class the detail panel opens from by key is one a board part emits', () => {
+    const openerClasses = [...KEY_OPENER_SELECTOR.matchAll(/\.([\w-]+)/gu)].map(([, className = '']) => className);
+    expect(openerClasses.length).toBeGreaterThan(0);
+    expect(openerClasses.filter((className) => !BOARD_EMITTED.classNames.has(className))).toEqual([]);
+  });
+
+  test('every board animation runs a keyframe a board stylesheet defines', () => {
+    const definedKeyframeNames = new Set([...BOARD_STYLESHEET_TEXTS.values()].flatMap(keyframeNamesOf));
+    expect(BOARD_RULES.filter((rule) => rule.declarations.some((declaration) => declaration.property === 'animation')).length).toBeGreaterThan(SMALLEST_CLASS_COUNT);
+    expect(undefinedBoardKeyframeSentencesOf(BOARD_RULES, definedKeyframeNames)).toEqual([]);
   });
 });

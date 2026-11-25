@@ -129,6 +129,7 @@ function messageOf(message: Readonly<DocumentMessage>): DocumentMessageDocument 
     messageId:      message.messageId,
     commentNumber:  message.commentNumber ?? null,
     decisionId:     message.decisionId ?? null,
+    answer:         message.answer === undefined ? null : { question: message.answer.question, choice: message.answer.choice, note: message.answer.note },
     anchor:         message.anchor === undefined ? null : anchorOf(message.anchor),
     placement:      message.placement === undefined ? null : lineRangeOf(message.placement),
     orphaned:       message.orphaned === true,

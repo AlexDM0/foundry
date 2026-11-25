@@ -45,6 +45,11 @@ describe('ticketDocumentsOf', () => {
       decisionId: 'E1', commentNumber: null, placement: { from: 3, to: 3 }, from: 'person', state: 'queued'
     });
     expect(answer?.text).toContain('Any part of a name');
+    expect(answer?.answer).toEqual({
+      question: 'Does a search by author also match a part of the author\'s name?',
+      choice:   'Any part of a name',
+      note:     'Keep the example search by title as it is.',
+    });
   });
 
   test('keeps a ticket with no documents and an unknown ticket as the forge\'s refusals, code, fields and sentence unchanged', async () => {

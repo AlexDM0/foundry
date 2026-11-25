@@ -5,6 +5,7 @@
 import type {
   ColumnRangeDocument,
   CommentAnchorDocument,
+  DocumentAnswerDocument,
   DiagramAnchorDocument,
   DocumentApprovalDocument,
   DocumentMessageDocument,
@@ -86,10 +87,17 @@ export const COMMENT_ANCHOR_SHAPE = {
   diagram:          { optional: { object: DIAGRAM_ANCHOR_SHAPE } },
 } as const satisfies ShapeOf<CommentAnchorDocument>;
 
+const ANSWER_SHAPE = {
+  question: 'text',
+  choice:   TEXT_OR_NULL,
+  note:     TEXT_OR_NULL,
+} as const satisfies ShapeOf<DocumentAnswerDocument>;
+
 const MESSAGE_SHAPE = {
   messageId:      'text',
   commentNumber:  WHOLE_NUMBER_OR_NULL,
   decisionId:     TEXT_OR_NULL,
+  answer:         { nullable: { object: ANSWER_SHAPE } },
   anchor:         { nullable: { object: COMMENT_ANCHOR_SHAPE } },
   placement:      LINE_RANGE_OR_NULL,
   orphaned:       'boolean',

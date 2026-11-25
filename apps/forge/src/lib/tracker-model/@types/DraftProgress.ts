@@ -15,6 +15,6 @@ export interface DraftProgress {
   waitsOnUser:  DraftWait | null;
   /** The live document agent of the stage's document; `null` while none is on the board. */
   agentJobId:   string | null;
-  /** When the oldest thing that waits on User began to wait; `null` with `waitsOnUser`. */
+  /** When the wait `waitsOnUser` names began, even when a wait it ranks before is older; `null` with `waitsOnUser`. */
   waitingSince: string | null;
 }

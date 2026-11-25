@@ -24,19 +24,22 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
  * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds. The
  * limits also add the defaults a pipeline means where it says nothing, so a client keeps no copy: `defaultAgentPairOfRole`,
- * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`. A spec or plan agent's question is
- * an agent-question decision that names its `document`, its `anchor` and its `placement`; each option names its `letter`; a decision
- * answer's letters may carry a `note`; a message that answers a question names its `decisionId`; and a ticket being written carries its
- * `draft`: its stage, what waits on the user, its agent and when the wait began.
+ * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`.
  * Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: pipeline-setup-start carries the agent
  * and optionally the billing, the record's `billing` is `null` until chosen, each vendor names its `billingOptions`, and a job is not
  * launched `billing-not-offered` when its billing names a way its vendor does not bill; pipeline-agent-set optionally carries a billing to
  * store with the agent. The owner decided it is a minor.
+ * Forge 4.4 lets a spec or plan agent ask on its document. Its question is an agent-question decision that names its `document`, its
+ * `anchor` and its `placement`; each option names its `letter`; a decision answer's letters may carry a `note`; a message that answers a
+ * question names its `decisionId` and its `answer` in parts; and a ticket being written carries its `draft`: its stage, what waits on the
+ * user, its agent and when that wait began. The relayed verb `document ask` adds the command ticket-document-agent-ask; an approval while
+ * the question is open is refused document-has-open-questions, and a withdraw of an answer document-answer-not-withdrawn. What waits on
+ * the user leaves out a draft whose spec or plan agent is still writing it.
  * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 4, minor: 3 },
+  current:          { major: 4, minor: 4 },
   minimumSupported: { major: 4, minor: 0 },
 };

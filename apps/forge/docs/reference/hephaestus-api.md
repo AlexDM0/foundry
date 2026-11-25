@@ -630,7 +630,7 @@ session's last line from the board document.
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while Hephaestus starts too. This forge answers `4.3` and `4.0`.
+moment the server answers, while Hephaestus starts too. This forge answers `4.4` and `4.0`.
 
 Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no page, no browser
 session and no one-time code for one, no contract for a framed page and no record of framing origins; the monitor and
@@ -669,14 +669,6 @@ builder and the reviewer read each ticket document), `fixedDocumentsOfRole` (the
 rule whatever the pipeline stores: the reviewer's spec), `defaultApprovals` (whether each approval is on) and
 `defaultTicketWritingRoute`. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
 stays 6 and `summary` 3.
-A spec or plan agent asks User on its document: its question is an `agent-question` decision whose `document`, `anchor`
-(the lines it changes, at the version the agent read) and `placement` (those lines on the head now, `null` once gone) are
-added keys, and every decision option adds its `letter`. A `decision-answer`'s letters may carry a `note`, User's own
-words beside the option on a one-question decision. The answer reaches the agent as a document message whose added
-`decisionId` names the decision. While that question is open the document is refused approval
-(`document-has-open-questions`). Each ticket being written adds its `draft` to the board document: its `stage` (`spec`,
-`spec-review`, `plan`, `plan-review`, `ticket-review`), `waitsOnUser` (`answer`, `proposal`, `approval` or `null`), its
-`agent` (`jobId`, `role`, `tokens`, `since`) and `waitingSince`, which orders the drafts a view walks.
 
 Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: the setup steps are
 `agent`, `billing`, `research`, (`entities`), `constitution`, `design` and `apply`. `pipeline-setup-start` carries the
@@ -691,6 +683,20 @@ update or advise record's, that the new vendor does not bill by is refused `bill
 for the stored one. `pipeline-setup-resume` of a first setup whose `billing` is `null` is refused
 `setup-resume-before-billing`, since no pipeline agent starts before a billing is chosen. The owner decided this is a
 minor; no endpoint changes its version.
+
+Forge 4.4 lets a spec or plan agent ask User on its document, through the relayed `document ask`
+(`ticket-document-agent-ask`): its question is an `agent-question` decision whose `document`, `anchor`
+(the lines it changes, at the version the agent read) and `placement` (those lines on the head now, `null` once gone) are
+added keys, and every decision option adds its `letter`. A `decision-answer`'s letters may carry a `note`, User's own
+words beside the option on a one-question decision. The answer reaches the agent as a document message whose added
+`decisionId` names the decision and whose added `answer` holds its parts (`question`, the chosen option's label `choice` and
+User's own words `note`), and nobody withdraws it (`document-answer-not-withdrawn`). While that question is open
+the document is refused approval (`document-has-open-questions`). Each ticket being written adds its `draft` to the board
+document: its `stage` (`spec`, `spec-review`, `plan`, `plan-review`, `ticket-review`), `waitsOnUser` (`answer`,
+`proposal`, `approval` or `null`), its `agent` (`jobId`, `role`, `tokens`, `since`) and `waitingSince`, when the wait
+that `waitsOnUser` names began, which orders the drafts a view walks. What waits on User, in the board document and the
+monitor, leaves out a draft of the spec-then-plan route whose `waitsOnUser` is `null`: its agent is writing it. No
+endpoint changes its version.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -883,8 +889,8 @@ The document serves as finished facts what a view would otherwise recompute with
 | Each ticket's resolved priority, status classes and repeat-review round | `page.tickets[].facts` | a reader |
 | The board command kinds each ticket accepts now, and the priorities it may move to | `page.tickets[].offers` | a reader |
 | From forge 4.2, on a ticket with a documents record only: each document's standing, its head's number and its newest approved number, and `buildHeld` while they keep a committed ticket from its build | `page.tickets[].documents` | a reader |
-| From forge 4.2, on a draft of the spec-then-plan route and a ticket in `ready-for-review` only: its stage, what of it waits on User, the live agent writing it with its tokens and launch, and when the oldest wait began | `page.tickets[].draft` | a reader |
-| From forge 4.2, on a spec or plan agent's question only: the document, the anchor as asked and its lines on the head now | `decisions[].document`, `decisions[].anchor`, `decisions[].placement` | a reader |
+| From forge 4.4, on a draft of the spec-then-plan route and a ticket in `ready-for-review` only: its stage, what of it waits on User, the live agent writing it with its tokens and launch, and when that wait began | `page.tickets[].draft` | a reader |
+| From forge 4.4, on a spec or plan agent's question only: the document, the anchor as asked and its lines on the head now | `decisions[].document`, `decisions[].anchor`, `decisions[].placement` | a reader |
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
 | The refusal an Apply of the current draft meets now, as `POST /api/v3/commands` would answer it | `pipelineSetup.applyRefusal` | forge |

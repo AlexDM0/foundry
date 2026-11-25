@@ -11,7 +11,7 @@ import type {
 import type { Incident }                                                          from './@types/Incident.ts';
 import type { Job, JobOutcome }                                                   from './@types/Job.ts';
 import type { LogRecord }                                                         from './@types/LogRecord.ts';
-import type { CommentAnchor, TicketDocumentKind }                                 from './@types/TicketDocument.ts';
+import type { CommentAnchor, DocumentAnswer, TicketDocumentKind }                 from './@types/TicketDocument.ts';
 import type { BoardRecords }                                                      from './BoardRecords.ts';
 import { BoardRefusal }                                                           from './BoardRefusal.ts';
 import type { Decisions }                                                         from './Decisions.ts';
@@ -56,6 +56,16 @@ function questionsOfIncident(incident: Pick<Incident, 'facts'>): DecisionQuestio
   } catch {
     return null;
   }
+}
+
+/** The answer of the question in parts: the option whose label leads it, then the note after the blank line; else free text alone. */
+function documentAnswerOf(question: Readonly<DecisionQuestion>, answerText: string): DocumentAnswer {
+  const choice = question.options
+    .map((option) => option.label)
+    .filter((label) => answerText === label || answerText.startsWith(`${label}${NOTE_SEPARATOR}`))
+    .toSorted((a, b) => b.length - a.length)[0] ?? null;
+  const note = (choice === null ? answerText : answerText.slice(choice.length)).trim();
+  return { question: question.question, choice, note: note === '' ? null : note };
 }
 
 function chosenLabelsOf(decision: Readonly<Decision>, question: Readonly<DecisionQuestion>, questionIndex: number, choice: string): string {
@@ -139,8 +149,11 @@ export class AgentQuestions {
   ): LogRecord[] {
     const [ticketId] = decision.ticketIds;
     if (ticketId === undefined) return [];
-    const text = decision.questions.map((question) => `${question.question}\n${Object.hasOwn(answer, question.question) ? answer[question.question] : ''}`).join('\n\n');
-    return [...this.ticketDocuments.queueAnswer(ticketId, document, decision.id, anchor, text, at).logged];
+    const answerTextOf = (question: Readonly<DecisionQuestion>): string => (Object.hasOwn(answer, question.question) ? answer[question.question] ?? '' : '');
+    const text = decision.questions.map((question) => `${question.question}\n${answerTextOf(question)}`).join('\n\n');
+    const [asked] = decision.questions;
+    const parts = asked === undefined ? null : documentAnswerOf(asked, answerTextOf(asked));
+    return [...this.ticketDocuments.queueAnswer(ticketId, document, { decisionId: decision.id, answer: parts }, anchor, text, at).logged];
   }
 
   /** A ticket job that ended `replaced` or `stopped` leaves its open questions on its ticket, held `awaiting answer (E<n>)`. */

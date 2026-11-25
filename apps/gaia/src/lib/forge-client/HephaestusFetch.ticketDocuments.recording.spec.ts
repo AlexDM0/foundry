@@ -4,13 +4,14 @@
  * with two draft tickets and a stored pipeline in the spec-then-plan route, whose builder reads the plan only once User approved it. It
  * saves the first draft's spec through the commands endpoint, which opens the draft's documents; no message is sent, so no agent launches.
  * It records that save with the board's events up to the `documents` event, the documents and the board read after it, the second draft's
- * refusal as a ticket with no documents, and an unknown ticket's. Then the stopped board is given the spec agent's open question on a line
- * of the spec, as an earlier Hephaestus leaves it in the forge's own store, since the fake agent asks none: it records the board with that
- * question and the draft that waits on it, the spec's refused approval, the answer, an option with a note, and the documents and the board
- * read after it. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
+ * refusal as a ticket with no documents, and an unknown ticket's. Then the stopped board is given the spec agent's job, waiting for its
+ * next message, and its open question on a line of the spec in the shape `document ask` stores, naming that job, since the fake agent
+ * asks none: it records the board with that question and the draft that waits on it, its agent named, the spec's refused approval, the
+ * answer, an option with a note, and the documents and the board read after it. The values the run draws are recorded as example values;
+ * the forge's install and code versions stamp it.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                        from 'node:path';
 import {
   afterAll,
   beforeAll,
@@ -55,6 +56,7 @@ const BOOKSHOP = {
 } as const;
 const PIPELINE_STORE_PATH = ['.forge', 'pipeline.json'] as const;
 const PROGRESS_STORE_PATH = ['.forge', 'progress.json'] as const;
+const LOG_STORE_PATH = ['.forge', 'log.jsonl'] as const;
 const CONFLICT_STATUS = 409;
 /** The spec's line the agent's question changes, in the example spec's first version. */
 const QUESTION_LINE = 3;
@@ -154,17 +156,44 @@ function storeTheSpecThenPlanRoute(): void {
 }
 
 /**
- * The spec agent's open question on the spec's third line, with its three options, the first recommended, as `document ask` opens it; the
- * fake agent asks none, so the stopped board is given it as the forge stores it.
+ * The spec agent that asked, launched and waiting for its next message, and its open question on the spec's third line, with its three
+ * options, the first recommended, as `document ask` opens it: naming that job, which keeps running. The fake agent asks none, so the
+ * stopped board is given both as the forge stores them, the job's launch in the log.
  */
 function leaveTheSpecAgentsOpenQuestion(): void {
   const progressPath = join(repository, ...PROGRESS_STORE_PATH);
   const progress = JSON.parse(readFileSync(progressPath, 'utf8')) as Record<string, unknown>;
+  const jobNumber = typeof progress['nextJobId'] === 'number' ? progress['nextJobId'] : 1;
+  const jobId = `J${jobNumber}`;
+  const openedAt = String(progress['startedAt']);
+  const specAgent = {
+    id:                 jobId,
+    kind:               'document-agent',
+    role:               'spec-agent',
+    ticketIds:          [specTicketId],
+    parentJobId:        null,
+    attempt:            1,
+    target:             null,
+    state:              'awaiting-answer',
+    childInstance:      1,
+    eventCursor:        { instance: 1, sequence: 0 },
+    answeredRequestIds: [],
+    crashResumes:       0,
+  };
+  const launched = {
+    at:     openedAt,
+    kind:   'job-launched',
+    jobId,
+    fields: {
+      kind: 'document-agent', role: 'spec-agent', ticketIds: [specTicketId], attempt: 1, target: null, parentJobId: null
+    },
+  };
+  appendFileSync(join(repository, ...LOG_STORE_PATH), `${JSON.stringify(launched)}\n`);
   const question = {
     id:        'E1',
     kind:      'agent-question',
     ticketIds: [specTicketId],
-    jobId:     null,
+    jobId,
     askedBy:   'spec-agent',
     requestId: null,
     questions: [{
@@ -182,7 +211,7 @@ function leaveTheSpecAgentsOpenQuestion(): void {
       ],
     }],
     context:  '',
-    openedAt: String(progress['startedAt']),
+    openedAt,
     document: 'spec',
     anchor:   {
       view:             'code',
@@ -192,7 +221,10 @@ function leaveTheSpecAgentsOpenQuestion(): void {
       surroundingLines: { from: 1, to: QUESTION_LINE + 2 },
     },
   };
-  writeFileSync(progressPath, `${JSON.stringify({ ...progress, decisions: [question], nextDecisionId: 2 }, null, 2)}\n`);
+  const jobs = Array.isArray(progress['jobs']) ? progress['jobs'] : [];
+  writeFileSync(progressPath, `${JSON.stringify({
+    ...progress, jobs: [...jobs, specAgent], nextJobId: jobNumber + 1, decisions: [question], nextDecisionId: 2
+  }, null, 2)}\n`);
 }
 
 function followTheLiveHephaestus(): void {
@@ -275,9 +307,11 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveHephaestus();
     const openBoard = bodyOf(await keptRequest('ticket-documents-question-open', requestOf('GET', forgeEndpointPathOf('board'))));
-    expect(listOf(openBoard['decisions'])[0]).toMatchObject({ id: 'E1', document: 'spec', placement: { from: QUESTION_LINE, to: QUESTION_LINE } });
+    const [question] = listOf(openBoard['decisions']);
+    expect(question).toMatchObject({ id: 'E1', document: 'spec', placement: { from: QUESTION_LINE, to: QUESTION_LINE } });
+    expect(question?.['jobId']).toMatch(/^J\d+$/u);
     const draft = listOf(recordOf(openBoard['page'])['tickets']).find((ticket) => ticket['id'] === specTicketId)?.['draft'];
-    expect(draft).toMatchObject({ stage: 'spec', waitsOnUser: 'answer' });
+    expect(draft).toMatchObject({ stage: 'spec', waitsOnUser: 'answer', agent: { jobId: question?.['jobId'], role: 'spec-agent' } });
     const approval = {
       kind: 'ticket-document-approve', ticketReference: specTicketId, document: 'spec', version: 1
     };
@@ -290,7 +324,11 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
     const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId: specTicketId });
     const documents = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', documentsPath)));
     const spec = listOf(documents['documents']).find((document) => document['document'] === 'spec');
-    expect(listOf(spec?.['messages'])).toEqual([expect.objectContaining({ decisionId: 'E1', placement: { from: QUESTION_LINE, to: QUESTION_LINE } })]);
+    expect(listOf(spec?.['messages'])).toEqual([expect.objectContaining({
+      decisionId: 'E1',
+      answer:     { question: 'Does a search by author also match a part of the author\'s name?', choice: 'Any part of a name', note: QUESTION_NOTE },
+      placement:  { from: QUESTION_LINE, to: QUESTION_LINE },
+    })]);
     const answeredBoard = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', forgeEndpointPathOf('board'))));
     expect(listOf(answeredBoard['decisions'])).toEqual([]);
   }, STEP_TIMEOUT_MILLISECONDS);

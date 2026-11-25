@@ -44,6 +44,7 @@ export const EXAMPLE_TICKET_DOCUMENTS: BoardTicketDocuments = {
           messageId:     'M1',
           commentNumber: 1,
           decisionId:    null,
+          answer:        null,
           anchor:        {
             view:             'preview',
             versionNumber:    5,
@@ -69,6 +70,7 @@ export const EXAMPLE_TICKET_DOCUMENTS: BoardTicketDocuments = {
           messageId:      'M2',
           commentNumber:  null,
           decisionId:     null,
+          answer:         null,
           anchor:         null,
           placement:      null,
           orphaned:       false,

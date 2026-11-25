@@ -1,7 +1,7 @@
 /**
  * The Waiting on User list. What matters: each kind comes from its own source; an escalated decision leads, then every other entry oldest
- * first across kinds, a tie in key order, so no clock orders it; each entry names the thing it opens as a typed target; and a board
- * without its optional slices lists its decisions alone.
+ * first across kinds, a tie in key order, so no clock orders it; each entry names the thing it opens as a typed target; a draft an agent
+ * is writing waits on its agent, not on User; and a board without its optional slices lists its decisions alone.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -61,6 +61,20 @@ describe('attentionEntriesOf', () => {
     expect(byKey.get('decision:E1')).toMatchObject({ escalatedFromIncidentId: 'I4', decisionKind: null, subject: 'Example question E1' });
     expect(byKey.get('decision:E2')).toMatchObject({ escalatedFromIncidentId: null, decisionKind: 'target-moved' });
     expect(byKey.get('draft:D2')?.metaText).toBe('Waiting on you · 1 open question');
+  });
+
+  test('a spec-then-plan draft is listed only while its stage waits on User, never while its agent writes it', () => {
+    const draftOf = (waitsOnUser: string | null): AttentionBoard => ({
+      decisions: [],
+      page:      {
+        tickets: [{
+          id: '012', title: 'Example draft written', status: 'draft', updated: '2026-11-12T09:00:00', draft: { waitsOnUser }
+        }],
+        payload: { boardFacts: {} },
+      },
+    });
+    expect(attentionEntriesOf(draftOf(null))).toEqual([]);
+    expect(attentionEntriesOf(draftOf('answer')).map((entry) => entry.key)).toEqual(['ticket:012']);
   });
 
   test('a board without its optional slices lists its decisions alone', () => {

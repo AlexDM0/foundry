@@ -712,6 +712,9 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'document-message-not-queued':
       return `Message ${detail.messageId} on the ${detail.document} of #${detail.ticketId} is ${detail.state}, so it can no longer be `
         + `withdrawn. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-answer-not-withdrawn':
+      return `Message ${detail.messageId} on the ${detail.document} of #${detail.ticketId} answers ${detail.decisionId}, so it cannot be `
+        + `withdrawn. ${NOTHING_WAS_WRITTEN}`;
     case 'document-unknown-proposal':
       return `The ${detail.document} of #${detail.ticketId} has no proposal ${detail.proposalId}. ${NOTHING_WAS_WRITTEN}`;
     case 'document-proposal-not-open':

@@ -55,7 +55,9 @@ export interface InDraftSegmentProps {
 
 export function InDraftSegment({ model, searches }: InDraftSegmentProps) {
   const hrefOf = useBoardHrefOf();
-  const nothingShows = model.intakes.length === 0 && model.waiting.length === 0 && model.writing.length === 0;
+  const noDraftShows = model.waiting.length === 0 && model.writing.length === 0;
+  // A search never hides an intake, so it says it matched no draft even beside one; with no search an intake is a ticket being written.
+  const nothingShows = noDraftShows && (searches || model.intakes.length === 0);
   return (
     <div className="board-tickets-segment" data-segment="in-draft">
       {model.intakes.map((intake) => <IntakePanel key={intake.jobId} intake={intake} />)}
@@ -119,7 +121,7 @@ export function InDraftSegment({ model, searches }: InDraftSegmentProps) {
                     <td><DraftTrack steps={row.steps} /></td>
                     <td>
                       {row.agent === null
-                        ? <AgentMark dotState="committed" pulsing={false} jobId={null} roleText="no agent yet" />
+                        ? <AgentMark dotState="committed" pulsing={false} jobId={null} roleText={row.idleText} />
                         : <AgentMark dotState={row.agent.dotState} pulsing jobId={row.agent.jobId} roleText={row.agent.roleText} tokensText={row.agent.tokensText} />}
                     </td>
                     <td>

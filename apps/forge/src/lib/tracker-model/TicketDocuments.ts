@@ -10,6 +10,7 @@ import type {
   DocumentApprover,
   DocumentAuthor,
   DocumentVersion,
+  DocumentAnswer,
   DocumentMessage,
   DocumentProposal,
   DocumentStanding,
@@ -278,10 +279,18 @@ export class TicketDocuments {
     return { message: queued.message, logged: [...opened, ...queued.logged] };
   }
 
-  /** Only a message still queued is withdrawn: one Hephaestus already wrote to the session stays in the chat. */
+  /**
+   * Only a message still queued is withdrawn: one Hephaestus already wrote to the session stays in the chat. An answer to the agent's
+   * question is never withdrawn, since its question closed when User answered it.
+   */
   withdrawComment(ticketId: string, document: TicketDocumentKind, messageId: string): DocumentSettingChanged {
     const inHand  = this.editableDocumentOf(ticketId, document);
     const message = this.requireMessage(inHand, messageId);
+    if (message.decisionId !== undefined) {
+      throw new BoardRefusal({
+        reason: 'document-answer-not-withdrawn', ticketId, document, messageId, decisionId: message.decisionId
+      });
+    }
     if (message.state === 'withdrawn') return { changed: false, logged: [] };
     if (message.state !== 'queued') {
       throw new BoardRefusal({
@@ -294,13 +303,15 @@ export class TicketDocuments {
   }
 
   /**
-   * User's answer to the agent's own question, decision `decisionId`, queued for the agent like a message and anchored on the lines the
+   * User's answer to the agent's own question, its decision and its parts, queued for the agent like a message and anchored on the lines the
    * question was asked on, carried to the head as a comment's lines are.
    */
-  queueAnswer(ticketId: string, document: TicketDocumentKind, decisionId: string, anchor: CommentAnchor, text: string, at: string): DocumentMessageQueued {
+  queueAnswer(
+    ticketId: string, document: TicketDocumentKind, answered: { decisionId: string; answer: DocumentAnswer | null }, anchor: CommentAnchor, text: string, at: string
+  ): DocumentMessageQueued {
     const inHand = this.requireDocument(ticketId, document);
     return this.queueMessage(inHand, {
-      text, from: 'person', decisionId, ...this.placedAnchorOf(inHand, anchor)
+      text, from: 'person', decisionId: answered.decisionId, ...(answered.answer === null ? {} : { answer: answered.answer }), ...this.placedAnchorOf(inHand, anchor)
     }, at);
   }
 
@@ -639,7 +650,7 @@ export class TicketDocuments {
 
   private queueMessage(
     inHand: DocumentInHand,
-    content: Pick<DocumentMessage, 'text' | 'from' | 'anchor' | 'placement' | 'orphaned' | 'decisionId'>,
+    content: Pick<DocumentMessage, 'text' | 'from' | 'anchor' | 'placement' | 'orphaned' | 'decisionId' | 'answer'>,
     at: string
   ): DocumentMessageQueued {
     const { document, ticket } = inHand;
@@ -648,6 +659,7 @@ export class TicketDocuments {
       messageId: `M${document.nextMessageNumber}`,
       ...(isComment ? { commentNumber: document.nextCommentNumber } : {}),
       ...(content.decisionId === undefined ? {} : { decisionId: content.decisionId }),
+      ...(content.answer === undefined ? {} : { answer: content.answer }),
       ...(content.anchor === undefined ? {} : { anchor: content.anchor }),
       ...(content.placement === undefined ? {} : { placement: content.placement }),
       ...(content.orphaned === true ? { orphaned: true as const } : {}),

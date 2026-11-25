@@ -83,16 +83,27 @@ export interface CommentAnchorDocument {
   readonly diagram?:         DiagramAnchorDocument;
 }
 
+/** User's answer to the document agent's question: its question, the chosen option's label and User's own words, each as User sent it. */
+export interface DocumentAnswerDocument {
+  readonly question: string;
+  /** `null` for an answer of free text alone. */
+  readonly choice:   string | null;
+  /** The note beside the option, or the free text; `null` with neither. */
+  readonly note:     string | null;
+}
+
 export interface DocumentMessageDocument {
   /** `M1`, `M2`, … */
   readonly messageId:      string;
   /** The `C<n>` number of an anchored message; `null` when unanchored, and on an answer to a decision. */
   readonly commentNumber:  number | null;
   /**
-   * From forge 4.2: the `E<n>` decision this message answers, the document agent's own question, anchored where the question was; `null`
+   * From forge 4.4: the `E<n>` decision this message answers, the document agent's own question, anchored where the question was; `null`
    * on any other message.
    */
   readonly decisionId:     string | null;
+  /** From forge 4.4: the answer in parts, with `decisionId`; `null` on any other message. */
+  readonly answer:         DocumentAnswerDocument | null;
   readonly anchor:         CommentAnchorDocument | null;
   /** The anchor's lines at the head version; `null` when unanchored or orphaned. */
   readonly placement:      LineRangeDocument | null;

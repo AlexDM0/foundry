@@ -68,14 +68,17 @@ function AnsweredDecisionItem({ answered, presence }: { readonly answered: Answe
 
 const DOCUMENT_WORDS = { spec: 'spec', plan: 'plan' } as const;
 
-/** "Open the spec at line 16": a spec or plan agent's question opens its document at the line it asks on now, else where it asked. */
+/**
+ * "Open the spec at line 16": a spec or plan agent's question opens its document at the line it asks on now, else where it asked, with
+ * this question unfolded, whichever other question shares the line.
+ */
 function DocumentAnchorLink({ decision }: { readonly decision: BoardDecisionDocument }) {
   const hrefOf = useBoardHrefOf();
   const [ticketId] = decision.ticketIds;
   if (decision.document === null || ticketId === undefined) return null;
   const line = decision.placement?.from ?? decision.anchor?.lines.from ?? null;
   const label = line === null ? `Open the ${DOCUMENT_WORDS[decision.document]}` : `Open the ${DOCUMENT_WORDS[decision.document]} at line ${line}`;
-  return <Button label={label} href={hrefOf(BoardRouter.documentsRouteOf(ticketId, decision.document, line))} />;
+  return <Button label={label} href={hrefOf(BoardRouter.documentsRouteOf(ticketId, decision.document, line, decision.id))} />;
 }
 
 function NoticeItem({ notice }: { readonly notice: NoticeEntry }) {

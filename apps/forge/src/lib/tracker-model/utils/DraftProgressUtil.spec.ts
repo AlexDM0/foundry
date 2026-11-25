@@ -71,6 +71,12 @@ describe('DraftProgressUtil.progressOf', () => {
     expect(DraftProgressUtil.progressOf(factsWith({ documents }))?.waitsOnUser).toBe('proposal');
   });
 
+  test('the wait named is dated by its own stamp, even when an edit that waits behind it is older', () => {
+    const olderProposal: DocumentProposal = { ...OPEN_PROPOSAL, at: UPDATED };
+    const documents = ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC], proposals: [olderProposal] }]).record;
+    expect(DraftProgressUtil.progressOf(factsWith({ documents, decisions: [SPEC_QUESTION] }))).toMatchObject({ waitsOnUser: 'answer', waitingSince: QUESTION_AT });
+  });
+
   test('a question on another ticket waits on nothing here', () => {
     const decisions = [{ ...SPEC_QUESTION, ticketIds: ['005'] }];
     expect(DraftProgressUtil.progressOf(factsWith({ decisions }))?.waitsOnUser).toBeNull();

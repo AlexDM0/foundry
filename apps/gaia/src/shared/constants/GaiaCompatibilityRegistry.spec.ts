@@ -30,8 +30,8 @@ describe('Gaia\'s compatibility registry', () => {
     }
   });
 
-  test('Gaia 4.3 changes only the board\'s page contracts, which page and server ship together, and supports no client of Gaia 3: the minimum supported is 4.0', () => {
-    expect(GAIA_VERSIONS).toEqual({ current: { major: 4, minor: 3 }, minimumSupported: { major: 4, minor: 0 } });
+  test('Gaia 4.4 only adds to the board\'s page contracts and supports no client of Gaia 3: the minimum supported is 4.0', () => {
+    expect(GAIA_VERSIONS).toEqual({ current: { major: 4, minor: 4 }, minimumSupported: { major: 4, minor: 0 } });
   });
 
   test('holds routes only, each still needed, with no compatibility path, so nothing is removable', () => {

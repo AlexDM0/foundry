@@ -1,13 +1,15 @@
 /**
  * The document agent's questions (artboard 11). What matters: an open question is a decision of this ticket's shown document only, its
  * options lettered for the forge and shown in capitals, its section read from the head, so the document's title never leads it; an answer
- * is the message naming its decision, read as the question, the chosen label and User's note; each has a solid chip on its line, `E7`
- * open and `✓ E7` answered, in the applied look once its edit is applied; its lines are marked until then; it lists under the document's
+ * is the message naming its decision, read from the forge's parts, so free text with a blank line stays one answer; each has a solid
+ * chip on its line, `E7` open and `✓ E7` answered, in the applied look once its answer settles, which an edit applied, discarded or
+ * conflicted does, as does the end of the agent's turn with no edit for it; its lines are marked until then; it lists under the document's
  * own Open questions heading; and a line picks the question whose lines hold it.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { MarkdownBlocks } from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
+import { MarkdownBlocks }                     from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { BoardDocumentProposalDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import {
   DOCUMENTS_TICKET_ID,
   FALLBACK_LINE,
@@ -68,12 +70,66 @@ describe('an answered question', () => {
       placement:     { from: IMAGES_LINE, to: IMAGES_LINE },
       waitsForAgent: false,
       applied:       false,
+      settled:       false,
     }]);
   });
 
-  test('an answer of free text, or a message the forge wrote on one line, reads without a note', () => {
-    expect(DocumentQuestionsModel.answerPartsOf('Which store?\nThe viewer\'s own')).toEqual({ question: 'Which store?', answerText: 'The viewer\'s own', note: null });
-    expect(DocumentQuestionsModel.answerPartsOf('Which store?')).toEqual({ question: 'Which store?', answerText: '', note: null });
+  test('an answer of free text is User\'s own words whole, its blank lines kept, with no note, and lists with one period', () => {
+    const [answerMessage] = (SPEC_ASKS_DOCUMENTS.documents[0]?.messages ?? []).filter((message) => message.decisionId !== null);
+    if (answerMessage === undefined) throw new Error('The fixture has no answer.');
+    const freeText = {
+      ...answerMessage,
+      answer: { question: 'Which store?', choice: null, note: 'Neither.\n\nUse the OS setting and drop the cookie.' },
+      text:   'Which store?\nNeither.\n\nUse the OS setting and drop the cookie.',
+    };
+    const questions = DocumentQuestionsModel.documentQuestionsOf({
+      decisions: [], messages: [freeText], ticketId: DOCUMENTS_TICKET_ID, document: 'spec', blocks: BLOCKS,
+    });
+    expect(questions.answered[0]).toMatchObject({ question: 'Which store?', answerText: 'Neither.\n\nUse the OS setting and drop the cookie.', note: null });
+    expect(DocumentQuestionsModel.openQuestionsListOf(questions)[0]?.text).toBe('Answered: Neither.\n\nUse the OS setting and drop the cookie.');
+  });
+});
+
+describe('an answer settles', () => {
+  const [answerMessage] = (SPEC_ASKS_DOCUMENTS.documents[0]?.messages ?? []).filter((message) => message.decisionId !== null);
+  if (answerMessage === undefined) throw new Error('The fixture has no answer.');
+  const editFor = (state: 'proposed' | 'discarded' | 'conflicted'): BoardDocumentProposalDocument => ({
+    proposalId:       'P3',
+    jobId:            'J9',
+    baseNumber:       4,
+    edits:            [],
+    summary:          'Keep the images',
+    answersMessageId: answerMessage.messageId,
+    forSpecNumber:    null,
+    state,
+    appliedNumber:    null,
+    at:               '2026-11-24T13:10:00',
+    headLines:        null,
+  });
+  const settledOf = (reading: Partial<Parameters<typeof DocumentQuestionsModel.documentQuestionsOf>[0]>): boolean | undefined => DocumentQuestionsModel.documentQuestionsOf({
+    decisions: [], messages: [answerMessage], ticketId: DOCUMENTS_TICKET_ID, document: 'spec', blocks: BLOCKS, ...reading,
+  }).answered[0]?.settled;
+
+  test('once the agent\'s turn on it ended with no edit for it, and not while that turn runs or before it shows', () => {
+    expect(settledOf({ agentTurns: { newestTurn: 2, working: false } })).toBe(true);
+    expect(settledOf({ agentTurns: { newestTurn: 2, working: true } })).toBe(false);
+    expect(settledOf({ agentTurns: { newestTurn: 1, working: false } })).toBe(false);
+    expect(settledOf({ agentTurns: null })).toBe(false);
+  });
+
+  test('once its edit is discarded or conflicted, and not while the edit waits for Apply', () => {
+    expect(settledOf({ proposals: [editFor('discarded')] })).toBe(true);
+    expect(settledOf({ proposals: [editFor('conflicted')] })).toBe(true);
+    expect(settledOf({ proposals: [editFor('proposed')], agentTurns: { newestTurn: 2, working: false } })).toBe(false);
+  });
+
+  test('takes the applied look and leaves the lines and the Open questions list', () => {
+    const questions = DocumentQuestionsModel.documentQuestionsOf({
+      decisions: [SAVED_CHOICE_QUESTION], messages: [answerMessage], agentTurns: { newestTurn: 2, working: false }, ticketId: DOCUMENTS_TICKET_ID, document: 'spec', blocks: BLOCKS,
+    });
+    expect(DocumentQuestionsModel.chipsOf(questions).map((chip) => [chip.text, chip.asks, chip.applied])).toEqual([['E7', true, false], ['✓ E8', false, true]]);
+    expect(DocumentQuestionsModel.questionedLinesOf(questions)).toEqual([{ from: FALLBACK_LINE, to: FALLBACK_LINE }]);
+    expect(DocumentQuestionsModel.openQuestionsListOf(questions).map((item) => item.decisionId)).toEqual(['E7']);
   });
 });
 
@@ -84,14 +140,14 @@ describe('the marks in the document', () => {
       ['E7', FALLBACK_LINE, true, false],
       ['✓ E8', IMAGES_LINE, true, false],
     ]);
-    const applied = { ...questions, answered: questions.answered.map((answered) => ({ ...answered, applied: true })) };
+    const applied = { ...questions, answered: questions.answered.map((answered) => ({ ...answered, applied: true, settled: true })) };
     expect(DocumentQuestionsModel.chipsOf(applied).map((chip) => [chip.text, chip.asks, chip.applied])).toEqual([['E7', true, false], ['✓ E8', false, true]]);
   });
 
   test('marks the lines of each question until its answer\'s edit is applied', () => {
     const questions = questionsOf();
     expect(DocumentQuestionsModel.questionedLinesOf(questions)).toEqual([{ from: FALLBACK_LINE, to: FALLBACK_LINE }, { from: IMAGES_LINE, to: IMAGES_LINE }]);
-    const applied = { ...questions, answered: questions.answered.map((answered) => ({ ...answered, applied: true })) };
+    const applied = { ...questions, answered: questions.answered.map((answered) => ({ ...answered, applied: true, settled: true })) };
     expect(DocumentQuestionsModel.questionedLinesOf(applied)).toEqual([{ from: FALLBACK_LINE, to: FALLBACK_LINE }]);
   });
 

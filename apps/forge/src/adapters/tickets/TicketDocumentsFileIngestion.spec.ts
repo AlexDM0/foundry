@@ -51,6 +51,15 @@ function recordWithEveryKey(): TicketDocumentRecord {
     deliveryNumber: 1,
     agentTurn:      2,
   });
+  spec.messages.push({
+    messageId:  'M2',
+    decisionId: 'E1',
+    answer:     { question: 'Where does the basket keep its items?', choice: null, note: 'Neither.\n\nAsk the owner.' },
+    text:       'Where does the basket keep its items?\nNeither.\n\nAsk the owner.',
+    from:       'person',
+    state:      'queued',
+    queuedAt:   '2026-11-24T10:06:00.000Z',
+  });
   spec.proposals.push({
     proposalId: 'P1',
     jobId:      'J4',

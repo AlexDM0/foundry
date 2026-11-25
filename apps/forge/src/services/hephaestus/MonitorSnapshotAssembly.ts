@@ -32,6 +32,7 @@ import { todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayF
 import { NoticeWordingUtil }                   from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                   from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState }                     from './BoardState.ts';
+import { DraftProgressReading }                from './DraftProgressReading.ts';
 
 /** What Hephaestus knows of itself and no board file holds; read at each snapshot, so a Hephaestus lock taken over or new code on disk shows. */
 export interface MonitorHephaestusFacts {
@@ -59,7 +60,7 @@ export interface MonitorMachineFacts {
 export interface MonitorSnapshotSource {
   state:      BoardState;
   project:    string;
-  board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus' | 'pipeline' | 'tickets' | 'ticketStageOf'>;
+  board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus' | 'pipeline' | 'tickets' | 'ticketStageOf' | 'ticketDocumentRecordOf'>;
   logRecords: readonly LogRecord[];
   hephaestus: MonitorHephaestusFacts;
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
@@ -350,7 +351,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     ticketCountByStatus: board.ticketCountByStatus(),
     readyTicketIds:      board.readyTicketEntries().map((ready) => ready.id),
     openIncidents:       state.incidents.length,
-    attention:           attentionEntriesOf(state),
+    attention:           attentionEntriesOf(DraftProgressReading.attentionBoardOf(state, board)),
     jobs:                state.jobs
       .filter((job) => !JOB_KINDS_THE_MONITOR_LEAVES_OUT.includes(job.kind))
       .map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),

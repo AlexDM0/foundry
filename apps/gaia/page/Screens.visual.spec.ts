@@ -572,7 +572,6 @@ const TICKET_DOCUMENT_SCREEN_STATES: Readonly<Record<number, readonly string[]>>
     'Answer A',
     'You answered Keep their colours, as A4 says',
     '✓ E8',
-    'Answered: Keep their colours, as A4 says.',
     'Waiting on your 1 answer · reads v4',
   ],
 };

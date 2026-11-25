@@ -40,6 +40,7 @@ import { entitiesStepBoardOf }                     from '../testing/EntitiesStep
 import { createManualFlintFrames }                 from '../testing/ManualFlintFrames.ts';
 import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
 import { STUB_TAB_VIEW_TEXT, stubTabViewsWith }    from '../testing/StubTabViews.tsx';
+import { WAITING_ATTENTION }                       from '../testing/WaitingOnUserFixture.ts';
 import { BoardApp }                                from './BoardApp.tsx';
 import { BOARD_TABS, type BoardRoute }             from './BoardRouter.ts';
 import { BOARD_TAB_VIEWS, type BoardTabViewTable } from './BoardTabViews.tsx';
@@ -188,6 +189,14 @@ describe('the main area', () => {
     renderedBoard(fake, { tab: 'agents', item: null });
     await fake.answerReads(servingBoard());
     expect(fake.storage.get(`gaia:board:${FIXTURE_TRACKER_ID}:tab`)).toBe('agents');
+  });
+
+  test('a ticket\'s documents, which a link alone opens, leave the stored tab as it was, so the board\'s bare address opens that tab', async () => {
+    const fake = fakeBoardOf();
+    fake.storage.set(`gaia:board:${FIXTURE_TRACKER_ID}:tab`, 'questions');
+    renderedBoard(fake, { tab: 'documents', item: 'ticket/012/spec' });
+    await fake.answerReads(servingBoard());
+    expect(fake.storage.get(`gaia:board:${FIXTURE_TRACKER_ID}:tab`)).toBe('questions');
   });
 
   test('a stored Pipeline tab is kept while the first board is read, and opens once the board shows Pipeline', async () => {
@@ -345,6 +354,13 @@ describe('the Kanban', () => {
     await fake.answerReads(servingBoard());
     expect(screen.getByRole('complementary', { name: 'Ticket #3' })).toBeDefined();
     expect(document.querySelector('.board-kanban-card[data-ticket-id="3"]')?.hasAttribute('data-selected')).toBe(true);
+  });
+
+  test('its head\'s count of the drafts that wait on User leads to Tickets\' In draft', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard({ attention: WAITING_ATTENTION }));
+    expect(screen.getByRole('link', { name: /drafts? waits? on you/u }).getAttribute('href')).toBe(boardHrefOf('tickets/in-draft'));
   });
 
   test('a header figure pointing at a lane outlines that lane', async () => {

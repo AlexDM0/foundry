@@ -6,11 +6,11 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 4.3 meets V1 to V5, V9 and V11 to V15: it answers `/api/versions` with current 4.3 and minimum 4.0, serves identity 1, summary 3,
+Forge 4.4 meets V1 to V5, V9 and V11 to V15: it answers `/api/versions` with current 4.4 and minimum 4.0, serves identity 1, summary 3,
 monitor 6 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and
-takes its documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.3: 4.1 adds each forge's agent and meets
-V11, 4.2 adds a ticket's documents, the pipeline's defaults and the document agents' questions and meets V12, V13 and V15,
-4.3 puts the agent before the billing and meets V14.
+takes its documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.4: 4.1 adds each forge's agent and meets
+V11, 4.2 adds a ticket's documents and the pipeline's defaults and meets V12 and V13, 4.3 puts the agent before the billing and meets V14,
+4.4 adds the document agents' questions and where each draft stands and meets V15.
 Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
@@ -166,30 +166,31 @@ worded without Gaia naming a vendor or a key variable of its own.
 **Acceptance.** Met: forge 4.3 serves them, a minor; the `hephaestus-fetch-board` recording keeps a first setup record at its billing step
 with no billing chosen.
 
-### V15. Let the spec and plan agents ask on their document, and say where each draft stands (Must, met in 4.2)
+### V15. Let the spec and plan agents ask on their document, and say where each draft stands (Must, met in 4.4)
 
 **Requirement.** A spec or plan agent asks the user a clarifying question anchored on the lines it changes, with two to four lettered
 options, each naming what it touches and its effect on the Acceptance, one optionally recommended. The question is an `agent-question`
 decision that names its `document` (`spec` or `plan`), its `anchor` (the contract's `CommentAnchorDocument`, at the version the agent read)
 and its `placement` (those lines on the head now, `null` once gone); every option names its `letter`. A `decision-answer`'s letters may
 carry a `note`, and a one-question decision takes free text alone. The answer reaches the document's agent as its next message, which
-names the decision in `decisionId`, and the agent then proposes the edit. The agent may give its question a `context`, what it found that
+names the decision in `decisionId` and carries the answer in parts in `answer` (its `question`, the chosen option's label `choice`
+and the user's own words `note`), and the agent then proposes the edit. The agent may give its question a `context`, what it found that
 makes it ask, which the decision carries as its `context`. While such a question is open, the document's approval is
 refused `document-has-open-questions`, with the forge's sentence. Each ticket being written carries `draft` on the board document: its
 `stage` (`spec`, `spec-review`, `plan`, `plan-review`, or `ticket-review` for a ticket in `ready-for-review` on either route), what of it
 `waitsOnUser` (`answer`, `proposal`, `approval`), its live `agent` (`jobId`, `role`, `tokens`, `since`) and `waitingSince`. Forge adds them
-in 4.2, a minor.
+in 4.4, a minor. What waits on the user leaves out a draft whose agent is still writing it.
 
 **Reason.** Gaia's Tickets view lists the drafts that wait on the user with their stage, what waits and the agent at work, and walks them
 oldest wait first; its document page shows each question on its line, answers it, and holds the approval until it is answered, all
 without a rule of forge's copied into Gaia.
 
-**Acceptance.** Met: forge 4.2 serves them; the `hephaestus-fetch-ticket-documents` recording holds a spec agent's open anchored question,
+**Acceptance.** Met: forge 4.4 serves them; the `hephaestus-fetch-ticket-documents` recording holds a spec agent's open anchored question,
 the board document's draft of that ticket and the refused approval.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.3) and keeps nothing for an older forge: forge 1, 2 or 3,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.4) and keeps nothing for an older forge: forge 1, 2 or 3,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |
@@ -205,7 +206,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V12 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V13 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V14 | A forge before 4.3 is older than Gaia can talk to, and Gaia offers Update forge. |
-| V15 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
+| V15 | A forge before 4.4 is older than Gaia can talk to, and Gaia offers Update forge. |
 
 ## 4. Order for forge
 

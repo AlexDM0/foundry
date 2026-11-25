@@ -24,8 +24,8 @@ export interface DetailPanelHostProps {
   readonly todayCalendarDate: string;
 }
 
-/** What a view opens the panel from with Enter or Space: a Kanban card or filing draft, a wave card or ticket link, a Gantt row, a table row. */
-const KEY_OPENER_SELECTOR = '.board-kanban-card, [data-ticket-id], [data-task-id], .board-ticket-row';
+/** What a view opens the panel from with Enter or Space: a Kanban card or filing draft, a wave card, a ticket row or link, a Gantt row. */
+export const KEY_OPENER_SELECTOR = '.board-kanban-card, [data-ticket-id], [data-task-id]';
 
 function isInsidePanel(panel: HTMLElement | null, node: Node): boolean {
   return panel?.contains(node) ?? false;

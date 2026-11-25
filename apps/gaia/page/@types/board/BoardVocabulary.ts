@@ -331,10 +331,8 @@ export type BoardProposalMode = 'ask-first' | 'auto-apply';
 
 export type BoardDocumentStanding = 'unwritten' | 'drafting' | 'awaiting-review' | 'approved' | 'changed-since-approval' | 'out-of-date';
 
-/** Where a ticket being written stands, in the order its track draws them: the spec-then-plan route's stages, then the ticket's review. */
-export const BOARD_DRAFT_STAGES = ['spec', 'spec-review', 'plan', 'plan-review', 'ticket-review'] as const;
-
-export type BoardDraftStage = (typeof BOARD_DRAFT_STAGES)[number];
+/** Where a ticket being written stands: the spec-then-plan route's stages, then the ticket's review. */
+export type BoardDraftStage = 'spec' | 'spec-review' | 'plan' | 'plan-review' | 'ticket-review';
 
 /** What of a draft's stage waits on the user: an agent's question, an agent's edit that waits for Apply, or the approval. */
 export type BoardDraftWait = 'answer' | 'proposal' | 'approval';

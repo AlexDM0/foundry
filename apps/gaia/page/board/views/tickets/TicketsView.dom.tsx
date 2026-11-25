@@ -179,6 +179,16 @@ describe('the segments', () => {
     expect(pressedSegment()).toBe('Active 2');
   });
 
+  test('a choice moves an address that names a segment to the one chosen, and leaves an address naming none', () => {
+    const { routed } = renderTickets(QUIET_BOARD, [], 'in-draft');
+    clicked(segmentButton(/^Finished/));
+    expect(routed.followedFragments).toEqual([boardHrefOf('tickets/finished')]);
+    cleanup();
+    const unnamed = renderTickets(QUIET_BOARD);
+    clicked(segmentButton(/^Finished/));
+    expect(unnamed.routed.followedFragments).toEqual([]);
+  });
+
   test('a choice is stored per forge, and In draft, the default, removes the key', () => {
     const { storage } = renderTickets(QUIET_BOARD);
     clicked(segmentButton(/^Finished/));
@@ -235,6 +245,13 @@ describe('Active and Finished', () => {
     clicked(within(finished).getByRole('button', { name: 'show all' }));
     expect(showAsked.count).toBe(1);
   });
+});
+
+test('In draft says the search matched no draft while an intake, which no search hides, still shows', () => {
+  renderTickets(WAITING_BOARD);
+  typed('Search in draft', 'zzz');
+  expect(screen.getByRole('region', { name: 'Intake Account area changes' })).toBeDefined();
+  expect(screen.getByText('No draft matches the search.')).toBeDefined();
 });
 
 test('each segment keeps its own search', () => {

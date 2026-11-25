@@ -86,6 +86,7 @@ function messageOut(message: BoardDocumentMessage): BoardDocumentMessageDocument
     messageId:      message.messageId,
     commentNumber:  message.commentNumber,
     decisionId:     message.decisionId,
+    answer:         message.answer === null ? null : { question: message.answer.question, choice: message.answer.choice, note: message.answer.note },
     anchor:         message.anchor === null ? null : commentAnchorOut(message.anchor),
     placement:      nullableLineRangeOut(message.placement),
     orphaned:       message.orphaned,

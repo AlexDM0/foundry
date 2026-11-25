@@ -140,8 +140,14 @@ describe('the board in the spec-then-plan route', () => {
     const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedQuestionBoardDocumentOf('ticket-documents-question-open'));
     if (reading.board === null) throw new Error(`The board with a question does not ingest: ${reading.reason.invalidKeys.join(', ')}`);
     const draftOf = (ticketId: string) => reading.board?.page.tickets.find((ticket) => ticket.id === ticketId)?.draft;
+    const [question] = reading.board.decisions;
     expect(draftOf(RECORDED_TICKET_IDS.withDocuments)).toEqual({
-      stage: 'spec', waitsOnUser: 'answer', agent: null, waitingSince: reading.board.decisions[0]?.openedAt ?? ''
+      stage:       'spec',
+      waitsOnUser: 'answer',
+      agent:       {
+        jobId: question?.jobId ?? '', role: 'spec-agent', tokens: 0, since: question?.openedAt ?? ''
+      },
+      waitingSince: question?.openedAt ?? '',
     });
     expect(draftOf(RECORDED_TICKET_IDS.withoutDocuments)).toEqual({
       stage: 'spec', waitsOnUser: null, agent: null, waitingSince: null
@@ -152,7 +158,7 @@ describe('the board in the spec-then-plan route', () => {
     const reading = new BoardStateIngestion().boardOf(RECORDED_BOOKSHOP_TRACKER_ID, await recordedQuestionBoardDocumentOf('ticket-documents-question-open'));
     const [question] = reading.board?.decisions ?? [];
     expect(question?.questions[0]?.options.map((option) => [option.letter, option.recommended])).toEqual([['a', true], ['b', false], ['c', false]]);
-    expect([question?.document, question?.placement]).toEqual(['spec', { from: 3, to: 3 }]);
+    expect([question?.document, question?.placement, question?.jobId]).toEqual(['spec', { from: 3, to: 3 }, 'J1']);
     expect(question?.anchor).toEqual({
       view:             'code',
       versionNumber:    1,

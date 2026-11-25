@@ -228,6 +228,7 @@ export type BoardRefusalDetail =
   | { reason: 'document-too-long'; ticketId: string; document: TicketDocumentKind; characterCount: number; characterLimit: number }
   | { reason: 'document-unknown-message'; ticketId: string; document: TicketDocumentKind; messageId: string }
   | { reason: 'document-message-not-queued'; ticketId: string; document: TicketDocumentKind; messageId: string; state: DocumentMessageState }
+  | { reason: 'document-answer-not-withdrawn'; ticketId: string; document: TicketDocumentKind; messageId: string; decisionId: string }
   | { reason: 'document-unknown-proposal'; ticketId: string; document: TicketDocumentKind; proposalId: string }
   | { reason: 'document-proposal-not-open'; ticketId: string; document: TicketDocumentKind; proposalId: string; state: DocumentProposalState }
   | { reason: 'document-review-is-off'; ticketId: string; document: TicketDocumentKind }

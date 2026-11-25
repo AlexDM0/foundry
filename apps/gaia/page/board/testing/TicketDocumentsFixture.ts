@@ -165,6 +165,7 @@ function message(fields: MessageFields): BoardDocumentMessageDocument {
   return {
     commentNumber:  null,
     decisionId:     null,
+    answer:         null,
     anchor:         null,
     placement:      null,
     orphaned:       false,
@@ -584,10 +585,15 @@ export const SAVED_CHOICE_QUESTION: BoardDecisionDocument = {
   placement: lines(FALLBACK_LINE),
 };
 
-/** E8, answered: the forge's message to the agent, the question's line, the chosen label and User's note. */
+/** E8, answered: the forge's message to the agent, the question's line, the chosen label and User's note, and those parts apart. */
 const IMAGES_ANSWER = message({
-  messageId:      'M2',
-  decisionId:     'E8',
+  messageId:  'M2',
+  decisionId: 'E8',
+  answer:     {
+    question: 'Do product images in order history get a dark variant?',
+    choice:   'Keep their colours, as A4 says',
+    note:     'Product photos are the merchant\'s; we do not touch them.',
+  },
   anchor:         questionAnchor(IMAGES_LINE, ['Account pages dark mode', '4 Acceptance']),
   placement:      lines(IMAGES_LINE),
   text:           'Do product images in order history get a dark variant?\nKeep their colours, as A4 says\n\nProduct photos are the merchant\'s; we do not touch them.',

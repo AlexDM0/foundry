@@ -25,7 +25,7 @@ describe('the Hephaestus contract versions', () => {
     expect(inconsistenciesOf(HEPHAESTUS_CONTRACT_VERSIONS)).toEqual([]);
   });
 
-  test('are the versions forge 4.3 serves, with no embed contract', () => {
+  test('are the versions forge 4.4 serves, with no embed contract', () => {
     expect(HEPHAESTUS_CONTRACT_VERSIONS).toEqual({
       identity: 1, summary: 3, monitor: 6, control: 3
     });

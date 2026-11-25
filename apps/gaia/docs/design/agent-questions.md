@@ -29,11 +29,12 @@ head they feed), `page/board/shell/BoardRouter.ts` (the line of a documents rout
 - The text of the lines a question stands on now (its `placement`) is marked: the orange tint over a 2px orange rule. Each Markdown text
   span holds one source line, so exactly the text written on those lines is marked.
 - After that text, glued to its last word, a solid orange pill in mono 11px: `E7` (the surface colour on the link orange, in both themes).
-  Answered, it reads `✓ E7`, still solid, the text still marked, until the agent's edit for the answer is applied: then the chip takes an
-  applied comment's look (muted, on the strong line) and the mark goes.
+  Answered, it reads `✓ E7`, still solid, the text still marked, until the answer settles: the agent's edit for it is applied, discarded
+  or conflicted, or the agent's turn on it ends with no edit for it. Then the chip takes an applied comment's look (muted, on the strong
+  line) and the mark goes.
 - Under the document's own heading named "Open questions" (with or without its section number), one line a question, in the order asked:
   the id as an orange mono link that unfolds its card in the chat, then the question and "waiting on you" (12px, orange) while open, or
-  "Answered: <label>." once answered, until its edit is applied. A document with no such heading lists nothing.
+  "Answered: <label>." once answered, until the answer settles. A document with no such heading lists nothing.
 
 ## In the agent's chat
 
@@ -73,13 +74,17 @@ reply and its proposed edit follow as any turn's.
 ## The Questions tab
 
 A spec or plan agent's question lists there as every decision and is answered there as well. Beside "Open beside the board", "Open the
-spec at line 16" opens `documents/ticket/<id>/<spec|plan>/line/<n>`, at the line it stands on now, else where it was asked. That route
-scrolls the document to the line and unfolds the question there; a later link to another line scrolls the page already open.
+spec at line 16" opens `documents/ticket/<id>/<spec|plan>/line/<n>/question/<E>`, at the line it stands on now, else where it was asked.
+That route scrolls the document to the line and unfolds that question, though another shares the line or its own lines are gone; a later
+link to another line or question scrolls the page already open and unfolds that one.
 
 ## Deviations from the artboard
 
 - **No Change after answering.** Forge settles a decision with its answer and offers no way to answer it again, so the answered card has
   no Change; User says more to the agent in the chat.
+- **An answer that needs no edit settles.** The artboard keeps `✓ E8` solid after the agent's turn on it changed nothing. Forge marks
+  an answer applied only once an edit for it is applied, so that chip would wait for an edit that never comes; the page settles the
+  answer at the end of the turn that took it, or once its edit is discarded or conflicted.
 - **The answered line names the label, not its letter.** Once settled, the decision is gone from the board, and forge's answer message
   and log keep the option's label, not its letter: "✓ You answered **Keep their colours, as A4 says**".
 - **Each option shows its radio**, as every choice in Gaia (`ChoiceOption`), and "Recommended" is the design system's mark under the label

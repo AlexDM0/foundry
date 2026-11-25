@@ -69,11 +69,22 @@ export interface BoardCommentAnchor {
   readonly diagram:          BoardDiagramAnchor | null;
 }
 
+/** User's answer to the document agent's question in parts: its question, the chosen option's label and User's own words. */
+export interface BoardDocumentAnswer {
+  readonly question: string;
+  /** `null` for an answer of free text alone. */
+  readonly choice:   string | null;
+  /** The note beside the option, or the free text; `null` with neither. */
+  readonly note:     string | null;
+}
+
 export interface BoardDocumentMessage {
   readonly messageId:      string;
   readonly commentNumber:  number | null;
   /** The decision this message answers, the document agent's own question, anchored where the question was; `null` on any other. */
   readonly decisionId:     string | null;
+  /** The answer in parts, with `decisionId`. */
+  readonly answer:         BoardDocumentAnswer | null;
   readonly anchor:         BoardCommentAnchor | null;
   /** The anchor's lines at the head version; `null` when unanchored or orphaned. */
   readonly placement:      BoardLineRange | null;

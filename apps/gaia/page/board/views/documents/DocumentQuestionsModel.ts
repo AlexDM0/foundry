@@ -1,18 +1,18 @@
 /**
  * The document agent's questions to User on its document, pure (`docs/design/agent-questions.md`). An open question is an open decision the
- * spec or plan agent asked on this ticket's document; an answered one is the document's message that carries its decision id, which the
- * forge words as the question's line, then the chosen label, then User's note after a blank line. Each question has its `E<n>` chip on the
- * line its anchor stands on now and its lines marked, and lists under the document's own "Open questions" heading until the agent's edit
- * for its answer is applied.
+ * spec or plan agent asked on this ticket's document; an answered one is the document's message that carries its decision id and the
+ * answer's parts. Each question has its `E<n>` chip on the line its anchor stands on now and its lines marked, and lists under the
+ * document's own "Open questions" heading until its answer settles: the agent's edit for it is applied, or the agent's turn on it ended
+ * with no edit for it waiting.
  */
-import type { MarkdownBlock }                                        from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
-import type { BoardDecisionDocument, BoardDecisionOptionDocument }   from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardTicketDocumentKind }                              from '../../../@types/board/BoardVocabulary.ts';
-import type { BoardDocumentMessageDocument, BoardLineRangeDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
-import { OptionConsequencesUtil, type OptionConsequences }           from '../../conversation/OptionConsequencesUtil.ts';
-import { CommentPopoverModel }                                       from './CommentPopoverModel.ts';
-import type { CommentChip }                                          from './DocumentBlocks.tsx';
-import { DocumentSelectionModel }                                    from './DocumentSelectionModel.ts';
+import type { MarkdownBlock }                                                                       from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { BoardDecisionDocument, BoardDecisionOptionDocument }                                  from '../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardTicketDocumentKind }                                                             from '../../../@types/board/BoardVocabulary.ts';
+import type { BoardDocumentMessageDocument, BoardDocumentProposalDocument, BoardLineRangeDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
+import { OptionConsequencesUtil, type OptionConsequences }                                          from '../../conversation/OptionConsequencesUtil.ts';
+import { CommentPopoverModel }                                                                      from './CommentPopoverModel.ts';
+import type { CommentChip }                                                                         from './DocumentBlocks.tsx';
+import { DocumentSelectionModel }                                                                   from './DocumentSelectionModel.ts';
 
 /** "E7 · § 3 Behaviour · line 16": the question's name and its lines in the mono face, the section in the text face. */
 export interface QuestionAnchorParts {
@@ -58,6 +58,14 @@ export interface AnsweredQuestionModel {
   readonly waitsForAgent: boolean;
   /** The agent's edit for the answer is applied. */
   readonly applied:       boolean;
+  /** Nothing more comes of the answer: its edit is applied, discarded or conflicted, or the agent's turn on it ended with no edit. */
+  readonly settled:       boolean;
+}
+
+/** The agent's turns as its transcript holds them, numbered as a message's `agentTurn`; `null` while no transcript is read. */
+export interface AgentTurnProgress {
+  readonly newestTurn: number;
+  readonly working:    boolean;
 }
 
 /** An item under the document's "Open questions" heading. */
@@ -73,10 +81,6 @@ export interface DocumentQuestions {
 }
 
 const FIRST_LETTER_CODE = 'a'.codePointAt(0) ?? 0;
-
-const ANSWER_LINE_SEPARATOR = '\n';
-
-const NOTE_SEPARATOR = '\n\n';
 
 const OPEN_QUESTIONS_HEADING = /^#{1,6}\s+(?:[\d.]+\s+)?Open questions\s*#*\s*$/iu;
 
@@ -136,54 +140,59 @@ function decisionNumberOf(decisionId: string): number {
   return Number.isFinite(number) ? number : 0;
 }
 
-/** "Does this ticket add the saved theme choice?\nYes, add it here\n\nKeep the cookie out of it.", as the forge words an answer. */
-function answerPartsOf(text: string): { readonly question: string; readonly answerText: string; readonly note: string | null } {
-  const lineEnd = text.indexOf(ANSWER_LINE_SEPARATOR);
-  if (lineEnd < 0) return { question: text, answerText: '', note: null };
-  const answer = text.slice(lineEnd + ANSWER_LINE_SEPARATOR.length);
-  const noteStart = answer.indexOf(NOTE_SEPARATOR);
-  const note = noteStart < 0 ? '' : answer.slice(noteStart + NOTE_SEPARATOR.length).trim();
-  return {
-    question:   text.slice(0, lineEnd),
-    answerText: (noteStart < 0 ? answer : answer.slice(0, noteStart)).trim(),
-    note:       note === '' ? null : note,
-  };
+/** An answer settles once its edit is decided, or once the turn that took it ended with no edit for it. */
+function answerIsSettled(
+  message: BoardDocumentMessageDocument, proposals: readonly BoardDocumentProposalDocument[], agentTurns: AgentTurnProgress | null
+): boolean {
+  if (message.state === 'applied') return true;
+  if (message.state !== 'sent') return false;
+  const edits = proposals.filter((proposal) => proposal.answersMessageId === message.messageId);
+  if (edits.some((proposal) => proposal.state === 'proposed')) return false;
+  if (edits.length > 0) return true;
+  if (agentTurns === null || message.agentTurn === null) return false;
+  return message.agentTurn < agentTurns.newestTurn || (message.agentTurn === agentTurns.newestTurn && !agentTurns.working);
 }
 
-function answeredQuestionOf(message: BoardDocumentMessageDocument, blocks: readonly MarkdownBlock[]): AnsweredQuestionModel | null {
-  if (message.decisionId === null || message.state === 'withdrawn') return null;
+function answeredQuestionOf(
+  message: BoardDocumentMessageDocument,
+  blocks: readonly MarkdownBlock[],
+  proposals: readonly BoardDocumentProposalDocument[],
+  agentTurns: AgentTurnProgress | null,
+): AnsweredQuestionModel | null {
+  if (message.decisionId === null || message.answer === null || message.state === 'withdrawn') return null;
   return {
     decisionId:    message.decisionId,
     messageId:     message.messageId,
-    ...answerPartsOf(message.text),
+    question:      message.answer.question,
+    answerText:    message.answer.choice ?? message.answer.note ?? '',
+    note:          message.answer.choice === null ? null : message.answer.note,
     anchorParts:   message.anchor === null ? null : anchorPartsOf(message.decisionId, blocks, message.anchor.lines, message.anchor.sectionPath, message.placement),
     placement:     message.placement,
     waitsForAgent: message.state === 'queued',
     applied:       message.state === 'applied',
+    settled:       answerIsSettled(message, proposals, agentTurns),
   };
 }
 
-function answeredQuestionsOf(messages: readonly BoardDocumentMessageDocument[], blocks: readonly MarkdownBlock[]): AnsweredQuestionModel[] {
-  return messages.flatMap((message) => {
-    const answered = answeredQuestionOf(message, blocks);
-    return answered === null ? [] : [answered];
+export interface DocumentQuestionsReading {
+  readonly decisions:   readonly BoardDecisionDocument[];
+  readonly messages:    readonly BoardDocumentMessageDocument[];
+  readonly proposals?:  readonly BoardDocumentProposalDocument[];
+  readonly agentTurns?: AgentTurnProgress | null;
+  readonly ticketId:    string;
+  readonly document:    BoardTicketDocumentKind;
+  readonly blocks:      readonly MarkdownBlock[];
+}
+
+function documentQuestionsOf(reading: DocumentQuestionsReading): DocumentQuestions {
+  const answered = reading.messages.flatMap((message) => {
+    const answeredQuestion = answeredQuestionOf(message, reading.blocks, reading.proposals ?? [], reading.agentTurns ?? null);
+    return answeredQuestion === null ? [] : [answeredQuestion];
   });
+  return { open: openQuestionsOf(reading.decisions, reading.ticketId, reading.document, reading.blocks), answered };
 }
 
-function documentQuestionsOf(reading: {
-  readonly decisions: readonly BoardDecisionDocument[];
-  readonly messages:  readonly BoardDocumentMessageDocument[];
-  readonly ticketId:  string;
-  readonly document:  BoardTicketDocumentKind;
-  readonly blocks:    readonly MarkdownBlock[];
-}): DocumentQuestions {
-  return {
-    open:     openQuestionsOf(reading.decisions, reading.ticketId, reading.document, reading.blocks),
-    answered: answeredQuestionsOf(reading.messages, reading.blocks),
-  };
-}
-
-/** A solid `E7` on an open question's line, a solid `✓ E7` once answered, and the applied look once the agent's edit for it is applied. */
+/** A solid `E7` on an open question's line, a solid `✓ E7` once answered, and the applied look once its answer settles. */
 function chipsOf(questions: DocumentQuestions): CommentChip[] {
   const openChips = questions.open.flatMap((question): CommentChip[] => (question.placement === null ? [] : [{
     key: question.decisionId, line: question.placement.to, text: question.decisionId, applied: false, asks: true, title: `Question ${question.decisionId} for you`,
@@ -192,18 +201,18 @@ function chipsOf(questions: DocumentQuestions): CommentChip[] {
     key:     answered.messageId,
     line:    answered.placement.to,
     text:    `✓ ${answered.decisionId}`,
-    applied: answered.applied,
-    asks:    !answered.applied,
+    applied: answered.settled,
+    asks:    !answered.settled,
     title:   answered.applied ? `Question ${answered.decisionId}, answered and applied` : `Question ${answered.decisionId}, answered`,
   }]));
   return [...openChips, ...answeredChips];
 }
 
-/** The lines a question stands on, marked while it is open or its answer is not applied yet. */
+/** The lines a question stands on, marked while it is open or its answer has not settled yet. */
 function questionedLinesOf(questions: DocumentQuestions): BoardLineRangeDocument[] {
   return [
     ...questions.open.flatMap((question) => (question.placement === null ? [] : [question.placement])),
-    ...questions.answered.flatMap((answered) => (answered.placement === null || answered.applied ? [] : [answered.placement])),
+    ...questions.answered.flatMap((answered) => (answered.placement === null || answered.settled ? [] : [answered.placement])),
   ];
 }
 
@@ -213,15 +222,15 @@ function openQuestionsHeadingLineOf(markdown: string): number | null {
   return index < 0 ? null : index + 1;
 }
 
-/** Each open question, then each answered one whose edit is not applied yet: "Answered: Yes, add it here." */
+/** Each open question, then each answered one whose answer has not settled: "Answered: Yes, add it here", a period added where it ends in none. */
 function openQuestionsListOf(questions: DocumentQuestions): OpenQuestionsListItem[] {
   const answeredItemOf = (answered: AnsweredQuestionModel): OpenQuestionsListItem => {
-    const text = `Answered: ${answered.answerText}.`;
+    const text = /[.!?]$/u.test(answered.answerText) ? `Answered: ${answered.answerText}` : `Answered: ${answered.answerText}.`;
     return { decisionId: answered.decisionId, text, waitsOnUser: false };
   };
   return [
     ...questions.open.map((question) => ({ decisionId: question.decisionId, text: question.question, waitsOnUser: true })),
-    ...questions.answered.filter((answered) => !answered.applied).map(answeredItemOf),
+    ...questions.answered.filter((answered) => !answered.settled).map(answeredItemOf),
   ].toSorted((a, b) => decisionNumberOf(a.decisionId) - decisionNumberOf(b.decisionId));
 }
 
@@ -239,7 +248,6 @@ function openCountTextOf(openCount: number): string | null {
 
 export const DocumentQuestionsModel = Object.freeze({
   documentQuestionsOf,
-  answerPartsOf,
   chipsOf,
   questionedLinesOf,
   openQuestionsHeadingLineOf,

@@ -137,7 +137,7 @@ function primaryActionOf(reading: DocumentsHeadReading, document: BoardTicketDoc
   const lockReason = lockReasonOf(reading, document);
   const head = document?.head ?? null;
   const command = lockReason === null && head !== null ? TicketDocumentCommands.approveOf({ ticketId: ticket.id, document: shown }, head.number) : null;
-  const openQuestionsText = lockReason === OPEN_QUESTIONS_LOCK_REASON ? DocumentQuestionsModel.openCountTextOf(reading.openQuestionCount ?? 0) : null;
+  const openQuestionsText = DocumentQuestionsModel.openCountTextOf(reading.openQuestionCount ?? 0);
   return {
     kind: 'approve', label, command, lockReason, openQuestionsText
   };

@@ -40,6 +40,10 @@ const DOCUMENT_KINDS: readonly BoardTicketDocumentKind[] = ['spec', 'plan'];
 
 const DOCUMENT_LINE_FORM = 'line';
 
+const DOCUMENT_QUESTION_FORM = 'question';
+
+const DECISION_ID_PATTERN = /^E[1-9][0-9]*$/u;
+
 /** The detail forms an old `kanban/<form>/<id>` link opened, which open on Tickets now. */
 const DETAIL_FORMS_MOVED_TO_TICKETS: ReadonlySet<string> = new Set(['ticket', 'draft']);
 
@@ -117,6 +121,11 @@ function decodedSegmentOf(segment: string): string {
   }
 }
 
+/** A tab a link alone opens, such as a ticket's documents, is never stored, so the board's bare address keeps the tab used before it. */
+function tabIsStored(tab: BoardTab): boolean {
+  return !ROUTE_ONLY_TABS.has(tab);
+}
+
 /** A stored tab, written before the Progress views were grouped or after, as the tab it names; `null` for none. */
 function storedTabOf(storedTab: string | null): BoardTab | null {
   if (storedTab === null) return null;
@@ -191,34 +200,53 @@ function routeOfMenuEntry(entry: BoardMenuEntry, progressViewToOpen: ProgressVie
   return { tab: entry === 'progress' ? progressViewToOpen : entry, item: null };
 }
 
-/** The page of a ticket's document, opened at a line of its head when one is named: `documents/ticket/<id>/<spec|plan>[/line/<n>]`. */
-function documentsRouteOf(ticketId: string, document: BoardTicketDocumentKind, line: number | null = null): BoardRoute {
+/**
+ * The page of a ticket's document, opened at a line of its head and on an agent's question when they are named:
+ * `documents/ticket/<id>/<spec|plan>[/line/<n>][/question/<E>]`.
+ */
+function documentsRouteOf(ticketId: string, document: BoardTicketDocumentKind, line: number | null = null, questionId: string | null = null): BoardRoute {
   const lineSegments = line === null ? [] : [DOCUMENT_LINE_FORM, String(line)];
-  return { tab: 'documents', item: [DOCUMENTS_ITEM_FORM, ticketId, document, ...lineSegments].join(ITEM_SEGMENT_SEPARATOR) };
+  const questionSegments = questionId === null ? [] : [DOCUMENT_QUESTION_FORM, questionId];
+  return { tab: 'documents', item: [DOCUMENTS_ITEM_FORM, ticketId, document, ...lineSegments, ...questionSegments].join(ITEM_SEGMENT_SEPARATOR) };
 }
 
 export interface DocumentRouteTarget {
-  readonly ticketId: string;
-  readonly document: BoardTicketDocumentKind;
+  readonly ticketId:   string;
+  readonly document:   BoardTicketDocumentKind;
   /** The line of the head the page opens at, `null` for its top. */
-  readonly line:     number | null;
+  readonly line:       number | null;
+  /** The agent's question the page unfolds, `null` for the one the line picks. */
+  readonly questionId: string | null;
 }
 
-function lineOfSegments(segments: readonly string[]): number | null | undefined {
-  if (segments.length === 0) return null;
-  const [form, lineText = '', ...rest] = segments;
-  const line = Number(lineText);
-  return form === DOCUMENT_LINE_FORM && rest.length === 0 && /^[1-9][0-9]*$/u.test(lineText) ? line : undefined;
+/** The line and the question the segments after the document name, each at most once and in that order; `null` for any other segments. */
+function placeOfSegments(segments: readonly string[]): Pick<DocumentRouteTarget, 'line' | 'questionId'> | null {
+  let rest = segments;
+  let line: number | null = null;
+  if (rest[0] === DOCUMENT_LINE_FORM) {
+    const lineText = rest[1] ?? '';
+    if (!/^[1-9][0-9]*$/u.test(lineText)) return null;
+    line = Number(lineText);
+    rest = rest.slice(2);
+  }
+  let questionId: string | null = null;
+  if (rest[0] === DOCUMENT_QUESTION_FORM) {
+    const decisionId = rest[1] ?? '';
+    if (!DECISION_ID_PATTERN.test(decisionId)) return null;
+    questionId = decisionId;
+    rest = rest.slice(2);
+  }
+  return rest.length === 0 ? { line, questionId } : null;
 }
 
-/** The ticket, document and line a documents route names, `null` for an item of another form. */
+/** The ticket, document, line and question a documents route names, `null` for an item of another form. */
 function documentOfRoute(route: BoardRoute): DocumentRouteTarget | null {
   if (route.tab !== 'documents' || route.item === null) return null;
   const [form, ticketId, document, ...rest] = route.item.split(ITEM_SEGMENT_SEPARATOR);
   const kind = DOCUMENT_KINDS.find((candidate) => candidate === document);
-  const line = lineOfSegments(rest);
-  if (form !== DOCUMENTS_ITEM_FORM || ticketId === undefined || ticketId === '' || kind === undefined || line === undefined) return null;
-  return { ticketId, document: kind, line };
+  const place = placeOfSegments(rest);
+  if (form !== DOCUMENTS_ITEM_FORM || ticketId === undefined || ticketId === '' || kind === undefined || place === null) return null;
+  return { ticketId, document: kind, ...place };
 }
 
 /** The route that opens a served target: its question, its ticket or draft on Tickets, its job, or the Assistant for an incident. */
@@ -229,6 +257,7 @@ function routeOfTarget(target: BoardTargetDocument): BoardRoute {
 }
 
 export const BoardRouter = Object.freeze({
+  tabIsStored,
   routeOf,
   routeOfPlace,
   placeIsOld,
