@@ -11,8 +11,8 @@ import {
   taskFixture,
   ticketFixture
 } from './BoardFixtures.ts';
-import { EXAMPLE_PIPELINE_AGENT }                  from './ExamplePipelineAgent.ts';
-import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
+import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT } from './ExamplePipelineAgent.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }            from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
@@ -57,11 +57,17 @@ function everyTicketDocumentRecordOf(at: string): LogRecord[] {
  */
 function logEverySetupRecordKind(board: Board, at: string): void {
   const { setup } = board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'subscription' },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, at);
   const { setupId } = setup;
-  board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 5 }, at);
-  board.setSetupAgent(setupId, EXAMPLE_PIPELINE_AGENT, at);
+  board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 5 }, EVERY_BILLING_MODE_OFFERED, at);
+  board.setSetupAgent(setupId, EXAMPLE_PIPELINE_AGENT, EVERY_BILLING_MODE_OFFERED, at);
   board.recordFinding(setupId, {
     topic: 'scripts', label: 'Type check', value: 'bun run typecheck', sourcePaths: ['package.json'], script: null
   }, at);
@@ -98,7 +104,13 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.cancelApply(setupId, at);
   board.startOverSetup(setupId, at);
   const applied = board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'subscription' },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, at);
   board.requestApply(applied.setup.setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, at);
 }
@@ -200,7 +212,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.setNoGates(at);
   board.setApproval('tickets', false, at);
   board.setAssistant(true, at);
-  board.setAgent(EXAMPLE_PIPELINE_AGENT, at);
+  board.setAgent(EXAMPLE_PIPELINE_AGENT, EVERY_BILLING_MODE_OFFERED, at);
   board.setTools([{ name: 'bun', path: '/opt/example/bin/bun' }], at);
   board.setReach(['/packages/shared'], at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);

@@ -6,17 +6,17 @@
  */
 import { basename, join } from 'node:path';
 
-import type { AgentAdapter }                 from '../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }              from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }           from '../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                from '../lib/agent-launch/AgentSessionEvent.ts';
-import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
-import { claudeSessionWritablePathsOf }      from '../lib/claude-code/ClaudeCodeAdapter.ts';
-import { CLAUDE_CODE_INSTALLER }             from '../lib/claude-code/ClaudeCodeInstaller.ts';
-import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
-import { CLAUDE_CODE_CREDENTIALS }           from '../lib/claude-code/ClaudeCredentials.ts';
-import { ClaudeHookInput }                   from '../lib/claude-code/ClaudeHookInput.ts';
-import { claudeProgramRepairOf }             from '../lib/claude-code/ClaudeProgramRepair.ts';
+import type { AgentAdapter }                                    from '../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }                                 from '../lib/agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                              from '../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                                   from '../lib/agent-launch/AgentSessionEvent.ts';
+import type { SubagentFacts, SubagentUsage }                    from '../lib/agent-launch/AgentTranscripts.ts';
+import { claudeSessionWritablePathsOf }                         from '../lib/claude-code/ClaudeCodeAdapter.ts';
+import { CLAUDE_CODE_INSTALLER }                                from '../lib/claude-code/ClaudeCodeInstaller.ts';
+import { claudeConfigFolderOf }                                 from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_BILLING_OPTIONS, CLAUDE_CODE_CREDENTIALS } from '../lib/claude-code/ClaudeCredentials.ts';
+import { ClaudeHookInput }                                      from '../lib/claude-code/ClaudeHookInput.ts';
+import { claudeProgramRepairOf }                                from '../lib/claude-code/ClaudeProgramRepair.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
   CLAUDE_CODE_SESSION_ENDINGS,
@@ -150,6 +150,7 @@ export function fakeAgentAdapter(
     displayName:            CLAUDE_CODE_DISPLAY_NAME,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
     credentials:            CLAUDE_CODE_CREDENTIALS,
+    billingOptions:         CLAUDE_CODE_BILLING_OPTIONS,
     sandboxDenyShape:       'path-rules',
     inheritedVariableNames: [],
     configurationNames:     CLAUDE_CODE_CONFIGURATION_NAMES,

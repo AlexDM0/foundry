@@ -3,8 +3,8 @@
  * session. What matters: with subscription billing, or none set, a session gets neither API variable of Hephaestus; with API billing the
  * launch names `ANTHROPIC_API_KEY` for Talos to copy and holds no key; a planted key is in no file of the data or monitor folder;
  * a budget reaches the launch arguments; and API billing with no key starts no session and opens one decision naming the variable and the
- * set-up section, which a Hephaestus started again with the key set, or with billing no longer `api`, withdraws. No case calls the API or holds
- * a real key.
+ * set-up section, which a Hephaestus started again with the key set, or with billing no longer `api`, withdraws; API billing on an agent
+ * that bills only by its login starts no session and stands not launched `billing-not-offered`. No case calls the API or holds a real key.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
@@ -126,8 +126,8 @@ function drivePassWith(apiBillingKeyIsSet: boolean, requestOverrides: Partial<Dr
     monitorFolder,
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     inheritedEnvironment: HEPHAESTUS_ENVIRONMENT,
-    apiBillingKeyIsSet:   () => apiBillingKeyIsSet,
-    decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter.credentials),
+    agentVariableIsSet:   () => apiBillingKeyIsSet,
+    decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter),
     log:                  (line) => hephaestusLog.push(line),
     ...requestOverrides,
   });
@@ -233,6 +233,18 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     expect(decisionText).toContain('ANTHROPIC_API_KEY');
     expect(decisionText).toContain('API billing set-up');
     expect(filesHolding(requireWorkspace(repositoryDirectory).trackerDirectory, PLANTED_KEY)).toEqual([]);
+  });
+
+  test('with api billing on an agent that bills only by its login, no session starts: the job stands not launched billing-not-offered', async () => {
+    setBilling({ mode: 'api' });
+    const loginOnly: AgentAdapter = { ...claudeBilledAdapter(), billingOptions: [{ mode: 'subscription', keyVariableName: null, capsEachLaunch: false }] };
+    const drivePass = drivePassWith(true, { agentAdapter: loginOnly });
+    for (let pass = 0; pass < 3; pass += 1) await passOnce(drivePass);
+
+    expect(buildLaunch()).toBeNull();
+    const buildJobNow = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
+    expect(buildJobNow?.notLaunched?.cause).toBe('billing-not-offered');
+    expect(decisionsOfKind('api-key-not-set')).toEqual([]);
   });
 
   test.each([

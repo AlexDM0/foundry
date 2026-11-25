@@ -99,12 +99,12 @@ const NO_TEXTS: MainLineTexts = { textOf: () => null, mainConstitution: () => ({
 
 function setupRecordOf(changes: Partial<PipelineSetup> = {}): PipelineSetup {
   return {
-    formatVersion:   3,
+    formatVersion:   4,
     setupId:         'S1',
     mode:            'setup',
     baseContentHash: null,
     stepStates:      {
-      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
     },
     currentStep:                'constitution',
     billing:                    { mode: 'subscription' },

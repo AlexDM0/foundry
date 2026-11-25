@@ -111,7 +111,7 @@ function boardAtEntitiesStep(tickets: Ticket[] = []): BoardFixture {
   const setup: PipelineSetup = {
     ...structuredClone(setupOf(opened)),
     stepStates: {
-      billing: 'done', agent: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     },
     currentStep: 'entities',
     draft:       entityPipelineFixture(),

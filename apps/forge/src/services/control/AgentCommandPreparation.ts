@@ -65,8 +65,6 @@ function draftEditWithFoundTools(edit: PipelineDraftEdit, context: AgentCommandP
 async function preparedCommandOf(command: ControlCommand, context: AgentCommandPreparationContext): Promise<ControlCommand> {
   switch (command.kind) {
     case 'pipeline-setup-start':
-      if (command.agent !== undefined) await requireRunningChoice(command.agent, context);
-      return command;
     case 'pipeline-setup-agent':
     case 'pipeline-agent-set':
       await requireRunningChoice(command.agent, context);

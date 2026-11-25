@@ -180,8 +180,8 @@ export type BoardAppliedPipelineDocument =
     readonly entityPipelines: Readonly<Record<EntityKey, PipelineDefinitionDocument>>;
   };
 
-/** `entities` is walked only by a record of a forge over entities. */
-export type PipelineSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+/** `entities` is walked only by a record of a forge over entities; the agent comes first from forge 4.3, since its vendor decides the billing. */
+export type PipelineSetupStep = 'agent' | 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** A later `done` step becomes `needs-recheck` when an earlier one reopens. */
 export type PipelineSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
@@ -405,8 +405,12 @@ export interface PipelineSetupRecordDocument {
   readonly baseContentHash:            string | null;
   readonly stepStates:                 PipelineSetupStepStatesDocument;
   readonly currentStep:                PipelineSetupStep;
-  readonly billing:                    PipelineBillingDocument;
-  /** The agent the record's pipeline agent runs on and Apply stores; `null` until the user chose one. */
+  /**
+   * `null` until the user chose one of the agent's ways to bill, and again once a change of agent to a vendor that does not bill that way
+   * cleared it. From forge 4.3.
+   */
+  readonly billing:                    PipelineBillingDocument | null;
+  /** The agent the record's pipeline agent runs on and Apply stores; a first setup starts with it, an update over a pipeline without one has none. */
   readonly agent:                      PipelineAgentDocument | null;
   /** The design's tools: each program the draft runs, else the stored pipeline's, found now, and the draft's own list where it keeps one. */
   readonly tools:                      readonly AgentToolDocument[];

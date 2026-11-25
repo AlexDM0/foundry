@@ -34,12 +34,12 @@ export const BOARD_STATE_FIXTURE_PIPELINE: Pipeline = {
 };
 
 const SETUP: PipelineSetup = {
-  formatVersion:   3,
+  formatVersion:   4,
   setupId:         'S1',
   mode:            'update',
   baseContentHash: 'example-content-hash',
   stepStates:      {
-    billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started'
+    agent: 'done', billing: 'done', research: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started'
   },
   currentStep:     'design',
   billing:         { mode: 'api', maxBudgetUsd: 12 },

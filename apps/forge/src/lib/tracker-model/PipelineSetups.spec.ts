@@ -18,9 +18,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { boardFixture, refusalDetailOf } from '../../testing/BoardFixtures.ts';
-import { EXAMPLE_PIPELINE_AGENT }        from '../../testing/ExamplePipelineAgent.ts';
-import type { Pipeline }                 from './@types/Pipeline.ts';
+import { boardFixture, refusalDetailOf }                      from '../../testing/BoardFixtures.ts';
+import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT } from '../../testing/ExamplePipelineAgent.ts';
+import type { Pipeline }                                      from './@types/Pipeline.ts';
 import type {
   PipelineDraftEdit,
   PipelineSetup,
@@ -35,7 +35,13 @@ import { PipelineUtil }            from './utils/PipelineUtil.ts';
 const AT = '2026-11-12T10:00:00+01:00';
 
 const FIRST_SETUP: PipelineSetupOpening = {
-  mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  mode:                       'setup',
+  billing:                    { mode: 'subscription' },
+  agent:                      EXAMPLE_PIPELINE_AGENT,
+  offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+  replacesUnreadablePipeline: false,
+  mainConstitution:           null,
+  storedAnnotations:          [],
 };
 
 const STORED_PIPELINE: Pipeline = {
@@ -65,14 +71,14 @@ function boardAtDesign(): { board: Board; setupId: string } {
 }
 
 describe('opening a record', () => {
-  test('a first setup opens at the research with the billing it was started with done, and its id is never reused', () => {
+  test('a first setup started with its agent and billing opens at the research, both steps done, and its id is never reused', () => {
     const { board, progress } = boardFixture();
 
     const { setup, logged } = board.openSetup(FIRST_SETUP, AT);
 
     expect(setup.setupId).toBe('S1');
     expect(setup.stepStates).toEqual({
-      billing: 'done', agent: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('research');
     expect([setup.constitution, setup.draft, setup.baseContentHash]).toEqual([null, null, null]);
@@ -96,7 +102,7 @@ describe('opening a record', () => {
 
     expect(setupId).toBe('S1');
     expect(setup.stepStates).toEqual({
-      billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('design');
     expect(setup.draft).toEqual(STORED_PIPELINE);
@@ -138,7 +144,7 @@ describe('a record no move but a start over can change', () => {
 
   test.each<[string, (board: Board) => unknown]>([
     ['openSetup', (board) => board.openSetup(FIRST_SETUP, AT)],
-    ['setSetupBilling', (board) => board.setSetupBilling('S1', { mode: 'subscription' }, AT)],
+    ['setSetupBilling', (board) => board.setSetupBilling('S1', { mode: 'subscription' }, EVERY_BILLING_MODE_OFFERED, AT)],
     ['continueSetupStep', (board) => board.continueSetupStep('S1', 'billing', AT)],
   ])('an unreadable record refuses %s and is never written over', (_move, move) => {
     const { board, records } = boardFixture({ pipelineSetup: UNREADABLE });
@@ -170,7 +176,7 @@ describe('a record no move but a start over can change', () => {
     };
 
     for (const move of [
-      () => board.setSetupBilling('S1', { mode: 'subscription' }, AT),
+      () => board.setSetupBilling('S1', { mode: 'subscription' }, EVERY_BILLING_MODE_OFFERED, AT),
       () => board.continueSetupStep('S1', 'billing', AT),
       () => board.answerSetupQuestion('S1', 'Q1', { text: 'Yes' }, AT),
       () => board.editConstitution('S1', { revision: 0, markdown: 'x' }, AT),
@@ -182,7 +188,8 @@ describe('a record no move but a start over can change', () => {
   test('a cap that is not above zero refuses billing-cap-not-positive', () => {
     const { board, setupId } = openedBoard();
 
-    expect(refusalDetailOf(() => board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 0 }, AT))).toEqual({ reason: 'billing-cap-not-positive', maxBudgetUsd: 0 });
+    expect(refusalDetailOf(() => board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 0 }, EVERY_BILLING_MODE_OFFERED, AT)))
+      .toEqual({ reason: 'billing-cap-not-positive', maxBudgetUsd: 0 });
   });
 });
 
@@ -213,7 +220,7 @@ describe('the steps', () => {
     const { setup, logged } = board.reopenSetupStep(setupId, 'research', AT);
 
     expect(setup.stepStates).toEqual({
-      billing: 'done', agent: 'done', research: 'in-progress', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'in-progress', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
     });
     expect(setup.currentStep).toBe('research');
     expect(logged.map((record) => record.fields)).toEqual([{
@@ -330,7 +337,7 @@ describe('the entities step', () => {
     const { board } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
 
     expect(openSetupOf(board).stepStates).toEqual({
-      billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
     });
   });
 
@@ -365,8 +372,8 @@ describe('the entities step', () => {
     const { setup, logged } = board.walkEntitiesStepAfterLayout(setupId, AT);
 
     expect(Object.entries(setup.stepStates)).toEqual([
-      ['billing', 'done'],
       ['agent', 'done'],
+      ['billing', 'done'],
       ['research', 'in-progress'],
       ['entities', 'not-started'],
       ['constitution', 'not-started'],

@@ -439,6 +439,12 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `A budget cap of ${detail.maxBudgetUsd} USD is not above 0: give a positive cap, or none. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-agent-not-chosen':
       return `Pipeline setup ${detail.setupId} has no agent yet, so the agent step was not continued: choose the agent's program first. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-billing-not-chosen':
+      return `Pipeline setup ${detail.setupId} has no billing yet, so the billing step was not continued: choose how the agent bills first. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-billing-before-agent':
+      return `Pipeline setup ${detail.setupId} has no agent yet, and the billing is one of the agent's ways to bill: choose the agent first. ${NOTHING_WAS_WRITTEN}`;
+    case 'billing-not-offered':
+      return `The agent of pipeline setup ${detail.setupId}, ${detail.vendor}, does not bill by ${detail.mode}: choose one of the ways it bills. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-current':
       return `Pipeline setup ${detail.setupId} is at the ${detail.currentStep} step, not ${detail.step}, so ${detail.step} was not continued. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-reached':

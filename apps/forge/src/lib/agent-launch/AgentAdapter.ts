@@ -6,7 +6,7 @@
 import type { ExecutableRefusalCause }                                   from '../executable-resolver/ExecutableResolver.ts';
 import type { AgentInstaller }                                           from './AgentInstaller.ts';
 import type { AgentLaunchPlan }                                          from './AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                       from './AgentLaunchRequest.ts';
+import type { AgentBilling, AgentLaunchRequest }                         from './AgentLaunchRequest.ts';
 import type { AgentQuestion, AgentSessionEvent }                         from './AgentSessionEvent.ts';
 import type { AgentToolCall }                                            from './AgentToolCall.ts';
 import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest } from './AgentTranscripts.ts';
@@ -42,10 +42,17 @@ export interface AgentPicture {
 export interface AgentCredentials {
   /** The variable that moves the agent's own folder, read through `agentVariableOf`; `null` when there is none. */
   readonly configurationFolderVariableName: string | null;
-  /** The variable API billing needs before any session starts. */
-  readonly billingKeyVariableName:          string;
   /** What to check when the provider refuses the key, worded for the decision it opens. */
   readonly authenticationCheckSentence:     string;
+}
+
+/** One way the vendor's sessions bill, with what it needs: the variable its key must be in, and whether a launch takes a cap. */
+export interface AgentBillingOption {
+  readonly mode:            AgentBilling['mode'];
+  /** The variable that must hold the key before any session starts under this mode; `null` for a mode that bills the login. */
+  readonly keyVariableName: string | null;
+  /** Whether the adapter gives each launch the billing's `maxBudgetUsd` as its cap. */
+  readonly capsEachLaunch:  boolean;
 }
 
 /** The folders and files of a checkout that configure the agent, by name: no job may write them, and Customs refuses a change of them. */
@@ -69,6 +76,8 @@ export interface AgentAdapter {
   readonly displayName:            string;
   readonly capabilities:           AgentCapabilities;
   readonly credentials:            AgentCredentials;
+  /** The ways this vendor's sessions bill, its default first: a setup offers only these, and a launch under any other is not launched. */
+  readonly billingOptions:         readonly AgentBillingOption[];
   /** How this vendor's sandbox applies a profile's path denies on this host, which the profile is shaped for. */
   readonly sandboxDenyShape:       SandboxDenyShape;
   /**

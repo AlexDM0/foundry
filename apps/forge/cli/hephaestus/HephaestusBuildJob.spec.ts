@@ -187,7 +187,7 @@ async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),
     mainLine:             RECORDED_FLOW_MAIN_LINE,
-    decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter().credentials),
+    decisionWordingOf:    (draft) => HephaestusWording.decisionWordingOf(draft, fakeAgentAdapter()),
     redHandoffMessageOf:  HephaestusWording.redHandoffMessageOf,
     log:                  (line) => hephaestusLog.push(line),
     afterHoldPhase:       (phase, board) => {

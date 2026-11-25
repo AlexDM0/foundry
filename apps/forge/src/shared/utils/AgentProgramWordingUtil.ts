@@ -15,6 +15,8 @@ function programClauseOf(cause: AgentProgramRefusalCause, agentName: string, pro
       return `the board's agent is not ${agentName}, the agent that runs here`;
     case 'no-machine-program':
       return `the board follows this machine's ${agentName}, and the machine names none`;
+    case 'billing-not-offered':
+      return `the board's billing names a way ${agentName} does not bill`;
     case 'relative-path':
       return `${program} is not an absolute path`;
     case 'inside-forbidden-root':

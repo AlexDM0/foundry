@@ -128,12 +128,14 @@ export interface Airlock {
 
 /**
  * Why a job's session did not launch, nothing spawned: the forge names no agent, an agent of another vendor than this forge's program
- * runs, its machine's program of the vendor is not set, or the program the choice names cannot run where it lies.
+ * runs, its machine's program of the vendor is not set, its billing names a way its vendor does not bill, or the program the choice names
+ * cannot run where it lies.
  */
 export type JobNotLaunchedCause =
   | 'no-agent-chosen'
   | 'other-vendor'
   | 'no-machine-program'
+  | 'billing-not-offered'
   | 'relative-path'
   | 'inside-forbidden-root'
   | 'batch-target'

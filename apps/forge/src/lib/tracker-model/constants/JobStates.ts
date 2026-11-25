@@ -120,6 +120,7 @@ export const JOB_NOT_LAUNCHED_CAUSES = [
   'no-agent-chosen',
   'other-vendor',
   'no-machine-program',
+  'billing-not-offered',
   'relative-path',
   'inside-forbidden-root',
   'batch-target',

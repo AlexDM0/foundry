@@ -7,10 +7,10 @@ import { PRODUCT_NAMES } from '../../../src/shared/constants/ProductNames.ts';
 const { PROGRAM } = PRODUCT_NAMES;
 
 export const PIPELINE_USAGE = {
-  setup:          `${PROGRAM} pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--agent machine|<path>] [--replace-unreadable] [--json]`,
+  setup:          `${PROGRAM} pipeline setup --agent machine|<path> [--billing subscription|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]`,
   billing:        `${PROGRAM} pipeline billing <S> subscription|api [--max-budget-usd <n>] [--json]`,
   agent:          `${PROGRAM} pipeline agent <S> machine|<path> [--json]`,
-  continue:       `${PROGRAM} pipeline continue <S> billing|agent|research|constitution|design [--json]`,
+  continue:       `${PROGRAM} pipeline continue <S> agent|billing|research|constitution|design [--json]`,
   'start-over':   `${PROGRAM} pipeline start-over <S> [--json]`,
   resume:         `${PROGRAM} pipeline resume <S> [--json]`,
   answer:         `${PROGRAM} pipeline answer <S> <Q> <letters>... | -- <text> [--json]`,

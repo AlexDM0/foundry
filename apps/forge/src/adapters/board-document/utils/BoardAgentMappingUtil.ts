@@ -1,17 +1,25 @@
 /** The board document's agent, its program's run and a tool's row, each mapped field by field from the facts Hephaestus read. */
 import type {
+  AgentBillingOptionDocument,
   AgentProgramCheckDocument,
   AgentToolDocument,
   AgentToolUseDocument,
+  AgentVendorDocument,
   BoardAgentDocument,
   PipelineAgentDocument,
   PipelineToolDocument
 } from 'forge-contracts/BoardAgentDocuments';
 
-import type { PipelineAgent, PipelineTool }    from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { AgentFacts, ToolFacts, ToolUse } from '../../../shared/@types/AgentFacts.ts';
-import type { AgentProgramCheck }              from '../../../shared/@types/AgentProgramCheck.ts';
-import { AgentProgramWordingUtil }             from '../../../shared/utils/AgentProgramWordingUtil.ts';
+import type { AgentBillingOption }          from '../../../lib/agent-launch/AgentAdapter.ts';
+import type { PipelineAgent, PipelineTool } from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type {
+  AgentFacts,
+  AgentVendor,
+  ToolFacts,
+  ToolUse
+} from '../../../shared/@types/AgentFacts.ts';
+import type { AgentProgramCheck }  from '../../../shared/@types/AgentProgramCheck.ts';
+import { AgentProgramWordingUtil } from '../../../shared/utils/AgentProgramWordingUtil.ts';
 
 function pipelineAgentOf(agent: PipelineAgent): PipelineAgentDocument {
   return { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
@@ -37,9 +45,19 @@ function toolOf(tool: ToolFacts): AgentToolDocument {
   };
 }
 
+function billingOptionOf(option: AgentBillingOption): AgentBillingOptionDocument {
+  return { mode: option.mode, keyVariableName: option.keyVariableName, capsEachLaunch: option.capsEachLaunch };
+}
+
+function vendorOf(vendor: AgentVendor): AgentVendorDocument {
+  return {
+    vendor: vendor.vendor, displayName: vendor.displayName, supported: vendor.supported, billingOptions: vendor.billingOptions.map(billingOptionOf)
+  };
+}
+
 function agentOf(facts: AgentFacts): BoardAgentDocument {
   return {
-    vendors:            facts.vendors.map((vendor) => ({ vendor: vendor.vendor, displayName: vendor.displayName, supported: vendor.supported })),
+    vendors:            facts.vendors.map(vendorOf),
     choice:             facts.choice === null ? null : pipelineAgentOf(facts.choice),
     machineProgramPath: facts.machineProgramPath,
     programPath:        facts.programPath,

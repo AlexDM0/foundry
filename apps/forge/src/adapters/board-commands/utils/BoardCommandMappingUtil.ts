@@ -252,9 +252,9 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
   'pipeline-setup-resume':  (command) => ({ kind: 'pipeline-setup-resume', setupId: command.setupId }),
   'pipeline-setup-start':   (command) => ({
     kind:                       'pipeline-setup-start',
-    billing:                    { ...command.billing },
+    agent:                      agentOf(command.agent),
     replacesUnreadablePipeline: command.replacesUnreadablePipeline,
-    ...optionalOf('agent', command.agent === undefined ? undefined : agentOf(command.agent)),
+    ...optionalOf('billing', command.billing === undefined ? undefined : { ...command.billing }),
   }),
   'pipeline-setup-start-over': (command) => ({ kind: 'pipeline-setup-start-over', setupId: command.setupId }),
   'pipeline-setup-step':       (command) => ({

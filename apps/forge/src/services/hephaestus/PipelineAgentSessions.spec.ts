@@ -30,7 +30,7 @@ import type { Board }                                               from '../../
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                            from '../../shared/constants/ProductNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
-import { EXAMPLE_PIPELINE_AGENT }                                   from '../../testing/ExamplePipelineAgent.ts';
+import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT }       from '../../testing/ExamplePipelineAgent.ts';
 import { fakeAgentAdapter }                                         from '../../testing/FakeAgentAdapter.ts';
 import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }   from '../../testing/RecordedGit.ts';
@@ -95,7 +95,13 @@ function changeOf(board: Board): BoardTransaction {
 function boardWithSetupAgent(): { board: Board; jobId: string } {
   const { board } = boardFixture();
   board.openSetup({
-    mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 5 }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'api', maxBudgetUsd: 5 },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, AT);
   const { job } = board.startPipelineAgent(AT);
   board.attachSetupAgent(SETUP_ID, job.id, START_COMMIT);
@@ -252,7 +258,13 @@ test('an agent no record names advises on the stored pipeline, and a missing ins
 testWhenGitIsRecorded('a record whose agent has no snapshot commit takes main\'s tip, once', async () => {
   const { board } = boardFixture();
   board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'subscription' },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, AT);
   const { job } = board.startPipelineAgent(AT);
   board.attachSetupAgent(SETUP_ID, job.id, null);
@@ -284,7 +296,13 @@ test('an entity\'s session serves its entity\'s part of the record, from the rec
 testWhenGitIsRecorded('a record whose sessions are only at entities takes main\'s tip, once', async () => {
   const { board } = boardFixture();
   board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'subscription' },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, AT);
   const { job } = board.startPipelineAgent(AT, 'web');
   board.attachSetupAgent(SETUP_ID, job.id, null, 'web');
@@ -304,7 +322,13 @@ testWhenGitIsRecorded('a record whose sessions are only at entities takes main\'
 testWhenGitIsRecorded('a snapshot no open record holds is removed once with no agent running, and one the removal leaves is a leftover', async () => {
   const { board } = boardFixture();
   board.openSetup({
-    mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    mode:                       'setup',
+    billing:                    { mode: 'subscription' },
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
   }, AT);
   const snapshotsFolder = join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER);
   const discardedSnapshot = join(snapshotsFolder, 'S0');

@@ -216,7 +216,8 @@ and launches every job that stood not launched, the `gate look-again` verb), `ch
 `pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
 `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-agent` (from forge 4.1, `{ setupId, agent }`, the
 `pipeline agent` verb), `pipeline-setup-answer`, `pipeline-setup-billing`, `pipeline-setup-resume`,
-`pipeline-setup-start` (with an optional `agent` from forge 4.1), `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-setup-start` (`{ agent, billing?, replacesUnreadablePipeline }`: the agent from forge 4.1, required and the
+billing optional from forge 4.3), `pipeline-setup-start-over`, `pipeline-setup-step`,
 `pipeline-tools-set` (from forge 4.1, `{ tools }`, each `{ name, path? }` or `null`, the `gate tools` verb),
 `pipeline-update-start`, `ticket-deliver-by-hand`, `ticket-hold`, `ticket-network`, `ticket-park`, `ticket-priority`,
 `ticket-ready`, `ticket-unhold` and `tracker-clear`. A kind in neither list may change without raising the system
@@ -629,7 +630,7 @@ session's last line from the board document.
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while Hephaestus starts too. This forge answers `4.2` and `4.0`.
+moment the server answers, while Hephaestus starts too. This forge answers `4.3` and `4.0`.
 
 Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no page, no browser
 session and no one-time code for one, no contract for a framed page and no record of framing origins; the monitor and
@@ -663,6 +664,16 @@ roles, the pipeline's route and documents, the readiness gaps). Most new members
 the route; the board's `limits.defaultInstructionsOfRole` names the defaults of the two new roles, `specAgent` and
 `planAgent`, on every board, an added key a client that reads the record by its known keys passes over. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
 stays 6 and `summary` 3.
+
+Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: the setup steps are
+`agent`, `billing`, `research`, (`entities`), `constitution`, `design` and `apply`. `pipeline-setup-start` carries the
+agent, which starts the setup, and optionally a billing: with the agent alone the record opens at the billing step,
+whose Continue launches the pipeline agent. The record's `billing` is `null` until chosen, and again once a change of
+agent to a vendor that does not bill that way cleared it. Each of the board document's `agent.vendors` names its
+`billingOptions`, `{ mode, keyVariableName, capsEachLaunch }`, its default first and none for a vendor forge cannot run,
+so a client draws the billing of the chosen agent without naming a vendor. A billing a vendor does not bill by is
+refused `billing-not-offered`, and a job launched under one stands not launched `billing-not-offered`. The owner
+decided this is a minor; no endpoint changes its version.
 
 The system version is set by interoperability, never by a package's version:
 

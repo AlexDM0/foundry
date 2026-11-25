@@ -53,14 +53,20 @@ function withMonitorFolder(check: (monitorFolder: string) => void): () => void {
 }
 
 describe('agentFactsOf', () => {
-  test('a choice that follows the machine names the machine\'s program, which reads as Hephaestus ran it', withMonitorFolder((monitorFolder) => {
+  test('a choice that follows the machine names the machine\'s program, which reads as Hephaestus ran it, and only its vendor bills', withMonitorFolder((monitorFolder) => {
     MachineConfigFile.writeAgentProgram(monitorFolder, ADAPTER.vendor, PROGRAM);
     const facts = AgentFactsReading.agentFactsOf(sourceOf(FOLLOWING_THE_MACHINE, monitorFolder));
     expect([facts.machineProgramPath, facts.programPath, facts.check]).toEqual([PROGRAM, PROGRAM, { verdict: 'runs', programPath: PROGRAM, version: '1.2.3' }]);
     expect(facts.vendors).toEqual([
-      { vendor: ADAPTER.vendor, displayName: ADAPTER.displayName, supported: true },
-      { vendor: 'codex', displayName: 'Codex', supported: false },
-      { vendor: 'github-copilot', displayName: 'GitHub Copilot', supported: false },
+      {
+        vendor: ADAPTER.vendor, displayName: ADAPTER.displayName, supported: true, billingOptions: ADAPTER.billingOptions
+      },
+      {
+        vendor: 'codex', displayName: 'Codex', supported: false, billingOptions: []
+      },
+      {
+        vendor: 'github-copilot', displayName: 'GitHub Copilot', supported: false, billingOptions: []
+      },
     ]);
     const placesOfThisPlatform = ProgramSearchUtil.programPlacesOf(defaultSpecPlatformPorts().programFolders, monitorFolder, ADAPTER);
     expect(facts.places).toEqual(placesOfThisPlatform.map((path) => ({ path, found: path === PROGRAM })));

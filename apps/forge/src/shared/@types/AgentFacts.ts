@@ -1,6 +1,7 @@
 /** The facts of a forge's agent a view reads: the vendors, the choice, the machine's program, where it lies, whether it runs, and the tools. */
-import type { PipelineAgent }     from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { AgentProgramCheck } from './AgentProgramCheck.ts';
+import type { AgentBillingOption } from '../../lib/agent-launch/AgentAdapter.ts';
+import type { PipelineAgent }      from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { AgentProgramCheck }  from './AgentProgramCheck.ts';
 
 /** Where a pipeline runs a tool: a prepare step or a gate, of an entity or of the forge; git is run by every job. */
 export type ToolUse =
@@ -22,9 +23,11 @@ export interface AgentProgramPlace {
 }
 
 export interface AgentVendor {
-  vendor:      string;
-  displayName: string;
-  supported:   boolean;
+  vendor:         string;
+  displayName:    string;
+  supported:      boolean;
+  /** The ways the vendor's agent bills, its default first; none for a vendor no adapter here runs. */
+  billingOptions: readonly AgentBillingOption[];
 }
 
 export interface AgentFacts {

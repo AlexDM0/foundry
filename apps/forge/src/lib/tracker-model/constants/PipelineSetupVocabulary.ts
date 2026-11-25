@@ -20,7 +20,7 @@ import type {
 
 /** The steps in the order the setup walks them; a record walks `entities` only while its step states hold it. */
 
-export const PIPELINE_SETUP_STEPS = ['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
+export const PIPELINE_SETUP_STEPS = ['agent', 'billing', 'research', 'entities', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
 
 export const PIPELINE_SETUP_STEP_STATES = ['not-started', 'in-progress', 'done', 'needs-recheck'] as const satisfies readonly PipelineSetupStepState[];
 

@@ -2,7 +2,15 @@
 import type { AgentFacts } from '../shared/@types/AgentFacts.ts';
 
 export const EXAMPLE_AGENT_FACTS: Readonly<AgentFacts> = Object.freeze<AgentFacts>({
-  vendors:            [{ vendor: 'example-agent', displayName: 'Example Agent', supported: true }],
+  vendors: [{
+    vendor:         'example-agent',
+    displayName:    'Example Agent',
+    supported:      true,
+    billingOptions: [
+      { mode: 'subscription', keyVariableName: null, capsEachLaunch: false },
+      { mode: 'api', keyVariableName: 'EXAMPLE_AGENT_KEY', capsEachLaunch: true },
+    ],
+  }],
   agentName:          'Example Agent',
   choice:             { vendor: 'example-agent', program: { follows: 'machine' } },
   machineProgramPath: '/opt/example/bin/agent',

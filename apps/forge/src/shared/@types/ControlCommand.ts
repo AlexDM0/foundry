@@ -210,8 +210,8 @@ export type ControlCommand =
   /** The whole reach, each a repository path leading with `/`; an empty list clears it. */
   | { kind: 'pipeline-reach-set'; paths: string[] }
   /** User's first setup of the pipeline: it opens the setup record; `replacesUnreadablePipeline` lets Apply write over an unreadable file. */
-  // With no `agent` the record opens at the agent step; a sent agent's program was checked before the command reached the board.
-  | { kind: 'pipeline-setup-start'; billing: PipelineBilling; replacesUnreadablePipeline: boolean; agent?: PipelineAgent }
+  // The agent starts it, its program checked before the command reached the board; with no `billing` the record opens at the billing step.
+  | { kind: 'pipeline-setup-start'; agent: PipelineAgent; billing?: PipelineBilling; replacesUnreadablePipeline: boolean }
   | { kind: 'pipeline-setup-billing'; setupId: string; billing: PipelineBilling }
   | { kind: 'pipeline-setup-agent'; setupId: string; agent: PipelineAgent }
   | { kind: 'pipeline-setup-step'; setupId: string; step: PipelineSetupStep; move: 'continue' }

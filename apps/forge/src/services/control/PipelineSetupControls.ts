@@ -1,14 +1,14 @@
 /**
  * User's kinds of the pipeline setup record: start, update and advise, billing, Continue, start over, resume, an answer, the constitution,
- * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and
- * refuses `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over
- * stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and a check also message the agent in the
- * same hold, in the caller's words, with what the move changed, and open it again when a stop closed it. An update, an advise and an Apply read main's
- * `CONSTITUTION.md` through the context.
+ * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and refuses
+ * `malformed-setup-command` before the Board is touched. A start with its billing, the billing step's Continue and an advise launch the
+ * record's pipeline agent, and a start over stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and
+ * a check also message the agent in the same hold, in the caller's words, with what the move changed, and open it again when a stop closed
+ * it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the context.
  *
- * On a forge over entities each entity has a session of its own, its level: the Continue of the `entities` step launches one for each
- * entity of the draft, an update or advise opens at the forge or at one entity, and each move messages the session of the level it
- * changed, never another's.
+ * On a forge over entities each entity has a session of its own, its level: the Continue of the `entities` step launches one for each entity
+ * of the draft, an update or advise opens at the forge or at one entity, and each move messages the session of the level it changed, never
+ * another's.
  */
 import { PipelineFile }                                                              from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                                                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
@@ -284,21 +284,22 @@ function openingConstitutionOf(change: BoardTransaction, context: ControlContext
 }
 
 /**
- * A first setup opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and never writes over a file unseen.
- * With an agent its pipeline agent launches at once; with none the record opens at the agent step, and the step's Continue launches it.
- * A stored record that cannot be read, such as one of an older format, is started over first, as User's start over would.
+ * The chosen agent starts a first setup, which opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and
+ * never writes over a file unseen. With a billing its pipeline agent launches at once; with none the record opens at the billing step, and
+ * the step's Continue launches it. A stored record that cannot be read, such as one of an older format, is started over first, as User's
+ * start over would.
  */
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
-  const billing = billingFieldOf(command);
+  const agent = agentFieldOf(command);
+  const billing = fieldOf(command, 'billing') === undefined ? null : billingFieldOf(command);
   const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
   if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
-  const agent = fieldOf(command, 'agent') === undefined ? null : agentFieldOf(command);
   const discarded = change.board.discardUnreadableSetup(change.at);
   const discardLogged = discarded === null ? [] : withItsAgentsStopped(discarded, change).logged;
   const opened = change.board.openSetup({
-    mode: 'setup', billing, agent, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
+    mode: 'setup', billing, agent, offeredBillingModesOf: context.offeredBillingModesOf, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
   }, change.at);
-  const started = agent === null ? opened : startedAgentOf(opened, change);
+  const started = billing === null ? opened : startedAgentOf(opened, change);
   return { setup: started.setup, logged: [...discardLogged, ...started.logged] };
 }
 
@@ -339,24 +340,24 @@ export function startAdvice(command: CommandOf<'pipeline-agent-advise'>, change:
   return startedAgentOf(openedAtLevelOf('advise', change, context, entityKey), change, entityKey);
 }
 
-function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: BoardTransaction): PipelineSetupChanged {
-  return change.board.setSetupBilling(textFieldOf(command, 'setupId'), billingFieldOf(command), change.at);
+function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
+  return change.board.setSetupBilling(textFieldOf(command, 'setupId'), billingFieldOf(command), context.offeredBillingModesOf, change.at);
 }
 
-function setAgent(command: CommandOf<'pipeline-setup-agent'>, change: BoardTransaction): PipelineSetupChanged {
-  return change.board.setSetupAgent(textFieldOf(command, 'setupId'), agentFieldOf(command), change.at);
+function setAgent(command: CommandOf<'pipeline-setup-agent'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
+  return change.board.setSetupAgent(textFieldOf(command, 'setupId'), agentFieldOf(command), context.offeredBillingModesOf, change.at);
 }
 
-/** The agent step's Continue launches the record's pipeline agent, which runs on the agent the step chose. */
-function startedAgentAfterTheAgentStep(changed: PipelineSetupChanged, change: BoardTransaction, step: PipelineSetupStep): PipelineSetupChanged {
-  return step === 'agent' && changed.setup.agentJobId === null && changed.setup.mode === 'setup' ? startedAgentOf(changed, change) : changed;
+/** The billing step's Continue launches the record's pipeline agent, billed as the step chose, on the agent the setup started with. */
+function startedAgentAfterTheBillingStep(changed: PipelineSetupChanged, change: BoardTransaction, step: PipelineSetupStep): PipelineSetupChanged {
+  return step === 'billing' && changed.setup.agentJobId === null && changed.setup.mode === 'setup' ? startedAgentOf(changed, change) : changed;
 }
 
 function moveStep(command: CommandOf<'pipeline-setup-step'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const step    = stepFieldOf(command);
   if (fieldOf(command, 'move') !== 'continue') refuseMalformedSetupCommand(command.kind, 'move');
-  const changed = startedAgentAfterTheAgentStep(change.board.continueSetupStep(setupId, step, change.at), change, step);
+  const changed = startedAgentAfterTheBillingStep(change.board.continueSetupStep(setupId, step, change.at), change, step);
   const messaged = messagedToEveryAgent(changed, change, context, {
     kind: 'step-continued', setupId, mode: changed.setup.mode, step, currentStep: changed.setup.currentStep
   });

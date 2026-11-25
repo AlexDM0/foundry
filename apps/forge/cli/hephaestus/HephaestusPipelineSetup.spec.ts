@@ -141,7 +141,7 @@ beforeEach(async () => {
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
     log:               (line) => hephaestusLog.push(line),
-    decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, LISTENING_SESSION.credentials),
+    decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, LISTENING_SESSION),
     launchTextOf:      (job, facts) => HephaestusWording.launchTextOf(job, facts, LISTENING_SESSION.promptFills),
   });
 });
@@ -155,7 +155,7 @@ afterEach(async () => {
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one setup end to end', () => {
   test('the agent\'s relayed finding, question, constitution and proposal and User\'s answer bring S1 to an Apply that waits for its commit', async () => {
-    await run(['pipeline', 'setup', '--agent', process.execPath]);
+    await run(['pipeline', 'setup', '--agent', process.execPath, '--billing', 'subscription']);
     const { agentJobId } = setupRecord();
     if (agentJobId === null) throw new Error('the setup start launched no pipeline agent');
     await untilTheAgentSessionIsLive(agentJobId);

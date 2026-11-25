@@ -67,7 +67,7 @@ function storedSetup(): PipelineSetup {
 }
 
 async function setupAtDesign(): Promise<void> {
-  await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
+  await runSetup(['pipeline', 'setup', '--agent', process.execPath, '--billing', 'subscription']);
   for (const step of ['research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
 }
 
@@ -93,14 +93,16 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     expect(storedSetup().setupId).toBe('S1');
   });
 
-  test('pipeline billing and pipeline continue move the stored record', async () => {
+  test('pipeline setup with the agent alone opens at billing, and pipeline billing and pipeline continue move the stored record', async () => {
     await runSetup(['pipeline', 'setup', '--agent', process.execPath]);
+    expect(storedSetup()).toMatchObject({ billing: null, currentStep: 'billing', agentJobId: null });
 
     await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
+    await run(['pipeline', 'continue', 'S1', 'billing']);
     await run(['pipeline', 'continue', 'S1', 'research']);
 
     const stepStates = {
-      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress'
+      agent: 'done', billing: 'done', research: 'done', constitution: 'in-progress'
     };
     expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'constitution', stepStates });
   });
@@ -189,6 +191,8 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
 
     for (const commandLine of [
       ['pipeline', 'setup', '--billing', 'credit'],
+      ['pipeline', 'setup', '--billing', 'subscription'],
+      ['pipeline', 'setup', '--agent', process.execPath, '--max-budget-usd', '5'],
       ['pipeline', 'continue', 'S1', 'deploy'],
       ['pipeline', 'answer', 'S1', 'Q1'],
       ['pipeline', 'constitution', 'S1', '--revision', '1'],
@@ -252,7 +256,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     };
 
     expect(await runCommandLine(['pipeline', 'setup', '--agent', process.execPath], context)).toBe(1);
-    expect(context.errorText()).toContain('pipeline setup --agent` cannot run under job J4');
+    expect(context.errorText()).toContain('pipeline setup` cannot run under job J4');
     expect(existsSync(hatchDirectory)).toBe(false);
     expect(storedFiles()).toEqual(before);
   });
@@ -261,7 +265,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     writeFileSync(setupFilePath(), `${JSON.stringify({
       formatVersion: 2, setupId: 'S1', mode: 'setup', currentStep: 'research'
     })}\n`);
-    const context = await runSetup(['pipeline', 'setup', '--agent', process.execPath, '--json']);
+    const context = await runSetup(['pipeline', 'setup', '--agent', process.execPath, '--billing', 'subscription', '--json']);
 
     const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
     expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-discarded', 'pipeline-setup-opened', 'job-launched']);

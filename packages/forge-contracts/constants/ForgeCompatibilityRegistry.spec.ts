@@ -16,7 +16,8 @@ import { FORGE_SYSTEM_VERSIONS }                                      from './Fo
 const RESTARTING_FORGE: SystemVersion = { major: 4, minor: 0 };
 const AGENT_CHOICE_FORGE: SystemVersion = { major: 4, minor: 1 };
 const TICKET_DOCUMENTS_FORGE: SystemVersion = { major: 4, minor: 2 };
-const NEXT_MINOR_FORGE: SystemVersion = { major: 4, minor: 3 };
+const AGENT_FIRST_FORGE: SystemVersion = { major: 4, minor: 3 };
+const NEXT_MINOR_FORGE: SystemVersion = { major: 4, minor: 4 };
 const LAST_FORGE_BEFORE_RESTARTING: SystemVersion = { major: 3, minor: 0 };
 
 const ENDPOINT_VERSIONS_OF_RESTARTING_FORGE: readonly (readonly [string, number])[] = [
@@ -55,8 +56,8 @@ describe('forge\'s compatibility registry', () => {
     expect(CompatibilityRegistryUtil.inconsistenciesOf(FORGE_COMPATIBILITY_REGISTRY, FORGE_SYSTEM_VERSIONS)).toEqual([]);
   });
 
-  test('forge 4.2 only adds to 4.0 and supports no client of forge 3: the minimum supported is 4.0', () => {
-    expect(FORGE_SYSTEM_VERSIONS).toEqual({ current: TICKET_DOCUMENTS_FORGE, minimumSupported: RESTARTING_FORGE });
+  test('forge 4.3 serves its endpoints at 4.0\'s versions and supports no client of forge 3: the minimum supported is 4.0', () => {
+    expect(FORGE_SYSTEM_VERSIONS).toEqual({ current: AGENT_FIRST_FORGE, minimumSupported: RESTARTING_FORGE });
   });
 
   test('holds endpoints only, each shipped and still needed, with no compatibility path', () => {

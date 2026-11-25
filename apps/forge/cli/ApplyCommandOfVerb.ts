@@ -44,7 +44,7 @@ export async function applyCommandOfVerb<Command extends ControlCommand>(
   const at      = OptionValueUtil.atStampFrom(commandArguments, context.now());
   const preparationContext = agentCommandPreparationContextOf(context, preparedForgeAt(context, workspace.rootDirectory, store.reads));
   const prepared = await AgentCommandPreparation.preparedCommandOf(command, preparationContext) as Command;
-  const written = await store.commands.apply({ command: prepared, at, context: commandControlContextOf(context.platformPorts) });
+  const written = await store.commands.apply({ command: prepared, at, context: commandControlContextOf(context.platformPorts, context.agentAdapter) });
   // The store is already written, so a skipped file never fails the command: exit 0, named on standard error.
   OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
   OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);

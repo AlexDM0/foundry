@@ -601,12 +601,18 @@ describe('the program a plan spawns', () => {
 });
 
 describe('the credentials and the repair', () => {
-  test('name the config folder variable, the API key variable and the managed login settings that refuse a key', () => {
+  test('name the config folder variable and the managed login settings that refuse a key', () => {
     expect(CLAUDE_CODE_ADAPTER.credentials).toEqual({
       configurationFolderVariableName: 'CLAUDE_CONFIG_DIR',
-      billingKeyVariableName:          'ANTHROPIC_API_KEY',
       authenticationCheckSentence:     'no managed forceLoginMethod or forceLoginOrgUUID setting refuses API keys',
     });
+  });
+
+  test('bill by the login by default, or by the API key variable\'s account with each launch capped', () => {
+    expect(CLAUDE_CODE_ADAPTER.billingOptions).toEqual([
+      { mode: 'subscription', keyVariableName: null, capsEachLaunch: false },
+      { mode: 'api', keyVariableName: 'ANTHROPIC_API_KEY', capsEachLaunch: true },
+    ]);
   });
 
   test('the adapter asks the reader it is handed for its config folder variable alone', () => {

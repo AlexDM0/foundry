@@ -362,8 +362,8 @@ function setupRecordOf(record: PipelineSetup, tools: readonly ToolFacts[]): Pipe
     mode:            record.mode,
     baseContentHash: record.baseContentHash,
     stepStates:      {
-      billing:      stepStates.billing,
       agent:        stepStates.agent,
+      billing:      stepStates.billing,
       research:     stepStates.research,
       constitution: stepStates.constitution,
       design:       stepStates.design,
@@ -371,7 +371,7 @@ function setupRecordOf(record: PipelineSetup, tools: readonly ToolFacts[]): Pipe
       ...(stepStates.entities === undefined ? {} : { entities: stepStates.entities }),
     },
     currentStep:     record.currentStep,
-    billing:         billingOf(record.billing),
+    billing:         record.billing === null ? null : billingOf(record.billing),
     agent:           record.agent === null ? null : BoardAgentMappingUtil.pipelineAgentOf(record.agent),
     tools:           tools.map(BoardAgentMappingUtil.toolOf),
     agentJobId:      record.agentJobId,

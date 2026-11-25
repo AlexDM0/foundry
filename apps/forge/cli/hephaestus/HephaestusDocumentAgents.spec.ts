@@ -149,7 +149,7 @@ function startDrivePass(agentAdapter: ReturnType<typeof fakeAgentAdapter>): void
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
     log:               (line) => hephaestusLog.push(line),
-    decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter.credentials),
+    decisionWordingOf: (draft) => HephaestusWording.decisionWordingOf(draft, agentAdapter),
     launchTextOf:      (job, facts) => HephaestusWording.launchTextOf(job, facts, agentAdapter.promptFills),
   });
 }

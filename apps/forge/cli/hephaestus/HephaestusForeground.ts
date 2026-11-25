@@ -88,7 +88,7 @@ import {
 } from '../../src/shared/constants/HephaestusLimits.ts';
 import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
-import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../CommandControlContext.ts';
+import { insideHephaestusControlContextOf }                             from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
@@ -813,7 +813,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         transaction.board.submitFirstRunLeftovers(transaction.at);
         // In the hold, so no command names a picture between the read of the references and the sweep.
         PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(transaction.board.logRecordsSoFar(), transaction.board.jobs()));
-        finishHalfAppliedSetup(transaction, INSIDE_HEPHAESTUS_CONTROL_CONTEXT);
+        finishHalfAppliedSetup(transaction, insideHephaestusControlContextOf(context.agentAdapter));
         const hephaestusStarted = transaction.board.recordHephaestusStarted({ codeVersion, installVersion: INSTALL_VERSION }, transaction.at);
         transaction.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), transaction.at);
         return hephaestusStarted;
@@ -841,9 +841,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         branchNames,
         installVersionChanged:     installWatch.installVersionChanged,
         installVersionsKnown:      installWatch.versionsSettled,
-        apiBillingKeyIsSet:        () => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName),
+        agentVariableIsSet,
         newCodeOnDisk:             installWatch.newCodeOnDisk,
-        decisionWordingOf:         (draft) => HephaestusWording.decisionWordingOf(draft, context.agentAdapter.credentials),
+        decisionWordingOf:         (draft) => HephaestusWording.decisionWordingOf(draft, context.agentAdapter),
         packageNeedWordingOf:      HephaestusWording.packageNeedWordingOf,
         dependentFixWordingOf:     HephaestusWording.dependentFixWordingOf,
         launchTextOf:              (job, facts) => HephaestusWording.launchTextOf(job, facts, context.agentAdapter.promptFills),

@@ -5,21 +5,21 @@
 import { createHash } from 'node:crypto';
 import { join }       from 'node:path';
 
-import type { AgentAdapter }                   from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }                from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }             from '../agent-launch/AgentLaunchRequest.ts';
-import type { AgentDefinition, WorkerProfile } from '../agent-launch/WorkerProfile.ts';
-import { PORTABLE_GIT_SETTINGS }               from '../git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                    from '../git/utils/GitArgumentsUtil.ts';
-import type { AgentHostFacts }                 from './AgentHostFacts.ts';
-import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
-import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
-import { CLAUDE_CODE_INSTALLER }               from './ClaudeCodeInstaller.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
-import { CLAUDE_CODE_CREDENTIALS }             from './ClaudeCredentials.ts';
-import { ClaudeHookInput }                     from './ClaudeHookInput.ts';
-import { claudeProgramRepairOf }               from './ClaudeProgramRepair.ts';
-import { ClaudeSessionSubagents }              from './ClaudeSessionSubagents.ts';
+import type { AgentAdapter }                                    from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }                                 from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                              from '../agent-launch/AgentLaunchRequest.ts';
+import type { AgentDefinition, WorkerProfile }                  from '../agent-launch/WorkerProfile.ts';
+import { PORTABLE_GIT_SETTINGS }                                from '../git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                     from '../git/utils/GitArgumentsUtil.ts';
+import type { AgentHostFacts }                                  from './AgentHostFacts.ts';
+import { agentHostFactsFor }                                    from './AgentHostFactsFor.ts';
+import { CLAUDE_API_KEY_VARIABLE }                              from './ClaudeApiKeyVariable.ts';
+import { CLAUDE_CODE_INSTALLER }                                from './ClaudeCodeInstaller.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                        from './ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_BILLING_OPTIONS, CLAUDE_CODE_CREDENTIALS } from './ClaudeCredentials.ts';
+import { ClaudeHookInput }                                      from './ClaudeHookInput.ts';
+import { claudeProgramRepairOf }                                from './ClaudeProgramRepair.ts';
+import { ClaudeSessionSubagents }                               from './ClaudeSessionSubagents.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
   CLAUDE_CODE_SESSION_ENDINGS,
@@ -367,6 +367,7 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
     displayName:            CLAUDE_CODE_DISPLAY_NAME,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
     credentials:            CLAUDE_CODE_CREDENTIALS,
+    billingOptions:         CLAUDE_CODE_BILLING_OPTIONS,
     sandboxDenyShape:       facts.sandboxDenyShape,
     // The config folder passes with the login, so a session writes the transcripts the readers find there.
     inheritedVariableNames: [...CLAUDE_AUTHENTICATION_VARIABLES, CLAUDE_CONFIG_FOLDER_VARIABLE],

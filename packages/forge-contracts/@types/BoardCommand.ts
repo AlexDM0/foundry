@@ -126,14 +126,18 @@ export type ForgeBoardCommand =
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: DecisionAnswerFormDocument }
   /** The record's agent, kept only once its program runs. From forge 4.1. */
   | { readonly kind: 'pipeline-setup-agent'; readonly setupId: string; readonly agent: PipelineAgentDocument }
+  /** One of the ways the record's agent bills, refused before the record names an agent. */
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: PipelineBillingDocument }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  /** With no `agent` the record opens at the agent step; `agent` from forge 4.1. */
+  /**
+   * The chosen agent starts the setup: the record opens at the billing step, or with `billing` past it with its pipeline agent launched.
+   * `agent` from forge 4.1, required and `billing` optional from forge 4.3.
+   */
   | {
     readonly kind:                       'pipeline-setup-start';
-    readonly billing:                    PipelineBillingDocument;
+    readonly agent:                      PipelineAgentDocument;
+    readonly billing?:                   PipelineBillingDocument;
     readonly replacesUnreadablePipeline: boolean;
-    readonly agent?:                     PipelineAgentDocument;
   }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: PipelineSetupStep; readonly move: 'continue' }

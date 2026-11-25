@@ -44,8 +44,8 @@ const HATCH_READABLE_STATES: ReadonlySet<JobState> = new Set([
 ]);
 
 /**
- * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message or reads main's constitution;
- * one that did is a Bouncer defect, which fails the hold rather than send a message nobody worded. A relayed command is applied inside
+ * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message, reads main's constitution or
+ * judges a billing; one that did is a Bouncer defect, which fails the hold rather than send a message nobody worded. A relayed command is applied inside
  * the live Hephaestus's own hold, so no other Hephaestus owns its board.
  */
 const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
@@ -55,7 +55,10 @@ const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   mainConstitutionOf: (): never => {
     throw new Error('A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.');
   },
-  liveHephaestusOf: () => null,
+  liveHephaestusOf:      () => null,
+  offeredBillingModesOf: (vendor: string): never => {
+    throw new Error(`A relayed command reached the billing of ${vendor}, which only User's own commands set.`);
+  },
 });
 
 /** The relayed context with the live Hephaestus's effect readings, which a document agent's turn-end requests may ask for. */

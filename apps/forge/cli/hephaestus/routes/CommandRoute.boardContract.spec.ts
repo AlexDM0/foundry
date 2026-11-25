@@ -23,6 +23,7 @@ import { localStoreLayoutOf }                                                  f
 import { listTicketDocuments }                                                 from '../../../src/services/tracker/TicketDocumentStore.ts';
 import { requireWorkspace }                                                    from '../../../src/services/tracker/Workspace.ts';
 import { BOARD_COMMAND_CONTRACT_KINDS, CONTROL_CONTRACT_KINDS }                from '../../../src/shared/constants/HephaestusApiContracts.ts';
+import { fakeAgentAdapter }                                                    from '../../../src/testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                              from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                           from '../../../src/testing/ToolGuard.ts';
@@ -168,7 +169,10 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
   });
 
   test('a typed draft edit inside an entity lands, a role edit keeps its document reading rules, and an edit written as a field string is malformed', async () => {
-    const startBody: ForgeBoardCommand = { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false };
+    const agent = { vendor: fakeAgentAdapter().vendor, program: { pinned: process.execPath } };
+    const startBody: ForgeBoardCommand = {
+      kind: 'pipeline-setup-start', agent, billing: { mode: 'subscription' }, replacesUnreadablePipeline: false
+    };
     const started = await recordedGit.playStage(MAIN_WITHOUT_A_CONSTITUTION, async () => await answerOf(startBody));
     expect(started.status).toBe(200);
     const typedEdit: ForgeBoardCommand = {

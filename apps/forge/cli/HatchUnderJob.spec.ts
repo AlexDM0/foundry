@@ -31,13 +31,14 @@ import { writeTracker }                                                         
 import { requireWorkspace }                                                                          from '../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                                          from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                             from '../src/shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                                                                          from '../src/testing/FakeAgentAdapter.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                                                                   from '../src/testing/LockTakers.ts';
 import { useRecordedGit }                                                                            from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                            from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                                 from '../src/testing/ToolGuard.ts';
 import { firstValueOf }                                                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                                                       from './CommandContext.ts';
-import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                                                         from './CommandControlContext.ts';
+import { insideHephaestusControlContextOf }                                                          from './CommandControlContext.ts';
 import { COMMAND_NAMES }                                                                             from './CommandTable.ts';
 import { runCommandLine }                                                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND, type RelayedControlCommandKind } from './constants/JobVerbs.ts';
@@ -122,7 +123,6 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'pipeline-reach-set':         ['gate', 'reach', '/packages/shared'],
   'merge-accept':               ['merge', 'accept', '1'],
   'merge-update':               ['merge', 'update', '1'],
-  'pipeline-setup-start':       ['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '20'],
   'pipeline-setup-billing':     ['pipeline', 'billing', 'S1', 'subscription'],
   'pipeline-setup-step':        ['pipeline', 'continue', 'S1', 'research'],
   'pipeline-setup-start-over':  ['pipeline', 'start-over', 'S1'],
@@ -400,7 +400,7 @@ describeWhenGitIsRecorded('Hephaestus applying an admitted filing', () => {
       workspace,
       at:        '2026-09-18T22:11:03+02:00',
       now:       SPEC_CLOCK,
-      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_HEPHAESTUS_CONTROL_CONTEXT).result,
+      mutate:    (change) => ControlService.apply(verdict.command, change, insideHephaestusControlContextOf(fakeAgentAdapter())).result,
     });
     const filed = written.result as { ticket: { frontmatter: { id: string } } };
     const text  = readFileSync(listTickets(workspace).ticketLocations.get(filed.ticket.frontmatter.id) ?? '', 'utf8');

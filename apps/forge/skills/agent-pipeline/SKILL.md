@@ -23,8 +23,9 @@ Read the files. Do not run a script. Do not change a file of the repository, and
 
 - Under a pipeline agent job, the verbs name no setup record: Hephaestus adds the record that the job serves.
 - Outside a job, the first word after the verb names the record, such as `{{program}} pipeline finding S1 -- <JSON>`.
-  When no record is open, start one with `{{program}} pipeline setup` for a first pipeline, or with
-  `{{program}} pipeline update` for a stored pipeline. Each verb's `--json` prints the record as the move left it.
+  When no record is open, start one with `{{program}} pipeline setup --agent machine` for a first pipeline, or give
+  the path of the agent program that the user names after `--agent`. Start one with `{{program}} pipeline update` for
+  a stored pipeline. Each verb's `--json` prints the record as the move left it.
 - The user moves the steps on. Your `pipeline ready <step>` only tells the user that the step can continue.
 
 ## Your commands

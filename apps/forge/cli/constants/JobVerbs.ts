@@ -40,8 +40,9 @@ export const UNRELAYED_VERB_OF_CONTROL_KIND = {
   'tracker-clear':             'clear',
   'ticket-deliver-by-hand':    'ticket deliver --by-hand',
   'talos-restart':             'talos-restart',
-  // The agent's program and the tools are User's choice of what runs on the machine, never a session's.
+  // The agent's program and the tools are User's choice of what runs on the machine, never a session's; a setup starts with that choice.
   'machine-agent-program-set': 'machine agent',
+  'pipeline-setup-start':      'pipeline setup',
   'pipeline-setup-agent':      'pipeline agent',
   'pipeline-agent-set':        'gate agent',
   'pipeline-tools-set':        'gate tools',
@@ -155,7 +156,6 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'pipeline-reach-set':                'gate reach',
   'merge-accept':                      'merge accept',
   'merge-update':                      'merge update',
-  'pipeline-setup-start':              'pipeline setup',
   'pipeline-setup-billing':            'pipeline billing',
   'pipeline-setup-step':               'pipeline continue',
   'pipeline-setup-start-over':         'pipeline start-over',

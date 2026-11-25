@@ -29,7 +29,7 @@ import { OperationRefusal }                                             from '..
 import { SERVED_CONTRACT_VERSIONS }                                     from '../../../src/shared/constants/HephaestusApiContracts.ts';
 import { agentCommandPreparationContextOf, preparedForgeAt }            from '../../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../../CommandContext.ts';
-import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../../CommandControlContext.ts';
+import { insideHephaestusControlContextOf }                             from '../../CommandControlContext.ts';
 import { registerWrittenTracker }                                       from '../../RegisterWrittenTracker.ts';
 import type { ArgumentParser }                                          from '../../arguments/ArgumentParser.ts';
 import { BY_HAND_COMMAND_KINDS }                                        from '../../constants/JobVerbs.ts';
@@ -70,7 +70,8 @@ const HTTP_STATUS = {
 
 function controlContextOf(request: CommandRouteRequest): ControlContext {
   const effectReadings = request.effectReadings?.() ?? null;
-  return effectReadings === null ? INSIDE_HEPHAESTUS_CONTROL_CONTEXT : { ...INSIDE_HEPHAESTUS_CONTROL_CONTEXT, effectReadings };
+  const insideHephaestus = insideHephaestusControlContextOf(request.context.agentAdapter);
+  return effectReadings === null ? insideHephaestus : { ...insideHephaestus, effectReadings };
 }
 
 const RUNTIME_COMMAND_KINDS: readonly RuntimeHephaestusCommand['kind'][] = ['hephaestus-stop', 'hephaestus-restart', 'talos-restart'];

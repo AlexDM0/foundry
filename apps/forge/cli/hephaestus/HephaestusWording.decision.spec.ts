@@ -6,25 +6,27 @@
  * (E22), `whitelist-removed-mid-crossing` its two (E19) and `dependent-broken` a fix ticket for the dependent in the ticket's group and
  * abandoning (E26), each option labelled as Hephaestus reads the answer back and naming no command; the need decisions name the need, and
  * `second-return` the package. The fix ticket of a dependent carries a numbered Acceptance and a Brief, so it can be readied. The two API
- * billing decisions name the variable and the check of the agent adapter's credentials, never a vendor's own.
+ * billing decisions name the variable of the adapter's API way to bill and the check of its credentials, never a vendor's own.
  */
 import { expect, test } from 'bun:test';
 
-import type { AgentCredentials }   from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentAdapter }       from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { DecisionKind }       from '../../src/lib/tracker-model/@types/Decision.ts';
 import type { DecisionDraft }      from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
 import { ENTITY_DECISION_ANSWERS } from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { HephaestusWording }       from './HephaestusWording.ts';
 
-const PLANTED_CREDENTIALS: AgentCredentials = {
-  configurationFolderVariableName: 'EXAMPLE_AGENT_FOLDER',
-  billingKeyVariableName:          'EXAMPLE_AGENT_KEY',
-  authenticationCheckSentence:     'no example policy refuses keys',
+const PLANTED_BILLING_FACTS: Pick<AgentAdapter, 'credentials' | 'billingOptions'> = {
+  credentials:    { configurationFolderVariableName: 'EXAMPLE_AGENT_FOLDER', authenticationCheckSentence: 'no example policy refuses keys' },
+  billingOptions: [
+    { mode: 'subscription', keyVariableName: null, capsEachLaunch: false },
+    { mode: 'api', keyVariableName: 'EXAMPLE_AGENT_KEY', capsEachLaunch: true },
+  ],
 };
 
 function decisionWordingOf(draft: DecisionDraft): ReturnType<typeof HephaestusWording.decisionWordingOf> {
-  return HephaestusWording.decisionWordingOf(draft, PLANTED_CREDENTIALS);
+  return HephaestusWording.decisionWordingOf(draft, PLANTED_BILLING_FACTS);
 }
 
 test('checks-not-set says that no pipeline is set and that the setup\'s Apply sets one and withdraws the question', () => {

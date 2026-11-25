@@ -169,8 +169,8 @@ function agentOf(value: unknown): PipelineAgentDocument {
 }
 
 /** The key with its agent when the body carries one; an absent key stays absent. */
-function optionalAgentAt(record: BodyRecord): { agent?: PipelineAgentDocument } {
-  return Object.hasOwn(record, 'agent') ? { agent: agentOf(record['agent']) } : {};
+function optionalBillingAt(record: BodyRecord): { billing?: PipelineBillingDocument } {
+  return Object.hasOwn(record, 'billing') ? { billing: billingOf(record['billing']) } : {};
 }
 
 /** Each tool by its name, with its path or without, and `null` for the list removed. */
@@ -322,9 +322,9 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   'pipeline-setup-resume':  (body) => ({ kind: 'pipeline-setup-resume', setupId: textAt(body, 'setupId') }),
   'pipeline-setup-start':   (body) => ({
     kind:                       'pipeline-setup-start',
-    billing:                    billingOf(valueAt(body, 'billing')),
+    agent:                      agentOf(valueAt(body, 'agent')),
     replacesUnreadablePipeline: booleanAt(body, 'replacesUnreadablePipeline'),
-    ...optionalAgentAt(body),
+    ...optionalBillingAt(body),
   }),
   'pipeline-setup-start-over': (body) => ({ kind: 'pipeline-setup-start-over', setupId: textAt(body, 'setupId') }),
   'pipeline-setup-step':       (body) => {

@@ -862,7 +862,7 @@ never carries it.
                               draft. Nothing starts one by itself; job stop closes it and job
                               message opens it again.
 
-  pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--agent machine|<path>]
+  pipeline setup --agent machine|<path> [--billing subscription|api] [--max-budget-usd <n>]
                  [--replace-unreadable] [--json]
   pipeline update [--json]
   pipeline billing <S> subscription|api [--max-budget-usd <n>] [--json]
@@ -879,15 +879,17 @@ never carries it.
   pipeline apply <S> --revision <n> [--resume] [--json]
   pipeline apply-cancel <S> [--json]
                               The pipeline setup record, <data>/pipeline-setup.json, one open at a
-                              time (setup-in-progress): setup opens a first one at the agent step,
-                              or with --agent past it with its pipeline agent started
+                              time (setup-in-progress): setup opens a first one with the agent's
+                              program, the machine's or a path, run once first, at the billing
+                              step, or with --billing past it with its pipeline agent started
                               (--replace-unreadable lets its Apply write over an unreadable
-                              pipeline.json), update one on the stored pipeline. agent chooses
-                              the program the record's pipeline agent runs, the machine's or a
-                              path, run once first; continue completes the current step
-                              (billing, agent, research, constitution, design), and the agent
-                              step's continue starts the pipeline agent; answer answers a setup
-                              question;
+                              pipeline.json), update one on the stored pipeline. billing chooses
+                              one of the ways the record's agent bills; agent changes the program
+                              the record's pipeline agent runs, and asks the billing again when
+                              the new agent does not bill that way; continue completes the
+                              current step (agent, billing, research, constitution, design), and
+                              the billing step's continue starts the pipeline agent; answer
+                              answers a setup question;
                               constitution stores the whole text from a file or standard input and
                               the SOURCES ticks (contributing, research, installed-default); edit
                               sets draft fields in one move, --set repeating (gate:<name>,

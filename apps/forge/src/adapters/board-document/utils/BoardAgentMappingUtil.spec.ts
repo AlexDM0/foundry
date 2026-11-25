@@ -1,6 +1,6 @@
 /**
- * The board document's agent, mapped field by field. What matters: every fact a view reads arrives, a program that does not run arrives
- * with forge's own sentence naming the agent and the path, and a tool keeps where each step runs it.
+ * The board document's agent, mapped field by field. What matters: every fact a view reads arrives, each vendor's ways to bill among them, a
+ * program that does not run arrives with forge's own sentence naming the agent and the path, and a tool keeps where each step runs it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -8,9 +8,17 @@ import { EXAMPLE_AGENT_FACTS }   from '../../../testing/ExampleAgentFacts.ts';
 import { BoardAgentMappingUtil } from './BoardAgentMappingUtil.ts';
 
 describe('BoardAgentMappingUtil.agentOf', () => {
-  test('maps the vendors, the choice, both programs, the run, the places and the tools', () => {
+  test('maps the vendors with the ways each bills, the choice, both programs, the run, the places and the tools', () => {
     expect(BoardAgentMappingUtil.agentOf(EXAMPLE_AGENT_FACTS)).toEqual({
-      vendors:            [{ vendor: 'example-agent', displayName: 'Example Agent', supported: true }],
+      vendors: [{
+        vendor:         'example-agent',
+        displayName:    'Example Agent',
+        supported:      true,
+        billingOptions: [
+          { mode: 'subscription', keyVariableName: null, capsEachLaunch: false },
+          { mode: 'api', keyVariableName: 'EXAMPLE_AGENT_KEY', capsEachLaunch: true },
+        ],
+      }],
       choice:             { vendor: 'example-agent', program: { follows: 'machine' } },
       machineProgramPath: '/opt/example/bin/agent',
       programPath:        '/opt/example/bin/agent',

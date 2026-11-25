@@ -48,8 +48,10 @@ function agentFactsOf(source: AgentFactsSource): AgentFacts {
   const setup = board.pipelineSetup();
   return {
     vendors: [
-      { vendor: adapter.vendor, displayName: adapter.displayName, supported: true },
-      ...COMING_AGENT_VENDORS.filter((coming) => coming.vendor !== adapter.vendor).map((coming) => ({ ...coming, supported: false })),
+      {
+        vendor: adapter.vendor, displayName: adapter.displayName, supported: true, billingOptions: adapter.billingOptions
+      },
+      ...COMING_AGENT_VENDORS.filter((coming) => coming.vendor !== adapter.vendor).map((coming) => ({ ...coming, supported: false, billingOptions: [] })),
     ],
     agentName:   adapter.displayName,
     choice,

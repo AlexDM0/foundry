@@ -24,6 +24,7 @@ import type { UsageWindowObservation }               from '../../adapters/usage-
 import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
+import { AgentBillingUtil }                          from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
 import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -278,8 +279,8 @@ export interface DrivePassRequest {
   installVersionChanged:         () => boolean;
   /** Resolves once the install versions a pass reads are known, such as after a landing; the event loop runs while it waits. */
   installVersionsKnown?:         () => Promise<void>;
-  /** Whether Hephaestus's environment holds the API key that the pipeline's `api` billing needs before any session starts. */
-  apiBillingKeyIsSet:            () => boolean;
+  /** Whether Hephaestus's environment holds the variable, such as the key a billing's way needs before any session starts. */
+  agentVariableIsSet:            (variableName: string) => boolean;
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                () => boolean;
   decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
@@ -983,6 +984,11 @@ function sessionPlaceOf(snapshotContext: Parameters<typeof PipelineAgentSessions
 
 /** The forge's agent read through this machine's config, kept as the choice names it and checked where it lies. */
 function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
+  const resolution = chosenProgramResolutionOf(request, board, job);
+  return resolution.verdict === 'found' ? billedResolutionOf(request, board, job, resolution.programPath) : resolution;
+}
+
+function chosenProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
   if (request.agentProgramOf !== undefined) return request.agentProgramOf(board, job);
   const agent = PipelineAgentSessions.launchAgentOf(board, job);
   if (agent === null && request.agentProgramWhenNoneIsChosen !== undefined) return { verdict: 'found', programPath: request.agentProgramWhenNoneIsChosen };
@@ -995,6 +1001,14 @@ function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: 
     resolver:           request.platformPorts.executableResolver,
     forbiddenRoots:     AgentPrograms.forbiddenRootsOf(agent, ownRepositoryRoot, registeredRepositoryRootsIn(request.monitorFolder)),
   });
+}
+
+/** A program found launches nothing under a billing its vendor does not bill by: that stands as the job's not-launched fact, tried each sweep. */
+function billedResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>, programPath: string): AgentProgramResolution {
+  const billing = PipelineAgentSessions.launchBillingOf(board, job);
+  const readiness = AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, billing, () => true);
+  if (readiness.verdict === 'not-offered') return { verdict: 'not-launched', notLaunched: { cause: 'billing-not-offered', programPath } };
+  return { verdict: 'found', programPath };
 }
 
 /** Exactly the approved tools' folders, then the program's own, then the system's: nothing else of the inherited search path. */
@@ -1021,7 +1035,8 @@ async function launchAgentChild(
 ): Promise<LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
-  if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
+  const billingReadiness = AgentBillingUtil.launchReadinessOf(agentAdapter.billingOptions, billing, request.agentVariableIsSet);
+  if (billingReadiness.verdict === 'key-missing') return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job, board.pipelineSetup());
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
   const location = projectLocationOf(workspace.rootDirectory);
@@ -1748,7 +1763,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
     const apiKeyDecisionIsDue = apiBillingKeyIsMissing && openApiKeyDecisionIdsOf(written.board).length === 0;
-    const apiKeyIsNotMissing = written.board.pipeline()?.billing?.mode !== 'api' || request.apiBillingKeyIsSet();
+    const storedBilling = written.board.pipeline()?.billing;
+    const apiKeyIsNotMissing = AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, storedBilling, request.agentVariableIsSet).verdict !== 'key-missing';
     const apiKeyDecisionIsStale = apiKeyIsNotMissing && openApiKeyDecisionIdsOf(written.board).length > 0;
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale

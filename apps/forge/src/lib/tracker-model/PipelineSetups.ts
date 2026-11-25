@@ -38,6 +38,7 @@ import {
   type EntityChangeRefusalReason,
   type EntityDraftEdit,
   type MainConstitution,
+  type OfferedBillingModesOf,
   PIPELINE_SETUP_FORMAT_VERSION,
   type PipelineDraftEdit,
   type PipelineCheckEnding,
@@ -95,7 +96,7 @@ function isEntityChangeRefusalReason(reason: string): reason is EntityChangeRefu
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
 const UPDATE_STEP_STATES: Readonly<PipelineSetupStepStates> = {
-  billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+  agent: 'done', billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
 };
 
 /** The SOURCES tick that selects each kind of source a constitution line may name. */
@@ -105,29 +106,29 @@ const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof Constitut
   'installed-default': 'installedDefault',
 };
 
-/** A first setup starts with the billing and the agent User chose, so it opens at the research, the pipeline agent's first step. */
+/** A first setup started with its agent and its billing opens at the research, the pipeline agent's first step. */
 const FIRST_SETUP_STEP_STATES: Readonly<PipelineSetupStepStates> = {
-  billing: 'done', agent: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+  agent: 'done', billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
 };
 
-/** A first setup with no agent chosen opens at the agent step: no pipeline agent can launch before it is done. */
-const AGENT_FIRST_STEP_STATES: Readonly<PipelineSetupStepStates> = {
-  billing: 'done', agent: 'in-progress', research: 'not-started', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+/** A first setup started with its agent alone opens at the billing step: no pipeline agent launches before it is done. */
+const BILLING_STEP_STATES: Readonly<PipelineSetupStepStates> = {
+  agent: 'done', billing: 'in-progress', research: 'not-started', constitution: 'not-started', design: 'not-started', apply: 'not-started'
 };
 
 /** The step states with `entities` not started, in the order the steps are walked. */
 function stepStatesWalkingEntitiesOf(stepStates: Readonly<PipelineSetupStepStates>): PipelineSetupStepStates {
   const {
-    billing, agent, research, constitution, design, apply
+    agent, billing, research, constitution, design, apply
   } = stepStates;
   return {
-    billing, agent, research, entities: 'not-started', constitution, design, apply
+    agent, billing, research, entities: 'not-started', constitution, design, apply
   };
 }
 
-/** Research is still the current step: a first setup opens there, and billing and the agent reopen before it. */
+/** Research is still the current step: a first setup opens there, and the agent and billing reopen before it. */
 function researchIsCurrent(setup: Readonly<PipelineSetup>): boolean {
-  return setup.currentStep === 'billing' || setup.currentStep === 'agent' || setup.currentStep === 'research';
+  return setup.currentStep === 'agent' || setup.currentStep === 'billing' || setup.currentStep === 'research';
 }
 
 function agentCopyOf(agent: Readonly<PipelineAgent>): PipelineAgent {
@@ -176,6 +177,16 @@ function billingCopyOf(billing: PipelineBilling): PipelineBilling {
     throw new BoardRefusal({ reason: 'billing-cap-not-positive', maxBudgetUsd: billing.maxBudgetUsd });
   }
   return { ...billing };
+}
+
+/** The billing as the record keeps it: only one of the ways the agent's vendor bills, refused `billing-not-offered` otherwise. */
+function offeredBillingCopyOf(setupId: string, billing: PipelineBilling, agent: Readonly<PipelineAgent>, offeredBillingModesOf: OfferedBillingModesOf): PipelineBilling {
+  if (!offeredBillingModesOf(agent.vendor).includes(billing.mode)) {
+    throw new BoardRefusal({
+      reason: 'billing-not-offered', setupId, vendor: agent.vendor, mode: billing.mode
+    });
+  }
+  return billingCopyOf(billing);
 }
 
 /** A draft's text, or `null` when it holds none, which main matches only by holding no file either. */
@@ -279,8 +290,8 @@ export class PipelineSetups {
   ) {}
 
   /**
-   * Refuses `setup-in-progress` beside an open record. A first setup opens at the research, its billing done; an update or advise record
-   * starts from the stored pipeline at the design.
+   * Refuses `setup-in-progress` beside an open record. A first setup starts with its agent: it opens at the billing step, or, started with
+   * one of the agent's ways to bill too, at the research; an update or advise record starts from the stored pipeline at the design.
    */
   openSetup(opening: PipelineSetupOpening, at: string): PipelineSetupChanged {
     const reading = this.records.pipelineSetupReading;
@@ -290,16 +301,19 @@ export class PipelineSetups {
     if (opening.mode !== 'setup' && stored === null) throw new BoardRefusal({ reason: 'no-pipeline-to-update', mode: opening.mode });
 
     const isUpdate = opening.mode !== 'setup';
-    const opensAtAgent = !isUpdate && opening.agent === null;
-    const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...opensAtAgent ? AGENT_FIRST_STEP_STATES : FIRST_SETUP_STEP_STATES };
+    const opensAtBilling = !isUpdate && opening.billing === null;
+    const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...opensAtBilling ? BILLING_STEP_STATES : FIRST_SETUP_STEP_STATES };
+    // The billing is judged before the number is taken, so a refused start takes no setup id.
+    const billing = this.openingBillingOf(`${SETUP_ID_PREFIX}${this.records.progress.nextSetupId ?? FIRST_SETUP_NUMBER}`, opening);
+    const setupId = `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`;
     const setup: PipelineSetup = {
       formatVersion:              PIPELINE_SETUP_FORMAT_VERSION,
-      setupId:                    `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`,
+      setupId,
       mode:                       opening.mode,
       baseContentHash:            isUpdate && stored !== null ? PipelineUtil.contentHashOf(stored) : null,
       stepStates,
-      currentStep:                isUpdate ? 'design' : opensAtAgent ? 'agent' : 'research',
-      billing:                    billingCopyOf(opening.billing),
+      currentStep:                isUpdate ? 'design' : opensAtBilling ? 'billing' : 'research',
+      billing,
       agent:                      opening.agent === null ? null : agentCopyOf(opening.agent),
       agentJobId:                 null,
       snapshotCommit:             null,
@@ -320,31 +334,43 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-opened', setupId: setup.setupId, fields }, at)], setup };
   }
 
-  setSetupBilling(setupId: string, billing: PipelineBilling, at: string): PipelineSetupChanged {
-    const setup   = this.requireMovableSetup(setupId);
-    setup.billing = billingCopyOf(billing);
+  /**
+   * One of the ways the record's agent bills: refused `setup-billing-before-agent` while the record names no agent, and `billing-not-offered`
+   * for a way its vendor does not bill. A change never reopens a step.
+   */
+  setSetupBilling(setupId: string, billing: PipelineBilling, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    if (setup.agent === null) throw new BoardRefusal({ reason: 'setup-billing-before-agent', setupId });
+    const kept = offeredBillingCopyOf(setupId, billing, setup.agent, offeredBillingModesOf);
+    setup.billing = kept;
     this.store(setup);
-    const fields = setup.billing.mode === 'api' && setup.billing.maxBudgetUsd !== undefined
-      ? { mode: setup.billing.mode, maxBudgetUsd: setup.billing.maxBudgetUsd }
-      : { mode: setup.billing.mode };
+    const fields = kept.mode === 'api' && kept.maxBudgetUsd !== undefined ? { mode: kept.mode, maxBudgetUsd: kept.maxBudgetUsd } : { mode: kept.mode };
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-billing-set', setupId, fields }, at)], setup };
   }
 
-  /** The agent the record's pipeline agent runs on and Apply stores; a change never reopens a step. */
-  setSetupAgent(setupId: string, agent: PipelineAgent, at: string): PipelineSetupChanged {
+  /**
+   * The agent the record's pipeline agent runs on and Apply stores. A change keeps the billing its new vendor also bills by; otherwise the
+   * billing is asked again (`billingAskedAgainRecords`).
+   */
+  setSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
     setup.agent = agentCopyOf(agent);
     this.store(setup);
     const fields = { vendor: agent.vendor, program: programWordOf(agent) };
-    return { logged: [this.records.logger.log({ kind: 'pipeline-setup-agent-set', setupId, fields }, at)], setup };
+    const agentSet = this.records.logger.log({ kind: 'pipeline-setup-agent-set', setupId, fields }, at);
+    return { logged: [agentSet, ...this.billingAskedAgainRecords(setup, offeredBillingModesOf, at)], setup };
   }
 
-  /** The open record's agent follows a change of the forge's agent, so its pipeline agent runs on the same one; nothing is logged twice. */
-  followAgentChange(agent: PipelineAgent): void {
+  /**
+   * The open record's agent follows a change of the forge's agent, so its pipeline agent runs on the same one, and its billing is asked
+   * again as `setSetupAgent` asks it; the agent's change is not logged twice.
+   */
+  followAgentChange(agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): LogRecord[] {
     const reading = this.records.pipelineSetupReading;
-    if (reading.verdict !== 'readable') return;
+    if (reading.verdict !== 'readable') return [];
     reading.setup.agent = agentCopyOf(agent);
     this.store(reading.setup);
+    return this.billingAskedAgainRecords(reading.setup, offeredBillingModesOf, at);
   }
 
   /** The open record's draft follows a change of the forge's tools, so its Apply never writes the older list back; nothing is logged twice. */
@@ -358,7 +384,8 @@ export class PipelineSetups {
 
   /**
    * User's Continue on the current step: it is done, and the next step opens; on a step that needs a recheck, this is its only exit. It
-   * waits while the draft's entities hold a refusal. The agent step is done only once the record holds an agent.
+   * waits while the draft's entities hold a refusal. The agent step is done only once the record holds an agent, and billing once it holds
+   * a billing.
    */
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
@@ -368,6 +395,7 @@ export class PipelineSetups {
     });
     refuseStandingEntityRefusals(setup);
     if (step === 'agent' && setup.agent === null) throw new BoardRefusal({ reason: 'setup-agent-not-chosen', setupId });
+    if (step === 'billing' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-billing-not-chosen', setupId });
 
     const walkedSteps = walkedStepsOf(setup);
     const nextStep    = walkedSteps[walkedSteps.indexOf(step) + 1] ?? 'apply';
@@ -1244,6 +1272,28 @@ export class PipelineSetups {
       baseBlob:    mainConstitution?.blob ?? null,
       revision:    0,
     };
+  }
+
+  /** A first setup's billing is one of the ways its agent bills, or none yet; an update or advise record keeps the stored one as it is. */
+  private openingBillingOf(setupId: string, opening: PipelineSetupOpening): PipelineBilling | null {
+    if (opening.billing === null) return null;
+    if (opening.mode !== 'setup') return billingCopyOf(opening.billing);
+    return offeredBillingCopyOf(setupId, opening.billing, opening.agent, opening.offeredBillingModesOf);
+  }
+
+  /**
+   * A billing the record's new agent's vendor does not bill by is cleared, and the billing step is asked again: reopened when the record
+   * stands past it, every later done step then needing a recheck. Its Continue waits for a new billing. A billing it bills by is kept, cap
+   * and all.
+   */
+  private billingAskedAgainRecords(setup: PipelineSetup, offeredBillingModesOf: OfferedBillingModesOf, at: string): LogRecord[] {
+    const { agent, billing } = setup;
+    if (agent === null || billing === null || offeredBillingModesOf(agent.vendor).includes(billing.mode)) return [];
+    setup.billing = null;
+    this.store(setup);
+    const billingState = stepStateOf(setup, 'billing');
+    const standsPastBilling = stepIndexOf(setup.currentStep) > stepIndexOf('billing');
+    return standsPastBilling && billingState !== 'not-started' ? this.reopenedStepRecords(setup, 'billing', at) : [];
   }
 
   /** Only User's edit of a step before the current one of a first setup reopens it; the agent's moves never move a step. */

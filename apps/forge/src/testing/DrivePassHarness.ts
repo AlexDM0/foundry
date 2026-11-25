@@ -89,7 +89,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     // The fake agent's program is the runtime, as a scratch forge names no agent of its own.
     agentProgramWhenNoneIsChosen: process.execPath,
     installVersionChanged:        () => false,
-    apiBillingKeyIsSet:           () => false,
+    agentVariableIsSet:           () => false,
     decisionWordingOf:            () => ({ questions: [], context: '' }),
     packageNeedWordingOf:         () => ({ title: 'Example need', body: '' }),
     dependentFixWordingOf:        () => ({ title: 'Example fix', body: '' }),

@@ -7,6 +7,7 @@
 import type {
   ConstitutionSources,
   MainConstitutionReading,
+  OfferedBillingModesOf,
   PipelineCheck,
   PipelineDraftField,
   PipelineSetupMode,
@@ -76,6 +77,8 @@ export interface ControlContext {
    * own commands in its own hold.
    */
   liveHephaestusOf:      (dataFolder: string) => LiveHephaestus | null;
+  /** The ways a vendor's agent bills, through this process's agent adapter: a billing and an agent change are judged by it. */
+  offeredBillingModesOf: OfferedBillingModesOf;
   /** The live Hephaestus's effect readings, which an effect read asks for; absent outside it, where an effect read is refused. */
   effectReadings?:       EffectReadingSource;
 }

@@ -7,15 +7,16 @@ import { posix, win32 } from 'node:path';
 import type { Logged }                        from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { PipelineTool }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
 import { agentFieldOf }                       from './PipelineSetupControls.ts';
 import { requireReadablePipeline }            from './SettingControls.ts';
 
 /** A stored pipeline that cannot be read is never written over; an open setup record takes the agent with no pipeline stored. */
-function setAgent(command: CommandOf<'pipeline-agent-set'>, change: BoardTransaction): Logged {
+function setAgent(command: CommandOf<'pipeline-agent-set'>, change: BoardTransaction, context: ControlContext): Logged {
   if (change.board.pipelineSetup() === null) requireReadablePipeline(change);
-  return change.board.setAgent(agentFieldOf(command), change.at);
+  return change.board.setAgent(agentFieldOf(command), context.offeredBillingModesOf, change.at);
 }
 
 /** A tool reaches the hold with the absolute path it was found at; one with none was not found. */

@@ -34,10 +34,12 @@ finished step, or one that needs a recheck, links back to its page. Each tab has
 the link survives a Hephaestus restart. A fragment that names no tab opens the tab you last chose, or else the first tab
 shown. Until the first board update arrives the panel says it is waiting for Hephaestus.
 
-With no setup open, Pipeline opens on the setup landing: it counts the committed tickets that wait for a pipeline, asks who
-pays for the agents (the subscription, or the API key with an optional cap per launch) and shows the pipeline agent's
-model and effort. **Set up the pipeline** sends `pipeline-setup-start` with that billing and opens the research step; an
-unreadable `pipeline.json` is named in a banner, and the start then says that Apply replaces it. With a setup open, the
+With no setup open, Pipeline opens on the setup landing, the agent step: it counts the committed tickets that wait for a
+pipeline and asks which agent builds the forge and which of its programs runs. Its Continue sends `pipeline-setup-start`
+with that agent and opens the billing step, which asks who pays for the agents in the ways that agent bills (for
+example its subscription, or an API key with an optional cap per launch); the billing step's Continue launches the
+pipeline agent and opens the research step. An unreadable `pipeline.json` is named in a banner, and the start then says
+that Apply replaces it. With a setup open, the
 bare `#pipeline` shows the resume summary instead: each step with its status and summary (Open on a finished step),
 the open questions and the pipeline agent's job on the current step, a note when main moved since the research,
 **Resume <step>** (`pipeline-setup-resume`) and **Start over**, which asks first (`pipeline-setup-start-over`). The

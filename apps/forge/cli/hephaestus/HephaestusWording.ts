@@ -2,13 +2,14 @@
  * The words Hephaestus's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                        from 'node:fs';
-import { OperationRefusalWordingUtil }         from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentAdapter, AgentCredentials } from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { DecisionQuestionOption }         from '../../src/lib/tracker-model/@types/Decision.ts';
-import type { Incident }                       from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                            from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate }         from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { readFileSync }                from 'node:fs';
+import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { AgentAdapter }           from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { AgentBillingUtil }            from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
+import type { DecisionQuestionOption } from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -59,7 +60,16 @@ function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
 }
 
-function apiKeyNotSetWordingOf({ billingKeyVariableName }: AgentCredentials): DecisionWording {
+/** The adapter's billing and credentials, which the API billing decisions name. */
+type BillingFactsOfAdapter = Pick<AgentAdapter, 'credentials' | 'billingOptions'>;
+
+/** The variable the API way's key is read from; the API decisions open only for a vendor that bills that way. */
+function apiKeyVariableNameOf(adapter: BillingFactsOfAdapter): string {
+  return AgentBillingUtil.keyVariableNameOf(adapter.billingOptions, 'api') ?? 'the variable of the API key';
+}
+
+function apiKeyNotSetWordingOf(adapter: BillingFactsOfAdapter): DecisionWording {
+  const billingKeyVariableName = apiKeyVariableNameOf(adapter);
   return {
     questions: [{
       question:    `The pipeline sets API billing, and the environment of Hephaestus has no ${billingKeyVariableName}. No agent starts until you set it.`,
@@ -73,7 +83,9 @@ function apiKeyNotSetWordingOf({ billingKeyVariableName }: AgentCredentials): De
   };
 }
 
-function apiAuthenticationFailedWordingOf({ billingKeyVariableName, authenticationCheckSentence }: AgentCredentials): DecisionWording {
+function apiAuthenticationFailedWordingOf(adapter: BillingFactsOfAdapter): DecisionWording {
+  const billingKeyVariableName = apiKeyVariableNameOf(adapter);
+  const { authenticationCheckSentence } = adapter.credentials;
   return {
     questions: [{
       question:    'The API refused the authentication of an agent session under API billing. No agent starts until you answer.',
@@ -206,11 +218,11 @@ function entityDecisionWordingOf(draft: DecisionDraft): DecisionWording | null {
   }
 }
 
-/** `credentials` are the agent adapter's, which the API billing decisions name. */
-function decisionWordingOf(draft: DecisionDraft, credentials: AgentCredentials): DecisionWording {
+/** `adapter` is the agent adapter, whose billing and credentials the API billing decisions name. */
+function decisionWordingOf(draft: DecisionDraft, adapter: BillingFactsOfAdapter): DecisionWording {
   if (draft.kind === 'checks-not-set') return CHECKS_NOT_SET_WORDING;
-  if (draft.kind === 'api-key-not-set') return apiKeyNotSetWordingOf(credentials);
-  if (draft.kind === 'api-authentication-failed') return apiAuthenticationFailedWordingOf(credentials);
+  if (draft.kind === 'api-key-not-set') return apiKeyNotSetWordingOf(adapter);
+  if (draft.kind === 'api-authentication-failed') return apiAuthenticationFailedWordingOf(adapter);
   if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
   const entityDecisionWording = entityDecisionWordingOf(draft);
   if (entityDecisionWording !== null) return entityDecisionWording;
@@ -748,15 +760,15 @@ function fencedBlockOf(text: string, language: string): string {
 }
 
 /**
- * The step blocks a step works under: the research block also while billing or the agent is open, since the agent starts reading at once; the entities
+ * The step blocks a step works under: the research block also while the agent or billing is open, since the agent starts reading at once; the entities
  * block, which turns the layout the research found into entities; the design block also at Apply, so the agent still answers User's
  * changes there. An advise session reads the design rules too.
  */
 function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): readonly string[] {
   if (mode === 'advise') return ['PipelineAgentAdvise.md', 'PipelineAgentDesign.md'];
   switch (step) {
-    case 'billing':
     case 'agent':
+    case 'billing':
     case 'research':
       return ['PipelineAgentResearch.md'];
     case 'entities':

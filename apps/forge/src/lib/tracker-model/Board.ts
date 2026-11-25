@@ -127,6 +127,7 @@ import type {
   ConstitutionSourcesReading,
   DraftEditRequest,
   EntityChangeRefusalReason,
+  OfferedBillingModesOf,
   PipelineCheckEnding,
   PipelineCheckStart,
   PipelineSetup,
@@ -1047,17 +1048,19 @@ export class Board {
   }
 
   /**
-   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. With no
-   * stored pipeline an open record takes it alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
+   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one, its billing
+   * asked again when the new vendor does not bill that way. With no stored pipeline an open record takes it alone; with neither it is
+   * refused `agent-without-pipeline`. Every launch it refused is tried again.
    */
-  setAgent(agent: PipelineAgent, at: string): Logged {
+  setAgent(agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
     const setup = this.pipelineSetup();
     if (this.records.pipeline === null && setup !== null) {
-      return { logged: [...this.pipelineSetups.setSetupAgent(setup.setupId, agent, at).logged, ...this.jobRules.retryNotLaunched(at).logged] };
+      const changed = this.pipelineSetups.setSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
+      return { logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
     }
     const changed = this.trackerChanges.setAgent(agent, at);
-    this.pipelineSetups.followAgentChange(agent);
-    return { logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+    const followed = this.pipelineSetups.followAgentChange(agent, offeredBillingModesOf, at);
+    return { logged: [...changed.logged, ...followed, ...this.jobRules.retryNotLaunched(at).logged] };
   }
 
   /** The tools whose folders an agent's search path holds, in an open update's draft too; `null` follows the pipeline's programs again. */
@@ -1223,13 +1226,13 @@ export class Board {
     return this.pipelineSetups.openSetup(opening, at);
   }
 
-  setSetupBilling(setupId: string, billing: PipelineBilling, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.setSetupBilling(setupId, billing, at);
+  setSetupBilling(setupId: string, billing: PipelineBilling, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.setSetupBilling(setupId, billing, offeredBillingModesOf, at);
   }
 
   /** The record's agent; every launch its earlier program refused is tried again. */
-  setSetupAgent(setupId: string, agent: PipelineAgent, at: string): PipelineSetupChanged {
-    const changed = this.pipelineSetups.setSetupAgent(setupId, agent, at);
+  setSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
+    const changed = this.pipelineSetups.setSetupAgent(setupId, agent, offeredBillingModesOf, at);
     return { setup: changed.setup, logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
   }
 

@@ -270,7 +270,12 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'entities-while-tickets-in-flight': { reason: 'entities-while-tickets-in-flight', setupId: 'S1', ticketIds: ['014'] },
   'billing-cap-not-positive':         { reason: 'billing-cap-not-positive', maxBudgetUsd: 0 },
   'setup-agent-not-chosen':           { reason: 'setup-agent-not-chosen', setupId: 'S1' },
-  'setup-step-not-current':           {
+  'setup-billing-not-chosen':         { reason: 'setup-billing-not-chosen', setupId: 'S1' },
+  'setup-billing-before-agent':       { reason: 'setup-billing-before-agent', setupId: 'S1' },
+  'billing-not-offered':              {
+    reason: 'billing-not-offered', setupId: 'S1', vendor: 'example-agent', mode: 'api'
+  },
+  'setup-step-not-current': {
     reason: 'setup-step-not-current', setupId: 'S1', step: 'design', currentStep: 'research'
   },
   'setup-step-not-reached':      { reason: 'setup-step-not-reached', setupId: 'S1', step: 'apply' },

@@ -1,14 +1,15 @@
 /**
  * `pipeline-setup.json` both ways. What matters: a written record reads back whole and writes back byte for byte, its own keys first in a
  * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
- * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; a record of a forge
- * without entities, as an open record stored before them, reads and writes back byte for byte with no `entities` key and no `entities`
- * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set, and an
- * update or advise opened at an entity keeps `openedAtEntity` after the parts, while a record opened at the forge has no such key; a draft
- * whose entities the validator refuses reads and writes back unchanged, since User resolves its refusals before Continue; an edit
- * stored without `batch`, as every edit but a copy's is, reads and writes back byte for byte with no `batch` key, while a copy's edits
- * keep theirs after `undone`, an entity's field included; no file is `absent`; and a file nobody could trust whole, a nested key the read
- * does not know included, is `malformed` with a reason naming the offending part, never a throw.
+ * byte; a billing not chosen yet is stored as `null`, while a missing one is malformed; a record with no check is written with no `check`
+ * key, and one with a check keeps it before `nextNumbers`; a record of a forge without entities, as an open record stored before them, reads
+ * and writes back byte for byte with no `entities` key and no `entities` step state, while a record over entities keeps its step state and
+ * each entity's part, the part's own check only once set, and an update or advise opened at an entity keeps `openedAtEntity` after the
+ * parts, while a record opened at the forge has no such key; a draft whose entities the validator refuses reads and writes back unchanged,
+ * since User resolves its refusals before Continue; an edit stored without `batch`, as every edit but a copy's is, reads and writes back
+ * byte for byte with no `batch` key, while a copy's edits keep theirs after `undone`, an entity's field included; no file is `absent`; and a
+ * file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason naming the offending part, never
+ * a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -26,12 +27,12 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
 
 const EXAMPLE_SETUP: PipelineSetup = {
-  formatVersion:   3,
+  formatVersion:   4,
   setupId:         'S2',
   mode:            'setup',
   baseContentHash: null,
   stepStates:      {
-    billing: 'done', agent: 'done', research: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+    agent: 'done', billing: 'done', research: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
   },
   currentStep:     'design',
   billing:         { mode: 'api', maxBudgetUsd: 4.5 },
@@ -122,13 +123,13 @@ const EXAMPLE_CHECKED: PipelineSetup = {
 
 /** An open record as a build that knew no entities stored it, written by hand so the new build cannot shape it. */
 const STORED_BEFORE_ENTITIES_TEXT = `{
-  "formatVersion": 3,
+  "formatVersion": 4,
   "setupId": "S1",
   "mode": "setup",
   "baseContentHash": null,
   "stepStates": {
-    "billing": "done",
     "agent": "done",
+    "billing": "done",
     "research": "in-progress",
     "constitution": "not-started",
     "design": "not-started",
@@ -210,7 +211,7 @@ const EXAMPLE_COPIED: PipelineSetup = {
 const EXAMPLE_OVER_ENTITIES: PipelineSetup = {
   ...EXAMPLE_SETUP,
   stepStates: {
-    billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+    agent: 'done', billing: 'done', research: 'done', entities: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
   },
   findings: [
     ...EXAMPLE_SETUP.findings,
@@ -274,6 +275,14 @@ describe('a readable record', () => {
     expect(readFileSync(setupFilePath, 'utf8')).toBe(text);
   });
 
+  test('a record whose billing is not chosen yet reads back with none, and writes it as null', () => {
+    const text = PipelineSetupFile.contentsOf({ ...EXAMPLE_SETUP, billing: null });
+    writeFileSync(setupFilePath, text);
+
+    expect(PipelineSetupFile.read(setupFilePath)).toEqual({ verdict: 'readable', setup: { ...EXAMPLE_SETUP, billing: null } });
+    expect(text).toContain('"billing": null');
+  });
+
   test('the record\'s own keys come first in a fixed order, then the unknown ones in stored order', () => {
     expect(Object.keys(storedDocument())).toEqual([
       'formatVersion',
@@ -335,7 +344,7 @@ describe('a readable record', () => {
     if (reading.verdict !== 'readable') throw new Error('the record did not read');
     expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
     const document = JSON.parse(text) as { stepStates: object; entities: Record<string, object> };
-    expect(Object.keys(document.stepStates)).toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(Object.keys(document.stepStates)).toEqual(['agent', 'billing', 'research', 'entities', 'constitution', 'design', 'apply']);
     const keys = Object.keys(document);
     expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'entities', 'nextNumbers']);
     expect(Object.keys(document.entities['api'] ?? {})).toEqual(['agentJobId', 'findings', 'questions', 'constitution']);
@@ -414,7 +423,9 @@ describe('a readable record', () => {
 describe('a malformed record', () => {
   test.each<[string, (document: Record<string, unknown>) => unknown, string]>([
     ['not an object', () => [], 'the document is not a JSON object'],
-    ['an older format version', (document) => ({ ...document, formatVersion: 1 }), 'formatVersion is 1, and this build reads 3'],
+    ['an older format version', (document) => ({ ...document, formatVersion: 1 }), 'formatVersion is 1, and this build reads 4'],
+    ['a record of the format whose billing came before the agent', (document) => ({ ...document, formatVersion: 3 }), 'formatVersion is 3, and this build reads 4'],
+    ['a missing billing', (document) => Object.fromEntries(Object.entries(document).filter(([key]) => key !== 'billing')), 'billing is missing'],
     ['a missing key', ({ setupId: _setupId, ...rest }) => rest, 'setupId is missing'],
     ['a setup id of another shape', (document) => ({ ...document, setupId: 'D1' }), 'setupId is "D1", and it has to be a setup id such as S1'],
     ['an unknown step state',

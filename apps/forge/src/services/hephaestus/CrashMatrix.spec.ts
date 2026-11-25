@@ -51,7 +51,7 @@ import { PRODUCT_NAMES }                                        from '../../shar
 import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
 import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../testing/DrivePassHarness.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }     from '../../testing/EchoedControlContext.ts';
-import { EXAMPLE_PIPELINE_AGENT }                               from '../../testing/ExamplePipelineAgent.ts';
+import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT }   from '../../testing/ExamplePipelineAgent.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -404,7 +404,13 @@ describe('an Apply cut short', () => {
       now,
       mutate:    (change) => {
         const { setupId } = change.board.openSetup({
-          mode: 'setup', billing: { mode: 'subscription' }, agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+          mode:                       'setup',
+          billing:                    { mode: 'subscription' },
+          agent:                      EXAMPLE_PIPELINE_AGENT,
+          offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+          replacesUnreadablePipeline: false,
+          mainConstitution:           null,
+          storedAnnotations:          [],
         }, change.at).setup;
         change.board.setConstitution(setupId, {
           markdown:    MAIN_CONSTITUTION.markdown,

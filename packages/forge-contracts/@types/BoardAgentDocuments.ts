@@ -3,12 +3,26 @@
  * that vendor, the places its installers put it, whether the program runs, and the tools whose folders an agent's search path holds.
  */
 
+/** How a session of a vendor's agent can be billed: by the vendor's login, or by the account of a key in Hephaestus's environment. */
+export type AgentBillingModeDocument = 'subscription' | 'api';
+
+/** One way a vendor's agent bills, with what it means: the variable its key must be in, and whether each launch takes a cap. */
+export interface AgentBillingOptionDocument {
+  readonly mode:            AgentBillingModeDocument;
+  /** The environment variable that must hold the key before any session starts; `null` for a mode that bills the login. */
+  readonly keyVariableName: string | null;
+  /** Whether the agent caps each launch of a session at the billing's `maxBudgetUsd`. */
+  readonly capsEachLaunch:  boolean;
+}
+
 /** A vendor of coding agents this forge knows, with whether this forge can run it now. */
 export interface AgentVendorDocument {
-  readonly vendor:      string;
+  readonly vendor:         string;
   /** The agent's name as a person knows it. */
-  readonly displayName: string;
-  readonly supported:   boolean;
+  readonly displayName:    string;
+  readonly supported:      boolean;
+  /** The ways this vendor's agent bills, its default first; empty for a vendor this forge cannot run. From forge 4.3. */
+  readonly billingOptions: readonly AgentBillingOptionDocument[];
 }
 
 /** How a forge names its agent's program: the machine's program of its vendor, or a path for this forge alone, kept as found. */
@@ -39,7 +53,8 @@ export interface AgentProgramPlaceDocument {
 }
 
 /**
- * Why an agent's program does not run: `no-agent-chosen`, `other-vendor` and `no-machine-program` read the choice; `relative-path`,
+ * Why an agent's program does not run: `no-agent-chosen`, `other-vendor`, `no-machine-program` and `billing-not-offered` (the billing
+ * names a way the vendor does not bill, from forge 4.3) read the choice; `relative-path`,
  * `inside-forbidden-root`, `batch-target`, `not-there`, `not-executable` and `no-adapter` where the program lies; `did-not-start`,
  * `timed-out`, `failed` and `not-this-agent` how its run with its version arguments ended.
  */
@@ -47,6 +62,7 @@ export type AgentProgramRefusalCause =
   | 'no-agent-chosen'
   | 'other-vendor'
   | 'no-machine-program'
+  | 'billing-not-offered'
   | 'relative-path'
   | 'inside-forbidden-root'
   | 'batch-target'

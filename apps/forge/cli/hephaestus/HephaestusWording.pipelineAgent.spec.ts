@@ -50,12 +50,12 @@ const CONSTITUTION_MARKDOWN = '# Constitution\n\n## Tests\n\n- Each module has a
 
 function setupAt(currentStep: PipelineSetup['currentStep']): PipelineSetup {
   return {
-    formatVersion:   3,
+    formatVersion:   4,
     setupId:         'S1',
     mode:            'setup',
     baseContentHash: null,
     stepStates:      {
-      billing: 'done', agent: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
     },
     currentStep,
     billing:         { mode: 'subscription' },
@@ -237,7 +237,7 @@ describe('the current step\'s block', () => {
   test('the skill names the setup record under a job and outside one, and no board page', () => {
     expect(SKILL_TEXT).toContain('Under a pipeline agent job, the verbs name no setup record');
     expect(SKILL_TEXT).toContain('Outside a job, the first word after the verb names the record');
-    expect(SKILL_TEXT).toContain(`\`${PRODUCT_NAMES.PROGRAM} pipeline setup\``);
+    expect(SKILL_TEXT).toContain(`\`${PRODUCT_NAMES.PROGRAM} pipeline setup --agent machine\``);
     expect(SKILL_TEXT).toContain(`\`${PRODUCT_NAMES.PROGRAM} pipeline update\``);
     expect(SKILL_TEXT).not.toContain('board page');
     expect(SKILL_TEXT).not.toContain('{{');

@@ -128,12 +128,12 @@ describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
 describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
   const setup: PipelineSetupFacts = {
     record: {
-      formatVersion:   3,
+      formatVersion:   4,
       setupId:         'S2',
       mode:            'advise',
       baseContentHash: 'example-hash',
       stepStates:      {
-        billing: 'done', agent: 'done', research: 'done', entities: 'needs-recheck', constitution: 'done', design: 'done', apply: 'in-progress'
+        agent: 'done', billing: 'done', research: 'done', entities: 'needs-recheck', constitution: 'done', design: 'done', apply: 'in-progress'
       },
       currentStep:                'apply',
       billing:                    { mode: 'subscription' },

@@ -2,7 +2,7 @@
   "stamp": {
     "boundary": "src/services/hephaestus/InstallChangeWatch.ts",
     "system": "agent-progress",
-    "version": "install version 49, answer version 3",
+    "version": "install version 50, answer version 3",
     "os": "darwin"
   },
   "answers": [
@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"answerVersion\": 3,\n  \"codeVersion\": \"add7c2d27be9\",\n  \"installVersion\": 49,\n  \"contracts\": {\n    \"summary\": 3,\n    \"monitor\": 6,\n    \"control\": 3\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
+        "stdout": "{\n  \"answerVersion\": 3,\n  \"codeVersion\": \"542c66e74623\",\n  \"installVersion\": 50,\n  \"contracts\": {\n    \"summary\": 3,\n    \"monitor\": 6,\n    \"control\": 3\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
         "stderr": ""
       }
     },

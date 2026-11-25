@@ -412,7 +412,9 @@ function nextNumbersOf(value: unknown): Mapped<PipelineSetup['nextNumbers']> {
   });
 }
 
+/** `null` until User chose one of the agent's ways to bill, else the billing as `pipeline.json` stores it. */
 function billingOf(value: unknown): Mapped<PipelineSetup['billing']> {
+  if (value === null) return { value: null };
   const billing = PipelineFile.billingOf(value);
   if ('problem' in billing) return billing;
   return billing.value === undefined ? problemOf('billing is missing') : { value: billing.value };

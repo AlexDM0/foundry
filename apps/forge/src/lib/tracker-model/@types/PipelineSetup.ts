@@ -25,10 +25,13 @@ import type {
 } from './Pipeline.ts';
 
 /** The setup record's stored format, the only one read: an older record is set up anew. */
-export const PIPELINE_SETUP_FORMAT_VERSION = 3;
+export const PIPELINE_SETUP_FORMAT_VERSION = 4;
 
-/** `entities` is walked only by a record whose step states hold it: a forge over entities. */
-export type PipelineSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+/**
+ * `entities` is walked only by a record whose step states hold it: a forge over entities. The agent comes before billing, since the agent's
+ * vendor decides the ways it can bill.
+ */
+export type PipelineSetupStep = 'agent' | 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** A later `done` step becomes `needs-recheck` when an earlier one reopens, never `not-started`. */
 export type PipelineSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
@@ -292,8 +295,9 @@ export interface PipelineSetup {
   baseContentHash:            string | null;
   stepStates:                 PipelineSetupStepStates;
   currentStep:                PipelineSetupStep;
-  billing:                    PipelineBilling;
-  /** The agent the record's pipeline agent runs on and Apply stores; null until User chose one, while no pipeline agent launches. */
+  /** Null until User chose one of the agent's ways to bill, and again once a change of agent to a vendor that does not bill that way cleared it. */
+  billing:                    PipelineBilling | null;
+  /** The agent the record's pipeline agent runs on and Apply stores; a first setup starts with it, an update over a pipeline without one has none. */
   agent:                      PipelineAgent | null;
   agentJobId:                 string | null;
   /** The main commit the agent's snapshot holds; how far main moved since is computed, never stored. */
@@ -389,12 +393,23 @@ export type ConstitutionSourcesReading =
   | { verdict: 'readable'; sources: StoredConstitutionSources }
   | { verdict: 'malformed'; reason: string };
 
-/** What opens a record; the caller read main and the stored annotations, so the Board does no I/O. */
-export interface PipelineSetupOpening {
-  mode:                       PipelineSetupMode;
-  billing:                    PipelineBilling;
-  /** A first setup with none opens at the agent step. */
-  agent:                      PipelineAgent | null;
+/** The ways a vendor's agent bills, its default first, as the caller's agent adapters name them; none for a vendor no adapter runs. */
+export type OfferedBillingModesOf = (vendor: string) => readonly PipelineBilling['mode'][];
+
+/**
+ * What opens a record; the caller read main and the stored annotations, so the Board does no I/O. A first setup starts with its agent, and
+ * with no billing opens at the billing step; an update or advise over a pipeline without an agent has none.
+ */
+export type PipelineSetupOpening =
+  & PipelineSetupOpeningFacts
+  & (
+    /** A first setup's billing must be one of the ways its agent's vendor bills. */
+    | { mode: Extract<PipelineSetupMode, 'setup'>; agent: PipelineAgent; offeredBillingModesOf: OfferedBillingModesOf }
+    | { mode: Exclude<PipelineSetupMode, 'setup'>; agent: PipelineAgent | null }
+  );
+
+export interface PipelineSetupOpeningFacts {
+  billing:                    PipelineBilling | null;
   replacesUnreadablePipeline: boolean;
   /** Null when main holds no `CONSTITUTION.md`. */
   mainConstitution:           MainConstitution | null;
