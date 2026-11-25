@@ -82,7 +82,7 @@ describe('a board command the forge answers', () => {
     expect(await exchangeOf(JSON.stringify(TICKET_HOLD), hephaestusFetch)).toEqual({
       status:   200,
       document: {
-        boardCommandAnswerVersion: 1, outcome: 'applied', applied: { outcome: 'done', startedJobId: null }, refusal: null,
+        boardCommandAnswerVersion: 1, outcome: 'applied', applied: { outcome: 'done', startedJobId: null, writtenVersionNumber: null }, refusal: null,
       },
     });
     const [call] = hephaestusFetch.callsAnswered();
@@ -93,7 +93,7 @@ describe('a board command the forge answers', () => {
   test('answers the job an applied intake started', async () => {
     const intakeAnswers = boardAnswering('intake-conversation', (callShape) => callShape === COMMANDS_CALL_SHAPE);
     const intake = await exchangeOf(JSON.stringify(EXAMPLE_BOARD_COMMAND_DOCUMENTS['intake-start']), intakeAnswers);
-    expect(intake.document).toMatchObject({ outcome: 'applied', applied: { outcome: 'done', startedJobId: 'J4' } });
+    expect(intake.document).toMatchObject({ outcome: 'applied', applied: { outcome: 'done', startedJobId: 'J4', writtenVersionNumber: null } });
   });
 
   test('answers a forge\'s refusal with its code, fields and sentence unchanged, a command named included, under 409', async () => {

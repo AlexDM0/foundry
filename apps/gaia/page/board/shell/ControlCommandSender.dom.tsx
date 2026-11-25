@@ -34,7 +34,7 @@ import {
 } from './ControlCommandSender.ts';
 
 const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 2, kind: 'hephaestus-pause' };
-const NOTHING_STARTED: BoardCommandResult = { startedJobId: null };
+const NOTHING_STARTED: BoardCommandResult = { startedJobId: null, writtenVersionNumber: null };
 const APPLIED: CommandOutcome = { verdict: 'applied', outcome: 'done', result: NOTHING_STARTED };
 /** A forge's sentence as its command line prints it, naming a command, shown as it is. */
 const FORGE_REFUSAL = 'Ticket T9 is committed, so its content is fixed. Run `forge ticket unready T9` first.';
@@ -119,13 +119,13 @@ describe('the answers', () => {
     renderedProbe({ command: PAUSE_COMMAND, onApplied: (result) => applied.push(result) }, {
       answers: [
         Promise.resolve({ verdict: 'refused', refusal: FORGE_REFUSAL }),
-        Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J7' } }),
+        Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J7', writtenVersionNumber: null } }),
       ],
     });
     await sent();
     expect(screen.getByRole('status').textContent).toBe(FORGE_REFUSAL);
     await sent();
-    expect([screen.queryByRole('status'), applied]).toEqual([null, [{ startedJobId: 'J7' }]]);
+    expect([screen.queryByRole('status'), applied]).toEqual([null, [{ startedJobId: 'J7', writtenVersionNumber: null }]]);
   });
 
   test('the forge\'s refusal shows verbatim, and an unreachable forge shows the one sentence for it', async () => {

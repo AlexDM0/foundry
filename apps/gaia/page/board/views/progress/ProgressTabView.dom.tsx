@@ -38,7 +38,7 @@ function servicesAnswering(board: BoardDocument): BoardServices {
   const storage = new Map<string, string>();
   return {
     trackerId:           FIXTURE_TRACKER_ID,
-    commandClient:       { send: () => Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null } }) },
+    commandClient:       { send: () => Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } }) },
     pictureUploadClient: { upload: () => Promise.resolve({ verdict: 'unreachable' }) },
     readBoard:           () => Promise.resolve({ verdict: 'read', board }),
     openEventStream:     () => ({ close: () => undefined }),

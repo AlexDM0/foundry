@@ -84,7 +84,7 @@ function fakeBoardOf(trackerId: string = FIXTURE_TRACKER_ID, flintHandles: (Flin
   return {
     services: {
       trackerId,
-      commandClient:       { send: () => Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null } }) },
+      commandClient:       { send: () => Promise.resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } }) },
       pictureUploadClient: { upload: () => Promise.resolve({ verdict: 'unreachable' }) },
       readBoard:           () => {
         readCount += 1;

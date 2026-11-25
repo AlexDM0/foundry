@@ -117,7 +117,7 @@ function renderPanel({ board = exampleQuestionPanelBoard(), availability = 'enab
     commandClient: {
       send: (command: BoardCommandDocument) => {
         sent.push(command);
-        const applied: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null } };
+        const applied: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } };
         return Promise.resolve(outcomes.shift() ?? applied);
       },
     },

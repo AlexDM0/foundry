@@ -39,7 +39,7 @@ export function fakeControls(): FakeControls {
   const commandClient: BoardCommandClient = {
     send: (command) => {
       sent.push(command);
-      const outcome = queuedOutcomes.shift() ?? { verdict: 'applied', outcome: 'done', result: { startedJobId: null } };
+      const outcome = queuedOutcomes.shift() ?? { verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } };
       if (heldCommandAnswers === null) return Promise.resolve(outcome);
       const held = heldCommandAnswers;
       return new Promise((resolve) => held.push(() => resolve(outcome)));

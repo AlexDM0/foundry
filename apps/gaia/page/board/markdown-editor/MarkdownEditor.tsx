@@ -3,8 +3,10 @@
  * transparent over a mirror that draws the same lines, `#` and `##` lines in the link colour, the selected lines tinted, and the caller's
  * markers after a line or in a gutter of line numbers; the mirror and the gutter follow the textarea's scroll. A blur, Cmd/Ctrl+S or, where
  * the caller asks, a pause in typing saves the whole text with the revision User saw, only when it changed; a save asked for while the one
- * before it is on its way goes once that one is applied. A refused save keeps User's text until User saves again or discards it. With a
- * gutter, its `+` or Cmd/Ctrl+Shift+M hands the caller the selected lines to comment on.
+ * before it is on its way goes once that one is applied. A refused save keeps User's text until User saves again with Cmd/Ctrl+S or
+ * discards it; a blur saves nothing then. With a gutter, its `+` or Cmd/Ctrl+Shift+M hands the caller the selected lines to comment on,
+ * numbered as the caller's facts number them: while the text differs from those facts, it saves the text instead and asks User to comment
+ * once it is saved.
  */
 import {
   useEffect,
@@ -115,40 +117,50 @@ export function MarkdownEditor({
   const savedOnText = refusalIsHeld ? MarkdownEditorModel.rebasedTextOf(followedText, version) : followedText;
   const command = readOnly ? null : saveCommandOf(savedOnText);
   const sender = useControlCommand(command, {
-    onApplied: () => {
+    onApplied: ({ writtenVersionNumber }) => {
       setLastSavedMarkdown(savedOnText.text);
       setRefusalIsHeld(false);
-      setEditorText((current) => MarkdownEditorModel.savedTextOf(current, { markdown: savedOnText.text, revision: savedOnText.baseRevision }));
+      // A forge that names no revision wrote the one after the base, as a save on an unmoved head does.
+      const saved = { markdown: savedOnText.text, revision: writtenVersionNumber ?? savedOnText.baseRevision + 1 };
+      const savedFrom = { markdown: savedOnText.baseMarkdown, revision: savedOnText.baseRevision };
+      setEditorText((current) => MarkdownEditorModel.savedTextOf(current, saved, savedFrom));
     },
   });
   // Only a refusal that just arrived holds; one that Discard my edit let go stays let go.
   const [heldRefusal, setHeldRefusal] = useState<string | null>(null);
-  const [saveIsQueued, setSaveIsQueued] = useState(false);
+  // Saves asked for while one could not go, and how many of them a save that went has answered: one asked for while a save is on its way
+  // is answered only by the save after it.
+  const [askedSaveCount, setAskedSaveCount] = useState(0);
+  const [answeredSaveCount, setAnsweredSaveCount] = useState(0);
+  const saveIsQueued = askedSaveCount > answeredSaveCount;
+  const queueSave = (): void => setAskedSaveCount((count) => count + 1);
   if (sender.refusal !== heldRefusal) {
     setHeldRefusal(sender.refusal);
     if (sender.refusal !== null) {
       setRefusalIsHeld(true);
-      setSaveIsQueued(false);
+      setAnsweredSaveCount(askedSaveCount);
     }
   }
   const refusalIsShown = refusalIsHeld && sender.refusal !== null && MarkdownEditorModel.textIsUnsaved(savedOnText);
+  if (saveIsQueued && command === null) setAnsweredSaveCount(askedSaveCount);
 
   const save = (): void => {
     if (sender.enabled) void sender.send();
-    else if (command !== null) setSaveIsQueued(true);
+    else if (command !== null) queueSave();
   };
   const queuedSaveIsDue = saveIsQueued && sender.enabled;
   useEffect(() => {
     if (!queuedSaveIsDue) return;
-    void sender.send().then(() => setSaveIsQueued(false));
-  }, [queuedSaveIsDue, sender]);
+    const answeredCount = askedSaveCount;
+    void sender.send().then(() => setAnsweredSaveCount((count) => Math.max(count, answeredCount)));
+  }, [queuedSaveIsDue, sender, askedSaveCount]);
 
   const shownText = followedText.text;
   const textIsUnsaved = MarkdownEditorModel.textIsUnsaved(followedText);
   // A pause queues the save, which goes once the sender may send, as a save asked for while another is on its way does.
   useEffect(() => {
     if (idleSaveMilliseconds === null || !textIsUnsaved || refusalIsHeld) return undefined;
-    return clock.after(idleSaveMilliseconds, () => setSaveIsQueued(true));
+    return clock.after(idleSaveMilliseconds, () => setAskedSaveCount((count) => count + 1));
   }, [clock, idleSaveMilliseconds, shownText, textIsUnsaved, refusalIsHeld]);
 
   useEffect(() => {
@@ -163,8 +175,16 @@ export function MarkdownEditor({
 
   const lines = MarkdownEditorModel.editorLinesOf(shownText);
   const markerItems = MarkdownEditorModel.markerListItemsOf(lines, markerOf);
+  const textIsTheFacts = shownText === version.markdown;
+  const [commentWaitsOnSave, setCommentWaitsOnSave] = useState(false);
+  if (commentWaitsOnSave && textIsTheFacts) setCommentWaitsOnSave(false);
   const commentOn = (lineNumber: number | null): void => {
     if (gutter === null) return;
+    if (!textIsTheFacts) {
+      setCommentWaitsOnSave(true);
+      if (!refusalIsHeld) save();
+      return;
+    }
     const selected = selectedLines !== null && (lineNumber === null || MarkdownEditorModel.lineIsIn(lineNumber, selectedLines));
     if (selected) gutter.onCommentLines(selectedLines);
     else if (lineNumber !== null) gutter.onCommentLines({ from: lineNumber, to: lineNumber });
@@ -228,7 +248,9 @@ export function MarkdownEditor({
             value={shownText}
             onChange={(event) => setEditorText({ ...followedText, text: event.currentTarget.value })}
             onSelect={(event) => setSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd })}
-            onBlur={save}
+            onBlur={() => {
+              if (!refusalIsHeld) save();
+            }}
             onKeyDown={(event) => {
               if (commentKeyIsPressed(event) && gutter !== null) {
                 event.preventDefault();
@@ -253,9 +275,13 @@ export function MarkdownEditor({
       <ul id={markerListId} className="board-markdown-editor-marker-list board-visually-hidden" aria-label={markerListLabel}>
         {markerItems.map((item) => <li key={item}>{item}</li>)}
       </ul>
+      {commentWaitsOnSave && !refusalIsShown
+        ? <span className="board-markdown-editor-note" role="status">Comment once your edit is saved: its lines are numbered as saved.</span>
+        : null}
       {refusalIsShown
         ? (
-          <span className="board-markdown-editor-refusal">
+          // Pressing Discard keeps the textarea's focus, so its blur saves nothing in between.
+          <span className="board-markdown-editor-refusal" onMouseDown={(event) => event.preventDefault()}>
             <span className="board-refusal" role="status">{sender.refusal}</span>
             <TextButton
               label="Discard my edit"

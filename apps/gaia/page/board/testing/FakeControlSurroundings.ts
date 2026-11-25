@@ -11,7 +11,7 @@ export interface FakeControlSurroundings {
 
 export function fakeControlSurroundingsOf(availability: ControlAvailability = 'enabled'): FakeControlSurroundings {
   const sent: BoardCommandDocument[] = [];
-  let nextOutcome: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null } };
+  let nextOutcome: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } };
   return {
     surroundings: {
       availability,

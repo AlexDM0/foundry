@@ -1,12 +1,11 @@
 /**
- * The constitution step against fake controls. What matters: a source tag shows exactly on the lines the annotations anchor; READ BY
- * lists the facts' readers; Preview is a sandboxed frame and the mirror draws the text through React, never as HTML; a blur or Cmd/Ctrl+S
- * saves the whole markdown with the revision User saw, only when it changed, and a save asked for while one is on its way goes after it;
- * a stale save shows its refusal verbatim, keeps User's text, and the next save goes on top of the new facts, but after Discard my edit a
- * new edit saves on the revision User saw; the facts'
- * re-anchored annotations drop the edited line's tag and keep the others; the footer counts the outline with the Draft chip; the
- * mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and Continue send their commands; at
- * `#pipeline/edit/constitution` the same step shows only Back to the flow.
+ * The constitution step against fake controls. What matters: a source tag shows exactly on the lines the annotations anchor; READ BY lists
+ * the facts' readers; Preview is a sandboxed frame and the mirror draws the text through React, never as HTML; a blur or Cmd/Ctrl+S saves
+ * the whole markdown with the revision User saw, only when it changed, and a save asked for while one is on its way goes after it; a stale
+ * save shows its refusal verbatim, keeps User's text, a blur then saves nothing, and Cmd+S saves on top of the new facts, but after Discard
+ * my edit a new edit saves on the revision User saw; the facts' re-anchored annotations drop the edited line's tag and keep the others; the
+ * footer counts the outline with the Draft chip; the mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and
+ * Continue send their commands; at `#pipeline/edit/constitution` the same step shows only Back to the flow.
  * In monorepo mode (MonoConstitution): the rail marks each entity Adopted, Drafted, Not started or For a person, and Default once the
  * step is done; the forge level lists the entities and has no document; an adopted file opens byte for byte and nothing is sent until
  * User changes it, and then the save names the entity; READ BY lists the entity's own roles from its facts and what a crossing reads;
@@ -193,7 +192,7 @@ describe('the save', () => {
     ]);
   });
 
-  test('a stale save shows its refusal verbatim, keeps the text, and the next save goes on top of the new facts', async () => {
+  test('a stale save shows its refusal verbatim, keeps the text, a blur saves nothing, and Cmd+S saves on top of the new facts', async () => {
     const { controls, show } = renderConstitution();
     const typed = `${editor().value}- Typed by User.\n`;
     fireEvent.change(editor(), { target: { value: typed } });
@@ -205,6 +204,11 @@ describe('the save', () => {
     expect(screen.getByText('Example refusal: the constitution changed since revision 3.').getAttribute('role')).toBe('status');
     expect(editor().value).toBe(typed);
     await blurSettled(editor());
+    expect(controls.sent).toHaveLength(1);
+    await act(async () => {
+      fireEvent.keyDown(editor(), { key: 's', metaKey: true });
+      await Promise.resolve();
+    });
     expect(controls.sent.at(-1)).toEqual({
       ...SENT_COMMAND_VERSION, kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 4, markdown: typed, draftedFrom: null, entity: null
     });

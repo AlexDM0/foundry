@@ -111,7 +111,7 @@ describe('the composer\'s send', () => {
     expect(sent).toEqual([{
       boardCommandVersion: 2, kind: 'job-message', jobId: 'J1', text: 'Hold #008 until #007 lands.', pictures: [], incidentId: null
     }]);
-    expect(applied).toEqual([['Hold #008 until #007 lands.', { startedJobId: null }]]);
+    expect(applied).toEqual([['Hold #008 until #007 lands.', { startedJobId: null, writtenVersionNumber: null }]]);
   });
 
   test('Send posts the same command as Enter', async () => {
@@ -133,7 +133,7 @@ describe('the composer\'s send', () => {
         send: (command: BoardCommandDocument) => {
           sent.push(command);
           return new Promise<CommandOutcome>((resolve) => {
-            answerApplied = () => resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null } });
+            answerApplied = () => resolve({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } });
           });
         },
       },

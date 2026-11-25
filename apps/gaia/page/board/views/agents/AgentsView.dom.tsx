@@ -191,7 +191,7 @@ function transcriptEntry(changes: TranscriptEntryChanges): BoardTranscriptEntryD
   };
 }
 
-const APPLIED: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null } };
+const APPLIED: CommandOutcome = { verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: null } };
 
 interface Rendered {
   readonly sent:     BoardCommandDocument[];

@@ -65,6 +65,10 @@
 
 .board-markdown-editor-marker-list { margin: 0; padding: 0; list-style: none; }
 
+.board-markdown-editor-note {
+  padding: var(--sp-2) 22px; font-size: var(--fs-small); color: var(--ink-muted); border-top: 1px solid var(--line);
+}
+
 .board-markdown-editor-refusal {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px;
   border-top: 1px solid var(--line);

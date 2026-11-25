@@ -34,7 +34,7 @@ function relayAnswerOf(status: number, content: Omit<BoardCommandAnswerDocument,
 describe('the board\'s command client', () => {
   test('posts the command as JSON to the relay\'s commands route with the session cookie and no Authorization header', async () => {
     const relay = fakeRelayRequests();
-    relay.answerWith(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'done', startedJobId: null }, refusal: null }));
+    relay.answerWith(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'done', startedJobId: null, writtenVersionNumber: null }, refusal: null }));
     await BoardCommandClient.create('example-tracker', relay.sendRequest).send(PAUSE_COMMAND);
     const [request] = relay.sent;
     expect(request?.path).toBe(`/api/v${GAIA_ENDPOINT_VERSIONS.forgeCommands}/forges/example-tracker/commands`);
@@ -43,10 +43,15 @@ describe('the board\'s command client', () => {
   });
 
   test('an applied command answers its outcome and the job it started', async () => {
-    expect(await outcomeOf(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'done', startedJobId: 'J7' }, refusal: null })))
-      .toEqual({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J7' } });
-    expect(await outcomeOf(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'nothing-to-do', startedJobId: null }, refusal: null })))
-      .toEqual({ verdict: 'applied', outcome: 'nothing-to-do', result: { startedJobId: null } });
+    expect(await outcomeOf(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'done', startedJobId: 'J7', writtenVersionNumber: null }, refusal: null })))
+      .toEqual({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J7', writtenVersionNumber: null } });
+    expect(await outcomeOf(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'nothing-to-do', startedJobId: null, writtenVersionNumber: null }, refusal: null })))
+      .toEqual({ verdict: 'applied', outcome: 'nothing-to-do', result: { startedJobId: null, writtenVersionNumber: null } });
+  });
+
+  test('an applied save answers the version it left at the head', async () => {
+    expect(await outcomeOf(relayAnswerOf(200, { outcome: 'applied', applied: { outcome: 'done', startedJobId: null, writtenVersionNumber: 5 }, refusal: null })))
+      .toEqual({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: 5 } });
   });
 
   test('a forge refusal and an install hold keep the forge\'s sentence verbatim, even one that names a command', async () => {
@@ -72,7 +77,7 @@ describe('the board\'s command client', () => {
   test('a 200 whose body is lost, or of another answer version, is outcome-unknown, not unreachable', async () => {
     expect(await outcomeOf(new Response('{"outcome":"app', { status: 200 }))).toEqual({ verdict: 'outcome-unknown' });
     expect(await outcomeOf(Response.json({
-      boardCommandAnswerVersion: 2, outcome: 'applied', applied: { outcome: 'done', startedJobId: null }, refusal: null
+      boardCommandAnswerVersion: 2, outcome: 'applied', applied: { outcome: 'done', startedJobId: null, writtenVersionNumber: null }, refusal: null
     }))).toEqual({ verdict: 'outcome-unknown' });
   });
 });

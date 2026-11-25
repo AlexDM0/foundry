@@ -56,10 +56,26 @@ describe('the text in the textarea', () => {
     expect(MarkdownEditorModel.followedTextOf(typed, { markdown: 'Next', revision: 4 })).toBe(typed);
   });
 
-  test('keeps a landed save while the facts before it are still shown', () => {
-    const saved = MarkdownEditorModel.savedTextOf({ ...shown, text: 'Saved' }, { markdown: 'Saved', revision: 3 });
-    expect(saved).toEqual({ text: 'Saved', baseMarkdown: 'Saved', baseRevision: 4 });
+  test('keeps a landed save while the facts before it are still shown, and takes its revision once read as the text sent', () => {
+    const saved = MarkdownEditorModel.savedTextOf({ ...shown, text: 'Saved' }, { markdown: 'Saved', revision: 4 }, { markdown: MARKDOWN, revision: 3 });
     expect(MarkdownEditorModel.followedTextOf(saved, { markdown: MARKDOWN, revision: 3 })).toBe(saved);
+    expect(MarkdownEditorModel.followedTextOf(saved, { markdown: 'Saved', revision: 4 })).toEqual({ text: 'Saved', baseMarkdown: 'Saved', baseRevision: 4 });
+  });
+
+  test('keeps a save the forge merged onto a newer head while that head is still shown, then shows the merged text', () => {
+    const agentHead = { markdown: 'Agent', revision: 4 };
+    const saved = MarkdownEditorModel.savedTextOf({ ...shown, text: 'Mine' }, { markdown: 'Mine', revision: 5 }, { markdown: MARKDOWN, revision: 3 });
+    expect(MarkdownEditorModel.followedTextOf(saved, agentHead)).toBe(saved);
+    expect(MarkdownEditorModel.followedTextOf(saved, { markdown: 'Mine and Agent', revision: 5 }))
+      .toEqual({ text: 'Mine and Agent', baseMarkdown: 'Mine and Agent', baseRevision: 5 });
+  });
+
+  test('puts text typed while a save was on its way back on the facts that save was made on once the forge merged it', () => {
+    const saved = MarkdownEditorModel.savedTextOf({ ...shown, text: 'Mine, typed on' }, { markdown: 'Mine', revision: 5 }, { markdown: MARKDOWN, revision: 3 });
+    expect(MarkdownEditorModel.followedTextOf(saved, { markdown: 'Mine and Agent', revision: 5 }))
+      .toEqual({ text: 'Mine, typed on', baseMarkdown: MARKDOWN, baseRevision: 3 });
+    expect(MarkdownEditorModel.followedTextOf(saved, { markdown: 'Mine', revision: 5 }))
+      .toEqual({ text: 'Mine, typed on', baseMarkdown: 'Mine', baseRevision: 5 });
   });
 
   test('after a refusal, saves on top of the facts as they are now and keeps the text', () => {

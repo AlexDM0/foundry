@@ -30,13 +30,20 @@ const REFUSAL_ANSWER_SHAPE = {
 
 /**
  * The job an applied command started, read as `result.job.id`, as an applied `intake-start` names its product owner; `null` from any other
- * result. The result is the forge's own record, which no contract declares, so this one key is all Gaia reads of it.
+ * result. The result is the forge's own record, which no contract declares, so this key and `versionNumber` are all Gaia reads of it.
  */
 function startedJobIdOf(result: unknown): string | null {
   const resultRecord = JsonValueUtil.jsonObjectOf(result);
   const job = resultRecord === null ? null : JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(resultRecord, 'job'));
   const jobId = job === null ? null : JsonValueUtil.ownValueOf(job, 'id');
   return typeof jobId === 'string' ? jobId : null;
+}
+
+/** The version an applied `ticket-document-save` left at the head, read as `result.versionNumber`; `null` from any other result. */
+function writtenVersionNumberOf(result: unknown): number | null {
+  const resultRecord = JsonValueUtil.jsonObjectOf(result);
+  const versionNumber = resultRecord === null ? null : JsonValueUtil.ownValueOf(resultRecord, 'versionNumber');
+  return typeof versionNumber === 'number' && Number.isSafeInteger(versionNumber) && versionNumber > 0 ? versionNumber : null;
 }
 
 export class CommandAnswerIngestion {
@@ -48,7 +55,9 @@ export class CommandAnswerIngestion {
       const invalidKeys = DocumentShapeUtil.invalidKeysOf(body, APPLIED_ANSWER_SHAPE);
       if (invalidKeys.length > 0) return { outcome: 'unreadable', status, invalidKeys };
       const applied = body as ForgeCommandAppliedAnswer;
-      return { outcome: 'applied', applied: applied.outcome, startedJobId: startedJobIdOf(applied.result) };
+      return {
+        outcome: 'applied', applied: applied.outcome, startedJobId: startedJobIdOf(applied.result), writtenVersionNumber: writtenVersionNumberOf(applied.result),
+      };
     }
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(body, REFUSAL_ANSWER_SHAPE);
     if (invalidKeys.length > 0) return { outcome: 'unreadable', status, invalidKeys };

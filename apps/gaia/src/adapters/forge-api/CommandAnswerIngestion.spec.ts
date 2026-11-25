@@ -1,32 +1,46 @@
 /**
  * The forge's answers to a board command, as a scratch forge recorded them. What matters: an applied command keeps its outcome and names
- * the job it started, an intake's product owner; the refusal of the recorded `ticket-hold` keeps its code, fields and the forge's sentence
- * unchanged, as does the refusal of a body the forge does not know; a held launch reads as held with its refusal; a body at another
- * control version, or one that is no answer, is unreadable and names its keys.
+ * the job it started, an intake's product owner, or the version a document's save left at the head; the refusal of the recorded
+ * `ticket-hold` keeps its code, fields and the forge's sentence unchanged, as does the refusal of a body the forge does not know; a held
+ * launch reads as held with its refusal; a body at another control version, or one that is no answer, is unreadable and names its keys.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CommandAnswerIngestion }  from './CommandAnswerIngestion.ts';
-import { recordedCommandAnswerOf } from './testing/BoardDocuments.ts';
+import { CommandAnswerIngestion }       from './CommandAnswerIngestion.ts';
+import { recordedCommandAnswerOf }      from './testing/BoardDocuments.ts';
+import { recordedDocumentSaveAnswerOf } from './testing/TicketDocumentsRecordings.ts';
 
 const INGESTION = new CommandAnswerIngestion();
 
 describe('answerOf, on the recorded answers', () => {
   test('reads an applied command, which started no job', async () => {
     const { status, body } = await recordedCommandAnswerOf('board-command-applied');
-    expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: null });
+    expect(INGESTION.answerOf(status, body)).toEqual({
+      outcome: 'applied', applied: 'done', startedJobId: null, writtenVersionNumber: null
+    });
   });
 
   test('reads the Assistant\'s switch applied, off and on again, which started no job', async () => {
     for (const situation of ['assistant-switched-off', 'assistant-switched-on'] as const) {
       const { status, body } = await recordedCommandAnswerOf(situation);
-      expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: null });
+      expect(INGESTION.answerOf(status, body)).toEqual({
+        outcome: 'applied', applied: 'done', startedJobId: null, writtenVersionNumber: null
+      });
     }
   });
 
   test('names the product owner an applied intake started', async () => {
     const { status, body } = await recordedCommandAnswerOf('intake-conversation');
-    expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: 'J4' });
+    expect(INGESTION.answerOf(status, body)).toEqual({
+      outcome: 'applied', applied: 'done', startedJobId: 'J4', writtenVersionNumber: null
+    });
+  });
+
+  test('names the version a ticket document\'s save left at the head', async () => {
+    const { status, body } = await recordedDocumentSaveAnswerOf();
+    expect(INGESTION.answerOf(status, body)).toEqual({
+      outcome: 'applied', applied: 'done', startedJobId: null, writtenVersionNumber: 1
+    });
   });
 
   test('keeps the refusal of the recorded ticket-hold: its code, its fields and the forge\'s sentence unchanged', async () => {
@@ -69,6 +83,14 @@ describe('answerOf, on a body that is no answer', () => {
 
   test('reads no job from a result that names none as a string', () => {
     const answer = INGESTION.answerOf(200, { controlVersion: 3, outcome: 'nothing-to-do', result: { job: { id: 4 } } });
-    expect(answer).toEqual({ outcome: 'applied', applied: 'nothing-to-do', startedJobId: null });
+    expect(answer).toEqual({
+      outcome: 'applied', applied: 'nothing-to-do', startedJobId: null, writtenVersionNumber: null
+    });
+  });
+
+  test('reads no written version from a result whose version is no whole number above 0', () => {
+    for (const versionNumber of ['3', 0, 2.5, -1]) {
+      expect(INGESTION.answerOf(200, { controlVersion: 3, outcome: 'done', result: { versionNumber } })).toMatchObject({ writtenVersionNumber: null });
+    }
   });
 });

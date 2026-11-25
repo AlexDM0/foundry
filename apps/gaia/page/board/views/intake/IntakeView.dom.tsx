@@ -291,7 +291,7 @@ describe('the new chat', () => {
 
   test('Start session posts intake-start and, once applied, follows the new job', async () => {
     const controls = fakeControls();
-    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12' } });
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12', writtenVersionNumber: null } });
     const shown = shownUnderBoard(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="new" />);
     controls.render(shown.element);
     fireEvent.change(screen.getByLabelText('First message'), { target: { value: '  Shoppers lose their basket  ' } });
@@ -304,7 +304,7 @@ describe('the new chat', () => {
 
   test('the started job shows as starting until a board names it, not another session nor the new chat', async () => {
     const controls = fakeControls();
-    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12' } });
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12', writtenVersionNumber: null } });
     controls.render(<RoutedIntakeView board={BOARD} initialItem="new" />);
     fireEvent.change(screen.getByLabelText('First message'), { target: { value: 'Shoppers lose their basket' } });
     await clickSettled(screen.getByRole('button', { name: 'Start session' }));
@@ -314,7 +314,7 @@ describe('the new chat', () => {
 
   test('a started job that fails before any board lists it live stops starting and shows read only with its outcome', async () => {
     const controls = fakeControls();
-    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12' } });
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: 'J12', writtenVersionNumber: null } });
     let showBoard: ((board: BoardDocument) => void) | null = null;
     controls.render(<FedIntakeView initialBoard={BOARD} onFeed={(show) => { showBoard = show; }} />);
     fireEvent.change(screen.getByLabelText('First message'), { target: { value: 'Shoppers lose their basket' } });

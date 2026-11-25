@@ -1,8 +1,10 @@
 /**
  * Code in a happy-dom document. What matters: the gutter numbers each line and carries each comment's chip; a pause in typing and a blur
  * each save the whole text with the version User saw, and a document with no version yet saves with no base; a refused save keeps User's
- * text and its refusal verbatim; selected lines and Cmd/Ctrl+Shift+M open artboard 3's popover and send its anchor; and a gutter `+`
- * comments on its own line.
+ * text and its refusal verbatim, a blur then saves nothing and Discard my edit keeps the focus; a save asked for while one is on its way
+ * goes after it; a save the forge merged onto a newer head keeps User's text until its version is read, and text typed meanwhile saves on
+ * the version it was made on; selected lines and Cmd/Ctrl+Shift+M open artboard 3's popover and send its anchor, only while the text is
+ * the head's, an unsaved edit being saved first; and a gutter `+` comments on its own line.
  */
 import {
   act,
@@ -31,19 +33,28 @@ afterEach(cleanup);
 
 const [SPEC] = DOCUMENT_STATES.specWorking.documents;
 
-interface CodeHostProps {
+interface DocumentHead {
   readonly markdown:      string;
   readonly versionNumber: number | null;
-  readonly messages:      readonly BoardDocumentMessageDocument[];
 }
 
-function CodeHost({ markdown, versionNumber, messages }: CodeHostProps) {
+interface CodeHostProps extends DocumentHead {
+  readonly messages:   readonly BoardDocumentMessageDocument[];
+  /** Hands the spec the way to show a new head, as the page does when the forge's documents are read again. */
+  readonly onHeadRead: (readHead: (head: DocumentHead) => void) => void;
+}
+
+function CodeHost({
+  markdown, versionNumber, messages, onHeadRead
+}: CodeHostProps) {
   const [draft, setDraft] = useState<CommentDraft | null>(null);
+  const [head, setHead] = useState<DocumentHead>({ markdown, versionNumber });
+  onHeadRead(setHead);
   return (
     <DocumentCodeEditor
       place={{ ticketId: '004', document: 'spec' }}
-      markdown={markdown}
-      versionNumber={versionNumber}
+      markdown={head.markdown}
+      versionNumber={head.versionNumber}
       messages={messages}
       readOnly={false}
       draft={draft}
@@ -54,6 +65,7 @@ function CodeHost({ markdown, versionNumber, messages }: CodeHostProps) {
 
 function renderCode(markdown = SPEC_MARKDOWN, versionNumber: number | null = 4) {
   const controls = fakeControls();
+  let showHead: (head: DocumentHead) => void = () => undefined;
   const waits: { readonly milliseconds: number; readonly callback: () => void }[] = [];
   const clock = {
     ...BROWSER_BOARD_CLOCK,
@@ -63,10 +75,38 @@ function renderCode(markdown = SPEC_MARKDOWN, versionNumber: number | null = 4) 
       return () => waits.splice(waits.indexOf(wait), 1);
     },
   };
-  controls.render(onBoard(<BoardClockContext value={clock}><CodeHost markdown={markdown} versionNumber={versionNumber} messages={SPEC?.messages ?? []} /></BoardClockContext>));
+  controls.render(onBoard(
+    <BoardClockContext value={clock}>
+      <CodeHost
+        markdown={markdown}
+        versionNumber={versionNumber}
+        messages={SPEC?.messages ?? []}
+        onHeadRead={(readHead) => {
+          showHead = readHead;
+        }}
+      />
+    </BoardClockContext>
+  ));
   const editor = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' });
-  return { controls, waits, editor };
+  /** A new head read from the forge, as the page hands it on. */
+  const readHead = (headMarkdown: string, headNumber: number): void => {
+    act(() => showHead({ markdown: headMarkdown, versionNumber: headNumber }));
+  };
+  const pause = async (): Promise<void> => {
+    const idle = waits.find((wait) => wait.milliseconds === DOCUMENT_SAVE_IDLE_MILLISECONDS);
+    await act(async () => {
+      idle?.callback();
+      await Promise.resolve();
+    });
+  };
+  return {
+    controls, waits, editor, readHead, pause
+  };
 }
+
+const saveOf = (baseVersion: number | null, markdown: string) => ({
+  ...SENT_COMMAND_VERSION, kind: 'ticket-document-save', ticketId: '004', document: 'spec', baseVersion, markdown,
+});
 
 function selectLines(editor: HTMLTextAreaElement, from: number, to: number): void {
   const lines = editor.value.split('\n');
@@ -124,6 +164,83 @@ describe('Code', () => {
     expect(screen.getByRole('status').textContent).toBe('Another person saved over the same lines.');
     expect(editor.value).toBe(`${SPEC_MARKDOWN}\n- Mine.`);
     expect(screen.getByRole('button', { name: 'Discard my edit' })).toBeTruthy();
+  });
+
+  test('a blur after a refused save saves nothing, and pressing Discard my edit keeps the focus and puts the head back', async () => {
+    const { controls, editor, pause } = renderCode();
+    controls.answerNextWith({ verdict: 'refused', refusal: 'Another person saved over the same lines.' });
+    fireEvent.change(editor, { target: { value: `${SPEC_MARKDOWN}\n- Mine.` } });
+    await pause();
+    expect(controls.sent).toHaveLength(1);
+    const discard = screen.getByRole('button', { name: 'Discard my edit' });
+    expect(fireEvent.mouseDown(discard)).toBe(false);
+    await act(async () => {
+      fireEvent.blur(editor);
+      await Promise.resolve();
+    });
+    expect(controls.sent).toHaveLength(1);
+    fireEvent.mouseUp(discard);
+    fireEvent.click(discard);
+    expect(editor.value).toBe(SPEC_MARKDOWN);
+  });
+
+  test('a save asked for while the idle save is on its way goes once that one is applied', async () => {
+    const { controls, editor, pause } = renderCode();
+    controls.holdCommands();
+    fireEvent.change(editor, { target: { value: `${SPEC_MARKDOWN}\n- One.` } });
+    await pause();
+    fireEvent.change(editor, { target: { value: `${SPEC_MARKDOWN}\n- One.\n- Two.` } });
+    fireEvent.blur(editor);
+    expect(controls.sent).toHaveLength(1);
+    await controls.releaseCommands();
+    await controls.releaseCommands();
+    expect<unknown[]>(controls.sent).toEqual([saveOf(4, `${SPEC_MARKDOWN}\n- One.`), saveOf(5, `${SPEC_MARKDOWN}\n- One.\n- Two.`)]);
+  });
+
+  test('a save the forge merged onto a newer head keeps User\'s text until the version it wrote is read', async () => {
+    const { controls, editor, readHead } = renderCode();
+    const mine = `${SPEC_MARKDOWN}\n- Mine.`;
+    const agents = SPEC_MARKDOWN.replace('# ', '# Agent: ');
+    controls.holdCommands();
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: 6 } });
+    fireEvent.change(editor, { target: { value: mine } });
+    fireEvent.blur(editor);
+    readHead(agents, 5);
+    await controls.releaseCommands();
+    expect(editor.value).toBe(mine);
+    readHead(`${agents}\n- Mine.`, 6);
+    expect(editor.value).toBe(`${agents}\n- Mine.`);
+  });
+
+  test('text typed while a save was on its way, which the forge merged, saves again on the version it was made on', async () => {
+    const { controls, editor, readHead } = renderCode();
+    const agents = SPEC_MARKDOWN.replace('# ', '# Agent: ');
+    controls.holdCommands();
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { startedJobId: null, writtenVersionNumber: 6 } });
+    fireEvent.change(editor, { target: { value: `${SPEC_MARKDOWN}\n- Mine.` } });
+    fireEvent.blur(editor);
+    readHead(agents, 5);
+    fireEvent.change(editor, { target: { value: `${SPEC_MARKDOWN}\n- Mine.\n- More.` } });
+    await controls.releaseCommands();
+    readHead(`${agents}\n- Mine.`, 6);
+    await act(async () => {
+      fireEvent.blur(editor);
+      await Promise.resolve();
+    });
+    expect<unknown>(controls.sent.at(-1)).toEqual(saveOf(4, `${SPEC_MARKDOWN}\n- Mine.\n- More.`));
+  });
+
+  test('Cmd+Shift+M on an edit not yet saved saves it and opens no comment on lines the head numbers otherwise', async () => {
+    const { controls, editor } = renderCode();
+    fireEvent.change(editor, { target: { value: `Intro\n\n${SPEC_MARKDOWN}` } });
+    selectLines(editor, 19, 25);
+    await act(async () => {
+      fireEvent.keyDown(editor, { key: 'M', metaKey: true, shiftKey: true });
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole('dialog', { name: 'Comment for the spec agent' })).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('Comment once your edit is saved: its lines are numbered as saved.');
+    expect<unknown[]>(controls.sent).toEqual([saveOf(4, `Intro\n\n${SPEC_MARKDOWN}`)]);
   });
 
   test('selected lines and Cmd+Shift+M open artboard 3\'s popover, and Send gives the agent the lines', async () => {

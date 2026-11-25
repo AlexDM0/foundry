@@ -1,7 +1,8 @@
 /**
  * Code: the document's Markdown in the board's editor, with line numbers and each comment's chip in the gutter. Selected lines, then
- * Cmd/Ctrl+Shift+M or the gutter's `+`, open the same comment popover as Preview, anchored on those lines. The text saves with the version
- * User saw once User pauses typing and on blur; the forge merges it onto a newer head, and a refused save keeps User's text.
+ * Cmd/Ctrl+Shift+M or the gutter's `+`, open the same comment popover as Preview, anchored on those lines of the head, so only while the
+ * text is the head's; an edit not yet saved is saved first. The text saves with the version User saw once User pauses typing and on blur;
+ * the forge merges it onto a newer head, and a refused save keeps User's text.
  */
 import { useCallback, useMemo } from 'react';
 

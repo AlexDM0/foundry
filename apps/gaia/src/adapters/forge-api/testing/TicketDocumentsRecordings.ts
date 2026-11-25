@@ -1,6 +1,6 @@
 /**
- * The ticket documents, the board in the spec-then-plan route and the board events up to the `documents` event that the ingestion and
- * route specs read, taken through the forge client from the `hephaestus-fetch-ticket-documents` recording of a scratch forge at the
+ * The ticket documents, the answer to the spec's save, the board in the spec-then-plan route and the board events up to the `documents` event
+ * that the ingestion and route specs read, taken through the forge client from the `hephaestus-fetch-ticket-documents` recording of a scratch forge at the
  * supported forge version. Test-only.
  */
 import type { ForgeStreamEvent, HephaestusAccess }                                                  from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
@@ -36,6 +36,13 @@ export function recordedTicketDocumentsClientOf(situation: TicketDocumentsSituat
 export async function recordedTicketDocumentsAnswerOf(situation: TicketDocumentsSituation): Promise<{ readonly status: number; readonly body: unknown }> {
   const answer = await recordedTicketDocumentsClientOf(situation).ticketDocumentsOf(EXAMPLE_ACCESS, RECORDED_TICKET_ID_OF_SITUATION[situation]);
   if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no documents answer: ${answer.verdict}.`);
+  return { status: answer.status, body: answer.body };
+}
+
+/** The answer to the spec's save that opened the ticket's documents: its status and its parsed body. */
+export async function recordedDocumentSaveAnswerOf(): Promise<{ readonly status: number; readonly body: unknown }> {
+  const answer = await recordedTicketDocumentsClientOf('ticket-documents-saved').sendBoardCommand(EXAMPLE_ACCESS, { kind: 'ticket-document-save' });
+  if (answer.verdict !== 'answered') throw new Error(`The saved documents' answers hold no command answer: ${answer.verdict}.`);
   return { status: answer.status, body: answer.body };
 }
 

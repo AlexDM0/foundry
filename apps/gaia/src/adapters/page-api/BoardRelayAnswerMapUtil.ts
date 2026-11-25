@@ -71,7 +71,7 @@ type CommandAnswerContent = Omit<BoardCommandAnswerDocument, 'boardCommandAnswer
 function forgeCommandAnswerContentOf(answer: BoardCommandAnswer): CommandAnswerContent {
   switch (answer.outcome) {
     case 'applied':
-      return { outcome: 'applied', applied: { outcome: answer.applied, startedJobId: answer.startedJobId }, refusal: null };
+      return { outcome: 'applied', applied: { outcome: answer.applied, startedJobId: answer.startedJobId, writtenVersionNumber: answer.writtenVersionNumber }, refusal: null, };
     case 'refused':
     case 'install-held':
       return { outcome: answer.outcome, applied: null, refusal: BoardDocumentMapUtil.refusalDocumentOf(answer.refusal) };

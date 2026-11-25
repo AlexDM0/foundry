@@ -47,9 +47,16 @@ export type BoardCommandOutcome = 'applied' | 'refused' | 'install-held' | 'unre
 export interface BoardCommandAnswerDocument {
   readonly boardCommandAnswerVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommandAnswer;
   readonly outcome:                   BoardCommandOutcome;
-  /** The forge's outcome when applied, and the job the command started, such as an intake's product owner. */
-  readonly applied:                   { readonly outcome: 'done' | 'nothing-to-do'; readonly startedJobId: string | null } | null;
-  readonly refusal:                   BoardRefusalDocument | null;
+  /**
+   * The forge's outcome when applied, the job the command started, such as an intake's product owner, and the version a ticket document's
+   * save left at the head.
+   */
+  readonly applied:                   {
+    readonly outcome:              'done' | 'nothing-to-do';
+    readonly startedJobId:         string | null;
+    readonly writtenVersionNumber: number | null;
+  } | null;
+  readonly refusal: BoardRefusalDocument | null;
 }
 
 export interface PictureUploadAnswerDocument {

@@ -40,6 +40,11 @@ export interface EditorText {
   readonly text:         string;
   readonly baseMarkdown: string;
   readonly baseRevision: number;
+  /**
+   * After a save landed, until its revision is read as the text sent: the facts that save was made on. The forge merges a save made on an
+   * older revision, so the saved revision may read otherwise, and text typed since then goes back on the facts it was truly made on.
+   */
+  readonly savedFrom?:   EditorVersion;
 }
 
 export interface EditorVersion {
@@ -87,14 +92,23 @@ function textIsUnsaved(editorText: EditorText): boolean {
   return editorText.text !== editorText.baseMarkdown;
 }
 
+function withBaseOf(editorText: EditorText, base: EditorVersion): EditorText {
+  return { text: editorText.text, baseMarkdown: base.markdown, baseRevision: base.revision };
+}
+
 /**
  * Newer facts replace the text only while User has nothing unsaved; unsaved text keeps the revision User saw, so its save goes on that
- * revision. Facts older than a save that landed are the ones before it, still on their way out.
+ * revision. Facts older than a save that landed are the ones before it, still on their way out. Once the saved revision is read as the text
+ * sent, it is the base; read otherwise, or passed over, unsaved text goes back on the facts the save was made on.
  */
 function followedTextOf(editorText: EditorText, facts: EditorVersion): EditorText {
   if (facts.revision < editorText.baseRevision) return editorText;
-  if (editorText.baseMarkdown === facts.markdown && editorText.baseRevision === facts.revision) return editorText;
-  return textIsUnsaved(editorText) ? editorText : editorTextOf(facts);
+  const { savedFrom } = editorText;
+  if (editorText.baseMarkdown === facts.markdown && editorText.baseRevision === facts.revision) {
+    return savedFrom === undefined ? editorText : withBaseOf(editorText, facts);
+  }
+  if (!textIsUnsaved(editorText)) return editorTextOf(facts);
+  return savedFrom === undefined ? editorText : withBaseOf(editorText, savedFrom);
 }
 
 /** After a refusal User saves on top of the facts as they are now: the text stays, the base becomes the facts. */
@@ -102,9 +116,12 @@ function rebasedTextOf(editorText: EditorText, facts: EditorVersion): EditorText
   return { text: editorText.text, baseMarkdown: facts.markdown, baseRevision: facts.revision };
 }
 
-/** A landed save made the saved text the next revision; text typed since stays unsaved. */
-function savedTextOf(editorText: EditorText, saved: EditorVersion): EditorText {
-  return { text: editorText.text, baseMarkdown: saved.markdown, baseRevision: saved.revision + 1 };
+/**
+ * A landed save made `saved`: the text sent, at the revision the forge wrote, which it read on top of `savedFrom`. Text typed since stays
+ * unsaved.
+ */
+function savedTextOf(editorText: EditorText, saved: EditorVersion, savedFrom: EditorVersion): EditorText {
+  return { ...withBaseOf(editorText, saved), savedFrom };
 }
 
 /** The line an offset of the text stands on, from 1. */

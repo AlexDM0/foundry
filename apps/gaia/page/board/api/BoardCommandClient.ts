@@ -17,9 +17,10 @@ import {
 } from './RelayRequest.ts';
 import { HTTP_STATUS } from './constants/HttpStatus.ts';
 
-/** What an applied command made, such as the product owner an intake started. */
+/** What an applied command made: the product owner an intake started, or the version a ticket document's save left at the head. */
 export interface BoardCommandResult {
-  readonly startedJobId: string | null;
+  readonly startedJobId:         string | null;
+  readonly writtenVersionNumber: number | null;
 }
 
 export type CommandOutcome =
@@ -48,7 +49,8 @@ function appliedOutcomeOf(applied: BoardCommandAnswerDocument['applied']): Comma
   if (applied === null || typeof applied !== 'object') return null;
   if (applied.outcome !== 'done' && applied.outcome !== 'nothing-to-do') return null;
   const startedJobId = typeof applied.startedJobId === 'string' ? applied.startedJobId : null;
-  return { verdict: 'applied', outcome: applied.outcome, result: { startedJobId } };
+  const writtenVersionNumber = Number.isSafeInteger(applied.writtenVersionNumber) ? applied.writtenVersionNumber : null;
+  return { verdict: 'applied', outcome: applied.outcome, result: { startedJobId, writtenVersionNumber } };
 }
 
 function outcomeOfAnswer(answer: BoardCommandAnswerDocument): CommandOutcome | null {
