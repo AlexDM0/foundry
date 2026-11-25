@@ -34,6 +34,13 @@ paths:
 - The mind and the pose are pure, with plain `.spec.ts` specs. The renderer and `createFlint` have `.dom.tsx` specs,
   which Gaia's `test:dom` task runs through `testing/RunDomSpecs.ts`. A spec gives a manual frame source
   (`apps/gaia/page/lib/flint/testing/ManualFrameSource.ts`) and never waits for real time.
+- Each gesture form, emote and attendant declares its drawn `extent` (`apps/gaia/page/lib/flint/SpriteGeometry.ts`); a
+  box that keeps Flint inside stands it by these. `apps/gaia/page/lib/flint/gestures/GestureCatalog.extent.spec.ts`,
+  `apps/gaia/page/lib/flint/emotes/EmoteCatalog.extent.spec.ts` and
+  `apps/gaia/page/lib/flint/attendants/AttendantCatalog.extent.spec.ts` hold each to what it draws, through
+  `apps/gaia/page/lib/flint/testing/DrawnExtentMeasure.ts`.
+  Gaia draws Flint at 0.75 pixels for one unit; what plays in a strip's 60 by 50 pixel slot fits it, which
+  `apps/gaia/page/board/flint/FlintStripSlot.spec.ts` holds.
 - Each design value is a named constant with its unit in its name: a value of the core in
   `apps/gaia/page/lib/flint/constants/`, a value of one animation or behaviour in `constants/<Name>Values.ts` in its
   own folder.

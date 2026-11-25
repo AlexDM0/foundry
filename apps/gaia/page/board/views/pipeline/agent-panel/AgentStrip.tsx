@@ -1,10 +1,11 @@
 /**
- * The strip above the pipeline agent's composer: Flint's 50px slot, the habitat of this step, and what the agent does on it; an entity's
- * research session names the entity it reads, in mono.
+ * The strip above the pipeline agent's composer: Flint's strip slot of 60 by 50 px, the habitat of this step, and what the agent does on
+ * it; an entity's research session names the entity it reads, in mono.
  */
 import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlintSlotHabitat }                  from '../../../flint/FlintSlotHabitat.tsx';
+import { STRIP_FLINT_SLOT }                  from '../../../flint/FlintStripSlot.ts';
 import { useCoveringPanelHoldsTheFlintSlot } from '../../../shell/CoveringPanel.ts';
 import type { AgentStripView }               from './PipelineAgentPanelModel.ts';
 
@@ -22,7 +23,7 @@ export function AgentStrip({ strip }: { readonly strip: AgentStripView }) {
             habitat={strip.flintHabitat}
             cue={strip.flintCue}
             label={PIPELINE_AGENT_FLINT_LABEL}
-            size="50"
+            size={STRIP_FLINT_SLOT.SIZE}
             ground="page"
           />
         )}

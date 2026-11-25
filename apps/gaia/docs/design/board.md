@@ -189,6 +189,18 @@ job panel, the ticket detail's state card) takes its cue from the job:
 Built in: `page/board/utils/FlintSlotCueUtil.ts`, `page/board/flint/FlintSlotCues.ts`, `page/board/flint/FlintSlotHabitats.ts`.
 Held by: `page/board/utils/FlintSlotCueUtil.spec.ts`, `page/board/flint/FlintSlotHabitats.spec.ts`.
 
+### Flint in a strip's slot
+
+The strip above a pipeline setup step's or a ticket document's composer holds Flint's smallest slot, `FlintSlot` at `60x50`: 60 by 50
+pixels, 10 more in width than in height, the room in front of Flint that its gestures reach into. The slot keeps Flint inside, and Gaia
+draws Flint at 0.75 pixels for one unit, so all that plays there fits that box with the Watcher sparks beside it: each answer of the
+strips' habitats, the arrival's wave and its peek, and every board occasion, which Flint plays wherever it is. Flint stands where each
+one's declared extent fits, turned if that is nearer, and rests the sparks' reach from each wall.
+
+Built in: `page/board/flint/FlintStripSlot.ts`, `page/board/views/pipeline/agent-panel/AgentStrip.tsx`,
+`page/board/views/documents/DocumentAgentStrip.tsx`.
+Held by: `page/board/flint/FlintStripSlot.spec.ts`.
+
 ### Flint in the agent panel: copy and cues
 
 In the Agents view Flint is one of the crew. It copies the selected job while that job has something to copy, else the first job
