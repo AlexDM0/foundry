@@ -1,6 +1,7 @@
 /**
- * A document's Markdown blocks as React elements, never as HTML: each piece of text carries the source line and column where it starts,
- * so a selection maps back to the source; a link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of
+ * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the
+ * source line and column where it starts, so a selection maps back to the source; a character reference draws the character it names; a
+ * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of
  * a paragraph, heading or list item go the marks of the lines it holds: a comment's chip (`C2`, `✓ C2` once applied) and a reference
  * mark of the effect reading (`1`, in the warning look while its place is unresolved). The caller may place its own part after the
  * innermost such block that holds a line, such as an agent's proposed edit or the comment popover.
@@ -64,6 +65,19 @@ function lineIsIn(line: number, lines: SourceLines): boolean {
   return lines.from <= line && line <= lines.to;
 }
 
+const charactersOfReferences = new Map<string, string>();
+
+/** The character a reference names, read by the browser's HTML parser from the reference alone, which holds no markup; itself without one. */
+function characterOf(reference: string): string {
+  const known = charactersOfReferences.get(reference);
+  if (known !== undefined) return known;
+  if (typeof DOMParser === 'undefined') return reference;
+  const character = new DOMParser().parseFromString(reference, 'text/html').body.textContent ?? '';
+  const read = character === '' ? reference : character;
+  charactersOfReferences.set(reference, read);
+  return read;
+}
+
 function Spans({ spans }: { readonly spans: readonly MarkdownSpan[] }) {
   return spans.map((span, position) => <Span key={position} span={span} />);
 }
@@ -74,6 +88,8 @@ function Span({ span }: { readonly span: MarkdownSpan }) {
       return <span data-source-line={span.start.line} data-source-column={span.start.column}>{span.text}</span>;
     case 'code':
       return <code className="board-document-inline-code" data-source-line={span.start.line} data-source-column={span.start.column}>{span.text}</code>;
+    case 'reference':
+      return <span data-source-line={span.start.line} data-source-column={span.start.column}>{characterOf(span.reference)}</span>;
     case 'strong':
       return <strong><Spans spans={span.spans} /></strong>;
     case 'emphasis':
@@ -176,8 +192,20 @@ function BlockElement({ block, props }: { readonly block: MarkdownBlock; readonl
         ? <ol className="board-document-list" start={block.start} {...attributes}>{items}</ol>
         : <ul className="board-document-list" data-tasks={block.items.some((item) => item.checkbox !== null) ? '' : undefined} {...attributes}>{items}</ul>;
     }
-    case 'code':
-      return <pre className="board-document-code" {...attributes}><code>{block.text}</code></pre>;
+    case 'code': {
+      const codeLines = block.text.split('\n');
+      return (
+        <pre className="board-document-code" {...attributes}>
+          <code>
+            {codeLines.map((codeLine, i) => {
+              const start = block.lineStarts[i] ?? { line: block.lines.from, column: 1 };
+              const isLast = i === codeLines.length - 1;
+              return <span key={i} data-source-line={start.line} data-source-column={start.column}>{isLast ? codeLine : `${codeLine}\n`}</span>;
+            })}
+          </code>
+        </pre>
+      );
+    }
     case 'diagram':
       return <DiagramFigure block={block} props={props} />;
     case 'quote':

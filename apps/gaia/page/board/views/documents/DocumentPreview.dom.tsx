@@ -1,7 +1,9 @@
 /**
- * Preview in a happy-dom document. What matters: the text is drawn as elements, raw HTML staying text; a selection opens the popover with
- * artboard 2's anchor and sends it with the comment; a diagram node the frame reports under the pointer offers a comment on its own source
- * line, and a message from any window but the diagram's own frame is dropped; a comment's chip stands after its text, ticked once applied;
+ * Preview in a happy-dom document. What matters: the text is drawn as elements, raw HTML staying text and a character reference the
+ * character it names; a selection opens the popover with artboard 2's anchor and sends it with the comment, also one in a code block, one
+ * that ends on a chip and one that ends on the next block's edge; a diagram node the frame reports under the pointer offers a comment on its own source
+ * line, until a moment after the pointer left it or the diagram is drawn again; the frame is told the dark theme; a message from any
+ * window but the diagram's own frame is dropped; a comment's chip stands after its text, ticked once applied;
  * and the plan's reference marks follow their sentences, unresolved ones marked.
  */
 import {
@@ -18,11 +20,12 @@ import {
   test
 } from 'bun:test';
 
-import { useState }                                         from 'react';
-import { PAGE_CONTRACT_VERSIONS }                           from '../../../../src/shared/constants/PageContractVersions.ts';
-import { DIAGRAM_FRAME_PROTOCOL }                           from '../../../shared/@types/DiagramFrameMessages.ts';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../testing/FakeControls.ts';
-import { onBoard }                                          from '../../testing/OnBoard.ts';
+import { useState }                                                from 'react';
+import { PAGE_CONTRACT_VERSIONS }                                  from '../../../../src/shared/constants/PageContractVersions.ts';
+import { DIAGRAM_FRAME_PROTOCOL }                                  from '../../../shared/@types/DiagramFrameMessages.ts';
+import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from '../../shell/BoardClock.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION }        from '../../testing/FakeControls.ts';
+import { onBoard }                                                 from '../../testing/OnBoard.ts';
 import {
   DOCUMENT_STATES,
   PLAN_EFFECT_READING,
@@ -59,9 +62,37 @@ function PreviewHost({ markdown, document }: { readonly markdown: string; readon
   );
 }
 
+interface ClockWait {
+  readonly milliseconds: number;
+  readonly callback:     () => void;
+}
+
+/** The waits the page's clock holds, which a spec ends by hand. */
+const clockWaits: ClockWait[] = [];
+
+const MANUAL_CLOCK: BoardClock = {
+  ...BROWSER_BOARD_CLOCK,
+  after: (milliseconds, callback) => {
+    const wait = { milliseconds, callback };
+    clockWaits.push(wait);
+    return () => {
+      if (clockWaits.includes(wait)) clockWaits.splice(clockWaits.indexOf(wait), 1);
+    };
+  },
+};
+
+function endClockWaits(): void {
+  act(() => clockWaits.splice(0).forEach((wait) => wait.callback()));
+}
+
 function renderPreview(markdown = SPEC_MARKDOWN, document: 'spec' | 'plan' = 'spec') {
   const controls = fakeControls();
-  controls.render(onBoard(<DiagramFrameAddressContext value={null}><PreviewHost markdown={markdown} document={document} /></DiagramFrameAddressContext>));
+  clockWaits.splice(0);
+  controls.render(onBoard(
+    <BoardClockContext value={MANUAL_CLOCK}>
+      <DiagramFrameAddressContext value={null}><PreviewHost markdown={markdown} document={document} /></DiagramFrameAddressContext>
+    </BoardClockContext>
+  ));
   return controls;
 }
 
@@ -84,6 +115,22 @@ function select(text: string): void {
   selection?.addRange(range);
 }
 
+function selectRange(start: readonly [Node, number], end: readonly [Node, number]): void {
+  const range = document.createRange();
+  range.setStart(...start);
+  range.setEnd(...end);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  fireEvent.mouseUp(screen.getByRole('article'));
+}
+
+/** The heading of the open comment popover, `C3 · line 6 · Preview`; `null` while none is open. */
+function popoverHeadOf(): string | null {
+  const popover = screen.queryByRole('dialog', { name: 'Comment for the spec agent' });
+  return popover === null ? null : within(popover).getByText(/^C3 · /u).textContent;
+}
+
 function frameMessage(data: unknown, source: Window | null): void {
   act(() => {
     window.dispatchEvent(new MessageEvent('message', { data, source }));
@@ -93,6 +140,11 @@ function frameMessage(data: unknown, source: Window | null): void {
 const FRAME_HEAD = { protocol: DIAGRAM_FRAME_PROTOCOL, protocolVersion: PAGE_CONTRACT_VERSIONS.gaiaDiagramFrame } as const;
 
 describe('Preview', () => {
+  test('draws a character reference as the character it names', () => {
+    renderPreview('R&amp;D &copy; 2026');
+    expect(screen.getByRole('article', { name: 'The spec' }).textContent).toBe('R&D © 2026');
+  });
+
   test('draws raw HTML as text, never as an element', () => {
     renderPreview('Before <b>bold</b> after\n\n<script>window.plantedRan = true</script>');
     expect(document.querySelector('b')).toBeNull();
@@ -132,6 +184,29 @@ describe('Preview', () => {
     expect(screen.queryByRole('dialog', { name: 'Comment for the spec agent' })).toBeNull();
   });
 
+  test('a selection inside a fenced code block opens the popover on its source line and columns', () => {
+    renderPreview(['# Example', '', 'Intro.', '', '```ts', 'const theme = readTheme();', '```'].join('\n'));
+    select('readTheme');
+    fireEvent.mouseUp(screen.getByRole('article', { name: 'The spec' }));
+    expect(popoverHeadOf()).toBe('C3 · line 6 · Preview');
+  });
+
+  test('a selection that ends on a comment\'s chip, or on the edge of the next block as a triple click leaves it, opens the popover on its text', () => {
+    renderPreview();
+    const text = textNodeHolding('falls back to light');
+    const chip = [...document.querySelectorAll('.board-document-chip')].find((candidate) => candidate.textContent === '✓ C1');
+    const chipText = chip?.firstChild;
+    if (chipText === null || chipText === undefined) throw new Error('no chip');
+    selectRange([text, text.data.indexOf('falls back')], [chipText, chipText.textContent?.length ?? 0]);
+    const line = lineOf(SPEC_MARKDOWN, 'falls back to light');
+    expect(popoverHeadOf()).toBe(`C3 · § 3 Behaviour · line ${line} · Preview`);
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Comment for the spec agent' })).getByRole('button', { name: 'Cancel' }));
+    const figure = document.querySelector('figure');
+    if (figure === null) throw new Error('no diagram');
+    selectRange([text, 0], [figure, 0]);
+    expect(popoverHeadOf()).toBe(`C3 · § 3 Behaviour · line ${line} · Preview`);
+  });
+
   test('a node the frame reports under the pointer offers a comment on its own line, and the comment carries the node', () => {
     renderPreview();
     const frame = document.querySelector('iframe');
@@ -145,6 +220,52 @@ describe('Preview', () => {
     const popover = screen.getByRole('dialog', { name: 'Comment for the spec agent' });
     expect(within(popover).getByText('C3 · § 3 Behaviour · line 20 · Preview')).toBeTruthy();
     expect(within(popover).getByText('“Saved choice”')).toBeTruthy();
+  });
+
+  test('a node\'s offer goes a moment after the pointer left the node, stays while the pointer is on it, and goes once the diagram is drawn again', () => {
+    renderPreview();
+    const frame = document.querySelector('iframe');
+    const hoverNode = (): void => {
+      frameMessage({
+        ...FRAME_HEAD, kind: 'node-hovered', nodeId: 'Stored', top: 40, left: 60
+      }, frame?.contentWindow ?? null);
+    };
+    frameMessage({
+      ...FRAME_HEAD, kind: 'rendered', heightPixels: 120, nodes: [{ nodeId: 'Stored', label: 'Saved choice' }]
+    }, frame?.contentWindow ?? null);
+    hoverNode();
+    frameMessage({ ...FRAME_HEAD, kind: 'node-left' }, frame?.contentWindow ?? null);
+    fireEvent.pointerEnter(screen.getByRole('button', { name: '+ Comment on node · line 20' }));
+    endClockWaits();
+    expect(screen.getByRole('button', { name: '+ Comment on node · line 20' })).toBeTruthy();
+    fireEvent.pointerLeave(screen.getByRole('button', { name: '+ Comment on node · line 20' }));
+    endClockWaits();
+    expect(screen.queryByRole('button', { name: /Comment on node/u })).toBeNull();
+    hoverNode();
+    frameMessage({
+      ...FRAME_HEAD, kind: 'rendered', heightPixels: 140, nodes: [{ nodeId: 'Other', label: 'Another node' }]
+    }, frame?.contentWindow ?? null);
+    expect(screen.queryByRole('button', { name: /Comment on node/u })).toBeNull();
+  });
+
+  test('hands the frame the board\'s tokens with darkMode on for the dark theme, off for the light one', () => {
+    const themeBefore = document.documentElement.getAttribute('data-theme');
+    try {
+      for (const [theme, darkMode] of [['dark', 'true'], ['light', 'false']] as const) {
+        cleanup();
+        document.documentElement.setAttribute('data-theme', theme);
+        renderPreview();
+        const frame = document.querySelector('iframe');
+        const posted: unknown[] = [];
+        if (frame?.contentWindow === null || frame === null) throw new Error('no frame window');
+        frame.contentWindow.postMessage = (message: unknown) => posted.push(message);
+        fireEvent.load(frame);
+        expect(posted).toEqual([expect.objectContaining({ kind: 'render', themeVariables: expect.objectContaining({ darkMode }) })]);
+      }
+    } finally {
+      if (themeBefore === null) document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', themeBefore);
+    }
   });
 
   test('drops a message from any window but its own frame\'s, and one of another protocol version', () => {

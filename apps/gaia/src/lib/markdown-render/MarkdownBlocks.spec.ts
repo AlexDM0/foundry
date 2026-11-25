@@ -1,6 +1,7 @@
 /**
  * What a page that draws Markdown as its own elements relies on: each block's source lines and each span's start, exact enough to map a
- * selection back to the source; a `mermaid` fence read as a diagram with its own source lines; raw HTML and images left as text; a link's
+ * selection back to the source, a block nested in a list item ending on its own last line; a `mermaid` fence read as a diagram with its own
+ * source lines; a character reference a span of its own; raw HTML and images left as text; a link's
  * target kept only under the renderer's allowlist; and the section path of the headings above a block, the document's title left out.
  */
 import { describe, expect, test } from 'bun:test';
@@ -103,10 +104,46 @@ describe('MarkdownBlocks.blocksOf', () => {
     const [, secondItem] = list.items;
     const [paragraph] = secondItem?.blocks ?? [];
     if (paragraph?.kind !== 'paragraph') throw new Error('no paragraph');
-    expect(leafSpansOf(paragraph.spans).map((span) => ('start' in span ? [span.text, span.start.line, span.start.column] : null))).toEqual([
+    expect(leafSpansOf(paragraph.spans).map((span) => ('text' in span ? [span.text, span.start.line, span.start.column] : null))).toEqual([
       ['A3', 22, 9],
       [' Every account page passes 4.5:1 contrast\n', 22, 13],
       ['in both themes.', 23, 3],
+    ]);
+  });
+
+  test('ends a block nested in an indented list item on its own last line, a diagram\'s source included', () => {
+    const nested = MarkdownBlocks.blocksOf([
+      '- **A1** The theme flow:',
+      '    ```mermaid',
+      '    flowchart LR',
+      '      System --> Resolver',
+      '      Stored --> Resolver',
+      '      Resolver --> Page',
+      '      Page --> Paint',
+      '    ```',
+    ].join('\n'));
+    const [list] = nested;
+    const diagram = list?.kind === 'list' ? list.items[0]?.blocks.find((block) => block.kind === 'diagram') : undefined;
+    expect(diagram).toMatchObject({ lines: { from: 2, to: 8 }, sourceLines: { from: 3, to: 7 } });
+  });
+
+  test('starts each line of a code block at its source line and column, inside a list item too', () => {
+    const [list] = MarkdownBlocks.blocksOf(['- Run it:', '  ```ts', '  const example = 1;', '    return example;', '  ```'].join('\n'));
+    const code = list?.kind === 'list' ? list.items[0]?.blocks.find((block) => block.kind === 'code') : undefined;
+    expect(code).toMatchObject({ lineStarts: [{ line: 3, column: 3 }, { line: 4, column: 3 }] });
+  });
+
+  test('makes each character reference a span of its own at its own column, and leaves one in a code span as code', () => {
+    const [paragraph] = MarkdownBlocks.blocksOf('R&amp;D &copy; 2026 &#169; `a &amp; b`');
+    expect(paragraph?.kind === 'paragraph' ? paragraph.spans : null).toEqual([
+      { kind: 'text', text: 'R', start: { line: 1, column: 1 } },
+      { kind: 'reference', reference: '&amp;', start: { line: 1, column: 2 } },
+      { kind: 'text', text: 'D ', start: { line: 1, column: 7 } },
+      { kind: 'reference', reference: '&copy;', start: { line: 1, column: 9 } },
+      { kind: 'text', text: ' 2026 ', start: { line: 1, column: 15 } },
+      { kind: 'reference', reference: '&#169;', start: { line: 1, column: 21 } },
+      { kind: 'text', text: ' ', start: { line: 1, column: 27 } },
+      { kind: 'code', text: 'a &amp; b', start: { line: 1, column: 29 } },
     ]);
   });
 

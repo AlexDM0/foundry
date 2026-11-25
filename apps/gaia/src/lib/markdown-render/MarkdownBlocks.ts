@@ -1,8 +1,9 @@
 /**
  * Reads Markdown into blocks a page draws itself, never into HTML: headings, paragraphs, lists with their checkboxes, code, diagrams (a
  * `mermaid` fence), quotes, tables and rules, each with the source lines it spans and the section path of the headings above it, and
- * inline spans that carry the source line and column where their text starts. Raw HTML stays text, an image stays its alternative text, and
- * a link keeps its target only when `hrefIsAllowed` allows it. Lines and columns count from 1, after `\r\n` became `\n`.
+ * inline spans that carry the source line and column where their text starts. Raw HTML stays text, an image stays its alternative text, a
+ * character reference such as `&amp;` is a span of its own for the page to draw as the character it names, and a link keeps its target
+ * only when `hrefIsAllowed` allows it. Lines and columns count from 1, after `\r\n` became `\n`.
  */
 import { Lexer, type Token, type Tokens } from 'marked';
 
@@ -22,6 +23,8 @@ export interface SourceLines {
 export type MarkdownSpan =
   | { readonly kind: 'text'; readonly text: string; readonly start: SourcePosition }
   | { readonly kind: 'code'; readonly text: string; readonly start: SourcePosition }
+  /** A character reference of the text, `&amp;`, `&#169;` or `&#xA9;`, as it stands in the source. */
+  | { readonly kind: 'reference'; readonly reference: string; readonly start: SourcePosition }
   | { readonly kind: 'strong'; readonly spans: readonly MarkdownSpan[] }
   | { readonly kind: 'emphasis'; readonly spans: readonly MarkdownSpan[] }
   | { readonly kind: 'deleted'; readonly spans: readonly MarkdownSpan[] }
@@ -49,7 +52,8 @@ export type MarkdownBlock = BlockPlace & (
   | { readonly kind: 'heading'; readonly depth: number; readonly spans: readonly MarkdownSpan[] }
   | { readonly kind: 'paragraph'; readonly spans: readonly MarkdownSpan[] }
   | { readonly kind: 'list'; readonly ordered: boolean; readonly start: number; readonly items: readonly MarkdownListItem[] }
-  | { readonly kind: 'code'; readonly language: string | null; readonly text: string }
+  /** `lineStarts`: where each line of `text` starts in the source, so a selection in it maps back. */
+  | { readonly kind: 'code'; readonly language: string | null; readonly text: string; readonly lineStarts: readonly SourcePosition[] }
   /** `title` from the fence's words after `mermaid`, else a `title:` or `accTitle:` line of the diagram; `diagramKind` its first word. */
   | { readonly kind: 'diagram'; readonly diagramKind: string; readonly title: string | null; readonly source: string; readonly sourceLines: SourceLines }
   | { readonly kind: 'quote'; readonly blocks: readonly MarkdownBlock[] }
@@ -62,6 +66,9 @@ const DIAGRAM_LANGUAGE = 'mermaid';
 const LINE_BREAK = '\n';
 
 const DIAGRAM_TITLE_LINE = /^\s*(?:title|accTitle)\s*:\s*(.+?)\s*$/u;
+
+/** A named, decimal or hexadecimal character reference, as CommonMark reads one in text. */
+const CHARACTER_REFERENCE = /&(?:[A-Za-z][A-Za-z0-9]{1,31}|#[0-9]{1,7}|#[Xx][0-9A-Fa-f]{1,6});/gu;
 
 /** Where the source's lines start, so an offset reads as a line and a column. */
 interface SourceIndex {
@@ -83,10 +90,14 @@ function positionOf(index: SourceIndex, offset: number): SourcePosition {
   return { line: line + 1, column: offset - (index.lineOffsets[line] ?? 0) + 1 };
 }
 
-/** The lines a piece of the source spans, its trailing line breaks left out. */
+/**
+ * The lines a piece of the source spans, its trailing line breaks left out: as many as its raw holds, since a raw nested in a list item or
+ * a quote lost the indentation or `>` of each line but none of its lines.
+ */
 function linesOf(index: SourceIndex, offset: number, raw: string): SourceLines {
-  const trimmedLength = raw.replace(/\n+$/u, '').length;
-  return { from: positionOf(index, offset).line, to: positionOf(index, offset + Math.max(trimmedLength - 1, 0)).line };
+  const from = positionOf(index, offset).line;
+  const lineCount = raw.replace(/\n+$/u, '').split(LINE_BREAK).length;
+  return { from, to: Math.min(from + lineCount - 1, index.lineOffsets.length) };
 }
 
 /**
@@ -111,6 +122,19 @@ function offsetOf(index: SourceIndex, position: SourcePosition): number {
   return (index.lineOffsets[position.line - 1] ?? 0) + position.column - 1;
 }
 
+/** A text on one source line, each character reference in it a span of its own at its own column. */
+function textSpansOf(text: string, start: SourcePosition): MarkdownSpan[] {
+  const spans: MarkdownSpan[] = [];
+  let textOffset = 0;
+  for (const match of text.matchAll(CHARACTER_REFERENCE)) {
+    if (match.index > textOffset) spans.push({ kind: 'text', text: text.slice(textOffset, match.index), start: { line: start.line, column: start.column + textOffset } });
+    spans.push({ kind: 'reference', reference: match[0], start: { line: start.line, column: start.column + match.index } });
+    textOffset = match.index + match[0].length;
+  }
+  if (textOffset < text.length || spans.length === 0) spans.push({ kind: 'text', text: text.slice(textOffset), start: { line: start.line, column: start.column + textOffset } });
+  return spans;
+}
+
 /**
  * A text that runs over a soft line break, one span per source line, so each span's start is exact: a later line of a list item starts
  * after its indentation, which the token's text no longer holds.
@@ -118,16 +142,16 @@ function offsetOf(index: SourceIndex, position: SourcePosition): number {
 function textSpansByLineOf(index: SourceIndex, text: string, start: SourcePosition): MarkdownSpan[] {
   const pieces = text.split(LINE_BREAK);
   let position = start;
-  return pieces.map((piece, i) => {
+  return pieces.flatMap((piece, i) => {
     const isLast = i === pieces.length - 1;
-    const span: MarkdownSpan = { kind: 'text', text: isLast ? piece : `${piece}${LINE_BREAK}`, start: position };
+    const spans = textSpansOf(isLast ? piece : `${piece}${LINE_BREAK}`, position);
     if (!isLast) {
       const nextLineOffset = index.lineOffsets[position.line] ?? offsetOf(index, position);
       const nextPiece = pieces[i + 1] ?? '';
       const found = nextPiece === '' ? -1 : index.source.indexOf(nextPiece, nextLineOffset);
       position = positionOf(index, found === -1 ? nextLineOffset : found);
     }
-    return span;
+    return spans;
   });
 }
 
@@ -191,12 +215,23 @@ function diagramKindOf(source: string): string {
   return firstLine?.split(/\s+/u)[0] ?? '';
 }
 
-function codeBlockOf(token: Tokens.Code, place: BlockPlace): MarkdownBlock {
+/** Each line of a code block's text at its source line, after the indentation a list item or an indented block gives it. */
+function codeLineStartsOf(index: SourceIndex, text: string, firstLine: number): SourcePosition[] {
+  return text.split(LINE_BREAK).map((codeLine, i) => {
+    const line = firstLine + i;
+    const sourceLine = index.source.slice(index.lineOffsets[line - 1] ?? 0, index.lineOffsets[line] ?? index.source.length);
+    const within = codeLine === '' ? -1 : sourceLine.indexOf(codeLine);
+    return { line, column: within === -1 ? 1 : within + 1 };
+  });
+}
+
+function codeBlockOf(index: SourceIndex, token: Tokens.Code, place: BlockPlace): MarkdownBlock {
   const [language = '', ...fenceWords] = (token.lang ?? '').trim().split(/\s+/u);
-  if (language !== DIAGRAM_LANGUAGE) return {
-    ...place, kind: 'code', language: language === '' ? null : language, text: token.text
-  };
   const fenced = token.codeBlockStyle !== 'indented';
+  const textFromLine = fenced ? place.lines.from + 1 : place.lines.from;
+  if (language !== DIAGRAM_LANGUAGE) return {
+    ...place, kind: 'code', language: language === '' ? null : language, text: token.text, lineStarts: codeLineStartsOf(index, token.text, textFromLine)
+  };
   const sourceLines = fenced ? { from: place.lines.from + 1, to: Math.max(place.lines.to - 1, place.lines.from + 1) } : place.lines;
   return {
     ...place,
@@ -211,6 +246,7 @@ function codeBlockOf(token: Tokens.Code, place: BlockPlace): MarkdownBlock {
 function inlineTextOf(spans: readonly MarkdownSpan[]): string {
   return spans.map((span) => {
     if (span.kind === 'text' || span.kind === 'code') return span.text;
+    if (span.kind === 'reference') return span.reference;
     if (span.kind === 'line-break') return ' ';
     return inlineTextOf(span.spans);
   }).join('');
@@ -324,7 +360,7 @@ function blockOf(reading: Reading, token: Token, place: BlockPlace, offset: numb
     case 'list':
       return listBlockOf(reading, token as Tokens.List, place, offset);
     case 'code':
-      return codeBlockOf(token as Tokens.Code, place);
+      return codeBlockOf(index, token as Tokens.Code, place);
     case 'blockquote':
       return { ...place, kind: 'quote', blocks: blocksOf({ ...reading, titleSkip: false }, (token as Tokens.Blockquote).tokens, offset, place.sectionPath).blocks };
     case 'table':

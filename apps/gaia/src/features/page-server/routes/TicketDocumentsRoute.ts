@@ -1,7 +1,8 @@
 /**
  * `GET /api/v1/forges/<trackerId>/tickets/<ticketId>/documents`: a ticket's spec and plan, read afresh from the forge on every ask, ingested
  * and mapped to the page's `GaiaTicketDocumentsDocument` with the Markdown left as source text. A forge's refusal, such as a ticket with no
- * documents, reaches the page as the forge's own sentence; a refusal of Gaia's in Gaia's words.
+ * documents, reaches the page as the forge's own sentence; a refusal of Gaia's as its code and Gaia's sentence, which the page shows as it
+ * shows the forge's.
  */
 import { TicketDocumentsIngestion }                       from '../../../adapters/forge-api/TicketDocumentsIngestion.ts';
 import { TicketDocumentsDocumentMapUtil }                 from '../../../adapters/page-api/TicketDocumentsDocumentMapUtil.ts';
@@ -58,7 +59,7 @@ export async function ticketDocumentsAnswerFor(trackerId: string, ticketId: stri
   const read = await readTicketDocuments(trackerId, ticketId);
   switch (read.verdict) {
     case 'refused-by-gaia':
-      return BoardRelayAnswers.relayRefusalAnswerOf(read.refusal);
+      return BoardRelayAnswers.gaiaRefusalAnswerOf(read.refusal);
     case 'refused-by-forge':
       return BoardRelayAnswers.forgeRefusalAnswerOf(read.refusal);
     case 'read':

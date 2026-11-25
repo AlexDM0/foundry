@@ -1,7 +1,7 @@
 /**
  * Reads a ticket's spec and plan through Gaia's relay (`GET /api/v1/forges/<trackerId>/tickets/<ticketId>/documents`) with the page's
  * session. The board stream's `documents` part says when to read them again. A refusal reads as its sentence, shown verbatim: the forge's
- * own, such as a ticket with no documents, or Gaia's code for a refusal of Gaia's.
+ * own, such as a ticket with no documents, or Gaia's for a refusal of Gaia's, such as a forge that does not answer.
  */
 import { PAGE_CONTRACT_VERSIONS }           from '../../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }              from '../../../src/shared/utils/ContractVersionUtil.ts';
@@ -29,12 +29,10 @@ export interface TicketDocumentsClient {
 
 const DOCUMENTS_VERSION_KEYS = { majorKey: 'ticketDocumentsVersion' } as const;
 
-/** The refusal's sentence: a refusal of the page's contract, bare or under `refusal`, or Gaia's own code as the board's read gives it. */
+/** The refusal's sentence, the forge's or Gaia's, of a refusal of the page's contract, bare or under `refusal`. */
 function refusalOf(body: unknown): string | null {
   if (typeof body !== 'object' || body === null) return null;
-  const { refusal, refusedBy } = body as Readonly<Record<string, unknown>>;
-  if (refusedBy === 'gaia' && typeof refusal === 'string') return refusal;
-  return refusalTextOf(body) ?? refusalTextOf(refusal);
+  return refusalTextOf(body) ?? refusalTextOf((body as Readonly<Record<string, unknown>>)['refusal']);
 }
 
 function create(trackerId: string, sendRequest: RelayRequestSender = BROWSER_RELAY_REQUEST_SENDER): TicketDocumentsClient {

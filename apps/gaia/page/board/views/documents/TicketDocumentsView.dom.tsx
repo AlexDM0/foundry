@@ -3,7 +3,8 @@
  * reads them again on the board stream's `documents` part, never on another; Approve sends the head version it shows; the tabs link the
  * other document, muted while it waits on the one before; a plan the spec moved under says so, holds the build and asks to be approved
  * again; where the review is off the document reads `Approved by pipeline` and its Code is read-only; a refusal reads verbatim; a comment's
- * card in the chat jumps to Preview; and Plan's composer opens the effect pane on the effect reading it asks for.
+ * card in the chat jumps to Preview and scrolls to its lines at each press; Plan's composer opens the effect pane on the effect reading it
+ * asks for; a failed read after a good one keeps the page and User's text; and leaving Code leaves no edit that locks Approve.
  */
 import {
   act,
@@ -192,6 +193,58 @@ describe('the documents page', () => {
     }]);
     const pane = screen.getByRole('region', { name: 'Effect in repo' });
     expect(within(pane).getByText('From plan v2 and the file tree only. No code read. 1.4s')).toBeTruthy();
+  });
+
+  test('a read that fails after the documents were read keeps the page and what User typed, with the failure over it', async () => {
+    const { relay, fire } = renderDocuments(DOCUMENT_STATES.specWorking);
+    await settled();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+    const editor = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' });
+    fireEvent.change(editor, { target: { value: `${editor.value}\n- Typed.` } });
+    relay.answers.push({ verdict: 'unreachable' });
+    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    await settled();
+    expect(screen.getByRole('status').textContent).toBe('Gaia could not be reached. The documents are read again once it answers.');
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' }).value.endsWith('\n- Typed.')).toBe(true);
+    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    await settled();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  test('a new version read while Preview shows leaves Approve open, though Code was opened on the version before', async () => {
+    const [spec, plan] = DOCUMENT_STATES.specWorking.documents;
+    if (spec === undefined || plan === undefined || spec.head === null) throw new Error('no documents');
+    const { relay, fire } = renderDocuments(DOCUMENT_STATES.specWorking);
+    await settled();
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    const newer = { ...spec, markdown: `${spec.markdown}\n- Applied by the agent.`, head: { ...spec.head, number: spec.head.number + 1 } };
+    relay.answers.push({ verdict: 'read', documents: { ...DOCUMENT_STATES.specWorking, documents: [newer, plan] } });
+    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    await settled();
+    expect((screen.getByRole<HTMLButtonElement>('button', { name: 'Approve spec · start Plan' })).disabled).toBe(false);
+    expect(screen.queryByText(/editing/u)).toBeNull();
+  });
+
+  test('a comment\'s card scrolls to its lines at each press, and a later view change scrolls nowhere', async () => {
+    const scrolled: string[] = [];
+    const scrollIntoViewBefore = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function recordScroll(this: Element) {
+      scrolled.push(this.getAttribute('data-from-line') ?? '');
+    };
+    try {
+      renderDocuments(DOCUMENT_STATES.specWorking);
+      await settled();
+      const card = screen.getByRole('button', { name: 'Show C2 · § 4 Acceptance › A3 · line 29 · Preview' });
+      fireEvent.click(card);
+      fireEvent.click(card);
+      expect(scrolled.filter((line) => line !== '')).toHaveLength(2);
+      fireEvent.click(screen.getByRole('button', { name: 'Code' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+      expect(scrolled.filter((line) => line !== '')).toHaveLength(2);
+    } finally {
+      Element.prototype.scrollIntoView = scrollIntoViewBefore;
+    }
   });
 
   test('a ticket with no documents shows the forge\'s refusal', async () => {

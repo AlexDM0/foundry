@@ -45,6 +45,11 @@ function relayRefusalAnswerOf(refusal: BoardRelayRefusal): Response {
   return Response.json(BoardRelayAnswerMapUtil.relayRefusalDocumentOf(refusal), { status: HTTP_STATUS_OF_RELAY_REFUSAL[refusal], headers: NO_STORE });
 }
 
+/** A refusal of Gaia's for a page that shows it as it shows a forge's: its code and Gaia's sentence. */
+function gaiaRefusalAnswerOf(refusal: BoardRelayRefusal): Response {
+  return Response.json(BoardRelayAnswerMapUtil.gaiaRefusalDocumentOf(refusal), { status: HTTP_STATUS_OF_RELAY_REFUSAL[refusal], headers: NO_STORE });
+}
+
 /** A forge that refused a read, such as a ticket with no documents, answered for the page as the forge worded it. */
 function forgeRefusalAnswerOf(refusal: BoardRefusal): Response {
   return Response.json(BoardDocumentMapUtil.refusalDocumentOf(refusal), { status: HTTP_STATUS.conflict, headers: NO_STORE });
@@ -88,6 +93,7 @@ export const BoardRelayAnswers = {
   NO_STORE,
   relayRefusalOfAccess,
   relayRefusalAnswerOf,
+  gaiaRefusalAnswerOf,
   forgeRefusalAnswerOf,
   commandAnswerOf,
   pictureUploadAnswerOf,

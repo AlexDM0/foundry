@@ -80,7 +80,7 @@ import { ContractVersionUtil }            from '../../shared/utils/ContractVersi
 
 /**
  * `malformed-body` names each key that is missing or holds another type; `unknown-kind` names the kind, `null` when the body names none;
- * `too-large` is a body over `BOARD_COMMAND_BODY_BOUND_BYTES` of a kind that carries no document.
+ * `too-large` is a body over `BOARD_COMMAND_BODY_BOUND_BYTES` of a kind that carries no document's text.
  */
 export type BoardCommandReading =
   | { readonly verdict: 'readable'; readonly command: BoardCommand }
@@ -96,7 +96,8 @@ const VERSION_KEYS = { majorKey: 'boardCommandVersion' } as const;
 const KIND_KEY = 'kind';
 const RESUME_TARGET_KEY = 'target';
 const RESUME_EVERYTHING_TARGET = 'all';
-const DOCUMENT_SAVE_KIND = 'ticket-document-save';
+/** The kinds that may carry a ticket document's text: a save, a proposal applied as User edited it, and a comment quoting a selection. */
+const DOCUMENT_SIZED_KINDS: ReadonlySet<BoardCommandDocumentKind> = new Set(['ticket-document-save', 'ticket-document-proposal-apply', 'ticket-document-comment']);
 
 /** Each union a command carries as a record of its values, so a value the union gains is a compile error here until the shapes take it. */
 const AGENT_MODELS = {
@@ -754,7 +755,7 @@ export class BoardCommandIngestion {
     const kind = JsonValueUtil.ownValueOf(body, KIND_KEY);
     if (typeof kind !== 'string') return { verdict: 'refused', refusal: 'unknown-kind', kind: null };
     if (!isCommandKind(kind)) return { verdict: 'refused', refusal: 'unknown-kind', kind };
-    if (kind !== DOCUMENT_SAVE_KIND && byteLengthOf(bodyText) > BOARD_COMMAND_BODY_BOUND_BYTES) return { verdict: 'refused', refusal: 'too-large' };
+    if (!DOCUMENT_SIZED_KINDS.has(kind) && byteLengthOf(bodyText) > BOARD_COMMAND_BODY_BOUND_BYTES) return { verdict: 'refused', refusal: 'too-large' };
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(body, COMMAND_SHAPES[kind]);
     if (invalidKeys.length > 0) return malformedBody(invalidKeys);
     if (kind !== 'interrupted-work-resume') return { verdict: 'readable', command: commandIn(body as Parameters<typeof commandIn>[0]) };

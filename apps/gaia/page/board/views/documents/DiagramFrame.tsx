@@ -1,9 +1,10 @@
 /**
  * One mermaid block, drawn by Gaia's diagram frame: a sandboxed frame of an opaque origin (`allow-scripts` alone), which reaches neither
  * this page, its cookies nor Gaia's API. Once it loads, the page hands it the source and the board's colour tokens of the current theme as
- * mermaid's theme variables, again when the theme changes, and takes a message only from its own frame, of the frame protocol's name and
- * version. The frame answers with its height and its nodes, and with the node under the pointer, which offers a comment on the node's line.
- * A diagram that fails to draw shows its source as text.
+ * mermaid's theme variables, with `darkMode` for the dark theme, again when the theme changes, and takes a message only from its own frame,
+ * of the frame protocol's name and version. The frame answers with its height and its nodes, and with the node under the pointer, which
+ * offers a comment on the node's line until a moment after the pointer left it, unless it went to the offer, or until the diagram is drawn
+ * again. A diagram that fails to draw shows its source as text.
  */
 import {
   createContext,
@@ -20,6 +21,7 @@ import {
   type DiagramFrameRequest,
   type DiagramNode
 } from '../../../shared/@types/DiagramFrameMessages.ts';
+import { useBoardClock } from '../../shell/BoardClock.ts';
 
 export const DIAGRAM_FRAME_ADDRESS = '/diagram-frame/';
 
@@ -45,6 +47,11 @@ const THEME_VARIABLE_TOKENS: Readonly<Record<string, string>> = {
 
 const THEME_ATTRIBUTE = 'data-theme';
 
+const DARK_THEME = 'dark';
+
+/** How long a node's offer stays once the pointer left the node, so the pointer can reach it. */
+export const NODE_OFFER_GRACE_MILLISECONDS = 600;
+
 export interface HoveredNode {
   readonly node: DiagramNode;
   readonly top:  number;
@@ -60,12 +67,14 @@ export interface DiagramFrameProps {
   readonly offerLabelOf?:  (node: DiagramNode) => string;
 }
 
-function themeVariablesOf(): Record<string, string> {
+/** The tokens as mermaid's theme variables, and `darkMode`, which has the frame draw on a dark ground and derive its colours for it. */
+function themeVariablesOf(theme: string | null): Record<string, string> {
   const style = getComputedStyle(document.documentElement);
-  return Object.fromEntries(Object.entries(THEME_VARIABLE_TOKENS).flatMap(([variable, token]) => {
+  const tokenVariables = Object.entries(THEME_VARIABLE_TOKENS).flatMap(([variable, token]) => {
     const value = style.getPropertyValue(token).trim();
     return value === '' ? [] : [[variable, value]];
-  }));
+  });
+  return { ...Object.fromEntries(tokenVariables), darkMode: String(theme === DARK_THEME) };
 }
 
 function isFrameAnswer(data: unknown): data is DiagramFrameAnswer {
@@ -74,9 +83,9 @@ function isFrameAnswer(data: unknown): data is DiagramFrameAnswer {
   return protocol === DIAGRAM_FRAME_PROTOCOL && protocolVersion === PAGE_CONTRACT_VERSIONS.gaiaDiagramFrame && typeof kind === 'string';
 }
 
-function renderRequestOf(source: string): DiagramFrameRequest {
+function renderRequestOf(source: string, theme: string | null): DiagramFrameRequest {
   return {
-    protocol: DIAGRAM_FRAME_PROTOCOL, protocolVersion: PAGE_CONTRACT_VERSIONS.gaiaDiagramFrame, kind: 'render', source, themeVariables: themeVariablesOf(),
+    protocol: DIAGRAM_FRAME_PROTOCOL, protocolVersion: PAGE_CONTRACT_VERSIONS.gaiaDiagramFrame, kind: 'render', source, themeVariables: themeVariablesOf(theme),
   };
 }
 
@@ -101,15 +110,25 @@ export function DiagramFrame({
   const [heightPixels, setHeightPixels] = useState<number | null>(null);
   const [nodes, setNodes] = useState<readonly DiagramNode[]>([]);
   const [hovered, setHovered] = useState<HoveredNode | null>(null);
+  const [offerIsLeaving, setOfferIsLeaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const theme = useThemeName();
   const address = useContext(DiagramFrameAddressContext);
+  const clock = useBoardClock();
 
   useEffect(() => {
     if (!loaded) return;
     // The frame's origin is opaque, so its messages carry the origin "null"; it is told apart by its window alone.
-    frame.current?.contentWindow?.postMessage(renderRequestOf(source), '*');
+    frame.current?.contentWindow?.postMessage(renderRequestOf(source, theme), '*');
   }, [loaded, source, theme]);
+
+  useEffect(() => {
+    if (!offerIsLeaving) return undefined;
+    return clock.after(NODE_OFFER_GRACE_MILLISECONDS, () => {
+      setHovered(null);
+      setOfferIsLeaving(false);
+    });
+  }, [clock, offerIsLeaving]);
 
   useEffect(() => {
     const receive = (event: MessageEvent): void => {
@@ -120,13 +139,17 @@ export function DiagramFrame({
           setFailure(null);
           setHeightPixels(answer.heightPixels);
           setNodes(answer.nodes);
+          setHovered(null);
+          setOfferIsLeaving(false);
           return;
         case 'node-hovered': {
           const node = nodes.find((candidate) => candidate.nodeId === answer.nodeId);
           if (node !== undefined) setHovered({ node, top: answer.top, left: answer.left });
+          setOfferIsLeaving(false);
           return;
         }
         case 'node-left':
+          setOfferIsLeaving(true);
           return;
         case 'render-failed':
           setFailure(answer.reason);
@@ -163,9 +186,12 @@ export function DiagramFrame({
             type="button"
             className="board-document-node-comment"
             style={{ top: `${hovered.top}px`, left: `${hovered.left}px` }}
+            onPointerEnter={() => setOfferIsLeaving(false)}
+            onPointerLeave={() => setOfferIsLeaving(true)}
             onClick={() => {
               onNodeComment(hovered.node);
               setHovered(null);
+              setOfferIsLeaving(false);
             }}
           >
             {offerLabelOf?.(hovered.node) ?? `+ Comment on ${hovered.node.label}`}

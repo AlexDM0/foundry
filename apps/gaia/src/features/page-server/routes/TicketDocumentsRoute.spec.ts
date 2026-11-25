@@ -1,10 +1,10 @@
 /**
  * A ticket's documents answered to the page, read through the forge client from the recorded forge (`hephaestus-fetch-ticket-documents`)
  * and from hand-built reads. What matters: documents read are answered as the page's contract at its version and never cached; a forge's
- * refusal, a ticket with no documents among them, keeps the forge's code, fields and sentence byte for byte under a conflict status, even
- * a sentence that names a command; a refusal of Gaia's is answered in Gaia's words under its own status, a forge that does not answer and
- * a body that does not ingest among them, the latter logged with its keys; the reader is asked for the forge and ticket the route names;
- * and no answer carries the token. The session guard on the route is `PageServer.spec.ts`'s to hold.
+ * refusal, a ticket with no documents among them, keeps the forge's code, fields and sentence byte for byte under a conflict status, even a
+ * sentence that names a command; a refusal of Gaia's is answered with its code and Gaia's sentence under its own status, a forge that does
+ * not answer and a body that does not ingest among them, the latter logged with its keys; the reader is asked for the forge and ticket the
+ * route names; and no answer carries the token. The session guard on the route is `PageServer.spec.ts`'s to hold.
  */
 import {
   afterEach,
@@ -71,7 +71,7 @@ describe('ticketDocumentsAnswerFor', () => {
 
   test('answers a refusal of Gaia\'s under its own status', async () => {
     const unreachable = await ticketDocumentsAnswerFor('example-storefront-7c41', '004', readerAnswering({ verdict: 'refused-by-gaia', refusal: 'forge-unreachable' }));
-    expect([unreachable.status, await unreachable.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
+    expect([unreachable.status, await unreachable.json()]).toEqual([502, { refusedBy: 'gaia', code: 'forge-unreachable', text: 'This forge does not answer.' }]);
     const unregistered = await ticketDocumentsAnswerFor('example-absent', '004', readerAnswering({ verdict: 'refused-by-gaia', refusal: 'forge-not-registered' }));
     expect(unregistered.status).toBe(404);
   });
@@ -128,10 +128,11 @@ describe('ticketDocumentsAnswerFor, over the recorded forge', () => {
       relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), stoppedForgeAnswering([documentsAnswer.callShape])),
       () => undefined,
     ));
-    expect([stopped.status, await stopped.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
+    expect([stopped.status, await stopped.json()]).toEqual([502, { refusedBy: 'gaia', code: 'forge-unreachable', text: 'This forge does not answer.' }]);
     const unreadable = { ...documentsAnswer, answer: { ...documentsAnswer.answer, bodyText: JSON.stringify({ ticketId: RECORDED_TICKET_IDS.withDocuments }) } };
     const answer = await ticketDocumentsAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_TICKET_IDS.withDocuments, recordedReaderOf([unreadable]));
-    expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'forge-document-unreadable', refusedBy: 'gaia' }]);
+    const unreadableRefusal = { refusedBy: 'gaia', code: 'forge-document-unreadable', text: 'This forge answered with something Gaia cannot read.' };
+    expect([answer.status, await answer.json()]).toEqual([502, unreadableRefusal]);
     expect(loggedEntries).toEqual([{
       kind: 'ticket-documents-unreadable', trackerId: STOREFRONT_TRACKER_ID, ticketId: RECORDED_TICKET_IDS.withDocuments, invalidKeys: ['documents', 'effectReadings'],
     }]);

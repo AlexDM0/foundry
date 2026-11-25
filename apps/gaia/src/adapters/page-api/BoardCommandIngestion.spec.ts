@@ -1,12 +1,14 @@
 /**
- * The page's board command body read into Gaia's model. What matters: a valid body of each kind becomes its model command, every typed draft
- * edit included; a key the kind does not name never reaches the model; a missing key, a key of the wrong type, a value outside its union and
- * a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is refused as
- * unknown; a body at another version or no JSON object is malformed. A ticket document's save may carry a whole document, up to its own
- * bound, while every other kind keeps to the smaller one; a comment's anchor is read key by key, a diagram node's included.
+ * The page's board command body read into Gaia's model. What matters: a valid body of each kind becomes its model command, every typed
+ * draft edit included; a key the kind does not name never reaches the model; a missing key, a key of the wrong type, a value outside its
+ * union and a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is
+ * refused as unknown; a body at another version or no JSON object is malformed. A ticket document's save, an edited proposal and a
+ * comment's quote may carry a whole document, up to its own bound, while every other kind keeps to the smaller one; a comment's anchor is
+ * read key by key, a diagram node's included.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { BoardCommandDocument }                                                      from '../../../page/@types/board/BoardCommandDocument.ts';
 import { BOARD_COMMAND_BODY_BOUND_BYTES }                                                 from '../../shared/constants/Limits.ts';
 import { PAGE_CONTRACT_VERSIONS }                                                         from '../../shared/constants/PageContractVersions.ts';
 import { BoardCommandIngestion }                                                          from './BoardCommandIngestion.ts';
@@ -132,12 +134,18 @@ describe('commandOf, on a ticket document\'s commands', () => {
     expect(readingOf(apply)).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['replacementLines[0]'] });
   });
 
-  test('reads a save larger than every other command may be, and refuses another kind of that size as too large', () => {
+  test('reads a save, an edited proposal and a comment quoting a long selection larger than every other command may be', () => {
     const documentOverTheCommandBound = 'x'.repeat(BOARD_COMMAND_BODY_BOUND_BYTES);
     const save = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-save'], markdown: documentOverTheCommandBound };
-    expect(readingOf(save)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(save) });
-    const comment = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], text: documentOverTheCommandBound };
-    expect(readingOf(comment)).toEqual({ verdict: 'refused', refusal: 'too-large' });
+    const apply = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-proposal-apply'], replacementLines: [[documentOverTheCommandBound], []] };
+    const comment = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-document-comment'], anchor: { ...EXAMPLE_COMMENT_ANCHOR, quote: documentOverTheCommandBound } };
+    const commands: readonly BoardCommandDocument[] = [save, apply, comment];
+    for (const command of commands) expect(readingOf(command)).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(command) });
+  });
+
+  test('refuses another kind of that size as too large', () => {
+    const message = { ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['job-message'], text: 'x'.repeat(BOARD_COMMAND_BODY_BOUND_BYTES) };
+    expect(readingOf(message)).toEqual({ verdict: 'refused', refusal: 'too-large' });
   });
 });
 

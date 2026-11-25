@@ -2,7 +2,8 @@
  * A ticket's spec and plan, a page of their own at `documents/ticket/<id>/<spec|plan>`: the head (breadcrumb, the document tabs, then
  * Build, the state line, Preview, Code or Split, the comment count and the one primary button), the document in the chosen view, on a plan
  * the notice of a spec that moved under it and the effect pane, and the document agent's chat. The documents are read through Gaia's relay
- * when the page opens and again on each `documents` part of the board stream; the agent's turns come from its job's transcript. The page
+ * when the page opens and again on each `documents` part of the board stream; the agent's turns come from its job's transcript. A read that
+ * fails once the documents were read keeps the page as last read, with the failure over it, so nothing User is doing is lost. The page
  * itself keeps only what User is doing: the view, the comment being written, the effect pane, and the text typed but not saved.
  */
 import {
@@ -62,13 +63,30 @@ const VIEW_OPTIONS: readonly SegmentOption<DocumentViewMode>[] = [
 const DOCUMENTS_PART = 'documents';
 
 export interface TicketDocumentsPageProps {
-  readonly project:    string;
-  readonly ticket:     BoardTicketDocument;
-  readonly documents:  GaiaTicketDocumentsDocument;
-  readonly shown:      BoardTicketDocumentKind;
-  readonly transcript: readonly BoardTranscriptEntryDocument[];
+  readonly project:      string;
+  readonly ticket:       BoardTicketDocument;
+  readonly documents:    GaiaTicketDocumentsDocument;
+  readonly shown:        BoardTicketDocumentKind;
+  readonly transcript:   readonly BoardTranscriptEntryDocument[];
+  /** Why the newest read failed while the page shows the documents as last read; `null` while they are current. */
+  readonly readFailure?: string | null;
   /** What a screen of the visual pass shows mid-use; the page starts in Preview with nothing open. */
-  readonly atMount?:   PageStateAtMount;
+  readonly atMount?:     PageStateAtMount;
+}
+
+/** A jump to lines User asked for, a new one at each ask, so asking again for the same lines scrolls again. */
+interface JumpRequest {
+  readonly lines: BoardLineRangeDocument;
+}
+
+const READ_FAILURE_SENTENCES = {
+  'unreadable':  'Gaia cannot read these documents. Reload the page to read them again.',
+  'unreachable': 'Gaia could not be reached. The documents are read again once it answers.',
+  'no-session':  'This window\'s session ended. Reload the page to open a new one.',
+} as const satisfies Readonly<Record<Exclude<TicketDocumentsRead['verdict'], 'read' | 'refused'>, string>>;
+
+function readFailureOf(read: Exclude<TicketDocumentsRead, { readonly verdict: 'read' }>): string {
+  return read.verdict === 'refused' ? read.refusal : READ_FAILURE_SENTENCES[read.verdict];
 }
 
 export interface PageStateAtMount {
@@ -174,27 +192,29 @@ function scrollToLines(container: HTMLElement | null, lines: BoardLineRangeDocum
 }
 
 export function TicketDocumentsPage({
-  project, ticket, documents, shown, transcript, atMount = {}
+  project, ticket, documents, shown, transcript, readFailure = null, atMount = {}
 }: TicketDocumentsPageProps) {
   const [view, setView] = useState<DocumentViewMode>(atMount.view ?? 'preview');
   const [draft, setDraft] = useState<CommentDraft | null>(atMount.draft ?? null);
   const [effectIsOpen, setEffectIsOpen] = useState(atMount.effectIsOpen ?? false);
   const [editedText, setEditedText] = useState<string | null>(atMount.editedText ?? null);
-  const [jump, setJump] = useState<BoardLineRangeDocument | null>(null);
+  const [jump, setJump] = useState<JumpRequest | null>(null);
   const main = useRef<HTMLElement>(null);
   const hrefOf = useBoardHrefOf();
   const document = TicketDocumentsViewModel.documentOf(documents, shown);
   const spec = TicketDocumentsViewModel.documentOf(documents, 'spec');
-  const editing = document !== null && editedText !== null && editedText !== document.markdown;
+  // Only an editor that is open holds text; Preview edits nothing.
+  const editing = view !== 'preview' && document !== null && editedText !== null && editedText !== document.markdown;
   const head = TicketDocumentsViewModel.headOf({
     documents, ticket, shown, editing
   });
   const effectReading = documents.effectReadings.findLast((reading) => reading.document === shown) ?? null;
   const chat = useMemo(() => (document === null ? null : DocumentChatModel.documentChatOf(document, transcript, effectReading)), [document, transcript, effectReading]);
 
+  // Each ask is a new request, so the same lines scroll again, and a change of view alone scrolls nowhere.
   useEffect(() => {
-    if (jump !== null) scrollToLines(main.current, jump);
-  }, [jump, view]);
+    if (jump !== null) scrollToLines(main.current, jump.lines);
+  }, [jump]);
 
   if (document === null || chat === null) return <EmptyState text={`Ticket ${ticket.id} has no ${shown}.`} />;
   const place: DocumentPlace = { ticketId: ticket.id, document: shown };
@@ -203,12 +223,18 @@ export function TicketDocumentsPage({
   });
   const proposals = ProposalModel.openProposalsOf(shown, document.proposals);
   const notice = shown === 'plan' ? TicketDocumentsViewModel.outOfDateNoticeOf(document) : null;
+  const shownUpdateLines = proposals[0]?.headLines ?? null;
   const settled = !document.editable;
   const versionNumber = document.head?.number ?? null;
   const contextLine = shown === 'plan' ? planContextLineOf(documents) : null;
   const changeView = (next: DocumentViewMode): void => {
     setView(next);
     setDraft(null);
+    setEditedText(null);
+  };
+  const jumpTo = (lines: BoardLineRangeDocument): void => {
+    if (view !== 'preview') changeView('preview');
+    setJump({ lines });
   };
 
   const documentView = (() => {
@@ -272,13 +298,16 @@ export function TicketDocumentsPage({
       />
       <div className="board-document-body">
         <main ref={main} className="board-document-main" aria-label={`The ${shown} of ticket ${ticket.id}`}>
+          {readFailure === null ? null : <p className="board-refusal" role="status">{readFailure}</p>}
           {notice === null
             ? null
             : (
               <OutOfDateNotice
                 notice={notice}
                 specHref={hrefOf(BoardRouter.documentsRouteOf(ticket.id, 'spec'))}
-                onShowUpdate={proposals.length === 0 ? null : () => setJump(proposals[0]?.headLines ?? null)}
+                onShowUpdate={proposals.length === 0 ? null : () => {
+                  if (shownUpdateLines !== null) jumpTo(shownUpdateLines);
+                }}
               />
             )}
           {documentView}
@@ -293,10 +322,7 @@ export function TicketDocumentsPage({
           proposalMode={document.proposalMode}
           headNumber={versionNumber}
           settled={settled}
-          onJumpToAnchor={(lines) => {
-            setView('preview');
-            setJump(lines);
-          }}
+          onJumpToAnchor={jumpTo}
           onOpenEffect={shown === 'plan' ? () => setEffectIsOpen(true) : null}
         />
       </div>
@@ -304,13 +330,18 @@ export function TicketDocumentsPage({
   );
 }
 
-type DocumentsReading = { readonly ticketId: string; readonly read: TicketDocumentsRead | null };
+/** The newest read, and the documents of the last read that succeeded, which a failed read after it leaves standing. */
+interface DocumentsReading {
+  readonly ticketId:      string;
+  readonly read:          TicketDocumentsRead | null;
+  readonly lastDocuments: GaiaTicketDocumentsDocument | null;
+}
 
 /** The ticket's documents, read when the page opens, on each `documents` part of the board stream and when the stream comes back. */
-function useTicketDocuments(services: BoardServices, ticketId: string): TicketDocumentsRead | null {
+function useTicketDocuments(services: BoardServices, ticketId: string): Omit<DocumentsReading, 'ticketId'> {
   const reader = useContext(TicketDocumentsReaderContext);
   const client = useMemo(() => reader(services.trackerId), [reader, services.trackerId]);
-  const [reading, setReading] = useState<DocumentsReading>({ ticketId, read: null });
+  const [reading, setReading] = useState<DocumentsReading>({ ticketId, read: null, lastDocuments: null });
   useEffect(() => {
     let isMounted = true;
     let readNumber = 0;
@@ -318,7 +349,11 @@ function useTicketDocuments(services: BoardServices, ticketId: string): TicketDo
       readNumber += 1;
       const thisRead = readNumber;
       void client.read(ticketId).then((read) => {
-        if (isMounted && thisRead === readNumber) setReading({ ticketId, read });
+        if (!isMounted || thisRead !== readNumber) return;
+        setReading((before) => {
+          const documentsBefore = before.ticketId === ticketId ? before.lastDocuments : null;
+          return { ticketId, read, lastDocuments: read.verdict === 'read' ? read.documents : documentsBefore };
+        });
       });
     };
     readAgain();
@@ -335,7 +370,7 @@ function useTicketDocuments(services: BoardServices, ticketId: string): TicketDo
       stream.close();
     };
   }, [client, services, ticketId]);
-  return reading.ticketId === ticketId ? reading.read : null;
+  return reading.ticketId === ticketId ? reading : { read: null, lastDocuments: null };
 }
 
 function DocumentsOfTicket({
@@ -346,24 +381,26 @@ function DocumentsOfTicket({
   readonly ticketId: string;
   readonly shown:    BoardTicketDocumentKind;
 }) {
-  const read = useTicketDocuments(services, ticketId);
-  const agentJobId = read?.verdict === 'read' ? TicketDocumentsViewModel.documentOf(read.documents, shown)?.agentJobId ?? null : null;
+  const { read, lastDocuments } = useTicketDocuments(services, ticketId);
+  const agentJobId = lastDocuments === null ? null : TicketDocumentsViewModel.documentOf(lastDocuments, shown)?.agentJobId ?? null;
   const { entries } = useTranscript(agentJobId, services.followTranscript);
   const ticket = board.page.tickets.find((candidate) => candidate.id === ticketId) ?? null;
   if (ticket === null) return <EmptyState text={`The board has no ticket ${ticketId}.`} />;
   if (read === null) return <EmptyState text={`Reading the documents of ticket ${ticketId}.`} />;
-  switch (read.verdict) {
-    case 'read':
-      return <TicketDocumentsPage project={board.project} ticket={ticket} documents={read.documents} shown={shown} transcript={entries} />;
-    case 'refused':
-      return <p className="board-refusal" role="status">{read.refusal}</p>;
-    case 'unreadable':
-      return <EmptyState text="Gaia cannot read these documents. Reload the page to read them again." />;
-    case 'unreachable':
-      return <EmptyState text="Gaia could not be reached. The documents are read again once it answers." />;
-    case 'no-session':
-      return <EmptyState text="This window's session ended. Reload the page to open a new one." />;
+  if (lastDocuments !== null) {
+    return (
+      <TicketDocumentsPage
+        project={board.project}
+        ticket={ticket}
+        documents={lastDocuments}
+        shown={shown}
+        transcript={entries}
+        readFailure={read.verdict === 'read' ? null : readFailureOf(read)}
+      />
+    );
   }
+  if (read.verdict === 'read') return null;
+  return read.verdict === 'refused' ? <p className="board-refusal" role="status">{read.refusal}</p> : <EmptyState text={readFailureOf(read)} />;
 }
 
 export function TicketDocumentsView({ board, route, services }: BoardTabViewProps) {
