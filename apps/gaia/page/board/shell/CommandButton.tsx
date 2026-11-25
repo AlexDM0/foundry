@@ -2,7 +2,7 @@
  * The one control that posts a board command: disabled whenever the board says controls may not act, and showing the forge's refusal
  * verbatim beside itself, or that the forge could not be reached.
  */
-import { Button } from '../../lib/design-system/DesignSystemInterface.ts';
+import { Button, type ButtonEmphasis } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import type { BoardCommandResult }              from '../api/BoardCommandClient.ts';
 import { useControlCommand, type SentCommands } from './ControlCommandSender.ts';
@@ -27,18 +27,26 @@ export interface CommandButtonProps {
   readonly accessibleName?:           string;
   /** The 30px compact button of a row of small controls, such as the header's Hephaestus controls. */
   readonly compact?:                  boolean;
+  /** A quiet action beside a link, drawn as text with no edge, such as a change's Undo. */
+  readonly ghost?:                    boolean;
+}
+
+function emphasisOf(danger: boolean, primary: boolean, ghost: boolean): ButtonEmphasis {
+  if (danger) return 'danger';
+  if (primary) return 'primary';
+  return ghost ? 'ghost' : 'quiet';
 }
 
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, attention = false, danger = false,
-  accessibleName, compact = false
+  accessibleName, compact = false, ghost = false
 }: CommandButtonProps) {
   const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
     <span className="board-control">
       <Button
         label={label}
-        emphasis={danger ? 'danger' : (primary ? 'primary' : 'quiet')}
+        emphasis={emphasisOf(danger, primary, ghost)}
         attention={attention}
         compact={compact}
         disabled={!sender.enabled}

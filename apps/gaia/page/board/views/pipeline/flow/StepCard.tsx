@@ -1,7 +1,8 @@
 /**
  * One step of the open phase: its kind word with its mark, a Conditional pill on a re-review, the pills that say what it waits on or how
- * it changed (each pops in), User's switch on a "You" step, then its title, its gate pills, its sentence, the tickets on it on a live
- * board, and an agent's model, effort and brief files, or the document a writing step writes. A double-click or Enter asks for what the
+ * it changed (each pops in, a new step's in orange), User's switch on a "You" step, then its title, its gate pills, its sentence, the
+ * tickets on it on a live board, and at its foot an agent's model and effort on one line with the document a writing step writes, and its
+ * brief files. A double-click or Enter asks for what the
  * step opens, or for the question it waits on; a press inside a control stays that control's. At an entity of a monorepo, a switch the
  * forge sets is a link to the forge level.
  */
@@ -15,8 +16,7 @@ import {
   Switch,
   Tag,
   Text,
-  TextButton,
-  View
+  TextButton
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }        from '../../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }         from '../../../utils/StateToneUtil.ts';
@@ -71,6 +71,7 @@ function startsInsideControl(event: SyntheticEvent): boolean {
 function ChangeMarker({ view }: { readonly view: FlowNodeView }) {
   if (view.change === null || view.changeText === null) return null;
   if (view.change === 'removed') return <Tag text={view.changeText} tone="error" pops />;
+  if (view.change === 'new') return <Tag text={view.changeText} tone="warn" pops />;
   return <Tag text={view.changeText} tone="neutral" change={view.change} pops />;
 }
 
@@ -157,28 +158,34 @@ export function StepCard({
               ))}
             </Row>
           )}
-        <Text muted>{view.sentence}</Text>
+        <Text typeRole="tab" muted>{view.sentence}</Text>
         {occupants === null ? null : <LiveTickets occupants={occupants} />}
         {meter === null && view.briefText === null && view.documentFileName === null
           ? null
           : (
-            <View gap="four" paddingTop="eight">
-              {meter === null
+            <div className="board-pipeline-step-foot">
+              {meter === null && view.documentFileName === null
                 ? null
                 : (
-                  <ModelEffortMeter
-                    model={meter.model}
-                    effort={meter.effort}
-                    level={meter.level}
-                    levelCount={meter.levelCount}
-                    accessibleName={meter.accessibleName}
-                    size="node"
-                    {...(meter.derivedNote === null ? {} : { derivedNote: meter.derivedNote })}
-                  />
+                  <Row wrap centerY gap="eight">
+                    {meter === null
+                      ? null
+                      : (
+                        <ModelEffortMeter
+                          model={meter.model}
+                          effort={meter.effort}
+                          level={meter.level}
+                          levelCount={meter.levelCount}
+                          accessibleName={meter.accessibleName}
+                          size="node"
+                          {...(meter.derivedNote === null ? {} : { derivedNote: meter.derivedNote })}
+                        />
+                      )}
+                    {view.documentFileName === null ? null : <Text typeRole="small" mono subtle>{view.documentFileName}</Text>}
+                  </Row>
                 )}
               {view.briefText === null ? null : <Text typeRole="small" mono subtle>{view.briefText}</Text>}
-              {view.documentFileName === null ? null : <Text typeRole="small" mono subtle>{view.documentFileName}</Text>}
-            </View>
+            </div>
           )}
       </Card>
     </div>

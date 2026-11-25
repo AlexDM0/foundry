@@ -957,11 +957,17 @@ export function pipelineDocumentScreenMarkupOf(screen: PipelineDocumentScreen, t
 const OPEN_CHATS_AT_THEIR_END_SCRIPT = '<script>for (const body of document.querySelectorAll(\'.board-pipeline-panel-body\')) body.scrollTop = body.scrollHeight;</script>';
 
 /**
+ * The page opens a step's dialog on a double-click, after which the browser rings no control; a script's `showModal()` rings the first
+ * one, so the screen lets that focus go.
+ */
+const SHOW_DIALOGS_OPENED_BY_POINTER_SCRIPT = '<script>for (const dialog of document.querySelectorAll(\'dialog\')) dialog.showModal(); document.activeElement?.blur();</script>';
+
+/**
  * A whole page for a browser at the page's artboard size, in the screen's theme, with the agent's chat at its end and the artboard's dialog
  * shown as a modal.
  */
 export function pipelineDocumentScreenDocumentOf(screen: PipelineDocumentScreen, theme: ScreenTheme): string {
-  const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_SCRIPT}`;
+  const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_OPENED_BY_POINTER_SCRIPT}`;
   const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>\n${OPEN_CHATS_AT_THEIR_END_SCRIPT}${dialogScript}`;
   return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
 }

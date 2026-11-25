@@ -11,7 +11,6 @@ import type { BoardLimitsDocument }                                             
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   Button,
-  Card,
   Dialog,
   ModelEffortMeter,
   View
@@ -26,6 +25,7 @@ import { ModelEffortFields }                                            from './
 import { PipelineDocumentsSection }                                     from './PipelineDocumentsSection.tsx';
 import { StepDialogFoot }                                               from './StepDialogFoot.tsx';
 import { StepFact }                                                     from './StepFact.tsx';
+import { StepFacts }                                                    from './StepFacts.tsx';
 
 /** Sends a question to the pipeline agent, opening an advise session first where none runs. */
 export interface PipelineAgentAsker {
@@ -114,10 +114,10 @@ export function AgentStepDialog({
         {role !== 'builder' || form.documents === null || PipelineFlowModel.ticketWritingRouteOfDraft(draft, limits) !== 'spec-then-plan'
           ? null
           : <PipelineDocumentsSection role="builder" rules={form.documents} defaults={limits} onChange={(documents) => setForm({ ...form, documents })} />}
-        <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
+        <StepFacts>
           <StepFact term="Runs" description={words.runs} />
           {words.fixes === null ? null : <StepFact term="Fixes" description={words.fixes} />}
-        </Card>
+        </StepFacts>
       </View>
     </Dialog>
   );

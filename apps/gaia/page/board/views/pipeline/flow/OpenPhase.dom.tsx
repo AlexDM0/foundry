@@ -8,8 +8,9 @@
  * the tickets on it; the live Merge header names the ticket the Airlock lets onto main, the fast-forward's too, and the queued ones; an
  * editing step carries its change; a question pill asks for the question. The Ticket phase offers how a ticket is written: a press on
  * the other route sends one `ticket-writing` edit and a press on the chosen one sends nothing; the spec-then-plan route draws its four
- * steps, each writing step naming its document, and says a ticket needs the spec's Acceptance, an approved spec and an approved plan; and
- * the stylesheet lets four step cards and their three arrows share one row of a phase beside the agent's panel at 1440 px.
+ * steps, each writing step naming its document and marked New in orange, its document reviews by their switches alone, and says a ticket
+ * needs the spec's Acceptance, an approved spec and an approved plan; and the stylesheet lets four step cards and their three arrows share
+ * one row of a phase beside the agent's panel at 1440 px.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -341,13 +342,14 @@ describe('how a ticket is written', () => {
     expect(controls.sent).toMatchObject([{ kind: 'pipeline-draft-edit', edits: [{ target: 'ticket-writing', value: null }] }]);
   });
 
-  test('the spec-then-plan route draws its four steps, each writing step naming its document, and its readiness lines', () => {
+  test('the spec-then-plan route draws its four steps, each new writing step naming its document, and its readiness lines', () => {
     renderPhase('A2-spec-then-plan', 'ticket');
     const steps = [...document.querySelectorAll<HTMLElement>('[data-step-node-id]')];
     expect(steps.map((step) => step.dataset['stepNodeId'])).toEqual(['spec-writing', 'human-spec-review', 'plan-writing', 'human-plan-review']);
     expect(within(stepOf('spec-writing')).getByText('spec.md')).toBeDefined();
     expect(within(stepOf('plan-writing')).getByText('plan.md')).toBeDefined();
     expect(within(stepOf('human-spec-review')).getByRole('switch', { name: 'Human spec review' }).getAttribute('aria-checked')).toBe('true');
+    expect(steps.map((step) => within(step).queryByText('New')?.dataset['tone'] ?? null)).toEqual(['warn', null, 'warn', null]);
     const readiness = screen.getByRole('region', { name: 'What makes a draft ready' });
     expect(within(readiness).getByText('A ticket is ready to build when it has all of these')).toBeDefined();
     expect([...readiness.querySelectorAll('li')].map((line) => line.textContent)).toEqual([

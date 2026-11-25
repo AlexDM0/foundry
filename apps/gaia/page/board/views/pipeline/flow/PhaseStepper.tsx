@@ -30,7 +30,7 @@ export function PhaseStepper({ tabs, openPhase, onOpen }: PhaseStepperProps) {
           >
             <span className="board-pipeline-phase-tab-head">
               <span className="board-pipeline-phase-dot" data-phase={tab.phase} data-ring={tab.runsNoStep ? '' : undefined} aria-hidden="true" />
-              <Text typeRole="page">{tab.name}</Text>
+              <Text bold>{tab.name}</Text>
               {tab.pill === null ? null : <Tag text={tab.pill.text} tone={tab.pill.tone} pops />}
             </span>
             <span className="board-pipeline-phase-tab-sub">

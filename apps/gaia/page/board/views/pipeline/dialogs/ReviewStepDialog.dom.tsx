@@ -5,8 +5,8 @@
  * defaults (re-review on at 750, the constitution in both briefs); Remove review asks first and then sends one `null` edit; both tabs
  * offer every model and effort; every brief the re-review reads offers Open; and opened from the re-review node it opens on the Re-review
  * tab, its switch focused. In the spec-then-plan route the Review tab holds the Pipeline documents after the brief, its title with the New
- * pill, the spec fixed at Always with its other choices disabled, a read-only line on what the builder reads, and Reset to default puts the
- * plan back at If you approved it.
+ * pill in the orange tint, the spec fixed at Always with its other choices disabled, a read-only line on what the builder reads in the
+ * facts box, and Reset to default puts the plan back at If you approved it; the brief's Edit, Open and Add a file are underlined.
  */
 import {
   act,
@@ -209,10 +209,23 @@ describe('the pipeline documents', () => {
     expect(controls.sent[0]).toMatchObject({ edits: expect.arrayContaining([reviewerEdit]) });
   });
 
-  test('the section\'s title carries artboard 10\'s New pill', () => {
+  test('the section\'s title carries artboard 10\'s New pill, in the orange tint with no edge', () => {
     renderDialog('A2-spec-then-plan');
     const title = within(documentsRegion()).getByText('Pipeline documents');
     expect(title.parentElement?.textContent).toContain('New');
+    expect(within(documentsRegion()).getByText('New').dataset['tone']).toBe('warn');
+  });
+
+  test('the brief\'s Edit, Open and Add a file are underlined links, and the facts box rules a line per fact', () => {
+    renderDialog('A2-spec-then-plan');
+    const briefLinks = [
+      within(dialog()).getByRole('link', { name: 'Edit' }),
+      within(dialog()).getByRole('button', { name: 'Open' }),
+      within(dialog()).getByRole('button', { name: 'Add a file' }),
+    ];
+    expect(briefLinks.map((link) => link.hasAttribute('data-underlined'))).toEqual([true, true, true]);
+    const facts = [...dialog().querySelectorAll('.board-pipeline-dialog-facts > .board-pipeline-dialog-fact')];
+    expect(facts.map((fact) => fact.firstElementChild?.textContent)).toEqual(['Runs', 'Builder']);
   });
 
   test('one ticket gives the reviewer no pipeline documents to read', () => {

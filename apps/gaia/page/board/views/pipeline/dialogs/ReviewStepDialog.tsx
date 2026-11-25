@@ -11,7 +11,6 @@ import type { BoardLimitsDocument }                                             
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   Button,
-  Card,
   ConfirmStrip,
   Dialog,
   ModelEffortMeter,
@@ -33,6 +32,7 @@ import { RereviewSettingsModel, type ReReviewForm }  from './RereviewSettingsMod
 import { ReviewStepDialogModel, type ReviewStepTab } from './ReviewStepDialogModel.ts';
 import { StepDialogFoot }                            from './StepDialogFoot.tsx';
 import { StepFact }                                  from './StepFact.tsx';
+import { StepFacts }                                 from './StepFacts.tsx';
 
 export interface ReviewStepDialogProps {
   /** The Review node; its settings and instructions are the reviewer's. */
@@ -159,7 +159,7 @@ export function ReviewStepDialog({
                         defaults={limits}
                         onChange={(documents) => setReviewerForm({ ...reviewerForm, documents })}
                       />
-                      <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
+                      <StepFacts>
                         <StepFact term={documentWords.runsTerm} description={documentWords.reviewerRuns} />
                         <StepFact
                           term={documentWords.builderTerm}
@@ -167,7 +167,7 @@ export function ReviewStepDialog({
                             PipelineDocumentsSectionModel.rulesOf('builder', draft?.agents.builder?.documents, limits),
                           )}
                         />
-                      </Card>
+                      </StepFacts>
                     </>
                   )}
               </View>

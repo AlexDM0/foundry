@@ -15,3 +15,4 @@ type Story = StoryObj<typeof meta>;
 
 export const AsButton: Story = {};
 export const AsLink: Story = { args: { label: 'Example text link', href: '#example' } };
+export const Underlined: Story = { args: { label: 'Example underlined link', href: '#example', underlined: true } };

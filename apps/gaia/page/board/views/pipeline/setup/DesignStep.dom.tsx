@@ -1,13 +1,13 @@
 /**
  * The design step (A2Proposal) in a happy-dom document, against fake controls. What matters: the proposal opens on its title row and the
  * Build phase with no change marked; a step that waits on an open question shows its pill on its card and its phase tab and opens on the
- * question while every other step keeps its own dialog, and the answer sends `pipeline-setup-answer` and closes it; Apply pipeline is disabled exactly
- * while a question is open, with its reason and hint, and opens the apply step otherwise; the Changes tab counts the facts' change list
- * and lists one card per change with Undo; the footer counts the steps and gates from the facts; neither a proposal nor a new one sends a
- * profile, only a time chip press does; the agent's newest change is framed under its own label, opens its phase, selects its gate row
- * and undoes it; Discard
- * proposal sends `pipeline-draft-discard`; before a draft a line over the phases and the agent strip say the agent is designing; the
- * agent's panel opens on the Conversation, and its strip, beside the one Flint slot, waits while a design question is open and is ready once proposed.
+ * question while every other step keeps its own dialog, and the answer sends `pipeline-setup-answer` and closes it; Apply pipeline is
+ * disabled exactly while a question is open, with its reason and hint, and opens the apply step otherwise; the Changes tab counts the facts'
+ * change list and lists one card per change with Undo; the footer's Proposal pill is dashed and leaves the counts to the phase tabs; neither
+ * a proposal nor a new one sends a profile, only a time chip press does; the agent's newest change is framed under its own label, opens
+ * its phase, selects its gate row and undoes it; Discard proposal sends `pipeline-draft-discard`; before a draft a line over the phases
+ * and the agent strip say the agent is designing; the agent's panel opens on the Conversation, and its strip, beside the one Flint slot,
+ * waits while a design question is open and is ready once proposed.
  * In monorepo mode: an entity's level draws its three phases, its own gates and its own chat, its edits and profiles name the entity, and
  * what the forge sets links there; the rail moves to another level on the same screen, with its flow, chat and changes; the forge's level
  * draws its page and no gates, its switches and the Airlock edit the forge's fields, and a question in any entity holds Apply; a copy of a
@@ -164,11 +164,12 @@ describe('the pipeline agent\'s panel', () => {
 });
 
 describe('the footer', () => {
-  test('counts the proposed steps and gates from the facts, beside the Proposal chip', () => {
+  test('says nothing is stored beside the dashed Proposal pill, and leaves the counting of steps and gates to the phase tabs', () => {
     renderDesign();
-    expect(within(footer()).getByText('Proposal')).toBeDefined();
+    const proposalPill = within(footer()).getByText('Proposal');
+    expect([proposalPill.dataset['stateTone'], proposalPill.hasAttribute('data-dashed')]).toEqual(['accent-outline', true]);
     expect(within(footer()).getByText('Nothing is stored until you apply.')).toBeDefined();
-    expect(within(footer()).getByText('1 prepare step · 3 build gates · 3 review gates · 3 merge gates')).toBeDefined();
+    expect(within(footer()).queryByText(/build gates/)).toBeNull();
   });
 
   test('Discard proposal sends pipeline-draft-discard', async () => {
@@ -195,13 +196,13 @@ describe('the Changes tab', () => {
 });
 
 describe('the agent\'s newest change', () => {
-  test('it is named by its own label; Show opens its gate\'s phase and selects its row, and Undo sends that edit', async () => {
+  test('it is named by its own label and repeats no summary; its link opens its gate\'s phase and selects its row; Undo sends the edit', async () => {
     const { controls } = renderDesign();
     const change = screen.getByRole('region', { name: 'The agent\'s newest change' });
     expect(change.firstElementChild?.id).toBe(change.getAttribute('aria-labelledby') ?? 'no label');
-    expect(within(change).getByText('Example: typecheck runs in every phase.')).toBeDefined();
+    expect(within(change).queryByText('Example: typecheck runs in every phase.')).toBeNull();
     await clickSettled(phaseTab(/^Merge/));
-    await clickSettled(within(change).getByRole('button', { name: 'Show typecheck on the flow' }));
+    await clickSettled(within(change).getByRole('button', { name: 'Build · typecheck' }));
     expect(phaseTab(/^Build/).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('group', { name: 'Open the typecheck gate' }).hasAttribute('data-selected')).toBe(true);
     expect(controls.sent).toEqual([]);
