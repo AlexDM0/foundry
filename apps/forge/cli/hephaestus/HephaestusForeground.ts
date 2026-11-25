@@ -771,7 +771,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           mergeForecastCache,
           mainLineReads,
         });
-        ownBroker.publishState(read.state, TicketDocumentsAssembly.fingerprintsOf(read.board.ticketDocumentRecords()));
+        ownBroker.publishState(read.state, TicketDocumentsAssembly.fingerprintsOf({
+          loadedRecords: read.board.ticketDocumentRecords(), tickets: read.board.tickets(), pipeline: read.board.pipeline(), jobs: read.board.jobs()
+        }));
         const monitorFacts = monitorFactsNow();
         if (monitorFacts !== null) ownMonitorStream.publish(MonitorSnapshotAssembly.monitorSnapshotOf({ ...read, hephaestus: monitorFacts, now: context.now() }));
       } catch (thrown) {

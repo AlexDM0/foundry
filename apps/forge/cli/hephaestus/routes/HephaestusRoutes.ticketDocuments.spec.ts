@@ -19,6 +19,7 @@ import { EventBroker, type HephaestusEvent }                             from '.
 import type { HephaestusRoutes }                                         from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { TicketDocumentsAssembly }                                       from '../../../src/services/hephaestus/TicketDocumentsAssembly.ts';
 import type { BoardStore }                                               from '../../../src/services/store/BoardStore.ts';
+import { readingBoardOfContents }                                        from '../../../src/services/tracker/BoardOfContents.ts';
 import { localStoreLayoutOf }                                            from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                                              from '../../../src/services/tracker/Workspace.ts';
 import type { EffectReading, EffectReadingRequest, EffectReadingSource } from '../../../src/shared/@types/EffectReading.ts';
@@ -179,7 +180,12 @@ describeWhenGitIsRecorded('a ticket\'s documents at the route', () => {
   test('a save through the command route changes the ticket\'s fingerprint, so the next publish sends documents before board', async () => {
     const { routes, boardStore } = routesOf();
     const ticketId = await ticketWithOpenRecord(routes, boardStore);
-    const fingerprintsNow = () => TicketDocumentsAssembly.fingerprintsOf(boardStore.reads.requireBoard().ticketDocumentListing.records);
+    const fingerprintsNow = () => {
+      const board = readingBoardOfContents(boardStore.reads.requireBoard());
+      return TicketDocumentsAssembly.fingerprintsOf({
+        loadedRecords: board.ticketDocumentRecords(), tickets: board.tickets(), pipeline: board.pipeline(), jobs: board.jobs()
+      });
+    };
     const broker = EventBroker.createEventBroker(3);
     const events: HephaestusEvent[] = [];
     broker.subscribe((event) => events.push(event));

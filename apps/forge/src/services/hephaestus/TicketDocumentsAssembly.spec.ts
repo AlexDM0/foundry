@@ -3,7 +3,8 @@
  * `ticket-has-no-documents`; User approves a document and may change it only while its review is on and no agent picked the ticket up;
  * the live document agent of that document and ticket is named, any other job is not; a constitution number is asked of the path the
  * ticket's pipeline names and never without one; a committed ticket's build is held while its spec, or a plan its builder reads, is not
- * approved, and a ticket that is not committed is never held; a fingerprint moves with its record. Git counts a constitution's commits
+ * approved, and a ticket that is not committed is never held; a fingerprint moves with its record and with what the documents serve beside
+ * it, the ticket's status, the review switches and the live agent. Git counts a constitution's commits
  * once per path and commit, from the recorded answers, and a count git could not give is asked again.
  */
 import {
@@ -14,16 +15,23 @@ import {
   test
 } from 'bun:test';
 
-import type { Pipeline }                                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { LoadedTicketDocumentRecord, TicketDocument }                               from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TicketDocumentVersionUtil }                                                     from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
-import { OperationRefusal }                                                              from '../../shared/OperationRefusal.ts';
-import { ticketFixture }                                                                 from '../../testing/BoardFixtures.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                                               from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                                from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                                                         from '../../testing/ToolGuard.ts';
-import { TicketDocumentsAssembly, type ConstitutionNumbers, type TicketDocumentsSource } from './TicketDocumentsAssembly.ts';
-import { liveJobFixture }                                                                from './testing/LiveJobFixture.ts';
+import type { Pipeline }                                   from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { LoadedTicketDocumentRecord, TicketDocument } from '../../lib/tracker-model/@types/TicketDocument.ts';
+import { PipelineUtil }                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }                       from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
+import { ticketFixture }                                   from '../../testing/BoardFixtures.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                 from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
+import { documentAgentJobFixture }                         from '../../testing/TicketDocumentFixtures.ts';
+import { testWhenGitIsRecorded }                           from '../../testing/ToolGuard.ts';
+import {
+  TicketDocumentsAssembly,
+  type ConstitutionNumbers,
+  type TicketDocumentsFingerprintSource,
+  type TicketDocumentsSource
+} from './TicketDocumentsAssembly.ts';
+import { liveJobFixture } from './testing/LiveJobFixture.ts';
 
 const AT = '2026-11-24T10:00:00.000Z';
 const SPEC_TEXT = '# Example spec\n\n## Acceptance\n\n1. Alex Example sees the basket.\n';
@@ -152,8 +160,21 @@ describe('TicketDocumentsAssembly.documentsSummaryOf', () => {
 });
 
 describe('TicketDocumentsAssembly.fingerprintsOf', () => {
+  const sourceOf = (overrides: Partial<TicketDocumentsFingerprintSource> = {}): TicketDocumentsFingerprintSource => ({
+    loadedRecords: [LOADED_RECORD], tickets: [ticketFixture({ id: '004', status: 'committed' })], pipeline: null, jobs: [], ...overrides
+  });
+
+  test('moves when what is served moves outside the record: the ticket picked up, a review switched off, an agent launched', () => {
+    const before = TicketDocumentsAssembly.fingerprintsOf(sourceOf()).get('004');
+    const pickedUp = TicketDocumentsAssembly.fingerprintsOf(sourceOf({ tickets: [ticketFixture({ id: '004', status: 'in-progress' })] })).get('004');
+    const reviewOff = TicketDocumentsAssembly.fingerprintsOf(sourceOf({ pipeline: { ...PipelineUtil.minimalPipelineOf(), approvals: { spec: false } } })).get('004');
+    const withAgent = TicketDocumentsAssembly.fingerprintsOf(sourceOf({ jobs: [documentAgentJobFixture('004', 'spec')] })).get('004');
+    expect(new Set([before, pickedUp, reviewOff, withAgent]).size).toBe(4);
+    expect(TicketDocumentsAssembly.fingerprintsOf(sourceOf()).get('004')).toBe(before);
+  });
+
   test('keys each record by its ticket, and its fingerprint moves with the record', () => {
-    const before = TicketDocumentsAssembly.fingerprintsOf([LOADED_RECORD]);
+    const before = TicketDocumentsAssembly.fingerprintsOf(sourceOf());
     const withMessage: LoadedTicketDocumentRecord = {
       ...LOADED_RECORD,
       record: {
@@ -166,7 +187,7 @@ describe('TicketDocumentsAssembly.fingerprintsOf', () => {
         }]
       },
     };
-    const after = TicketDocumentsAssembly.fingerprintsOf([withMessage]);
+    const after = TicketDocumentsAssembly.fingerprintsOf(sourceOf({ loadedRecords: [withMessage] }));
     expect([...before.keys()]).toEqual(['004']);
     expect(after.get('004')).not.toBe(before.get('004'));
   });

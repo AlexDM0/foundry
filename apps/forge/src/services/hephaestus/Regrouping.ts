@@ -16,20 +16,20 @@ import {
   sep
 } from 'node:path';
 
-import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                               from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { InterruptionCause, Job }                      from '../../lib/tracker-model/@types/Job.ts';
-import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/WorktreesFolder.ts';
-import type { StoreReadFace }                               from '../store/BoardStore.ts';
-import type { Workspace }                                   from '../tracker/Workspace.ts';
-import type { BoardChildren }                               from './BoardChildren.ts';
-import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits } from './ConstitutionCommits.ts';
-import { GATE_PROFILE_WORKTREES_FOLDER }                    from './GateProfiling.ts';
-import { GroupWorktrees }                                   from './GroupWorktrees.ts';
-import { JobLaunch }                                        from './JobLaunch.ts';
-import { PIPELINE_AGENT_SNAPSHOT_FOLDER }                   from './PipelineAgentSessions.ts';
-import { PIPELINE_CHECK_WORKTREES_FOLDER }                  from './PipelineChecking.ts';
-import { settleLostChild }                                  from './TalosStart.ts';
+import { GitProcess }                                                     from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { InterruptionCause, Job }                                    from '../../lib/tracker-model/@types/Job.ts';
+import { HATCH_FOLDER, WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
+import type { StoreReadFace }                                             from '../store/BoardStore.ts';
+import type { Workspace }                                                 from '../tracker/Workspace.ts';
+import type { BoardChildren }                                             from './BoardChildren.ts';
+import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits }               from './ConstitutionCommits.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER }                                  from './GateProfiling.ts';
+import { GroupWorktrees }                                                 from './GroupWorktrees.ts';
+import { JobLaunch }                                                      from './JobLaunch.ts';
+import { DOCUMENT_AGENT_SNAPSHOT_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER } from './PipelineAgentSessions.ts';
+import { PIPELINE_CHECK_WORKTREES_FOLDER }                                from './PipelineChecking.ts';
+import { settleLostChild }                                                from './TalosStart.ts';
 
 export interface RegroupingReport {
   /** `cause` is `null` while the forced stop of the child's tree is refused. */
@@ -44,7 +44,7 @@ export interface RegroupingReport {
  * agent's snapshots, and the gate profiles' and pipeline checks' worktrees, which their start sweeps remove.
  */
 const HEPHAESTUS_OWNED_FOLDERS: ReadonlySet<string> = new Set([
-  'sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER, GATE_PROFILE_WORKTREES_FOLDER, PIPELINE_CHECK_WORKTREES_FOLDER,
+  'sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER, DOCUMENT_AGENT_SNAPSHOT_FOLDER, GATE_PROFILE_WORKTREES_FOLDER, PIPELINE_CHECK_WORKTREES_FOLDER,
 ]);
 
 const WORKTREE_LINE_PREFIX = 'worktree ';

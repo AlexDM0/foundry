@@ -12,6 +12,7 @@ import type { Job, JobRole }                                    from '../../lib/
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Ticket, TicketFrontmatter }                       from '../../lib/tracker-model/@types/Ticket.ts';
 import type { LoadedTicketDocumentRecord, TicketDocumentKind }  from '../../lib/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS }                                from '../../lib/tracker-model/@types/TicketDocument.ts';
 import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }               from '../../lib/tracker-model/constants/Statuses.ts';
 import { PipelineUtil }                                         from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketDocumentReadinessUtil }                          from '../../lib/tracker-model/utils/TicketDocumentReadinessUtil.ts';
@@ -64,7 +65,7 @@ function constitutionPathOf(pipeline: Readonly<Pipeline> | null, ticket: Readonl
   return PipelineUtil.ticketPipelineOf(pipeline, ticket.frontmatter.entity).constitution?.path ?? null;
 }
 
-function documentFactsOf(source: TicketDocumentsSource, document: TicketDocumentKind): TicketDocumentFacts {
+function documentFactsOf(source: Pick<TicketDocumentsSource, 'ticket' | 'pipeline' | 'jobs'>, document: TicketDocumentKind): TicketDocumentFacts {
   const { ticket, pipeline } = source;
   const reviewIsOn = TicketWritingUtil.documentReviewIsOn(pipeline, document);
   const ticketId = ticket.frontmatter.id;
@@ -108,9 +109,28 @@ function documentsSummaryOf(
   return TicketDocumentsMappingUtil.documentsSummaryOf(loadedRecord, buildIsHeld(ticket, loadedRecord, pipeline));
 }
 
-/** Each record as a text that changes whenever the record does, keyed by ticket, so a publish can tell which tickets' documents moved. */
-function fingerprintsOf(loadedRecords: readonly Readonly<LoadedTicketDocumentRecord>[]): ReadonlyMap<string, string> {
-  return new Map(loadedRecords.map((loadedRecord) => [loadedRecord.record.ticketId, JSON.stringify(loadedRecord.record)]));
+/** What a ticket's served documents are built from, but the effect readings, which announce themselves. */
+export interface TicketDocumentsFingerprintSource {
+  loadedRecords: readonly Readonly<LoadedTicketDocumentRecord>[];
+  tickets:       readonly Readonly<Ticket>[];
+  pipeline:      Readonly<Pipeline> | null;
+  jobs:          readonly Readonly<Job>[];
+}
+
+/**
+ * Each ticket's documents as a text that changes whenever what the endpoint serves does, keyed by ticket, so a publish can tell which
+ * tickets' documents moved: the record, and per document whether it is editable, who reviews it and its live agent, which follow the
+ * ticket's status, the pipeline's review switch and the jobs, not the record.
+ */
+function fingerprintsOf(source: TicketDocumentsFingerprintSource): ReadonlyMap<string, string> {
+  return new Map(source.loadedRecords.map((loadedRecord) => {
+    const { ticketId } = loadedRecord.record;
+    const ticket = source.tickets.find((candidate) => candidate.frontmatter.id === ticketId);
+    const servedFacts = ticket === undefined
+      ? null
+      : TICKET_DOCUMENT_KINDS.map((document) => documentFactsOf({ ticket, pipeline: source.pipeline, jobs: source.jobs }, document));
+    return [ticketId, JSON.stringify({ record: loadedRecord.record, status: ticket?.frontmatter.status ?? null, servedFacts })];
+  }));
 }
 
 export const TicketDocumentsAssembly = Object.freeze({

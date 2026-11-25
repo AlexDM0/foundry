@@ -1,9 +1,11 @@
 /**
  * Effect readings, in memory, with an injected clock and recorded git for the main line's tree. What matters: the reader's profile denies
- * the repository root and the tracker's data folder and gives it no tool, no network and no question; a request reads `reading` at once
+ * the repository root and the tracker's data folder, excludes the instruction files from its session folder up to the repository root, and
+ * gives it no tool, no network and no question; a request reads `reading` at once
  * and launches one job outside the agent slots, one at a time per board; the reader's paths are checked against the tree, a changed or
  * removed path the tree lacks reading `no-match` and several candidates `ambiguous`; a report not of its schema fails the reading; the
- * timeout and a session that ended with no `result` fail it; and the reading goes to the agent as a board message only when it asked.
+ * timeout and a session that ended with no `result` fail it; the reading, read or failed, goes to the agent as a board message only when it
+ * asked; and one launched in a hold that was refused is asked again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -74,12 +76,17 @@ const REPORT = {
 };
 
 describe('the reader\'s profile', () => {
-  test('denies the repository root and the data folder, and gives no tool, network or question', () => {
+  test('denies the repository root and the data folder, keeps every instruction file up to the root away, and gives no tool, network or question', () => {
     const sessionProfile = {
       deniedReadableRoots: ['/home/example/.ssh'], shellNetworkDomains: ['example.com'], webNetworkDomains: 'any', askUser: true, skills: true
     } as unknown as WorkerProfile;
-    expect(EffectReadings.effectReaderProfileOf(sessionProfile, '/example/repository', '/example/repository/.forge')).toMatchObject({
-      deniedReadableRoots: ['/home/example/.ssh', '/example/repository', '/example/repository/.forge'],
+    const sessionFolder = '/example/repository/.claude/worktrees/sessions/J7';
+    expect(EffectReadings.effectReaderProfileOf(sessionProfile, '/example/repository', '/example/repository/.forge', sessionFolder)).toMatchObject({
+      deniedReadableRoots:     ['/home/example/.ssh', '/example/repository', '/example/repository/.forge'],
+      instructionsRoot:        sessionFolder,
+      nestedCheckoutAncestors: [
+        sessionFolder, '/example/repository/.claude/worktrees/sessions', '/example/repository/.claude/worktrees', '/example/repository/.claude', '/example/repository'
+      ],
       shellNetworkDomains: [],
       webNetworkDomains:   'none',
       askUser:             false,
@@ -188,6 +195,34 @@ describe('a failed reading', () => {
     const secondJobId = fixture.board.jobs()[0]?.id ?? '';
     expect(fixture.readings.failOverdue(fixture.board, [secondJobId], AT)).toEqual([secondJobId]);
     expect(fixture.board.jobs()).toEqual([]);
+  });
+
+  test('a failed reading the agent asked for still reaches it as a board message, past its time or with its session ended', () => {
+    const fixture = readingsFixture();
+    fixture.readings.request({ ...REQUEST, requestedByAgent: true });
+    fixture.readings.launchDue(fixture.board, AT);
+    fixture.advance(60_000);
+
+    fixture.readings.failOverdue(fixture.board, [], AT);
+
+    expect(fixture.boardMessages()).toHaveLength(1);
+    expect(JSON.parse(fixture.boardMessages()[0]?.text ?? '{}')).toMatchObject({ effectReading: { document: 'plan', version: 1, state: 'failed' } });
+  });
+
+  test('a reading launched in a hold that was refused is asked again, never left reading with no job', () => {
+    const fixture = readingsFixture();
+    fixture.readings.request(REQUEST);
+    const refusedHold = boardFixture({
+      tickets:               [ticketFixture({ id: '004', status: 'draft' })],
+      ticketDocumentRecords: [ticketDocumentRecordFixture('004', [{ kind: 'plan', texts: [PLAN_TEXT] }])],
+    });
+    refusedHold.progress.jobs = [];
+    fixture.readings.launchDue(refusedHold.board, AT);
+
+    expect(fixture.readings.failOverdue(fixture.board, [], AT)).toEqual([]);
+    fixture.readings.launchDue(fixture.board, AT);
+    expect(fixture.board.jobs().map((job) => job.kind)).toEqual(['effect-reading']);
+    expect(fixture.readings.readingsOf('004')[0]?.state).toBe('reading');
   });
 
   test('a reading job no request of this Hephaestus names, as after a restart, ends failed', () => {

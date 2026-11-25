@@ -559,19 +559,24 @@ function lostChildCauseOf(childObservation: ChildObservation): InterruptionCause
 }
 
 interface AppliedChildEvents {
-  usageLimitHits:          UsageLimitHit[];
+  usageLimitHits:           UsageLimitHit[];
   /** Every usage window the streams reported, in stream order, which the pass records after the hold. */
-  usageWindowObservations: UsageWindowObservation[];
+  usageWindowObservations:  UsageWindowObservation[];
   /** Sessions a refused key or a budget stop ended the work of, which the pass stops after the hold. */
-  stoppedSessions:         StoppedSession[];
+  stoppedSessions:          StoppedSession[];
   /** The pipeline agents whose turn ended in a `result`, whose snapshot Customs checks in the same hold. */
-  pipelineAgentTurnEnds:   string[];
-  /** The document agents whose turn ended, in a `result` or with their session, whose snapshot Customs checks before their requests apply. */
-  documentAgentTurnEnds:   string[];
+  pipelineAgentTurnEnds:    string[];
+  /**
+   * The document agents whose turn ended, in a `result`, with their session, or cut short by an interruption, whose snapshot Customs checks
+   * before their requests apply, so no request outlives the turn that wrote it.
+   */
+  documentAgentTurnEnds:    string[];
+  /** The stopping document agents whose session ended: each waits or closes only once its turn end's requests were settled. */
+  documentAgentSessionEnds: string[];
   /** Each effect reader's `result`, with the report it carried. */
-  effectReadingResults:    { jobId: string; report: unknown }[];
+  effectReadingResults:     { jobId: string; report: unknown }[];
   /** The effect readers whose session ended with no `result`. */
-  effectReadingEnds:       string[];
+  effectReadingEnds:        string[];
 }
 
 /** What the child events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
@@ -607,10 +612,12 @@ function applyChildEvents(
   const stoppedSessions: StoppedSession[] = [];
   const pipelineAgentTurnEnds: string[] = [];
   const documentAgentTurnEnds: string[] = [];
+  const documentAgentSessionEnds: string[] = [];
   const effectReadingResults: { jobId: string; report: unknown }[] = [];
   const effectReadingEnds: string[] = [];
   for (const childObservation of childObservations) {
     if (board.jobById(childObservation.jobId)?.childInstance !== childObservation.instance) continue;
+    const stateBefore = board.jobById(childObservation.jobId)?.state;
     let closedWithResult = false;
     for (const entry of childObservation.events) {
       if (entry.origin !== 'agent') continue;
@@ -679,7 +686,7 @@ function applyChildEvents(
     } else if (childIsGone && state === 'stopping' && job !== undefined && DocumentAgentSessions.isDocumentAgentJob(job)) {
       // Its turn ended with its session, stopped by User or closed while idle: it waits for its next message with no session.
       documentAgentTurnEnds.push(job.id);
-      DocumentAgentSessions.settleEndedSession(board, job, at);
+      documentAgentSessionEnds.push(job.id);
     } else if (childIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       // An Assistant or pipeline agent ends `closed`, so User's next message opens a pipeline agent again with its conversation.
       board.endJob(childObservation.jobId, { outcome: 'closed' }, at);
@@ -692,9 +699,13 @@ function applyChildEvents(
       const talosEndCause = childObservation.liveness.verdict === 'ended' ? INTERRUPTION_CAUSE_OF_TALOS_END[childObservation.liveness.end.reason] ?? null : null;
       board.interruptJob(childObservation.jobId, childObservation.liveness.verdict === 'lost' ? lostChildCauseOf(childObservation) : talosEndCause ?? 'agent-crashed', at);
     }
+    const interrupted = board.jobById(childObservation.jobId);
+    if (interrupted !== undefined && stateBefore !== 'interrupted' && interrupted.state === 'interrupted' && DocumentAgentSessions.isDocumentAgentJob(interrupted)) {
+      documentAgentTurnEnds.push(interrupted.id);
+    }
   }
   return {
-    usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, effectReadingResults, effectReadingEnds
+    usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, documentAgentSessionEnds, effectReadingResults, effectReadingEnds
   };
 }
 
@@ -801,7 +812,8 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   }
   if (job.kind === 'effect-reading') {
     const { repositoryRoot } = projectLocationOf(jobLaunchContext.workspace.rootDirectory);
-    return EffectReadings.effectReaderProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), repositoryRoot, jobLaunchContext.workspace.trackerDirectory);
+    const sessionProfile = profileOf(jobLaunchContext, job, place, hatchDirectory);
+    return EffectReadings.effectReaderProfileOf(sessionProfile, repositoryRoot, jobLaunchContext.workspace.trackerDirectory, place.workingDirectory);
   }
   const isAirlockAgent = job.kind === 'merge-agent';
   if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
@@ -1495,7 +1507,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const billing = change.board.pipeline()?.billing;
         const childEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
         const {
-          usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, effectReadingResults, effectReadingEnds
+          usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, documentAgentSessionEnds, effectReadingResults, effectReadingEnds
         } = applyChildEvents(
           change,
           request.agentAdapter,
@@ -1521,6 +1533,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         PipelineAgentSessions.verifyTurnEnds(change, turnEndContext, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
         replies.push(...DocumentAgentSessions.verifyTurnEnds(change, turnEndContext, documentAgentTurnEnds, observation.pendingRequests, relayedControlContext));
+        DocumentAgentSessions.settleEndedSessions(change.board, documentAgentSessionEnds, change.at);
         for (const { jobId, report } of effectReadingResults) effectReadings.settle(change.board, jobId, report, change.at);
         const failedEffectReaders = effectReadings.failOverdue(change.board, effectReadingEnds, change.at);
         request.afterHoldPhase?.('child-events', change.board);

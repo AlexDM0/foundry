@@ -18,6 +18,7 @@ import type { Decisions }         from './Decisions.ts';
 import type { JobMessage, Jobs }  from './Jobs.ts';
 import type { TicketSettings }    from './TicketSettings.ts';
 import { jobStopHoldOf }          from './constants/JobStopHolds.ts';
+import { DocumentAgentJobUtil }   from './utils/DocumentAgentJobUtil.ts';
 import { JobControlRuleUtil }     from './utils/JobControlRuleUtil.ts';
 import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 
@@ -57,6 +58,7 @@ export class JobControls {
    */
   requestJobStop(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
+    this.refuseADocumentAgent(job);
     if (mode === 'fresh' && !JobControlRuleUtil.freshAgentIsOpenTo(job)) throw new BoardRefusal({ reason: 'job-has-no-ticket', jobId });
     const logged: LogRecord[] = [...this.jobRules.recordStopRequest(jobId, mode, at).logged];
     if (mode !== 'fresh') logged.push(...this.holdTicketsOf(job, jobStopHoldOf(mode, jobId), at));
@@ -100,6 +102,8 @@ export class JobControls {
    */
   messageJob(jobId: string, message: JobMessage, at: string): JobChanged {
     const { text, pictures, sender } = message;
+    const liveJob = this.jobRules.jobById(jobId);
+    if (liveJob !== undefined) this.refuseADocumentAgent(liveJob);
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
     const kind = ended?.kind ?? this.jobRules.jobById(jobId)?.kind;
     if (pictures.length > 0 && kind !== undefined && kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'pictures-not-taken', jobId, kind });
@@ -254,5 +258,17 @@ export class JobControls {
   private endJob(jobId: string, ending: JobEnding, loggedBefore: readonly LogRecord[], at: string): JobChanged {
     const ended = this.jobRules.endJob(jobId, ending, at);
     return { job: ended.job, logged: [...loggedBefore, ...ended.logged, ...this.agentQuestions.rebindQuestionsOfEndedJob(ended.job, at)] };
+  }
+
+  /**
+   * A document agent takes its lines only from its document's queue, which counts them against its turns, and stops only its running turn:
+   * a job message or stop would write a line or end the session outside that count.
+   */
+  private refuseADocumentAgent(job: Readonly<Job>): void {
+    const document = DocumentAgentJobUtil.documentOf(job);
+    if (document === null) return;
+    throw new BoardRefusal({
+      reason: 'job-is-document-agent', jobId: job.id, ticketId: job.ticketIds[0] ?? '', document
+    });
   }
 }

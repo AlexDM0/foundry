@@ -120,6 +120,7 @@ import { InstructionFiles, type InstructionFileRead }                  from './I
 import type { SessionLaunchSettings }                                  from './LaunchSettings.ts';
 import { LineSandbox, type ProcessSandboxRequest }                     from './LineSandbox.ts';
 import { NeedTickets }                                                 from './NeedTickets.ts';
+import { PipelineAgentSessions }                                       from './PipelineAgentSessions.ts';
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
 
@@ -1513,6 +1514,7 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, jobId),
+    snapshotFolders:              PipelineAgentSessions.readerSnapshotFoldersOf(worktreesRoot),
   }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, worktreesRoot)));
 }
 

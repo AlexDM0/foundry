@@ -655,6 +655,9 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Job ${detail.jobId} waits on a question for the user; a chat turn would answer it. ${NOTHING_WAS_WRITTEN}`;
     case 'job-is-product-owner':
       return `Job ${detail.jobId} is the user's product-owner session; only the user chats with it. ${NOTHING_WAS_WRITTEN}`;
+    case 'job-is-document-agent':
+      return `Job ${detail.jobId} is the agent of the ${detail.document} of #${detail.ticketId}; it takes messages and stops through that `
+        + `document only. ${NOTHING_WAS_WRITTEN}`;
     case 'no-open-incident':
       return `${detail.subject} has no open incident that allows ${detail.move}; it is legal only as an incident's move. ${NOTHING_WAS_WRITTEN}`;
     case 'several-open-incidents':

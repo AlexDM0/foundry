@@ -1,9 +1,10 @@
 /**
- * Hephaestus's side of a spec or plan agent's session: one detached snapshot of the main line per ticket, checked out at main's tip at each
- * launch of an instance; a profile writing only its Hatch with no network; the facts of its first message; Customs at each turn end, before
- * the turn's Hatch requests apply; and its messages, written one at a time while it is idle, in the order User queued them. An idle agent
- * with nothing queued has its input closed and waits with no session, and the next message resumes it; an agent whose document is done
- * ends `closed`. A ticket's snapshot is removed once no document agent of the ticket holds it.
+ * Hephaestus's side of a spec or plan agent's session: one detached snapshot of the main line per ticket document, so the spec's and the
+ * plan's agents never move or dirty each other's, checked out clean at main's tip at each launch of an instance; a profile writing only its
+ * Hatch with no network; the facts of its first message; Customs at each turn end, before the turn's Hatch requests apply; and its
+ * messages, written one at a time while it is idle, in the order User queued them. An idle agent with nothing queued has its input closed
+ * and waits with no session, and the next message resumes it; an agent whose document is done ends `closed`. A document's snapshot is
+ * removed once no agent of that document holds it.
  */
 import {
   existsSync,
@@ -32,16 +33,18 @@ import {
   type CustomsVerdict,
   type LaunchSnapshot
 } from '../lifecycle/Customs.ts';
-import type { BoardTransaction }                                            from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }                                                from '../tracker/ProjectLocation.ts';
-import type { BoardChildren }                                               from './BoardChildren.ts';
-import { DocumentAgentWording }                                             from './DocumentAgentWording.ts';
-import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest }     from './HatchInbox.ts';
-import { jobFolderIn }                                                      from './HephaestusFiles.ts';
-import { PipelineAgentSessions, type SnapshotContext, type TurnEndContext } from './PipelineAgentSessions.ts';
-
-/** Under the worktrees root, one detached snapshot per ticket; Hephaestus owns it, so it is never a leftover worktree. */
-export const DOCUMENT_AGENT_SNAPSHOT_FOLDER = 'document-agent';
+import type { BoardTransaction }                                        from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                                            from '../tracker/ProjectLocation.ts';
+import type { BoardChildren }                                           from './BoardChildren.ts';
+import { DocumentAgentWording }                                         from './DocumentAgentWording.ts';
+import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest } from './HatchInbox.ts';
+import { jobFolderIn }                                                  from './HephaestusFiles.ts';
+import {
+  DOCUMENT_AGENT_SNAPSHOT_FOLDER,
+  PipelineAgentSessions,
+  type SnapshotContext,
+  type TurnEndContext
+} from './PipelineAgentSessions.ts';
 
 const SNAPSHOT_START_FILE = 'document-agent-start.json';
 
@@ -89,8 +92,15 @@ function documentOfJob(job: Readonly<Job>): TicketDocumentKind {
   return DocumentAgentJobUtil.documentOf(job) ?? 'spec';
 }
 
+/** `<ticketId>-<document>`: each document's agent reads a snapshot of its own. */
 function snapshotDirectoryOf(worktreesRoot: string, job: Readonly<Job>): string {
-  return join(worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER, job.ticketIds[0] ?? job.id);
+  return join(worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER, `${job.ticketIds[0] ?? job.id}-${documentOfJob(job)}`);
+}
+
+/** Whether the snapshot holds a change or a file of its own; one git cannot read counts, so it is reset. */
+function snapshotIsDirty(snapshot: string): boolean {
+  const status = GitProcess.run(snapshot, ['status', '--porcelain=v1', '--untracked-files=all'], 'hooks-off', undefined, GitWorktrees.ceilingOf(snapshot));
+  return status === null || !GitProcess.succeeded(status) || status.standardOutput.trim() !== '';
 }
 
 function readJson<Value>(path: string): Value | null {
@@ -110,9 +120,9 @@ function newestDeliveryNumberOf(document: Readonly<TicketDocument> | null): numb
 }
 
 /**
- * Before each launch of an instance: the ticket's snapshot exists and stands at main's tip, and HEAD and every ref are taken again, so a
- * turn end compares only what this session could have moved. A fresh job also notes the document's newest delivery, after which every
- * delivery is its own, and the head its first message shows.
+ * Before each launch of an instance: the document's snapshot exists and stands clean at main's tip, and HEAD and every ref are taken again,
+ * so a turn end compares only what this session could have moved; one an earlier session left dirty is reset and cleaned first. A fresh job
+ * also notes the document's newest delivery, after which every delivery is its own, and the head its first message shows.
  */
 function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<Job>): string {
   const snapshot = snapshotDirectoryOf(context.worktreesRoot, job);
@@ -120,8 +130,9 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
   const mainTip = GitProcess.resolvedCommitOf(repositoryRoot, context.mainLine);
   if (existsSync(snapshot)) {
     const head = GitProcess.resolvedCommitOf(snapshot, 'HEAD', GitWorktrees.ceilingOf(snapshot));
-    if (mainTip !== null && head !== mainTip) {
+    if (mainTip !== null && (head !== mainTip || snapshotIsDirty(snapshot))) {
       GitProcess.run(snapshot, ['reset', '--hard', '--quiet', mainTip], 'hooks-off', undefined, GitWorktrees.ceilingOf(snapshot));
+      GitProcess.run(snapshot, ['clean', '-f', '-d', '-x', '--quiet'], 'hooks-off', undefined, GitWorktrees.ceilingOf(snapshot));
     }
   } else {
     mkdirSync(join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER), { recursive: true });
@@ -245,12 +256,16 @@ function linesTakenOf(jobFolder: string, instance: number): number {
 
 /**
  * An instance that opens with a message, the next queued one, in place of the resume line: one resumed from waiting, or one that has a
- * delivered message waiting for its line.
+ * delivered message waiting for its line. Once that message is sent it is still the instance's opener, so no resume line follows it on a
+ * later pass, mid-turn.
  */
 function opensWithAMessage(trackerDirectory: string, board: Board, job: Readonly<Job>): boolean {
   if (!isDocumentAgentJob(job)) return false;
   const jobFolder = jobFolderIn(trackerDirectory, job.id);
-  return linesTakenOf(jobFolder, job.childInstance) === 0 && pendingMessagesOf(trackerDirectory, board, job).length > 0;
+  const instance  = job.childInstance;
+  const opened    = existsSync(join(jobFolder, `first-message-${instance}.sent`)) || existsSync(join(jobFolder, `resume-message-${instance}.sent`));
+  if (!opened && takenDeliveriesOf(jobFolder).some((delivery) => delivery.instance === instance)) return true;
+  return linesTakenOf(jobFolder, instance) === 0 && pendingMessagesOf(trackerDirectory, board, job).length > 0;
 }
 
 /** Idle: every line its instance took has its `result`, and no delivered message waits for its line. */
@@ -312,6 +327,17 @@ function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[]
 function settleEndedSession(board: Board, job: Readonly<Job>, at: string): void {
   if (documentIsDone(board, job)) board.endJob(job.id, { outcome: 'closed' }, at);
   else board.moveJob(job.id, 'awaiting-answer', at);
+}
+
+/**
+ * Run in the hold after the turn ends were verified: each stopping agent whose session ended settles, so a request of its last turn, which
+ * can keep the document open, applied before the agent was judged done. One Customs failed has already ended.
+ */
+function settleEndedSessions(board: Board, jobIds: readonly string[], at: string): void {
+  for (const jobId of jobIds) {
+    const job = board.jobById(jobId);
+    if (job?.state === 'stopping' && isDocumentAgentJob(job)) settleEndedSession(board, job, at);
+  }
 }
 
 /** After the hold: each delivered message's line, in order, to the live instance; a marker per line keeps a restart from sending it twice. */
@@ -407,7 +433,7 @@ function verifyTurnEnds(
 }
 
 /**
- * After the hold: each ticket's snapshot that no document agent of the ticket holds, a waiting one included, is removed; one the removal
+ * After the hold: each document's snapshot that no agent of the document holds, a waiting one included, is removed; one the removal
  * leaves is named through `log` as a leftover. A snapshot is tried once each time it falls unheld, since a later agent adds it again.
  */
 function removeUnheldSnapshots(
@@ -447,6 +473,7 @@ export const DocumentAgentSessions = Object.freeze({
   isIdle,
   deliverWhenIdle,
   settleEndedSession,
+  settleEndedSessions,
   sendDeliveries,
   verifyTurnEnds,
   removeUnheldSnapshots,

@@ -108,6 +108,11 @@ export interface RefMovesAllowed {
    * by Hephaestus alone.
    */
   airlockWorktreeHeads: readonly string[];
+  /**
+   * The folders of the detached snapshots Hephaestus adds, resets and removes for the agents that only read, whatever job is verified: the
+   * HEAD of every worktree inside one moves by Hephaestus's hand alone.
+   */
+  snapshotFolders?:     readonly string[];
   /** Absent: every ref is watched, as for a tracker whose branches keep their bare names. */
   watchedRefs?:         WatchedRefs;
 }
@@ -222,6 +227,8 @@ export interface HephaestusRefNaming {
   releasedGroupBranchOf:        (ticketId: string) => string | null;
   refreshWorktreeOf:            (groupBranch: string) => string;
   constitutionCommitWorktreeOf: (jobId: string) => string;
+  /** The folders holding the readers' detached snapshots, the document agents' and the pipeline agent's; none when absent. */
+  snapshotFolders?:             readonly string[];
 }
 
 /** What the agent's adapter names for Customs: V13 protects its configuration, V7 refuses its attribution. */
@@ -1063,8 +1070,11 @@ export function foreignRefsMovedOf(
   for (const refreshHead of refMovesAllowed.airlockWorktreeHeads) exempt.add(comparableRefOf(style, refreshHead));
   const removedAfterLandings = new Set(refMovesAllowed.removedAfterLandings);
   const loggedJobRefs = new Set(refMovesAllowed.loggedJobBranches.map((branch) => `refs/heads/${branch}`));
+  const snapshotFolders = refMovesAllowed.snapshotFolders ?? [];
+  const isSnapshotHead = (ref: string): boolean => ref.startsWith(WORKTREE_HEAD_PREFIX)
+    && snapshotFolders.some((folder) => GitPaths.relativeInsideOf(style, folder, ref.slice(WORKTREE_HEAD_PREFIX.length)) !== null);
   const moved = [...new Set([...launchRefs.keys(), ...nowRefs.keys()])].filter((ref) => {
-    if (exempt.has(ref)) return false;
+    if (exempt.has(ref) || isSnapshotHead(ref)) return false;
     if (!refIsWatched(style, nowRefs.get(ref)?.ref ?? launchRefs.get(ref)?.ref ?? ref, refMovesAllowed.watchedRefs)) return false;
     const after = nowRefs.get(ref)?.commit;
     if (launchRefs.get(ref)?.commit === after) return false;
@@ -1143,6 +1153,7 @@ export function refMovesAllowedOf(
     recordedLandings,
     removedAfterLandings,
     airlockWorktreeHeads,
+    ...(naming.snapshotFolders === undefined ? {} : { snapshotFolders: naming.snapshotFolders }),
     ...(sharedRepository.watchedRefs === null ? {} : { watchedRefs: sharedRepository.watchedRefs }),
   };
 }

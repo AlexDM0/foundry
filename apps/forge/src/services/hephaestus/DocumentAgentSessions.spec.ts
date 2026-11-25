@@ -1,13 +1,14 @@
 /**
- * A spec or plan agent's session as Hephaestus runs it, with the session's readings given as values and a planted child. What matters:
- * its profile writes only its Hatch, with no network, question or skill; its first message's facts ask for a first write, a plan's update
- * for a newer spec with that spec's text, or a read of the head; one message goes out at a time, only while the agent is idle, oldest
- * first, never a withdrawn one; the line carries the comment's lines at the head, the version it was sent on and an orphan's quote; an idle
- * agent with nothing queued has its input closed and then waits, or ends `closed` once its document is approved; an instance resumed from
- * waiting opens with the next message; a turn end whose snapshot Customs finds untouched applies the turn's requests, on recorded git;
- * a turn end whose snapshot fails Customs refuses the turn's requests, logs it, opens one
- * incident on the ticket and ends the job `failed`; and a ticket's snapshot is removed once no document agent of the ticket holds it, a
- * waiting one included, and tried again after a later agent held it.
+ * A spec or plan agent's session as Hephaestus runs it, with the session's readings given as values and a planted child. What matters: its
+ * profile writes only its Hatch, with no network, question or skill; its first message's facts ask for a first write, a plan's update for a
+ * newer spec with that spec's text, or a read of the head; one message goes out at a time, only while the agent is idle, oldest first,
+ * never a withdrawn one; the line carries the comment's lines at the head, the version it was sent on and an orphan's quote; an idle agent
+ * with nothing queued has its input closed and then waits, or ends `closed` once its document is approved; an instance resumed from waiting
+ * opens with the next message, which stays its opener, so no resume line follows mid-turn; a turn end whose snapshot Customs finds
+ * untouched applies the turn's requests, on recorded git; a turn end whose snapshot fails Customs refuses the turn's requests, logs it,
+ * opens one incident on the ticket and ends the job `failed`; and each document has a snapshot of its own, so the spec's and the plan's
+ * agents never reset or dirty each other's, removed once no agent of the document holds it, a waiting one included, and tried again after a
+ * later agent held it.
  */
 import {
   existsSync,
@@ -46,8 +47,9 @@ import { launchSnapshotOf }                                                     
 import type { BoardTransaction }                                                        from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                                            from '../tracker/Workspace.ts';
 import type { BoardChildren }                                                           from './BoardChildren.ts';
-import { DOCUMENT_AGENT_SNAPSHOT_FOLDER, DocumentAgentSessions }                        from './DocumentAgentSessions.ts';
+import { DocumentAgentSessions }                                                        from './DocumentAgentSessions.ts';
 import { jobFolderIn }                                                                  from './HephaestusFiles.ts';
+import { DOCUMENT_AGENT_SNAPSHOT_FOLDER }                                               from './PipelineAgentSessions.ts';
 
 const AT = '2026-11-24T12:00:00.000Z';
 
@@ -236,7 +238,7 @@ describe('the messages', () => {
     expect(stopping.records.findLast((record) => record.kind === 'job-ended')).toMatchObject({ jobId: 'J9', fields: { outcome: 'closed' } });
   });
 
-  test('an instance resumed from waiting opens with the next message in place of the resume line', async () => {
+  test('an instance resumed from waiting opens with the next message in place of the resume line, which no later pass sends mid-turn', async () => {
     const job     = documentAgentJobFixture('004', 'spec', { childInstance: 2 });
     const fixture = sessionFixture(structuredClone(SPEC_WITH_MESSAGES), [job]);
     launched(fixture, job);
@@ -246,7 +248,7 @@ describe('the messages', () => {
     expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(true);
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
     expect(fixture.sentLines()).toHaveLength(1);
-    expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(false);
+    expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(true);
   });
 });
 
@@ -275,18 +277,24 @@ function turnEndContextOf(fixture: SessionFixture, worktreesRoot: string): Param
   } as unknown as Parameters<typeof DocumentAgentSessions.verifyTurnEnds>[1];
 }
 
+/** The snapshot of the job's current instance stands untouched at the start commit, on recorded git. */
+function untouchedSnapshotFor(fixture: SessionFixture): void {
+  const repositoryDirectory = fixture.rootDirectory;
+  mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
+  mkdirSync(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME), { recursive: true });
+  recordedGit.enterScenario(GIT_SCENARIOS.DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED, { repositoryDirectory, commits: { '<start>': START_COMMIT } });
+  const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
+  mkdirSync(jobFolder, { recursive: true });
+  const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME));
+  writeFileSync(join(jobFolder, 'document-agent-start.json'), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+}
+
 describe('a turn end whose snapshot Customs finds untouched', () => {
   testWhenGitIsRecorded('applies the turn\'s requests', () => {
     const job     = documentAgentJobFixture('004', 'spec');
     const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT.replace('1. The', 'A1. The')] }]), [job]);
     const repositoryDirectory = fixture.rootDirectory;
-    mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
-    mkdirSync(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME), { recursive: true });
-    recordedGit.enterScenario(GIT_SCENARIOS.DOCUMENT_AGENT_SNAPSHOT_UNTOUCHED, { repositoryDirectory, commits: { '<start>': START_COMMIT } });
-    const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
-    mkdirSync(jobFolder, { recursive: true });
-    const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME));
-    writeFileSync(join(jobFolder, 'document-agent-start.json'), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+    untouchedSnapshotFor(fixture);
     const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
 
     const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, repositoryDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
@@ -295,6 +303,30 @@ describe('a turn end whose snapshot Customs finds untouched', () => {
     expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.readyAtNumber).toBe(1);
     expect(fixture.board.incidents()).toEqual([]);
     expect(fixture.board.jobById('J9')?.state).toBe('running');
+  });
+});
+
+describe('a stopping agent whose session ended', () => {
+  testWhenGitIsRecorded('settles only after its last turn\'s requests applied: a proposal on its approved spec keeps it waiting', () => {
+    const job     = documentAgentJobFixture('004', 'spec', { state: 'stopping' });
+    const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT], approvals: [{ number: 1 }] }]), [job]);
+    untouchedSnapshotFor(fixture);
+    const proposal = {
+      kind:        'ticket-document-agent-propose',
+      baseVersion: 1,
+      edits:       [{
+        fromLine: 1, toLine: 1, originalLines: ['# Basket'], replacementLines: ['# Basket total']
+      }],
+      summary: 'Name the total'
+    };
+    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', proposal as never)) };
+
+    const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, fixture.rootDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
+    DocumentAgentSessions.settleEndedSessions(fixture.board, ['J9'], AT);
+
+    expect(replies.map((reply) => reply.reply.outcome)).toEqual(['done']);
+    expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.proposals.map((open) => open.state)).toEqual(['proposed']);
+    expect(fixture.board.jobById('J9')?.state).toBe('awaiting-answer');
   });
 });
 
@@ -323,7 +355,7 @@ describe('a turn end whose snapshot fails Customs', () => {
   });
 });
 
-describe('a ticket\'s snapshot', () => {
+describe('a document\'s snapshot', () => {
   /** Git's removal as the primitives see it: the folder goes, and each removal is noted. */
   function removalThatSucceeds(removed: string[]): WorktreeRemovalPrimitives {
     return {
@@ -338,11 +370,11 @@ describe('a ticket\'s snapshot', () => {
     };
   }
 
-  test('is removed once no document agent of the ticket holds it, a waiting one included, and again after a later agent held it', () => {
+  test('is removed once no agent of the document holds it, a waiting one included, and again after a later agent held it', () => {
     const waiting  = documentAgentJobFixture('004', 'spec', { state: 'awaiting-answer' });
     const fixture  = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [waiting]);
     const context  = { workspace: workspacePathsFor(fixture.rootDirectory), worktreesRoot: join(fixture.rootDirectory, 'worktrees') };
-    const snapshot = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER, '004');
+    const snapshot = join(context.worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER, '004-spec');
     const removed: string[] = [];
     const logged: string[] = [];
     const tried = new Set<string>();
@@ -358,11 +390,30 @@ describe('a ticket\'s snapshot', () => {
     expect(existsSync(snapshot)).toBe(false);
 
     mkdirSync(snapshot, { recursive: true });
-    fixture.progress.jobs = [documentAgentJobFixture('004', 'plan', { id: 'J10' })];
+    fixture.progress.jobs = [documentAgentJobFixture('004', 'spec', { id: 'J10' })];
     removeUnheld();
     fixture.progress.jobs = [];
     removeUnheld();
     expect(removed).toEqual([snapshot, snapshot]);
     expect(logged).toEqual([]);
+  });
+
+  test('is the document\'s own: the spec\'s and the plan\'s agents of one ticket read two, and one goes while the other is held', () => {
+    const specAgent = documentAgentJobFixture('004', 'spec', { state: 'awaiting-answer' });
+    const planAgent = documentAgentJobFixture('004', 'plan', { id: 'J10' });
+    const fixture   = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [specAgent, planAgent]);
+    const context   = { workspace: workspacePathsFor(fixture.rootDirectory), worktreesRoot: join(fixture.rootDirectory, 'worktrees') };
+    const specSnapshot = DocumentAgentSessions.snapshotDirectoryOf(context.worktreesRoot, specAgent);
+    const planSnapshot = DocumentAgentSessions.snapshotDirectoryOf(context.worktreesRoot, planAgent);
+    expect(specSnapshot).not.toBe(planSnapshot);
+    const removed: string[] = [];
+    mkdirSync(specSnapshot, { recursive: true });
+    mkdirSync(planSnapshot, { recursive: true });
+
+    fixture.board.endJob('J10', { outcome: 'closed' }, AT);
+    DocumentAgentSessions.removeUnheldSnapshots(fixture.board, context, new Set(), () => undefined, removalThatSucceeds(removed));
+
+    expect(removed).toEqual([planSnapshot]);
+    expect(existsSync(specSnapshot)).toBe(true);
   });
 });

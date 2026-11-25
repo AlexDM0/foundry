@@ -69,8 +69,8 @@ const WORKTREES = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, PRODUCT_NAMES.WORK
 const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
 /** Setup S1's snapshot, which its pipeline agent reads. */
 const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'S1');
-/** Ticket 001's snapshot, which its spec and plan agents read. */
-const DOCUMENT_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'document-agent', '001');
+/** Ticket 001's spec snapshot, which its spec agent reads. */
+const DOCUMENT_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'document-agent', '001-spec');
 
 /** The tracker of the folder flow: its project folder below the repository and its branch namespace. */
 export const RECORDED_FOLDER_FLOW_PROJECT = { prefix: 'apps/example', namespace: 'example' } as const;

@@ -12,7 +12,7 @@
  * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
  * request is refused `intake-empty` unless a picture carries it. Option notes, like a title, name their job; their fields reach the Board
  * as untrusted JSON, which refuses a malformed note in words. A need names its build job too, and its body is read as `ticket ready` reads a
- * draft's.
+ * draft's. A document agent takes neither a job message nor a job stop: its document's queue and turn stop carry them.
  */
 import {
   afterEach,
@@ -37,6 +37,7 @@ import {
 } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { documentAgentJobFixture }                        from '../../testing/TicketDocumentFixtures.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import { ControlService }                                 from './ControlService.ts';
@@ -547,6 +548,19 @@ describe('moves naming an incident', () => {
       kind: 'job-message', jobId: 'J2', text: 'Go on.', incidentId: 'I1'
     })))
       .toEqual({ reason: 'job-is-product-owner', jobId: 'J2' });
+  });
+
+  test('a document agent takes no job message and no job stop, and is offered neither: its document carries both', () => {
+    const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '004', status: 'draft' })] });
+    progress.jobs = [documentAgentJobFixture('004', 'spec')];
+    const refusal = {
+      reason: 'job-is-document-agent', jobId: 'J9', ticketId: '004', document: 'spec'
+    } as const;
+
+    expect(refusalDetailOf(() => apply(board, { kind: 'job-message', jobId: 'J9', text: 'Go on.' }))).toEqual(refusal);
+    for (const mode of ['stop', 'wind-down'] as const) expect(refusalDetailOf(() => board.requestJobStop('J9', mode, AT)), mode).toEqual(refusal);
+    expect(board.jobOffersOf('J9')).toEqual({ stopModes: [], takesFresh: false, takesMessage: false });
+    expect(board.jobById('J9')?.stopRequest).toBeUndefined();
   });
 
   test('job fresh under a system-question marks it handled and asks for the fresh agent', () => {

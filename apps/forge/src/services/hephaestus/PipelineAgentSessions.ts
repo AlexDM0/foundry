@@ -51,6 +51,17 @@ const PIPELINE_AGENT_KIND = 'pipeline-agent';
 /** Under the worktrees root, one detached snapshot per setup record; Hephaestus owns it, so it is never a leftover worktree. */
 export const PIPELINE_AGENT_SNAPSHOT_FOLDER = 'pipeline-agent';
 
+/** Under the worktrees root, one detached snapshot per ticket document; Hephaestus owns it, so it is never a leftover worktree. */
+export const DOCUMENT_AGENT_SNAPSHOT_FOLDER = 'document-agent';
+
+/**
+ * The folders of the readers' detached snapshots: Hephaestus adds, resets and removes them while other jobs run, so no job's V14 counts
+ * their HEADs.
+ */
+function readerSnapshotFoldersOf(worktreesRoot: string): string[] {
+  return [join(worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER), join(worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER)];
+}
+
 const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
 
 const SNAPSHOT_TOUCHED_INCIDENT = 'setup-snapshot-touched';
@@ -254,6 +265,7 @@ function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Re
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),
+    snapshotFolders:              readerSnapshotFoldersOf(context.worktreesRoot),
   }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot)));
 }
 
@@ -339,6 +351,7 @@ export const PipelineAgentSessions = Object.freeze({
   prepareSnapshot,
   pipelineAgentProfileOf,
   pipelineAgentFactsOf,
+  readerSnapshotFoldersOf,
   turnEndRefMovesAllowedOf,
   verifyTurnEnds,
   removeUnheldSnapshots,

@@ -3,6 +3,7 @@
  * a time per board. Hephaestus keeps the newest reading of each ticket document in memory only, checks each path the reader named against
  * the tree, and, when the document's agent asked, queues the reading to it as a board message. A restart forgets every reading.
  */
+import { dirname }                      from 'node:path';
 import { EFFECT_READING_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf }              from '../../adapters/reports/ReportValidation.ts';
 import type { WorkerProfile }           from '../../lib/agent-launch/WorkerProfile.ts';
@@ -199,19 +200,36 @@ function createEffectReadings(options: EffectReadingsOptions): EffectReadings {
     const duration = options.nowMilliseconds() - running.startedAt;
     const reading  = readingOf(running.request, reported === null ? 'failed' : 'read', duration, reported);
     end(board, jobId, reading, at);
-    const { ticketId, document } = running.request;
-    if (running.request.requestedByAgent && board.ticketDocuments().documentOf(ticketId, document) !== null) {
+    tellTheAgentWhenItAsked(board, running.request, reading, at);
+  }
+
+  /** The agent that asked waits for the reading, read or failed, as a board message; nobody waits on User's own. */
+  function tellTheAgentWhenItAsked(board: Board, asked: EffectReadingRequest, reading: EffectReading, at: string): void {
+    const { ticketId, document } = asked;
+    if (asked.requestedByAgent && board.ticketDocuments().documentOf(ticketId, document) !== null) {
       board.ticketDocuments().queueBoardMessage(ticketId, document, boardMessageTextOf(reading), at);
     }
   }
 
+  /**
+   * Ends each reading past its timeout or whose session ended with no `result`, failed, and tells the agent that asked. A reading whose job
+   * never reached the board, launched in a hold that was refused, is asked again.
+   */
   function failOverdue(board: Board, endedJobIds: readonly string[], at: string): string[] {
+    for (const [jobId, running] of [...runningByJobId.entries()]) {
+      if (board.jobById(jobId) !== undefined) continue;
+      runningByJobId.delete(jobId);
+      const { ticketId, document } = running.request;
+      if (!waiting.some((queued) => queued.ticketId === ticketId && queued.document === document)) waiting.unshift(running.request);
+    }
     const failed: string[] = [];
     for (const job of board.jobs().filter((candidate) => candidate.kind === EFFECT_READING_KIND)) {
       const running = runningByJobId.get(job.id);
       const overdue = running !== undefined && options.nowMilliseconds() - running.startedAt >= timeoutMilliseconds;
       if (running !== undefined && !overdue && !endedJobIds.includes(job.id)) continue;
-      end(board, job.id, running === undefined ? null : readingOf(running.request, 'failed', options.nowMilliseconds() - running.startedAt, null), at);
+      const reading = running === undefined ? null : readingOf(running.request, 'failed', options.nowMilliseconds() - running.startedAt, null);
+      end(board, job.id, reading, at);
+      if (running !== undefined && reading !== null) tellTheAgentWhenItAsked(board, running.request, reading, at);
       failed.push(job.id);
     }
     return failed;
@@ -233,18 +251,27 @@ function createEffectReadings(options: EffectReadingsOptions): EffectReadings {
 
 /**
  * It answers only through its report: no tool, no shell, no web, no question, and the repository root and the tracker's data folder denied
- * explicitly, since the session profile denies neither.
+ * explicitly, since the session profile denies neither. Its session folder lies inside the repository, and instruction files load from
+ * the working folder up without a tool, so every folder from its session folder up to the repository root has its instruction files and
+ * rules excluded, the repository's own among them.
  */
-function effectReaderProfileOf(sessionProfile: WorkerProfile, repositoryRoot: string, trackerDirectory: string): WorkerProfile {
+function effectReaderProfileOf(sessionProfile: WorkerProfile, repositoryRoot: string, trackerDirectory: string, sessionFolder: string): WorkerProfile {
+  const foldersUpToTheRepositoryRoot: string[] = [];
+  for (let folder = sessionFolder; !foldersUpToTheRepositoryRoot.includes(folder); folder = dirname(folder)) {
+    foldersUpToTheRepositoryRoot.push(folder);
+    if (folder === repositoryRoot) break;
+  }
   return {
     ...sessionProfile,
-    deniedReadableRoots: [...new Set([...sessionProfile.deniedReadableRoots, repositoryRoot, trackerDirectory])],
-    shellNetworkDomains: [],
-    webNetworkDomains:   'none',
-    askUser:             false,
-    skills:              false,
-    networkDomainGuard:  null,
-    availableTools:      'none',
+    instructionsRoot:        sessionFolder,
+    nestedCheckoutAncestors: [...new Set([...sessionProfile.nestedCheckoutAncestors ?? [], ...foldersUpToTheRepositoryRoot])],
+    deniedReadableRoots:     [...new Set([...sessionProfile.deniedReadableRoots, repositoryRoot, trackerDirectory])],
+    shellNetworkDomains:     [],
+    webNetworkDomains:       'none',
+    askUser:                 false,
+    skills:                  false,
+    networkDomainGuard:      null,
+    availableTools:          'none',
   };
 }
 

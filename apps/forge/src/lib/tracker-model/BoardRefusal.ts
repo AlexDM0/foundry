@@ -204,6 +204,7 @@ export type BoardRefusalDetail =
   | { reason: 'incident-not-a-question'; incidentId: string; kind: string }
   | { reason: 'job-awaits-user-answer'; jobId: string }
   | { reason: 'job-is-product-owner'; jobId: string }
+  | { reason: 'job-is-document-agent'; jobId: string; ticketId: string; document: TicketDocumentKind }
   | { reason: 'no-open-incident'; subject: string; move: string }
   | { reason: 'several-open-incidents'; subject: string; move: string; incidentIds: readonly string[] }
   | { reason: 'worktree-in-use'; ticketId: string; jobIds: readonly string[] }

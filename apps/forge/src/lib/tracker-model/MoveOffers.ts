@@ -10,6 +10,7 @@ import type { Jobs }                   from './Jobs.ts';
 import type { MergeQueueMarks }        from './MergeQueueMarks.ts';
 import type { TicketMoves }            from './TicketMoves.ts';
 import type { JobStopHoldMode }        from './constants/JobStopHolds.ts';
+import { DocumentAgentJobUtil }        from './utils/DocumentAgentJobUtil.ts';
 import { JobControlRuleUtil }          from './utils/JobControlRuleUtil.ts';
 import type { MergeForecast }          from './utils/MergeQueueUtil.ts';
 import { TicketMoveUtil }              from './utils/TicketMoveUtil.ts';
@@ -74,8 +75,10 @@ export class MoveOffers {
     return { kinds: TICKET_OFFER_KINDS.filter((kind) => openKinds[kind]), priorityChoices };
   }
 
+  /** A document agent is offered none: it takes its messages and its stop through its document. */
   jobOffersOf(jobId: string): JobOffers {
     const job = this.jobRules.requireJob(jobId);
+    if (DocumentAgentJobUtil.documentOf(job) !== null) return { stopModes: [], takesFresh: false, takesMessage: false };
     return {
       stopModes:    [...STOP_MODES_OF_A_LIVE_JOB],
       takesFresh:   JobControlRuleUtil.freshAgentIsOpenTo(job),

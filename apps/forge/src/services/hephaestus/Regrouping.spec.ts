@@ -1,8 +1,8 @@
 /**
- * The leftover worktrees a starting Hephaestus names to User. What matters here: a constitution commit's worktree, one level down under
- * its own folder, belongs to its live constitution commit job and is no leftover; one whose job is gone is; and the folder that holds them is
- * never named itself. The rest of the regrouping is held by `Regrouping.integration.spec.ts` and `CrashMatrix.integration.spec.ts`. The
- * folders are real; git answers from a recorded answer set.
+ * The leftover worktrees a starting Hephaestus names to User. What matters here: a constitution commit's worktree, one level down under its
+ * own folder, belongs to its live constitution commit job and is no leftover; one whose job is gone is; and the folder that holds them is
+ * never named itself; nor is the folder of the document agents' snapshots, which Hephaestus keeps. The rest of the regrouping is held by
+ * `Regrouping.integration.spec.ts` and `CrashMatrix.integration.spec.ts`. The folders are real; git answers from a recorded answer set.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import { join }                    from 'node:path';
@@ -16,6 +16,7 @@ import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../te
 import { removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
 import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
 import { CONSTITUTION_COMMITS_FOLDER }                            from './ConstitutionCommits.ts';
+import { DOCUMENT_AGENT_SNAPSHOT_FOLDER }                         from './PipelineAgentSessions.ts';
 import { Regrouping }                                             from './Regrouping.ts';
 
 const recordedGit = useRecordedGit();
@@ -60,4 +61,16 @@ test('a constitution commit worktree is its live job\'s; one whose job is gone i
 
   expect(Regrouping.leftoverWorktreesOf(workspacePathsFor(repository), [constitutionCommitJob('J7')])).toEqual([join(commitFolder, 'J4')]);
   expect(Regrouping.leftoverWorktreesOf(workspacePathsFor(repository), [constitutionCommitJob('J4'), constitutionCommitJob('J7')])).toEqual([]);
+});
+
+test('the folder of the document agents\' snapshots is Hephaestus\'s own, never a leftover', () => {
+  repository = realpathSync(createPlantedRepository('regrouping-documents'));
+  mkdirSync(join(WorktreesFolder.worktreesRootOf(repository), DOCUMENT_AGENT_SNAPSHOT_FOLDER, '004-spec'), { recursive: true });
+  recordedGit.answerFrom([{
+    gitArguments: ['worktree', 'list', '--porcelain'],
+    answeredAs:   GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY,
+    filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: repository, [RECORDED_PLACEHOLDERS.COMMIT]: '1'.repeat(40), [RECORDED_PLACEHOLDERS.BRANCH]: 'main' },
+  }]);
+
+  expect(Regrouping.leftoverWorktreesOf(workspacePathsFor(repository), [])).toEqual([]);
 });

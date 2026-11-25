@@ -225,8 +225,11 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'incident-not-a-question': { reason: 'incident-not-a-question', incidentId: 'I3', kind: 'quiet-job' },
   'job-awaits-user-answer':  { reason: 'job-awaits-user-answer', jobId: 'J3' },
   'job-is-product-owner':    { reason: 'job-is-product-owner', jobId: 'J3' },
-  'no-open-incident':        { reason: 'no-open-incident', subject: 'Job J3', move: 'job-fresh' },
-  'several-open-incidents':  {
+  'job-is-document-agent':   {
+    reason: 'job-is-document-agent', jobId: 'J9', ticketId: '004', document: 'spec'
+  },
+  'no-open-incident':       { reason: 'no-open-incident', subject: 'Job J3', move: 'job-fresh' },
+  'several-open-incidents': {
     reason: 'several-open-incidents', subject: 'Job J3', move: 'job-fresh', incidentIds: ['I1', 'I2']
   },
   'worktree-in-use':               { reason: 'worktree-in-use', ticketId: '004', jobIds: ['J3'] },

@@ -1,7 +1,8 @@
 /**
  * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6, V8 and V18,
  * which judge the ticket's content hash, its document heads, its spec and the report alone. V13's and V14's path comparisons run here under
- * the Windows path module, so git's `C:/` spelling and a joined backslash path are shown to meet on this machine. Every check that reads
+ * the Windows path module, so git's `C:/` spelling and a joined backslash path are shown to meet on this machine, and V14 lets the HEADs
+ * of the readers' snapshots, which Hephaestus adds, resets and removes under any job, pass. Every check that reads
  * the repository is held on one of the fake git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what
  * git answers.
  */
@@ -174,6 +175,21 @@ test('on Windows the job\'s own detached HEAD, listed as C:/ and named by a join
   const otherHead = 'HEAD:C:/Example/Repository/.claude/worktrees/ticket-021';
   const snapshots = { launchRefs: { [ownHead]: 'commit-before', [otherHead]: 'commit-before' }, nowRefs: { [ownHead]: 'commit-after', [otherHead]: 'commit-after' } };
   expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([otherHead]);
+});
+
+test('a reader\'s snapshot that appears, moves or goes while a build runs does not read as moved; a worktree outside the folders does', () => {
+  const snapshotsFolder = '/example/repository/.claude/worktrees/document-agent';
+  const added   = `HEAD:${snapshotsFolder}/004-spec`;
+  const moved   = `HEAD:${snapshotsFolder}/005-plan`;
+  const removed = `HEAD:${snapshotsFolder}/006-spec`;
+  const other   = 'HEAD:/example/repository/.claude/worktrees/ticket-021';
+  const snapshots = {
+    launchRefs: { [moved]: 'commit-before', [removed]: 'commit-before', [other]: 'commit-before' },
+    nowRefs:    { [added]: 'commit-after', [moved]: 'commit-after', [other]: 'commit-after' },
+  };
+  const allowed = { ...NO_REF_MOVES, snapshotFolders: [snapshotsFolder, '/example/repository/.claude/worktrees/pipeline-agent'] };
+  expect(foreignRefsMovedOf(LINUX_STYLE, snapshots, allowed, '/example/repository/.claude/worktrees/ticket-020')).toEqual([other]);
+  expect(foreignRefsMovedOf(LINUX_STYLE, snapshots, NO_REF_MOVES, '/example/repository/.claude/worktrees/ticket-020')).toEqual([added, moved, removed, other].sort());
 });
 
 test('a snapshot stored in git\'s spelling compares equal to a fresh one, so no ref reads as moved across the change', () => {
