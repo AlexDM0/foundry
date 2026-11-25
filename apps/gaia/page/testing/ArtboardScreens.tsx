@@ -19,6 +19,7 @@ import type { BoardTranscriptEntryDocument }                            from '..
 import type { GaiaTicketDocumentsDocument }                             from '../@types/board/TicketDocumentsDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates } from '../api/CommandSender.ts';
 import type { BoardServices }                                           from '../board/@types/BoardServices.ts';
+import { PaintedTranscriptsContext }                                    from '../board/conversation/TranscriptLog.tsx';
 import { BoardGoToContext, BoardTrackerContext }                        from '../board/shell/BoardRouteLinks.ts';
 import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shell/ControlAvailability.ts';
 import {
@@ -576,13 +577,14 @@ function screenBoardServicesOf(fleetDocument: FleetDocument, storefrontBoard: Bo
 
 /**
  * The shell as the page paints it for the screen: the brand bar, the rail, the page title and the view, with every control live. A
- * screen that draws a board of its own gives it as Example Storefront's.
+ * screen that draws a board of its own gives it as Example Storefront's, and the transcripts its chats show by job id.
  */
 export function screenMarkupOf(
   screen: ArtboardScreen,
   theme: ScreenTheme,
   storefrontBoard: BoardDocument | null = null,
   firstOpenPhase: PipelinePhase = 'build',
+  paintedTranscripts: ReadonlyMap<string, readonly BoardTranscriptEntryDocument[]> = new Map(),
 ): string {
   const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
   const route = HashRouter.routeOf(screen.fragment);
@@ -601,14 +603,16 @@ export function screenMarkupOf(
   return renderToStaticMarkup(
     <CommandSenderContext value={senderHolding(commandStatesOf(screen.viewState))}>
       <FirstOpenPhaseContext value={firstOpenPhase}>
-        <GaiaShell
-          fleetDocument={fleetDocument}
-          streamState="live"
-          route={route}
-          view={view}
-          themeChoice={theme}
-          onThemeChoice={doNothing}
-        />
+        <PaintedTranscriptsContext value={paintedTranscripts}>
+          <GaiaShell
+            fleetDocument={fleetDocument}
+            streamState="live"
+            route={route}
+            view={view}
+            themeChoice={theme}
+            onThemeChoice={doNothing}
+          />
+        </PaintedTranscriptsContext>
       </FirstOpenPhaseContext>
     </CommandSenderContext>,
   );
@@ -920,13 +924,21 @@ export function pipelineDocumentScreenMarkupOf(screen: PipelineDocumentScreen, t
     fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: screen.boardRoute }),
     viewState:     'as-routed',
   };
-  const boardMarkup = screenMarkupOf(storefrontInPlace, theme, screen.board, OPEN_PHASE_OF_PIPELINE_DOCUMENT_ARTBOARD[screen.artboard]);
+  const agentJobId = screen.board.pipeline.setup?.record.agentJobId ?? null;
+  const paintedTranscripts = new Map(agentJobId === null ? [] : [[agentJobId, screen.agentTranscript]]);
+  const boardMarkup = screenMarkupOf(storefrontInPlace, theme, screen.board, OPEN_PHASE_OF_PIPELINE_DOCUMENT_ARTBOARD[screen.artboard], paintedTranscripts);
   return boardMarkup + pipelineDocumentDialogMarkupOf(screen, TRACKER_IDS.exampleStorefront);
 }
 
-/** A whole page for a browser at the page's artboard size, in the screen's theme, with the artboard's dialog shown as a modal. */
+/** The page opens the pipeline agent's chat at its end, which a server render cannot, so the document scrolls it there once loaded. */
+const OPEN_CHATS_AT_THEIR_END_SCRIPT = '<script>for (const body of document.querySelectorAll(\'.board-pipeline-panel-body\')) body.scrollTop = body.scrollHeight;</script>';
+
+/**
+ * A whole page for a browser at the page's artboard size, in the screen's theme, with the agent's chat at its end and the artboard's dialog
+ * shown as a modal.
+ */
 export function pipelineDocumentScreenDocumentOf(screen: PipelineDocumentScreen, theme: ScreenTheme): string {
   const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_SCRIPT}`;
-  const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>${dialogScript}`;
+  const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>\n${OPEN_CHATS_AT_THEIR_END_SCRIPT}${dialogScript}`;
   return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
 }
