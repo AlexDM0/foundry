@@ -31,8 +31,8 @@ describe('each step\'s row', () => {
   test('shows the status and summary from the facts, and Open on a done step', () => {
     const setup = setupOf('A0b-running');
     expect(ResumeSummaryModel.resumeStepsOf(setup, sessionStateOf(setup)).map((step) => [step.step, step.status, step.summary, step.openRoute?.item ?? null])).toEqual([
-      ['billing', 'done', 'Subscription', 'setup/billing'],
       ['agent', 'done', 'This machine\'s program', 'setup/agent'],
+      ['billing', 'done', 'Subscription', 'setup/billing'],
       ['research', 'done', '1 stack item, 2 scripts, 1 question answered', 'setup/research'],
       ['constitution', 'done', 'Drafted · 4 sections, 6 rules', 'setup/constitution'],
       ['design', 'current', 'Proposal saved: 1 prepare step, 3 build gates, 3 review gates, 3 merge gates. 2 changes by User kept.', null],
@@ -44,7 +44,7 @@ describe('each step\'s row', () => {
     const { setup } = entitiesStepBoardOf().pipeline;
     if (setup === undefined || setup === null) throw new Error('the entities board has a setup');
     expect(ResumeSummaryModel.resumeStepsOf(setup, sessionStateOf(setup)).map((step) => step.step))
-      .toEqual(['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply']);
+      .toEqual(['agent', 'billing', 'research', 'entities', 'constitution', 'design', 'apply']);
     expect(stepOf(setup, 'entities')).toMatchObject({ status: 'current', summary: '6 entities: 2 apps, 3 packages and the root' });
     expect(ResumeSummaryModel.doneStepsTextOf(setup)).toBe('3 of 7 steps done');
   });
@@ -65,6 +65,13 @@ describe('each step\'s row', () => {
     const setup = setupOf('A0b-running');
     const withCap = { ...setup, record: { ...setup.record, billing: { mode: 'api', maximumBudgetDollars: 5 } } } as const;
     expect(stepOf(withCap, 'billing').summary).toBe('API key · cap $5 per launch');
+    const withoutCap = { ...setup, record: { ...setup.record, billing: { mode: 'api', maximumBudgetDollars: null } } } as const;
+    expect(stepOf(withoutCap, 'billing').summary).toBe('API key');
+  });
+
+  test('a billing not chosen yet, or cleared by a change of agent, says so once the step is reached', () => {
+    const setup = setupOf('A0b-running');
+    expect(stepOf({ ...setup, record: { ...setup.record, billing: null } }, 'billing').summary).toBe('Not chosen yet');
   });
 });
 
@@ -123,8 +130,8 @@ describe('the commands and the note', () => {
   test('Resume and Start over name the record', () => {
     const setup = setupOf('A0b-running');
     expect(ResumeSummaryModel.resumeLabelOf(setup)).toBe('Resume pipeline design');
-    expect(ResumeSummaryModel.resumeCommandOf(setup)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-setup-resume', setupId: 'S1' });
-    expect(ResumeSummaryModel.startOverCommandOf(setup)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-setup-start-over', setupId: 'S1' });
+    expect(ResumeSummaryModel.resumeCommandOf(setup)).toEqual({ boardCommandVersion: 3, kind: 'pipeline-setup-resume', setupId: 'S1' });
+    expect(ResumeSummaryModel.startOverCommandOf(setup)).toEqual({ boardCommandVersion: 3, kind: 'pipeline-setup-start-over', setupId: 'S1' });
   });
 
   test('the main-moved note shows only while main moved', () => {

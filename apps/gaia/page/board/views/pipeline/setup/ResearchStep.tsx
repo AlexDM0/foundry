@@ -190,7 +190,7 @@ function ResearchPage({
       </View>
       {notLaunched === null
         ? null
-        : <NotLaunchedJob jobId={record.agentJobId} notLaunched={notLaunched} agent={facts.agent} choiceRoute={PipelineViewModel.agentChoiceRouteOf(facts)} />}
+        : <NotLaunchedJob jobId={record.agentJobId} notLaunched={notLaunched} fix={PipelineViewModel.notLaunchedFixOf(facts, notLaunched.cause)} />}
       {monorepoMode && layoutItems.length > 0
         ? <LayoutFinding items={layoutItems} sourcePaths={ResearchStepModel.layoutSourcePathsOf(record.findings)} />
         : null}

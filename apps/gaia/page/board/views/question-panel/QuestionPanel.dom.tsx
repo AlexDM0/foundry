@@ -242,7 +242,7 @@ describe('the options and the answer', () => {
     act(() => within(panel()).getByRole('radio', { name: 'b. A scoped stylesheet for the account pages' }).click());
     await clickSettled(answer);
     expect(rendered.sent).toEqual([{
-      boardCommandVersion: 2, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'letters', choices: ['b'] }
+      boardCommandVersion: 3, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'letters', choices: ['b'] }
     }]);
     expect(panel().querySelector('.board-question-panel-answer-row')?.textContent).toContain('Posts decision-answer E7 for J4');
   });
@@ -252,7 +252,7 @@ describe('the options and the answer', () => {
     fireEvent.change(within(panel()).getByLabelText('Or answer in User\'s own words'), { target: { value: 'Tokens, but keep the storefront values' } });
     await clickSettled(within(panel()).getByRole('button', { name: 'Answer E7' }));
     expect(rendered.sent).toEqual([{
-      boardCommandVersion: 2, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'text', text: 'Tokens, but keep the storefront values' }
+      boardCommandVersion: 3, kind: 'decision-answer', decisionId: 'E7', answer: { form: 'text', text: 'Tokens, but keep the storefront values' }
     }]);
     act(() => within(panel()).getByRole('button', { name: 'Next question' }).click());
     expect(within(panel()).queryByLabelText('Or answer in User\'s own words')).toBeNull();

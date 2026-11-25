@@ -3,9 +3,11 @@
  * reaches the forge without a path, so forge finds it.
  */
 import type {
+  AgentBillingOptionDocument,
   AgentProgramCheckDocument,
   AgentToolDocument,
   AgentToolUseDocument,
+  AgentVendorDocument,
   BoardAgentDocument,
   PipelineAgentDocument,
   PipelineToolRequestDocument,
@@ -14,9 +16,11 @@ import type { BoardJobNotLaunchedDocument } from 'forge-contracts/BoardJobDocume
 
 import type {
   BoardAgent,
+  BoardAgentBillingOption,
   BoardAgentProgramCheck,
   BoardAgentTool,
   BoardAgentToolUse,
+  BoardAgentVendor,
   BoardJobNotLaunched,
   BoardPipelineAgent,
   BoardToolRequest,
@@ -57,9 +61,26 @@ function toolOf(tool: AgentToolDocument): BoardAgentTool {
   };
 }
 
+function billingOptionOf(option: AgentBillingOptionDocument): BoardAgentBillingOption {
+  return {
+    mode:            VocabularyMapUtil.gaiaValueOf(VOCABULARIES.billingMode, option.mode),
+    keyVariableName: option.keyVariableName,
+    capsEachLaunch:  option.capsEachLaunch,
+  };
+}
+
+function vendorOf(vendor: AgentVendorDocument): BoardAgentVendor {
+  return {
+    vendor:         vendor.vendor,
+    displayName:    vendor.displayName,
+    supported:      vendor.supported,
+    billingOptions: vendor.billingOptions.map(billingOptionOf),
+  };
+}
+
 function agentOf(agent: BoardAgentDocument): BoardAgent {
   return {
-    vendors:            agent.vendors.map((vendor) => ({ vendor: vendor.vendor, displayName: vendor.displayName, supported: vendor.supported })),
+    vendors:            agent.vendors.map(vendorOf),
     choice:             agent.choice === null ? null : pipelineAgentOf(agent.choice),
     machineProgramPath: agent.machineProgramPath,
     programPath:        agent.programPath,

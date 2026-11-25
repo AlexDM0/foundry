@@ -9,7 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import { EXAMPLE_AGENT_TOOLS } from '../../../testing/AgentFixture.ts';
 import { ToolListModel }       from './ToolListModel.ts';
 
-const VERSION = { boardCommandVersion: 2 } as const;
+const VERSION = { boardCommandVersion: 3 } as const;
 
 describe('the rows', () => {
   test('say where each tool was found or that the machine lacks it, and what runs it', () => {

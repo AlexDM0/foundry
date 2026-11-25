@@ -12,8 +12,11 @@ const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardC
 
 type MachineProgramCommand = Extract<BoardCommandDocument, { readonly kind: 'machine-agent-program-set' }>;
 
-/** The setup record's agent while a setup is open, else the forge's stored one. */
-export type AgentChoiceTarget = { readonly kind: 'setup'; readonly setupId: string } | { readonly kind: 'forge' };
+/** The setup record's agent while a setup is open, the start of a setup on its landing, else the forge's stored one. */
+export type AgentChoiceTarget =
+  | { readonly kind: 'setup'; readonly setupId: string }
+  | { readonly kind: 'start'; readonly replacesUnreadablePipeline: boolean }
+  | { readonly kind: 'forge' };
 
 export type VendorCardTag = { readonly text: string; readonly tone: 'neutral' | 'warn' };
 
@@ -96,11 +99,18 @@ function placeRowsOf(agent: BoardAgentDocument): readonly PlaceRow[] {
 
 function agentCommandOf(target: AgentChoiceTarget, vendor: string, program: BoardAgentProgramChoiceDocument): BoardCommandDocument {
   const agent = { vendor, program };
-  return target.kind === 'setup'
-    ? {
-      ...COMMAND_VERSION, kind: 'pipeline-setup-agent', setupId: target.setupId, agent
-    }
-    : { ...COMMAND_VERSION, kind: 'pipeline-agent-set', agent };
+  switch (target.kind) {
+    case 'setup':
+      return {
+        ...COMMAND_VERSION, kind: 'pipeline-setup-agent', setupId: target.setupId, agent
+      };
+    case 'start':
+      return {
+        ...COMMAND_VERSION, kind: 'pipeline-setup-start', agent, replacesUnreadablePipeline: target.replacesUnreadablePipeline
+      };
+    case 'forge':
+      return { ...COMMAND_VERSION, kind: 'pipeline-agent-set', agent };
+  }
 }
 
 function machineProgramCommandOf(vendor: string, programPath: string): BoardCommandDocument {
@@ -156,6 +166,23 @@ function machineChangeQuestionOf(agent: BoardAgentDocument, displayName: string)
   return `${followers} this machine's ${displayName}. Change it for every one of them?`;
 }
 
+/**
+ * The landing's start, with the program held on the page: the one chosen in the file chooser, else this machine's; `null` while neither is
+ * there, or the forge knows no vendor it can run.
+ */
+function startCommandsOf(
+  agent: BoardAgentDocument,
+  programChoice: { readonly chosenPath: string | null; readonly forEveryForge: boolean },
+  replacesUnreadablePipeline: boolean
+): readonly BoardCommandDocument[] | null {
+  const vendor = chosenVendorOf(agent, null);
+  if (vendor === null) return null;
+  const target = { kind: 'start', replacesUnreadablePipeline } as const;
+  if (programChoice.chosenPath !== null) return chosenProgramCommandsOf(target, vendor, programChoice.chosenPath, programChoice.forEveryForge);
+  const machineProgram = machineProgramOf(agent);
+  return machineProgram === null ? null : machineChoiceCommandsOf(target, vendor, machineProgram);
+}
+
 /** The agent step's Continue, once the record holds an agent whose program runs; `null` before. */
 function continueCommandOf(setupId: string, recordAgent: BoardPipelineAgentDocument | null, agent: BoardAgentDocument): BoardCommandDocument | null {
   if (recordAgent === null || agent.check?.verdict !== 'runs') return null;
@@ -190,6 +217,7 @@ export const AgentChoiceModel = Object.freeze({
   machineChangeAsksFirst,
   machineChangeQuestionOf,
   followersTextOf,
+  startCommandsOf,
   continueCommandOf,
   lookAgainCommand,
   footerTextOf,

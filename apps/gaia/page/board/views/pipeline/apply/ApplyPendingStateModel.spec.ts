@@ -86,7 +86,7 @@ describe('the resume summary line and Cancel apply', () => {
   });
 
   test('Cancel apply names the record', () => {
-    expect(ApplyPendingStateModel.cancelCommandOf('S1')).toEqual({ boardCommandVersion: 2, kind: 'pipeline-apply-cancel', setupId: 'S1' });
+    expect(ApplyPendingStateModel.cancelCommandOf('S1')).toEqual({ boardCommandVersion: 3, kind: 'pipeline-apply-cancel', setupId: 'S1' });
   });
 });
 

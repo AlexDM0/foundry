@@ -133,13 +133,9 @@ describe('contractCommandOf', () => {
     expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('agent-look-again'))).toEqual({ kind: 'agent-look-again' });
   });
 
-  test('sends a setup start\'s agent only when one is chosen', () => {
-    const setupStart = exampleCommandOf('pipeline-setup-start');
-    expect(BoardCommandMapUtil.contractCommandOf(setupStart)).toEqual({ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
-    const agent = { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } } as const;
-    expect(BoardCommandMapUtil.contractCommandOf({ ...setupStart, agent })).toEqual({
-      kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent
-    });
+  test('starts a setup with its agent alone, so the record opens at its billing step', () => {
+    const agent = { vendor: 'example-agent', program: { follows: 'machine' } } as const;
+    expect(BoardCommandMapUtil.contractCommandOf(exampleCommandOf('pipeline-setup-start'))).toEqual({ kind: 'pipeline-setup-start', agent, replacesUnreadablePipeline: false });
   });
 
   test('sends a tool named without a path by its name alone, for the forge to find, and no list as null', () => {

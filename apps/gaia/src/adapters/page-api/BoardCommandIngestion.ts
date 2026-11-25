@@ -115,8 +115,8 @@ const TRACKER_CLEAR_SCOPES = { 'tasks-and-log': true, 'everything': true } as co
 const PROPOSAL_MODES = { 'ask-first': true, 'auto-apply': true } as const satisfies Record<BoardProposalMode, true>;
 const COMMENT_VIEWS = { preview: true, code: true } as const satisfies Record<BoardCommentView, true>;
 const SETUP_STEPS = {
-  billing:      true,
   agent:        true,
+  billing:      true,
   research:     true,
   entities:     true,
   constitution: true,
@@ -374,14 +374,9 @@ const COMMAND_SHAPES = {
     questionId: 'text',
     answer:     ANSWER_RULE,
   },
-  'pipeline-setup-billing': { ...PASSED_OVER_HEAD, setupId: 'text', billing: BILLING_RULE },
-  'pipeline-setup-resume':  { ...PASSED_OVER_HEAD, setupId: 'text' },
-  'pipeline-setup-start':   {
-    ...PASSED_OVER_HEAD,
-    billing:                    BILLING_RULE,
-    replacesUnreadablePipeline: 'boolean',
-    agent:                      { nullable: PIPELINE_AGENT_RULE },
-  },
+  'pipeline-setup-billing':    { ...PASSED_OVER_HEAD, setupId: 'text', billing: BILLING_RULE },
+  'pipeline-setup-resume':     { ...PASSED_OVER_HEAD, setupId: 'text' },
+  'pipeline-setup-start':      { ...PASSED_OVER_HEAD, agent: PIPELINE_AGENT_RULE, replacesUnreadablePipeline: 'boolean' },
   'pipeline-setup-start-over': { ...PASSED_OVER_HEAD, setupId: 'text' },
   'pipeline-setup-step':       {
     ...PASSED_OVER_HEAD,
@@ -707,12 +702,7 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
     case 'pipeline-setup-billing':
       return { kind: document.kind, setupId: document.setupId, billing: billingIn(document.billing) };
     case 'pipeline-setup-start':
-      return {
-        kind:                       document.kind,
-        billing:                    billingIn(document.billing),
-        replacesUnreadablePipeline: document.replacesUnreadablePipeline,
-        agent:                      document.agent === null ? null : pipelineAgentIn(document.agent),
-      };
+      return { kind: document.kind, agent: pipelineAgentIn(document.agent), replacesUnreadablePipeline: document.replacesUnreadablePipeline };
     case 'pipeline-setup-step':
       return {
         kind:    document.kind,

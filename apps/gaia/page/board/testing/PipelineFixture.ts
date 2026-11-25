@@ -11,6 +11,7 @@ import type {
   BoardAgentPairDocument,
   BoardAppliedPipelineDocument,
   BoardApplyStateDocument,
+  BoardBillingDocument,
   BoardConstitutionDraftDocument,
   BoardDraftEntityFactsDocument,
   BoardEntityFlowDocument,
@@ -69,14 +70,15 @@ export type PipelineFixtureName =
   | 'A0-unreadable'
   | 'A0b-running'
   | 'A0b-at-billing'
+  | 'A0b-at-billing-api'
   | 'A0b-stopped'
   | 'A0b-main-moved'
   | 'A0b-recheck'
   | 'A0b-apply-pending'
   | 'A1'
   | 'A1-not-launched'
-  | 'agent-step-found'
-  | 'agent-step-nothing-found'
+  | 'landing-found'
+  | 'landing-nothing-found'
   | 'agent-step-chosen'
   | 'agent-step-refused'
   | 'A5-no-agent'
@@ -651,7 +653,7 @@ function setupRecord(changes: Partial<BoardSetupRecordDocument> = {}): BoardSetu
     setupId:    PIPELINE_FIXTURE_SETUP_ID,
     mode:       'setup',
     stepStates: {
-      billing: 'done', agent: 'done', research: 'done', entities: null, constitution: 'done', design: 'in-progress', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'done', entities: null, constitution: 'done', design: 'in-progress', apply: 'not-started',
     },
     currentStep:     'design',
     billing:         { mode: 'subscription' },
@@ -846,7 +848,7 @@ function updateRecord(changes: Partial<BoardSetupRecordDocument> = {}): BoardSet
     setupId:    'S2',
     mode:       'update',
     stepStates: {
-      billing: 'done', agent: 'done', research: 'done', entities: null, constitution: 'done', design: 'done', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'done', entities: null, constitution: 'done', design: 'done', apply: 'not-started',
     },
     currentStep: 'apply',
     agentJobId:  null,
@@ -1132,7 +1134,7 @@ function monorepoDesignState(): BoardDocument {
   const webQuestion = setupQuestion({ questionId: 'Q4', step: 'design', subject: { kind: 'gate', reference: 'unit-tests' } });
   const record = setupRecord({
     stepStates: {
-      billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started',
     },
     draft:    MONOREPO_PIPELINE,
     edits:    [],
@@ -1355,9 +1357,10 @@ function specThenPlanState(documentReview: 'on' | 'off'): BoardDocument {
   });
 }
 
+/** A record whose agent step was reopened after billing was chosen, so billing waits for a recheck. */
 const AGENT_STEP_RECORD = {
   stepStates: {
-    billing: 'done', agent: 'in-progress', research: 'not-started', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
+    agent: 'in-progress', billing: 'needs-recheck', research: 'not-started', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
   },
   currentStep:     'agent',
   agentJobId:      null,
@@ -1376,6 +1379,26 @@ function agentStepState(recordAgent: BoardPipelineAgentDocument | null, agent: B
   return setupState(setupRecord({ ...AGENT_STEP_RECORD, agent: recordAgent }), { agentJobState: null }, {}, { agent });
 }
 
+/** A record the agent step started, at its billing step with the billing as given and no pipeline agent launched yet. */
+function billingStepState(billing: BoardBillingDocument | null): BoardDocument {
+  return setupState(setupRecord({
+    stepStates: {
+      agent: 'done', billing: 'in-progress', research: 'not-started', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
+    },
+    currentStep:     'billing',
+    billing,
+    agentJobId:      null,
+    findings:        [],
+    constitution:    null,
+    draft:           null,
+    draftRevision:   0,
+    edits:           [],
+    readyToContinue: [],
+    questions:       [],
+    tools:           [],
+  }), { agentJobState: null });
+}
+
 const NOT_RUNNING_CHECK = { verdict: 'does-not-run', cause: EXAMPLE_NOT_LAUNCHED.cause, text: EXAMPLE_NOT_LAUNCHED.text } as const;
 
 const UNCHOSEN_AGENT = exampleBoardAgent({
@@ -1383,13 +1406,13 @@ const UNCHOSEN_AGENT = exampleBoardAgent({
 });
 
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument>> = {
-  'agent-step-found':         () => agentStepState(null, UNCHOSEN_AGENT),
-  'agent-step-nothing-found': () => agentStepState(null, nothingFoundBoardAgent()),
-  'agent-step-chosen':        () => agentStepState(EXAMPLE_PIPELINE_AGENT, exampleBoardAgent()),
-  'agent-step-refused':       () => agentStepState(EXAMPLE_PIPELINE_AGENT, exampleBoardAgent({ check: NOT_RUNNING_CHECK })),
-  'A1-not-launched':          () => setupState(setupRecord({
+  'landing-found':         () => pipelineBoardState({}, { agent: UNCHOSEN_AGENT }),
+  'landing-nothing-found': () => pipelineBoardState({}, { agent: nothingFoundBoardAgent() }),
+  'agent-step-chosen':     () => agentStepState(EXAMPLE_PIPELINE_AGENT, exampleBoardAgent()),
+  'agent-step-refused':    () => agentStepState(EXAMPLE_PIPELINE_AGENT, exampleBoardAgent({ check: NOT_RUNNING_CHECK })),
+  'A1-not-launched':       () => setupState(setupRecord({
     stepStates: {
-      billing: 'done', agent: 'done', research: 'in-progress', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'in-progress', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
     },
     currentStep:     'research',
     findings:        [],
@@ -1407,35 +1430,24 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     applied: { ...APPLIED_PIPELINE, pipeline: examplePipeline({ ...APPLIED_PIPELINE.pipeline, agent: null }) },
     flow:    liveFlow({ occupants: [], ticketIdsInFlight: [] }),
   }, { agent: UNCHOSEN_AGENT }),
-  'forge-settings': () => pipelineBoardState({ applied: APPLIED_PIPELINE, flow: liveFlow({ occupants: [], ticketIdsInFlight: [] }) }),
-  'A0':             () => pipelineBoardState({}),
-  'A0-unreadable':  () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 5 }\n' } }),
-  'A0b-running':    () => setupState(setupRecord()),
-  'A0b-at-billing': () => setupState(setupRecord({
+  'forge-settings':     () => pipelineBoardState({ applied: APPLIED_PIPELINE, flow: liveFlow({ occupants: [], ticketIdsInFlight: [] }) }),
+  'A0':                 () => pipelineBoardState({}),
+  'A0-unreadable':      () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 5 }\n' } }),
+  'A0b-running':        () => setupState(setupRecord()),
+  'A0b-at-billing':     () => billingStepState(null),
+  'A0b-at-billing-api': () => billingStepState({ mode: 'api', maximumBudgetDollars: 20 }),
+  'A0b-stopped':        () => setupState(setupRecord(), { agentJobState: null }),
+  'A0b-main-moved':     () => setupState(setupRecord(), { mainMovedByCommits: 3 }),
+  'A0b-apply-pending':  () => setupState(setupRecord(), { applyState: applyState({ state: 'committing' }) }),
+  'A0b-recheck':        () => setupState(setupRecord({
     stepStates: {
-      billing: 'in-progress', agent: 'not-started', research: 'not-started', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
-    },
-    currentStep:     'billing',
-    findings:        [],
-    constitution:    null,
-    draft:           null,
-    draftRevision:   0,
-    edits:           [],
-    readyToContinue: [],
-    questions:       [],
-  })),
-  'A0b-stopped':       () => setupState(setupRecord(), { agentJobState: null }),
-  'A0b-main-moved':    () => setupState(setupRecord(), { mainMovedByCommits: 3 }),
-  'A0b-apply-pending': () => setupState(setupRecord(), { applyState: applyState({ state: 'committing' }) }),
-  'A0b-recheck':       () => setupState(setupRecord({
-    stepStates: {
-      billing: 'done', agent: 'done', research: 'in-progress', entities: null, constitution: 'needs-recheck', design: 'needs-recheck', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'in-progress', entities: null, constitution: 'needs-recheck', design: 'needs-recheck', apply: 'not-started',
     },
     currentStep: 'research',
   })),
   'A1': () => setupState(setupRecord({
     stepStates: {
-      billing: 'done', agent: 'done', research: 'in-progress', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'in-progress', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
     },
     currentStep:     'research',
     constitution:    null,
@@ -1447,7 +1459,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
   }), {}, {}, { jobs: [...boardStateFixture().jobs, PIPELINE_AGENT_JOB] }),
   'A3b': () => setupState(setupRecord({
     stepStates: {
-      billing: 'done', agent: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
+      agent: 'done', billing: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
     },
     currentStep: 'constitution',
     draft:       null,
@@ -1457,7 +1469,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     const keptAnnotations = constitutionDraft().annotations.filter((annotation) => annotation.lineText !== ANCHORED_LINE);
     return setupState(setupRecord({
       stepStates: {
-        billing: 'done', agent: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
+        agent: 'done', billing: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
       },
       currentStep:  'constitution',
       draft:        null,

@@ -174,7 +174,7 @@ describe('the Assistant view', () => {
     fireEvent.change(textBox, { target: { value: 'Look at 042 first' } });
     fireEvent.keyDown(textBox, { key: 'Enter' });
     await waitFor(() => expect(controls.sent).toEqual([{
-      boardCommandVersion: 2, kind: 'job-message', jobId: 'J9', text: 'Look at 042 first', pictures: [], incidentId: null
+      boardCommandVersion: 3, kind: 'job-message', jobId: 'J9', text: 'Look at 042 first', pictures: [], incidentId: null
     }]));
     await waitFor(() => expect(textBox.value).toBe(''));
   });
@@ -184,7 +184,7 @@ describe('the Assistant view', () => {
     fireEvent.change(screen.getByLabelText('Message Assistant J9'), { target: { value: 'Then 043' } });
     await clickSettled(screen.getByRole('button', { name: 'Send' }));
     expect(controls.sent).toEqual([{
-      boardCommandVersion: 2, kind: 'job-message', jobId: 'J9', text: 'Then 043', pictures: [], incidentId: null
+      boardCommandVersion: 3, kind: 'job-message', jobId: 'J9', text: 'Then 043', pictures: [], incidentId: null
     }]);
   });
 
@@ -280,7 +280,7 @@ describe('the Assistant\'s switch', () => {
     controls.holdCommands();
     fireEvent.click(assistantSwitch('Assistant off'));
     fireEvent.click(assistantSwitch('Assistant off'));
-    expect(controls.sent).toEqual([{ boardCommandVersion: 2, kind: 'pipeline-assistant-set', on: true }]);
+    expect(controls.sent).toEqual([{ boardCommandVersion: 3, kind: 'pipeline-assistant-set', on: true }]);
     expect(assistantSwitch('Assistant off').disabled).toBe(true);
     await controls.releaseCommands();
     expect(assistantSwitch('Assistant off').getAttribute('aria-checked')).toBe('false');
@@ -292,7 +292,7 @@ describe('the Assistant\'s switch', () => {
   test('a press while on sends the switch off', async () => {
     const { controls } = renderedWithBoard(BOARD);
     await clickSettled(assistantSwitch('Assistant on'));
-    expect(controls.sent).toEqual([{ boardCommandVersion: 2, kind: 'pipeline-assistant-set', on: false }]);
+    expect(controls.sent).toEqual([{ boardCommandVersion: 3, kind: 'pipeline-assistant-set', on: false }]);
   });
 
   test('a refusal shows the forge\'s sentence, and the switch stays as served', async () => {

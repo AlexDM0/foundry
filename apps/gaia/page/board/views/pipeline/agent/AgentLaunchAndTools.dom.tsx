@@ -5,7 +5,8 @@
  * step of a pipeline agent forge did not launch says "Not launched" with forge's own reason instead of Researching, and offers choosing the
  * program at the agent step and Look again; no setup step reads Running or the agent's work for such a job; and the board's notice names
  * each job not launched, or a forge with no agent, with where to choose it: the setup landing on a forge with no pipeline and no setup, where
- * forge keeps no agent outside a setup.
+ * forge keeps no agent outside a setup; a job whose billing its vendor does not offer leads to the billing step while a first setup is
+ * open, else to the forge's agent.
  */
 import {
   cleanup,
@@ -114,7 +115,6 @@ const WORKING_WORDS = ['Running', 'Researching', 'Drafting', 'Designing', 'Readi
 
 describe('a pipeline agent forge did not launch, on every setup step', () => {
   const stepsWithTheAgent: readonly (readonly [PipelineFixtureName, string | null])[] = [
-    ['A0b-at-billing', 'setup/billing'],
     ['A1', 'setup/research'],
     ['A3b', 'setup/constitution'],
     ['A2-designing', 'setup/design'],
@@ -159,6 +159,21 @@ describe('the board\'s agent notice', () => {
 
   test('shows nothing while every job launched and the forge has an agent', () => {
     expect(AgentNoticeModel.agentNoticeOf(pipelineBoardStateOf('A5'))).toBeNull();
-    expect(AgentNoticeModel.agentNoticeOf(pipelineBoardStateOf('agent-step-found'))).toBeNull();
+    expect(AgentNoticeModel.agentNoticeOf(pipelineBoardStateOf('landing-found'))).toBeNull();
+  });
+
+  test('leads a job whose billing its vendor does not offer to the billing step while a first setup is open', () => {
+    const facts = pipelineBoardStateOf('A1-not-launched');
+    const jobs = facts.jobs.map((job) => (job.notLaunched === null ? job : { ...job, notLaunched: { ...job.notLaunched, cause: 'billing-not-offered' as const } }));
+    const notice = noticeOf(AgentNoticeModel.agentNoticeOf({ ...facts, jobs }));
+    expect(within(notice).getByRole('link', { name: 'Choose how the agent bills' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/billing');
+  });
+
+  test('leads a job whose billing its vendor does not offer to the forge\'s agent once the pipeline is live', () => {
+    const notLaunchedJobs = pipelineBoardStateOf('A1-not-launched').jobs
+      .filter((job) => job.notLaunched !== null)
+      .map((job) => (job.notLaunched === null ? job : { ...job, notLaunched: { ...job.notLaunched, cause: 'billing-not-offered' as const } }));
+    const notice = noticeOf(AgentNoticeModel.agentNoticeOf({ ...pipelineBoardStateOf('A5'), jobs: notLaunchedJobs }));
+    expect(within(notice).getByRole('link', { name: 'Choose this forge\'s agent' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/settings');
   });
 });

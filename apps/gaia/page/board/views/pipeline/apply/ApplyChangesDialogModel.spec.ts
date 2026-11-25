@@ -71,7 +71,7 @@ describe('the in-flight words and the command', () => {
 
   test('the command never resumes the board', () => {
     expect(ApplyChangesDialogModel.applyCommandOf(editing().setup.record)).toEqual({
-      boardCommandVersion: 2, kind: 'pipeline-apply', setupId: 'S2', draftRevision: 7, resumesBoard: false,
+      boardCommandVersion: 3, kind: 'pipeline-apply', setupId: 'S2', draftRevision: 7, resumesBoard: false,
     });
   });
 });

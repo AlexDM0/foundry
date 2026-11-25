@@ -4,8 +4,9 @@
  * repository with two apps, its fake agent playing every session, and brings the board to tickets in several statuses, an agent's question
  * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps with the
  * Assistant switched on (a board whose Assistant is off defaults every incident at once), and an update
- * of it whose entities draft holds a standing refusal with its fix, which Apply refuses, keeping the first setup record at its agent step
- * before the agent is chosen; then it records each situation of `BOARD_SITUATIONS` at the versioned path Gaia calls, the Assistant switched
+ * of it whose entities draft holds a standing refusal with its fix, which Apply refuses, keeping the first setup record at its billing step,
+ * started with the agent the board offers, before a billing is chosen; then it records each situation of `BOARD_SITUATIONS` at the
+ * versioned path Gaia calls, the Assistant switched
  * off and on again among them, and last a job not launched once the program its agent is pinned to is gone. The values the run
  * draws are recorded as example values; the forge's install and code versions stamp it.
  */
@@ -381,20 +382,22 @@ function agentOf(board: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Opens pipeline setup at its agent step with no agent chosen, which the recording keeps, chooses the agent the board offers, has the
- * layout of both apps found as the pipeline agent reports it, drafts an entity of each app with one gate and applies it.
+ * Starts pipeline setup with the agent the board offers, which leaves the record at its billing step with no billing chosen, which the
+ * recording keeps; chooses the subscription and continues, which launches the pipeline agent; has the layout of both apps found as the
+ * pipeline agent reports it, drafts an entity of each app with one gate and applies it.
  */
 async function applyAPipelineOverTheApps(): Promise<void> {
-  const opened = await sendCommand({ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+  const boardBeforeTheSetup = await boardOnceItShows('a board with no setup record', (board) => board['pipelineSetup'] === null);
+  const opened = await sendCommand({ kind: 'pipeline-setup-start', agent: agentAtTheFoundPlaceOf(boardBeforeTheSetup), replacesUnreadablePipeline: false });
   const firstSetupId = String(setupOfAnswer(opened)['setupId']);
   setupId = firstSetupId;
-  const choosingBoard = await keepTheBoardOnceItShows('setup-choosing-agent', 'a setup record at its agent step with no agent chosen', (board) => {
+  await keepTheBoardOnceItShows('setup-choosing-billing', 'a setup record at its billing step with no billing chosen', (board) => {
     const record = recordOf(recordOf(board['pipelineSetup'])['record']);
-    return record['currentStep'] === 'agent' && record['agent'] === null && agentOf(board)['choice'] === null;
+    return record['currentStep'] === 'billing' && record['billing'] === null && record['agent'] !== null;
   });
-  expect(await sendCommand({ kind: 'pipeline-setup-agent', setupId: firstSetupId, agent: agentAtTheFoundPlaceOf(choosingBoard) })).toMatchObject({ status: SUCCESS_STATUS });
+  expect(await sendCommand({ kind: 'pipeline-setup-billing', setupId: firstSetupId, billing: { mode: 'subscription' } })).toMatchObject({ status: SUCCESS_STATUS });
   expect(await sendCommand({
-    kind: 'pipeline-setup-step', setupId: firstSetupId, step: 'agent', move: 'continue'
+    kind: 'pipeline-setup-step', setupId: firstSetupId, step: 'billing', move: 'continue'
   })).toMatchObject({ status: SUCCESS_STATUS });
   for (const appFolder of APP_FOLDERS) {
     const finding = {

@@ -1,17 +1,16 @@
 /**
- * A0Setup, the billing step, as FlowSetup draws it: the page's title row with the pipeline's state and the waiting tickets, the Billing
- * step card with who pays for the agents (two cards, and the cap per launch under the API key), and what the pipeline decides in its four
- * phases; beside it the pipeline agent's panel, which introduces Flint and what it does once started; the footer words the chosen billing.
- * On the landing the one start sends the chosen billing and opens the research. Reopened from the step bar while a record is open, a
- * billing change is saved to the record, and the start is replaced by the way back to the current step, or by Continue while the record
- * is still at billing. The start and Continue open the agent step.
+ * A0Setup, the billing step, the setup's second, as FlowSetup draws it: the page's title row with the pipeline's state and the waiting
+ * tickets, the Billing step card with the ways the record's agent bills, as its vendor serves them (its default preselected while the
+ * record has no billing, and the cap per launch on a way whose launch takes one); beside it the pipeline agent's panel, which introduces
+ * Flint and what it does once started; the footer words the chosen billing. While the record stands at billing, Continue saves a changed
+ * choice and continues, which launches the pipeline agent and opens the research. Reopened while the record stands past it, a billing
+ * change is saved to the record, and the way out is back to the current step. Back to agent leads to the step before.
  */
-import { useId, useState, type ReactNode } from 'react';
-import type { BoardSetupRecordDocument }   from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useId, useState }                                           from 'react';
+import type { BoardPipelineSetupDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   ActionBar,
   Button,
-  Card,
   ChoiceInput,
   ChoiceOption,
   Row,
@@ -19,38 +18,38 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { FlintSlotHabitat }                          from '../../../flint/FlintSlotHabitat.tsx';
-import { FLINT_SLOT_HABITATS }                       from '../../../flint/FlintSlotHabitats.ts';
-import { useBoardHrefOf, useBoardNavigation }        from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }                             from '../../../shell/CommandButton.tsx';
-import { useCoveringPanelHoldsTheFlintSlot }         from '../../../shell/CoveringPanel.ts';
-import { ViewTitle }                                 from '../../ViewTitle.tsx';
-import { PipelinePage }                              from '../PipelinePage.tsx';
-import { PipelinePanel, PipelinePanelBody }          from '../PipelinePanel.tsx';
-import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
-import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
-import { AgentSessionModel }                         from '../agent-panel/AgentSessionModel.ts';
-import { PIPELINE_AGENT_FLINT_LABEL }                from '../agent-panel/AgentStrip.tsx';
+import { FlintSlotHabitat }                                             from '../../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                                          from '../../../flint/FlintSlotHabitats.ts';
+import { useBoardHrefOf, useBoardNavigation }                           from '../../../shell/BoardRouteLinks.ts';
+import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
+import { useCoveringPanelHoldsTheFlintSlot }                            from '../../../shell/CoveringPanel.ts';
+import { PipelinePage }                                                 from '../PipelinePage.tsx';
+import { PipelinePanel, PipelinePanelBody }                             from '../PipelinePanel.tsx';
+import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
+import { AgentChoiceModel }                                             from '../agent/AgentChoiceModel.ts';
+import { AgentMeter }                                                   from '../agent-panel/AgentMeter.tsx';
+import { AgentSessionModel }                                            from '../agent-panel/AgentSessionModel.ts';
+import { PIPELINE_AGENT_FLINT_LABEL }                                   from '../agent-panel/AgentStrip.tsx';
 import {
-  BILLING_CARDS,
   BillingStepModel,
   HOW_IT_WORKS_LINES,
-  PIPELINE_PHASE_SUMMARIES,
+  type BillingCard,
   type BillingChoice
 } from './BillingStepModel.ts';
+import { SetupStepHead, SetupTitleRow } from './SetupIntro.tsx';
 
 export interface BillingStepProps {
-  readonly facts:                      PipelineViewFacts;
-  /** The landing of an unreadable `pipeline.json`: the start says that Apply replaces the file. */
-  readonly replacesUnreadablePipeline: boolean;
+  readonly facts: PipelineViewFacts;
+  readonly setup: BoardPipelineSetupDocument;
 }
 
 interface BillingCardsProps {
+  readonly cards:    readonly BillingCard[];
   readonly choice:   BillingChoice;
   readonly onChoose: (choice: BillingChoice) => void;
 }
 
-function CapPerLaunch({ choice, onChoose }: BillingCardsProps) {
+function CapPerLaunch({ choice, onChoose }: Omit<BillingCardsProps, 'cards'>) {
   return (
     <span className="board-pipeline-billing-cap">
       Cap per launch
@@ -72,11 +71,28 @@ function CapPerLaunch({ choice, onChoose }: BillingCardsProps) {
   );
 }
 
-function BillingCards({ choice, onChoose }: BillingCardsProps) {
+/** The variable the key must be in, as forge serves it, and the cap per launch where a launch takes one. */
+function KeyFacts({ card, choice, onChoose }: Omit<BillingCardsProps, 'cards'> & { readonly card: BillingCard }) {
+  return (
+    <View gap="six">
+      {card.keyVariableName === null
+        ? null
+        : (
+          <Row centerY gap="six" wrap>
+            <Text muted>Read from</Text>
+            <Text mono>{card.keyVariableName}</Text>
+          </Row>
+        )}
+      {card.capsEachLaunch ? <CapPerLaunch choice={choice} onChoose={onChoose} /> : null}
+    </View>
+  );
+}
+
+function BillingCards({ cards, choice, onChoose }: BillingCardsProps) {
   const groupName = useId();
   return (
     <div className="board-pipeline-billing-cards">
-      {BILLING_CARDS.map((card) => (
+      {cards.map((card) => (
         <ChoiceOption
           key={card.mode}
           label={card.label}
@@ -94,50 +110,11 @@ function BillingCards({ choice, onChoose }: BillingCardsProps) {
               onChange={() => onChoose({ ...choice, mode: card.mode })}
             />
           )}
-          {...(card.mode === 'subscription' ? { marks: <Tag text="Default" tone="neutral" /> } : { facts: <CapPerLaunch choice={choice} onChoose={onChoose} /> })}
+          {...(card.isDefault ? { marks: <Tag text="Default" tone="neutral" /> } : {})}
+          {...(card.mode === 'api' ? { facts: <KeyFacts card={card} choice={choice} onChoose={onChoose} /> } : {})}
         />
       ))}
     </div>
-  );
-}
-
-/** The step card's head: "Step 1 of 6" after the signal dot, the step's name and what it decides, and the head's end. */
-function BillingStepHead({ end, stepCount }: { readonly end: ReactNode; readonly stepCount: number }) {
-  return (
-    <header className="board-pipeline-setup-card-head">
-      <View gap="two">
-        <Row centerY gap="seven">
-          <span className="board-pipeline-setup-step-dot" aria-hidden="true" />
-          <Text typeRole="small" muted>{`Step 1 of ${stepCount}`}</Text>
-        </Row>
-        <Text typeRole="phase" element="h3">Billing</Text>
-        <Text typeRole="lead" muted>Who pays for the agents. The pipeline agent is billed this way too.</Text>
-      </View>
-      {end}
-    </header>
-  );
-}
-
-/** The four phases every ticket goes through, each with its phase dot. */
-function PhaseOverview() {
-  return (
-    <section className="board-pipeline-setup-card" aria-label="What the pipeline decides">
-      <Row centerY gap="ten" paddingTop="fourteen" paddingHorizontal="twentyTwo" wrap>
-        <Text typeRole="title" element="h3">What the pipeline decides</Text>
-        <Text muted>Every ticket goes through four phases. You design each one in the pipeline design step.</Text>
-      </Row>
-      <div className="board-pipeline-setup-phases">
-        {PIPELINE_PHASE_SUMMARIES.map((summary) => (
-          <Card key={summary.phase} step gap="four">
-            <Row centerY gap="eight">
-              <span className="board-pipeline-phase-dot" data-phase={summary.phase} aria-hidden="true" />
-              <Text bold>{summary.name}</Text>
-            </Row>
-            <Text muted>{summary.line}</Text>
-          </Card>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -179,77 +156,60 @@ function MeetFlint() {
   );
 }
 
-interface StartOrBackProps {
-  readonly record:                     BoardSetupRecordDocument | null;
-  readonly choice:                     BillingChoice;
-  readonly replacesUnreadablePipeline: boolean;
+interface ContinueOrBackProps {
+  readonly record: BoardSetupRecordDocument;
+  readonly cards:  readonly BillingCard[];
+  readonly choice: BillingChoice;
 }
 
-function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBackProps) {
+/** Continue while the record stands at billing, saving a changed choice first; else the way back to where the setup stands. */
+function ContinueOrBack({ record, cards, choice }: ContinueOrBackProps) {
   const hrefOf = useBoardHrefOf();
   const navigateTo = useBoardNavigation();
-  const continueCommand = record === null ? null : BillingStepModel.continueCommandOf(record);
-  if (continueCommand !== null) {
-    return (
-      <CommandButton
-        label="Continue to the agent"
-        command={continueCommand}
-        primary
-        attention
-        onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('agent'))}
-      />
-    );
+  if (record.currentStep !== 'billing') {
+    return <Button label={PipelineViewModel.backToCurrentStepLabelOf(record)} emphasis="primary" href={hrefOf(PipelineViewModel.setupStepRouteOf(record.currentStep))} />;
   }
-  if (record !== null) {
-    return <Button label={BillingStepModel.backLabelOf(record)} emphasis="primary" href={hrefOf(PipelineViewModel.setupStepRouteOf(record.currentStep))} />;
-  }
+  const continueCommands = BillingStepModel.continueCommandsOf(record, choice, cards);
   return (
     <CommandButton
-      label="Set up the pipeline"
-      command={BillingStepModel.startCommandOf(choice, replacesUnreadablePipeline)}
+      label={`Continue to ${SETUP_STEP_LABELS.research.toLowerCase()}`}
+      command={continueCommands}
       primary
-      attention
-      onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('agent'))}
+      attention={continueCommands !== null}
+      onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('research'))}
     />
   );
 }
 
-export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepProps) {
-  const setup = facts.pipeline.setup ?? null;
-  const record = setup?.record ?? null;
-  const [choice, setChoice] = useState<BillingChoice>(() => BillingStepModel.billingChoiceOf(record?.billing ?? null));
-  const pendingTicketCount = BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? []);
-  const footerLines = BillingStepModel.footerLinesOf(choice);
+export function BillingStep({ facts, setup }: BillingStepProps) {
+  const { record } = setup;
+  const hrefOf = useBoardHrefOf();
+  const cards = BillingStepModel.billingCardsOf(facts, record);
+  const [choice, setChoice] = useState<BillingChoice>(() => BillingStepModel.billingChoiceOf(record.billing, cards));
+  const displayName = AgentChoiceModel.displayNameOf(facts.agent, AgentChoiceModel.chosenVendorOf(facts.agent, record.agent));
+  const footerLines = BillingStepModel.footerLinesOf(choice, cards, displayName);
+  const recordIsAtBilling = record.currentStep === 'billing';
   const main = (
     <>
-      <View gap="two">
-        <ViewTitle
-          title="Set up the pipeline"
-          lead={'The pipeline is the path every ticket takes: who files it, who builds and reviews it, which commands check it, and where you '
-            + 'approve. No ticket builds until you apply one.'}
-        />
-        <Row gap="six" paddingTop="eight">
-          <Tag text={record === null ? 'Pipeline not set' : 'Setup in progress'} tone="warn" />
-          <Tag text={BillingStepModel.waitingTicketsTextOf(pendingTicketCount)} tone="neutral" />
-        </Row>
-      </View>
-      <section className="board-pipeline-setup-card" aria-label="Step 1: Billing">
-        <BillingStepHead
-          stepCount={PipelineViewModel.setupStepsOf(record).length}
-          end={record === null
+      <SetupTitleRow facts={facts} />
+      <section className="board-pipeline-setup-card" aria-label={`${PipelineViewModel.stepPositionTextOf(record, 'billing')}: Billing`}>
+        <SetupStepHead
+          step="billing"
+          record={record}
+          lead="Who pays for the agents. The pipeline agent is billed this way too."
+          end={recordIsAtBilling
             ? <Text typeRole="tab" muted>You can change it later</Text>
-            : <CommandButton label="Save billing" command={BillingStepModel.billingChangeCommandOf(record, choice)} />}
+            : <CommandButton label="Save billing" command={BillingStepModel.billingChangeCommandOf(record, choice, cards)} />}
         />
-        <BillingCards choice={choice} onChoose={setChoice} />
+        <BillingCards cards={cards} choice={choice} onChoose={setChoice} />
       </section>
-      <PhaseOverview />
     </>
   );
   const panel = (
     <PipelinePanel
       label="Pipeline agent"
       title="Pipeline agent"
-      status={BillingStepModel.panelStatusOf(record, setup === null ? 'stopped' : AgentSessionModel.setupSessionStateOf(setup, facts.jobs))}
+      status={BillingStepModel.panelStatusOf(record, AgentSessionModel.setupSessionStateOf(setup, facts.jobs))}
       headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
     >
       <PipelinePanelBody>
@@ -269,8 +229,9 @@ export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepPr
       )}
       end={(
         <>
-          {record === null ? <Text muted>Starts the pipeline agent on a snapshot of main</Text> : null}
-          <StartOrBack record={record} choice={choice} replacesUnreadablePipeline={replacesUnreadablePipeline} />
+          {recordIsAtBilling ? <Text muted>Starts the pipeline agent on a snapshot of main</Text> : null}
+          <Button label={`Back to ${SETUP_STEP_LABELS.agent.toLowerCase()}`} href={hrefOf(PipelineViewModel.setupStepRouteOf('agent'))} />
+          <ContinueOrBack record={record} cards={cards} choice={choice} />
         </>
       )}
     />

@@ -274,8 +274,8 @@ function setupRecordOf(record: PipelineSetupRecordDocument): BoardSetupRecord {
     setupId:    record.setupId,
     mode:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupMode, record.mode),
     stepStates: {
-      billing:      VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.billing),
       agent:        VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.agent),
+      billing:      VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.billing),
       research:     VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.research),
       constitution: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.constitution),
       design:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, stepStates.design),
@@ -283,7 +283,7 @@ function setupRecordOf(record: PipelineSetupRecordDocument): BoardSetupRecord {
       entities:     entitiesStepState === undefined ? null : VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStepState, entitiesStepState),
     },
     currentStep:     VocabularyMapUtil.gaiaValueOf(VOCABULARIES.setupStep, record.currentStep),
-    billing:         billingOf(record.billing),
+    billing:         record.billing === null ? null : billingOf(record.billing),
     agent:           record.agent === null ? null : BoardAgentMapUtil.pipelineAgentOf(record.agent),
     tools:           record.tools.map(BoardAgentMapUtil.toolOf),
     agentJobId:      record.agentJobId,

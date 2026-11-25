@@ -4,6 +4,7 @@
  * view reads: Gaia passes it over, and a change of it shows here first.
  */
 import type {
+  AgentBillingOptionDocument,
   AgentProgramCheckDocument,
   AgentProgramChoiceDocument,
   AgentProgramPlaceDocument,
@@ -230,8 +231,21 @@ const AGENT_TOOL_SHAPE = {
   usedBy:   { eachOf: TOOL_USE_RULE },
 } as const satisfies ShapeOf<AgentToolDocument>;
 
+const AGENT_BILLING_OPTION_SHAPE = {
+  mode:            vocabularyRule('billingMode'),
+  keyVariableName: TEXT_OR_NULL,
+  capsEachLaunch:  'boolean',
+} as const satisfies ShapeOf<AgentBillingOptionDocument>;
+
+const AGENT_VENDOR_SHAPE = {
+  vendor:         'text',
+  displayName:    'text',
+  supported:      'boolean',
+  billingOptions: { listOf: AGENT_BILLING_OPTION_SHAPE },
+} as const satisfies ShapeOf<AgentVendorDocument>;
+
 const AGENT_SHAPE = {
-  vendors:            { listOf: { vendor: 'text', displayName: 'text', supported: 'boolean' } as const satisfies ShapeOf<AgentVendorDocument> },
+  vendors:            { listOf: AGENT_VENDOR_SHAPE },
   choice:             { nullable: { object: PIPELINE_AGENT_SHAPE } },
   machineProgramPath: TEXT_OR_NULL,
   programPath:        TEXT_OR_NULL,
@@ -911,7 +925,7 @@ const SETUP_RECORD_SHAPE = {
   baseContentHash:            'passed-over',
   stepStates:                 { object: SETUP_STEP_STATES_SHAPE },
   currentStep:                vocabularyRule('setupStep'),
-  billing:                    BILLING_RULE,
+  billing:                    { nullable: BILLING_RULE },
   agent:                      { nullable: { object: PIPELINE_AGENT_SHAPE } },
   tools:                      { listOf: AGENT_TOOL_SHAPE },
   agentJobId:                 TEXT_OR_NULL,

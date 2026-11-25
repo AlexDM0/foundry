@@ -174,13 +174,14 @@ export type BoardPipelineApproval = 'tickets' | 'merge' | 'spec' | 'plan';
 
 export type BoardBillingMode = 'subscription' | 'api';
 
-export type BoardSetupStep = 'billing' | 'agent' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
+export type BoardSetupStep = 'agent' | 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** Why an agent's program does not run: what the choice names, where the program lies, or how its run with its version arguments ended. */
 export type BoardAgentProgramRefusalCause =
   | 'no-agent-chosen'
   | 'other-vendor'
   | 'no-machine-program'
+  | 'billing-not-offered'
   | 'relative-path'
   | 'inside-forbidden-root'
   | 'batch-target'

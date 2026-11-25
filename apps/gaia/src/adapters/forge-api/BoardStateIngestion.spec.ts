@@ -5,8 +5,8 @@
  * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
  * draft with its refusals and their typed fix, the Apply refusal and the step run times; the Assistant's switch is the stored pipeline's
  * `assistant` key, read from the boards recorded after it was switched off and on, off while no readable pipeline is stored; the forge's agent
- * as the forge serves it, from the first setup record at its agent step with no agent chosen, through the agent chosen and its program
- * running, to a job standing not launched once that program is gone, with the forge's sentence; a missing
+ * as the forge serves it, with each vendor's ways to bill, from the first setup record at its billing step with no billing chosen, through
+ * the agent chosen and its program running, to a job standing not launched once that program is gone, with the forge's sentence; a missing
  * key, or a value outside a value list, makes the document malformed and is named; a key Gaia does not read is passed over, and so is a
  * key Gaia names as passed over.
  */
@@ -198,7 +198,7 @@ describe('boardOf, on the board of a forge at work', () => {
       sentence: expect.stringMatching(/^Pipeline setup S2's draft still holds 1 entity refusal \(equal-homes\)/),
     });
     expect(setup?.record.stepStates).toEqual({
-      billing: 'done', agent: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started', entities: 'done'
+      agent: 'done', billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started', entities: 'done'
     });
   });
 
@@ -222,15 +222,14 @@ describe('boardOf, on the board of a forge at work', () => {
 });
 
 describe('boardOf, on a forge\'s agent', () => {
-  test('reads a first setup record at its agent step with no agent chosen, and the places the installers put the vendor\'s program', async () => {
-    const document = await recordedBoardDocumentOf('setup-choosing-agent') as MutableDocument;
+  test('reads a first setup record at its billing step, started with its agent and no billing chosen, and each vendor\'s ways to bill', async () => {
+    const document = await recordedBoardDocumentOf('setup-choosing-billing') as MutableDocument;
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, document));
-    expect(board.agent).toEqual({
-      vendors:            recordAt(document, ['agent'])['vendors'] as BoardAgent['vendors'],
-      choice:             null,
+    const vendors = recordAt(document, ['agent'])['vendors'] as BoardAgent['vendors'];
+    expect(vendors.some((vendor) => vendor.supported && vendor.billingOptions.length > 0)).toBe(true);
+    expect(board.agent).toMatchObject({
+      vendors,
       machineProgramPath: null,
-      programPath:        null,
-      check:              null,
       places:             [
         { path: '/Users/example/.bun/bin/bun', found: true },
         { path: '/opt/homebrew/bin/bun', found: false },
@@ -243,10 +242,12 @@ describe('boardOf, on a forge\'s agent', () => {
       }],
     });
     const record = board.pipeline.setup?.record;
-    expect(record?.currentStep).toBe('agent');
-    expect(record?.agent).toBeNull();
-    expect(record?.stepStates).toMatchObject({ billing: 'done', agent: 'in-progress', research: 'not-started' });
+    expect(record?.currentStep).toBe('billing');
+    expect(record?.billing).toBeNull();
+    expect(record?.agent).toEqual({ vendor: vendors[0]?.vendor ?? '', program: { pinned: '/Users/example/.bun/bin/bun' } });
+    expect(record?.stepStates).toMatchObject({ agent: 'done', billing: 'in-progress', research: 'not-started' });
     expect(record?.tools).toEqual(board.agent.tools);
+    expect(record?.agentJobId).toBeNull();
     expect(board.jobs).toEqual([]);
   });
 

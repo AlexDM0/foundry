@@ -47,7 +47,8 @@ describe('the resume summary', () => {
     renderResume('A0b-running');
     const rows = stepRows();
     expect(rows.map((row) => row.getAttribute('data-status'))).toEqual(['done', 'done', 'done', 'done', 'current', 'upcoming']);
-    expect(rows[1]?.textContent).toContain('This machine\'s program');
+    expect(rows[0]?.textContent).toContain('This machine\'s program');
+    expect(rows[1]?.textContent).toContain('Subscription');
     expect(rows[2]?.textContent).toContain('1 stack item, 2 scripts, 1 question answered');
     expect(rows[4]?.textContent).toContain('Pipeline agent J4 running');
     expect(rows[5]?.textContent).toContain('not yet');

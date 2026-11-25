@@ -116,10 +116,10 @@ describe('the words of a change inside an entity', () => {
       return [group.name, item.batch.undoLabel, item.batch.undoEditIds, ChangeGroupModel.batchUndoCommandOf('S1', item.batch)];
     })).toEqual([
       ['api', 'Undo all 2', ['E1', 'E2'], {
-        boardCommandVersion: 2, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1', wholeBatch: true
+        boardCommandVersion: 3, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1', wholeBatch: true
       }],
       ['docs', 'Undo all 2', ['E3', 'E4'], {
-        boardCommandVersion: 2, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+        boardCommandVersion: 3, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
       }],
     ]);
   });
@@ -129,7 +129,7 @@ describe('the words of a change inside an entity', () => {
       batchId: 'E3', title: 'Copied gates from web', editCountText: '2 edits', undoLabel: 'Undo all 2', rows: [], undoEditIds: ['E3', 'E4'],
     };
     expect(ChangeGroupModel.batchUndoCommandOf('S1', batch)).toEqual({
-      boardCommandVersion: 2, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+      boardCommandVersion: 3, kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
     });
   });
 });

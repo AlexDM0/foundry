@@ -98,13 +98,8 @@ export type BoardCommandDocument = BoardTicketDocumentCommandDocument | { readon
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: BoardAnswerFormDocument }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: BoardBillingDocument }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  | {
-    readonly kind:                       'pipeline-setup-start';
-    readonly billing:                    BoardBillingDocument;
-    readonly replacesUnreadablePipeline: boolean;
-    /** `null`: the record opens at the agent step. */
-    readonly agent:                      BoardPipelineAgentDocument | null;
-  }
+  /** The chosen agent starts the setup: the record opens at its billing step. */
+  | { readonly kind: 'pipeline-setup-start'; readonly agent: BoardPipelineAgentDocument; readonly replacesUnreadablePipeline: boolean }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: BoardSetupStep; readonly move: 'continue' }
   | { readonly kind: 'pipeline-update-start'; readonly entity: string | null }

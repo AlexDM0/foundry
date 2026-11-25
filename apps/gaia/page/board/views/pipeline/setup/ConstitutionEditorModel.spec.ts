@@ -52,14 +52,14 @@ describe('the save', () => {
   test('sends the whole markdown with the revision User saw', () => {
     const typed = MarkdownEditorModel.editorTextOf({ markdown: MARKDOWN, revision: 3 });
     expect(ConstitutionEditorModel.saveCommandOf('S1', { ...typed, text: `${MARKDOWN}\n- More.` })).toEqual({
-      boardCommandVersion: 2, kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown: `${MARKDOWN}\n- More.`, draftedFrom: null, entity: null,
+      boardCommandVersion: 3, kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown: `${MARKDOWN}\n- More.`, draftedFrom: null, entity: null,
     });
   });
 
   test('names the entity whose document it saves, and only then', () => {
     const typed = { ...MarkdownEditorModel.editorTextOf({ markdown: MARKDOWN, revision: 0 }), text: `${MARKDOWN}\n- More.` };
     expect(ConstitutionEditorModel.saveCommandOf('S1', typed, 'web')).toEqual({
-      boardCommandVersion: 2, kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown: `${MARKDOWN}\n- More.`, draftedFrom: null, entity: 'web',
+      boardCommandVersion: 3, kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown: `${MARKDOWN}\n- More.`, draftedFrom: null, entity: 'web',
     });
   });
 

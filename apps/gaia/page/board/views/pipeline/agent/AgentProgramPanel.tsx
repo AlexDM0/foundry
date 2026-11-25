@@ -2,7 +2,8 @@
  * Which program of the chosen agent this forge starts: this machine's, which every forge that follows it keeps up with, or a program for
  * this forge only, chosen in the system's file chooser. A chosen program is kept for every forge on this machine while the box is ticked,
  * and changing a program other forges follow asks first, naming how many do. The program's run shows as forge reports it, and a program
- * forge refuses shows forge's sentence and is not kept. Nothing found shows where to choose it instead.
+ * forge refuses shows forge's sentence and is not kept. Nothing found shows where to choose it instead. On the setup's landing no record
+ * holds the choice yet: the page holds it, and the landing's start sends it.
  */
 import { useContext, useId, useState }                         from 'react';
 import type { BoardAgentDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -19,7 +20,12 @@ import {
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shell/ControlCommandSender.ts';
 import { ProgramFileChooserContext }                                    from '../../../shell/ProgramFileChooser.ts';
-import { AgentChoiceModel, type AgentChoiceTarget, type ProgramStatus } from './AgentChoiceModel.ts';
+import {
+  AgentChoiceModel,
+  type AgentChoiceTarget,
+  type MachineProgram,
+  type ProgramStatus
+} from './AgentChoiceModel.ts';
 
 export interface AgentProgramPanelProps {
   readonly agent:         BoardAgentDocument;
@@ -106,6 +112,22 @@ interface ChosenProgramProps {
   readonly commands:      readonly BoardCommandDocument[];
 }
 
+/** The program chosen in the dialog and whether it is for every forge, before the landing's start sends it. */
+function HeldProgram({ displayName, project, programChoice }: Pick<ChosenProgramProps, 'displayName' | 'project' | 'programChoice'>) {
+  return (
+    <div className="board-agent-chosen-program" aria-label="The chosen program">
+      <Text mono>{programChoice.chosenPath}</Text>
+      <Checkbox
+        label="Use it for every forge on this machine"
+        checked={programChoice.forEveryForge}
+        onChange={programChoice.setForEveryForge}
+        explanation={`Kept as this machine's ${displayName}. Untick to pin it to ${project === '' ? 'this forge' : project} only.`}
+      />
+      <Text muted>Forge runs it once and asks for its version when the setup starts.</Text>
+    </div>
+  );
+}
+
 /** The program chosen in the dialog, before it is kept: whether it is for every forge, and the press that has forge run and keep it. */
 function ChosenProgram({
   agent, displayName, project, programChoice, commands
@@ -153,6 +175,12 @@ function ChosenProgram({
   );
 }
 
+/** The landing's radio: the program chosen in the dialog while one is, pinned unless it is for every forge, else this machine's. */
+function heldChoiceKindOf(machineProgram: MachineProgram | null, programChoice: ProgramChoiceState): 'machine' | 'pinned' | null {
+  if (programChoice.chosenPath !== null) return programChoice.forEveryForge ? null : 'pinned';
+  return machineProgram === null ? null : 'machine';
+}
+
 export function AgentProgramPanel({
   agent, choice, target, project, programChoice
 }: AgentProgramPanelProps) {
@@ -161,13 +189,18 @@ export function AgentProgramPanel({
   const vendor = AgentChoiceModel.chosenVendorOf(agent, choice);
   const displayName = AgentChoiceModel.displayNameOf(agent, vendor);
   const machineProgram = AgentChoiceModel.machineProgramOf(agent);
-  const choiceKind = AgentChoiceModel.programChoiceKindOf(choice);
+  const choiceIsHeld = target.kind === 'start';
+  const choiceKind = choiceIsHeld ? heldChoiceKindOf(machineProgram, programChoice) : AgentChoiceModel.programChoiceKindOf(choice);
   const pinnedPath = AgentChoiceModel.pinnedPathOf(choice);
   const status = AgentChoiceModel.programStatusOf(agent, choice);
   const nothingFound = machineProgram === null && pinnedPath === null;
   const chosenCommands = vendor === null || programChoice.chosenPath === null
     ? []
     : AgentChoiceModel.chosenProgramCommandsOf(target, vendor, programChoice.chosenPath, programChoice.forEveryForge);
+  const chooseMachineProgram = (chosenMachineProgram: MachineProgram, chosenVendor: string): void => {
+    if (choiceIsHeld) programChoice.clear();
+    else void sender.sendCommands(AgentChoiceModel.machineChoiceCommandsOf(target, chosenVendor, chosenMachineProgram));
+  };
   const chooseButton = (
     <Button label="Choose program…" compact disabled={!programChoice.chooserIsOffered} onPress={() => void programChoice.choose()} />
   );
@@ -198,8 +231,8 @@ export function AgentProgramPanel({
                       name={groupName}
                       checked={choiceKind === 'machine'}
                       accessibleName={`This machine's ${displayName}`}
-                      disabled={!sender.canSend}
-                      onChange={() => void sender.sendCommands(AgentChoiceModel.machineChoiceCommandsOf(target, vendor, machineProgram))}
+                      disabled={!choiceIsHeld && !sender.canSend}
+                      onChange={() => chooseMachineProgram(machineProgram, vendor)}
                     />
                   )}
                 />
@@ -225,9 +258,10 @@ export function AgentProgramPanel({
           </div>
         )}
       <SequenceRefusal sender={sender} displayName={displayName} />
-      {programChoice.chosenPath === null
-        ? null
-        : <ChosenProgram agent={agent} displayName={displayName} project={project} programChoice={programChoice} commands={chosenCommands} />}
+      {programChoice.chosenPath !== null && choiceIsHeld ? <HeldProgram displayName={displayName} project={project} programChoice={programChoice} /> : null}
+      {programChoice.chosenPath !== null && !choiceIsHeld
+        ? <ChosenProgram agent={agent} displayName={displayName} project={project} programChoice={programChoice} commands={chosenCommands} />
+        : null}
     </section>
   );
 }

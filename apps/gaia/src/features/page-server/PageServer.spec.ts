@@ -435,7 +435,7 @@ describe('the relay of a forge\'s board', () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
     const body = JSON.stringify({
-      boardCommandVersion: 2, kind: 'ticket-hold', ticketId: '001', reason: 'Waits for the example provider.'
+      boardCommandVersion: 3, kind: 'ticket-hold', ticketId: '001', reason: 'Waits for the example provider.'
     });
     for (const { method, endpoint } of RELAY_PATHS) {
       const bodyOfMethod = method === 'POST' ? { body } : {};
@@ -531,7 +531,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 4, minor: 2 }, { major: 4, minor: 0 }]);
+    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 4, minor: 3 }, { major: 4, minor: 0 }]);
   });
 
   test('serve /api/versions at no versioned path', async () => {

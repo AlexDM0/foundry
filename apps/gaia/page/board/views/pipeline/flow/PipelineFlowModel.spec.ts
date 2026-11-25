@@ -257,7 +257,7 @@ describe('add cards', () => {
 
   test('a draft edit command names the record and the revision', () => {
     expect(PipelineFlowModel.draftEditCommandOf({ setupId: 'S2', draftRevision: 7 }, [{ target: 'approval', approval: 'tickets', value: false }])).toEqual({
-      boardCommandVersion: 2,
+      boardCommandVersion: 3,
       kind:                'pipeline-draft-edit',
       setupId:             'S2',
       draftRevision:       7,

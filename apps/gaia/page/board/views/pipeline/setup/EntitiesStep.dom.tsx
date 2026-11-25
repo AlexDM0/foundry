@@ -148,7 +148,7 @@ describe('single mode', () => {
     const board = entitiesStepBoardOf({
       currentStep: 'constitution',
       stepStates:  {
-        billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+        agent: 'done', billing: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
       },
       draft: null,
     });

@@ -124,9 +124,9 @@ describe('the documents page', () => {
   test('reads them again on the board stream\'s documents part, and not on another part', async () => {
     const { relay, fire } = renderDocuments(DOCUMENT_STATES.specWorking);
     await settled();
-    fire({ boardVersion: 2, kind: 'part-changed', part: 'job' });
-    fire({ boardVersion: 2, kind: 'board-changed' });
-    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    fire({ boardVersion: 3, kind: 'part-changed', part: 'job' });
+    fire({ boardVersion: 3, kind: 'board-changed' });
+    fire({ boardVersion: 3, kind: 'part-changed', part: 'documents' });
     await settled();
     expect(relay.reads).toEqual(['004', '004']);
   });
@@ -202,11 +202,11 @@ describe('the documents page', () => {
     const editor = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' });
     fireEvent.change(editor, { target: { value: `${editor.value}\n- Typed.` } });
     relay.answers.push({ verdict: 'unreachable' });
-    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    fire({ boardVersion: 3, kind: 'part-changed', part: 'documents' });
     await settled();
     expect(screen.getByRole('status').textContent).toBe('Gaia could not be reached. The documents are read again once it answers.');
     expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Spec markdown' }).value.endsWith('\n- Typed.')).toBe(true);
-    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    fire({ boardVersion: 3, kind: 'part-changed', part: 'documents' });
     await settled();
     expect(screen.queryByRole('status')).toBeNull();
   });
@@ -220,7 +220,7 @@ describe('the documents page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     const newer = { ...spec, markdown: `${spec.markdown}\n- Applied by the agent.`, head: { ...spec.head, number: spec.head.number + 1 } };
     relay.answers.push({ verdict: 'read', documents: { ...DOCUMENT_STATES.specWorking, documents: [newer, plan] } });
-    fire({ boardVersion: 2, kind: 'part-changed', part: 'documents' });
+    fire({ boardVersion: 3, kind: 'part-changed', part: 'documents' });
     await settled();
     expect((screen.getByRole<HTMLButtonElement>('button', { name: 'Approve spec · start Plan' })).disabled).toBe(false);
     expect(screen.queryByText(/editing/u)).toBeNull();

@@ -38,7 +38,7 @@ const MESSAGE_LABEL = 'Message Assistant J1';
 
 function jobMessageOf(text: string): BoardCommandDocument | null {
   return text.trim() === '' ? null : {
-    boardCommandVersion: 2, kind: 'job-message', jobId: 'J1', text: text.trim(), pictures: [], incidentId: null
+    boardCommandVersion: 3, kind: 'job-message', jobId: 'J1', text: text.trim(), pictures: [], incidentId: null
   };
 }
 
@@ -109,7 +109,7 @@ describe('the composer\'s send', () => {
     fireEvent.keyDown(textBox, { key: 'Enter' });
     await waitFor(() => expect(textBox.value).toBe(''));
     expect(sent).toEqual([{
-      boardCommandVersion: 2, kind: 'job-message', jobId: 'J1', text: 'Hold #008 until #007 lands.', pictures: [], incidentId: null
+      boardCommandVersion: 3, kind: 'job-message', jobId: 'J1', text: 'Hold #008 until #007 lands.', pictures: [], incidentId: null
     }]);
     expect(applied).toEqual([['Hold #008 until #007 lands.', { startedJobId: null, writtenVersionNumber: null }]]);
   });
@@ -120,7 +120,7 @@ describe('the composer\'s send', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(textBox.value).toBe(''));
     expect(sent).toEqual([{
-      boardCommandVersion: 2, kind: 'job-message', jobId: 'J1', text: 'Summarise the last review of #002.', pictures: [], incidentId: null
+      boardCommandVersion: 3, kind: 'job-message', jobId: 'J1', text: 'Summarise the last review of #002.', pictures: [], incidentId: null
     }]);
   });
 

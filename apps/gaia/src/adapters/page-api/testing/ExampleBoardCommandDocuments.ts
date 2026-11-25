@@ -140,7 +140,7 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   },
   'pipeline-setup-resume': { ...VERSION, kind: 'pipeline-setup-resume', setupId: 'S2' },
   'pipeline-setup-start':  {
-    ...VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: null
+    ...VERSION, kind: 'pipeline-setup-start', agent: { vendor: 'example-agent', program: { follows: 'machine' } }, replacesUnreadablePipeline: false
   },
   'pipeline-setup-agent': {
     ...VERSION, kind: 'pipeline-setup-agent', setupId: 'S2', agent: { vendor: 'example-agent', program: { follows: 'machine' } }

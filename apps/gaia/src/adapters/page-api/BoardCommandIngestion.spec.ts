@@ -38,17 +38,16 @@ describe('commandOf, on a valid body', () => {
     expect(readingOf({ ...switchOn, on: false })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-assistant-set', on: false } });
   });
 
-  test('reads an agent followed on the machine or pinned to a path, and a setup started with its agent', () => {
+  test('reads an agent followed on the machine or pinned to a path, and a setup started with its agent, never without one', () => {
     const pinnedAgent = { vendor: 'example-agent', program: { pinned: '/Users/example/.local/bin/example-agent' } };
     const setupAgent = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-agent'];
     expect(readingOf({ ...setupAgent, agent: pinnedAgent })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-setup-agent', setupId: 'S2', agent: pinnedAgent } });
     const setupStart = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-setup-start'];
     expect(readingOf({ ...setupStart, agent: pinnedAgent })).toEqual({
       verdict: 'readable',
-      command: {
-        kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, agent: pinnedAgent
-      }
+      command: { kind: 'pipeline-setup-start', agent: pinnedAgent, replacesUnreadablePipeline: false }
     });
+    expect(readingOf({ ...setupStart, agent: null })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['agent'] });
   });
 
   test('reads a tool list as found tools and names alone, and no list as following the pipeline\'s programs', () => {

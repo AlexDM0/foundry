@@ -538,9 +538,9 @@ describe('the header in setup', () => {
     expect(within(stepper).queryByRole('link', { name: 'Apply' })).toBeNull();
   });
 
-  test('a board without a record starts on Billing, and shows no usage', () => {
+  test('a board without a record starts on Agent, and shows no usage', () => {
     renderedSetupHeader({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage });
-    expect(screen.getByRole('list', { name: 'Setup steps' }).querySelector('[aria-current="step"]')?.textContent).toContain('Billing');
+    expect(screen.getByRole('list', { name: 'Setup steps' }).querySelector('[aria-current="step"]')?.textContent).toContain('Agent');
     expect(document.querySelector('.board-status-details')).toBeNull();
   });
 

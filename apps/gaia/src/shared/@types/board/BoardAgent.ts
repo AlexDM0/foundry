@@ -3,12 +3,22 @@
  * vendor, whether the program runs, where its installers put it, and the tools an agent's search path holds. Values only: the forge words
  * why a program does not run.
  */
-import type { BoardAgentProgramRefusalCause, BoardAgentToolUseKind } from './BoardVocabulary.ts';
+import type { BoardAgentProgramRefusalCause, BoardAgentToolUseKind, BoardBillingMode } from './BoardVocabulary.ts';
+
+/** One way a vendor's agent bills: `keyVariableName` is the environment variable that must hold the key, `null` for the login mode. */
+export interface BoardAgentBillingOption {
+  readonly mode:            BoardBillingMode;
+  readonly keyVariableName: string | null;
+  /** Whether a launch takes the billing's cap. */
+  readonly capsEachLaunch:  boolean;
+}
 
 export interface BoardAgentVendor {
-  readonly vendor:      string;
-  readonly displayName: string;
-  readonly supported:   boolean;
+  readonly vendor:         string;
+  readonly displayName:    string;
+  readonly supported:      boolean;
+  /** Its default first; empty for a vendor the forge cannot run. */
+  readonly billingOptions: readonly BoardAgentBillingOption[];
 }
 
 /** The machine's program of the vendor, or a path for this forge alone, kept as found. */

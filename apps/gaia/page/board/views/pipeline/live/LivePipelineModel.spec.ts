@@ -127,8 +127,8 @@ describe('levelPageWordsOf', () => {
 
 describe('the pipeline agent at a level', () => {
   test('the advise command carries the entity, and the labels name the level', () => {
-    expect(LivePipelineModel.adviseCommandOf({ kind: 'entity', key: 'web' })).toEqual({ boardCommandVersion: 2, kind: 'pipeline-agent-advise', entity: 'web' });
-    expect(LivePipelineModel.adviseCommandOf(FORGE_LEVEL)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-agent-advise', entity: null });
+    expect(LivePipelineModel.adviseCommandOf({ kind: 'entity', key: 'web' })).toEqual({ boardCommandVersion: 3, kind: 'pipeline-agent-advise', entity: 'web' });
+    expect(LivePipelineModel.adviseCommandOf(FORGE_LEVEL)).toEqual({ boardCommandVersion: 3, kind: 'pipeline-agent-advise', entity: null });
     expect(LivePipelineModel.agentTabLabelOf({ kind: 'entity', key: 'web' })).toBe('Pipeline agent · web');
     expect(LivePipelineModel.agentTabLabelOf(null)).toBe('Pipeline agent');
     expect(LivePipelineModel.askLabelOf(FORGE_LEVEL)).toBe('Ask the pipeline agent about the Forge level');

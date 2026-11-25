@@ -3,6 +3,7 @@ import type {
   BoardAgentDocument,
   BoardAgentProgramCheckDocument,
   BoardAgentToolDocument,
+  BoardAgentVendorDocument,
   BoardJobNotLaunchedDocument,
   BoardPipelineAgentDocument,
   BoardToolRequestDocument,
@@ -11,6 +12,7 @@ import type {
   BoardAgent,
   BoardAgentProgramCheck,
   BoardAgentTool,
+  BoardAgentVendor,
   BoardJobNotLaunched,
   BoardPipelineAgent,
   BoardToolRequest,
@@ -38,9 +40,18 @@ function toolRequestOut(request: BoardToolRequest): BoardToolRequestDocument {
   return { name: request.name, path: request.path };
 }
 
+function vendorOut(vendor: BoardAgentVendor): BoardAgentVendorDocument {
+  return {
+    vendor:         vendor.vendor,
+    displayName:    vendor.displayName,
+    supported:      vendor.supported,
+    billingOptions: vendor.billingOptions.map((option) => ({ mode: option.mode, keyVariableName: option.keyVariableName, capsEachLaunch: option.capsEachLaunch })),
+  };
+}
+
 function agentOut(agent: BoardAgent, otherForgesFollowingMachine: number | null): BoardAgentDocument {
   return {
-    vendors:            agent.vendors.map((vendor) => ({ vendor: vendor.vendor, displayName: vendor.displayName, supported: vendor.supported })),
+    vendors:            agent.vendors.map(vendorOut),
     choice:             agent.choice === null ? null : pipelineAgentOut(agent.choice),
     machineProgramPath: agent.machineProgramPath,
     programPath:        agent.programPath,

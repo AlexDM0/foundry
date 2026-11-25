@@ -75,7 +75,7 @@ export const BOARD_SITUATIONS = [
   'gate-profile-run',
   'assistant-switched-off',
   'assistant-switched-on',
-  'setup-choosing-agent',
+  'setup-choosing-billing',
   'job-not-launched',
 ] as const;
 

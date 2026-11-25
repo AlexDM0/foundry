@@ -2,9 +2,9 @@
  * The Pipeline view's model, pure: which screen the facts and the route pick, the setup steps in their order with their words, and the
  * route of each step (`pipeline/setup/<step>`). The screen follows the facts first: a record in `setup` mode opens the route's
  * step, or the resume summary on the bare `#pipeline`; outside it `pipeline/settings` is the forge's settings, its agent and its tools; a
- * record in `update` or `advise` mode is the flow being edited; a readable pipeline
- * is the live flow; anything else is the setup landing, which names an unreadable file's reason. In monorepo mode a route leads with its
- * level (`PipelineLevelModel`), and the screen reads the item under it.
+ * record in `update` or `advise` mode is the flow being edited; a readable pipeline is the live flow; anything else is the setup landing,
+ * the agent step that starts a setup, which names an unreadable file's reason. In monorepo mode a route leads with its level
+ * (`PipelineLevelModel`), and the screen reads the item under it.
  */
 import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
 import type {
@@ -13,19 +13,25 @@ import type {
   BoardPipelineFlowDocument,
   BoardSetupRecordDocument
 } from '../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardFlowStage, BoardSetupMode, BoardSetupStep } from '../../../@types/board/BoardVocabulary.ts';
-import type { StepperStatus }                                  from '../../../lib/design-system/DesignSystemInterface.ts';
+import type {
+  BoardAgentProgramRefusalCause,
+  BoardFlowStage,
+  BoardSetupMode,
+  BoardSetupStep
+} from '../../../@types/board/BoardVocabulary.ts';
+import type { StepperStatus } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { BoardRoute }                                     from '../../shell/BoardRouter.ts';
+import { AgentChoiceModel }                                    from './agent/AgentChoiceModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './entities/PipelineLevelModel.ts';
 import { MinimalPipelineNoteModel }                            from './live/MinimalPipelineNoteModel.ts';
 
 /** The setup steps in their order; single mode leaves out `entities` (`setupStepsOf`). */
-export const PIPELINE_SETUP_STEPS: readonly BoardSetupStep[] = ['billing', 'agent', 'research', 'entities', 'constitution', 'design', 'apply'];
+export const PIPELINE_SETUP_STEPS: readonly BoardSetupStep[] = ['agent', 'billing', 'research', 'entities', 'constitution', 'design', 'apply'];
 
 export const SETUP_STEP_LABELS: Readonly<Record<BoardSetupStep, string>> = {
-  billing:      'Billing',
   agent:        'Agent',
+  billing:      'Billing',
   research:     'Research',
   entities:     'Entities',
   constitution: 'Constitution',
@@ -57,6 +63,12 @@ export interface FlowPageWords {
 export type UnreadablePipeline =
   | { readonly readingVerdict: 'older' }
   | { readonly readingVerdict: 'malformed'; readonly reason: string };
+
+/** Where a job forge did not launch is fixed, and the words of the control that leads there. */
+export interface NotLaunchedFix {
+  readonly label: string;
+  readonly route: BoardRoute;
+}
 
 export type PipelineScreen =
   | { readonly screen: 'setup-landing'; readonly unreadable: UnreadablePipeline | null }
@@ -104,6 +116,12 @@ function setupStepsOf(record: BoardSetupRecordDocument | null): readonly BoardSe
   return setupHasEntities(record) ? PIPELINE_SETUP_STEPS : PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities');
 }
 
+/** "Step 2 of 6": the step's place in the steps the record walks, and how many there are. */
+function stepPositionTextOf(record: BoardSetupRecordDocument | null, step: BoardSetupStep): string {
+  const steps = setupStepsOf(record);
+  return `Step ${steps.indexOf(step) + 1} of ${steps.length}`;
+}
+
 /** The step the route names, while the record has reached it: the current step, or one it walks that is not `not-started`. */
 function routedStepOf(item: string | null, record: BoardSetupRecordDocument): BoardSetupStep | null {
   if (item?.startsWith(SETUP_ITEM_PREFIX) !== true) return null;
@@ -132,7 +150,7 @@ function screenOf(facts: Pick<BoardDocument, 'pipeline'>, route: BoardRoute): Pi
   return { screen: 'setup-landing', unreadable: unreadablePipelineOf(facts.pipeline.applied) };
 }
 
-/** The record's current step is current, a done step done and a `needs-recheck` step recheck; with no record, Billing is current. */
+/** The record's current step is current, a done step done and a `needs-recheck` step recheck; with no record, Agent is current. */
 function setupStepStatusOf(record: BoardSetupRecordDocument | null, step: BoardSetupStep): StepperStatus {
   if (record === null) return step === PIPELINE_SETUP_STEPS[0] ? 'current' : 'upcoming';
   if (step === record.currentStep) return 'current';
@@ -146,6 +164,11 @@ function setupStepStatusOf(record: BoardSetupRecordDocument | null, step: BoardS
   }
 }
 
+/** A reopened step's way back to where the setup stands: "Back to research". */
+function backToCurrentStepLabelOf(record: BoardSetupRecordDocument): string {
+  return `Back to ${SETUP_STEP_LABELS[record.currentStep].toLowerCase()}`;
+}
+
 /** A step's route, at the level given in monorepo mode. */
 function setupStepRouteOf(step: BoardSetupStep, level: PipelineLevel | null = null): BoardRoute {
   const item = `${SETUP_ITEM_PREFIX}${step}`;
@@ -153,14 +176,31 @@ function setupStepRouteOf(step: BoardSetupStep, level: PipelineLevel | null = nu
 }
 
 /**
- * Where the forge's agent is chosen: the setup's agent step while a first setup is open, the setup landing while the forge has neither a
- * record nor a readable pipeline, since forge keeps no agent outside both, else the forge's settings.
+ * Where the forge's agent is chosen: the setup's agent step while a first setup is open, the setup landing, the agent step that starts a
+ * setup, while the forge has neither a record nor a readable pipeline, since forge keeps no agent outside both, else the forge's settings.
  */
 function agentChoiceRouteOf(facts: Pick<BoardDocument, 'pipeline'>): BoardRoute {
   const record = facts.pipeline.setup?.record ?? null;
   if (record?.mode === 'setup') return setupStepRouteOf('agent');
   if (record === null && facts.pipeline.applied.readingVerdict !== 'readable') return SETUP_LANDING_ROUTE;
   return FORGE_SETTINGS_ROUTE;
+}
+
+/**
+ * The way to fix a job forge did not launch, with its control's words: a billing its vendor does not offer is chosen again at the billing
+ * step while a first setup is open, else with the agent in the forge's settings, which show no billing; any other cause is the agent's
+ * program, where the agent is chosen.
+ */
+function notLaunchedFixOf(facts: Pick<BoardDocument, 'pipeline' | 'agent'>, cause: BoardAgentProgramRefusalCause): NotLaunchedFix {
+  const route = agentChoiceRouteOf(facts);
+  if (cause === 'billing-not-offered') {
+    return facts.pipeline.setup?.record.mode === 'setup'
+      ? { label: 'Choose how the agent bills', route: setupStepRouteOf('billing') }
+      : { label: 'Choose this forge\'s agent', route };
+  }
+  if (route === SETUP_LANDING_ROUTE) return { label: 'Set up the pipeline', route };
+  const displayName = AgentChoiceModel.displayNameOf(facts.agent, AgentChoiceModel.chosenVendorOf(facts.agent, facts.agent.choice));
+  return { label: `Choose the ${displayName} program…`, route };
 }
 
 /** Where the constitution is edited: its setup step in a first setup, else `pipeline/edit/constitution` (an update, advise or a live board). */
@@ -245,10 +285,13 @@ export const PipelineViewModel = Object.freeze({
   monorepoModeOf,
   levelShownOf,
   setupStepsOf,
+  stepPositionTextOf,
   setupStepStatusOf,
   setupStepRouteOf,
+  backToCurrentStepLabelOf,
   constitutionRouteOf,
   agentChoiceRouteOf,
+  notLaunchedFixOf,
   forgeSettingsRoute: FORGE_SETTINGS_ROUTE,
   setupLandingRoute:  SETUP_LANDING_ROUTE,
   flowPageWordsOf,

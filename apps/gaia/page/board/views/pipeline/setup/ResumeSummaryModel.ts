@@ -54,7 +54,7 @@ function countText(count: number, singular: string, plural: string): string {
 
 function billingTextOf(billing: BoardBillingDocument): string {
   if (billing.mode === 'subscription') return 'Subscription';
-  return billing.maximumBudgetDollars === undefined ? 'API key' : `API key · cap $${billing.maximumBudgetDollars} per launch`;
+  return billing.maximumBudgetDollars === null ? 'API key' : `API key · cap $${billing.maximumBudgetDollars} per launch`;
 }
 
 /** "6 entities: 2 apps, 3 packages and the root", the root counted though the draft may only imply it. */
@@ -72,11 +72,12 @@ function summaryOf(facts: BoardPipelineSetupDocument, step: BoardSetupStep): str
   const { record, summary } = facts;
   const reached = record.stepStates[step] !== 'not-started' || record.currentStep === step;
   switch (step) {
-    case 'billing':
-      return billingTextOf(record.billing);
     case 'agent':
       if (record.agent === null) return reached ? 'Not chosen yet' : null;
       return 'pinned' in record.agent.program ? `A program for this forge only: ${record.agent.program.pinned}` : 'This machine\'s program';
+    case 'billing':
+      if (record.billing === null) return reached ? 'Not chosen yet' : null;
+      return billingTextOf(record.billing);
     case 'research':
       return reached
         ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `

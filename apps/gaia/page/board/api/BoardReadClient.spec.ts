@@ -12,7 +12,7 @@ import { BoardReadClient }              from './BoardReadClient.ts';
 describe('the board\'s read client', () => {
   test('reads the relay\'s board route with the session cookie and no Authorization header, and a board of this version is read', async () => {
     const relay = fakeRelayRequests();
-    const board = { boardVersion: 2, project: 'Example Agency' };
+    const board = { boardVersion: 3, project: 'Example Agency' };
     relay.answerWith(Response.json(board));
     const read = await BoardReadClient.create('example-tracker', relay.sendRequest).read();
     const [request] = relay.sent;
@@ -24,7 +24,7 @@ describe('the board\'s read client', () => {
   test('a board of another version is unreadable, and a refusal of Gaia\'s keeps its reason', async () => {
     const relay = fakeRelayRequests();
     const client = BoardReadClient.create('example-tracker', relay.sendRequest);
-    relay.answerWith(Response.json({ boardVersion: 3 }));
+    relay.answerWith(Response.json({ boardVersion: 4 }));
     relay.answerWith(Response.json({ refusal: 'forge-unreachable', refusedBy: 'gaia' }, { status: 502 }));
     expect([await client.read(), await client.read()]).toEqual([{ verdict: 'unreadable' }, { verdict: 'refused', refusal: 'forge-unreachable' }]);
   });

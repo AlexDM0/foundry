@@ -118,8 +118,8 @@ const TICKET_WRITING_ROUTE = { 'one-ticket': 'one-ticket', 'spec-then-plan': 'sp
 const ENTITY_KIND = { app: 'app', package: 'package', root: 'root' } as const satisfies Record<Gaia.BoardEntityKind, EntityKind>;
 
 const SETUP_STEP = {
-  billing:      'billing',
   agent:        'agent',
+  billing:      'billing',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',
@@ -382,9 +382,8 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
   'pipeline-setup-resume':  (command) => ({ kind: command.kind, setupId: command.setupId }),
   'pipeline-setup-start':   (command) => ({
     kind:                       command.kind,
-    billing:                    billingOut(command.billing),
+    agent:                      BoardAgentMapUtil.pipelineAgentOut(command.agent),
     replacesUnreadablePipeline: command.replacesUnreadablePipeline,
-    ...(command.agent === null ? {} : { agent: BoardAgentMapUtil.pipelineAgentOut(command.agent) }),
   }),
   'pipeline-setup-start-over': (command) => ({ kind: command.kind, setupId: command.setupId }),
   'pipeline-setup-step':       (command) => ({

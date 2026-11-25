@@ -297,15 +297,15 @@ describe('the row form\'s controls', () => {
     typedInto('Network domains', 'registry.example.com, api.example.com');
     await clicked(screen.getByRole('button', { name: 'Set network' }));
     expect(panel.sent).toEqual([
-      { boardCommandVersion: 2, kind: 'ticket-ready', ticketIds: ['013'] },
+      { boardCommandVersion: 3, kind: 'ticket-ready', ticketIds: ['013'] },
       {
-        boardCommandVersion: 2, kind: 'ticket-hold', ticketId: '013', reason: 'waiting on the example vendor'
+        boardCommandVersion: 3, kind: 'ticket-hold', ticketId: '013', reason: 'waiting on the example vendor'
       },
       {
-        boardCommandVersion: 2, kind: 'ticket-park', ticketId: '013', reason: 'waiting on the example vendor', incidentId: null
+        boardCommandVersion: 3, kind: 'ticket-park', ticketId: '013', reason: 'waiting on the example vendor', incidentId: null
       },
       {
-        boardCommandVersion: 2, kind: 'ticket-network', ticketId: '013', domains: ['registry.example.com', 'api.example.com']
+        boardCommandVersion: 3, kind: 'ticket-network', ticketId: '013', domains: ['registry.example.com', 'api.example.com']
       },
     ]);
   });
@@ -313,7 +313,7 @@ describe('the row form\'s controls', () => {
   test('a held committed ticket offers Unhold and network; a ticket being built offers Hold and Park, as the forge serves them', async () => {
     const held = renderPanel({ form: 'ticket-row', ticketId: '015' });
     await clicked(screen.getByRole('button', { name: 'Unhold' }));
-    expect(held.sent).toEqual([{ boardCommandVersion: 2, kind: 'ticket-unhold', ticketId: '015' }]);
+    expect(held.sent).toEqual([{ boardCommandVersion: 3, kind: 'ticket-unhold', ticketId: '015' }]);
     expect(screen.getByRole('button', { name: 'Set network' })).toBeTruthy();
     cleanup();
     renderPanel({ form: 'ticket-row', ticketId: '014' });
@@ -371,8 +371,8 @@ describe('the row form of a ticket waiting for merge (merge approval on)', () =>
     await clicked(mergeApprovalButton('Accept'));
     await clicked(mergeApprovalButton('Update branch'));
     expect(panel.sent).toEqual([
-      { boardCommandVersion: 2, kind: 'merge-accept', ticketId: '020' },
-      { boardCommandVersion: 2, kind: 'merge-update', ticketId: '020' },
+      { boardCommandVersion: 3, kind: 'merge-accept', ticketId: '020' },
+      { boardCommandVersion: 3, kind: 'merge-update', ticketId: '020' },
     ]);
   });
 
@@ -385,7 +385,7 @@ describe('the row form of a ticket waiting for merge (merge approval on)', () =>
     await clicked(mergeApprovalButton('Accept'));
     expect(mergeApprovalButton('Update branch').disabled).toBe(false);
     await clicked(mergeApprovalButton('Update branch'));
-    expect(panel.sent).toEqual([{ boardCommandVersion: 2, kind: 'merge-update', ticketId: '021' }]);
+    expect(panel.sent).toEqual([{ boardCommandVersion: 3, kind: 'merge-update', ticketId: '021' }]);
   });
 
   test('a refused accept shows the forge\'s sentence beside the button', async () => {

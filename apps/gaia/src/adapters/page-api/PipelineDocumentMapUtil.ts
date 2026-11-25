@@ -335,8 +335,8 @@ function setupRecordOut(record: BoardSetupRecord): BoardSetupRecordDocument {
     setupId:    record.setupId,
     mode:       record.mode,
     stepStates: {
-      billing:      record.stepStates.billing,
       agent:        record.stepStates.agent,
+      billing:      record.stepStates.billing,
       research:     record.stepStates.research,
       entities:     record.stepStates.entities,
       constitution: record.stepStates.constitution,
@@ -344,7 +344,7 @@ function setupRecordOut(record: BoardSetupRecord): BoardSetupRecordDocument {
       apply:        record.stepStates.apply,
     },
     currentStep:     record.currentStep,
-    billing:         billingOut(record.billing),
+    billing:         record.billing === null ? null : billingOut(record.billing),
     agent:           record.agent === null ? null : BoardAgentDocumentMapUtil.pipelineAgentOut(record.agent),
     tools:           record.tools.map(BoardAgentDocumentMapUtil.toolOut),
     agentJobId:      record.agentJobId,

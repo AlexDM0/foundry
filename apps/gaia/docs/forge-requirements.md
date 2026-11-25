@@ -6,10 +6,10 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 4.2 meets V1 to V5, V9, V11 and V12: it answers `/api/versions` with current 4.2 and minimum 4.0, serves identity 1, summary 3, monitor 6
-and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
-documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.2: 4.1 adds each forge's agent and meets V11,
-4.2 adds a ticket's documents and meets V12. Since 2.0 forge serves no page of its own, so the
+Forge 4.3 meets V1 to V5, V9 and V11 to V13: it answers `/api/versions` with current 4.3 and minimum 4.0, serves identity 1, summary 3,
+monitor 6 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and
+takes its documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.3: 4.1 adds each forge's agent and meets
+V11, 4.2 adds a ticket's documents and meets V12, 4.3 puts the agent before the billing and meets V13. Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
 
@@ -134,9 +134,25 @@ board read, so the board names only where each stands.
 **Acceptance.** Met: forge 4.2 serves them, `ForgeCompatibilityRegistry` dates the endpoint 4.2, and the `hephaestus-fetch-ticket-documents`
 recording reads each answer.
 
+### V13. Choose the agent before the billing, and name how each vendor's agent bills (Must, met in 4.3)
+
+**Requirement.** The setup's steps run agent, billing, research, then the rest: `pipeline-setup-start` carries the chosen agent, required,
+and a billing only optionally, and with the agent alone the record opens at its billing step with no pipeline agent launched. The record's
+`billing` is `null` until chosen, and again once a change of agent to a vendor that does not bill that way cleared it, which reopens the
+billing step of a record past it. Each of `agent.vendors` names its `billingOptions`, its default first, each with the environment variable
+its key must be in and whether a launch takes a cap. The billing step's Continue launches the pipeline agent, refused while no billing is
+chosen, and `pipeline-setup-billing` is refused for a way the record's vendor does not bill. A job not launched because its billing names
+such a way carries the cause `billing-not-offered`, with forge's sentence.
+
+**Reason.** How an agent can be billed depends on its vendor, so the billing cards Gaia draws come from the chosen vendor's served ways,
+worded without Gaia naming a vendor or a key variable of its own.
+
+**Acceptance.** Met: forge 4.3 serves them, a minor; the `hephaestus-fetch-board` recording keeps a first setup record at its billing step
+with no billing chosen.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.2) and keeps nothing for an older forge: forge 1, 2 or 3,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.3) and keeps nothing for an older forge: forge 1, 2 or 3,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |
@@ -150,6 +166,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 | V11 | Only the vendors forge lists: no card stands for one it does not name. |
 | V12 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
+| V13 | A forge before 4.3 is older than Gaia can talk to, and Gaia offers Update forge. |
 
 ## 4. Order for forge
 

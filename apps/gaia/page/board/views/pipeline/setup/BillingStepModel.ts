@@ -1,17 +1,20 @@
 /**
- * The billing step's model, pure: the billing choice a person makes on the cards and the cap field, the command it sends (the setup's
- * start on the landing, a billing change on a reopened step, and the Continue of a record still at billing), the footer's words for it,
- * the count of waiting tickets, the pipeline agent's meter and the panel head's status, and the words of the page's lists. The cap is
- * sent as typed once it is a number; Hephaestus refuses one that is not positive, and the view shows that refusal verbatim.
+ * The billing step's model, pure: the ways the record's agent bills, as its vendor serves them with its default first, worded as cards
+ * without naming the vendor; the billing choice a person makes on the cards and the cap field, the default preselected while the record
+ * has none; the commands it sends (a billing change, and the Continue of a record at billing, which saves a changed choice first, since
+ * forge continues only once a billing is chosen); the footer's words for it, the count of waiting tickets, the pipeline agent's meter and
+ * the panel head's status, and the words of the page's lists. The cap is sent as typed once it is a number; Hephaestus refuses one that is
+ * not positive, and the view shows that refusal verbatim.
  */
-import { PAGE_CONTRACT_VERSIONS }                              from '../../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardCommandDocument }                           from '../../../../@types/board/BoardCommandDocument.ts';
-import type { BoardDocument }                                  from '../../../../@types/board/BoardDocument.ts';
-import type { BoardBillingDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { PanelStatus }                                    from '../PipelinePanel.tsx';
-import { SETUP_STEP_LABELS }                                   from '../PipelineViewModel.ts';
-import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }   from '../agent-panel/AgentSessionModel.ts';
-import type { PipelinePhase }                                  from '../flow/PipelinePhaseModel.ts';
+import { PAGE_CONTRACT_VERSIONS }                                   from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardAgentBillingOptionDocument, BoardAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
+import type { BoardCommandDocument }                                from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardDocument }                                       from '../../../../@types/board/BoardDocument.ts';
+import type { BoardBillingDocument, BoardSetupRecordDocument }      from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { PanelStatus }                                         from '../PipelinePanel.tsx';
+import { AgentChoiceModel }                                         from '../agent/AgentChoiceModel.ts';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }        from '../agent-panel/AgentSessionModel.ts';
+import type { PipelinePhase }                                       from '../flow/PipelinePhaseModel.ts';
 
 export type BillingMode = BoardBillingDocument['mode'];
 
@@ -29,21 +32,21 @@ export interface PipelineAgentMeter {
   readonly accessibleName: string;
 }
 
-export const SUBSCRIPTION_CHOICE: BillingChoice = { mode: 'subscription', capText: '' };
+/** One card: a way the agent bills, its words, whether it is the vendor's default, and whether it shows the cap per launch. */
+export interface BillingCard {
+  readonly mode:            BillingMode;
+  readonly label:           string;
+  readonly description:     string;
+  readonly isDefault:       boolean;
+  /** The environment variable the key must be in, as forge serves it; `null` for the login. */
+  readonly keyVariableName: string | null;
+  readonly capsEachLaunch:  boolean;
+}
 
-/** The words of each card, in the order the cards show. */
-export const BILLING_CARDS: readonly { readonly mode: BillingMode; readonly label: string; readonly description: string }[] = [
-  {
-    mode:        'subscription',
-    label:       'Subscription',
-    description: 'Agents run on this machine\'s agent login. Usage counts against the plan\'s limits, such as its weekly window.',
-  },
-  {
-    mode:        'api',
-    label:       'API key',
-    description: 'Billed to the API key in Hephaestus\'s environment. The key is never stored.',
-  },
-];
+const BILLING_MODE_LABELS: Readonly<Record<BillingMode, string>> = { subscription: 'Subscription', api: 'API key' };
+
+/** The facts the cards read: the vendors the forge knows, with how each bills. */
+export type BillingFacts = Pick<BoardDocument, 'agent'>;
 
 /** What the pipeline agent does once started, after "When you start it, Flint:"; the fourth is Q15's: a profile runs only when asked. */
 export const HOW_IT_WORKS_LINES: readonly string[] = [
@@ -68,16 +71,49 @@ export interface BillingFooterLines {
   readonly detail:  string;
 }
 
-function billingChoiceOf(billing: BoardBillingDocument | null): BillingChoice {
-  if (billing === null || billing.mode === 'subscription') return SUBSCRIPTION_CHOICE;
+/** The ways the record's agent bills, its default first, as its vendor serves them; none while the forge names none. */
+function billingOptionsOf(facts: BillingFacts, record: BoardSetupRecordDocument): readonly BoardAgentBillingOptionDocument[] {
+  const vendor = AgentChoiceModel.chosenVendorOf(facts.agent, record.agent);
+  return facts.agent.vendors.find((known) => known.vendor === vendor)?.billingOptions ?? [];
+}
+
+function displayNameOf(agent: BoardAgentDocument, record: BoardSetupRecordDocument): string {
+  return AgentChoiceModel.displayNameOf(agent, AgentChoiceModel.chosenVendorOf(agent, record.agent));
+}
+
+/** The login of the vendor forge served, or the key in Hephaestus's environment; the key's variable shows beside it as a machine value. */
+function descriptionOf(option: BoardAgentBillingOptionDocument, displayName: string): string {
+  if (option.mode === 'subscription') {
+    return `Agents run on this machine's ${displayName} login. Usage counts against the plan's limits, such as its weekly window.`;
+  }
+  return 'Billed to the API key in Hephaestus\'s environment. The key is never stored.';
+}
+
+function billingCardsOf(facts: BillingFacts, record: BoardSetupRecordDocument): readonly BillingCard[] {
+  const displayName = displayNameOf(facts.agent, record);
+  return billingOptionsOf(facts, record).map((option, i) => ({
+    mode:            option.mode,
+    label:           BILLING_MODE_LABELS[option.mode],
+    description:     descriptionOf(option, displayName),
+    isDefault:       i === 0,
+    keyVariableName: option.keyVariableName,
+    capsEachLaunch:  option.capsEachLaunch,
+  }));
+}
+
+/** The record's billing, else the vendor's default preselected, not yet saved. */
+function billingChoiceOf(billing: BoardBillingDocument | null, cards: readonly BillingCard[]): BillingChoice {
+  if (billing === null) return { mode: cards[0]?.mode ?? 'subscription', capText: '' };
+  if (billing.mode === 'subscription') return { mode: 'subscription', capText: '' };
   return { mode: 'api', capText: billing.maximumBudgetDollars === null ? '' : String(billing.maximumBudgetDollars) };
 }
 
-/** `null` while the cap field holds text that is not a number: nothing can be sent. */
-function billingOf(choice: BillingChoice): BoardBillingDocument | null {
+/** `null` while the cap field holds text that is not a number: nothing can be sent. A way that caps no launch sends no cap. */
+function billingOf(choice: BillingChoice, cards: readonly BillingCard[]): BoardBillingDocument | null {
   if (choice.mode === 'subscription') return { mode: 'subscription' };
   const capText = choice.capText.trim();
-  if (capText === '') return { mode: 'api', maximumBudgetDollars: null };
+  const capsEachLaunch = cards.find((card) => card.mode === choice.mode)?.capsEachLaunch ?? true;
+  if (capText === '' || !capsEachLaunch) return { mode: 'api', maximumBudgetDollars: null };
   const cap = Number(capText);
   return Number.isFinite(cap) ? { mode: 'api', maximumBudgetDollars: cap } : null;
 }
@@ -89,20 +125,26 @@ function billingsAreEqual(first: BoardBillingDocument, second: BoardBillingDocum
   return firstCap === secondCap;
 }
 
-function startCommandOf(choice: BillingChoice, replacesUnreadablePipeline: boolean): BoardCommandDocument | null {
-  const billing = billingOf(choice);
-  return billing === null ? null : {
-    boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-start', billing, replacesUnreadablePipeline, agent: null
-  };
-}
-
-/** `null` while the choice is the record's own billing, or cannot be sent. */
-function billingChangeCommandOf(record: BoardSetupRecordDocument, choice: BillingChoice): BoardCommandDocument | null {
-  const billing = billingOf(choice);
-  if (billing === null || billingsAreEqual(billing, record.billing)) return null;
+/** `null` while the choice is the record's own billing, or cannot be sent; a record with no billing yet takes any choice. */
+function billingChangeCommandOf(record: BoardSetupRecordDocument, choice: BillingChoice, cards: readonly BillingCard[]): BoardCommandDocument | null {
+  const billing = billingOf(choice, cards);
+  if (billing === null || (record.billing !== null && billingsAreEqual(billing, record.billing))) return null;
   return {
     boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-billing', setupId: record.setupId, billing
   };
+}
+
+/**
+ * The Continue of a record at the billing step: the choice saved first when it is not the record's, then the step's Continue, which opens
+ * the research and launches the pipeline agent; `null` at any other step, or while the cap cannot be sent.
+ */
+function continueCommandsOf(record: BoardSetupRecordDocument, choice: BillingChoice, cards: readonly BillingCard[]): readonly BoardCommandDocument[] | null {
+  if (record.currentStep !== 'billing' || billingOf(choice, cards) === null) return null;
+  const change = billingChangeCommandOf(record, choice, cards);
+  const continueCommand: BoardCommandDocument = {
+    boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-step', setupId: record.setupId, step: 'billing', move: 'continue'
+  };
+  return change === null ? [continueCommand] : [change, continueCommand];
 }
 
 function pendingTicketCountOf(tickets: readonly { readonly status: string }[]): number {
@@ -135,46 +177,34 @@ function pipelineAgentMeterOf(record: BoardSetupRecordDocument | null, facts: Pi
   };
 }
 
-/** The panel head's dot and word: not started before the setup, then whether the agent's job runs, or that forge did not start it. */
-function panelStatusOf(record: BoardSetupRecordDocument | null, sessionState: AgentSessionState): PanelStatus {
-  if (record === null) return { tone: 'idle', text: 'Not started' };
+/** The panel head's dot and word: not started before the billing's Continue launches it, then whether its job runs, or that forge did not. */
+function panelStatusOf(record: BoardSetupRecordDocument, sessionState: AgentSessionState): PanelStatus {
+  if (record.agentJobId === null) return { tone: 'idle', text: 'Not started' };
   if (sessionState === 'not-launched') return NOT_LAUNCHED_PANEL_STATUS;
   return sessionState === 'stopped' ? { tone: 'idle', text: 'Stopped' } : { tone: 'working', text: 'Running' };
 }
 
-/** "Subscription" with the login it runs on, or "API key" with its cap per launch as typed. */
-function footerLinesOf(choice: BillingChoice): BillingFooterLines {
-  if (choice.mode === 'subscription') return { summary: 'Subscription', detail: 'Agents run on this machine\'s agent login.' };
+/** "Subscription" with the login it runs on, or "API key" with its cap per launch as typed, where a launch takes one. */
+function footerLinesOf(choice: BillingChoice, cards: readonly BillingCard[], displayName: string): BillingFooterLines {
+  if (choice.mode === 'subscription') return { summary: BILLING_MODE_LABELS.subscription, detail: `Agents run on this machine's ${displayName} login.` };
+  const card = cards.find((candidate) => candidate.mode === 'api');
+  const keyLine = 'Billed to the API key.';
+  if (card?.capsEachLaunch === false) return { summary: BILLING_MODE_LABELS.api, detail: keyLine };
   const capText = choice.capText.trim();
   const capLine = capText === '' ? 'No cap per launch.' : `A cap of US$ ${capText} per launch.`;
-  return { summary: 'API key', detail: `Billed to the API key. ${capLine}` };
-}
-
-/** The reopened billing step's way back to where the setup stands, in place of a second start. */
-function backLabelOf(record: BoardSetupRecordDocument): string {
-  return `Back to ${SETUP_STEP_LABELS[record.currentStep].toLowerCase()}`;
-}
-
-/**
- * A record still at the billing step, as a reopen leaves it, continues to the agent step from here, so the way out is never a link back to
- * this same screen; `null` at any later step.
- */
-function continueCommandOf(record: BoardSetupRecordDocument): BoardCommandDocument | null {
-  return record.currentStep === 'billing' ? {
-    boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-setup-step', setupId: record.setupId, step: 'billing', move: 'continue'
-  } : null;
+  return { summary: BILLING_MODE_LABELS.api, detail: `${keyLine} ${capLine}` };
 }
 
 export const BillingStepModel = Object.freeze({
+  billingOptionsOf,
+  billingCardsOf,
   billingChoiceOf,
   billingOf,
-  startCommandOf,
   billingChangeCommandOf,
+  continueCommandsOf,
   pendingTicketCountOf,
   waitingTicketsTextOf,
   pipelineAgentMeterOf,
-  backLabelOf,
-  continueCommandOf,
   panelStatusOf,
   footerLinesOf,
 });

@@ -34,7 +34,7 @@ describe('the constitution note and the command', () => {
 
   test('the command carries the record, its draft revision and resumesBoard as given', () => {
     expect(ApplyDialogModel.applyCommandOf(record(), false)).toEqual({
-      boardCommandVersion: 2, kind: 'pipeline-apply', setupId: 'S1', draftRevision: 7, resumesBoard: false,
+      boardCommandVersion: 3, kind: 'pipeline-apply', setupId: 'S1', draftRevision: 7, resumesBoard: false,
     });
   });
 });

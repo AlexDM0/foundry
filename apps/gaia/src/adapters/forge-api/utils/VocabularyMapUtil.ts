@@ -380,8 +380,8 @@ const EFFECT_CHANGE = {
 const BILLING_MODE = { subscription: 'subscription', api: 'api' } as const satisfies Record<PipelineBillingDocument['mode'], Gaia.BoardBillingMode>;
 
 const SETUP_STEP = {
-  billing:      'billing',
   agent:        'agent',
+  billing:      'billing',
   research:     'research',
   entities:     'entities',
   constitution: 'constitution',
@@ -393,6 +393,7 @@ const AGENT_PROGRAM_REFUSAL_CAUSE = {
   'no-agent-chosen':       'no-agent-chosen',
   'other-vendor':          'other-vendor',
   'no-machine-program':    'no-machine-program',
+  'billing-not-offered':   'billing-not-offered',
   'relative-path':         'relative-path',
   'inside-forbidden-root': 'inside-forbidden-root',
   'batch-target':          'batch-target',

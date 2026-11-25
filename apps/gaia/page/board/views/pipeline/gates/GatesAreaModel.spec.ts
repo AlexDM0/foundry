@@ -173,7 +173,7 @@ describe('the time chip', () => {
   test('the start command names the record, or none on a live board, the gate and the phase', () => {
     expect(GatesAreaModel.profileStartCommandOf(null, 'e2e', 'merge')).toEqual({
       entity:              null,
-      boardCommandVersion: 2,
+      boardCommandVersion: 3,
       kind:                'gate-profile-start',
       setupId:             null,
       gateName:            'e2e',

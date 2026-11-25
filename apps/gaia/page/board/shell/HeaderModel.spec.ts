@@ -101,10 +101,10 @@ describe('the status details', () => {
 });
 
 describe('the header in setup', () => {
-  test('a board with no pipeline is in setup with Billing current and the rest upcoming, and shows no usage', () => {
+  test('a board with no pipeline is in setup with Agent current and the rest upcoming, and shows no usage', () => {
     const model = headerModelOf({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage }, FIXTURE_NOW, 'live');
     expect(model.setupSteps?.map(({ label, status }) => [label, status])).toEqual([
-      ['Billing', 'current'], ['Agent', 'upcoming'], ['Research', 'upcoming'], ['Constitution', 'upcoming'], ['Pipeline design', 'upcoming'], ['Apply', 'upcoming'],
+      ['Agent', 'current'], ['Billing', 'upcoming'], ['Research', 'upcoming'], ['Constitution', 'upcoming'], ['Pipeline design', 'upcoming'], ['Apply', 'upcoming'],
     ]);
     expect(model.statusDetails).toEqual([]);
   });
@@ -117,8 +117,8 @@ describe('the header in setup', () => {
   test('the stepper shows the record\'s statuses, and only a done or recheck step reopens at its route', () => {
     const model = headerModelOf(pipelineBoardStateOf('A0b-recheck'), FIXTURE_NOW, 'live');
     expect(model.setupSteps?.map(({ key, status, reopensAt }) => [key, status, reopensAt])).toEqual([
-      ['billing', 'done', { tab: 'pipeline', item: 'setup/billing' }],
       ['agent', 'done', { tab: 'pipeline', item: 'setup/agent' }],
+      ['billing', 'done', { tab: 'pipeline', item: 'setup/billing' }],
       ['research', 'current', null],
       ['constitution', 'recheck', { tab: 'pipeline', item: 'setup/constitution' }],
       ['design', 'recheck', { tab: 'pipeline', item: 'setup/design' }],
@@ -129,16 +129,16 @@ describe('the header in setup', () => {
   test('a record in monorepo mode shows seven steps, the entities step after the research; one that declined it shows six', () => {
     const monorepo = headerModelOf(entitiesStepBoardOf(), FIXTURE_NOW, 'live');
     expect(monorepo.setupSteps?.map(({ key, status }) => [key, status])).toEqual([
-      ['billing', 'done'], ['agent', 'done'], ['research', 'done'], ['entities', 'current'], ['constitution', 'upcoming'], ['design', 'upcoming'], ['apply', 'upcoming'],
+      ['agent', 'done'], ['billing', 'done'], ['research', 'done'], ['entities', 'current'], ['constitution', 'upcoming'], ['design', 'upcoming'], ['apply', 'upcoming'],
     ]);
     const declined = entitiesStepBoardOf({
       currentStep: 'constitution',
       stepStates:  {
-        billing: 'done', agent: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+        agent: 'done', billing: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
       },
       draft: null,
     });
-    expect(headerModelOf(declined, FIXTURE_NOW, 'live').setupSteps?.map(({ key }) => key)).toEqual(['billing', 'agent', 'research', 'constitution', 'design', 'apply']);
+    expect(headerModelOf(declined, FIXTURE_NOW, 'live').setupSteps?.map(({ key }) => key)).toEqual(['agent', 'billing', 'research', 'constitution', 'design', 'apply']);
   });
 
   test('an unreadable pipeline is setup too, a readable one is not, and before the first board the header is not in setup', () => {

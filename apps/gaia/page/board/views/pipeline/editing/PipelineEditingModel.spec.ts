@@ -49,8 +49,8 @@ describe('the change cards', () => {
 
 describe('the commands', () => {
   test('Ask the pipeline agent to check and Discard name the setup', () => {
-    expect(PipelineEditingModel.checkCommandOf('S2')).toEqual({ boardCommandVersion: 2, kind: 'pipeline-check', setupId: 'S2' });
-    expect(PipelineEditingModel.discardCommandOf('S2')).toEqual({ boardCommandVersion: 2, kind: 'pipeline-draft-discard', setupId: 'S2' });
+    expect(PipelineEditingModel.checkCommandOf('S2')).toEqual({ boardCommandVersion: 3, kind: 'pipeline-check', setupId: 'S2' });
+    expect(PipelineEditingModel.discardCommandOf('S2')).toEqual({ boardCommandVersion: 3, kind: 'pipeline-draft-discard', setupId: 'S2' });
   });
 });
 

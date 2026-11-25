@@ -145,8 +145,8 @@ describe('the Assistant\'s switch', () => {
   });
 
   test('a press sends pipeline-assistant-set with the other state', () => {
-    expect(AssistantModelUtil.switchCommandOf(false)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-assistant-set', on: true });
-    expect(AssistantModelUtil.switchCommandOf(true)).toEqual({ boardCommandVersion: 2, kind: 'pipeline-assistant-set', on: false });
+    expect(AssistantModelUtil.switchCommandOf(false)).toEqual({ boardCommandVersion: 3, kind: 'pipeline-assistant-set', on: true });
+    expect(AssistantModelUtil.switchCommandOf(true)).toEqual({ boardCommandVersion: 3, kind: 'pipeline-assistant-set', on: false });
   });
 });
 

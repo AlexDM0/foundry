@@ -1,10 +1,11 @@
 /**
- * The billing step against fake controls. What matters: "Set up the pipeline" sends the start with the chosen billing and cap and then
- * opens the agent step; the start of an unreadable file says that it replaces it; a refusal shows verbatim; the page counts the
- * waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; reopened while a record is open, the
- * start is replaced by the way back to the current step, or by Continue to the agent while the record is still at billing, so the step
- * never links back to itself, and a billing change is saved to the record; the panel introduces Flint in its one slot, and the footer
- * words the chosen billing.
+ * The billing step, the setup's second, against fake controls. What matters: the cards are the ways the record's agent bills, worded from
+ * what forge serves, its default preselected while the record has no billing, the cap only on a way whose launch takes one; at billing,
+ * Continue to research saves a choice the record does not hold, then continues, and opens the research, and a refusal shows verbatim and
+ * stays; the page counts the waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; the panel
+ * introduces Flint in its one slot as not started; Back to agent leads to the step before; reopened while the record stands past billing,
+ * the way out is back to the current step, never a Continue, and a billing change is saved to the record; the footer words the chosen
+ * billing.
  */
 import {
   cleanup,
@@ -18,83 +19,106 @@ import {
   expect,
   test
 } from 'bun:test';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
-import { onBoard }                                          from '../../../testing/OnBoard.ts';
 
-import { pipelineBoardStateOf, pipelineViewServicesOf } from '../../../testing/PipelineFixture.ts';
-import { PipelineView }                                 from '../PipelineView.tsx';
+import { EXAMPLE_AGENT_KEY_VARIABLE_NAME }                                        from '../../../testing/AgentFixture.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
+import { onBoard }                                                                from '../../../testing/OnBoard.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { PipelineView }                                                           from '../PipelineView.tsx';
 
 afterEach(() => {
   cleanup();
   window.location.hash = '';
 });
 
-const LANDING_ROUTE = { tab: 'pipeline', item: null } as const;
+const BILLING_ROUTE = { tab: 'pipeline', item: 'setup/billing' } as const;
 
-describe('the setup landing', () => {
-  test('"Set up the pipeline" sends the start with the chosen billing and cap, then opens the agent step', async () => {
-    const controls = fakeControls();
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
-    fireEvent.click(screen.getByLabelText('API key'));
-    fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '12.5' } });
-    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
-    expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 12.5 }, replacesUnreadablePipeline: false, agent: null
-    }]);
-    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/agent');
+const CONTINUE = {
+  ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
+} as const;
+
+function renderBillingStep(name: PipelineFixtureName) {
+  const controls = fakeControls();
+  controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf(name)} route={BILLING_ROUTE} {...pipelineViewServicesOf()} />));
+  return controls;
+}
+
+describe('the billing step at billing', () => {
+  test('is step 2, its cards the ways the agent bills, the default preselected while the record has none', () => {
+    renderBillingStep('A0b-at-billing');
+    expect(screen.getByText('Step 2 of 6')).toBeDefined();
+    expect((screen.getByLabelText('Subscription') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText('Agents run on this machine\'s Example Agent login. Usage counts against the plan\'s limits, such as its weekly window.')).toBeDefined();
+    expect(screen.getByText('Billed to the API key in Hephaestus\'s environment. The key is never stored.')).toBeDefined();
+    expect(screen.getByText(EXAMPLE_AGENT_KEY_VARIABLE_NAME)).toBeDefined();
   });
 
-  test('the subscription is chosen first, and typing a cap chooses the API key', async () => {
-    const controls = fakeControls();
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
-    expect((screen.getByLabelText('Subscription') as HTMLInputElement).checked).toBe(true);
+  test('Continue to research saves the default the record does not hold yet, continues, and opens the research', async () => {
+    const controls = renderBillingStep('A0b-at-billing');
+    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
+    expect(controls.sent).toEqual([{
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'subscription' }
+    }, CONTINUE]);
+    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/research');
+  });
+
+  test('Continue sends the chosen key and cap, and typing a cap chooses the key', async () => {
+    const controls = renderBillingStep('A0b-at-billing');
     fireEvent.focus(screen.getByLabelText('Cap per launch in US dollars'));
     expect((screen.getByLabelText('API key') as HTMLInputElement).checked).toBe(true);
-    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '12.5' } });
+    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
     expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: null }, replacesUnreadablePipeline: false, agent: null
-    }]);
+      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maximumBudgetDollars: 12.5 }
+    }, CONTINUE]);
   });
 
-  test('the start of an unreadable pipeline.json replaces it', async () => {
-    const controls = fakeControls();
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0-unreadable')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
-    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
-    expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: true, agent: null
-    }]);
+  test('a record that holds the chosen billing only continues', async () => {
+    const controls = renderBillingStep('A0b-at-billing-api');
+    expect((screen.getByLabelText('API key') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Cap per launch in US dollars') as HTMLInputElement).value).toBe('20');
+    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
+    expect(controls.sent).toEqual([CONTINUE]);
   });
 
-  test('a refused start shows Hephaestus\'s words and stays on the landing', async () => {
-    const controls = fakeControls();
+  test('a refused billing shows Hephaestus\'s words and stays at billing', async () => {
+    const controls = renderBillingStep('A0b-at-billing');
     controls.answerNextWith({ verdict: 'refused', refusal: 'The cap per launch must be a positive number.' });
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
     fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '-1' } });
-    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
     expect(screen.getByText('The cap per launch must be a positive number.')).toBeDefined();
+    expect(controls.sent.map((command) => command.kind)).toEqual(['pipeline-setup-billing']);
     expect(window.location.hash).toBe('');
   });
 
+  test('says the Continue starts the pipeline agent, and Back to agent leads to the step before', () => {
+    renderBillingStep('A0b-at-billing');
+    expect(screen.getByText('Starts the pipeline agent on a snapshot of main')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Back to agent' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/agent');
+    expect(screen.queryByRole('button', { name: 'Save billing' })).toBeNull();
+  });
+
   test('says how many tickets wait, from the facts', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
+    renderBillingStep('A0b-at-billing');
     expect(screen.getByText('4 tickets wait for a pipeline')).toBeDefined();
+    expect(screen.getByText('Setup in progress')).toBeDefined();
   });
 
   test('the pipeline agent\'s meter shows opus and high over five bars', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
+    renderBillingStep('A0b-at-billing');
     const meter = screen.getByRole('img', { name: 'Pipeline agent: opus, high effort' });
     expect(meter.querySelectorAll('.design-system-effort-meter-bar')).toHaveLength(5);
     expect(meter.querySelectorAll('.design-system-effort-meter-bar[data-filled]')).toHaveLength(3);
   });
 
   test('says that a gate\'s profile runs only when User asks for it', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
+    renderBillingStep('A0b-at-billing');
     expect(screen.getByText('Profiles a gate in a phase when you ask, and shows its time. The time only informs.')).toBeDefined();
     expect(screen.queryByText(/benchmark/u)).toBeNull();
   });
 
   test('the pipeline agent\'s panel introduces Flint in its slot before the agent starts', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
+    renderBillingStep('A0b-at-billing');
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByRole('heading', { name: 'Pipeline agent' })).toBeDefined();
     expect(within(panel).getByText('Not started')).toBeDefined();
@@ -106,37 +130,24 @@ describe('the setup landing', () => {
   });
 
   test('the footer words the chosen billing', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));
+    renderBillingStep('A0b-at-billing');
     const footer = screen.getByRole('region', { name: 'Billing actions' });
-    expect(within(footer).getByText('Agents run on this machine\'s agent login.')).toBeDefined();
+    expect(within(footer).getByText('Agents run on this machine\'s Example Agent login.')).toBeDefined();
     fireEvent.click(screen.getByLabelText('API key'));
     expect(within(footer).getByText('Billed to the API key. No cap per launch.')).toBeDefined();
   });
 });
 
-describe('the billing step reopened with a record', () => {
-  const REOPENED_ROUTE = { tab: 'pipeline', item: 'setup/billing' } as const;
-
-  test('offers the way back to the current step in place of a second start', () => {
-    fakeControls().render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0b-running')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />));
-    expect(screen.queryByRole('button', { name: 'Set up the pipeline' })).toBeNull();
+describe('the billing step reopened past billing', () => {
+  test('offers the way back to the current step in place of a Continue', () => {
+    renderBillingStep('A0b-running');
+    expect(screen.queryByRole('button', { name: 'Continue to research' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Back to pipeline design' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/design');
-  });
-
-  test('a record still at billing offers Continue to the agent, which continues the step and opens the agent step', async () => {
-    const controls = fakeControls();
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0b-at-billing')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />));
-    expect(screen.queryByRole('link', { name: 'Back to billing' })).toBeNull();
-    await clickSettled(screen.getByRole('button', { name: 'Continue to the agent' }));
-    expect(controls.sent).toEqual([{
-      ...SENT_COMMAND_VERSION, kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
-    }]);
-    expect(window.location.hash).toBe('#forge/example-tracker/pipeline/setup/agent');
+    expect(screen.queryByText('Starts the pipeline agent on a snapshot of main')).toBeNull();
   });
 
   test('a billing change is saved to the record, and the record\'s own billing sends nothing', async () => {
-    const controls = fakeControls();
-    controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0b-running')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />));
+    const controls = renderBillingStep('A0b-running');
     const save = screen.getByRole('button', { name: 'Save billing' }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     fireEvent.click(screen.getByLabelText('API key'));

@@ -20,7 +20,7 @@ function clientOf(situation: BoardSituation): ForgeClient {
 
 type BoardDocumentSituation = Extract<
   BoardSituation,
-  'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on' | 'setup-choosing-agent' | 'job-not-launched'
+  'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on' | 'setup-choosing-billing' | 'job-not-launched'
 >;
 
 /** The parsed board document the forge answered in one situation; a spec fails when it answered none. */

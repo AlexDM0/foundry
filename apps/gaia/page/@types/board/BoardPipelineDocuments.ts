@@ -277,8 +277,9 @@ export interface BoardSetupRecordDocument {
   readonly mode:                       BoardSetupMode;
   readonly stepStates:                 BoardSetupStepStatesDocument;
   readonly currentStep:                BoardSetupStep;
-  readonly billing:                    BoardBillingDocument;
-  /** `null` until the user chose one. */
+  /** `null` until chosen, and again once a change of agent to a vendor that does not bill that way cleared it. */
+  readonly billing:                    BoardBillingDocument | null;
+  /** A first setup starts with it; an update over a pipeline without one has none. */
   readonly agent:                      BoardPipelineAgentDocument | null;
   /** The design's tools, each found now. */
   readonly tools:                      readonly BoardAgentToolDocument[];

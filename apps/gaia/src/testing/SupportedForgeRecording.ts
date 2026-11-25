@@ -5,7 +5,7 @@
  * versioned path Gaia calls: as Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running
  * forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board
  * file it cannot read, suspended so it accepts and never answers, a restart, killed under an open stream, and starting. Each forge runs on the
- * agent its board offers, chosen in a setup record left at its agent step, since a forge with no agent chosen launches no job. The values the
+ * agent its board offers, which starts a setup record left at its billing step, since a forge with no agent chosen launches no job. The values the
  * run draws (paths, tracker ids, ports, process ids) are recorded as example values; the forge's install and code versions stamp the
  * recording. Test-only.
  */
@@ -106,10 +106,11 @@ const PATHS = {
 } as const;
 
 /**
- * A forge with no agent chosen launches no job, and with no pipeline stored only a setup record takes one: the record is opened at its
- * agent step and given the agent the board offers, which moves no step, so no pipeline agent launches beside the intake's product owner.
+ * A forge with no agent chosen launches no job, and with no pipeline stored only a setup record takes one: the setup is started with the
+ * agent the board offers and no billing, so the record stands at its billing step and no pipeline agent launches beside the intake's
+ * product owner.
  */
-async function chooseTheAgentInASetupRecord(hephaestusUrl: string, bearerToken: string): Promise<void> {
+async function startASetupWithTheAgent(hephaestusUrl: string, bearerToken: string): Promise<void> {
   const requestOf = (method: HephaestusRequest['method'], path: string, jsonBody: string | null): HephaestusRequest => ({
     hephaestusUrl, method, path, bearerToken, jsonBody, byteBody: null, answerAs: 'text', timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
   });
@@ -118,11 +119,8 @@ async function chooseTheAgentInASetupRecord(hephaestusUrl: string, bearerToken: 
     return JSON.parse(answer.bodyText) as Record<string, unknown>;
   };
   const board = bodyOf(await realHephaestusFetch().request(requestOf('GET', PATHS.board, null)));
-  const setupStart = { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false };
-  const opened = bodyOf(await realHephaestusFetch().request(requestOf('POST', PATHS.commands, JSON.stringify(setupStart))));
-  const { setupId } = ((opened['result'] as Record<string, unknown>)['setup'] as Record<string, unknown>);
-  const agentChoice = { kind: 'pipeline-setup-agent', setupId, agent: agentAtTheFoundPlaceOf(board) };
-  bodyOf(await realHephaestusFetch().request(requestOf('POST', PATHS.commands, JSON.stringify(agentChoice))));
+  const setupStart = { kind: 'pipeline-setup-start', agent: agentAtTheFoundPlaceOf(board), replacesUnreadablePipeline: false };
+  bodyOf(await realHephaestusFetch().request(requestOf('POST', PATHS.commands, JSON.stringify(setupStart))));
 }
 
 export function describeSupportedForgeRecording(recordingName: string): void {
@@ -264,7 +262,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     await scratchForge.runForDocument(repository, ['ticket', 'add', 'Search suggestions', '--type', 'ticket', '--json']);
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveHephaestus();
-    await chooseTheAgentInASetupRecord(hephaestusUrl, bearerToken);
+    await startASetupWithTheAgent(hephaestusUrl, bearerToken);
     // A new board starts paused; a forge at work runs, here the product owner of an intake User started.
     expect(await sendCommand({ kind: 'hephaestus-unpause' })).toMatchObject({ verdict: 'answered', status: 200 });
     expect(await sendCommand({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] })).toMatchObject({ verdict: 'answered', status: 200 });
@@ -316,7 +314,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       if (hephaestus === undefined) throw new Error('the registry names no live Hephaestus of Example Project');
       projectHephaestusUrl = hephaestus.url;
       const projectToken = readFileSync(hephaestus.tokenPath, 'utf8').trim();
-      await chooseTheAgentInASetupRecord(projectHephaestusUrl, projectToken);
+      await startASetupWithTheAgent(projectHephaestusUrl, projectToken);
       // Its summary is recorded once the first pass opened its question and took up the intake User started, on a board still paused.
       const intake = projectRequestOf('POST', PATHS.commands, projectToken, JSON.stringify({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] }));
       expect(await realHephaestusFetch().request(intake)).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });

@@ -165,12 +165,12 @@ describe('boardDocumentOf, on a forge\'s agent', () => {
     expect(BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten, otherForgesFollowing).agent.otherForgesFollowingMachine).toBe(otherForgesFollowing);
   });
 
-  test('carries a first setup record at its agent step with no agent chosen, and the places the installers use', async () => {
-    const board = await recordedBoardModel('setup-choosing-agent');
+  test('carries a first setup record at its billing step with no billing chosen, each vendor\'s ways to bill and the places the installers use', async () => {
+    const board = await recordedBoardModel('setup-choosing-billing');
     const document = BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten);
-    expect(document.agent).toMatchObject({ choice: null, check: null, places: board.agent.places });
+    expect(document.agent).toMatchObject({ places: board.agent.places, vendors: board.agent.vendors });
     expect(document.pipeline.setup?.record).toMatchObject({
-      currentStep: 'agent', agent: null, stepStates: { agent: 'in-progress' }, tools: board.agent.tools
+      currentStep: 'billing', billing: null, stepStates: { agent: 'done', billing: 'in-progress' }, tools: board.agent.tools
     });
   });
 

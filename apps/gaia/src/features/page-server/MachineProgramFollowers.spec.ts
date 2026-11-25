@@ -31,10 +31,10 @@ interface RecordedAgents {
   readonly unchosen:  BoardAgent;
 }
 
-/** The recorded boards' agents: pinned once chosen, none chosen at the setup's agent step, and the pinned one following the machine instead. */
+/** The recorded boards' agents: pinned once chosen, none chosen as before a setup starts, and the pinned one following the machine instead. */
 async function recordedAgents(): Promise<RecordedAgents> {
   const pinned = (await recordedBoardModel('board-at-work')).agent;
-  const unchosen = (await recordedBoardModel('setup-choosing-agent')).agent;
+  const unchosen = { ...(await recordedBoardModel('setup-choosing-billing')).agent, choice: null };
   if (pinned.choice === null) throw new Error('The recorded board at work holds no chosen agent.');
   const { vendor } = pinned.choice;
   return {

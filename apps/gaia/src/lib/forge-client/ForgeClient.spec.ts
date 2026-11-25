@@ -647,14 +647,14 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   },
   {
     call:      'boardOf',
-    situation: 'setup-choosing-agent',
+    situation: 'setup-choosing-billing',
     callShape: 'GET /api/v4/board with bearer',
     answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
-        agent:         expect.objectContaining({ choice: null, check: null, places: expect.arrayContaining([expect.objectContaining({ found: true })]) }),
-        pipelineSetup: expect.objectContaining({ record: expect.objectContaining({ currentStep: 'agent', agent: null }) }),
+        agent:         expect.objectContaining({ places: expect.arrayContaining([expect.objectContaining({ found: true })]) }),
+        pipelineSetup: expect.objectContaining({ record: expect.objectContaining({ currentStep: 'billing', billing: null }) }),
       }),
     },
   },

@@ -74,7 +74,7 @@ export function entitiesStepBoardOf(changes: Partial<BoardSetupRecordDocument> =
     entities:    null,
     currentStep: 'entities',
     stepStates:  {
-      billing: 'done', agent: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      agent: 'done', billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     },
     draft:           entitiesStepDraftOf(),
     edits:           [],

@@ -2,10 +2,13 @@
  * The agent choice's model. What matters: every vendor card comes from what the forge sends, one it cannot run is drawn by its own name
  * as coming later and never selectable, and no card of Gaia's own stands for agents the forge does not name; this machine's program is the
  * one kept, else the first place found; a program chosen for every forge is kept as this machine's before it is followed, and pinned
- * otherwise; changing a program other forges follow asks first and names how many; and Continue waits until the record's program runs.
+ * otherwise; changing a program other forges follow asks first and names how many; Continue waits until the record's program runs; and the
+ * landing's start sends the program the page holds, kept for the machine first where it must be, or nothing while no program is there.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { BoardAgentProgramChoiceDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
+import type { BoardCommandDocument }            from '../../../../@types/board/BoardCommandDocument.ts';
 import {
   EXAMPLE_AGENT_PROGRAM_PATH,
   EXAMPLE_AGENT_VENDOR,
@@ -16,7 +19,7 @@ import {
 } from '../../../testing/AgentFixture.ts';
 import { AgentChoiceModel } from './AgentChoiceModel.ts';
 
-const VERSION = { boardCommandVersion: 2 } as const;
+const VERSION = { boardCommandVersion: 3 } as const;
 const SETUP = { kind: 'setup', setupId: 'S1' } as const;
 
 describe('the vendor cards', () => {
@@ -114,5 +117,39 @@ describe('the program\'s run and Continue', () => {
     expect(AgentChoiceModel.continueCommandOf('S1', EXAMPLE_PIPELINE_AGENT, exampleBoardAgent())).toEqual({
       ...VERSION, kind: 'pipeline-setup-step', setupId: 'S1', step: 'agent', move: 'continue'
     });
+  });
+});
+
+describe('the landing\'s start', () => {
+  const chosenPath = '/Users/example/tools/example-agent';
+  const startOf = (program: BoardAgentProgramChoiceDocument, replacesUnreadablePipeline = false): BoardCommandDocument => ({
+    ...VERSION, kind: 'pipeline-setup-start', agent: { vendor: EXAMPLE_AGENT_VENDOR, program }, replacesUnreadablePipeline
+  });
+
+  test('follows the program the machine keeps, and keeps one forge only found as the machine\'s first', () => {
+    expect(AgentChoiceModel.startCommandsOf(exampleBoardAgent(), { chosenPath: null, forEveryForge: false }, true))
+      .toEqual([startOf({ follows: 'machine' }, true)]);
+    expect(AgentChoiceModel.startCommandsOf(exampleBoardAgent({ machineProgramPath: null }), { chosenPath: null, forEveryForge: false }, false)).toEqual([
+      {
+        ...VERSION, kind: 'machine-agent-program-set', vendor: EXAMPLE_AGENT_VENDOR, programPath: EXAMPLE_AGENT_PROGRAM_PATH
+      },
+      startOf({ follows: 'machine' }),
+    ]);
+  });
+
+  test('a program chosen in the dialog is kept for every forge and followed, or pinned to this forge', () => {
+    expect(AgentChoiceModel.startCommandsOf(nothingFoundBoardAgent(), { chosenPath, forEveryForge: true }, false)).toEqual([
+      {
+        ...VERSION, kind: 'machine-agent-program-set', vendor: EXAMPLE_AGENT_VENDOR, programPath: chosenPath
+      },
+      startOf({ follows: 'machine' }),
+    ]);
+    expect(AgentChoiceModel.startCommandsOf(nothingFoundBoardAgent(), { chosenPath, forEveryForge: false }, false)).toEqual([startOf({ pinned: chosenPath })]);
+  });
+
+  test('starts nothing while no program is there, or the forge runs no vendor', () => {
+    expect(AgentChoiceModel.startCommandsOf(nothingFoundBoardAgent(), { chosenPath: null, forEveryForge: true }, false)).toBeNull();
+    const noVendorRuns = exampleBoardAgent({ vendors: LATER_EXAMPLE_VENDORS });
+    expect(AgentChoiceModel.startCommandsOf(noVendorRuns, { chosenPath, forEveryForge: false }, false)).toBeNull();
   });
 });

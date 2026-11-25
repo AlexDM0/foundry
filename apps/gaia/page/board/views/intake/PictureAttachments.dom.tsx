@@ -40,7 +40,7 @@ const BOARD: BoardDocument = intakeBoardOf({
   pictureLimits:   LIMITS,
 });
 
-const COMMAND_VERSION = { boardCommandVersion: 2 } as const;
+const COMMAND_VERSION = { boardCommandVersion: 3 } as const;
 
 function intakeViewOf(board: BoardDocument, selectedItem: string, followTranscript = fakeTranscripts().follow): ReactElement {
   return boardRouteSurroundings().wrap(<IntakeView board={board} followTranscript={followTranscript} selectedItem={selectedItem} />);

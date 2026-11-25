@@ -96,13 +96,8 @@ export type BoardCommand =
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: BoardAnswerForm }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: BoardBilling }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
-  | {
-    readonly kind:                       'pipeline-setup-start';
-    readonly billing:                    BoardBilling;
-    readonly replacesUnreadablePipeline: boolean;
-    /** `null`: the record opens at the agent step. */
-    readonly agent:                      BoardPipelineAgent | null;
-  }
+  /** The chosen agent starts the setup: the record opens at its billing step. */
+  | { readonly kind: 'pipeline-setup-start'; readonly agent: BoardPipelineAgent; readonly replacesUnreadablePipeline: boolean }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: BoardSetupStep; readonly move: 'continue' }
   | { readonly kind: 'pipeline-update-start'; readonly entity: string | null }
