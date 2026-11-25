@@ -20,6 +20,7 @@ import { PRODUCT_NAMES }                                  from '../../src/shared
 import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
 import { agentFrom, toolFrom }                            from '../AgentProgramWords.ts';
 import { applyCommandOfVerb }                             from '../ApplyCommandOfVerb.ts';
+import { billingFrom }                                    from '../BillingWords.ts';
 import { boardReadsOf }                                   from '../BoardStoreOf.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
@@ -41,7 +42,7 @@ export const GATE_PIPELINE_USAGE = {
   approval:     `${PROGRAM} gate approval tickets|merge|spec|plan on|off [--json]`,
   assistant:    `${PROGRAM} gate assistant on|off [--json]`,
   reach:        `${PROGRAM} gate reach <path>…|none [--json]`,
-  agent:        `${PROGRAM} gate agent machine|<path> [--json]`,
+  agent:        `${PROGRAM} gate agent machine|<path> [--billing subscription|api] [--max-budget-usd <n>] [--json]`,
   tools:        `${PROGRAM} gate tools <name>[=<path>]…|pipeline [--json]`,
   'look-again': `${PROGRAM} gate look-again [--json]`,
 } as const;
@@ -140,12 +141,18 @@ async function applyUnrelayedChange(
   OutputUtil.printEntity(commandArguments, context, { ...stored, logged }, OutputUtil.loggedSentencesOf(logged));
 }
 
-/** The forge's agent, run once before it is kept; an open setup record follows it. */
+/** The forge's agent, run once before it is kept, with the billing it is stored with, if one is named; an open setup record follows it. */
 export async function setAgent(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = GATE_PIPELINE_USAGE.agent;
-  commandArguments.rejectUnknownOptions(['json'], usage);
+  commandArguments.rejectUnknownOptions(['billing', 'max-budget-usd', 'json'], usage);
   commandArguments.rejectExtraPositionals(2, usage);
-  await applyUnrelayedChange(commandArguments, context, { kind: 'pipeline-agent-set', agent: agentFrom(commandArguments.positionals()[1], context, usage) });
+  const billingWord = commandArguments.option('billing');
+  if (billingWord === undefined && commandArguments.option('max-budget-usd') !== undefined) refuseUsage('--max-budget-usd goes only with api billing.', usage);
+  await applyUnrelayedChange(commandArguments, context, {
+    kind:  'pipeline-agent-set',
+    agent: agentFrom(commandArguments.positionals()[1], context, usage),
+    ...(billingWord === undefined ? {} : { billing: billingFrom(commandArguments, billingWord, usage) }),
+  });
 }
 
 /** The whole list at once, git always among them; `pipeline` removes the list, so the tools follow the pipeline's programs again. */

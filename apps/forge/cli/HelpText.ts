@@ -615,12 +615,15 @@ never carries it.
                               change, stored as reach: each starts with /, as /bun.lock or
                               /packages/shared; none clears them. One log line. Refused at exit 1
                               while no pipeline is stored: set the gates first.
-  gate agent machine|<path> [--json]
+  gate agent machine|<path> [--billing subscription|api] [--max-budget-usd <n>]
+             [--json]
                               Set the board's agent, stored as agent: the machine's program, or
                               the program at <path> for this board alone. The program runs once
                               with its version arguments first; one that does not run is refused
-                              at exit 1. An open setup record follows it. Every job that stood
-                              not launched launches again.
+                              at exit 1. --billing stores one of the agent's ways to bill with
+                              it; a stored billing the agent does not bill by is refused at exit
+                              1 without it. An open setup record follows it. Every job that
+                              stood not launched launches again.
   gate tools <name>[=<path>]…|pipeline [--json]
                               Set the programs whose folders an agent's search path holds, stored
                               as tools: a name alone is found in the places installers use;

@@ -122,6 +122,12 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
       + 'The product owner gives each ticket its entity; then ready them again.',
   ],
   [
+    boardRefusal({
+      reason: 'billing-not-offered', setupId: null, vendor: 'example-agent', mode: 'api'
+    }),
+    'The agent example-agent does not bill by api, the pipeline\'s billing: choose one of the ways it bills with the agent. Nothing was written.',
+  ],
+  [
     boardRefusal({ reason: 'entity-without-reason', ticketId: '004' }),
     'Ticket #004\'s entity was not changed: it needs a reason. Say why the ticket belongs to that entity. Nothing was written.',
   ],

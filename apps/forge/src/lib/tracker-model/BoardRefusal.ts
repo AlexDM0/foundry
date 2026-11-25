@@ -139,9 +139,11 @@ export type BoardRefusalDetail =
   | { reason: 'billing-cap-not-positive'; maxBudgetUsd: number }
   | { reason: 'setup-agent-not-chosen'; setupId: string }
   | { reason: 'setup-billing-not-chosen'; setupId: string }
+  | { reason: 'setup-resume-before-billing'; setupId: string }
   /** Billing is one of the agent's ways to bill, so a record that names no agent takes none. */
   | { reason: 'setup-billing-before-agent'; setupId: string }
-  | { reason: 'billing-not-offered'; setupId: string; vendor: string; mode: 'subscription' | 'api' }
+  /** `setupId` is `null` for the stored pipeline's billing, which a change of the forge's agent judges. */
+  | { reason: 'billing-not-offered'; setupId: string | null; vendor: string; mode: 'subscription' | 'api' }
   | { reason: 'setup-step-not-current'; setupId: string; step: PipelineSetupStep; currentStep: PipelineSetupStep }
   | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }
   | { reason: 'setup-step-not-continued'; setupId: string; step: PipelineSetupStep }

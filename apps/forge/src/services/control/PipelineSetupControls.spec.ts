@@ -9,10 +9,10 @@
  * since the agent cannot read the record, logged as Hephaestus's so its transcript never reads it as User's words, and opens it again
  * with its conversation when a stop closed it, while a record with no agent,
  * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
- * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
- * agent which; a forge without entities never stores a `batch`: a copy to another entity is refused there and its record file stays byte
- * for byte, and an edit that is no copy gets none (`PipelineSetupControls.entities.spec.ts` holds a copy's batch). Git answers from
- * the recordings of `src/testing/RecordedGit.ts`.
+ * research recheck, naming the paths in its message, while a first setup with no billing is refused and starts no agent; a check queues
+ * only the gates the draft changes or adds, one at a time, and tells the agent which; a forge without entities never stores a `batch`: a
+ * copy to another entity is refused there and its record file stays byte for byte, and an edit that is no copy gets none
+ * (`PipelineSetupControls.entities.spec.ts` holds a copy's batch). Git answers from the recordings of `src/testing/RecordedGit.ts`.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -675,6 +675,16 @@ describe('a resume', () => {
     expect(fixture.board.jobs().map((job) => job.kind)).toEqual(['pipeline-agent']);
     const thrown = thrownBy(() => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S9' }));
     expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-setup-open', setupId: 'S9' });
+  });
+
+  test('a first setup at the billing step is refused setup-resume-before-billing and starts no agent, which would bill by no choice', () => {
+    const fixture = boardFixture();
+    apply(fixture, { kind: 'pipeline-setup-start', agent: EXAMPLE_PIPELINE_AGENT, replacesUnreadablePipeline: false });
+
+    const thrown = thrownBy(() => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' }));
+
+    expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'setup-resume-before-billing', setupId: 'S1' });
+    expect([fixture.board.jobs(), fixture.board.pipelineSetup()?.agentJobId]).toEqual([[], null]);
   });
 });
 

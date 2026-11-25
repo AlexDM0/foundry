@@ -25,7 +25,8 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds.
  * Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: pipeline-setup-start carries the agent
  * and optionally the billing, the record's `billing` is `null` until chosen, each vendor names its `billingOptions`, and a job is not
- * launched `billing-not-offered` when its billing names a way its vendor does not bill. The owner decided it is a minor.
+ * launched `billing-not-offered` when its billing names a way its vendor does not bill; pipeline-agent-set optionally carries a billing to
+ * store with the agent. The owner decided it is a minor.
  * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.

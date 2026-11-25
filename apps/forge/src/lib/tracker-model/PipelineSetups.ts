@@ -180,7 +180,7 @@ function billingCopyOf(billing: PipelineBilling): PipelineBilling {
 }
 
 /** The billing as the record keeps it: only one of the ways the agent's vendor bills, refused `billing-not-offered` otherwise. */
-function offeredBillingCopyOf(setupId: string, billing: PipelineBilling, agent: Readonly<PipelineAgent>, offeredBillingModesOf: OfferedBillingModesOf): PipelineBilling {
+function offeredBillingCopyOf(setupId: string | null, billing: PipelineBilling, agent: Readonly<PipelineAgent>, offeredBillingModesOf: OfferedBillingModesOf): PipelineBilling {
   if (!offeredBillingModesOf(agent.vendor).includes(billing.mode)) {
     throw new BoardRefusal({
       reason: 'billing-not-offered', setupId, vendor: agent.vendor, mode: billing.mode
@@ -362,15 +362,38 @@ export class PipelineSetups {
   }
 
   /**
-   * The open record's agent follows a change of the forge's agent, so its pipeline agent runs on the same one, and its billing is asked
-   * again as `setSetupAgent` asks it; the agent's change is not logged twice.
+   * The billing a change of the forge's agent stores with it: the one sent, else none, the stored one kept. Refused `billing-not-offered`
+   * when the billing that would stand is not one of the new vendor's ways: the one sent, else the stored pipeline's and an open update or
+   * advise record's, which has no billing step to ask it again.
    */
-  followAgentChange(agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): LogRecord[] {
+  agentChangeBillingOf(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf): PipelineBilling | undefined {
+    if (billing !== undefined) return offeredBillingCopyOf(null, billing, agent, offeredBillingModesOf);
+    const storedBilling = this.records.pipeline?.billing;
+    if (storedBilling !== undefined) offeredBillingCopyOf(null, storedBilling, agent, offeredBillingModesOf);
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict === 'readable' && reading.setup.mode !== 'setup' && reading.setup.billing !== null) {
+      offeredBillingCopyOf(reading.setup.setupId, reading.setup.billing, agent, offeredBillingModesOf);
+    }
+    return undefined;
+  }
+
+  /**
+   * The open record's agent follows a change of the forge's agent, so its pipeline agent runs on the same one; the agent's change is not
+   * logged twice. A first setup's billing is asked again as `setSetupAgent` asks it; an update or advise record, whose view has no billing
+   * step, takes the billing the change stored with the agent, if any, which `agentChangeBillingOf` judged.
+   */
+  followAgentChange(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): LogRecord[] {
     const reading = this.records.pipelineSetupReading;
     if (reading.verdict !== 'readable') return [];
     reading.setup.agent = agentCopyOf(agent);
+    if (reading.setup.mode !== 'setup' && billing !== undefined) reading.setup.billing = billingCopyOf(billing);
     this.store(reading.setup);
-    return this.billingAskedAgainRecords(reading.setup, offeredBillingModesOf, at);
+    return reading.setup.mode === 'setup' ? this.billingAskedAgainRecords(reading.setup, offeredBillingModesOf, at) : [];
+  }
+
+  /** The billing a first setup's agent change sends with it, judged before the agent changes, so a refusal leaves the record as it was. */
+  requireSetupBillingOffered(setupId: string, agent: PipelineAgent, billing: PipelineBilling, offeredBillingModesOf: OfferedBillingModesOf): void {
+    offeredBillingCopyOf(setupId, billing, agent, offeredBillingModesOf);
   }
 
   /** The open record's draft follows a change of the forge's tools, so its Apply never writes the older list back; nothing is logged twice. */

@@ -672,8 +672,12 @@ whose Continue launches the pipeline agent. The record's `billing` is `null` unt
 agent to a vendor that does not bill that way cleared it. Each of the board document's `agent.vendors` names its
 `billingOptions`, `{ mode, keyVariableName, capsEachLaunch }`, its default first and none for a vendor forge cannot run,
 so a client draws the billing of the chosen agent without naming a vendor. A billing a vendor does not bill by is
-refused `billing-not-offered`, and a job launched under one stands not launched `billing-not-offered`. The owner
-decided this is a minor; no endpoint changes its version.
+refused `billing-not-offered`, and a job launched under one stands not launched `billing-not-offered`.
+`pipeline-agent-set` optionally carries a `billing`, stored with the agent; without one, a stored billing, or an open
+update or advise record's, that the new vendor does not bill by is refused `billing-not-offered`, its `setupId` `null`
+for the stored one. `pipeline-setup-resume` of a first setup whose `billing` is `null` is refused
+`setup-resume-before-billing`, since no pipeline agent starts before a billing is chosen. The owner decided this is a
+minor; no endpoint changes its version.
 
 The system version is set by interoperability, never by a package's version:
 

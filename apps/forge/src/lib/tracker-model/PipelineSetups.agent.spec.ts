@@ -4,7 +4,9 @@
  * vendor bills, and none is taken while a record names no agent; a change of agent keeps a billing the new vendor bills by and otherwise
  * clears it and asks the billing step again, every later done step needing a recheck; an update takes the stored pipeline's agent; Apply
  * stores the record's agent and its billing, an update with none keeping the stored one; the forge's agent goes into the stored pipeline and
- * the open record alike, or into the record alone while no pipeline is stored; the tools need a stored pipeline, and go into an open
+ * the open record alike, or into the record alone while no pipeline is stored, and a billing its new vendor does not bill by is never kept
+ * silently: the stored pipeline's and an update or advise record's, which have no billing step, refuse the change unless a billing the
+ * vendor offers comes with it, while a first setup's record asks its billing step again; the tools need a stored pipeline, and go into an open
  * update's draft too, so its Apply keeps them; and a launch refused for the agent's program stands on its job, logged once, until it is
  * tried again.
  */
@@ -152,26 +154,57 @@ describe('the forge\'s agent and tools', () => {
   test('the agent goes into the stored pipeline and the open record alike, and nothing else of the pipeline changes', () => {
     const { board } = boardFixture({ pipeline: STORED_PIPELINE });
     board.openSetup(UPDATE_OPENING, AT);
-    const { logged } = board.setAgent(PINNED_AGENT, EVERY_BILLING_MODE_OFFERED, AT);
+    const { logged } = board.setAgent(PINNED_AGENT, undefined, EVERY_BILLING_MODE_OFFERED, AT);
     expect(logged).toEqual([{ at: AT, kind: 'pipeline-agent-set', fields: { vendor: 'example-agent', program: '/opt/example/bin/agent' } }]);
     expect([board.pipeline()?.agent, board.pipelineSetup()?.agent, board.agentOfForge()]).toEqual([PINNED_AGENT, PINNED_AGENT, PINNED_AGENT]);
     expect(PipelineUtil.contentHashOf(board.pipeline() ?? STORED_PIPELINE)).toBe(PipelineUtil.contentHashOf(STORED_PIPELINE));
   });
 
-  test('the open record follows a forge agent that does not bill its way: its billing is cleared and its billing step asked again', () => {
+  test('a forge agent that does not bill the stored way is refused billing-not-offered, with nothing changed, unless a way it bills comes with it', () => {
+    const stored: Pipeline = { ...STORED_PIPELINE, billing: { mode: 'api' } };
+    const { board } = boardFixture({ pipeline: stored });
+    expect(refusalDetailOf(() => board.setAgent(LOGIN_ONLY_AGENT, undefined, LOGIN_ONLY_FOR_ITS_VENDOR, AT))).toEqual({
+      reason: 'billing-not-offered', setupId: null, vendor: 'login-only-agent', mode: 'api'
+    });
+    expect(board.pipeline()).toEqual(stored);
+    expect(refusalDetailOf(() => board.setAgent(LOGIN_ONLY_AGENT, { mode: 'api' }, LOGIN_ONLY_FOR_ITS_VENDOR, AT))).toMatchObject({ reason: 'billing-not-offered' });
+
+    board.setAgent(LOGIN_ONLY_AGENT, { mode: 'subscription' }, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
+    expect([board.pipeline()?.agent, board.pipeline()?.billing]).toEqual([LOGIN_ONLY_AGENT, { mode: 'subscription' }]);
+  });
+
+  test('an open update or advise record has no billing step: its billing is judged with the agent change, and takes the billing sent', () => {
     const { board } = boardFixture({ pipeline: STORED_PIPELINE });
     board.openSetup({ ...UPDATE_OPENING, billing: { mode: 'api' } }, AT);
-    const { logged } = board.setAgent(LOGIN_ONLY_AGENT, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
+    expect(refusalDetailOf(() => board.setAgent(LOGIN_ONLY_AGENT, undefined, LOGIN_ONLY_FOR_ITS_VENDOR, AT))).toEqual({
+      reason: 'billing-not-offered', setupId: 'S1', vendor: 'login-only-agent', mode: 'api'
+    });
+
+    const { logged } = board.setAgent(LOGIN_ONLY_AGENT, { mode: 'subscription' }, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
+    expect(logged.map((record) => record.kind)).toEqual(['pipeline-agent-set']);
+    expect([board.pipelineSetup()?.agent, board.pipelineSetup()?.billing, board.pipelineSetup()?.currentStep])
+      .toEqual([LOGIN_ONLY_AGENT, { mode: 'subscription' }, 'design']);
+  });
+
+  test('a first setup\'s record beside a stored pipeline follows a forge agent that does not bill its way by asking its billing step again', () => {
+    const { board } = boardFixture({ pipeline: STORED_PIPELINE });
+    const { setupId } = board.openSetup({ ...WITHOUT_BILLING, billing: { mode: 'api' } }, AT).setup;
+    board.continueSetupStep(setupId, 'research', AT);
+    const { logged } = board.setAgent(LOGIN_ONLY_AGENT, undefined, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
     expect(logged.map((record) => record.kind)).toEqual(['pipeline-agent-set', 'pipeline-setup-step-moved']);
     expect([board.pipelineSetup()?.billing, board.pipelineSetup()?.currentStep]).toEqual([null, 'billing']);
   });
 
   test('with no stored pipeline the open record alone takes the agent, and with neither it is refused', () => {
     const { board } = boardFixture();
-    expect(refusalDetailOf(() => board.setAgent(PINNED_AGENT, EVERY_BILLING_MODE_OFFERED, AT))).toEqual({ reason: 'agent-without-pipeline' });
+    expect(refusalDetailOf(() => board.setAgent(PINNED_AGENT, undefined, EVERY_BILLING_MODE_OFFERED, AT))).toEqual({ reason: 'agent-without-pipeline' });
     board.openSetup(WITHOUT_BILLING, AT);
-    board.setAgent(PINNED_AGENT, EVERY_BILLING_MODE_OFFERED, AT);
+    board.setAgent(PINNED_AGENT, undefined, EVERY_BILLING_MODE_OFFERED, AT);
     expect([board.pipeline(), board.pipelineSetup()?.agent, board.agentOfForge()]).toEqual([null, PINNED_AGENT, PINNED_AGENT]);
+    expect(refusalDetailOf(() => board.setAgent(LOGIN_ONLY_AGENT, { mode: 'api' }, LOGIN_ONLY_FOR_ITS_VENDOR, AT))).toMatchObject({ reason: 'billing-not-offered', setupId: 'S1' });
+    expect(board.pipelineSetup()?.agent).toEqual(PINNED_AGENT);
+    board.setAgent(LOGIN_ONLY_AGENT, { mode: 'subscription' }, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
+    expect([board.pipelineSetup()?.agent, board.pipelineSetup()?.billing]).toEqual([LOGIN_ONLY_AGENT, { mode: 'subscription' }]);
   });
 
   test('the tools need a stored pipeline, and null removes the list', () => {
@@ -202,7 +235,7 @@ describe('a launch that is not launched', () => {
     expect(board.recordNotLaunched('J1', notLaunched, AT).logged).toEqual([]);
     expect(board.jobById('J1')?.notLaunched).toEqual(notLaunched);
 
-    expect(board.setAgent(PINNED_AGENT, EVERY_BILLING_MODE_OFFERED, AT).logged.map((record) => record.kind)).toEqual(['pipeline-agent-set', 'job-launch-retried']);
+    expect(board.setAgent(PINNED_AGENT, undefined, EVERY_BILLING_MODE_OFFERED, AT).logged.map((record) => record.kind)).toEqual(['pipeline-agent-set', 'job-launch-retried']);
     expect(board.jobById('J1')?.notLaunched).toBeUndefined();
     expect(board.retryNotLaunched(AT).logged).toEqual([]);
   });

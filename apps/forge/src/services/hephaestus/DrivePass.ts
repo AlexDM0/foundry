@@ -211,6 +211,11 @@ interface ApiBillingKeyMissing {
   readonly apiBillingKeyMissingFor: string;
 }
 
+/** A first setup's pipeline agent before its record holds a billing: it launches under none, and the next pass tries it again. */
+interface SetupBillingNotChosen {
+  readonly setupBillingNotChosenFor: string;
+}
+
 /** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
 interface AirlockConflictsUnknown {
   readonly airlockConflictsUnknownFor: string;
@@ -753,6 +758,12 @@ function openApiKeyDecisionIdsOf(board: Board): string[] {
   return board.decisions().filter((decision) => decision.kind === API_KEY_DECISION_DRAFT.kind).map((decision) => decision.id);
 }
 
+/** The stored pipeline's billing, or the open setup record's, which bills its pipeline agent before any pipeline is stored, needs a key not set. */
+function aBillingMissesItsKey(request: DrivePassRequest, board: Board): boolean {
+  const billings = [board.pipeline()?.billing, board.pipelineSetup()?.billing ?? undefined];
+  return billings.some((billing) => AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, billing, request.agentVariableIsSet).verdict === 'key-missing');
+}
+
 /** The key is set, or the billing no longer needs one: the open decision asks User for nothing. */
 function withdrawApiKeyDecisions(board: Board, at: string): void {
   for (const decisionId of openApiKeyDecisionIdsOf(board)) board.withdrawDecision(decisionId, API_KEY_DECISION_WITHDRAWN_REASON, at);
@@ -1006,7 +1017,8 @@ function chosenProgramResolutionOf(request: DrivePassRequest, board: Board, job:
 /** A program found launches nothing under a billing its vendor does not bill by: that stands as the job's not-launched fact, tried each sweep. */
 function billedResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>, programPath: string): AgentProgramResolution {
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
-  const readiness = AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, billing, () => true);
+  if (billing.verdict === 'not-chosen') return { verdict: 'found', programPath };
+  const readiness = AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, billing.billing, () => true);
   if (readiness.verdict === 'not-offered') return { verdict: 'not-launched', notLaunched: { cause: 'billing-not-offered', programPath } };
   return { verdict: 'found', programPath };
 }
@@ -1032,10 +1044,17 @@ async function launchAgentChild(
   trackerId: string,
   job: Readonly<Job>,
   effectReadings: EffectReadings,
-): Promise<LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
+): Promise<
+  LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | SetupBillingNotChosen | AirlockConflictsUnknown | TalosDidNotLaunch
+  | SessionConfinementRefused | null
+  > {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
-  const billingReadiness = AgentBillingUtil.launchReadinessOf(agentAdapter.billingOptions, billing, request.agentVariableIsSet);
+  if (billing.verdict === 'not-chosen') {
+    request.log(`The pipeline agent of job ${job.id} did not launch: its setup has no billing yet, and it launches once one is chosen.`);
+    return { setupBillingNotChosenFor: job.id };
+  }
+  const billingReadiness = AgentBillingUtil.launchReadinessOf(agentAdapter.billingOptions, billing.billing, request.agentVariableIsSet);
   if (billingReadiness.verdict === 'key-missing') return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job, board.pipelineSetup());
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -1117,7 +1136,7 @@ async function launchAgentChild(
     confinement:       launchFacts.confinement,
     jobFilesDirectory: jobFolder,
     reportSchema:      reportSchemaOf(board, job),
-    ...(billing === undefined ? {} : { billing }),
+    ...(billing.billing === undefined ? {} : { billing: billing.billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
     const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(location.repositoryRoot), job.id);
@@ -1757,15 +1776,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
+      else if ('setupBillingNotChosenFor' in refusal) continue;
       else if ('notLaunchedJobId' in refusal) agentProgramRefusals.push(refusal);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
     const apiKeyDecisionIsDue = apiBillingKeyIsMissing && openApiKeyDecisionIdsOf(written.board).length === 0;
-    const storedBilling = written.board.pipeline()?.billing;
-    const apiKeyIsNotMissing = AgentBillingUtil.launchReadinessOf(request.agentAdapter.billingOptions, storedBilling, request.agentVariableIsSet).verdict !== 'key-missing';
-    const apiKeyDecisionIsStale = apiKeyIsNotMissing && openApiKeyDecisionIdsOf(written.board).length > 0;
+    const apiKeyDecisionIsStale = !apiBillingKeyIsMissing && !aBillingMissesItsKey(request, written.board)
+      && openApiKeyDecisionIdsOf(written.board).length > 0;
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
       || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0;

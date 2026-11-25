@@ -271,6 +271,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'billing-cap-not-positive':         { reason: 'billing-cap-not-positive', maxBudgetUsd: 0 },
   'setup-agent-not-chosen':           { reason: 'setup-agent-not-chosen', setupId: 'S1' },
   'setup-billing-not-chosen':         { reason: 'setup-billing-not-chosen', setupId: 'S1' },
+  'setup-resume-before-billing':      { reason: 'setup-resume-before-billing', setupId: 'S1' },
   'setup-billing-before-agent':       { reason: 'setup-billing-before-agent', setupId: 'S1' },
   'billing-not-offered':              {
     reason: 'billing-not-offered', setupId: 'S1', vendor: 'example-agent', mode: 'api'

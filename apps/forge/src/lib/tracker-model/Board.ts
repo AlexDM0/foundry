@@ -1048,18 +1048,22 @@ export class Board {
   }
 
   /**
-   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one, its billing
-   * asked again when the new vendor does not bill that way. With no stored pipeline an open record takes it alone; with neither it is
-   * refused `agent-without-pipeline`. Every launch it refused is tried again.
+   * The forge's agent: the stored pipeline's, and the open setup record's with it, so its pipeline agent runs on the same one. A billing
+   * sent with it is stored with it; with none, a stored billing the new vendor does not bill by is refused `billing-not-offered`, since
+   * the billing is User's choice. A first setup's record asks its billing again instead. With no stored pipeline an open record takes the
+   * agent alone; with neither it is refused `agent-without-pipeline`. Every launch it refused is tried again.
    */
-  setAgent(agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
+  setAgent(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): Logged {
     const setup = this.pipelineSetup();
     if (this.records.pipeline === null && setup !== null) {
+      if (billing !== undefined) this.pipelineSetups.requireSetupBillingOffered(setup.setupId, agent, billing, offeredBillingModesOf);
       const changed = this.pipelineSetups.setSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
-      return { logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+      const billed = billing === undefined ? [] : this.pipelineSetups.setSetupBilling(setup.setupId, billing, offeredBillingModesOf, at).logged;
+      return { logged: [...changed.logged, ...billed, ...this.jobRules.retryNotLaunched(at).logged] };
     }
-    const changed = this.trackerChanges.setAgent(agent, at);
-    const followed = this.pipelineSetups.followAgentChange(agent, offeredBillingModesOf, at);
+    const keptBilling = this.records.pipeline === null ? undefined : this.pipelineSetups.agentChangeBillingOf(agent, billing, offeredBillingModesOf);
+    const changed = this.trackerChanges.setAgent(agent, keptBilling, at);
+    const followed = this.pipelineSetups.followAgentChange(agent, keptBilling, offeredBillingModesOf, at);
     return { logged: [...changed.logged, ...followed, ...this.jobRules.retryNotLaunched(at).logged] };
   }
 

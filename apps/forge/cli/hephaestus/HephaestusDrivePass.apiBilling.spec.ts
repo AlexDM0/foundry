@@ -3,8 +3,9 @@
  * session. What matters: with subscription billing, or none set, a session gets neither API variable of Hephaestus; with API billing the
  * launch names `ANTHROPIC_API_KEY` for Talos to copy and holds no key; a planted key is in no file of the data or monitor folder;
  * a budget reaches the launch arguments; and API billing with no key starts no session and opens one decision naming the variable and the
- * set-up section, which a Hephaestus started again with the key set, or with billing no longer `api`, withdraws; API billing on an agent
- * that bills only by its login starts no session and stands not launched `billing-not-offered`. No case calls the API or holds a real key.
+ * set-up section, which a Hephaestus started again with the key set, or with billing no longer `api`, withdraws, and which a first setup's
+ * record billed `api` keeps open pass after pass; API billing on an agent that bills only by its login starts no session and stands not
+ * launched `billing-not-offered`. No case calls the API or holds a real key.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
@@ -245,6 +246,16 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     const buildJobNow = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
     expect(buildJobNow?.notLaunched?.cause).toBe('billing-not-offered');
     expect(decisionsOfKind('api-key-not-set')).toEqual([]);
+  });
+
+  test('a first setup billed api with no key keeps its one decision open pass after pass, though the stored pipeline needs no key', async () => {
+    await run(['pipeline', 'setup', '--agent', process.execPath, '--billing', 'api']);
+    const drivePass = drivePassWith(false);
+    for (let pass = 0; pass < 4; pass += 1) await passOnce(drivePass);
+
+    expect(decisionsOfKind('api-key-not-set')).toHaveLength(1);
+    const apiKeyDecisionOpenings = logRecords().filter((record) => record.kind === 'decision-opened' && record.fields['kind'] === 'api-key-not-set');
+    expect([apiKeyDecisionOpenings.length, logRecords().some((record) => record.kind === 'decision-withdrawn')]).toEqual([1, false]);
   });
 
   test.each([

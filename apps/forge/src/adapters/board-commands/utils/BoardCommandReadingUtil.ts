@@ -293,7 +293,7 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
   }),
   'pipeline-apply-cancel':      (body) => ({ kind: 'pipeline-apply-cancel', setupId: textAt(body, 'setupId') }),
   'pipeline-assistant-set':     (body) => ({ kind: 'pipeline-assistant-set', on: booleanAt(body, 'on') }),
-  'pipeline-agent-set':         (body) => ({ kind: 'pipeline-agent-set', agent: agentOf(valueAt(body, 'agent')) }),
+  'pipeline-agent-set':         (body) => ({ kind: 'pipeline-agent-set', agent: agentOf(valueAt(body, 'agent')), ...optionalBillingAt(body) }),
   'pipeline-check':             (body) => ({ kind: 'pipeline-check', setupId: textAt(body, 'setupId') }),
   'pipeline-constitution-edit': (body) => ({
     kind:     'pipeline-constitution-edit',

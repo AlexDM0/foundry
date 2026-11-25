@@ -2,12 +2,13 @@
  * `pipeline setup` opens the setup record of a first pipeline with the agent's program User chose, run once first: at the billing step, or
  * with `--billing` past it with its pipeline agent launched; a client's control sends the same command.
  */
-import { agentFrom }                      from '../AgentProgramWords.ts';
-import type { CommandContext }            from '../CommandContext.ts';
-import { refuseUsage }                    from '../RecordedIncidentMove.ts';
-import type { ArgumentParser }            from '../arguments/ArgumentParser.ts';
-import { applySetupCommand, billingFrom } from './SetupCommandLine.ts';
-import { PIPELINE_USAGE }                 from './constants/PipelineUsage.ts';
+import { agentFrom }           from '../AgentProgramWords.ts';
+import { billingFrom }         from '../BillingWords.ts';
+import type { CommandContext } from '../CommandContext.ts';
+import { refuseUsage }         from '../RecordedIncidentMove.ts';
+import type { ArgumentParser } from '../arguments/ArgumentParser.ts';
+import { applySetupCommand }   from './SetupCommandLine.ts';
+import { PIPELINE_USAGE }      from './constants/PipelineUsage.ts';
 
 export async function startPipelineSetup(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = PIPELINE_USAGE.setup;

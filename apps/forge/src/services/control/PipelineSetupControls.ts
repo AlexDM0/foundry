@@ -86,7 +86,7 @@ function valueIsATextList(value: unknown): value is string[] {
 }
 
 /** Only a mode and a budget, as `pipeline.json` stores them; a cap that is no positive number is the Board's `billing-cap-not-positive`. */
-function billingFieldOf(command: SentCommand): PipelineBilling {
+export function billingFieldOf(command: SentCommand): PipelineBilling {
   const value = fieldOf(command, 'billing');
   if (!JsonRecordUtil.valueIsAPlainObject(value) || Object.keys(value).some((key) => !BILLING_KEYS.includes(key))) refuseMalformedSetupCommand(command.kind, 'billing');
   const { mode, maxBudgetUsd } = value;
@@ -410,12 +410,14 @@ function mainLineMoveOf(repositoryRoot: string, snapshotCommit: string | null): 
 /**
  * Opens the record's agent again. When main moved past the snapshot, the record takes main's tip as its snapshot commit and the changed
  * paths, research needs a recheck, and the message names the paths; Hephaestus checks the snapshot out at that commit before the
- * agent's next launch. An agent that ended other than by a stop is replaced by a new one, which starts from the record.
+ * agent's next launch. An agent that ended other than by a stop is replaced by a new one, which starts from the record. A first setup with
+ * no billing is refused `setup-resume-before-billing`: no pipeline agent starts before the billing step chose one.
  */
 function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const setup   = change.board.pipelineSetup();
   if (setup?.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
+  if (setup.mode === 'setup' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-resume-before-billing', setupId });
   const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
   if (setup.applyRequest !== null && pendingStates.includes(setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
   const move    = mainLineMoveOf(change.workspace.rootDirectory, setup.snapshotCommit);

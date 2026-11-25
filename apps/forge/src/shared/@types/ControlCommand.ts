@@ -204,7 +204,7 @@ export type ControlCommand =
   /** The board's switch for the Assistant; off also winds a live Assistant down at the end of its turn. */
   | { kind: 'pipeline-assistant-set'; on: boolean }
   // The agent's program was checked, and each tool found, before the command reached the board.
-  | { kind: 'pipeline-agent-set'; agent: PipelineAgent }
+  | { kind: 'pipeline-agent-set'; agent: PipelineAgent; billing?: PipelineBilling }
   | { kind: 'pipeline-tools-set'; tools: PipelineTool[] | null }
   | { kind: 'agent-look-again' }
   /** The whole reach, each a repository path leading with `/`; an empty list clears it. */

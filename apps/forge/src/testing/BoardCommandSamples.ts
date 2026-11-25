@@ -87,9 +87,13 @@ export const BOARD_COMMAND_SAMPLES: BoardCommandSamples = {
   'pipeline-apply':        {
     kind: 'pipeline-apply', setupId: 'S1', draftRevision: 3, resumesBoard: true
   },
-  'pipeline-apply-cancel':      { kind: 'pipeline-apply-cancel', setupId: 'S1' },
-  'pipeline-assistant-set':     { kind: 'pipeline-assistant-set', on: false },
-  'pipeline-agent-set':         { kind: 'pipeline-agent-set', agent: { vendor: 'example-agent', program: { pinned: '/opt/example/bin/agent' } } },
+  'pipeline-apply-cancel':  { kind: 'pipeline-apply-cancel', setupId: 'S1' },
+  'pipeline-assistant-set': { kind: 'pipeline-assistant-set', on: false },
+  'pipeline-agent-set':     {
+    kind:    'pipeline-agent-set',
+    agent:   { vendor: 'example-agent', program: { pinned: '/opt/example/bin/agent' } },
+    billing: { mode: 'api', maxBudgetUsd: 4 },
+  },
   'pipeline-tools-set':         { kind: 'pipeline-tools-set', tools: [{ name: 'bun', path: '/opt/example/bin/bun' }, { name: 'git', path: '/usr/bin/git' }] },
   'agent-look-again':           { kind: 'agent-look-again' },
   'pipeline-check':             { kind: 'pipeline-check', setupId: 'S1' },

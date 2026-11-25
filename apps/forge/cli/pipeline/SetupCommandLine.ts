@@ -2,7 +2,6 @@
  * What the `pipeline` verbs share: the ids and the revision they read, and the one way they apply a setup command (relayed under a job)
  * and print the record it left.
  */
-import type { PipelineBilling }          from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileCommandKind }   from '../../src/services/control/GateProfileControls.ts';
 import type { PipelineAgentControlKind } from '../../src/services/control/PipelineAgentControls.ts';
 import type { PipelineSetupCommandKind } from '../../src/services/control/PipelineSetupControls.ts';
@@ -44,20 +43,6 @@ export function revisionFrom(commandArguments: ArgumentParser, usage: string): n
   const written = commandArguments.option('revision');
   if (written === undefined || !WHOLE_NUMBER_PATTERN.test(written)) refuseUsage('Give the revision the edit starts from, as --revision 3.', usage);
   return Number(written);
-}
-
-/** `subscription`, or `api` with an optional cap; a cap that is no positive number is the Board's to refuse, with its reason. */
-export function billingFrom(commandArguments: ArgumentParser, mode: string | undefined, usage: string): PipelineBilling {
-  const cap = commandArguments.option('max-budget-usd');
-  if (mode === 'subscription') {
-    if (cap !== undefined) refuseUsage('--max-budget-usd goes only with api billing.', usage);
-    return { mode };
-  }
-  if (mode !== 'api') refuseUsage('Name the billing: subscription or api.', usage);
-  if (cap === undefined) return { mode };
-  const maxBudgetUsd = Number(cap);
-  if (cap.trim() === '' || !Number.isFinite(maxBudgetUsd)) refuseUsage(`"${cap}" is not a number of dollars.`, usage);
-  return { mode, maxBudgetUsd };
 }
 
 /** Relays under a job; otherwise applies in a hold and prints the record as left, or under `--json` the record and the log lines. */

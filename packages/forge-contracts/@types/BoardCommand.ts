@@ -99,8 +99,11 @@ export type ForgeBoardCommand =
   | { readonly kind: 'merge-accept'; readonly ticketReference: string }
   | { readonly kind: 'merge-update'; readonly ticketReference: string }
   | { readonly kind: 'pipeline-agent-advise'; readonly entity?: EntityKey }
-  /** The forge's agent, kept only once its program runs; the open setup record follows it. From forge 4.1. */
-  | { readonly kind: 'pipeline-agent-set'; readonly agent: PipelineAgentDocument }
+  /**
+   * The forge's agent, kept only once its program runs; the open setup record follows it. From forge 4.1. `billing`, from forge 4.3, is
+   * stored with it; without one, a stored billing the new vendor does not bill by is refused `billing-not-offered`.
+   */
+  | { readonly kind: 'pipeline-agent-set'; readonly agent: PipelineAgentDocument; readonly billing?: PipelineBillingDocument }
   | { readonly kind: 'pipeline-apply'; readonly setupId: string; readonly draftRevision: number; readonly resumesBoard: boolean }
   | { readonly kind: 'pipeline-apply-cancel'; readonly setupId: string }
   /** The board's switch for the Assistant; off also winds a live Assistant down at the end of its turn. */

@@ -212,7 +212,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.setNoGates(at);
   board.setApproval('tickets', false, at);
   board.setAssistant(true, at);
-  board.setAgent(EXAMPLE_PIPELINE_AGENT, EVERY_BILLING_MODE_OFFERED, at);
+  board.setAgent(EXAMPLE_PIPELINE_AGENT, undefined, EVERY_BILLING_MODE_OFFERED, at);
   board.setTools([{ name: 'bun', path: '/opt/example/bin/bun' }], at);
   board.setReach(['/packages/shared'], at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);

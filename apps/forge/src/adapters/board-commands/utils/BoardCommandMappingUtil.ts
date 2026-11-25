@@ -218,8 +218,12 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
   'merge-accept':          (command) => ({ kind: 'merge-accept', ticketReference: command.ticketReference }),
   'merge-update':          (command) => ({ kind: 'merge-update', ticketReference: command.ticketReference }),
   'pipeline-agent-advise': (command) => ({ kind: 'pipeline-agent-advise', ...optionalOf('entity', command.entity) }),
-  'pipeline-agent-set':    (command) => ({ kind: 'pipeline-agent-set', agent: agentOf(command.agent) }),
-  'pipeline-apply':        (command) => ({
+  'pipeline-agent-set':    (command) => ({
+    kind:  'pipeline-agent-set',
+    agent: agentOf(command.agent),
+    ...optionalOf('billing', command.billing === undefined ? undefined : { ...command.billing }),
+  }),
+  'pipeline-apply': (command) => ({
     kind: 'pipeline-apply', setupId: command.setupId, draftRevision: command.draftRevision, resumesBoard: command.resumesBoard
   }),
   'pipeline-apply-cancel':      (command) => ({ kind: 'pipeline-apply-cancel', setupId: command.setupId }),

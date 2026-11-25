@@ -143,9 +143,19 @@ function launchAgentOf(board: Board, job: Readonly<Job>): PipelineAgent | null {
   return (isPipelineAgentJob(job) ? servedSetupOf(board, job)?.agent : null) ?? board.agentOfForge();
 }
 
-/** The billing a pipeline agent launches under: its record's, which the setup chose before any pipeline exists. */
-function launchBillingOf(board: Board, job: Readonly<Job>): PipelineBilling | undefined {
-  return (isPipelineAgentJob(job) ? servedSetupOf(board, job)?.billing : undefined) ?? board.pipeline()?.billing;
+/** `not-chosen`: a first setup's pipeline agent before its billing step chose one, which launches under no billing. */
+export type LaunchBilling =
+  | { readonly verdict: 'chosen'; readonly billing: PipelineBilling | undefined }
+  | { readonly verdict: 'not-chosen' };
+
+/**
+ * The billing a job launches under: a pipeline agent's record's, which the setup chose before any pipeline exists, else the stored
+ * pipeline's. Fails closed: a first setup's record with no billing never falls back to the vendor's default.
+ */
+function launchBillingOf(board: Board, job: Readonly<Job>): LaunchBilling {
+  const setup = isPipelineAgentJob(job) ? servedSetupOf(board, job) : null;
+  if (setup?.mode === 'setup' && setup.billing === null) return { verdict: 'not-chosen' };
+  return { verdict: 'chosen', billing: setup?.billing ?? board.pipeline()?.billing };
 }
 
 /**

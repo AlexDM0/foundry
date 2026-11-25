@@ -13,6 +13,7 @@ import {
   type Pipeline,
   type PipelineAgent,
   type PipelineApproval,
+  type PipelineBilling,
   type PipelineGate,
   type PipelineStep,
   type PipelineTool
@@ -209,14 +210,15 @@ export class TrackerChanges {
     }, logged);
   }
 
-  /** The stored pipeline's agent; the caller first checked that one is stored. */
-  setAgent(agent: Readonly<PipelineAgent>, at: string): PipelineChanged {
+  /** The stored pipeline's agent, with the billing sent with it, which the caller judged against the agent's vendor. */
+  setAgent(agent: Readonly<PipelineAgent>, billing: Readonly<PipelineBilling> | undefined, at: string): PipelineChanged {
     this.refusePendingApply();
     if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'agent-without-pipeline' });
     const program = 'pinned' in agent.program ? agent.program.pinned : 'machine';
     const logged = [this.records.logger.log({ kind: 'pipeline-agent-set', fields: { vendor: agent.vendor, program } }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.agent = { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
+      if (billing !== undefined) pipeline.billing = { ...billing };
     }, logged);
   }
 

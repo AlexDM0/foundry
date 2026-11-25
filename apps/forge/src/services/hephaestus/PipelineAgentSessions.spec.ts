@@ -1,9 +1,10 @@
 /**
  * The pipeline agent as a session, on Hephaestus's side. What matters: each turn end runs Customs on the setup's snapshot, and a refusal marks the
  * record's snapshot touched, which Apply refuses, and opens one incident, never a second one for the same touch; a resume clears the mark; with no
- * snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's snapshot commit, its billing,
- * and the facts its first message is built from (the record and the installed default constitution), so a fresh session in place of a replaced one
- * starts from the same; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a resume moved it, and takes the
+ * snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's snapshot commit, its billing
+ * (a first setup's with none launches under none, never the vendor's default), and the facts its first message is built from (the record and
+ * the installed default constitution), so a fresh session in place of a replaced one starts from the same; a launch adds the record's snapshot
+ * at that commit, or checks an existing one out at it when a resume moved it, and takes the
  * snapshot start again. A snapshot no open record and no live agent holds is removed once per Hephaestus, and one the removal leaves is named as a
  * leftover. A namespaced tracker's turn end lets a ref outside its own move. On a forge over entities, an entity's session is served
  * from the record's one snapshot, its facts name its entity, and a record whose sessions are only at entities still pins its snapshot
@@ -235,11 +236,47 @@ test('the record gives its agent the billing, before any pipeline is stored, and
 
   const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, factsLaunch());
 
-  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ verdict: 'chosen', billing: { mode: 'api', maxBudgetUsd: 5 } });
   expect(facts?.mode).toBe('setup');
   expect(facts?.setup).toEqual(board.pipelineSetup());
   expect(facts?.installedConstitution).toBe('# Constitution\n');
   expect(facts?.firstLine).toBe(fakeAgentAdapter().instructionBundleLineOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL, ''));
+});
+
+test('a first setup\'s agent whose record holds no billing launches under none, never the vendor\'s default, until one is chosen', () => {
+  const { board } = boardFixture();
+  board.openSetup({
+    mode:                       'setup',
+    billing:                    null,
+    agent:                      EXAMPLE_PIPELINE_AGENT,
+    offeredBillingModesOf:      EVERY_BILLING_MODE_OFFERED,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
+  }, AT);
+  const { job } = board.startPipelineAgent(AT);
+  board.attachSetupAgent(SETUP_ID, job.id, null);
+
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ verdict: 'not-chosen' });
+  board.setSetupBilling(SETUP_ID, { mode: 'subscription' }, EVERY_BILLING_MODE_OFFERED, AT);
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ verdict: 'chosen', billing: { mode: 'subscription' } });
+});
+
+test('an update\'s agent over a pipeline that stores no billing launches under the stored pipeline\'s none', () => {
+  const { board } = boardFixture();
+  board.setNoGates(AT);
+  board.openSetup({
+    mode:                       'update',
+    billing:                    null,
+    agent:                      null,
+    replacesUnreadablePipeline: false,
+    mainConstitution:           null,
+    storedAnnotations:          [],
+  }, AT);
+  const { job } = board.startPipelineAgent(AT);
+  board.attachSetupAgent(SETUP_ID, job.id, null);
+
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ verdict: 'chosen', billing: undefined });
 });
 
 test('an agent no record names advises on the stored pipeline, and a missing installed constitution is no fact', () => {
@@ -288,7 +325,7 @@ test('an entity\'s session serves its entity\'s part of the record, from the rec
   expect(PipelineAgentSessions.servedLevelOf(board, jobId)).toMatchObject({ entityKey: null });
   expect(PipelineAgentSessions.servedLevelOf(board, job.id)).toMatchObject({ entityKey: 'web' });
   expect(PipelineAgentSessions.servedLevelOf(board, 'J99')).toBeNull();
-  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ verdict: 'chosen', billing: { mode: 'api', maxBudgetUsd: 5 } });
   expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, factsLaunch())).toMatchObject({ mode: 'setup', entity: 'web' });
   expect(PipelineAgentSessions.pipelineAgentFactsOf(board, { ...job, id: jobId }, factsLaunch())?.entity).toBeNull();
 });
