@@ -174,6 +174,40 @@ describe('the segmented control', () => {
     expect([looks[0]?.color, looks[1]?.color === disabledInk]).toEqual([disabledInk, false]);
   });
 
+  test('the pressed segment is a chip raised on the tray\'s wash, through the segment tokens, in both themes', () => {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = STYLESHEETS_OF_THE_CONTROL.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+    document.head.append(stylesheet);
+    const looksInTheme = (theme: 'light' | 'dark') => {
+      document.documentElement.dataset['theme'] = theme;
+      render(
+        <>
+          <SegmentedControl accessibleName="Finished work" options={OPTIONS} selected="day" onSelect={() => undefined} />
+          <span style={{ color: 'var(--segment-pressed-ink)', background: 'var(--segment-pressed-fill)' }}>Pressed chip</span>
+          <span style={{ background: 'var(--segment-track)' }}>Tray</span>
+        </>,
+      );
+      const group = screen.getByRole('group', { name: 'Finished work' });
+      const pressed = getComputedStyle(screen.getByRole('button', { name: '1d 5' }));
+      const chip = getComputedStyle(screen.getByText('Pressed chip'));
+      const looks = {
+        pressedFillIsTheChip: pressed.backgroundColor === chip.backgroundColor,
+        pressedInkIsTheChip:  pressed.color === chip.color,
+        trayIsTheTrack:       getComputedStyle(group).backgroundColor === getComputedStyle(screen.getByText('Tray')).backgroundColor,
+        chipFill:             chip.backgroundColor,
+      };
+      cleanup();
+      return looks;
+    };
+    const light = looksInTheme('light');
+    const dark = looksInTheme('dark');
+    delete document.documentElement.dataset['theme'];
+    stylesheet.remove();
+    expect([light.pressedFillIsTheChip, light.pressedInkIsTheChip, light.trayIsTheTrack]).toEqual([true, true, true]);
+    expect([dark.pressedFillIsTheChip, dark.pressedInkIsTheChip, dark.trayIsTheTrack]).toEqual([true, true, true]);
+    expect(light.chipFill === dark.chipFill).toBe(false);
+  });
+
   test('a name of its own names the group where no label shows, and a group named both ways does not compile', () => {
     render(<SegmentedControl accessibleName="Finished work" options={OPTIONS} selected={null} onSelect={() => undefined} />);
     expect(screen.getByRole('group', { name: 'Finished work' }).hasAttribute('aria-labelledby')).toBe(false);

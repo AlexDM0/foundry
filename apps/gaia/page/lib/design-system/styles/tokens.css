@@ -89,6 +89,9 @@
   --err-edge:     #f19a90;
   --err-ink:      #c00910;
 
+  /* The pressed segment's chip, raised on the tray's wash. */
+  --segment-pressed-fill: #fefefe;
+
   --shadow-control: oklch(0 0 0 / 0.08);
   --shadow-popover: oklch(0 0 0 / 0.14);
   --shadow-panel:   oklch(0 0 0 / 0.08);
@@ -175,6 +178,8 @@
   --err-edge:     #8a3a33;
   --err-ink:      #ffbab3;
 
+  --segment-pressed-fill: #2c3038;
+
   --shadow-popover: oklch(0 0 0 / 0.45);
   --shadow-panel:   oklch(0 0 0 / 0.4);
   --shadow-card-lift: rgba(232, 235, 241, 0.14);
@@ -258,6 +263,8 @@
   --change-new-fill: var(--pass-tint); --change-new-ink: var(--pass-ink);
   --change-removed-fill: var(--err-tint); --change-removed-ink: var(--err-ink); --change-removed-row-edge: var(--err-edge);
   --change-changed-edge: transparent; --change-new-edge: transparent; --change-removed-edge: transparent;
+
+  --segment-track: var(--wash); --segment-pressed-ink: var(--ink); --segment-pressed-edge: var(--line);
 
   --badge-accent-tint: var(--link-tint); --badge-accent-ink: var(--link);  --badge-accent-edge: var(--accent-edge);
   --badge-ink-tint:    var(--wash);      --badge-ink-ink:    var(--ink);   --badge-ink-edge:    var(--line-strong);
