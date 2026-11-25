@@ -1,8 +1,9 @@
 /**
  * The shared Markdown editor's model. What matters: the markdown splits into the lines the textarea shows, one mirror line per textarea
  * line, so both stand at the same heights; a line's key is its text and occurrence, so a mark keyed that way follows its line; `#` and `##`
- * lines are headings; a new version names only the lines it changed; the text follows newer facts only while nothing is unsaved; and a
- * selection reads as the lines it touches, a selection that ends at a line's very start leaving that line out.
+ * lines are headings and quote and fence lines muted; a new version names only the lines it changed; the text follows newer facts only
+ * while nothing is unsaved; and a selection reads as the lines it touches, a selection that ends at a line's very start leaving that line
+ * out.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -26,6 +27,11 @@ describe('the editor lines', () => {
   test('only # and ## lines are headings', () => {
     const headings = MarkdownEditorModel.editorLinesOf(MARKDOWN).filter((line) => line.heading).map((line) => line.text);
     expect(headings).toEqual(['# Example constitution', '## Code']);
+  });
+
+  test('a quote line and a code fence are muted, and no other line is', () => {
+    const lines = MarkdownEditorModel.editorLinesOf(['> Ticket #004', '```mermaid Theme flow', 'flowchart LR', '```', 'Text > more', '~~~'].join('\n'));
+    expect(lines.filter((line) => line.muted).map((line) => line.number)).toEqual([1, 2, 4, 6]);
   });
 
   test('the marker list names each marked line with what its marker stands for', () => {

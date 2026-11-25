@@ -1,8 +1,9 @@
 /**
  * The document agent's side of the page: its head (the agent, what it does, Ask first or Auto-apply, or Stop while a turn works), the chat
- * (comments as cards that jump to their anchor, the agent's turns, its proposed edits and the effect reading's card), Flint's strip and the
- * composer. A message sent while the agent works waits in the queue under the composer, where `×` withdraws it, and the composer's button
- * reads `Queue ⌘↵`; Cmd/Ctrl+Enter sends. On a plan the composer offers the effect reading of the head.
+ * (comments as cards that jump to their anchor, the agent's turns, its proposed edits and the effect reading's card), which opens on its
+ * newest item, then the dashed notice that the agent's edit lands on what User changed meanwhile, Flint's strip and the composer. A message
+ * sent while the agent works waits in the queue under the composer, where `×` withdraws it, and the composer's button reads `Queue ⌘↵`;
+ * Cmd/Ctrl+Enter sends. On a plan the composer offers the effect reading of the head.
  */
 import { useState } from 'react';
 
@@ -33,16 +34,18 @@ const PLACEHOLDERS = {
 } as const;
 
 export interface DocumentChatProps {
-  readonly place:          DocumentPlace;
-  readonly chat:           DocumentChatContent;
-  readonly strip:          DocumentAgentStripModel;
-  readonly proposalMode:   BoardProposalMode;
-  readonly headNumber:     number | null;
+  readonly place:           DocumentPlace;
+  readonly chat:            DocumentChatContent;
+  readonly strip:           DocumentAgentStripModel;
+  readonly proposalMode:    BoardProposalMode;
+  readonly headNumber:      number | null;
   /** The document can no longer change: the chat is shown, the composer and the edits offer nothing. */
-  readonly settled:        boolean;
-  readonly onJumpToAnchor: (lines: BoardLineRangeDocument) => void;
+  readonly settled:         boolean;
+  readonly onJumpToAnchor:  (lines: BoardLineRangeDocument) => void;
   /** Opens the effect pane; `null` where the page offers no effect reading. */
-  readonly onOpenEffect:   (() => void) | null;
+  readonly onOpenEffect:    (() => void) | null;
+  /** That the agent's edit lands on what User changed while it works; `null` while there is nothing to say. */
+  readonly userEditNotice?: string | null;
 }
 
 function ModeSwitch({ place, mode }: { readonly place: DocumentPlace; readonly mode: BoardProposalMode }) {
@@ -207,7 +210,7 @@ function Composer({ props }: { readonly props: DocumentChatProps }) {
 
 export function DocumentChat(props: DocumentChatProps) {
   const {
-    place, chat, strip, proposalMode, settled
+    place, chat, strip, proposalMode, settled, userEditNotice = null
   } = props;
   return (
     <aside className="board-document-agent" aria-label={strip.agentName}>
@@ -220,7 +223,10 @@ export function DocumentChat(props: DocumentChatProps) {
         {settled ? null : chat.working ? <StopButton place={place} /> : <ModeSwitch place={place} mode={proposalMode} />}
       </div>
       <div className="board-document-chat" role="log" aria-label={`Chat with the ${strip.agentName.toLowerCase()}`}>
-        {chat.items.map((item) => <ChatItem key={item.key} item={item} props={props} />)}
+        <div className="board-document-chat-items">
+          {chat.items.map((item) => <ChatItem key={item.key} item={item} props={props} />)}
+          {userEditNotice === null ? null : <p className="board-document-edit-notice">{userEditNotice}</p>}
+        </div>
       </div>
       <DocumentAgentStrip document={place.document} strip={strip} />
       <Composer props={props} />

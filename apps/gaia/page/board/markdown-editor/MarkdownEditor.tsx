@@ -1,7 +1,8 @@
 /**
  * The board's Markdown editor: one textarea holds the whole text, so typing, selection, undo and paste are the browser's own. Its text is
- * transparent over a mirror that draws the same lines, `#` and `##` lines in the link colour, the selected lines tinted, and the caller's
- * markers after a line or in a gutter of line numbers; the mirror and the gutter follow the textarea's scroll. A blur, Cmd/Ctrl+S or, where
+ * transparent over a mirror that draws the same lines, `#` and `##` lines bold, quote and fence lines muted, the selected lines tinted, as
+ * are the lines the caller holds, and the caller's markers after a line or in a gutter of line numbers; the mirror and the gutter follow
+ * the textarea's scroll, and a line too long to show ends in an ellipsis until User scrolls sideways. A blur, Cmd/Ctrl+S or, where
  * the caller asks, a pause in typing saves the whole text with the revision User saw, only when it changed; a save asked for while the one
  * before it is on its way goes once that one is applied. A refused save keeps User's text until User saves again with Cmd/Ctrl+S or
  * discards it; a blur saves nothing then. With a gutter, its `+` or Cmd/Ctrl+Shift+M hands the caller the selected lines to comment on,
@@ -55,6 +56,8 @@ export interface MarkdownEditorProps {
   readonly onTextChange?:         (text: string) => void;
   /** Told the line the caret stands on each time it moves. */
   readonly onCaretLine?:          (lineNumber: number) => void;
+  /** Lines drawn selected whatever User selects, such as the lines a comment being written points at. */
+  readonly heldLines?:            EditorLineRange | null;
 }
 
 /** The facts' text, and whether User's own save brought it, so only a version from elsewhere sweeps its changed lines. */
@@ -94,7 +97,7 @@ function GutterMarker({ marker }: { readonly marker: EditorLineMarker }) {
 
 export function MarkdownEditor({
   label, version, saveCommandOf, markerOf, markerListLabel, drafting = false, gutter = null, idleSaveMilliseconds = null, readOnly = false,
-  onTextChange, onCaretLine
+  onTextChange, onCaretLine, heldLines = null
 }: MarkdownEditorProps) {
   const markerListId = useId();
   const mirror = useRef<HTMLDivElement>(null);
@@ -103,6 +106,7 @@ export function MarkdownEditor({
   const [editorText, setEditorText] = useState<EditorText>(() => MarkdownEditorModel.editorTextOf(version));
   const [lastSavedMarkdown, setLastSavedMarkdown] = useState<string | null>(null);
   const [selection, setSelection] = useState<TextSelection | null>(null);
+  const [scrolledSideways, setScrolledSideways] = useState(false);
   const followedText = MarkdownEditorModel.followedTextOf(editorText, version);
   if (followedText !== editorText) setEditorText(followedText);
 
@@ -190,6 +194,9 @@ export function MarkdownEditor({
     else if (lineNumber !== null) gutter.onCommentLines({ from: lineNumber, to: lineNumber });
   };
   const selectionIsShown = gutter !== null && selection !== null && selection.start !== selection.end;
+  const lineIsSelected = (lineNumber: number): boolean => (
+    (selectionIsShown && MarkdownEditorModel.lineIsIn(lineNumber, selectedLines)) || (heldLines !== null && MarkdownEditorModel.lineIsIn(lineNumber, heldLines))
+  );
 
   return (
     <div className="board-markdown-editor">
@@ -219,7 +226,7 @@ export function MarkdownEditor({
             </div>
           )}
         <div className="board-markdown-editor-body">
-          <div ref={mirror} className="board-markdown-editor-mirror" aria-hidden="true">
+          <div ref={mirror} className="board-markdown-editor-mirror" data-scrolled-sideways={scrolledSideways ? '' : undefined} aria-hidden="true">
             {lines.map((line, i) => {
               const marker = gutter === null ? markerOf(line) : null;
               return (
@@ -227,8 +234,9 @@ export function MarkdownEditor({
                   key={line.lineKey}
                   className="board-markdown-editor-mirror-line"
                   data-heading={line.heading ? '' : undefined}
+                  data-muted={line.muted ? '' : undefined}
                   data-changed={changedLineKeys.has(line.lineKey) ? '' : undefined}
-                  data-selected={selectionIsShown && MarkdownEditorModel.lineIsIn(line.number, selectedLines) ? '' : undefined}
+                  data-selected={lineIsSelected(line.number) ? '' : undefined}
                   onAnimationEnd={() => clearChange(line.lineKey)}
                 >
                   <span className="board-markdown-editor-mirror-text">{line.text}</span>
@@ -263,6 +271,7 @@ export function MarkdownEditor({
             }}
             onScroll={(event) => {
               const { scrollTop, scrollLeft } = event.currentTarget;
+              setScrolledSideways(scrollLeft > 0);
               if (mirror.current !== null) {
                 mirror.current.scrollTop = scrollTop;
                 mirror.current.scrollLeft = scrollLeft;

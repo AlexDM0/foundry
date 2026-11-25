@@ -4,8 +4,11 @@
  * that ends on a chip and one that ends on the next block's edge; a diagram node the frame reports under the pointer offers a comment on its own source
  * line, until a moment after the pointer left it or the diagram is drawn again; the frame is told the dark theme; a message from any
  * window but the diagram's own frame is dropped; a comment's chip stands after its text, ticked once applied;
- * and the plan's reference marks follow their sentences, unresolved ones marked.
+ * the plan's reference marks follow their sentences, unresolved ones marked; the selected text stays marked while its popover is open; and
+ * an agent's edit shares one frame with the line it replaces, which alone is struck.
  */
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
 import {
   act,
   cleanup,
@@ -33,10 +36,11 @@ import {
   SPEC_MARKDOWN,
   lineOf
 } from '../../testing/TicketDocumentsFixture.ts';
-import type { CommentDraft }          from './CommentPopover.tsx';
-import { DiagramFrameAddressContext } from './DiagramFrame.tsx';
-import { DocumentPreview }            from './DocumentPreview.tsx';
-import { EffectTreeModel }            from './EffectTreeModel.ts';
+import type { CommentDraft }                     from './CommentPopover.tsx';
+import { DiagramFrameAddressContext }            from './DiagramFrame.tsx';
+import { DocumentPreview }                       from './DocumentPreview.tsx';
+import { EffectTreeModel }                       from './EffectTreeModel.ts';
+import { ProposalModel, type OpenProposalModel } from './ProposalModel.ts';
 
 afterEach(() => {
   cleanup();
@@ -45,7 +49,15 @@ afterEach(() => {
 
 const [SPEC] = DOCUMENT_STATES.specWorking.documents;
 
-function PreviewHost({ markdown, document }: { readonly markdown: string; readonly document: 'spec' | 'plan' }) {
+const [IDLE_SPEC] = DOCUMENT_STATES.specIdle.documents;
+
+interface PreviewHostProps {
+  readonly markdown:   string;
+  readonly document:   'spec' | 'plan';
+  readonly proposals?: readonly OpenProposalModel[];
+}
+
+function PreviewHost({ markdown, document, proposals = [] }: PreviewHostProps) {
   const [draft, setDraft] = useState<CommentDraft | null>(null);
   return (
     <DocumentPreview
@@ -53,7 +65,7 @@ function PreviewHost({ markdown, document }: { readonly markdown: string; readon
       markdown={markdown}
       versionNumber={4}
       messages={document === 'spec' ? SPEC?.messages ?? [] : []}
-      proposals={[]}
+      proposals={proposals}
       referenceMarks={document === 'plan' ? EffectTreeModel.referenceMarksOf(PLAN_EFFECT_READING) : []}
       draft={draft}
       onDraft={setDraft}
@@ -85,15 +97,24 @@ function endClockWaits(): void {
   act(() => clockWaits.splice(0).forEach((wait) => wait.callback()));
 }
 
-function renderPreview(markdown = SPEC_MARKDOWN, document: 'spec' | 'plan' = 'spec') {
+function renderPreview(markdown = SPEC_MARKDOWN, document: 'spec' | 'plan' = 'spec', proposals: readonly OpenProposalModel[] = []) {
   const controls = fakeControls();
   clockWaits.splice(0);
   controls.render(onBoard(
     <BoardClockContext value={MANUAL_CLOCK}>
-      <DiagramFrameAddressContext value={null}><PreviewHost markdown={markdown} document={document} /></DiagramFrameAddressContext>
+      <DiagramFrameAddressContext value={null}><PreviewHost markdown={markdown} document={document} proposals={proposals} /></DiagramFrameAddressContext>
     </BoardClockContext>
   ));
   return controls;
+}
+
+/** The selector of the documents' rule that strikes the text an agent's edit replaces. */
+function struckTextSelector(): string {
+  const stylesheet = readFileSync(join(import.meta.dir, '..', '..', '..', 'styles', 'board', 'documents.css'), 'utf8').replaceAll(/\/\*[\s\S]*?\*\//gu, '');
+  const rules = [...stylesheet.matchAll(/([^{}]+)\{([^}]*)\}/gu)];
+  const rule = rules.find(([, selector, body]) => selector?.includes('[data-replaced]') === true && body?.includes('line-through') === true);
+  if (rule?.[1] === undefined) throw new Error('documents.css strikes no replaced text');
+  return rule[1].trim();
 }
 
 function textNodeHolding(text: string): Text {
@@ -282,6 +303,40 @@ describe('Preview', () => {
     }, frame?.contentWindow ?? null);
     expect(screen.queryByRole('button', { name: /Comment on node/u })).toBeNull();
     expect(frame?.style.height).toBe('');
+  });
+
+  test('keeps the selected text marked while its popover is open, and unmarks it once the popover closes', () => {
+    renderPreview();
+    const quote = 'with no white flash on load.';
+    select(quote);
+    fireEvent.mouseUp(screen.getByRole('article', { name: 'The spec' }));
+    expect([...document.querySelectorAll('.board-document-marked')].map((marked) => marked.textContent)).toEqual([quote]);
+    const paragraph = document.querySelector(`[data-from-line="${lineOf(SPEC_MARKDOWN, quote)}"]`);
+    expect(paragraph?.textContent).toBe('Every page under /account follows the visitor\'s system colour scheme, with no white flash on load.');
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Comment for the spec agent' })).getByRole('button', { name: 'Cancel' }));
+    expect(document.querySelectorAll('.board-document-marked')).toHaveLength(0);
+  });
+
+  test('a selection that starts in marked text still reads its source columns', () => {
+    renderPreview();
+    select('with no white flash on load.');
+    fireEvent.mouseUp(screen.getByRole('article', { name: 'The spec' }));
+    select('white flash');
+    fireEvent.mouseUp(screen.getByRole('article', { name: 'The spec' }));
+    expect(within(screen.getByRole('dialog', { name: 'Comment for the spec agent' })).getByText('“white flash”')).toBeTruthy();
+  });
+
+  test('frames an agent\'s edit with the line it replaces, striking the old line and not the new one', () => {
+    const proposals = ProposalModel.openProposalsOf('spec', IDLE_SPEC?.proposals ?? []);
+    renderPreview(SPEC_MARKDOWN, 'spec', proposals);
+    const replaced = document.querySelector<HTMLElement>('li[data-replaced]');
+    const frame = replaced?.querySelector(':scope > .board-document-proposal-frame');
+    const proposal = screen.getByRole('group', { name: proposals[0]?.label ?? '' });
+    expect([replaced?.dataset['fromLine'], frame?.contains(proposal)]).toEqual([String(lineOf(SPEC_MARKDOWN, '**A3**')), true]);
+    const oldText = frame?.querySelector(':scope > .board-document-item-text');
+    const newText = proposal.querySelector('.board-document-item-text');
+    expect([oldText?.textContent?.includes('Every account page passes'), newText?.textContent?.includes('bun run check:contrast')]).toEqual([true, true]);
+    expect([oldText?.matches(struckTextSelector()), newText?.matches(struckTextSelector())]).toEqual([true, false]);
   });
 
   test('puts each comment\'s chip after its text, ticked once applied', () => {

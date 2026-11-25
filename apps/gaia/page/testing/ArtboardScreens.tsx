@@ -36,7 +36,7 @@ import {
 } from '../board/testing/TicketDocumentsFixture.ts';
 import type { CommentDraft }                                                                          from '../board/views/documents/CommentPopover.tsx';
 import { DocumentSelectionModel }                                                                     from '../board/views/documents/DocumentSelectionModel.ts';
-import { TicketDocumentsPage, type PageStateAtMount }                                                 from '../board/views/documents/TicketDocumentsView.tsx';
+import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
 import { FirstOpenPhaseContext }                                                                      from '../board/views/pipeline/flow/FlowSelection.ts';
 import type { PipelinePhase }                                                                         from '../board/views/pipeline/flow/PipelinePhaseModel.ts';
 import { HashRouter }                                                                                 from '../shared/HashRouter.ts';
@@ -768,6 +768,9 @@ const OUTCOME_COMMENT: CommentDraft = {
   anchor:        DocumentSelectionModel.anchorOfPreviewSelection(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, OUTCOME_SELECTION),
 };
 
+/** Artboard 4's A3, which the agent's edit for C2 replaces, as a press on C2's card in the chat jumps to it. */
+const CONTRAST_LINES = { from: lineOf(SPEC_MARKDOWN, '**A3**'), to: lineOf(SPEC_MARKDOWN, '**A3**') };
+
 /** The theme flow's mermaid block in the spec, fence to fence. */
 const THEME_FLOW_LINES = { from: lineOf(SPEC_MARKDOWN, '```mermaid'), to: lineOf(SPEC_MARKDOWN, 'Paint --> Account') + 1 };
 
@@ -824,7 +827,7 @@ export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
     shown:      'spec',
     transcript: SPEC_TRANSCRIPT_IDLE,
     ticket:     documentsTicketOf(),
-    atMount:    {},
+    atMount:    { jumpedTo: CONTRAST_LINES },
   },
   {
     artboard:   5,
@@ -904,7 +907,15 @@ export function ticketDocumentScreenMarkupOf(screen: TicketDocumentScreen): stri
 
 /** A whole page for a browser, at the artboards' 1440 by 900, in the screen's theme. */
 export function ticketDocumentScreenDocumentOf(screen: TicketDocumentScreen, theme: ScreenTheme): string {
-  return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>`);
+  const bodyMarkup = `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>${jumpScriptOf(screen)}`;
+  return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
+}
+
+/** A painted page runs no effect, so a screen opened jumped to lines scrolls there by the page's own scroll, run once it is painted. */
+function jumpScriptOf(screen: TicketDocumentScreen): string {
+  const lines = screen.atMount.jumpedTo;
+  if (lines === undefined) return '';
+  return `<script>(${scrollToLines.toString()})(document.querySelector('.board-document-main'), ${JSON.stringify(lines)});</script>`;
 }
 
 /** The phase each artboard draws open: 9 the Ticket phase it changes, 10 the Review phase its dialog edits a step of. */

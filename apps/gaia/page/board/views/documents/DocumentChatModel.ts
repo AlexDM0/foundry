@@ -3,7 +3,8 @@
  * out, since the document's messages stand for them: each sent message is placed before the agent turn it opened (`agentTurn`, counted by
  * the transcript's user lines from 1), a message the agent has not taken yet after the turns, and a queued one under the composer, where
  * `×` withdraws it. A proposal's diff card follows the turn that answered its message, a settled proposal leaves one line there, and the
- * newest effect reading of the document is a card that opens its pane. The agent works while its newest turn has not ended.
+ * newest effect reading of the document is a card that opens its pane. The agent works while its newest turn has not ended. While it works
+ * on a comment made on an older version and User has changed the document since, a notice says its edit lands on User's text.
  */
 import type { BoardTranscriptEntryDocument } from '../../../@types/board/ConversationDocument.ts';
 import type {
@@ -81,6 +82,8 @@ export interface DocumentChat {
   readonly answeringComment:   number | null;
   /** The version the message the agent answers was made on, `null` while it answers none. */
   readonly answeringOnVersion: number | null;
+  /** Where the message the agent answers stands on the head, `null` while it answers none or its text is gone. */
+  readonly answeringLines:     BoardLineRangeDocument | null;
   /** The newest call of the working turn, `null` while it calls nothing. */
   readonly runningCall:        ToolCall | null;
 }
@@ -186,8 +189,34 @@ function documentChatOf(
     working,
     answeringComment:   answeringMessage?.commentNumber ?? null,
     answeringOnVersion: answeringMessage?.anchor?.versionNumber ?? null,
+    answeringLines:     answeringMessage?.placement ?? null,
     runningCall:        runningCallOf(turns.at(-1) ?? []),
   };
 }
 
-export const DocumentChatModel = Object.freeze({ documentChatOf, turnsOf });
+export interface UserEditReading {
+  readonly document:  BoardTicketDocumentDocument;
+  readonly chat:      DocumentChat;
+  /** User's text differs from the head in Code or Split. */
+  readonly editing:   boolean;
+  /** The line User's caret stands on in Code or Split, `null` elsewhere. */
+  readonly caretLine: number | null;
+}
+
+/**
+ * "You changed line 34 while the agent works. It proposes against v6, so its edit to lines 17–23 lands on your text, not over it.": while
+ * the agent works on a comment made on an older version, once User saved a version since or is typing; `null` otherwise.
+ */
+function userEditNoticeOf({
+  document, chat, editing, caretLine
+}: UserEditReading): string | null {
+  const startedOn = chat.answeringOnVersion;
+  if (!chat.working || startedOn === null || document.head === null) return null;
+  const savedSince = [...document.versions, document.head].some((version) => version.number > startedOn && version.author === 'person');
+  if (!savedSince && !editing) return null;
+  const changed = caretLine === null ? `the ${document.document}` : `line ${caretLine}`;
+  const edit = chat.answeringLines === null ? 'its edit' : `its edit to ${CommentPopoverModel.linesTextOf(chat.answeringLines)}`;
+  return `You changed ${changed} while the agent works. It proposes against v${document.head.number}, so ${edit} lands on your text, not over it.`;
+}
+
+export const DocumentChatModel = Object.freeze({ documentChatOf, turnsOf, userEditNoticeOf });

@@ -26,6 +26,9 @@
   /* The pipeline flow's ticket phase dot. */
   --phase-ticket: #fb9d59;
 
+  /* The text an open comment points at, in a ticket document and its Markdown editor. */
+  --comment-selection-tint: #ffd2b8;
+
   /* Six epic colours, given out in the order epics are added: Cobalt, Violet, Plum, Ochre, Steel and Umber. */
   --epic-1-fill: #3a66d0; --epic-1-tint: #e8eefb; --epic-1-ink: #2a4fa8;
   --epic-2-fill: #7651c8; --epic-2-tint: #f0ebfa; --epic-2-ink: #5b3aa6;
@@ -97,6 +100,8 @@
 
 :root[data-theme="dark"] {
   --phase-ticket: #feb073;
+
+  --comment-selection-tint: #5a2911;
 
   --epic-1-fill: #6e95f2; --epic-1-tint: #1c2742; --epic-1-ink: #b9cdfb;
   --epic-2-fill: #a183f0; --epic-2-tint: #28213f; --epic-2-ink: #d2c3fa;
