@@ -128,6 +128,7 @@ function messageOf(message: Readonly<DocumentMessage>): DocumentMessageDocument 
   return {
     messageId:      message.messageId,
     commentNumber:  message.commentNumber ?? null,
+    decisionId:     message.decisionId ?? null,
     anchor:         message.anchor === undefined ? null : anchorOf(message.anchor),
     placement:      message.placement === undefined ? null : lineRangeOf(message.placement),
     orphaned:       message.orphaned === true,
@@ -278,4 +279,6 @@ function documentsSummaryOf(loadedRecord: Readonly<LoadedTicketDocumentRecord>, 
   return { spec: documentSummaryOf(spec, standings.spec), plan: documentSummaryOf(plan, standings.plan), buildHeld };
 }
 
-export const TicketDocumentsMappingUtil = Object.freeze({ ticketDocumentsOf, documentsSummaryOf, proposalHeadLinesOf });
+export const TicketDocumentsMappingUtil = Object.freeze({
+  ticketDocumentsOf, documentsSummaryOf, proposalHeadLinesOf, anchorOf
+});

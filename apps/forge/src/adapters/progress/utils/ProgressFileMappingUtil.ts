@@ -14,6 +14,7 @@ import type { DeclaredNeed }                 from '../../../lib/tracker-model/@t
 import type { QuestionOptionNotes }          from '../../../lib/tracker-model/@types/OptionConsequences.ts';
 import type { Task, TaskPhase, TicketStage } from '../../../lib/tracker-model/@types/Task.ts';
 import type { TrackerProgress }              from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import { CommentAnchorUtil }                 from '../../../lib/tracker-model/utils/CommentAnchorUtil.ts';
 import { OptionConsequencesUtil }            from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { WordedLogEntry }               from '../../../shared/@types/WordedLogEntry.ts';
 import type { WordedProgressDocument }       from '../../../shared/@types/WordedProgressDocument.ts';
@@ -117,6 +118,8 @@ const KNOWN_DECISION_KEYS = {
   questions: true,
   context:   true,
   openedAt:  true,
+  document:  true,
+  anchor:    true,
 } as const satisfies Record<keyof Decision | keyof StoredDecision, true>;
 
 const KNOWN_DECISION_QUESTION_KEYS = {
@@ -293,6 +296,8 @@ function decisionOf(stored: StoredDecision): Decision {
     questions: stored.questions.map(questionOf),
     context:   stored.context,
     openedAt:  stored.openedAt,
+    ...(stored.document === undefined ? {} : { document: stored.document }),
+    ...(stored.anchor === undefined ? {} : { anchor: CommentAnchorUtil.copyOf(stored.anchor) }),
   });
 }
 
@@ -437,6 +442,8 @@ function storedDecisionOf(decision: Decision): StoredDecision {
     questions: decision.questions.map(storedQuestionOf),
     context:   decision.context,
     openedAt:  decision.openedAt,
+    ...(decision.document === undefined ? {} : { document: decision.document }),
+    ...(decision.anchor === undefined ? {} : { anchor: CommentAnchorUtil.copyOf(decision.anchor) }),
   });
 }
 

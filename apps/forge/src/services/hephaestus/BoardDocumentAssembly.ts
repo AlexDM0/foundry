@@ -3,7 +3,8 @@
  * by part through the board document's mappers, with the Board's offers and the readings a view would otherwise recompute. Its return
  * type is the proof that the served document is the contract's.
  */
-import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
+import type { BoardTicketDraftDocument } from 'forge-contracts/BoardPageDocuments';
+import type { ForgeBoardDocument }       from 'forge-contracts/ForgeBoardDocument';
 
 import type { MergeQueueFacts }                      from '../../adapters/@types/BoardStateParts.ts';
 import { BoardAgentMappingUtil }                     from '../../adapters/board-document/utils/BoardAgentMappingUtil.ts';
@@ -13,9 +14,13 @@ import { BoardMergeQueueMappingUtil }                from '../../adapters/board-
 import { BoardPageMappingUtil, type TicketReadings } from '../../adapters/board-document/utils/BoardPageMappingUtil.ts';
 import { BoardPipelineMappingUtil }                  from '../../adapters/board-document/utils/BoardPipelineMappingUtil.ts';
 import { BoardReadingMappingUtil }                   from '../../adapters/board-document/utils/BoardReadingMappingUtil.ts';
+import type { Decision }                             from '../../lib/tracker-model/@types/Decision.ts';
 import type { LogRecord }                            from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LineRange }                            from '../../lib/tracker-model/@types/TicketDocument.ts';
 import type { Board }                                from '../../lib/tracker-model/Board.ts';
+import { DraftProgressUtil }                         from '../../lib/tracker-model/utils/DraftProgressUtil.ts';
 import type { MergeForecast }                        from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { TicketWritingUtil }                         from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { PageTicket }                           from '../../shared/@types/PagePayload.ts';
 import { attentionEntriesOf }                        from '../../shared/monitor/AttentionEntries.ts';
 import { todayCalendarDateOf, todayFiguresOf }       from '../../shared/monitor/TodayFigures.ts';
@@ -27,7 +32,7 @@ import { TicketDocumentsAssembly }                   from './TicketDocumentsAsse
 /** One reading of the board: the state the monitor reads, the Board it was read from for the offers, and the clock's moment. */
 export interface BoardDocumentSource {
   state:      BoardState;
-  board:      Pick<Board, 'ticketOffersOf' | 'jobOffersOf' | 'ticketDocumentRecordOf' | 'pipeline'>;
+  board:      Pick<Board, 'ticketOffersOf' | 'jobOffersOf' | 'ticketDocumentRecordOf' | 'pipeline' | 'ticketDocuments'>;
   logRecords: readonly LogRecord[];
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
   now:        Date;
@@ -42,6 +47,30 @@ function mergeWaitOf(mergeQueue: MergeQueueFacts, ticketId: string): MergeForeca
   return null;
 }
 
+/** Where a spec or plan agent's question stands on its document's head now; `null` for any other decision. */
+function placementAtHeadOf(board: BoardDocumentSource['board'], decision: Readonly<Decision>): LineRange | null {
+  const [ticketId] = decision.ticketIds;
+  if (decision.document === undefined || decision.anchor === undefined || ticketId === undefined) return null;
+  return board.ticketDocuments().placementAtHeadOf(ticketId, decision.document, decision.anchor);
+}
+
+/** Where the ticket stands while it is written, with the live facts of the agent writing it; `null` for a ticket not being written. */
+function draftOf(source: BoardDocumentSource, ticket: PageTicket): BoardTicketDraftDocument | null {
+  const { state, board } = source;
+  const progress = DraftProgressUtil.progressOf({
+    ticketId:  ticket.id,
+    status:    ticket.status,
+    updated:   ticket.updated,
+    route:     TicketWritingUtil.routeOf(board.pipeline()),
+    documents: board.ticketDocumentRecordOf(ticket.id)?.record ?? null,
+    decisions: state.decisions,
+    jobs:      state.jobs,
+  });
+  if (progress === null) return null;
+  const agent = state.jobs.find((job) => job.id === progress.agentJobId) ?? null;
+  return BoardPageMappingUtil.draftOf(progress, agent);
+}
+
 function ticketReadingsOf(source: BoardDocumentSource): (ticket: PageTicket) => TicketReadings {
   const { state, board } = source;
   const { boardFacts, progress } = state.page.payload;
@@ -53,6 +82,7 @@ function ticketReadingsOf(source: BoardDocumentSource): (ticket: PageTicket) => 
       facts:     BoardReadingMappingUtil.ticketFactsOf(ticket, facts, ownRow),
       offers:    BoardReadingMappingUtil.ticketOffersOf(board.ticketOffersOf(ticket.id, mergeWaitOf(state.mergeQueue, ticket.id))),
       documents: TicketDocumentsAssembly.documentsSummaryOf(ticket, board.ticketDocumentRecordOf(ticket.id), board.pipeline()),
+      draft:     draftOf(source, ticket),
     };
   };
 }
@@ -72,7 +102,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     mergeQueue:            BoardMergeQueueMappingUtil.mergeQueueOf(state.mergeQueue),
     jobs:                  state.jobs.map((job) => BoardJobMappingUtil.jobOf(job, BoardReadingMappingUtil.jobOffersOf(board.jobOffersOf(job.id)), state.agent.agentName)),
     endedJobs:             state.endedJobs.map(BoardJobMappingUtil.endedJobOf),
-    decisions:             state.decisions.map(BoardConversationMappingUtil.decisionOf),
+    decisions:             state.decisions.map((decision) => BoardConversationMappingUtil.decisionOf(decision, placementAtHeadOf(board, decision))),
     incidents:             state.incidents.map(BoardConversationMappingUtil.incidentOf),
     questionHistory:       state.questionHistory.map(BoardConversationMappingUtil.questionHistoryEntryOf),
     ticketForecasts:       state.ticketForecasts.map(BoardJobMappingUtil.ticketForecastOf),

@@ -1,6 +1,7 @@
 /**
  * The line a document agent reads for each message. What matters: an orphaned comment keeps its quote and names no lines; a message with no
- * anchor names only its document, version and text; a board message says it is the board's; a diagram comment names its node; and the
+ * anchor names only its document, version and text; User's answer to the agent's question names the decision it answers and no comment;
+ * a board message says it is the board's; a diagram comment names its node; and the
  * head follows the payload, numbered by line, only when the agent has not seen it.
  */
 import { describe, expect, test } from 'bun:test';
@@ -23,6 +24,16 @@ describe('the payload', () => {
 
   test('a message with no anchor names its document, the version the agent sees and its text', () => {
     expect(DocumentAgentWording.messagePayloadOf(documentMessageFixture('M1'), 'plan', 2)).toEqual({ document: 'plan', version: 2, text: 'Example comment M1' });
+  });
+
+  test('User\'s answer to the agent\'s question names the decision it answers, on the question\'s lines, and no comment', () => {
+    const anchor: CommentAnchor = {
+      view: 'code', versionNumber: 3, lines: { from: 17, to: 17 }, sectionPath: ['3 Behaviour'], surroundingLines: { from: 15, to: 19 }
+    };
+    const message = documentMessageFixture('M7', { decisionId: 'E4', anchor, placement: { from: 18, to: 18 } });
+    expect(DocumentAgentWording.messagePayloadOf(message, 'spec', 4)).toEqual({
+      answers: 'E4', view: 'code', document: 'spec', version: 4, sentOnVersion: 3, lines: [18, 18], section: ['3 Behaviour'], around: [16, 20], text: 'Example comment M7'
+    });
   });
 
   test('a board message says it is the board\'s', () => {

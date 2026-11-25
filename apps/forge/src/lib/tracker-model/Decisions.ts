@@ -8,6 +8,7 @@ import type { LogRecord }                                        from './@types/
 import type { BoardRecords }                                     from './BoardRecords.ts';
 import { BoardRefusal }                                          from './BoardRefusal.ts';
 import { DECISION_ID_PREFIX, FIRST_DECISION_NUMBER }             from './constants/DecisionAndIncidentVocabulary.ts';
+import { CommentAnchorUtil }                                     from './utils/CommentAnchorUtil.ts';
 import { NumberedIdUtil }                                        from './utils/NumberedIdUtil.ts';
 import { OptionConsequencesUtil }                                from './utils/OptionConsequencesUtil.ts';
 
@@ -29,6 +30,8 @@ function copyOf(opening: DecisionOpening, id: string, at: string): Decision {
     })),
     context:  opening.context,
     openedAt: at,
+    ...(opening.document === undefined ? {} : { document: opening.document }),
+    ...(opening.anchor === undefined ? {} : { anchor: CommentAnchorUtil.copyOf(opening.anchor) }),
   };
 }
 

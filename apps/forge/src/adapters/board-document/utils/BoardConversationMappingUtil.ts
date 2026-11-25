@@ -13,11 +13,16 @@ import type {
 import type { Decision, DecisionQuestionOption } from '../../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                         from '../../../lib/tracker-model/@types/Incident.ts';
 import type { LogRecord }                        from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { LineRange }                        from '../../../lib/tracker-model/@types/TicketDocument.ts';
 import type { PictureLimits }                    from '../../@types/BoardStateParts.ts';
 import { RefusalDocumentUtil }                   from '../../utils/RefusalDocumentUtil.ts';
+import { TicketDocumentsMappingUtil }            from './TicketDocumentsMappingUtil.ts';
 
-function decisionOptionOf(option: DecisionQuestionOption): BoardDecisionOptionDocument {
+const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
+
+function decisionOptionOf(option: DecisionQuestionOption, index: number): BoardDecisionOptionDocument {
   return {
+    letter:      String.fromCharCode(FIRST_OPTION_LETTER_CODE + index),
     label:       option.label,
     description: option.description,
     recommended: option.isRecommended,
@@ -27,7 +32,11 @@ function decisionOptionOf(option: DecisionQuestionOption): BoardDecisionOptionDo
   };
 }
 
-function decisionOf(decision: Decision): BoardDecisionDocument {
+/**
+ * A spec or plan agent's question carries its document, its anchor as asked and, from `placementAtHead`, where the anchor's lines stand on
+ * the head now.
+ */
+function decisionOf(decision: Decision, placementAtHead: LineRange | null): BoardDecisionDocument {
   return {
     id:        decision.id,
     kind:      decision.kind,
@@ -42,6 +51,11 @@ function decisionOf(decision: Decision): BoardDecisionDocument {
     })),
     context:  decision.context,
     openedAt: decision.openedAt,
+    ...(decision.document === undefined || decision.anchor === undefined ? {} : {
+      document:  decision.document,
+      anchor:    TicketDocumentsMappingUtil.anchorOf(decision.anchor),
+      placement: placementAtHead === null ? null : { from: placementAtHead.from, to: placementAtHead.to },
+    }),
   };
 }
 

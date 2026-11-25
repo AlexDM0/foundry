@@ -770,6 +770,11 @@ documents is judged by them ever after, whatever the route becomes. User moves t
   Acceptance item (`spec-acceptance-unnumbered`), and a plan only once its spec is approved
   (`plan-before-approved-spec`). With the review off the agent's ready approves the head for the pipeline, and the
   document is the agent's: User reads it and messages its agent but does not edit it. Approvals are appended and kept.
+- A spec or plan agent asks User a question with `document ask`, on lines of the version that it read. The question is
+  an `agent-question` decision that carries the document and a comment anchor on those lines. While a question on a
+  document is open, nobody approves that document (`document-has-open-questions`), the pipeline included. User's
+  answer, an option, a note or both, is queued to the agent as a message on the question's lines, which names the
+  decision; the agent then proposes the edit.
 - The approval that leaves both documents approved readies a draft ticket in the same write, as `ticket ready` would,
   its refusals included.
 - A spec changed after the plan's approval leaves the plan out of date. A committed ticket whose spec, or a document
@@ -1599,6 +1604,7 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | `need declare <J> "<title>" --entity <key> --body <text> \| --body-file <path> [--json]` | Keep a build job's need for another entity in `progress.json`'s `needs`, through the write pipeline and logged nothing, with Hephaestus up or down; Hephaestus files it as that entity's ticket. Under the declaring job it names no job: Hephaestus stamps its own. [What a need holds and its refusals](#need-declare) are below. |
 | `document propose [-- <json>] [--json]` | A spec or plan agent's edit of the document its job writes, `{baseVersion, edits, summary, answers}`, as JSON after `--` or on standard input; only under its own job. [The document verbs](#document-verbs) are below. |
 | `document ready [--json]` | A spec or plan agent tells that the head version of its document is complete; only under its own job. |
+| `document ask [-- <json>] [--json]` | A spec or plan agent asks User a question on lines of a version of its document, `{version, lines, question, options}`, which opens an `agent-question` decision; only under its own job. |
 | `document effect <version> [--json]` | A spec or plan agent asks what a version of its document names in the main line's tree; only under its own job. The reading reaches it as a message from the board. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
@@ -1869,6 +1875,7 @@ session of the intake, a fresh one after a replacement included.
 document propose [-- <json>] [--json]
 document ready [--json]
 document effect <version> [--json]
+document ask [-- <json>] [--json]
 ```
 
 A spec or plan agent's moves on the document its job writes, in the spec-then-plan route. They run only in the agent's
@@ -1882,6 +1889,12 @@ a job each is refused at exit 1. A job's role names the document: `spec-agent` t
 - `document ready` tells that the head version is complete.
 - `document effect <version>` asks what a version names in the main line's tree. The answer reaches the agent as a
   message from the board once the reading ends.
+- `document ask` asks User a question as JSON after `--` or on standard input: `{version, lines, question, options}`.
+  `lines` is `{from, to}`, the lines of version `version` that the question changes; each of the two to four options is
+  `{label, description?, touches?, tradeOff?, acceptanceEffect?, recommended?}`, the labels distinct and at most one
+  option recommended. It opens an `agent-question` decision on the ticket with `document` and an `anchor` on those
+  lines, and the job runs on. User's answer reaches the agent as a message on the question's lines that names the
+  decision (`answers`). A field not of its shape is refused `malformed-setup-command`.
 
 Hephaestus holds a document agent's requests until the end of its turn, the turn's `result` or its session's end, and
 runs Customs on its snapshot there (V16, V4, V5, V13, V14). A clean snapshot applies the requests in order; a changed
@@ -2594,6 +2607,8 @@ The board's state. The example shows the shape; the tables below give each key's
 | `requestId` | decision | The question request it was opened for, or null for one code opened. |
 | `questions` | decision | AskUserQuestion's own shape. An option also carries `touches`, `tradeOff` and `acceptanceEffect`, each written only once its asker noted it with `question options`. |
 | `context` | decision | Text shown with the questions. |
+| `document` | decision | `spec` or `plan`, only on a question a spec or plan agent asked with `document ask`. |
+| `anchor` | decision | Only with `document`: `{view, versionNumber, lines, sectionPath, surroundingLines}`, the lines of the version the agent read that the question changes, with the headings above them and two lines around them. |
 | `facts` | incident | Text Hephaestus names; `requestId` when a question opened it. |
 | `defaultMove` | incident | The move it takes when its delivery turn closes unhandled. |
 | `deliveredInTurn` | incident | Null, or `{ jobId, chatSequence }`, the Assistant's chat turn it went out in. |

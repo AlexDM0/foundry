@@ -3,10 +3,14 @@
  * incident or ended session leaves behind, and what a picture sent with a message may be.
  */
 
-import type { ForgeJsonValue } from './ForgeRefusalDocument.ts';
+import type { TicketDocumentKind }                       from '../constants/BoardVocabulary.ts';
+import type { ForgeJsonValue }                           from './ForgeRefusalDocument.ts';
+import type { CommentAnchorDocument, LineRangeDocument } from './TicketDocumentsDocument.ts';
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface BoardDecisionOptionDocument {
+  /** From forge 4.2: the letter an answer names the option by, `a` for the first, as `decision-answer` takes it. */
+  readonly letter:            string;
   /** As asked, with no mark of the recommendation, which `recommended` carries. */
   readonly label:             string;
   readonly description:       string;
@@ -29,15 +33,21 @@ export interface BoardDecisionQuestionDocument {
 
 /** A question for the user; the first answer wins. */
 export interface BoardDecisionDocument {
-  readonly id:        string;
-  readonly kind:      string;
-  readonly ticketIds: readonly string[];
-  readonly jobId:     string | null;
+  readonly id:         string;
+  readonly kind:       string;
+  readonly ticketIds:  readonly string[];
+  readonly jobId:      string | null;
   /** The asking agent's role; `hephaestus` for a decision the forge opened from the facts. */
-  readonly askedBy:   string;
-  readonly questions: readonly BoardDecisionQuestionDocument[];
-  readonly context:   string;
-  readonly openedAt:  string;
+  readonly askedBy:    string;
+  readonly questions:  readonly BoardDecisionQuestionDocument[];
+  readonly context:    string;
+  readonly openedAt:   string;
+  /** From forge 4.2, only on a spec or plan agent's question: the document it asks on. */
+  readonly document?:  TicketDocumentKind;
+  /** With `document`: the lines the question changes, at the version the agent read. */
+  readonly anchor?:    CommentAnchorDocument;
+  /** With `document`: the anchor's lines at the document's head now; `null` once they are gone from it. */
+  readonly placement?: LineRangeDocument | null;
 }
 
 /** The Assistant's chat an incident went out in. */

@@ -2,8 +2,9 @@
  * A question for the user, stored in progress.json while it is open so it survives a reboot and is answered from anywhere; the first
  * answer wins. An answered or withdrawn decision leaves the board in that hold and lives on in the log.
  */
-import type { JobRole }            from './Job.ts';
-import type { OptionConsequences } from './OptionConsequences.ts';
+import type { JobRole }                           from './Job.ts';
+import type { OptionConsequences }                from './OptionConsequences.ts';
+import type { CommentAnchor, TicketDocumentKind } from './TicketDocument.ts';
 
 export type DecisionKind =
   | 'agent-question'
@@ -61,6 +62,10 @@ export interface Decision {
   questions: DecisionQuestion[];
   context:   string;
   openedAt:  string;
+  /** A spec or plan agent's question: the document it asks on, written only on such a decision. */
+  document?: TicketDocumentKind;
+  /** The lines of `document` the question changes, at the version the agent read; written only with `document`. */
+  anchor?:   CommentAnchor;
 }
 
 /** What a caller hands in to open one: the Board numbers it and stamps it. */
@@ -72,7 +77,10 @@ export type DecisionOpening = Omit<Decision, 'id' | 'openedAt' | 'ticketIds' | '
 /** One answer per question, keyed by the question's text: the map a monitor sends. */
 export type DecisionAnswer = Readonly<Record<string, string>>;
 
-/** How `decide` writes an answer: one choice of option letters per question (`b`, `ac` for a multi-select), or one free text. */
+/**
+ * How `decide` writes an answer: one choice of option letters per question (`b`, `ac` for a multi-select), or one free text. A `note` beside
+ * the letters is User's own words on a one-question decision, taken with the chosen option.
+ */
 export type DecisionAnswerForm =
-  | { form: 'letters'; choices: readonly string[] }
+  | { form: 'letters'; choices: readonly string[]; note?: string }
   | { form: 'text'; text: string };

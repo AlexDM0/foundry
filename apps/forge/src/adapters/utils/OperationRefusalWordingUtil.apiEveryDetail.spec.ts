@@ -62,10 +62,13 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'document-proposal-not-open': {
     reason: 'document-proposal-not-open', ticketId: '004', document: 'plan', proposalId: 'P2', state: 'applied'
   },
-  'document-review-is-off':     { reason: 'document-review-is-off', ticketId: '004', document: 'plan' },
-  'plan-before-approved-spec':  { reason: 'plan-before-approved-spec', ticketId: '004' },
-  'spec-acceptance-unnumbered': { reason: 'spec-acceptance-unnumbered', ticketId: '004' },
-  'document-agent-not-live':    {
+  'document-review-is-off':      { reason: 'document-review-is-off', ticketId: '004', document: 'plan' },
+  'plan-before-approved-spec':   { reason: 'plan-before-approved-spec', ticketId: '004' },
+  'spec-acceptance-unnumbered':  { reason: 'spec-acceptance-unnumbered', ticketId: '004' },
+  'document-has-open-questions': {
+    reason: 'document-has-open-questions', ticketId: '004', document: 'spec', decisionIds: ['E7']
+  },
+  'document-agent-not-live': {
     reason: 'document-agent-not-live', ticketId: '004', document: 'spec', jobId: 'J7'
   },
   'document-snapshot-touched': {

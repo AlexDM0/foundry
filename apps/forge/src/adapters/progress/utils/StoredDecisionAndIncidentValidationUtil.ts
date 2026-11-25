@@ -2,7 +2,8 @@
  * Whether the parsed `decisions`, `nextDecisionId`, `incidents` and `nextIncidentId` of a progress.json are in the current format, and if
  * not, the reason naming the offending field.
  */
-import { JsonRecordUtil }     from '../../../lib/json-record/JsonRecordUtil.ts';
+import { JsonRecordUtil }        from '../../../lib/json-record/JsonRecordUtil.ts';
+import { TICKET_DOCUMENT_KINDS } from '../../../lib/tracker-model/@types/TicketDocument.ts';
 import {
   DECISION_ID_PREFIX,
   DECISION_KINDS,
@@ -22,6 +23,10 @@ type UnknownObject = Record<string, unknown>;
 const DECISION_ASKERS: readonly string[] = [...JOB_ROLES, ...NON_AGENT_DECISION_ASKERS];
 
 const FIRST_CHAT_SEQUENCE = 1;
+
+const STORED_ANCHOR_KEYS: readonly string[] = ['view', 'versionNumber', 'lines', 'sectionPath', 'surroundingLines'];
+
+const COMMENT_VIEWS: readonly string[] = ['preview', 'code'];
 
 function vocabularyProblem(value: unknown, path: string, vocabulary: readonly string[]): string | null {
   if (typeof value === 'string' && vocabulary.includes(value)) return null;
@@ -66,6 +71,35 @@ function questionProblem(value: unknown, path: string): string | null {
   return firstProblemOf(options.map((option, index) => () => optionProblem(option, `${path}.options[${index}]`)));
 }
 
+function lineRangeProblem(value: unknown, path: string): string | null {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
+  const { from, to } = value;
+  if (!StoredValueUtil.wholeNumberIsAtLeast(from, 1)) return `${path}.from is not a whole number of at least 1`;
+  return StoredValueUtil.wholeNumberIsAtLeast(to, from) ? null : `${path}.to is not a whole number of at least its from`;
+}
+
+/** Only the code-view anchor forge makes for an agent's question is stored on a decision: no columns, quote or diagram. */
+function anchorProblem(value: unknown, path: string): string | null {
+  if (value === undefined) return null;
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
+  const unknownKey = Object.keys(value).find((key) => !STORED_ANCHOR_KEYS.includes(key));
+  return firstProblemOf([
+    () => (unknownKey === undefined ? null : `${path}.${unknownKey} is not a key of a question's anchor`),
+    () => vocabularyProblem(value['view'], `${path}.view`, COMMENT_VIEWS),
+    () => (StoredValueUtil.wholeNumberIsAtLeast(value['versionNumber'], 1) ? null : `${path}.versionNumber is not a whole number of at least 1`),
+    () => lineRangeProblem(value['lines'], `${path}.lines`),
+    () => (listOfTextIsWellFormed(value['sectionPath']) ? null : `${path}.sectionPath is not a list of text`),
+    () => lineRangeProblem(value['surroundingLines'], `${path}.surroundingLines`),
+  ]);
+}
+
+/** A decision names its document only with its anchor, and its anchor only with its document. */
+function documentQuestionProblem(value: UnknownObject, path: string): string | null {
+  if ((value['document'] === undefined) !== (value['anchor'] === undefined)) return `${path} names a document without an anchor, or an anchor without a document`;
+  if (value['document'] === undefined) return null;
+  return vocabularyProblem(value['document'], `${path}.document`, TICKET_DOCUMENT_KINDS) ?? anchorProblem(value['anchor'], `${path}.anchor`);
+}
+
 function sharedFieldsProblem(value: UnknownObject, path: string, idPrefix: string): string | null {
   if (!idIsWellFormed(value['id'], idPrefix)) return `${path}.id is ${JSON.stringify(value['id'])}, and it has to be ${idPrefix} and a whole number`;
   if (!listOfTextIsWellFormed(value['ticketIds'])) return `${path}.ticketIds is not a list of ticket ids`;
@@ -85,6 +119,7 @@ function decisionProblem(value: unknown, index: number): string | null {
     () => (typeof value['context'] === 'string' ? null : `${path}.context is not a string`),
     () => (Array.isArray(questions) ? null : `${path}.questions is not a list`),
     ...(Array.isArray(questions) ? questions.map((question, questionIndex) => () => questionProblem(question, `${path}.questions[${questionIndex}]`)) : []),
+    () => documentQuestionProblem(value, path),
   ]);
 }
 

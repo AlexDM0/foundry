@@ -3,7 +3,7 @@
  * log, the epics, the drafts and the Board's facts of each row and ticket, then the limits, the concurrency, Hephaestus, the usage
  * windows and the notices. Every field is named, so a field the model gains reaches no reader until it is mapped here.
  */
-import type { BoardLimitsDocument }     from 'forge-contracts/BoardLimitsDocument';
+import type { BoardLimitsDocument } from 'forge-contracts/BoardLimitsDocument';
 import type {
   BoardDraftQuestionDocument,
   BoardDraftSummaryDocument,
@@ -16,12 +16,14 @@ import type {
   BoardRowFactsDocument,
   BoardTaskDocument,
   BoardTicketDocument,
-  BoardTicketDocumentsSummaryDocument
+  BoardTicketDocumentsSummaryDocument,
+  BoardTicketDraftDocument
 } from 'forge-contracts/BoardPageDocuments';
 import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                   from 'forge-contracts/BoardReadingDocuments';
 import type { BoardConcurrencyDocument, BoardHephaestusDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
 
 import type { DraftQuestion, DraftSummary } from '../../../lib/tracker-model/@types/Draft.ts';
+import type { DraftProgress }               from '../../../lib/tracker-model/@types/DraftProgress.ts';
 import type { EpicRollup }                  from '../../../lib/tracker-model/@types/Epic.ts';
 import type { Task }                        from '../../../lib/tracker-model/@types/Task.ts';
 import type { ReadyTicket }                 from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -34,16 +36,32 @@ import type {
   PageTicket,
   PageTicketFacts
 } from '../../../shared/@types/PagePayload.ts';
-import type { IdentifiedLogEntry }          from '../../../shared/@types/WordedLogEntry.ts';
-import { NoticeWordingUtil }                from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
-import type { HephaestusFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
-import { BoardReadingMappingUtil }          from './BoardReadingMappingUtil.ts';
+import type { IdentifiedLogEntry }                            from '../../../shared/@types/WordedLogEntry.ts';
+import { NoticeWordingUtil }                                  from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
+import type { HephaestusFacts, JobWithLiveFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
+import { BoardReadingMappingUtil }                            from './BoardReadingMappingUtil.ts';
 
-/** What forge reads of one ticket beyond its file: its facts, the commands it accepts now, and where its documents stand, if it has any. */
+/**
+ * What forge reads of one ticket beyond its file: its facts, the commands it accepts now, where its documents stand, if it has any, and
+ * where it stands while it is written.
+ */
 export interface TicketReadings {
   readonly facts:     BoardTicketFactsDocument;
   readonly offers:    BoardTicketOffersDocument;
   readonly documents: BoardTicketDocumentsSummaryDocument | null;
+  readonly draft:     BoardTicketDraftDocument | null;
+}
+
+/** A draft's progress with its live agent's job, which the board names by its id; `agent` is `null` while the job is not on the board. */
+function draftOf(progress: Readonly<DraftProgress>, agent: Readonly<JobWithLiveFacts> | null): BoardTicketDraftDocument {
+  return {
+    stage:       progress.stage,
+    waitsOnUser: progress.waitsOnUser,
+    agent:       agent === null ? null : {
+      jobId: agent.id, role: agent.role ?? '', tokens: agent.live.tokens, since: agent.launchedAt
+    },
+    waitingSince: progress.waitingSince,
+  };
 }
 
 function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocument {
@@ -81,6 +99,7 @@ function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocu
     facts:           readings.facts,
     offers:          readings.offers,
     ...(readings.documents === null ? {} : { documents: readings.documents }),
+    ...(readings.draft === null ? {} : { draft: readings.draft }),
   };
 }
 
@@ -268,6 +287,7 @@ function usageOf(usage: UsageFacts): BoardUsageDocument {
 
 export const BoardPageMappingUtil = Object.freeze({
   pageOf,
+  draftOf,
   limitsOf,
   concurrencyOf,
   hephaestusOf,

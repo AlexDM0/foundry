@@ -1,22 +1,31 @@
 /**
- * The moves on a ticket document's agent: the agent's own proposal, ready and effect reading through its Hatch, each refused unless its job
- * is the live agent of that ticket document, and User's effect reading of a version and stop of the agent's running turn.
+ * The moves on a ticket document's agent: the agent's own proposal, ready, effect reading and question through its Hatch, each refused
+ * unless its job is the live agent of that ticket document, and User's effect reading of a version and stop of the agent's running turn.
  */
-import type { Job }                                            from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { DocumentProposal, LineEdit, TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                                          from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                        from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ProposalSubmission }                             from '../../lib/tracker-model/TicketDocuments.ts';
-import { DocumentAgentJobUtil }                                from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { TicketDocumentVersionUtil }                           from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
-import type { ControlCommandKind, ControlCommandOf }           from '../../shared/@types/ControlCommand.ts';
-import type { ControlContext }                                 from '../../shared/@types/ControlContext.ts';
-import type { EffectReadingRequest }                           from '../../shared/@types/EffectReading.ts';
-import { OperationRefusal }                                    from '../../shared/OperationRefusal.ts';
-import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
-import { ticketIdOfReference }                                 from './ControlTicketLookup.ts';
-import { ticketDocumentMoveJudgesOf }                          from './TicketDocumentMoveJudges.ts';
+import type { DecisionOpened }         from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { DecisionQuestionOption } from '../../lib/tracker-model/@types/Decision.ts';
+import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
+import type {
+  DocumentProposal,
+  LineEdit,
+  LineRange,
+  TicketDocumentKind
+} from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { Board }                                                                  from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }                                                                from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ProposalSubmission }                                                     from '../../lib/tracker-model/TicketDocuments.ts';
+import { CommentAnchorUtil }                                                           from '../../lib/tracker-model/utils/CommentAnchorUtil.ts';
+import { DocumentAgentJobUtil }                                                        from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { OptionConsequencesUtil }                                                      from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import { TicketDocumentVersionUtil }                                                   from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { ControlCommandKind, ControlCommandOf, DocumentQuestionOptionSubmission } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                                                         from '../../shared/@types/ControlContext.ts';
+import type { EffectReadingRequest }                                                   from '../../shared/@types/EffectReading.ts';
+import { OperationRefusal }                                                            from '../../shared/OperationRefusal.ts';
+import type { BoardTransaction }                                                       from '../tracker/BoardTransaction.ts';
+import { ticketIdOfReference }                                                         from './ControlTicketLookup.ts';
+import { ticketDocumentMoveJudgesOf }                                                  from './TicketDocumentMoveJudges.ts';
 
 /** The live agent job and the ticket document it writes. */
 interface LiveDocumentAgent {
@@ -26,6 +35,9 @@ interface LiveDocumentAgent {
 }
 
 const MESSAGE_ID_PATTERN = /^M[1-9][0-9]*$/;
+
+/** The options a document agent's question offers, as many as its agent's own question tool takes. */
+const QUESTION_OPTION_COUNT = { least: 2, most: 4 } as const;
 
 /** The job the Bouncer stamped, while it is the one document agent on the board for its ticket's document. */
 function liveDocumentAgentOf(board: Board, jobId: string | undefined): LiveDocumentAgent {
@@ -130,6 +142,71 @@ function requireVersion(board: Board, ticketId: string, document: TicketDocument
   }
 }
 
+function isFilledText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function questionOptionOf(value: unknown, index: number): DecisionQuestionOption {
+  const field = `options[${index}]`;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) malformed('ticket-document-agent-ask', field);
+  const option = value as Readonly<Record<string, unknown>> & DocumentQuestionOptionSubmission;
+  if (!isFilledText(option.label)) malformed('ticket-document-agent-ask', `${field}.label`);
+  if (option.description !== undefined && typeof option.description !== 'string') malformed('ticket-document-agent-ask', `${field}.description`);
+  if (option.recommended !== undefined && typeof option.recommended !== 'boolean') malformed('ticket-document-agent-ask', `${field}.recommended`);
+  if (!OptionConsequencesUtil.factsAreWellFormed(option)) malformed('ticket-document-agent-ask', field);
+  return {
+    label:         option.label.trim(),
+    description:   option.description?.trim() ?? '',
+    isRecommended: option.recommended === true,
+    ...OptionConsequencesUtil.consequencesCopyOf(option),
+  };
+}
+
+/** Two to four options of distinct labels, at most one of them recommended; the agent's JSON is checked as untrusted. */
+function questionOptionsOf(options: unknown): DecisionQuestionOption[] {
+  const { least, most } = QUESTION_OPTION_COUNT;
+  if (!Array.isArray(options) || options.length < least || options.length > most) malformed('ticket-document-agent-ask', 'options');
+  const read = options.map(questionOptionOf);
+  if (new Set(read.map((option) => option.label)).size !== read.length) malformed('ticket-document-agent-ask', 'options');
+  if (read.filter((option) => option.isRecommended).length > 1) malformed('ticket-document-agent-ask', 'options');
+  return read;
+}
+
+/** Lines `from` to `to` of the version, both held by it. */
+function questionLinesOf(lines: unknown, versionText: string): LineRange {
+  const lineCount = versionText.split('\n').length;
+  if (typeof lines !== 'object' || lines === null) malformed('ticket-document-agent-ask', 'lines');
+  const { from, to } = lines as Record<string, unknown>;
+  if (!isWholeNumberAtLeast(from, 1) || !isWholeNumberAtLeast(to, from) || to > lineCount) malformed('ticket-document-agent-ask', 'lines');
+  return { from, to };
+}
+
+/**
+ * The agent's question opens an `agent-question` decision on its ticket, for its document, anchored on the lines it names at the version it
+ * read. The job keeps running: the answer comes back as the document's next message.
+ */
+function ask(command: ControlCommandOf<'ticket-document-agent-ask'>, change: BoardTransaction): DecisionOpened {
+  const agent = liveDocumentAgentOf(change.board, command.jobId);
+  requireVersion(change.board, agent.ticketId, agent.document, command.version);
+  const versionText = change.board.ticketDocuments().versionTextOf(agent.ticketId, agent.document, command.version) ?? '';
+  if (!isFilledText(command.question)) malformed(command.kind, 'question');
+  const options = questionOptionsOf(command.options);
+  const lines   = questionLinesOf(command.lines, versionText);
+  return change.board.openDecision({
+    kind:      'agent-question',
+    ticketIds: [agent.ticketId],
+    jobId:     agent.job.id,
+    askedBy:   agent.job.role ?? DocumentAgentJobUtil.roleOf(agent.document),
+    requestId: null,
+    questions: [{
+      question: command.question.trim(), header: agent.document, multiSelect: false, options
+    }],
+    context:  '',
+    document: agent.document,
+    anchor:   CommentAnchorUtil.anchorOfLines(versionText, command.version, lines),
+  }, change.at);
+}
+
 /** Only a live Hephaestus runs readings: outside it the command is refused before anything is asked. */
 function requestReading(context: ControlContext, commandKind: ControlCommandKind, request: EffectReadingRequest): EffectReadingRequest {
   if (context.effectReadings === undefined) throw new OperationRefusal('refused', { kind: 'hephaestus-control-is-runtime-only', commandKind });
@@ -173,6 +250,7 @@ export const DOCUMENT_AGENT_CONTROLS = {
   'ticket-document-agent-propose':     propose,
   'ticket-document-agent-ready':       markReady,
   'ticket-document-agent-effect-read': readAgentEffect,
+  'ticket-document-agent-ask':         ask,
   'ticket-document-effect-read':       readEffect,
   'ticket-document-turn-stop':         stopTurn,
 } as const;

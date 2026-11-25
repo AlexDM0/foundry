@@ -1,9 +1,10 @@
 /**
- * `document propose`, `document ready` and `document effect`: a spec or plan agent's moves on the ticket document its job writes. Each runs
- * only under that job, where it is relayed through the Hatch and Hephaestus stamps the job; outside a job it is refused.
+ * `document propose`, `document ready`, `document effect` and `document ask`: a spec or plan agent's moves on the ticket document its job
+ * writes. Each runs only under that job, where it is relayed through the Hatch and Hephaestus stamps the job; outside a job it is refused.
  */
 import type { CommandHandler } from '../CommandHandler.ts';
 import { refuseUsage }         from '../RecordedIncidentMove.ts';
+import { askDocumentQuestion } from './DocumentAsk.ts';
 import { readDocumentEffect }  from './DocumentEffect.ts';
 import { proposeDocumentEdit } from './DocumentPropose.ts';
 import { markDocumentReady }   from './DocumentReady.ts';
@@ -13,6 +14,7 @@ const DOCUMENT_SUBCOMMANDS = {
   propose: proposeDocumentEdit,
   ready:   markDocumentReady,
   effect:  readDocumentEffect,
+  ask:     askDocumentQuestion,
 } as const;
 
 export const DOCUMENT_SUBCOMMAND_NAMES: readonly string[] = Object.freeze(Object.keys(DOCUMENT_SUBCOMMANDS));

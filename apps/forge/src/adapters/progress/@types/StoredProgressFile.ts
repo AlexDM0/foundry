@@ -16,9 +16,10 @@ import type {
   JobStopMode,
   AirlockPhase
 }                                             from '../../../lib/tracker-model/@types/Job.ts';
-import type { TaskStatus, TicketStageName }   from '../../../lib/tracker-model/@types/Task.ts';
-import type { HephaestusState, ViewRange }    from '../../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { CURRENT_PROGRESS_FILE_VERSION } from '../constants/ProgressFileVersions.ts';
+import type { TaskStatus, TicketStageName }       from '../../../lib/tracker-model/@types/Task.ts';
+import type { CommentAnchor, TicketDocumentKind } from '../../../lib/tracker-model/@types/TicketDocument.ts';
+import type { HephaestusState, ViewRange }        from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { CURRENT_PROGRESS_FILE_VERSION }     from '../constants/ProgressFileVersions.ts';
 
 export interface StoredTaskPhase {
   status: TaskStatus;
@@ -162,6 +163,8 @@ export interface StoredDecision {
   questions: StoredDecisionQuestion[];
   context:   string;
   openedAt:  string;
+  document?: TicketDocumentKind;
+  anchor?:   CommentAnchor;
 }
 
 export interface StoredIncidentDeliveryTurn {

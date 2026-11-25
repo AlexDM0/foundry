@@ -7,4 +7,5 @@ export const DOCUMENT_USAGE = {
   propose: `${PROGRAM} document propose [-- <json>] [--json]`,
   ready:   `${PROGRAM} document ready [--json]`,
   effect:  `${PROGRAM} document effect <version> [--json]`,
+  ask:     `${PROGRAM} document ask [-- <json>] [--json]`,
 } as const;

@@ -3,7 +3,7 @@
  * byte-identical; a file with them round-trips byte for byte; a key the tool does not know on a decision, a question, an option, an
  * incident or its delivery turn keeps its place through a change the Board makes; and an open decision or incident left by the Board is
  * written back as the Board holds it. An option's consequences round-trip byte for byte after its description, and an option without them
- * gets none.
+ * gets none. A document agent's question keeps its document and anchor byte for byte after its opening stamp.
  */
 import { expect, test } from 'bun:test';
 
@@ -52,6 +52,22 @@ function storedTextWithDecisionsAndIncidents(): string {
       context:                    'Example export',
       openedAt:                   AT,
       unknownTrailingDecisionKey: { nested: true },
+    }, {
+      id:        'E2',
+      kind:      'agent-question',
+      ticketIds: ['002'],
+      jobId:     'J3',
+      askedBy:   'spec-agent',
+      requestId: null,
+      questions: [{
+        question: 'Where does the basket keep its items?', header: 'spec', multiSelect: false, options: [{ label: 'Per viewer', description: '', isRecommended: false }]
+      }],
+      context:  '',
+      openedAt: AT,
+      document: 'spec',
+      anchor:   {
+        view: 'code', versionNumber: 2, lines: { from: 6, to: 6 }, sectionPath: ['Behaviour'], surroundingLines: { from: 4, to: 8 }
+      },
     }],
     nextIncidentId: 6,
     incidents:      [{
@@ -106,7 +122,7 @@ test('what the Board opens, delivers and closes is written back with the counter
 
   const stored = ProgressFileMappingUtil.storedDocumentOf(progress);
   expect(stored.nextDecisionId).toBe(4);
-  expect(stored.decisions).toEqual([]);
+  expect(stored.decisions?.map((decision) => decision.id)).toEqual(['E2']);
   expect(stored.nextIncidentId).toBe(7);
   expect(stored.incidents?.map((incident) => incident.id)).toEqual(['I5', 'I6']);
   expect(stored.incidents?.[0]?.deliveredInTurn).toEqual({ jobId: 'J1', chatSequence: 3 });

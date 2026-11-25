@@ -233,6 +233,8 @@ export type BoardRefusalDetail =
   | { reason: 'document-review-is-off'; ticketId: string; document: TicketDocumentKind }
   | { reason: 'plan-before-approved-spec'; ticketId: string }
   | { reason: 'spec-acceptance-unnumbered'; ticketId: string }
+  /** The open decisions of the document agent's questions on that document, in opening order. */
+  | { reason: 'document-has-open-questions'; ticketId: string; document: TicketDocumentKind; decisionIds: readonly string[] }
   | { reason: 'document-agent-not-live'; ticketId: string; document: TicketDocumentKind; jobId: string }
   | { reason: 'document-snapshot-touched'; ticketId: string; document: TicketDocumentKind; jobId: string; checks: readonly string[] };
 

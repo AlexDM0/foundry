@@ -86,8 +86,13 @@ export interface CommentAnchorDocument {
 export interface DocumentMessageDocument {
   /** `M1`, `M2`, … */
   readonly messageId:      string;
-  /** The `C<n>` number of an anchored message; `null` when unanchored. */
+  /** The `C<n>` number of an anchored message; `null` when unanchored, and on an answer to a decision. */
   readonly commentNumber:  number | null;
+  /**
+   * From forge 4.2: the `E<n>` decision this message answers, the document agent's own question, anchored where the question was; `null`
+   * on any other message.
+   */
+  readonly decisionId:     string | null;
   readonly anchor:         CommentAnchorDocument | null;
   /** The anchor's lines at the head version; `null` when unanchored or orphaned. */
   readonly placement:      LineRangeDocument | null;

@@ -215,6 +215,7 @@ describe('TicketDocumentsMappingUtil.ticketDocumentsOf', () => {
         {
           messageId:     'M1',
           commentNumber: 1,
+          decisionId:    null,
           anchor:        {
             view:             'preview',
             versionNumber:    5,
@@ -239,6 +240,7 @@ describe('TicketDocumentsMappingUtil.ticketDocumentsOf', () => {
         {
           messageId:      'M2',
           commentNumber:  null,
+          decisionId:     null,
           anchor:         null,
           placement:      null,
           orphaned:       true,

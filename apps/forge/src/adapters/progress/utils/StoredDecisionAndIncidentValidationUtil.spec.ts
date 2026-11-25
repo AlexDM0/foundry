@@ -27,6 +27,14 @@ const WELL_FORMED_DECISION = {
   openedAt:  '2026-09-26T10:15:00+02:00',
 };
 
+const QUESTION_ANCHOR = {
+  view: 'code', versionNumber: 2, lines: { from: 6, to: 6 }, sectionPath: ['Behaviour'], surroundingLines: { from: 4, to: 8 }
+};
+
+const DOCUMENT_QUESTION = {
+  ...WELL_FORMED_DECISION, askedBy: 'spec-agent', requestId: null, document: 'spec', anchor: QUESTION_ANCHOR
+};
+
 const WELL_FORMED_INCIDENT = {
   id:              'I1',
   kind:            'blocked',
@@ -52,6 +60,7 @@ test('a well-formed decision and incident have no problem, a code-opened decisio
   expect(decisionProblem({
     ...WELL_FORMED_DECISION, kind: 'outage', jobId: null, askedBy: 'hephaestus', requestId: null,
   }, 0)).toBeNull();
+  expect(decisionProblem(DOCUMENT_QUESTION, 0)).toBeNull();
   expect(incidentProblem(WELL_FORMED_INCIDENT, 0)).toBeNull();
   expect(incidentProblem({ ...WELL_FORMED_INCIDENT, deliveredInTurn: { jobId: 'J4', chatSequence: 1 } }, 0)).toBeNull();
 });
@@ -96,6 +105,17 @@ test.each<[string, Record<string, unknown>, string]>([
   ],
 ])('a decision with %s is refused naming the field', (_case, change, reason) => {
   expect(decisionsAndIncidentsProblemOf({ decisions: [{ ...WELL_FORMED_DECISION, ...change }] })).toStartWith(reason);
+});
+
+test.each<[string, Record<string, unknown>, string]>([
+  ['a document without an anchor', { anchor: undefined }, 'decisions[0] names a document without an anchor, or an anchor without a document'],
+  ['an anchor without a document', { document: undefined }, 'decisions[0] names a document without an anchor, or an anchor without a document'],
+  ['an unknown document', { document: 'ticket' }, 'decisions[0].document is "ticket", which is not one of'],
+  ['an anchor with a quote', { anchor: { ...QUESTION_ANCHOR, quote: 'keeps' } }, 'decisions[0].anchor.quote is not a key of a question\'s anchor'],
+  ['an anchor on line 0', { anchor: { ...QUESTION_ANCHOR, lines: { from: 0, to: 0 } } }, 'decisions[0].anchor.lines.from is not a whole number of at least 1'],
+  ['an anchor with no section path', { anchor: { ...QUESTION_ANCHOR, sectionPath: 'Behaviour' } }, 'decisions[0].anchor.sectionPath is not a list of text'],
+])('a document agent\'s question with %s is refused naming the field', (_case, change, reason) => {
+  expect(decisionsAndIncidentsProblemOf({ decisions: [{ ...DOCUMENT_QUESTION, ...change }] })).toStartWith(reason);
 });
 
 test.each<[string, Record<string, unknown>, string]>([

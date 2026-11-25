@@ -46,7 +46,8 @@ function chartRangeOf(range: ChartRangeRequest): ForgeChartRangeRequest {
 }
 
 function answerOf(answer: DecisionAnswerFormDocument): DecisionAnswerForm {
-  return answer.form === 'text' ? { form: 'text', text: answer.text } : { form: 'letters', choices: [...answer.choices] };
+  if (answer.form === 'text') return { form: 'text', text: answer.text };
+  return { form: 'letters', choices: [...answer.choices], ...(answer.note === undefined ? {} : { note: answer.note }) };
 }
 
 function picturesOf(pictures: readonly PictureReferenceDocument[] | undefined): { pictures?: PictureReference[] } {

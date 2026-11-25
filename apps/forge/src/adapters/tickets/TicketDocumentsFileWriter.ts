@@ -62,6 +62,7 @@ function messageOf(message: Readonly<DocumentMessage>): Record<string, unknown> 
   return {
     messageId: message.messageId,
     ...(message.commentNumber === undefined ? {} : { commentNumber: message.commentNumber }),
+    ...(message.decisionId === undefined ? {} : { decisionId: message.decisionId }),
     ...(message.anchor === undefined ? {} : { anchor: anchorOf(message.anchor) }),
     ...(message.placement === undefined ? {} : { placement: { from: message.placement.from, to: message.placement.to } }),
     ...(message.orphaned === true ? { orphaned: true } : {}),

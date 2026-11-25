@@ -1,6 +1,7 @@
 /**
  * The board's conversations against the contract's documents. What matters: a decision maps field by field with each option's
- * recommendation as its own field and an option's absent consequences absent, its relay request id left out; an incident maps field by
+ * recommendation as its own field, its letter beside it and an option's absent consequences absent, its relay request id left out; a
+ * spec agent's question carries its document, its anchor and its placement at the head, `null` once its lines are gone; an incident maps field by
  * field; a log record keeps its kind, its stamp, the ids it names and its fields as JSON carries them; and no picture limits read `null`.
  */
 import { describe, expect, test } from 'bun:test';
@@ -35,7 +36,7 @@ const DECISION: Decision = {
 
 describe('BoardConversationMappingUtil.decisionOf', () => {
   test('maps a decision field by field, the recommendation as a field, absent consequences absent and the request id left out', () => {
-    expect(BoardConversationMappingUtil.decisionOf(DECISION)).toEqual({
+    expect(BoardConversationMappingUtil.decisionOf(DECISION, null)).toEqual({
       id:        'E1',
       kind:      'agent-question',
       ticketIds: ['001'],
@@ -47,14 +48,42 @@ describe('BoardConversationMappingUtil.decisionOf', () => {
         multiSelect: true,
         options:     [
           {
-            label: 'CSV', description: 'Comma separated', recommended: true, touches: ['src/export.ts'], tradeOff: 'Smaller.', acceptanceEffect: 'A2 holds'
+            letter: 'a', label: 'CSV', description: 'Comma separated', recommended: true, touches: ['src/export.ts'], tradeOff: 'Smaller.', acceptanceEffect: 'A2 holds'
           },
-          { label: 'JSON', description: 'One document', recommended: false },
+          {
+            letter: 'b', label: 'JSON', description: 'One document', recommended: false
+          },
         ],
       }],
       context:  'The export needs a format.',
       openedAt: AT,
     });
+  });
+
+  const ANCHOR = {
+    view: 'code', versionNumber: 3, lines: { from: 7, to: 8 }, sectionPath: ['Behaviour'], surroundingLines: { from: 5, to: 10 }
+  } as const;
+  const DOCUMENT_QUESTION: Decision = {
+    ...DECISION,
+    askedBy:   'spec-agent',
+    requestId: null,
+    document:  'spec',
+    anchor:    {
+      ...ANCHOR, lines: { from: 7, to: 8 }, sectionPath: ['Behaviour'], surroundingLines: { from: 5, to: 10 }
+    },
+  };
+
+  test('a spec agent\'s question carries its document, its anchor as asked and where its lines stand on the head now', () => {
+    const mapped = BoardConversationMappingUtil.decisionOf(DOCUMENT_QUESTION, { from: 9, to: 10 });
+    expect([mapped.document, mapped.anchor, mapped.placement]).toEqual(['spec', ANCHOR, { from: 9, to: 10 }]);
+  });
+
+  test('a question whose lines are gone from the head has a null placement', () => {
+    expect(BoardConversationMappingUtil.decisionOf(DOCUMENT_QUESTION, null).placement).toBeNull();
+  });
+
+  test('a decision no document agent asked names no document, anchor or placement', () => {
+    expect(Object.keys(BoardConversationMappingUtil.decisionOf(DECISION, { from: 1, to: 1 }))).not.toContain('placement');
   });
 });
 

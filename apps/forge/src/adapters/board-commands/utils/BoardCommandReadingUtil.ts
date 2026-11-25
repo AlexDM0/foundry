@@ -125,7 +125,7 @@ function answerOf(value: unknown): DecisionAnswerFormDocument {
   const answer = recordOf(value);
   if (answer['form'] === 'text') return { form: 'text', text: textAt(answer, 'text') };
   if (answer['form'] !== 'letters') malformed();
-  return { form: 'letters', choices: textListOf(valueAt(answer, 'choices')) };
+  return { form: 'letters', choices: textListOf(valueAt(answer, 'choices')), ...optionalTextAt(answer, 'note') };
 }
 
 function picturesOf(record: BodyRecord): { pictures?: PictureReferenceDocument[] } {

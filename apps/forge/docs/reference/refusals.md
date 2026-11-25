@@ -244,7 +244,7 @@ A client sends these as board commands and reads them in a 409, or in the docume
 reads its own through the Hatch.
 
 <details open>
-<summary>14 sentences</summary>
+<summary>15 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -259,6 +259,7 @@ reads its own through the Hatch.
 | `not open` | `document-proposal-not-open` | An Apply or Discard of a proposal already applied, discarded or conflicted. | Read the document again. | |
 | `so its agent approves it when it is ready` | `document-review-is-off` | User's approval of a document whose review is off. | Nothing: the pipeline approves it at its agent's ready. | [cli.md](../cli.md#ticket-documents) |
 | `waits until its spec is approved` | `plan-before-approved-spec` | A save, comment or approval of the plan before its spec was ever approved. | Approve the spec first. | |
+| `so it cannot be approved yet` | `document-has-open-questions` | An approval, or an agent's ready with the review off, of a spec or plan while a question its agent asked on it is open. | Answer the question first; the agent then changes the document. | |
 | `so it cannot be approved` | `spec-acceptance-unnumbered` | An approval, or an agent's ready with the review off, of a spec whose head has no numbered `## Acceptance` item. | Number the Acceptance items `A1.`, `A2.`, … | |
 | `is not the live agent of the` | `document-agent-not-live` | A `document` verb from a job that is not the one agent of that ticket document, or one Hephaestus did not stamp. | Never printed to User: a defect or a stale agent. | [cli.md](../cli.md#document-verbs) |
 | `changed its read-only snapshot` | `document-snapshot-touched` | A spec or plan agent's turn changed its snapshot, so Customs refused every request of that turn and ended the job. | Comment again: a fresh agent starts on a clean snapshot. | [cli.md](../cli.md#document-verbs) |

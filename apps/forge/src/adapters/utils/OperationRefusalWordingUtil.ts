@@ -722,6 +722,9 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `The plan of #${detail.ticketId} waits until its spec is approved. ${NOTHING_WAS_WRITTEN}`;
     case 'spec-acceptance-unnumbered':
       return `The spec of #${detail.ticketId} holds no numbered item under \`## Acceptance\`, so it cannot be approved. ${NOTHING_WAS_WRITTEN}`;
+    case 'document-has-open-questions':
+      return `The ${detail.document} of #${detail.ticketId} waits on the answer to ${detail.decisionIds.join(', ')}, so it cannot be approved `
+        + `yet: answer ${detail.decisionIds.length === 1 ? 'it' : 'them'} first. ${NOTHING_WAS_WRITTEN}`;
     case 'document-agent-not-live':
       return `Job ${detail.jobId} is not the live agent of the ${detail.document} of #${detail.ticketId}. ${NOTHING_WAS_WRITTEN}`;
     case 'document-snapshot-touched':

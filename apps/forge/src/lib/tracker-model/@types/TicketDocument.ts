@@ -85,8 +85,10 @@ export interface CommentAnchor {
 export interface DocumentMessage {
   /** `M<n>`. */
   messageId:       string;
-  /** `C<n>`, only on an anchored message. */
+  /** `C<n>`, only on an anchored message that answers no decision. */
   commentNumber?:  number;
+  /** `E<n>`, only on User's answer to the document agent's own question, anchored where the question was. */
+  decisionId?:     string;
   /** As sent, never rewritten. */
   anchor?:         CommentAnchor;
   /** The anchor at the head version; absent when unanchored or orphaned. */

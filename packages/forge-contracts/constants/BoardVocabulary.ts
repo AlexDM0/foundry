@@ -119,6 +119,17 @@ export type DocumentReadingRule = (typeof DOCUMENT_READING_RULES)[number];
 export const PROPOSAL_MODES = ['ask-first', 'auto-apply'] as const;
 export type ProposalMode = (typeof PROPOSAL_MODES)[number];
 
+/**
+ * Where a ticket being written stands, from forge 4.2: the spec-then-plan route's stages, then a ticket that waits for its review on either
+ * route.
+ */
+export const DRAFT_STAGES = ['spec', 'spec-review', 'plan', 'plan-review', 'ticket-review'] as const;
+export type DraftStage = (typeof DRAFT_STAGES)[number];
+
+/** What of a draft's stage waits on the user, from forge 4.2: an agent's question, an agent's edit that waits for Apply, or the approval. */
+export const DRAFT_WAITS = ['answer', 'proposal', 'approval'] as const;
+export type DraftWait = (typeof DRAFT_WAITS)[number];
+
 /** Where a document stands: `out-of-date` is a plan approved on a spec version that is no longer the spec's approved head. */
 export const DOCUMENT_STANDINGS = ['unwritten', 'drafting', 'awaiting-review', 'approved', 'changed-since-approval', 'out-of-date'] as const;
 export type DocumentStanding = (typeof DOCUMENT_STANDINGS)[number];

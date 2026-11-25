@@ -5,7 +5,9 @@
 import type {
   DisplayState,
   DocumentStanding,
+  DraftStage,
   DraftState,
+  DraftWait,
   EntityKey,
   TaskStatus,
   TicketPriority,
@@ -42,6 +44,31 @@ export interface BoardTicketDocumentsSummaryDocument {
   readonly spec:      TicketDocumentSummaryDocument;
   readonly plan:      TicketDocumentSummaryDocument;
   readonly buildHeld: boolean;
+}
+
+/** The live spec or plan agent writing a draft's stage. */
+export interface BoardDraftAgentDocument {
+  readonly jobId:  string;
+  /** `spec-agent` or `plan-agent`. */
+  readonly role:   string;
+  /** The tokens its session spent so far. */
+  readonly tokens: number;
+  /** The stamp of the job's newest launch, only ever shown; `null` while launching or when the log lost it. */
+  readonly since:  string | null;
+}
+
+/**
+ * Where a ticket being written stands, from forge 4.2: its stage, what of it waits on the user, the agent writing it, and when the oldest
+ * wait began, which orders the drafts a view walks and is only ever shown.
+ */
+export interface BoardTicketDraftDocument {
+  readonly stage:        DraftStage;
+  /** `null` while nothing of the stage waits on the user. */
+  readonly waitsOnUser:  DraftWait | null;
+  /** `null` while no agent writes the stage's document. */
+  readonly agent:        BoardDraftAgentDocument | null;
+  /** `null` with `waitsOnUser`. */
+  readonly waitingSince: string | null;
 }
 
 /** A ticket as filed. An optional field is absent where the ticket names nothing; an absent `priority` reads as `normal`. */
@@ -94,6 +121,8 @@ export interface BoardTicketDocument {
   readonly offers:          BoardTicketOffersDocument;
   /** Present only on a ticket with a documents record. */
   readonly documents?:      BoardTicketDocumentsSummaryDocument;
+  /** From forge 4.2: present on a draft of the spec-then-plan route and on a ticket in `ready-for-review`. */
+  readonly draft?:          BoardTicketDraftDocument;
 }
 
 /** One status a row reached, and when. */

@@ -150,6 +150,9 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   ],
   'ticket-document-agent-ready':       ['document', 'ready'],
   'ticket-document-agent-effect-read': ['document', 'effect', '2'],
+  'ticket-document-agent-ask':         [
+    'document', 'ask', '--', '{"version": 2, "lines": {"from": 3, "to": 3}, "question": "Which store?", "options": [{"label": "Per forge"}, {"label": "Per viewer"}]}',
+  ],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {

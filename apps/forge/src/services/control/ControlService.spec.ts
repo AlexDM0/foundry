@@ -256,7 +256,10 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   },
   'ticket-document-agent-ready':       { kind: 'ticket-document-agent-ready' },
   'ticket-document-agent-effect-read': { kind: 'ticket-document-agent-effect-read', version: 3 },
-  'task-add':                          {
+  'ticket-document-agent-ask':         {
+    kind: 'ticket-document-agent-ask', version: 3, lines: { from: 2, to: 2 }, question: 'Which store?', options: [{ label: 'Per forge' }, { label: 'Per viewer' }]
+  },
+  'task-add': {
     kind:              'task-add',
     name:              'Review the basket page',
     reviewOfReference: '#3',

@@ -105,6 +105,7 @@ const TICKET_READINGS = {
   },
   offers:    { kinds: ['ticket-hold', 'ticket-park'], priorityChoices: ['normal', 'low'] },
   documents: null,
+  draft:     null,
 } as const;
 
 const DOCUMENTS_SUMMARY = {
@@ -141,6 +142,14 @@ describe('BoardPageMappingUtil.pageOf', () => {
     }]);
     const fieldsNoReaderNames = ['model', 'effort', 'extra', 'contentHash', 'filePath', 'size', 'group', 'documents'];
     expect(page.tickets[0] === undefined ? [] : Object.keys(page.tickets[0]).filter((field) => fieldsNoReaderNames.includes(field))).toEqual([]);
+  });
+
+  test('a ticket being written carries its draft as read', () => {
+    const draft = {
+      stage: 'spec-review', waitsOnUser: 'answer', agent: null, waitingSince: AT
+    } as const;
+    const pageWithDraft = BoardPageMappingUtil.pageOf({ payload: payloadWith({}), tickets: [PAGE_TICKET] }, () => ({ ...TICKET_READINGS, draft }));
+    expect(pageWithDraft.tickets[0]?.draft).toEqual(draft);
   });
 
   test('a ticket with a documents record carries its summary as read', () => {

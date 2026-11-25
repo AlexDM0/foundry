@@ -780,11 +780,14 @@ never carries it.
   document propose [-- <json>] [--json]
   document ready [--json]
   document effect <version> [--json]
+  document ask [-- <json>] [--json]
                               A spec or plan agent's moves on the document its job writes, run
                               only in its own session: an edit {baseVersion, edits, summary,
                               answers} on the version it read (JSON after -- or on standard
-                              input), the head complete, or what a version names in the main
-                              line's tree. Applied at the end of the agent's turn once its
+                              input), the head complete, what a version names in the main
+                              line's tree, or a question to User {version, lines, question,
+                              options} on lines of a version, two to four options, which opens
+                              an agent-question decision. Applied at the end of the agent's turn once its
                               snapshot checks clean; refused document-agent-not-live for a job
                               that is not the document's live agent.
 

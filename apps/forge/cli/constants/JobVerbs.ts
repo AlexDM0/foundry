@@ -179,4 +179,5 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'ticket-document-agent-propose':     'document propose',
   'ticket-document-agent-ready':       'document ready',
   'ticket-document-agent-effect-read': 'document effect',
+  'ticket-document-agent-ask':         'document ask',
 };

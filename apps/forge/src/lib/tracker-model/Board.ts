@@ -354,7 +354,7 @@ export class Board {
     this.decisionRules      = new Decisions(this.records);
     this.pipelineSetups     = new PipelineSetups(this.records, this.trackerChanges, this.decisionRules);
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
-    this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
+    this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits, this.ticketDocumentRules);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
     this.needRules          = new Needs(this.records, this.jobRules);
     this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);

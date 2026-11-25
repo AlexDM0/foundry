@@ -98,6 +98,7 @@ const DOCUMENT_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'ticket-document-agent-propose',
   'ticket-document-agent-ready',
   'ticket-document-agent-effect-read',
+  'ticket-document-agent-ask',
 ]);
 
 const DOCUMENT_AGENT_ROLES: ReadonlySet<JobRole> = new Set(['spec-agent', 'plan-agent']);

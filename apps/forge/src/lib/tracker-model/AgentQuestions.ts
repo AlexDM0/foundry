@@ -11,11 +11,13 @@ import type {
 import type { Incident }                                                          from './@types/Incident.ts';
 import type { Job, JobOutcome }                                                   from './@types/Job.ts';
 import type { LogRecord }                                                         from './@types/LogRecord.ts';
+import type { CommentAnchor, TicketDocumentKind }                                 from './@types/TicketDocument.ts';
 import type { BoardRecords }                                                      from './BoardRecords.ts';
 import { BoardRefusal }                                                           from './BoardRefusal.ts';
 import type { Decisions }                                                         from './Decisions.ts';
 import type { IncidentEscalation }                                                from './Incidents.ts';
 import type { Jobs }                                                              from './Jobs.ts';
+import type { TicketDocuments }                                                   from './TicketDocuments.ts';
 import type { TicketEdits }                                                       from './TicketEdits.ts';
 import type { TicketSettings }                                                    from './TicketSettings.ts';
 import { AWAITING_ANSWER_HOLD_PREFIX, QUESTIONS_FACT, QUESTIONS_SECTION_HEADING } from './constants/DecisionAndIncidentVocabulary.ts';
@@ -23,6 +25,7 @@ import { OptionConsequencesUtil }                                               
 
 const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
 const MULTI_SELECT_SEPARATOR   = ', ';
+const NOTE_SEPARATOR           = '\n\n';
 
 /** The job outcomes that leave a question open on the ticket: the session is gone, and the next agent takes the answer. */
 const OUTCOMES_THAT_REBIND_QUESTIONS: readonly JobOutcome[] = ['replaced', 'stopped'];
@@ -85,24 +88,25 @@ export class AgentQuestions {
     private readonly decisionRules: Decisions,
     private readonly ticketSettings: TicketSettings,
     private readonly ticketEdits: TicketEdits,
+    private readonly ticketDocuments: TicketDocuments,
   ) {}
 
-  /** One answer per question; free text only for a decision asking one question. */
+  /** One answer per question; free text, or a note beside the letters, only for a decision asking one question. */
   answersOf(decisionId: string, form: DecisionAnswerForm): string[] {
     const decision = this.decisionRules.decisionById(decisionId);
     if (decision === undefined) return form.form === 'text' ? [form.text] : [...form.choices];
-    if (form.form === 'text') {
-      if (decision.questions.length > 1) {
-        throw new BoardRefusal({ reason: 'decision-has-several-questions', decisionId, questionCount: decision.questions.length });
-      }
-      return [form.text];
+    const note = form.form === 'text' ? form.text : form.note?.trim() ?? '';
+    if (decision.questions.length > 1 && (form.form === 'text' || note !== '')) {
+      throw new BoardRefusal({ reason: 'decision-has-several-questions', decisionId, questionCount: decision.questions.length });
     }
+    if (form.form === 'text') return [form.text];
     if (form.choices.length !== decision.questions.length) {
       throw new BoardRefusal({
         reason: 'decision-answer-count', decisionId, answerCount: form.choices.length, questionCount: decision.questions.length
       });
     }
-    return decision.questions.map((question, i) => chosenLabelsOf(decision, question, i, form.choices[i] ?? ''));
+    const labels = decision.questions.map((question, i) => chosenLabelsOf(decision, question, i, form.choices[i] ?? ''));
+    return note === '' ? labels : labels.map((label) => `${label}${NOTE_SEPARATOR}${note}`);
   }
 
   /**
@@ -110,6 +114,7 @@ export class AgentQuestions {
    * the ticket's `## Questions` for the next agent and lifts the ticket's `awaiting answer` hold.
    */
   afterAnswer(decision: Readonly<Decision>, answer: DecisionAnswer, at: string): LogRecord[] {
+    if (decision.document !== undefined && decision.anchor !== undefined) return this.queueDocumentAnswer(decision, decision.document, decision.anchor, answer, at);
     const job = decision.jobId === null ? undefined : this.jobRules.jobById(decision.jobId);
     if (job !== undefined) {
       return job.state === 'waiting-for-answer' && !this.jobIsStillAsking(job.id) ? [...this.jobRules.moveJob(job.id, 'running', at).logged] : [];
@@ -123,6 +128,19 @@ export class AgentQuestions {
       const unheld = ticket.frontmatter.hold === awaitingAnswerHoldOf(decision.id) ? this.ticketSettings.unholdTicket(ticketId, at).logged : [];
       return [...edited.logged, ...unheld];
     });
+  }
+
+  /**
+   * A spec or plan agent's question is answered on its document: the answer goes to the document's agent as its next message, on the lines
+   * the question was asked on, whichever job of that document is live then.
+   */
+  private queueDocumentAnswer(
+    decision: Readonly<Decision>, document: TicketDocumentKind, anchor: CommentAnchor, answer: DecisionAnswer, at: string
+  ): LogRecord[] {
+    const [ticketId] = decision.ticketIds;
+    if (ticketId === undefined) return [];
+    const text = decision.questions.map((question) => `${question.question}\n${Object.hasOwn(answer, question.question) ? answer[question.question] : ''}`).join('\n\n');
+    return [...this.ticketDocuments.queueAnswer(ticketId, document, decision.id, anchor, text, at).logged];
   }
 
   /** A ticket job that ended `replaced` or `stopped` leaves its open questions on its ticket, held `awaiting answer (E<n>)`. */

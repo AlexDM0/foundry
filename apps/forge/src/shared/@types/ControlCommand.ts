@@ -40,11 +40,18 @@ import type {
 import type {
   CommentAnchor,
   LineEdit,
+  LineRange,
   ProposalMode,
   TicketDocumentKind
 } from '../../lib/tracker-model/@types/TicketDocument.ts';
 
 export type ListEdit = 'replace' | 'add' | 'remove';
+
+/** An option of a document agent's question as the agent writes it: only `label` is required, and at most one option is recommended. */
+export interface DocumentQuestionOptionSubmission extends OptionNote {
+  description?: string;
+  recommended?: boolean;
+}
 
 /** One field of the draft pipeline and its new value, as the field names it; a `null` value removes the field or writes its default back. */
 export interface PipelineFieldEdit {
@@ -319,6 +326,15 @@ export type ControlCommand =
   }
   | { kind: 'ticket-document-agent-ready'; jobId?: string; constitutionCommit?: string }
   | { kind: 'ticket-document-agent-effect-read'; jobId?: string; version: number }
+  /** A document agent's question to User, on lines of the version it read, with two to four options. */
+  | {
+    kind:     'ticket-document-agent-ask';
+    jobId?:   string;
+    version:  number;
+    lines:    LineRange;
+    question: string;
+    options:  DocumentQuestionOptionSubmission[];
+  }
   /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */
   | {
     kind:               'task-add';
@@ -358,4 +374,6 @@ export type ControlCommandKind = ControlCommand['kind'];
 export type ControlCommandOf<Kind extends ControlCommandKind> = Extract<ControlCommand, { kind: Kind }>;
 
 /** A document agent's moves through its Hatch: they act on the ticket document its job writes. */
-export type DocumentAgentHatchCommand = ControlCommandOf<'ticket-document-agent-propose' | 'ticket-document-agent-ready' | 'ticket-document-agent-effect-read'>;
+export type DocumentAgentHatchCommand = ControlCommandOf<
+  'ticket-document-agent-propose' | 'ticket-document-agent-ready' | 'ticket-document-agent-effect-read' | 'ticket-document-agent-ask'
+>;

@@ -293,6 +293,30 @@ export class TicketDocuments {
     return { changed: true, logged: [] };
   }
 
+  /**
+   * User's answer to the agent's own question, decision `decisionId`, queued for the agent like a message and anchored on the lines the
+   * question was asked on, carried to the head as a comment's lines are.
+   */
+  queueAnswer(ticketId: string, document: TicketDocumentKind, decisionId: string, anchor: CommentAnchor, text: string, at: string): DocumentMessageQueued {
+    const inHand = this.requireDocument(ticketId, document);
+    return this.queueMessage(inHand, {
+      text, from: 'person', decisionId, ...this.placedAnchorOf(inHand, anchor)
+    }, at);
+  }
+
+  /** Where the anchor's lines stand on the head now; `null` for a document the ticket lacks, an anchor it cannot place, or orphaned lines. */
+  placementAtHeadOf(ticketId: string, document: TicketDocumentKind, anchor: CommentAnchor): LineRange | null {
+    const loadedRecord = this.records.ticketDocumentRecordOf(ticketId);
+    const ticket       = this.records.ticketRecordById(ticketId);
+    const held         = loadedRecord === undefined ? undefined : loadedRecord.record.documents.find((candidate) => candidate.kind === document);
+    if (loadedRecord === undefined || ticket === undefined || held === undefined) return null;
+    try {
+      return this.placedAnchorOf({ ticket, loadedRecord, document: held }, anchor).placement ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   /** forge's own message to the agent, such as an effect reading's result, queued like User's. */
   queueBoardMessage(ticketId: string, document: TicketDocumentKind, text: string, at: string): DocumentMessageQueued {
     return this.queueMessage(this.requireDocument(ticketId, document), { text, from: 'board' }, at);
@@ -437,6 +461,7 @@ export class TicketDocuments {
     const spec = this.documentOfRecord(loadedRecord, 'spec');
     const approvedSpecHeadHash = TicketDocumentVersionUtil.approvedHeadHashOf(spec);
     if (document.kind === 'plan' && approvedSpecHeadHash === null) throw new BoardRefusal({ reason: 'plan-before-approved-spec', ticketId: ticket.frontmatter.id });
+    this.refuseADocumentWithOpenQuestions(inHand);
     if (TicketDocumentStandingUtil.standingsOf(loadedRecord.record)[document.kind] === 'approved') return { changed: false, logged: [] };
     const specHead    = TicketDocumentVersionUtil.headOf(spec);
     const givenSpec   = forSpecNumber === null ? null : TicketDocumentVersionUtil.versionOfNumber(spec, forSpecNumber);
@@ -614,14 +639,15 @@ export class TicketDocuments {
 
   private queueMessage(
     inHand: DocumentInHand,
-    content: Pick<DocumentMessage, 'text' | 'from' | 'anchor' | 'placement' | 'orphaned'>,
+    content: Pick<DocumentMessage, 'text' | 'from' | 'anchor' | 'placement' | 'orphaned' | 'decisionId'>,
     at: string
   ): DocumentMessageQueued {
     const { document, ticket } = inHand;
-    const isComment = content.anchor !== undefined;
+    const isComment = content.anchor !== undefined && content.decisionId === undefined;
     const message: DocumentMessage = {
       messageId: `M${document.nextMessageNumber}`,
       ...(isComment ? { commentNumber: document.nextCommentNumber } : {}),
+      ...(content.decisionId === undefined ? {} : { decisionId: content.decisionId }),
       ...(content.anchor === undefined ? {} : { anchor: content.anchor }),
       ...(content.placement === undefined ? {} : { placement: content.placement }),
       ...(content.orphaned === true ? { orphaned: true as const } : {}),
@@ -705,6 +731,18 @@ export class TicketDocuments {
     if (inHand.document.kind !== 'plan') return;
     if (this.documentOfRecord(inHand.loadedRecord, 'spec').approvals.length > 0) return;
     throw new BoardRefusal({ reason: 'plan-before-approved-spec', ticketId: inHand.ticket.frontmatter.id });
+  }
+
+  /** The agent's questions on the document wait on User's answers, which may change it, so it is approved by no one until they are answered. */
+  private refuseADocumentWithOpenQuestions(inHand: DocumentInHand): void {
+    const ticketId = inHand.ticket.frontmatter.id;
+    const openDecisionIds = (this.records.progress.decisions ?? [])
+      .filter((decision) => decision.document === inHand.document.kind && decision.ticketIds.includes(ticketId))
+      .map((decision) => decision.id);
+    if (openDecisionIds.length === 0) return;
+    throw new BoardRefusal({
+      reason: 'document-has-open-questions', ticketId, document: inHand.document.kind, decisionIds: openDecisionIds
+    });
   }
 
   private refuseASpecWithoutNumberedAcceptance(inHand: DocumentInHand, contentHash: string, judges: DocumentMoveJudges): void {

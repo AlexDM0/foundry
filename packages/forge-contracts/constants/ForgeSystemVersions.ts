@@ -24,7 +24,10 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * the new members of the board's unions. Most reach a client only once a board sets that route, but the board's limits name the
  * defaults of the two new roles, `specAgent` and `planAgent`, on every board: a key added to a record a client reads, which only adds. The
  * limits also add the defaults a pipeline means where it says nothing, so a client keeps no copy: `defaultAgentPairOfRole`,
- * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`.
+ * `defaultDocumentsOfRole`, `fixedDocumentsOfRole`, `defaultApprovals` and `defaultTicketWritingRoute`. A spec or plan agent's question is
+ * an agent-question decision that names its `document`, its `anchor` and its `placement`; each option names its `letter`; a decision
+ * answer's letters may carry a `note`; a message that answers a question names its `decisionId`; and a ticket being written carries its
+ * `draft`: its stage, what waits on the user, its agent and when the wait began.
  * Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: pipeline-setup-start carries the agent
  * and optionally the billing, the record's `billing` is `null` until chosen, each vendor names its `billingOptions`, and a job is not
  * launched `billing-not-offered` when its billing names a way its vendor does not bill; pipeline-agent-set optionally carries a billing to

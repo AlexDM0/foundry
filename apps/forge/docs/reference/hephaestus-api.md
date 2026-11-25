@@ -669,6 +669,14 @@ builder and the reviewer read each ticket document), `fixedDocumentsOfRole` (the
 rule whatever the pipeline stores: the reviewer's spec), `defaultApprovals` (whether each approval is on) and
 `defaultTicketWritingRoute`. The monitor and the summary leave the two new job kinds out, `document-agent` and `effect-reading`, so `monitor`
 stays 6 and `summary` 3.
+A spec or plan agent asks User on its document: its question is an `agent-question` decision whose `document`, `anchor`
+(the lines it changes, at the version the agent read) and `placement` (those lines on the head now, `null` once gone) are
+added keys, and every decision option adds its `letter`. A `decision-answer`'s letters may carry a `note`, User's own
+words beside the option on a one-question decision. The answer reaches the agent as a document message whose added
+`decisionId` names the decision. While that question is open the document is refused approval
+(`document-has-open-questions`). Each ticket being written adds its `draft` to the board document: its `stage` (`spec`,
+`spec-review`, `plan`, `plan-review`, `ticket-review`), `waitsOnUser` (`answer`, `proposal`, `approval` or `null`), its
+`agent` (`jobId`, `role`, `tokens`, `since`) and `waitingSince`, which orders the drafts a view walks.
 
 Forge 4.3 puts the agent step before billing, since the agent's vendor decides how it can bill: the setup steps are
 `agent`, `billing`, `research`, (`entities`), `constitution`, `design` and `apply`. `pipeline-setup-start` carries the
@@ -875,6 +883,8 @@ The document serves as finished facts what a view would otherwise recompute with
 | Each ticket's resolved priority, status classes and repeat-review round | `page.tickets[].facts` | a reader |
 | The board command kinds each ticket accepts now, and the priorities it may move to | `page.tickets[].offers` | a reader |
 | From forge 4.2, on a ticket with a documents record only: each document's standing, its head's number and its newest approved number, and `buildHeld` while they keep a committed ticket from its build | `page.tickets[].documents` | a reader |
+| From forge 4.2, on a draft of the spec-then-plan route and a ticket in `ready-for-review` only: its stage, what of it waits on User, the live agent writing it with its tokens and launch, and when the oldest wait began | `page.tickets[].draft` | a reader |
+| From forge 4.2, on a spec or plan agent's question only: the document, the anchor as asked and its lines on the head now | `decisions[].document`, `decisions[].anchor`, `decisions[].placement` | a reader |
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
 | The refusal an Apply of the current draft meets now, as `POST /api/v3/commands` would answer it | `pipelineSetup.applyRefusal` | forge |

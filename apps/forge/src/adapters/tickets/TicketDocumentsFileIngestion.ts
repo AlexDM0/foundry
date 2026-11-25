@@ -115,6 +115,7 @@ function messageAt(value: unknown, where: string): DocumentMessage {
   return {
     messageId: textAt(fields['messageId'], `${where}.messageId`),
     ...optional(fields, 'commentNumber', (number) => countAt(number, `${where}.commentNumber`)),
+    ...optional(fields, 'decisionId', (decisionId) => textAt(decisionId, `${where}.decisionId`)),
     ...optional(fields, 'anchor', (anchor) => anchorAt(anchor, `${where}.anchor`)),
     ...optional(fields, 'placement', (placement) => rangeAt(placement, `${where}.placement`)),
     ...optional(fields, 'orphaned', (orphaned) => (orphaned === true ? true as const : problem(`${where}.orphaned is not true`))),

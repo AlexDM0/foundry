@@ -26,13 +26,15 @@ function numberedTextOf(text: string): string {
 
 /**
  * The payload of a delivered message: an anchored comment names its comment, view, lines at the head, columns, section, quote, surrounding
- * lines and diagram; an orphaned one keeps its quote and names no lines. A message from the board says so.
+ * lines and diagram; an orphaned one keeps its quote and names no lines. User's answer to the agent's question names the decision it
+ * answers, on the question's lines. A message from the board says so.
  */
 function messagePayloadOf(message: Readonly<DocumentMessage>, document: TicketDocumentKind, headNumber: number | null): Record<string, unknown> {
   const { anchor } = message;
   const placement  = message.orphaned === true ? undefined : message.placement;
   return {
     ...(message.commentNumber === undefined ? {} : { comment: `C${message.commentNumber}` }),
+    ...(message.decisionId === undefined ? {} : { answers: message.decisionId }),
     ...(message.from === 'board' ? { from: 'board' } : {}),
     ...(anchor === undefined ? {} : { view: anchor.view }),
     document,
