@@ -1,6 +1,6 @@
 /**
  * The text button, in a happy-dom document. What matters: with an `href` it is a link in the text button's look, and without one a button
- * that calls `onPress`.
+ * that calls `onPress`; `underlined` marks either as underlined.
  */
 import {
   cleanup,
@@ -33,5 +33,20 @@ describe('the text button', () => {
     expect(screen.getByRole('link', { name: 'Example group details' }).className).toBe('design-system-link-button');
     fireEvent.click(screen.getByRole('button', { name: 'show all' }));
     expect(presses).toEqual(['pressed']);
+  });
+
+  test('underlined marks the link and the button alike, and only when asked', () => {
+    render(
+      <>
+        <TextButton label="Example edit" href="#edit" underlined />
+        <TextButton label="Example open" onPress={() => undefined} underlined />
+        <TextButton label="Example plain" onPress={() => undefined} />
+      </>,
+    );
+    expect([
+      screen.getByRole('link', { name: 'Example edit' }).hasAttribute('data-underlined'),
+      screen.getByRole('button', { name: 'Example open' }).hasAttribute('data-underlined'),
+      screen.getByRole('button', { name: 'Example plain' }).hasAttribute('data-underlined'),
+    ]).toEqual([true, true, false]);
   });
 });
