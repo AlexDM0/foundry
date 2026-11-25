@@ -99,7 +99,7 @@
 .design-system-menu-button[data-trigger="caret"]:hover,
 .design-system-menu-button[data-trigger="caret"][aria-expanded="true"] { color: var(--ink); }
 .design-system-menu-caret-glyph { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-/* The segment trigger: a segment of the tray it trails, ink-muted until hovered, filled in ink while pressed, as tall as the segments
+/* The segment trigger: a segment of the tray it trails, ink-muted until hovered, a chip raised on the tray while pressed, as tall as the segments
    beside it when the tray sets their height. */
 .design-system-menu-button[data-trigger="segment"] {
   display: inline-flex; align-items: center; gap: var(--space-6);
@@ -107,11 +107,13 @@
   font: 500 var(--fs-small)/1 var(--font-ui);
   white-space: nowrap;
   color: var(--ink-muted); background: transparent;
-  border: 1px solid transparent; border-radius: var(--r-2);
+  border: 1px solid transparent; border-radius: var(--r-1);
   cursor: pointer;
 }
 .design-system-menu-button[data-trigger="segment"]:hover { color: var(--ink); }
-.design-system-menu-button[data-trigger="segment"][aria-pressed="true"] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+.design-system-menu-button[data-trigger="segment"][aria-pressed="true"] {
+  font-weight: 600; color: var(--segment-pressed-ink); background: var(--segment-pressed-fill); border-color: var(--segment-pressed-edge);
+}
 .design-system-menu-button[data-trigger="segment"] .design-system-icon { width: 12px; height: 12px; }
 .design-system-menu-heading {
   padding: var(--space-4) var(--space-10) var(--space-6); font-size: var(--fs-micro); font-weight: 600; line-height: var(--line-height-micro); letter-spacing: var(--letter-spacing-micro);

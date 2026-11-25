@@ -53,11 +53,16 @@ export function EffectPane({
             className="board-document-tree-row"
             style={{ '--tree-depth': row.depth } as CSSProperties}
             data-kind={row.kind}
+            data-root={row.depth === 0 ? '' : undefined}
             data-change={row.kind === 'entry' ? row.change : undefined}
             title={row.kind === 'entry' ? row.detail : undefined}
           >
             <span className="board-document-tree-sigil">{row.kind === 'entry' ? row.sigil : ''}</span>
-            <span className="board-document-tree-name">{row.name}</span>
+            <span className="board-document-tree-name">
+              {row.name}
+              {row.kind === 'entry' && row.fileCount !== null ? <>{' · '}<span className="board-document-tree-count">{row.fileCount}</span></> : null}
+              {row.kind === 'entry' && row.becomes !== null ? <>{' '}<span className="board-document-tree-count">{row.becomes}</span></> : null}
+            </span>
             {row.kind === 'entry'
               ? <span className="board-document-reference" data-unresolved={row.change === 'unresolved' ? '' : undefined}>{row.reference}</span>
               : <span />}

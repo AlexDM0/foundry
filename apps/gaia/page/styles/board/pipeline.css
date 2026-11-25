@@ -203,11 +203,13 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
   flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round;
 }
 
-.board-pipeline-glyph:is([data-glyph="agent"], [data-glyph="gates"], [data-glyph="check"]) { color: var(--tone-success); }
+.board-pipeline-glyph:is([data-glyph="gates"], [data-glyph="check"]) { color: var(--tone-success); }
+
+.board-pipeline-glyph:is([data-glyph="agent"], [data-glyph="you"]) { color: var(--ink-muted); }
 
 .board-pipeline-glyph:is([data-glyph="plus"], [data-glyph="check"]) { width: 12px; height: 12px; stroke-width: 1.5; }
 
-.board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--line-strong); }
+.board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--ink-muted); }
 
 .board-pipeline-glyph[data-glyph="chevron"] { width: 18px; stroke-width: 1.5; }
 
@@ -254,8 +256,9 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-phase-dot[data-ring][data-phase="merge"] { border-color: var(--tone-success); }
 
-/* The open phase: an 8 px section whose head says what the phase is for, then its steps from left to right, then its gates table or the
-   Ticket phase's readiness lines, each ruled above. Merge's head ends in the passed "Done on main" pill. */
+/* The open phase: an 8 px section whose head says what the phase is for, with when it leaves beside its Next button, then its steps from
+   left to right, then its gates table or the Ticket phase's readiness lines, each ruled above. Merge's head ends in the passed "Done on
+   main" pill. */
 .board-pipeline-phase {
   display: flex; flex-direction: column; min-width: 0;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
@@ -263,14 +266,21 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-phase > .board-refusal { padding: 0 22px 10px; }
 
-.board-pipeline-phase-head { display: flex; align-items: flex-end; gap: var(--sp-4); padding: var(--sp-4) 22px 14px; }
-
-.board-pipeline-phase-head-text {
-  display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0;
-  animation: board-rise var(--motion-rise) var(--ease-out) both;
+/* The head's number and name stand left of when the phase leaves and its Next button; the purpose (and Merge's train lines) take the
+   whole width under them, so beside the agent's panel the purpose keeps one line. */
+.board-pipeline-phase-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: var(--sp-4); row-gap: 2px;
+  padding: var(--sp-4) 22px 14px;
 }
 
-.board-pipeline-phase-head-end { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: var(--sp-2); }
+.board-pipeline-phase-head-text { display: contents; }
+
+.board-pipeline-phase-head-text > * { grid-column: 1; min-width: 0; animation: board-rise var(--motion-rise) var(--ease-out) both; }
+
+/* The lead line shares its row with when the phase is left and the next phase, at its end; what follows the lead spans the head. */
+.board-pipeline-phase-head-text > :nth-child(n+4) { grid-column: 1 / -1; }
+
+.board-pipeline-phase-head-end { display: flex; grid-row: 3; grid-column: 2; align-items: center; gap: 12px; }
 
 .board-pipeline-phase-done {
   display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
@@ -301,6 +311,9 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-step:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
+/* A step card's foot sits at its bottom: the model, effort and written document on one line, then the brief files. */
+.board-pipeline-step-foot { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 2px; }
+
 .board-pipeline-add-step { display: flex; flex: 0 0 300px; min-width: 0; animation: board-rise var(--motion-rise) var(--ease-out) both; }
 
 .board-pipeline-add-step-choice {
@@ -318,11 +331,12 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-add-step-choice-name { display: flex; align-items: center; gap: 6px; }
 
-.board-pipeline-readiness { display: flex; flex-direction: column; padding: 14px 22px 12px; border-top: 1px solid var(--line); }
+/* The Ticket phase's readiness: its title over its lines, 8 px apart and unruled, so the whole block shows under the steps. */
+.board-pipeline-readiness { display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 22px 18px; border-top: 1px solid var(--line); }
 
-.board-pipeline-readiness-lines { display: flex; flex-direction: column; margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
+.board-pipeline-readiness-lines { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
 
-.board-pipeline-readiness-line { display: flex; align-items: center; gap: 10px; min-height: 36px; border-top: 1px solid var(--line); }
+.board-pipeline-readiness-line { display: flex; align-items: center; gap: 10px; }
 
 @media (max-width: 1100px) {
   body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) { height: auto; }
@@ -347,7 +361,7 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 .board-pipeline-phase-steps > :nth-child(n+9) { animation-delay: calc(var(--rise-step) * 4); }
 
 @media (prefers-reduced-motion: reduce) {
-  .board-pipeline-phase-head-text,
+  .board-pipeline-phase-head-text > *,
 .board-pipeline-phase-done,
 .board-pipeline-step,
 .board-pipeline-add-step { animation: none; }
@@ -886,6 +900,18 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
   color: var(--ink-muted); background: var(--lane-bg); border-radius: var(--r-2);
 }
 
+/* A step dialog's facts box: its lines on the page ground, each term in a 56px column and every line after the first ruled above. */
+.board-pipeline-dialog-facts {
+  display: flex; flex-direction: column; padding: 4px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-3);
+}
+
+.board-pipeline-dialog-fact {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: baseline; gap: 10px; box-sizing: border-box; min-height: 34px;
+  padding: 7px 0;
+}
+
+.board-pipeline-dialog-fact + .board-pipeline-dialog-fact { border-top: 1px solid var(--line); }
+
 .board-pipeline-dialog-switch { display: inline-flex; flex: none; }
 
 .board-pipeline-dialog-switch-line { display: flex; align-items: center; gap: 10px; height: 36px; }
@@ -928,7 +954,7 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 .board-pipeline-profile-result-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor; }
 
 /* The design step (A2Proposal), as ForgeLight draws it: the agent's newest change under its chat, framed under its muted label, with its
- * link to the flow and its Undo at the end, the change list's cards, and the footer's hint that Apply waits on a question (in the link
+ * underlined link to the flow and its quiet Undo at the end of one line, the change list's cards, and the footer's hint that Apply waits on a question (in the link
  * colour after a pulsing signal dot) or that all are answered (in the passed ink after a check, popping in). */
 .board-pipeline-design { display: flex; flex-direction: column; width: 100%; min-width: 0; }
 
@@ -938,17 +964,13 @@ button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
 
 .board-pipeline-design-latest-change-label { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.board-pipeline-design-latest-change-text { margin: 0; font-size: var(--fs-body); color: var(--ink); }
-
-.board-pipeline-design-latest-change-links {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-body); font-weight: 500;
-}
+.board-pipeline-design-latest-change-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 
 .board-pipeline-design-hint { display: inline-flex; align-items: center; gap: 7px; font-weight: 500; }
 
 .board-pipeline-design-hint[data-tone="question-open"] { color: var(--link); }
 
-.board-pipeline-design-hint[data-tone="answered"] { color: var(--pass-ink); }
+.board-pipeline-design-hint[data-tone="answered"] { font-weight: 400; color: var(--ink-muted); }
 
 .board-pipeline-design-hint-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--signal); }
 

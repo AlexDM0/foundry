@@ -15,11 +15,13 @@ const VIEW_WORDS: Readonly<Record<BoardCommentView, string>> = { preview: 'Previ
 const SECTION_SEPARATOR = ' › ';
 
 export interface CommentPopoverContent {
-  readonly heading: string;
+  readonly heading:      string;
   /** The section line under the heading in Code, where the heading names lines alone; `null` in Preview. */
-  readonly section: string | null;
-  readonly quote:   string | null;
-  readonly note:    string;
+  readonly section:      string | null;
+  /** The mermaid block's title that ends the section line, which the popover sets in bold; `null` where the line names none. */
+  readonly sectionTitle: string | null;
+  readonly quote:        string | null;
+  readonly note:         string;
 }
 
 function linesTextOf(lines: BoardLineRangeDocument): string {
@@ -30,15 +32,36 @@ function sectionTextOf(sectionPath: readonly string[]): string | null {
   return sectionPath.length === 0 ? null : `§ ${sectionPath.join(SECTION_SEPARATOR)}`;
 }
 
+/** An anchor line's parts, so a card sets the comment's name and its lines in the mono face and the rest in the text face. */
+export interface AnchorLineParts {
+  readonly commentName: string;
+  readonly section:     string | null;
+  readonly linesText:   string;
+  readonly viewWord:    string;
+}
+
 function nextCommentNumberOf(messages: readonly BoardDocumentMessageDocument[]): number {
   return messages.reduce((highest, message) => Math.max(highest, message.commentNumber ?? 0), 0) + 1;
 }
 
-/** "C2 · § 4 Acceptance › A3 · line 29 · Preview": the lines where the comment stands now, else where it was made. */
+/** The lines where the comment stands now, else where it was made. */
+function anchorLinePartsOf(commentNumber: number, anchor: BoardCommentAnchorDocument, placement: BoardLineRangeDocument | null): AnchorLineParts {
+  return {
+    commentName: `C${commentNumber}`,
+    section:     sectionTextOf(anchor.sectionPath),
+    linesText:   linesTextOf(placement ?? anchor.lines),
+    viewWord:    VIEW_WORDS[anchor.view],
+  };
+}
+
+/** "C2 · § 4 Acceptance › A3 · line 29 · Preview". */
 function anchorLineOf(commentNumber: number, anchor: BoardCommentAnchorDocument, placement: BoardLineRangeDocument | null): string {
-  return [`C${commentNumber}`, sectionTextOf(anchor.sectionPath), linesTextOf(placement ?? anchor.lines), VIEW_WORDS[anchor.view]]
-    .filter((part) => part !== null)
-    .join(' · ');
+  const parts = anchorLinePartsOf(commentNumber, anchor, placement);
+  return [parts.commentName, parts.section, parts.linesText, parts.viewWord].filter((part) => part !== null).join(' · ');
+}
+
+function diagramTitleOf(blocks: readonly MarkdownBlock[], anchor: BoardCommentAnchorDocument): string | null {
+  return DocumentSelectionModel.diagramAtLine(blocks, anchor.lines.from)?.title ?? null;
 }
 
 function diagramNameOf(blocks: readonly MarkdownBlock[], anchor: BoardCommentAnchorDocument): string | null {
@@ -52,18 +75,20 @@ function popoverContentOf(commentNumber: number, anchor: BoardCommentAnchorDocum
     const diagramName = diagramNameOf(blocks, anchor);
     const sectionPath = diagramName === null ? anchor.sectionPath : [...anchor.sectionPath, diagramName];
     return {
-      heading: `C${commentNumber} · ${linesTextOf(anchor.lines)} · Code`,
-      section: sectionTextOf(sectionPath),
-      quote:   null,
-      note:    'Same comment, same anchor, in either view.',
+      heading:      `C${commentNumber} · ${linesTextOf(anchor.lines)} · Code`,
+      section:      sectionTextOf(sectionPath),
+      sectionTitle: diagramName === null ? null : diagramTitleOf(blocks, anchor),
+      quote:        null,
+      note:         'Same comment, same anchor, in either view.',
     };
   }
   const quote = anchor.diagram === null ? anchor.quote : anchor.diagram.nodeLabel;
   return {
-    heading: anchorLineOf(commentNumber, anchor, null),
-    section: null,
+    heading:      anchorLineOf(commentNumber, anchor, null),
+    section:      null,
+    sectionTitle: null,
     quote,
-    note:    `The agent gets ${anchor.diagram === null ? 'the quote' : 'the node'}, its section and ${linesTextOf(anchor.surroundingLines)}.`,
+    note:         `The agent gets ${anchor.diagram === null ? 'the quote' : 'the node'}, its section and ${linesTextOf(anchor.surroundingLines)}.`,
   };
 }
 
@@ -77,6 +102,7 @@ export const CommentPopoverModel = Object.freeze({
   linesTextOf,
   sectionTextOf,
   nextCommentNumberOf,
+  anchorLinePartsOf,
   anchorLineOf,
   popoverContentOf,
   commandOf,

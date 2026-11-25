@@ -32,7 +32,7 @@ const OPEN_QUESTION = '- Does the saved choice (dashed in the diagram) exist yet
 export const SPEC_MARKDOWN = [
   '# Account pages dark mode',
   '',
-  '> Ticket #004 · Example Storefront · spec v4',
+  '> Ticket `#004` · Example Storefront · spec v4',
   '',
   '## 1 Problem',
   '',
@@ -86,13 +86,22 @@ export const PLAN_MARKDOWN = [
   '',
   '## Approach',
   '',
-  'We resolve the theme before the first paint with a small script in the document head, so no account page renders light first.',
+  'We resolve the theme before the first paint with a small script in the document head, so no account page renders light first. '
+    + 'The pages stop hard-coding colours and read the design tokens.',
   '',
   '## Changes',
   '',
   '- Add a `ThemeResolver.ts` next to the other theme code in `src/theme/`. It reads `prefers-color-scheme` and sets `data-theme` on the root.',
   '- Add a few functions to `utils/networkUtil.ts` to read and store the saved choice: `fetchThemeChoice`, `storeThemeChoice`.',
-  '- Modify the profile contract and bump it to v2 with this data model: `ProfileV2 { id, themeChoice }`.',
+  '- Modify the profile contract and bump it to v2 with this data model:',
+  '',
+  '  ```ts',
+  '  interface ProfileV2 {',
+  '    id: string;',
+  '    themeChoice: \'system\' | \'light\' | \'dark\';',
+  '  }',
+  '  ```',
+  '',
   '- Each page under `pages/account/` drops its hard-coded colours.',
   '- Remove `light-only.css`; the tokens replace it.',
   '- Put the theme switch on the settings page, hidden until the toggle ticket ships.',
@@ -304,17 +313,24 @@ export const SPEC_TRANSCRIPT_WORKING: readonly BoardTranscriptEntryDocument[] = 
   entry(2, 'assistant', 'Drafted v1: problem, outcome, behaviour with a theme-flow diagram, four acceptance checks and what stays out.'),
   entry(3, 'turn-end', ''),
   entry(4, 'user', '{"comment":"C1"}'),
-  entry(5, 'assistant', 'The repo has no saved theme choice yet. I added Saved choice to the diagram, dashed, and listed it as an open question instead of guessing.'),
+  entry(5, 'assistant', 'The repo has no saved theme choice yet. I added **Saved choice** to the diagram, dashed, and listed it as an open question.'),
   entry(6, 'turn-end', ''),
   entry(7, 'user', '{"comment":"C2"}'),
   entry(8, 'tool-call', '{"file_path":"package.json"}', { toolName: 'Read', toolUseId: 'T1' }),
 ];
 
+/** The first two turns: the draft and the saved choice for C1, the agent idle before C2. */
+export const SPEC_TRANSCRIPT_AFTER_C1: readonly BoardTranscriptEntryDocument[] = SPEC_TRANSCRIPT_WORKING.slice(0, 6);
+
 /** The same, with C2's turn ended on the proposed edit. */
 export const SPEC_TRANSCRIPT_IDLE: readonly BoardTranscriptEntryDocument[] = [
   ...SPEC_TRANSCRIPT_WORKING,
   entry(9, 'tool-result', '{"scripts":{"check:contrast":"bun scripts/contrast.ts"}}', { toolUseId: 'T1' }),
-  entry(10, 'assistant', 'The repo has check:contrast in package.json; it already scans routes by glob. A3 now names it, so a reviewer runs one command.'),
+  entry(
+    10,
+    'assistant',
+    'The repo has `check:contrast` in `package.json`; it already scans routes by glob. A3 now names it, so a reviewer runs one command instead of judging by eye.',
+  ),
   entry(11, 'turn-end', ''),
 ];
 
@@ -322,7 +338,7 @@ const C3_SPLIT = message({
   messageId:     'M4',
   commentNumber: 3,
   anchor:        {
-    view: 'code', versionNumber: 5, lines: lines(17, 23), columns: null, sectionPath: ['3 Behaviour'], quote: null, surroundingLines: lines(15, 25), diagram: null,
+    view: 'code', versionNumber: 5, lines: lines(17, 23), columns: null, sectionPath: ['3 Behaviour', 'Theme flow'], quote: null, surroundingLines: lines(15, 25), diagram: null,
   },
   placement:      lines(17, 23),
   text:           'Server-rendered pages paint before the resolver runs. Put the server path in the flow.',
@@ -355,6 +371,9 @@ const PLAN_REFERENCES = [
   { reference: 6, text: 'the settings page' },
 ] as const;
 
+/** Every page under `pages/account/`, which reference 4 changes alike. */
+const ACCOUNT_PAGES = ['AccountPage.tsx', 'AddressesPage.tsx', 'BillingPage.tsx', 'NotificationsPage.tsx', 'OrdersPage.tsx', 'ProfilePage.tsx', 'SecurityPage.tsx'];
+
 export const PLAN_EFFECT_READING: BoardEffectReadingDocument = {
   document:             'plan',
   versionNumber:        2,
@@ -376,9 +395,9 @@ export const PLAN_EFFECT_READING: BoardEffectReadingDocument = {
     {
       reference: 3, path: 'packages/contracts/profile.ts', change: 'changes', detail: '→ v2', unresolvedReason: null, candidates: [],
     },
-    {
-      reference: 4, path: 'apps/storefront/src/pages/account/index.tsx', change: 'changes', detail: 'every page, 7 files', unresolvedReason: null, candidates: [],
-    },
+    ...ACCOUNT_PAGES.map((page) => ({
+      reference: 4, path: `apps/storefront/src/pages/account/${page}`, change: 'changes' as const, detail: 'Drops its hard-coded colours', unresolvedReason: null, candidates: [],
+    })),
     {
       reference: 5, path: 'apps/storefront/src/legacy/light-only.css', change: 'removes', detail: 'The light-only stylesheet', unresolvedReason: null, candidates: [],
     },
@@ -421,6 +440,14 @@ const PLAN_V2 = unwrittenPlan({
   agentJobId: PLAN_AGENT_JOB_ID,
 });
 
+const SPEC_MOVED_NOTE = message({
+  messageId:      'M0',
+  from:           'board',
+  text:           'Spec went from v5 to v6 at 15:12. Plan v3 is marked out of date; your approval of it stays on record.',
+  agentTurn:      1,
+  deliveryNumber: 1,
+});
+
 const A2_LINE = lineOf(SPEC_MARKDOWN, '**A2**');
 
 const STEP_TWO_LINE = lineOf(PLAN_MARKDOWN, PLAN_STEP_TWO);
@@ -431,6 +458,7 @@ const PLAN_OUT_OF_DATE = unwrittenPlan({
   markdown:   PLAN_MARKDOWN,
   versions:   [1, 2, 3].map((number) => version(number, 'agent', '2026-11-24T14:20:00', 3)),
   approvals:  [approval(3, '2026-11-24T14:30:00', 5)],
+  messages:   [SPEC_MOVED_NOTE],
   agentJobId: PLAN_AGENT_JOB_ID,
   outOfDate:  {
     approvedOnSpecNumber: 5,
@@ -459,17 +487,19 @@ const PLAN_OUT_OF_DATE = unwrittenPlan({
 /** Spec v6 moved A2 under plan v3, which was approved on spec v5. */
 export const PLAN_OUT_OF_DATE_TRANSCRIPT: readonly BoardTranscriptEntryDocument[] = [
   entry(1, 'user', 'The spec moved.'),
-  entry(2, 'assistant', 'Only A2 changed. Step 2 is the one place the plan depends on it, so I propose one edit there. The rest of the plan still holds on v6.'),
+  entry(2, 'assistant', 'Only A2 changed. Step 2 is the one place the plan depends on it, so I propose one edit there. The rest of the plan still holds on `v6`.'),
   entry(3, 'turn-end', ''),
 ];
 
 export const DOCUMENT_STATES = {
   /** Artboard 1: the agent answers C2, reading `package.json`. */
-  specWorking: documentsOf(specDocument({}), unwrittenPlan()),
-  /** Artboards 2 and 3: the agent idle with its edit for C2 proposed. */
-  specIdle:    documentsOf(specDocument({ proposals: [FIRST_DRAFT, SAVED_CHOICE_EDIT, CONTRAST_EDIT_PROPOSED] }), unwrittenPlan()),
+  specWorking:     documentsOf(specDocument({}), unwrittenPlan()),
+  /** Artboard 3: the agent idle after C1, before C2. */
+  specIdleAfterC1: documentsOf(specDocument({ messages: [REQUEST, C1] }), unwrittenPlan()),
+  /** Artboards 2, 4 and 6: the agent waiting on User with its edit for C2 proposed. */
+  specIdle:        documentsOf(specDocument({ proposals: [FIRST_DRAFT, SAVED_CHOICE_EDIT, CONTRAST_EDIT_PROPOSED] }), unwrittenPlan()),
   /** Artboard 5: spec v6 with C2 applied, the agent on C3 started on v5, C4 queued. */
-  specSplit:   documentsOf(specDocument({
+  specSplit:       documentsOf(specDocument({
     head:      version(6, 'person', '2026-11-24T15:01:00'),
     markdown:  SPEC_MARKDOWN_V6,
     messages:  [REQUEST, C1, { ...C2, state: 'applied', placement: lines(A3_LINE) }, C3_SPLIT, C4_QUEUED],

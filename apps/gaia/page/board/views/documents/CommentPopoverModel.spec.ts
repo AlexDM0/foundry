@@ -34,20 +34,22 @@ describe('the comment popover', () => {
     const selection = { start: { line, column: 72 }, end: { line, column: 101 }, quote: 'with no white flash on load.' };
     const anchor = DocumentSelectionModel.anchorOfPreviewSelection(BLOCKS, LINE_COUNT, 4, selection);
     expect(CommentPopoverModel.popoverContentOf(3, anchor, BLOCKS)).toEqual({
-      heading: 'C3 · § 2 Outcome · line 11 · Preview',
-      section: null,
-      quote:   'with no white flash on load.',
-      note:    'The agent gets the quote, its section and lines 9–13.',
+      heading:      'C3 · § 2 Outcome · line 11 · Preview',
+      section:      null,
+      sectionTitle: null,
+      quote:        'with no white flash on load.',
+      note:         'The agent gets the quote, its section and lines 9–13.',
     });
   });
 
   test('heads Code lines with the lines alone and names the mermaid block they fall in under it, as artboard 3', () => {
     const anchor = DocumentSelectionModel.anchorOfLines(BLOCKS, LINE_COUNT, 4, { from: 17, to: 23 });
     expect(CommentPopoverModel.popoverContentOf(3, anchor, BLOCKS)).toEqual({
-      heading: 'C3 · lines 17–23 · Code',
-      section: '§ 3 Behaviour › mermaid block Theme flow',
-      quote:   null,
-      note:    'Same comment, same anchor, in either view.',
+      heading:      'C3 · lines 17–23 · Code',
+      section:      '§ 3 Behaviour › mermaid block Theme flow',
+      sectionTitle: 'Theme flow',
+      quote:        null,
+      note:         'Same comment, same anchor, in either view.',
     });
   });
 

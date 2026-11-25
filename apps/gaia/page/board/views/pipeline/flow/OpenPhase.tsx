@@ -97,10 +97,7 @@ function PhaseHead({
   return (
     <header className="board-pipeline-phase-head">
       <div key={phase} className="board-pipeline-phase-head-text">
-        <Row centerY gap="seven">
-          <span className="board-pipeline-phase-dot" data-phase={phase} aria-hidden="true" />
-          <Text typeRole="small" muted>{header.numberText}</Text>
-        </Row>
+        <Text typeRole="small" muted>{header.numberText}</Text>
         <Text typeRole="phase" element="h3">{header.name}</Text>
         <Text typeRole="lead" muted>{header.purpose}</Text>
         {phase === 'merge' && flow.toolbarStage === 'live' ? <MergeTrainLines flow={flow} /> : null}

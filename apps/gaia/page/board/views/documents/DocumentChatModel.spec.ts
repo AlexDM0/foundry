@@ -104,13 +104,13 @@ describe('a message the agent has not taken yet', () => {
 });
 
 describe('the plan agent\'s chat (artboard 7)', () => {
-  test('ends on the effect reading\'s card with its places and unresolved count', () => {
+  test('puts the effect reading\'s card under User\'s newest ask, before the agent\'s reply, with its places and unresolved count', () => {
     const [, plan] = DOCUMENT_STATES.plan.documents;
     if (plan === undefined) throw new Error('no plan');
     const chat = DocumentChatModel.documentChatOf(plan, PLAN_TRANSCRIPT, PLAN_EFFECT_READING);
-    expect(chat.items.at(-1)).toEqual({
+    expect(chat.items.at(-2)).toEqual({
       kind: 'effect-card', key: 'effect.2', placeCount: 6, unresolvedCount: 2
     });
-    expect(shapeOf(chat.items)).toEqual(['agent-turn', 'message', 'agent-turn', 'effect-card']);
+    expect(shapeOf(chat.items)).toEqual(['agent-turn', 'message', 'effect-card', 'agent-turn']);
   });
 });

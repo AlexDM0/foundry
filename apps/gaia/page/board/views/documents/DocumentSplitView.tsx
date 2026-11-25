@@ -1,6 +1,6 @@
 /**
- * Split: Code on the left, Preview on the right, the Preview drawn from the text User types, saved or not, and kept on the block of the
- * line the caret stands on. The agent may work meanwhile: its edit lands on User's newer text, never over it.
+ * Split: Code on the left, Preview on the right, the Preview drawn from the text User types, saved or not, kept on the block of the line
+ * the caret stands on, which it marks. The agent may work meanwhile: its edit lands on User's newer text, never over it.
  */
 import {
   useCallback,
@@ -32,12 +32,17 @@ export interface DocumentSplitViewProps {
   readonly onCaretLine?:      (lineNumber: number) => void;
 }
 
-/** The element of the innermost block that holds a line, by the line attributes the blocks carry. */
-function blockElementAt(container: HTMLElement, line: number): HTMLElement | null {
-  const holding = [...container.querySelectorAll<HTMLElement>('[data-from-line]')].filter((element) => (
-    Number(element.dataset['fromLine']) <= line && line <= Number(element.dataset['toLine'])
-  ));
-  return holding.at(-1) ?? null;
+/**
+ * Brings the caret's block, the innermost one marked `data-caret`, to the middle of the preview once it is out of view, scrolling the
+ * preview alone, and leaves it still while it shows the block whole, so typing inside a block shown never moves it.
+ */
+export function followCaretIn(preview: HTMLElement | null): void {
+  const block = [...preview?.querySelectorAll<HTMLElement>('[data-caret]') ?? []].findLast((marked) => marked.querySelector('[data-caret]') === null);
+  if (preview === null || block === undefined) return;
+  const shown = preview.getBoundingClientRect();
+  const blockPlace = block.getBoundingClientRect();
+  if (blockPlace.top >= shown.top && blockPlace.bottom <= shown.bottom) return;
+  preview.scrollTop += blockPlace.top - shown.top - ((shown.bottom - shown.top) - (blockPlace.bottom - blockPlace.top)) / 2;
 }
 
 export function DocumentSplitView({
@@ -57,8 +62,7 @@ export function DocumentSplitView({
   }, [onCaretLine]);
 
   useEffect(() => {
-    if (caretLine === null || preview.current === null) return;
-    blockElementAt(preview.current, caretLine)?.scrollIntoView?.({ block: 'nearest' });
+    if (caretLine !== null) followCaretIn(preview.current);
   }, [caretLine, shownText]);
 
   return (
@@ -81,7 +85,7 @@ export function DocumentSplitView({
           <span className="board-document-note">Follows the cursor</span>
         </div>
         <div className="board-document-article" data-follows-caret="">
-          <DocumentBlocks blocks={blocks} />
+          <DocumentBlocks blocks={blocks} caretLine={caretLine} />
         </div>
       </section>
     </div>
