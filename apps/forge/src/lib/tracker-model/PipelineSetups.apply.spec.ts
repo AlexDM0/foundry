@@ -377,6 +377,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
       prepare:      [],
       gates:        [{ name: 'types', run: 'bun run typecheck' }],
       phases:       { build: ['types'], review: [], merge: [] },
+      billing:      { mode: 'subscription' },
       constitution: { path: 'CONSTITUTION.md' },
       agent:        EXAMPLE_PIPELINE_AGENT,
     });
@@ -415,7 +416,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
     const { setupId } = board.openSetup(FIRST_SETUP, AT).setup;
 
     expect(board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT).outcome).toBe('applied');
-    expect(board.pipeline()).toEqual({ ...PipelineUtil.minimalPipelineOf(), agent: EXAMPLE_PIPELINE_AGENT });
+    expect(board.pipeline()).toEqual({ ...PipelineUtil.minimalPipelineOf(), agent: EXAMPLE_PIPELINE_AGENT, billing: { mode: 'subscription' } });
     expect(board.constitutionSourcesWrite()).toEqual({ write: 'unchanged' });
   });
 });

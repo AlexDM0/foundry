@@ -3,9 +3,10 @@
  * no Continue leaves until the record holds a billing, and with a billing it opens past it; a billing must be one of the ways the agent's
  * vendor bills, and none is taken while a record names no agent; a change of agent keeps a billing the new vendor bills by and otherwise
  * clears it and asks the billing step again, every later done step needing a recheck; an update takes the stored pipeline's agent; Apply
- * stores the record's agent; the forge's agent goes into the stored pipeline and the open record alike, or into the record alone while no
- * pipeline is stored; the tools need a stored pipeline, and go into an open update's draft too, so its Apply keeps them; and a launch
- * refused for the agent's program stands on its job, logged once, until it is tried again.
+ * stores the record's agent and its billing, an update with none keeping the stored one; the forge's agent goes into the stored pipeline and
+ * the open record alike, or into the record alone while no pipeline is stored; the tools need a stored pipeline, and go into an open
+ * update's draft too, so its Apply keeps them; and a launch refused for the agent's program stands on its job, logged once, until it is
+ * tried again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -117,6 +118,26 @@ describe('the agent and billing steps', () => {
     const changed = board.setSetupAgent(setupId, LOGIN_ONLY_AGENT, LOGIN_ONLY_FOR_ITS_VENDOR, AT);
     expect(changed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-agent-set']);
     expect([changed.setup.billing, changed.setup.currentStep]).toEqual([null, 'billing']);
+  });
+
+  test('Apply stores the record\'s billing beside its agent, so every job after it launches billed that way', () => {
+    const { board } = boardFixture();
+    const { setupId } = board.openSetup({ ...WITHOUT_BILLING, billing: { mode: 'api', maxBudgetUsd: 6 } }, AT).setup;
+    board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);
+    expect(board.pipeline()?.billing).toEqual({ mode: 'api', maxBudgetUsd: 6 });
+  });
+
+  test('an update with no billing chosen keeps the stored pipeline\'s billing at Apply, absent staying absent', () => {
+    const stored: Pipeline = { ...STORED_PIPELINE, billing: { mode: 'api' } };
+    const { board } = boardFixture({ pipeline: stored });
+    const { setupId } = board.openSetup({ ...UPDATE_OPENING, billing: null }, AT).setup;
+    board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);
+    expect(board.pipeline()?.billing).toEqual({ mode: 'api' });
+
+    const withoutBilling = boardFixture({ pipeline: STORED_PIPELINE }).board;
+    const update = withoutBilling.openSetup({ ...UPDATE_OPENING, billing: null }, AT).setup;
+    withoutBilling.requestApply(update.setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);
+    expect(withoutBilling.pipeline()).not.toHaveProperty('billing');
   });
 
   test('Apply stores the record\'s agent in the pipeline', () => {

@@ -1153,12 +1153,15 @@ export class PipelineSetups {
   }
 
   /**
-   * The draft, or the base for a record with none, read with main's constitution file once main holds the draft's text. Over entities,
-   * each entity names its file once main holds its draft's text, or, with no draft, once main holds a file there, adopted as it is.
+   * The draft, or the base for a record with none, with the record's agent and billing, read with main's constitution file once main
+   * holds the draft's text. Over entities, each entity names its file once main holds its draft's text, or, with no draft, once main
+   * holds a file there, adopted as it is.
    */
   private appliedPipelineOf(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): Pipeline {
     const applied = structuredClone(setup.draft ?? this.basePipeline()) as Pipeline;
     if (setup.agent !== null) applied.agent = agentCopyOf(setup.agent);
+    // A record with no billing chosen keeps the draft's, the stored pipeline's for an update, so Apply writes no billing nobody chose.
+    if (setup.billing !== null) applied.billing = billingCopyOf(setup.billing);
     const { mainConstitution } = reading;
     if (!draftHasEntities(setup)) {
       if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };

@@ -305,13 +305,13 @@ function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTra
 
 /**
  * An update or advise starts from the stored pipeline, so an older or malformed file refuses with its own reason, as does a level the
- * stored pipeline has no entity for; its billing is the stored one, and its constitution main's text with the stored sources of that very
- * text.
+ * stored pipeline has no entity for; its billing is the stored one, none when the pipeline stores none, and its constitution main's text
+ * with the stored sources of that very text.
  */
 function updateOpeningOf(mode: 'update' | 'advise', change: BoardTransaction, context: ControlContext, entityKey: EntityKey | undefined): PipelineSetupOpening {
   requireReadablePipeline(change);
   requireEntityLevel(change.board.pipeline(), entityKey);
-  const billing = change.board.pipeline()?.billing ?? { mode: 'subscription' };
+  const billing = change.board.pipeline()?.billing ?? null;
   const agent = change.board.pipeline()?.agent ?? null;
   const constitutionOpening = change.board.pipeline() === null ? { mainConstitution: null, storedAnnotations: [] } : openingConstitutionOf(change, context);
   return {
