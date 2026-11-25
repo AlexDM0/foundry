@@ -4,7 +4,8 @@
  * later one shows Hephaestus's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
  * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
  * the consequences its agent noted; each open card opens the question panel at itself beside the board, and while the panel shows a
- * decision the view says so, so a wide window keeps the list clear of the panel.
+ * decision the view says so, so a wide window keeps the list clear of the panel. A spec or plan agent's question opens its document at the
+ * line it asks on.
  * The view is a workplace of Flint.
  */
 import {
@@ -23,10 +24,10 @@ import {
 } from 'bun:test';
 import type { ReactElement } from 'react';
 
-import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
-import { QuestionPanelOpenerContext } from '../../shell/QuestionPanelOpener.ts';
-import { boardRouteSurroundings }     from '../../testing/BoardRouteSurroundings.tsx';
+import type { BoardDecisionDocument }          from '../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardDocument }                  from '../../../@types/board/BoardDocument.ts';
+import { QuestionPanelOpenerContext }          from '../../shell/QuestionPanelOpener.ts';
+import { boardRouteSurroundings, boardHrefOf } from '../../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,
   DIRTY_CHECKOUT_NOTICE,
@@ -304,4 +305,21 @@ describe('questions reach User wherever User is', () => {
 test('the view is a workplace of Flint', () => {
   const { container } = fakeControls().render(inBoard(<QuestionsView board={BOARD} notifier={notifierSpy()} />));
   expect(container.querySelector('.board-view')?.hasAttribute('data-flint-workplace')).toBe(true);
+});
+
+describe('a spec agent\'s question in the inbox', () => {
+  test('opens its document at the line it asks on now, else where it asked, and no other question offers a document', () => {
+    const anchor = {
+      view: 'code', versionNumber: 4, lines: { from: 14, to: 14 }, columns: null, sectionPath: ['3 Behaviour'], quote: null, surroundingLines: { from: 12, to: 16 }, diagram: null,
+    } as const;
+    const onSpec = {
+      ...AGENT_QUESTION, id: 'E7', ticketIds: ['004'], document: 'spec', anchor, placement: { from: 16, to: 16 }
+    } as const;
+    const gone = { ...onSpec, id: 'E8', placement: null };
+    fakeControls().render(inBoard(<QuestionsView board={{ ...BOARD, decisions: [onSpec, gone, AGENT_QUESTION], openDecisionIds: ['E7', 'E8', 'E2'] }} notifier={notifierSpy()} />));
+    expect(within(screen.getByRole('listitem', { name: 'Question E7' })).getByRole('link', { name: 'Open the spec at line 16' }).getAttribute('href'))
+      .toBe(boardHrefOf('documents/ticket/004/spec/line/16'));
+    expect(within(screen.getByRole('listitem', { name: 'Question E8' })).getByRole('link', { name: 'Open the spec at line 14' })).toBeTruthy();
+    expect(within(screen.getByRole('listitem', { name: 'Question E2' })).queryByRole('link', { name: /^Open the/u })).toBeNull();
+  });
 });

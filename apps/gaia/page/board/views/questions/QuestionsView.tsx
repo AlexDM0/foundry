@@ -1,12 +1,14 @@
 /**
  * The Questions view: every open decision, each of which opens beside the board in the question panel, the answered ones below, and the
- * open notices, which have no answer. Notifications are allowed from a click here, never asked for on load. The view is the questions
+ * open notices, which have no answer. A spec or plan agent's question also opens its document at the line it asks on
+ * (`docs/design/agent-questions.md`). Notifications are allowed from a click here, never asked for on load. The view is the questions
  * habitat of Flint (`board/flint/UseQuestionsHabitat.ts`). As a tab of the board it reads the decision the question panel shows from the
  * shell.
  */
 import { useContext, useMemo, useRef } from 'react';
 
-import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
+import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
 import {
   Button,
   ListSection,
@@ -19,6 +21,8 @@ import {
 import { DecisionCard }                         from '../../conversation/DecisionCard.tsx';
 import type { QuestionsFacts }                  from '../../flint/QuestionsSpriteModel.ts';
 import { useQuestionsHabitat }                  from '../../flint/UseQuestionsHabitat.ts';
+import { useBoardHrefOf }                       from '../../shell/BoardRouteLinks.ts';
+import { BoardRouter }                          from '../../shell/BoardRouter.ts';
 import type { BoardTabViewProps }               from '../../shell/BoardTabViews.tsx';
 import { presenceAttributeOf, useItemPresence } from '../../shell/ItemPresence.ts';
 import { useQuestionPanelOpener }               from '../../shell/QuestionPanelOpener.ts';
@@ -60,6 +64,18 @@ function AnsweredDecisionItem({ answered, presence }: { readonly answered: Answe
       ))}
     </li>
   );
+}
+
+const DOCUMENT_WORDS = { spec: 'spec', plan: 'plan' } as const;
+
+/** "Open the spec at line 16": a spec or plan agent's question opens its document at the line it asks on now, else where it asked. */
+function DocumentAnchorLink({ decision }: { readonly decision: BoardDecisionDocument }) {
+  const hrefOf = useBoardHrefOf();
+  const [ticketId] = decision.ticketIds;
+  if (decision.document === null || ticketId === undefined) return null;
+  const line = decision.placement?.from ?? decision.anchor?.lines.from ?? null;
+  const label = line === null ? `Open the ${DOCUMENT_WORDS[decision.document]}` : `Open the ${DOCUMENT_WORDS[decision.document]} at line ${line}`;
+  return <Button label={label} href={hrefOf(BoardRouter.documentsRouteOf(ticketId, decision.document, line))} />;
 }
 
 function NoticeItem({ notice }: { readonly notice: NoticeEntry }) {
@@ -106,7 +122,12 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
             escalated={escalated}
             presence={presence}
             isOpenBeside={decision.id === selectedDecisionId}
-            besideAnswer={<Button label="Open beside the board" onPress={() => openQuestionPanel(decision.id)} />}
+            besideAnswer={(
+              <>
+                <DocumentAnchorLink decision={decision} />
+                <Button label="Open beside the board" onPress={() => openQuestionPanel(decision.id)} />
+              </>
+            )}
           />
         )}
       />

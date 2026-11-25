@@ -12,7 +12,17 @@
 
 .board-document-head-gap { flex-grow: 1; }
 
-.board-document-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: var(--fs-tab); color: var(--ink-muted); }
+.board-document-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-tab); color: var(--ink-muted); }
+
+/* The ticket's own crumb names the page User is on, in ink; it still links the ticket's detail. */
+.board-document-breadcrumb .board-document-current { color: var(--ink); text-decoration: none; }
+
+.board-document-breadcrumb .board-document-current:hover { text-decoration: underline; }
+
+.board-document-next { font-size: var(--fs-tab); color: var(--link); text-decoration: underline; }
+
+/* "2 questions open" beside the approval they hold. */
+.board-document-open-count { font-size: var(--fs-small); font-weight: 600; color: var(--link); }
 
 .board-document-tabs { display: flex; align-items: center; gap: 2px; padding: 2px; background: var(--wash); border-radius: var(--r-2); }
 
@@ -158,13 +168,33 @@ blockquote.board-document-quote { border: 0; }
 /* The text an open comment points at, held marked while its popover is open. */
 .board-document-marked { padding: 1px 0; color: inherit; background: var(--comment-selection-tint); border-radius: 2px; }
 
+/* Inline, not an inline box: the word joiner before a chip then keeps it on its word's line, which an atomic box would leave. */
 .board-document-chip {
-  display: inline-flex; align-items: center; height: 18px; margin-left: 6px; padding: 0 6px; vertical-align: 2px;
+  display: inline; margin-left: 6px; padding: 2px 6px; vertical-align: 1px; white-space: nowrap;
   font: var(--fs-micro)/1 var(--font-mono); color: var(--link); background: var(--surface);
   border: 1px solid var(--accent-outline); border-radius: var(--r-pill);
 }
 
 .board-document-chip[data-applied] { color: var(--ink-muted); border-color: var(--line-strong); }
+
+/* In a struck block a chip stays an inline box, which the strike does not cross. */
+:is(.board-document-paragraph, .board-document-heading, .board-document-list-item)[data-replaced] .board-document-chip { display: inline-block; }
+
+/* An agent's question waits on User: its chip is the one solid mark of the document, and the text of its lines is tinted on an orange rule. */
+.board-document-chip[data-asks] { font-weight: 600; color: var(--surface); background: var(--link); border-color: var(--link); }
+
+.board-document-questioned { padding: 1px 0; background: var(--link-tint); border-bottom: 2px solid var(--accent-edge); }
+
+.board-document-open-questions { margin: 0 0 10px; padding: 0; list-style: none; }
+
+.board-document-open-question { margin-bottom: 4px; font-size: 14px; line-height: 1.65; }
+
+.board-document-question-link {
+  padding: 0; font-family: var(--font-mono); font-size: inherit; font-weight: 600; color: var(--link); text-decoration: underline; cursor: pointer;
+  background: none; border: 0;
+}
+
+.board-document-question-waits { font-size: var(--fs-small); color: var(--link); }
 
 .board-document-reference {
   display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 4px;
@@ -401,6 +431,8 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-agent-dot[data-working] { background: var(--signal); }
 
+.board-document-agent-dot[data-waits] { background: none; border: 1.5px dashed var(--signal); box-sizing: border-box; }
+
 .board-document-agent-title { display: flex; flex: 1 0 auto; flex-direction: column; max-width: calc(100% - 18px); }
 
 .board-document-agent-name { font-size: 15px; font-weight: 600; }
@@ -494,6 +526,46 @@ button.board-document-anchor:hover { background: var(--wash); }
 }
 
 .board-document-queued-withdraw:hover { color: var(--ink); background: var(--wash); }
+
+/* The agent's question in its chat: open, a card on the orange edge; folded or answered, on the strong line. */
+.board-document-question {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; font: inherit; font-size: var(--fs-tab); text-align: left; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--accent-edge); border-radius: var(--r-3);
+}
+
+.board-document-question:is([data-folded], [data-state="answered"]) { border-color: var(--line-strong); }
+
+.board-document-question[data-folded] { gap: 6px; cursor: pointer; }
+
+.board-document-question[data-folded]:hover { background: var(--wash); }
+
+.board-document-question-anchor {
+  align-self: flex-start; padding: 0; font: inherit; font-size: var(--fs-small); text-align: left; color: var(--ink-muted); background: none; border: 0;
+}
+
+.board-document-question > button.board-document-question-anchor { cursor: pointer; }
+
+.board-document-question > button.board-document-question-anchor:hover { color: var(--ink); }
+
+.board-document-question-name { font-weight: 600; color: var(--link); }
+
+.board-document-question-text { font-size: 14px; font-weight: 600; }
+
+.board-document-question-context { font-size: var(--fs-small); color: var(--ink-muted); }
+
+.board-document-question-options { display: flex; flex-direction: column; gap: 6px; }
+
+.board-document-question-facts { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
+
+.board-document-question-path { font-size: var(--fs-micro); overflow-wrap: anywhere; }
+
+.board-document-question .board-document-question-note { min-height: 0; padding: 7px 10px; font-size: var(--fs-tab); resize: none; }
+
+.board-document-question-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
+.board-document-question-answer { display: flex; align-items: baseline; gap: 8px; }
+
+.board-document-question-check { font-weight: 700; color: var(--done-ink); }
 
 /* The ticket detail's Documents: each document's standing and the link to its page. */
 .board-detail-documents { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }

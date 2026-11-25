@@ -1,8 +1,8 @@
 /**
- * The document agent's head and Flint strip, pure: what the head says under the agent's name, the strip's status line, and Flint's cue in
- * the strip's slot. While a turn works the agent reads the file its running call names, or writes between calls, for the comment it
- * answers; it waits on User while an edit of its own waits for review, or, on a plan, while the newest effect reading of the head left
- * places unresolved; it is done once its document is approved with nothing open; otherwise it idles and the strip says how to start.
+ * The document agent's head and Flint strip, pure: what the head says under the agent's name, the strip's status line, and Flint's cue in the strip's
+ * slot. While a turn works the agent reads the file its running call names, or writes between calls, for the comment it answers; it waits on User while a
+ * question of its own is open, then while an edit of its own waits for review, or, on a plan, while the newest effect reading of the head left places
+ * unresolved; it is done once its document is approved with nothing open; otherwise it idles and the strip says how to start.
  */
 import type { BoardTicketDocumentDocument, BoardEffectReadingDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import type { ToolCall }                                                from '../../conversation/ChatThreadModel.ts';
@@ -22,12 +22,14 @@ export interface DocumentAgentStripModel {
 }
 
 export interface DocumentAgentReading {
-  readonly document:      BoardTicketDocumentDocument;
+  readonly document:           BoardTicketDocumentDocument;
   /** The spec, for the plan agent's head: it reads both. */
-  readonly spec:          BoardTicketDocumentDocument | null;
-  readonly chat:          DocumentChat;
-  readonly effectReading: BoardEffectReadingDocument | null;
-  readonly view:          DocumentViewMode;
+  readonly spec:               BoardTicketDocumentDocument | null;
+  readonly chat:               DocumentChat;
+  readonly effectReading:      BoardEffectReadingDocument | null;
+  readonly view:               DocumentViewMode;
+  /** The agent's questions on the document that wait on User's answer. */
+  readonly openQuestionCount?: number;
 }
 
 const NAMED_PATH = /"(?:file_path|path|notebook_path|pattern)"\s*:\s*"([^"]+)"/u;
@@ -85,6 +87,15 @@ function stripOf(reading: DocumentAgentReading): DocumentAgentStripModel {
     const headLine = chat.answeringComment === null ? `Working · ${startedOn}` : `Replying to C${chat.answeringComment} · ${startedOn}`;
     return {
       agentName, headLine, status: working.text, cue: working.cue
+    };
+  }
+  const { openQuestionCount = 0 } = reading;
+  if (openQuestionCount > 0) {
+    return {
+      agentName,
+      headLine: `Waiting on your ${countText(openQuestionCount, 'answer', 'answers')} · ${readsTextOf(reading)}`,
+      status:   `Waiting on you · ${countText(openQuestionCount, 'question', 'questions')} to answer`,
+      cue:      FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
     };
   }
   const openEdits = document.proposals.filter((proposal) => proposal.state === 'proposed');

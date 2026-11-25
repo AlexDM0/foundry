@@ -2,16 +2,16 @@
  * The head of a ticket's documents page. What matters: the tabs in pipeline order, the plan muted after the spec until the spec is
  * approved, a ticked tab with its approved version, the plan out of date once the spec moved under it, and `then Build · held`; the state
  * line; the one primary button and its wording, `Approve spec · start Plan`, `Approve plan · start build` or `Approve plan again · start
- * build`, sending the head version, locked while there is nothing to approve or User's edit is unsaved, and read-only `Approved by
- * pipeline` where the review is off; and the notice over a plan the spec moved under.
+ * build`, sending the head version, locked while there is nothing to approve, User's edit is unsaved or the agent's questions on the
+ * document are open (saying how many), and read-only `Approved by pipeline` where the review is off; and the notice over a plan the spec moved under.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardTicketStatus }             from '../../../@types/board/BoardVocabulary.ts';
-import type { GaiaTicketDocumentsDocument }   from '../../../@types/board/TicketDocumentsDocument.ts';
-import { SENT_COMMAND_VERSION }               from '../../testing/FakeControls.ts';
-import { DOCUMENT_STATES, documentsTicketOf } from '../../testing/TicketDocumentsFixture.ts';
-import { TicketDocumentsViewModel }           from './TicketDocumentsViewModel.ts';
+import type { BoardTicketStatus }                               from '../../../@types/board/BoardVocabulary.ts';
+import type { GaiaTicketDocumentsDocument }                     from '../../../@types/board/TicketDocumentsDocument.ts';
+import { SENT_COMMAND_VERSION }                                 from '../../testing/FakeControls.ts';
+import { DOCUMENT_STATES, documentsTicketOf }                   from '../../testing/TicketDocumentsFixture.ts';
+import { OPEN_QUESTIONS_LOCK_REASON, TicketDocumentsViewModel } from './TicketDocumentsViewModel.ts';
 
 interface HeadOptions {
   readonly editing?:   boolean;
@@ -71,8 +71,18 @@ describe('the primary button', () => {
       command: {
         ...SENT_COMMAND_VERSION, kind: 'ticket-document-approve', ticketId: '004', document: 'spec', version: 4
       },
-      lockReason: null,
+      lockReason:        null,
+      openQuestionsText: null,
     });
+  });
+
+  test('is locked while the agent\'s questions on the document are open, and says how many beside it', () => {
+    expect(TicketDocumentsViewModel.headOf({
+      documents: DOCUMENT_STATES.specWorking, ticket: documentsTicketOf(), shown: 'spec', editing: false, openQuestionCount: 2
+    }).primaryAction).toMatchObject({ command: null, lockReason: OPEN_QUESTIONS_LOCK_REASON, openQuestionsText: '2 questions open' });
+    expect(TicketDocumentsViewModel.headOf({
+      documents: DOCUMENT_STATES.specWorking, ticket: documentsTicketOf(), shown: 'spec', editing: true, openQuestionCount: 1
+    }).primaryAction).toMatchObject({ command: null, lockReason: 'Your edit is not saved yet.', openQuestionsText: null });
   });
 
   test('approves the plan, or approves it again once the spec moved under it', () => {

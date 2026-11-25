@@ -1,10 +1,9 @@
 /**
- * The document agent's side of the page: its head (the agent, what it does, Ask first or Auto-apply, or Stop while a turn works), the chat
- * (comments as cards that jump to their anchor, the agent's turns as Markdown, its proposed edits with what Apply closes, the effect
- * reading's card, and what the working agent reads), which opens on its newest item, then the dashed notice that the agent's edit lands
- * on what User changed meanwhile, Flint's strip and the composer. A message sent while the agent works waits in the queue under the
- * composer, where `×` withdraws it, and the composer's button reads `Queue ⌘↵`; Cmd/Ctrl+Enter sends. On a plan the composer offers the
- * effect reading of the head.
+ * The document agent's side of the page: its head (the agent, what it does, Ask first or Auto-apply, or Stop while a turn works), the chat (comments as
+ * cards that jump to their anchor, the agent's turns as Markdown, its proposed edits with what Apply closes, the effect reading's card, the agent's
+ * questions to answer and the ones answered, and what the working agent reads), which opens on its newest item, then the dashed notice that the agent's
+ * edit lands on what User changed meanwhile, Flint's strip and the composer. A message sent while the agent works waits in the queue under the composer,
+ * where `×` withdraws it, and the composer's button reads `Queue ⌘↵`; Cmd/Ctrl+Enter sends. On a plan the composer offers the effect reading of the head.
  */
 import { useLayoutEffect, useRef, useState } from 'react';
 
@@ -12,6 +11,7 @@ import { MarkdownBlocks }                                                       
 import type { BoardProposalMode }                                                           from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardLineRangeDocument }                                                      from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button, SegmentedControl, type SegmentOption }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
+import { FLINT_SLOT_CUES }                                                                  from '../../flint/FlintSlotCues.ts';
 import { useControlCommand }                                                                from '../../shell/ControlCommandSender.ts';
 import { sendKeyIsPressed }                                                                 from './CommentPopover.tsx';
 import type { AnchorLineParts }                                                             from './CommentPopoverModel.ts';
@@ -25,6 +25,7 @@ import type {
   DocumentChatItem,
   QueuedMessageItem
 } from './DocumentChatModel.ts';
+import { AnsweredQuestionCard, OpenQuestionCard }     from './DocumentQuestionCard.tsx';
 import { ProposalDiffCard }                           from './ProposalCard.tsx';
 import { TicketDocumentCommands, type DocumentPlace } from './TicketDocumentCommands.ts';
 
@@ -73,22 +74,33 @@ export function letChatTopFallBetweenItems(chat: HTMLElement | null, mostOfAnIte
   chat.style.overflowAnchor = '';
 }
 
+/** The question waiting on User shows from its top: where the chat's top edge cuts its card, the chat scrolls the card's top to its own. */
+export function bringOpenQuestionToChatTop(chat: HTMLElement | null): void {
+  const card = chat?.querySelector<HTMLElement>('.board-document-question[data-state="open"]');
+  if (chat === null || chat === undefined || card === null || card === undefined) return;
+  const cutBy = chat.getBoundingClientRect().top + (Number.parseFloat(getComputedStyle(chat).paddingTop) || 0) - card.getBoundingClientRect().top;
+  if (cutBy > 0) chat.scrollTop -= cutBy;
+}
+
 export interface DocumentChatProps {
-  readonly place:           DocumentPlace;
-  readonly chat:            DocumentChatContent;
-  readonly strip:           DocumentAgentStripModel;
-  readonly view:            DocumentViewMode;
+  readonly place:               DocumentPlace;
+  readonly chat:                DocumentChatContent;
+  readonly strip:               DocumentAgentStripModel;
+  readonly view:                DocumentViewMode;
   /** A comment is being written in the popover: the composer says where it lands. */
-  readonly draftIsOpen?:    boolean;
-  readonly proposalMode:    BoardProposalMode;
-  readonly headNumber:      number | null;
+  readonly draftIsOpen?:        boolean;
+  readonly proposalMode:        BoardProposalMode;
+  readonly headNumber:          number | null;
   /** The document can no longer change: the chat is shown, the composer and the edits offer nothing. */
-  readonly settled:         boolean;
-  readonly onJumpToAnchor:  (lines: BoardLineRangeDocument) => void;
+  readonly settled:             boolean;
+  readonly onJumpToAnchor:      (lines: BoardLineRangeDocument) => void;
   /** Opens the effect pane; `null` where the page offers no effect reading. */
-  readonly onOpenEffect:    (() => void) | null;
+  readonly onOpenEffect:        (() => void) | null;
   /** That the agent's edit lands on what User changed while it works; `null` while there is nothing to say. */
-  readonly userEditNotice?: string | null;
+  readonly userEditNotice?:     string | null;
+  /** The one open question whose card is unfolded; the others fold to a line. */
+  readonly expandedQuestionId?: string | null;
+  readonly onExpandQuestion?:   (decisionId: string) => void;
 }
 
 function ModeSwitch({ place, mode }: { readonly place: DocumentPlace; readonly mode: BoardProposalMode }) {
@@ -229,6 +241,19 @@ function ChatItem({ item, props }: { readonly item: DocumentChatItem; readonly p
         );
     case 'proposal':
       return <ChatProposal item={item} props={props} />;
+    case 'open-question':
+      return (
+        <OpenQuestionCard
+          place={props.place}
+          question={item.question}
+          expanded={item.question.decisionId === (props.expandedQuestionId ?? null)}
+          onExpand={props.onExpandQuestion ?? (() => undefined)}
+          onJumpToAnchor={props.onJumpToAnchor}
+          settled={props.settled}
+        />
+      );
+    case 'answered-question':
+      return <AnsweredQuestionCard answered={item.answered} onJumpToAnchor={props.onJumpToAnchor} />;
     case 'proposal-note':
       return <ProposalNote text={item.text} editedNumbers={item.editedNumbers} />;
     case 'effect-card': {
@@ -345,15 +370,25 @@ export function DocumentChat(props: DocumentChatProps) {
     place, chat, strip, proposalMode, settled, userEditNotice = null
   } = props;
   const chatElement = useRef<HTMLDivElement>(null);
+  const { expandedQuestionId = null } = props;
   useLayoutEffect(() => {
-    letChatTopFallBetweenItems(chatElement.current);
+    const placeChatTop = (): void => {
+      letChatTopFallBetweenItems(chatElement.current);
+      bringOpenQuestionToChatTop(chatElement.current);
+    };
+    placeChatTop();
     // Items change height once the page's fonts load, so the chat's top edge is placed again then.
-    if ('fonts' in globalThis.document) void globalThis.document.fonts.ready.then(() => letChatTopFallBetweenItems(chatElement.current));
-  }, [chat.items.length, chat.working, userEditNotice]);
+    if ('fonts' in globalThis.document) void globalThis.document.fonts.ready.then(placeChatTop);
+  }, [chat.items.length, chat.working, userEditNotice, expandedQuestionId]);
   return (
     <aside className="board-document-agent" aria-label={strip.agentName}>
       <div className="board-document-agent-head">
-        <span className="board-document-agent-dot" data-working={chat.working ? '' : undefined} aria-hidden="true" />
+        <span
+          className="board-document-agent-dot"
+          data-working={chat.working ? '' : undefined}
+          data-waits={!chat.working && strip.cue === FLINT_SLOT_CUES.AGENT_WAITS_ON_USER ? '' : undefined}
+          aria-hidden="true"
+        />
         <div className="board-document-agent-title">
           <span className="board-document-agent-name">{strip.agentName}</span>
           <span className="board-document-note">{strip.headLine}</span>

@@ -1,12 +1,12 @@
 /**
- * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the
- * source line and column where it starts, so a selection maps back to the source; a character reference draws the character it names; a
- * link keeps only an allowed target; a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the
- * marks of the lines it holds, glued to its last word: a comment's chip (`C2`, `✓ C2` once applied) and a reference mark of the effect
- * reading (`1`, in the warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold an editor's
- * caret line carry `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's
- * proposed edit or the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open
- * comment points at stays marked.
+ * A document's Markdown blocks as React elements, never as HTML: each piece of text, each line of a code block among them, carries the source line and
+ * column where it starts, so a selection maps back to the source; a character reference draws the character it names; a link keeps only an allowed target;
+ * a diagram is drawn by the diagram frame. After the text of a paragraph, heading or list item go the marks of the lines it holds, glued to its last word:
+ * a comment's chip (`C2`, `✓ C2` once applied), an agent's question's solid chip (`E7`, `✓ E7` once answered), its lines marked while it waits, and a
+ * reference mark of the effect reading (`1`, in the warning look while its place is unresolved, the words it quotes then underlined). The blocks that hold
+ * an editor's caret line carry `data-caret`. The caller may place its own part after the innermost such block that holds a line, such as an agent's
+ * proposed edit or the comment popover, and frame the part with that block, as an edit with the lines it replaces. The text an open comment points at
+ * stays marked.
  */
 import {
   createContext,
@@ -33,6 +33,8 @@ export interface CommentChip {
   readonly line:    number;
   readonly text:    string;
   readonly applied: boolean;
+  /** An agent's question to User, drawn solid. */
+  readonly asks?:   boolean;
   readonly title:   string;
 }
 
@@ -68,6 +70,8 @@ export interface DocumentBlocksProps {
   readonly commentedLines?:  readonly SourceLines[];
   /** The words a comment quotes and the lines they stand on: an open comment's tinted, an applied one's dotted. */
   readonly commentedQuotes?: readonly CommentedQuote[];
+  /** Lines an agent's question stands on, their text marked in the question's look while it waits. */
+  readonly questionedLines?: readonly SourceLines[];
   /** Lines an open proposal replaces, drawn struck through. */
   readonly replacedLines?:   readonly SourceLines[];
   readonly parts?:           readonly PlacedPart[];
@@ -121,7 +125,9 @@ function characterOf(reference: string): string {
 
 const MarkedRangeContext = createContext<MarkedRange | null>(null);
 
-type PlaceLook = 'unresolved' | 'open-comment' | 'applied-comment';
+const QuestionedLinesContext = createContext<readonly SourceLines[]>([]);
+
+type PlaceLook = 'unresolved' | 'open-comment' | 'applied-comment' | 'question';
 
 interface SourceTextProps {
   readonly text:  string;
@@ -139,6 +145,8 @@ function SourceRun({ text, start, look = null }: SourceTextProps) {
     case 'open-comment':
     case 'applied-comment':
       return <span className="board-document-commented-quote" data-applied={look === 'applied-comment' ? '' : undefined} {...source}>{text}</span>;
+    case 'question':
+      return <span className="board-document-questioned" {...source}>{text}</span>;
   }
 }
 
@@ -199,10 +207,13 @@ function piecesOf(text: string, places: readonly QuotedPlace[]): TextPiece[] {
   return pieces;
 }
 
+/** Each text span holds one source line, so a question's lines mark exactly the text written on them. */
 function TextSpan({ span, places }: { readonly span: Extract<MarkdownSpan, { readonly kind: 'text' }>; readonly places: readonly QuotedPlace[] }) {
+  const questionedLines = useContext(QuestionedLinesContext);
+  const questioned = questionedLines.some((lines) => lineIsIn(span.start.line, lines));
   return piecesOf(span.text, placesAt(span.start.line, places)).map((piece) => {
     const start = DocumentSelectionModel.positionInSpan(span.start, span.text, piece.offset);
-    return <SourceText key={piece.offset} text={piece.text} start={start} look={piece.look} />;
+    return <SourceText key={piece.offset} text={piece.text} start={start} look={piece.look ?? (questioned ? 'question' : null)} />;
   });
 }
 
@@ -250,7 +261,15 @@ function Marks({ lines, props, nestedItems }: { readonly lines: SourceLines; rea
     <>
       {WORD_JOINER}
       {chips.map((chip) => (
-        <span key={chip.key} className="board-document-chip" data-applied={chip.applied ? '' : undefined} title={chip.title}>{chip.text}</span>
+        <span
+          key={chip.key}
+          className="board-document-chip"
+          data-applied={chip.applied ? '' : undefined}
+          data-asks={chip.asks === true ? '' : undefined}
+          title={chip.title}
+        >
+          {chip.text}
+        </span>
       ))}
       {marks.map((mark) => (
         <span
@@ -408,7 +427,9 @@ function BlockList({ blocks, props }: { readonly blocks: readonly MarkdownBlock[
 export function DocumentBlocks(props: DocumentBlocksProps) {
   return (
     <MarkedRangeContext value={props.markedRange ?? null}>
-      <BlockList blocks={props.blocks} props={props} />
+      <QuestionedLinesContext value={props.questionedLines ?? []}>
+        <BlockList blocks={props.blocks} props={props} />
+      </QuestionedLinesContext>
     </MarkedRangeContext>
   );
 }

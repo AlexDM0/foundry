@@ -1,8 +1,10 @@
 /**
- * A ticket's spec and plan, a page of their own at `documents/ticket/<id>/<spec|plan>`: the head (breadcrumb, the document tabs, then
- * Build, the state line, Preview, Code or Split, the comment count and the one primary button), the document in the chosen view, on a plan
+ * A ticket's spec and plan, a page of their own at `documents/ticket/<id>/<spec|plan>[/line/<n>]`: the head (breadcrumb back to the
+ * ticket's Tickets segment, the document tabs, then Build, the state line, the next draft that waits on User, Preview, Code or Split, the
+ * comment count and the one primary button, held while the agent's questions are open), the document in the chosen view, on a plan
  * the notice of a spec that moved under it and the effect pane, and the document agent's chat. The documents are read through Gaia's relay
- * when the page opens and again on each `documents` part of the board stream; the agent's turns come from its job's transcript. A read that
+ * when the page opens and again on each `documents` part of the board stream; the agent's turns come from its job's transcript, its open
+ * questions from the board's decisions (`docs/design/agent-questions.md`). A route naming a line opens the page there, its question unfolded. A read that
  * fails once the documents were read keeps the page as last read, with the failure over it, so nothing User is doing is lost. The page
  * itself keeps only what User is doing: the view, the comment being written, the effect pane, and the text typed but not saved.
  */
@@ -15,6 +17,8 @@ import {
   useState
 } from 'react';
 
+import { MarkdownBlocks }                                           from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { BoardDecisionDocument }                               from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                       from '../../../@types/board/BoardDocument.ts';
 import type { BoardTicketDocument }                                 from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTicketDocumentKind }                             from '../../../@types/board/BoardVocabulary.ts';
@@ -24,23 +28,28 @@ import {
   Button,
   EmptyState,
   SegmentedControl,
+  Tooltip,
   type SegmentOption
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardServices }                                 from '../../@types/BoardServices.ts';
 import { TicketDocumentsClient, type TicketDocumentsRead }    from '../../api/TicketDocumentsClient.ts';
 import { useTranscript }                                      from '../../conversation/TranscriptLog.tsx';
-import { useBoardHrefOf }                                     from '../../shell/BoardRouteLinks.ts';
-import { BoardRouter }                                        from '../../shell/BoardRouter.ts';
+import { useBoardHomeHref, useBoardHrefOf }                   from '../../shell/BoardRouteLinks.ts';
+import { BoardRouter, type BoardRoute }                       from '../../shell/BoardRouter.ts';
 import type { BoardTabViewProps }                             from '../../shell/BoardTabViews.tsx';
 import { useControlCommand }                                  from '../../shell/ControlCommandSender.ts';
 import { DetailRoute }                                        from '../../shell/DetailRoute.ts';
 import { TimeUtil }                                           from '../../utils/TimeUtil.ts';
+import { InDraftModelUtil }                                   from '../tickets/InDraftModel.ts';
+import { TICKET_SEGMENT_LABELS, TicketsModel }                from '../tickets/TicketsModel.ts';
 import type { CommentDraft }                                  from './CommentPopover.tsx';
 import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
 import { DocumentChat }                                       from './DocumentChat.tsx';
 import { DocumentChatModel }                                  from './DocumentChatModel.ts';
 import { DocumentCodeEditor }                                 from './DocumentCodeEditor.tsx';
 import { DocumentPreview }                                    from './DocumentPreview.tsx';
+import { questionCardIdOf }                                   from './DocumentQuestionCard.tsx';
+import { DocumentQuestionsModel }                             from './DocumentQuestionsModel.ts';
 import { DocumentSplitView }                                  from './DocumentSplitView.tsx';
 import { EffectPane }                                         from './EffectPane.tsx';
 import { EffectTreeModel }                                    from './EffectTreeModel.ts';
@@ -77,6 +86,12 @@ export interface TicketDocumentsPageProps {
   readonly readFailure?: string | null;
   /** What a screen of the visual pass shows mid-use; the page starts in Preview with nothing open. */
   readonly atMount?:     PageStateAtMount;
+  /** The board's open decisions: the page shows the ones its document's agent asked on this ticket. */
+  readonly decisions?:   readonly BoardDecisionDocument[];
+  /** Where "Next waiting on you" goes; `null` while no other draft waits on User. */
+  readonly nextWaiting?: BoardRoute | null;
+  /** The line of the head a link opened the page at; `null` for its top. */
+  readonly focusLine?:   number | null;
 }
 
 /** A jump to lines User asked for, a new one at each ask, so asking again for the same lines scrolls again. */
@@ -108,23 +123,48 @@ export interface PageStateAtMount {
 function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
   const sender = useControlCommand(action.kind === 'approve' ? action.command : null);
   if (action.kind === 'approved-by-pipeline') return <span className="board-document-approved-by-pipeline">{action.label}</span>;
+  const button = (
+    <Button
+      label={action.label}
+      emphasis="primary"
+      compact
+      disabled={!sender.enabled}
+      onPress={() => void sender.send()}
+      {...(action.lockReason === null ? {} : { accessibleName: `${action.label}. ${action.lockReason}` })}
+    />
+  );
   return (
     <span className="board-document-primary">
-      <Button
-        label={action.label}
-        emphasis="primary"
-        compact
-        disabled={!sender.enabled}
-        onPress={() => void sender.send()}
-        {...(action.lockReason === null ? {} : { accessibleName: `${action.label}. ${action.lockReason}` })}
-      />
+      {action.openQuestionsText === null ? null : <span className="board-document-open-count">{action.openQuestionsText}</span>}
+      {action.openQuestionsText === null || action.lockReason === null ? button : <Tooltip text={action.lockReason} placement="below">{button}</Tooltip>}
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
     </span>
   );
 }
 
+/** "Forge › Tickets › In draft › #004 Account pages dark mode": back to the segment the ticket stands in, and to its detail. */
+function Breadcrumb({ project, ticket }: { readonly project: string; readonly ticket: BoardTicketDocument }) {
+  const hrefOf = useBoardHrefOf();
+  const boardHref = useBoardHomeHref();
+  const segment = TicketsModel.segmentOfStatus(ticket.status);
+  return (
+    <nav className="board-document-breadcrumb" aria-label="Breadcrumb">
+      <a className="board-document-link" href={boardHref}>{project}</a>
+      <span aria-hidden="true">›</span>
+      <a className="board-document-link" href={hrefOf({ tab: 'tickets', item: null })}>Tickets</a>
+      <span aria-hidden="true">›</span>
+      <a className="board-document-link" href={hrefOf({ tab: 'tickets', item: segment })}>{TICKET_SEGMENT_LABELS[segment]}</a>
+      <span aria-hidden="true">›</span>
+      <a className="board-document-link board-document-current" href={hrefOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}>
+        <span className="board-document-mono">{`#${ticket.id}`}</span>
+        {` ${ticket.title}`}
+      </a>
+    </nav>
+  );
+}
+
 function DocumentsHead({
-  project, ticket, head, view, onView, onShowComments
+  project, ticket, head, view, onView, onShowComments, nextWaiting
 }: {
   readonly project:        string;
   readonly ticket:         BoardTicketDocument;
@@ -132,18 +172,12 @@ function DocumentsHead({
   readonly view:           DocumentViewMode;
   readonly onView:         (view: DocumentViewMode) => void;
   readonly onShowComments: () => void;
+  readonly nextWaiting:    BoardRoute | null;
 }) {
   const hrefOf = useBoardHrefOf();
   return (
     <header className="board-document-head">
-      <nav className="board-document-breadcrumb" aria-label="Breadcrumb">
-        <a className="board-document-link" href={hrefOf({ tab: 'kanban', item: null })}>{project}</a>
-        <span aria-hidden="true">›</span>
-        <a className="board-document-link" href={hrefOf({ tab: 'kanban', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}>
-          <span className="board-document-mono">{`#${ticket.id}`}</span>
-          {` ${ticket.title}`}
-        </a>
-      </nav>
+      <Breadcrumb project={project} ticket={ticket} />
       <div className="board-document-tabs" role="tablist" aria-label="Ticket documents">
         {head.tabs.map((tab) => (
           <a
@@ -165,6 +199,7 @@ function DocumentsHead({
       {head.isDraft ? <span className="board-document-draft-pill">Draft</span> : null}
       <span className="board-document-mono board-document-note">{head.stateLine}</span>
       <span className="board-document-head-gap" />
+      {nextWaiting === null ? null : <a className="board-document-next" href={hrefOf(nextWaiting)}>Next waiting on you ›</a>}
       <SegmentedControl accessibleName="View" options={VIEW_OPTIONS} selected={view} onSelect={onView} size="standard" />
       {head.commentCount === 0 ? null : <Button label={`Comments ${head.commentCount}`} compact onPress={onShowComments} />}
       <PrimaryAction action={head.primaryAction} />
@@ -199,14 +234,18 @@ export function scrollToLines(container: HTMLElement | null, lines: BoardLineRan
   holding.at(-1)?.scrollIntoView?.({ block: 'center' });
 }
 
+const NO_DECISIONS: readonly BoardDecisionDocument[] = [];
+
 export function TicketDocumentsPage({
-  project, ticket, documents, shown, transcript, readFailure = null, atMount = {}
+  project, ticket, documents, shown, transcript, readFailure = null, atMount = {}, decisions = NO_DECISIONS, nextWaiting = null, focusLine = null
 }: TicketDocumentsPageProps) {
   const [view, setView] = useState<DocumentViewMode>(atMount.view ?? 'preview');
   const [draft, setDraft] = useState<CommentDraft | null>(atMount.draft ?? null);
   const [effectIsOpen, setEffectIsOpen] = useState(atMount.effectIsOpen ?? false);
   const [editedText, setEditedText] = useState<string | null>(atMount.editedText ?? null);
-  const [jump, setJump] = useState<JumpRequest | null>(atMount.jumpedTo === undefined ? null : { lines: atMount.jumpedTo });
+  const linesAtMount = atMount.jumpedTo ?? (focusLine === null ? undefined : { from: focusLine, to: focusLine });
+  const [jump, setJump] = useState<JumpRequest | null>(linesAtMount === undefined ? null : { lines: linesAtMount });
+  const [chosenQuestionId, setChosenQuestionId] = useState<string | null>(null);
   const [caretLine, setCaretLine] = useState<number | null>(atMount.caretLine ?? null);
   const main = useRef<HTMLElement>(null);
   const hrefOf = useBoardHrefOf();
@@ -214,11 +253,27 @@ export function TicketDocumentsPage({
   const spec = TicketDocumentsViewModel.documentOf(documents, 'spec');
   // Only an editor that is open holds text; Preview edits nothing.
   const editing = view !== 'preview' && document !== null && editedText !== null && editedText !== document.markdown;
+  const blocks = useMemo(() => MarkdownBlocks.blocksOf(document?.markdown ?? ''), [document?.markdown]);
+  const questions = useMemo(() => DocumentQuestionsModel.documentQuestionsOf({
+    decisions, messages: document?.messages ?? [], ticketId: ticket.id, document: shown, blocks
+  }), [decisions, document?.messages, ticket.id, shown, blocks]);
   const head = TicketDocumentsViewModel.headOf({
-    documents, ticket, shown, editing
+    documents, ticket, shown, editing, openQuestionCount: questions.open.length
   });
   const effectReading = documents.effectReadings.findLast((reading) => reading.document === shown) ?? null;
-  const chat = useMemo(() => (document === null ? null : DocumentChatModel.documentChatOf(document, transcript, effectReading)), [document, transcript, effectReading]);
+  const chat = useMemo(() => (
+    document === null ? null : DocumentChatModel.documentChatOf(document, transcript, effectReading, questions)
+  ), [document, transcript, effectReading, questions]);
+  const expandedQuestionId = questions.open.some((question) => question.decisionId === chosenQuestionId)
+    ? chosenQuestionId
+    : DocumentQuestionsModel.questionAtLineOf(questions.open, focusLine)?.decisionId ?? null;
+
+  // A link to another line of the page, such as a question's in the Questions tab, scrolls there without opening the page again.
+  const [focusLineJumpedTo, setFocusLineJumpedTo] = useState(focusLine);
+  if (focusLine !== focusLineJumpedTo) {
+    setFocusLineJumpedTo(focusLine);
+    if (focusLine !== null) setJump({ lines: { from: focusLine, to: focusLine } });
+  }
 
   // Each ask is a new request, so the same lines scroll again, and a change of view alone scrolls nowhere.
   useEffect(() => {
@@ -228,8 +283,12 @@ export function TicketDocumentsPage({
   if (document === null || chat === null) return <EmptyState text={`Ticket ${ticket.id} has no ${shown}.`} />;
   const place: DocumentPlace = { ticketId: ticket.id, document: shown };
   const strip = DocumentAgentStripModelUtil.stripOf({
-    document, spec: shown === 'plan' ? spec : null, chat, effectReading, view
+    document, spec: shown === 'plan' ? spec : null, chat, effectReading, view, openQuestionCount: questions.open.length
   });
+  const showQuestion = (decisionId: string): void => {
+    setChosenQuestionId(decisionId);
+    globalThis.document.getElementById(questionCardIdOf(decisionId))?.scrollIntoView?.({ block: 'nearest' });
+  };
   const proposals = ProposalModel.openProposalsOf(shown, document.proposals);
   const notice = shown === 'plan' ? TicketDocumentsViewModel.outOfDateNoticeOf(document) : null;
   const shownUpdateLines = proposals[0]?.headLines ?? null;
@@ -265,6 +324,8 @@ export function TicketDocumentsPage({
             onDraft={setDraft}
             settled={settled}
             lead={contextLine === null ? undefined : <p className="board-document-context">{contextLine}</p>}
+            questions={questions}
+            onShowQuestion={showQuestion}
             {...(atMount.draftText === undefined ? {} : { draftText: atMount.draftText })}
           />
         );
@@ -310,6 +371,7 @@ export function TicketDocumentsPage({
         view={view}
         onView={changeView}
         onShowComments={() => globalThis.document.querySelector<HTMLElement>('.board-document-chat')?.scrollIntoView?.({ block: 'start' })}
+        nextWaiting={nextWaiting}
       />
       <div className="board-document-body">
         <main ref={main} className="board-document-main" aria-label={`The ${shown} of ticket ${ticket.id}`}>
@@ -342,6 +404,8 @@ export function TicketDocumentsPage({
           onJumpToAnchor={jumpTo}
           onOpenEffect={shown === 'plan' ? () => setEffectIsOpen(true) : null}
           userEditNotice={userEditNotice}
+          expandedQuestionId={expandedQuestionId}
+          onExpandQuestion={setChosenQuestionId}
         />
       </div>
     </div>
@@ -391,13 +455,22 @@ function useTicketDocuments(services: BoardServices, ticketId: string): Omit<Doc
   return reading.ticketId === ticketId ? reading : { read: null, lastDocuments: null };
 }
 
+/** The route of the draft after this ticket among those that wait on User, oldest wait first, round to the first; `null` with no other. */
+function nextWaitingRouteOf(board: BoardDocument, ticketId: string): BoardRoute | null {
+  const waiting = InDraftModelUtil.waitingRowsOf(board);
+  const position = waiting.findIndex((row) => row.ticketId === ticketId);
+  const next = waiting[(position + 1) % Math.max(waiting.length, 1)];
+  return next === undefined || next.ticketId === ticketId ? null : next.actionRoute;
+}
+
 function DocumentsOfTicket({
-  board, services, ticketId, shown
+  board, services, ticketId, shown, focusLine
 }: {
-  readonly board:    BoardDocument;
-  readonly services: BoardServices;
-  readonly ticketId: string;
-  readonly shown:    BoardTicketDocumentKind;
+  readonly board:     BoardDocument;
+  readonly services:  BoardServices;
+  readonly ticketId:  string;
+  readonly shown:     BoardTicketDocumentKind;
+  readonly focusLine: number | null;
 }) {
   const { read, lastDocuments } = useTicketDocuments(services, ticketId);
   const agentJobId = lastDocuments === null ? null : TicketDocumentsViewModel.documentOf(lastDocuments, shown)?.agentJobId ?? null;
@@ -414,6 +487,9 @@ function DocumentsOfTicket({
         shown={shown}
         transcript={entries}
         readFailure={read.verdict === 'read' ? null : readFailureOf(read)}
+        decisions={board.decisions}
+        nextWaiting={nextWaitingRouteOf(board, ticketId)}
+        focusLine={focusLine}
       />
     );
   }
@@ -424,5 +500,14 @@ function DocumentsOfTicket({
 export function TicketDocumentsView({ board, route, services }: BoardTabViewProps) {
   const target = BoardRouter.documentOfRoute(route);
   if (target === null) return <EmptyState text="No ticket document is at this address." />;
-  return <DocumentsOfTicket key={`${target.ticketId}/${target.document}`} board={board} services={services} ticketId={target.ticketId} shown={target.document} />;
+  return (
+    <DocumentsOfTicket
+      key={`${target.ticketId}/${target.document}`}
+      board={board}
+      services={services}
+      ticketId={target.ticketId}
+      shown={target.document}
+      focusLine={target.line}
+    />
+  );
 }

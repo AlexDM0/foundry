@@ -1,9 +1,9 @@
 /**
- * Preview: the document drawn from its Markdown by the page itself, with each comment's chip after its text and the effect reading's
- * reference marks, an open proposal framed with the lines it replaces, and the comment popover after the text it points at, which stays
- * marked while the popover is open. A selection opens the popover with an anchor of source lines, columns, quote and section, also one in
- * code or one that ends on a chip, a checkbox or the edge of a block; a hovered diagram node offers a comment on its own line. Read-only
- * text still takes comments: a comment changes no text.
+ * Preview: the document drawn from its Markdown by the page itself, with each comment's chip after its text, each of the agent's questions' chip with its
+ * lines marked and its item under the document's "Open questions" heading, the effect reading's reference marks, an open proposal framed with the lines it
+ * replaces, and the comment popover after the text it points at, which stays marked while the popover is open. A selection opens the popover with an
+ * anchor of source lines, columns, quote and section, also one in code or one that ends on a chip, a checkbox or the edge of a block; a hovered diagram
+ * node offers a comment on its own line. Read-only text still takes comments: a comment changes no text.
  */
 import { useMemo, type MouseEvent, type ReactNode } from 'react';
 
@@ -19,30 +19,38 @@ import {
   type PlacedPart,
   type ReferenceMark
 } from './DocumentBlocks.tsx';
-import { DocumentSelectionModel, type PreviewSelection } from './DocumentSelectionModel.ts';
-import { InlineProposal }                                from './ProposalCard.tsx';
-import type { OpenProposalModel }                        from './ProposalModel.ts';
-import type { DocumentPlace }                            from './TicketDocumentCommands.ts';
+import { OpenQuestionsList }                              from './DocumentQuestionCard.tsx';
+import { DocumentQuestionsModel, type DocumentQuestions } from './DocumentQuestionsModel.ts';
+import { DocumentSelectionModel, type PreviewSelection }  from './DocumentSelectionModel.ts';
+import { InlineProposal }                                 from './ProposalCard.tsx';
+import type { OpenProposalModel }                         from './ProposalModel.ts';
+import type { DocumentPlace }                             from './TicketDocumentCommands.ts';
 
 type DiagramBlock = Extract<MarkdownBlock, { readonly kind: 'diagram' }>;
 
 export interface DocumentPreviewProps {
-  readonly place:          DocumentPlace;
-  readonly markdown:       string;
+  readonly place:           DocumentPlace;
+  readonly markdown:        string;
   /** The version a comment is made on: the head, `null` before the first. */
-  readonly versionNumber:  number | null;
-  readonly messages:       readonly BoardDocumentMessageDocument[];
-  readonly proposals:      readonly OpenProposalModel[];
-  readonly referenceMarks: readonly ReferenceMark[];
-  readonly draft:          CommentDraft | null;
-  readonly onDraft:        (draft: CommentDraft | null) => void;
+  readonly versionNumber:   number | null;
+  readonly messages:        readonly BoardDocumentMessageDocument[];
+  readonly proposals:       readonly OpenProposalModel[];
+  readonly referenceMarks:  readonly ReferenceMark[];
+  readonly draft:           CommentDraft | null;
+  readonly onDraft:         (draft: CommentDraft | null) => void;
   /** The document can no longer change: its proposals offer nothing. */
-  readonly settled:        boolean;
+  readonly settled:         boolean;
   /** Drawn under the document's title, or above the document when it opens with none, such as the plan's context line. */
-  readonly lead?:          ReactNode;
+  readonly lead?:           ReactNode;
   /** The comment text a screen shows half written in the popover. */
-  readonly draftText?:     string;
+  readonly draftText?:      string;
+  /** The agent's questions on the document, open and answered. */
+  readonly questions?:      DocumentQuestions;
+  /** Brings a question's card into view in the chat, unfolded. */
+  readonly onShowQuestion?: (decisionId: string) => void;
 }
+
+const NO_QUESTIONS: DocumentQuestions = { open: [], answered: [] };
 
 const OPEN_MESSAGE_STATES: ReadonlySet<string> = new Set(['queued', 'sent']);
 
@@ -123,7 +131,7 @@ export function previewSelectionOf(selection: Selection | null, root: Element): 
 }
 
 export function DocumentPreview({
-  place, markdown, versionNumber, messages, proposals, referenceMarks, draft, onDraft, settled, lead, draftText
+  place, markdown, versionNumber, messages, proposals, referenceMarks, draft, onDraft, settled, lead, draftText, questions = NO_QUESTIONS, onShowQuestion
 }: DocumentPreviewProps) {
   const blocks = useMemo(() => MarkdownBlocks.blocksOf(markdown), [markdown]);
   const lineCount = useMemo(() => markdown.split('\n').length, [markdown]);
@@ -141,8 +149,16 @@ export function DocumentPreview({
   const [firstBlock] = blocks;
   const titleLine = firstBlock?.kind === 'heading' && firstBlock.depth === 1 ? firstBlock.lines.from : null;
 
+  const openQuestionsHeadingLine = DocumentQuestionsModel.openQuestionsHeadingLineOf(markdown);
+  const openQuestionsItems = DocumentQuestionsModel.openQuestionsListOf(questions);
+
   const parts: PlacedPart[] = [
     ...(lead === undefined || titleLine === null ? [] : [{ key: 'lead', line: titleLine, part: lead }]),
+    ...(openQuestionsHeadingLine === null || openQuestionsItems.length === 0 ? [] : [{
+      key:  'open-questions',
+      line: openQuestionsHeadingLine,
+      part: <OpenQuestionsList items={openQuestionsItems} onShowQuestion={onShowQuestion ?? (() => undefined)} />,
+    }]),
     ...placedProposals.map((proposal): PlacedPart => ({
       key:  proposal.proposalId,
       line: proposal.headLines?.to ?? 1,
@@ -181,7 +197,8 @@ export function DocumentPreview({
       {titleLine === null ? lead : null}
       <DocumentBlocks
         blocks={blocks}
-        chips={chipsOf(messages)}
+        chips={[...chipsOf(messages), ...DocumentQuestionsModel.chipsOf(questions)]}
+        questionedLines={DocumentQuestionsModel.questionedLinesOf(questions)}
         referenceMarks={referenceMarks}
         commentedLines={openPlacements}
         commentedQuotes={commentedQuotes}

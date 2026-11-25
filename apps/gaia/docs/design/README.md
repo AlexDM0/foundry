@@ -11,6 +11,7 @@ the document is corrected in the same change.
 | `components.md` | Gaia's design rules, its own tokens, its own parts under `page/components/`, how a state reaches a library tone, and the text pairs and contrast floors `page/StyleContract.spec.ts` holds | "`docs/design/components.md` 3.2", "section 4" |
 | `board.md` | The tables and definitions the board's views under `page/board/` are built to | "`docs/design/board.md`", with the section's title |
 | `tickets.md` | The Tickets view (artboard 0): its In draft, Active and Finished segments, each one's rows and actions, the segment it opens on, and its deviations | "`docs/design/tickets.md`", with the section's title |
+| `agent-questions.md` | A spec or plan agent's question on its document (artboard 11): its mark and chip on the line, its card in the chat, the answer, the approval it holds, the breadcrumb and the next draft that waits, and its deviations | "`docs/design/agent-questions.md`", with the section's title |
 | `board-menu.md` | The board's menu, the Progress entry grouping the Kanban, Waves and the Gantt, their routes and redirects, what is remembered, and the Kanban without drafts | "`docs/design/board-menu.md`", with the section's title |
 
 ## The artboards

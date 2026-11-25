@@ -12,6 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MarkdownBlocks }                                               from '../../src/lib/markdown-render/MarkdownBlocks.ts';
 import type { CommandAnswerDocument, ForgeCommandBody }                 from '../@types/CommandDocument.ts';
 import type { FleetDocument }                                           from '../@types/FleetDocument.ts';
+import type { BoardDecisionDocument }                                   from '../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                           from '../@types/board/BoardDocument.ts';
 import type { BoardTicketDocument }                                     from '../@types/board/BoardTicketDocuments.ts';
 import type { BoardTicketDocumentKind }                                 from '../@types/board/BoardVocabulary.ts';
@@ -21,6 +22,7 @@ import { type CommandSender, CommandSenderContext, type CommandStates } from '..
 import type { BoardServices }                                           from '../board/@types/BoardServices.ts';
 import { PaintedTranscriptsContext }                                    from '../board/conversation/TranscriptLog.tsx';
 import { BoardGoToContext, BoardTrackerContext }                        from '../board/shell/BoardRouteLinks.ts';
+import { BoardRouter, type BoardRoute }                                 from '../board/shell/BoardRouter.ts';
 import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shell/ControlAvailability.ts';
 import {
   DOCUMENT_STATES,
@@ -30,15 +32,18 @@ import {
   PLAN_MARKDOWN,
   PLAN_OUT_OF_DATE_TRANSCRIPT,
   PLAN_TRANSCRIPT,
+  SAVED_CHOICE_QUESTION,
+  SPEC_ASKS_DOCUMENTS,
   SPEC_MARKDOWN,
   SPEC_MARKDOWN_V6,
   SPEC_TRANSCRIPT_AFTER_C1,
+  SPEC_TRANSCRIPT_ASKS,
   SPEC_TRANSCRIPT_IDLE,
   SPEC_TRANSCRIPT_SPLIT,
   SPEC_TRANSCRIPT_WORKING
 } from '../board/testing/TicketDocumentsFixture.ts';
 import type { CommentDraft }                                                                          from '../board/views/documents/CommentPopover.tsx';
-import { letChatTopFallBetweenItems }                                                                 from '../board/views/documents/DocumentChat.tsx';
+import { bringOpenQuestionToChatTop, letChatTopFallBetweenItems }                                     from '../board/views/documents/DocumentChat.tsx';
 import { DocumentSelectionModel }                                                                     from '../board/views/documents/DocumentSelectionModel.ts';
 import { followCaretIn }                                                                              from '../board/views/documents/DocumentSplitView.tsx';
 import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
@@ -738,18 +743,22 @@ export function splashScreenAddressOf(screen: SplashScreen, theme: ScreenTheme):
   return splashAddress.href;
 }
 
-/** The ticket document artboards, 1 to 8 of the spec and plan design, each by its file among the owner's drawings. */
-export type TicketDocumentArtboard = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+/** The ticket document artboards, 1 to 8 and 11 of the spec and plan design, each by its file among the owner's drawings. */
+export type TicketDocumentArtboard = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 11;
 
 export interface TicketDocumentScreen {
-  readonly artboard:   TicketDocumentArtboard;
-  readonly title:      string;
-  readonly designFile: string;
-  readonly documents:  GaiaTicketDocumentsDocument;
-  readonly shown:      BoardTicketDocumentKind;
-  readonly transcript: readonly BoardTranscriptEntryDocument[];
-  readonly ticket:     BoardTicketDocument;
-  readonly atMount:    PageStateAtMount;
+  readonly artboard:     TicketDocumentArtboard;
+  readonly title:        string;
+  readonly designFile:   string;
+  readonly documents:    GaiaTicketDocumentsDocument;
+  readonly shown:        BoardTicketDocumentKind;
+  readonly transcript:   readonly BoardTranscriptEntryDocument[];
+  readonly ticket:       BoardTicketDocument;
+  readonly atMount:      PageStateAtMount;
+  /** The board's open decisions the page reads its agent's questions from; none where the artboard draws none. */
+  readonly decisions?:   readonly BoardDecisionDocument[];
+  /** The draft "Next waiting on you" opens; absent where the artboard draws no such link. */
+  readonly nextWaiting?: BoardRoute;
 }
 
 const SPEC_BLOCKS = MarkdownBlocks.blocksOf(SPEC_MARKDOWN);
@@ -881,6 +890,18 @@ export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
     ticket:     documentsTicketOf('committed', true),
     atMount:    { jumpedTo: PLAN_STEP_TWO_LINES },
   },
+  {
+    artboard:    11,
+    title:       'The spec agent asks you on the spec',
+    designFile:  'Agent-asks.dc.html',
+    documents:   SPEC_ASKS_DOCUMENTS,
+    shown:       'spec',
+    transcript:  SPEC_TRANSCRIPT_ASKS,
+    ticket:      documentsTicketOf(),
+    atMount:     {},
+    decisions:   [SAVED_CHOICE_QUESTION],
+    nextWaiting: BoardRouter.documentsRouteOf('007', 'plan'),
+  },
 ];
 
 /** The documents artboards are drawn at this size. */
@@ -908,6 +929,8 @@ export function ticketDocumentScreenMarkupOf(screen: TicketDocumentScreen): stri
                 shown={screen.shown}
                 transcript={screen.transcript}
                 atMount={screen.atMount}
+                {...(screen.decisions === undefined ? {} : { decisions: screen.decisions })}
+                {...(screen.nextWaiting === undefined ? {} : { nextWaiting: screen.nextWaiting })}
               />
             </main>
           </div>
@@ -940,7 +963,10 @@ function caretLineInViewIn(editor: HTMLElement | null, caretLine: number): void 
 }
 
 function scrollScriptOf(screen: TicketDocumentScreen): string {
-  const chatScript = `<script>document.fonts.ready.then(() => (${letChatTopFallBetweenItems.toString()})(document.querySelector('.board-document-chat')));</script>`;
+  const chatScript = '<script>document.fonts.ready.then(() => {'
+    + `(${letChatTopFallBetweenItems.toString()})(document.querySelector('.board-document-chat'));`
+    + `(${bringOpenQuestionToChatTop.toString()})(document.querySelector('.board-document-chat'));`
+    + '});</script>';
   return chatScript + documentScrollScriptOf(screen);
 }
 

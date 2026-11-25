@@ -2,14 +2,16 @@
  * The head of a ticket's documents page, pure: the document tabs in pipeline order (a tab is muted until the document before it is
  * approved, `✓ Spec v5` once approved, the plan out of date once the spec moved under it), `then Build` and whether the build is held,
  * the state line, the comment count, and the one primary button: approve the head version, worded for what it starts, locked while there
- * is nothing to approve, and read-only `Approved by pipeline` where the review is off. Approve names the head, so a head that moved since
- * the page read it is the forge's refusal to word.
+ * is nothing to approve or while the agent's questions on the document are open, saying how many beside it, and read-only `Approved by
+ * pipeline` where the review is off. Approve names the head, so a head that moved since the page read it, or a question asked since, is the
+ * forge's refusal to word.
  */
 import type { BoardCommandDocument }                                     from '../../../@types/board/BoardCommandDocument.ts';
 import type { BoardTicketDocument }                                      from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTicketDocumentKind }                                  from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardTicketDocumentDocument, GaiaTicketDocumentsDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import { TimeUtil }                                                      from '../../utils/TimeUtil.ts';
+import { DocumentQuestionsModel }                                        from './DocumentQuestionsModel.ts';
 import { TicketDocumentCommands }                                        from './TicketDocumentCommands.ts';
 
 export const OUT_OF_DATE_SUFFIX = '· out of date';
@@ -29,12 +31,14 @@ export interface DocumentTabModel {
 
 export type PrimaryActionModel =
   | {
-    readonly kind:       'approve';
-    readonly label:      string;
+    readonly kind:              'approve';
+    readonly label:             string;
     /** `null` while the button is locked. */
-    readonly command:    BoardCommandDocument | null;
+    readonly command:           BoardCommandDocument | null;
     /** Why the button is locked, said beside it; `null` while it is not. */
-    readonly lockReason: string | null;
+    readonly lockReason:        string | null;
+    /** "2 questions open" beside the button while the agent's questions lock it; `null` otherwise. */
+    readonly openQuestionsText: string | null;
   }
   | { readonly kind: 'approved-by-pipeline'; readonly label: string };
 
@@ -53,11 +57,13 @@ export interface DocumentsHeadModel {
 }
 
 export interface DocumentsHeadReading {
-  readonly documents: GaiaTicketDocumentsDocument;
-  readonly ticket:    BoardTicketDocument;
-  readonly shown:     BoardTicketDocumentKind;
+  readonly documents:          GaiaTicketDocumentsDocument;
+  readonly ticket:             BoardTicketDocument;
+  readonly shown:              BoardTicketDocumentKind;
   /** User's text differs from the head and is not saved yet. */
-  readonly editing:   boolean;
+  readonly editing:            boolean;
+  /** The agent's questions on the shown document that wait on User. */
+  readonly openQuestionCount?: number;
 }
 
 const APPROVE_LABELS: Readonly<Record<BoardTicketDocumentKind, string>> = {
@@ -66,6 +72,8 @@ const APPROVE_LABELS: Readonly<Record<BoardTicketDocumentKind, string>> = {
 };
 
 const APPROVE_AGAIN_LABEL = 'Approve plan again · start build';
+
+export const OPEN_QUESTIONS_LOCK_REASON = 'Answer the open questions first.';
 
 const TAB_TITLES: Readonly<Record<BoardTicketDocumentKind, string>> = { spec: 'Spec', plan: 'Plan' };
 
@@ -118,6 +126,7 @@ function lockReasonOf(reading: DocumentsHeadReading, document: BoardTicketDocume
   if (document.standing === 'approved') return `v${document.head.number} is approved.`;
   if (shown === 'plan' && documentOf(documents, 'spec')?.standing !== 'approved') return 'The spec is approved first.';
   if (!document.editable) return `The ${shown} can no longer change.`;
+  if ((reading.openQuestionCount ?? 0) > 0) return OPEN_QUESTIONS_LOCK_REASON;
   return null;
 }
 
@@ -128,8 +137,9 @@ function primaryActionOf(reading: DocumentsHeadReading, document: BoardTicketDoc
   const lockReason = lockReasonOf(reading, document);
   const head = document?.head ?? null;
   const command = lockReason === null && head !== null ? TicketDocumentCommands.approveOf({ ticketId: ticket.id, document: shown }, head.number) : null;
+  const openQuestionsText = lockReason === OPEN_QUESTIONS_LOCK_REASON ? DocumentQuestionsModel.openCountTextOf(reading.openQuestionCount ?? 0) : null;
   return {
-    kind: 'approve', label, command, lockReason
+    kind: 'approve', label, command, lockReason, openQuestionsText
   };
 }
 

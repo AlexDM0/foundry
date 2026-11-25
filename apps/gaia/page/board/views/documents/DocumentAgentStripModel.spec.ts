@@ -1,8 +1,8 @@
 /**
- * The document agent's head and Flint strip. What matters: a working agent reads or writes for the comment it answers, named by its
- * running call (artboard 1), and says the version it started on once the head moved under it (artboard 5); an edit waiting for review
- * makes it wait on User (artboard 4), on a plan for the spec version it answers (artboard 8); unresolved places of the head's effect
- * reading make the plan agent wait on User (artboard 7); idle, the strip says how to start, by view.
+ * The document agent's head and Flint strip. What matters: a working agent reads or writes for the comment it answers, named by its running call (artboard
+ * 1), and says the version it started on once the head moved under it (artboard 5); an edit waiting for review makes it wait on User (artboard 4), on a
+ * plan for the spec version it answers (artboard 8); unresolved places of the head's effect reading make the plan agent wait on User (artboard 7); its own
+ * open questions make it wait on User's answers first (artboard 11); idle, the strip says how to start, by view.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -70,6 +70,17 @@ describe('the document agent\'s strip', () => {
     const idle = { ...DOCUMENT_STATES.specWorking };
     expect(stripOf(idle, 'spec', SPEC_TRANSCRIPT_IDLE.slice(0, 6)).status).toBe('Idle. Select text to comment, or ask.');
     expect(stripOf(idle, 'spec', SPEC_TRANSCRIPT_IDLE.slice(0, 6), 'code').status).toBe('Idle. Select lines to comment, or ask.');
+  });
+
+  test('an idle agent with its questions open waits on User\'s answers before its edits, as artboard 11', () => {
+    const [spec] = DOCUMENT_STATES.specIdle.documents;
+    if (spec === undefined) throw new Error('no spec');
+    const chat = DocumentChatModel.documentChatOf(spec, SPEC_TRANSCRIPT_IDLE, null);
+    expect(DocumentAgentStripModelUtil.stripOf({
+      document: spec, spec: null, chat, effectReading: null, view: 'preview', openQuestionCount: 2
+    })).toEqual({
+      agentName: 'Spec agent', headLine: 'Waiting on your 2 answers · reads v4', status: 'Waiting on you · 2 questions to answer', cue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
+    });
   });
 
   test('a call that names a file is read by its last segment', () => {

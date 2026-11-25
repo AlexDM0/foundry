@@ -1,8 +1,10 @@
 /**
- * Ticket #004's spec and plan in the states the document artboards draw: the spec drafted with a comment applied and one the agent
- * answers, its edit proposed, User typing in Split while the agent works with a comment queued, the plan with its effect reading, and the
- * plan out of date under a newer spec. Each state is the documents Gaia's relay serves, with the agent's transcript beside it. Test-only.
+ * Ticket #004's spec and plan in the states the document artboards draw: the spec drafted with a comment applied and one the agent answers, its edit
+ * proposed, User typing in Split while the agent works with a comment queued, the plan with its effect reading, and the plan out of date under a newer
+ * spec, and the spec agent asking User on two lines of its spec, one question open and one answered. Each state is the documents Gaia's relay serves, with
+ * the agent's transcript beside it. Test-only.
  */
+import type { BoardDecisionDocument }        from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                from '../../@types/board/BoardDocument.ts';
 import type { BoardTicketDocument }          from '../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptEntryDocument } from '../../@types/board/ConversationDocument.ts';
@@ -517,6 +519,102 @@ export const DOCUMENT_STATES = {
 } as const;
 
 export const SPEC_ANCHOR_OF_C2 = C2_ANCHOR;
+
+/** Artboard 11's spec v4: the Behaviour's fallback on a line of its own, which the spec agent asks on, and its Open questions left to Gaia. */
+export const SPEC_MARKDOWN_ASKS = SPEC_MARKDOWN
+  .replace('from the system setting. With no setting', 'from the system setting.\nWith no setting')
+  .replace(`\n\n${OPEN_QUESTION}`, '');
+
+export const FALLBACK_LINE = lineOf(SPEC_MARKDOWN_ASKS, 'With no setting the page falls back to light.');
+
+const IMAGES_LINE = lineOf(SPEC_MARKDOWN_ASKS, '**A4**');
+
+/** A line anchor as forge makes one for its agent's question: in Code, its section path from the title down, no quote. */
+function questionAnchor(line: number, sectionPath: readonly string[]): BoardCommentAnchorDocument {
+  return {
+    view: 'code', versionNumber: 4, lines: lines(line), columns: null, sectionPath, quote: null, surroundingLines: lines(line - 2, line + 2), diagram: null,
+  };
+}
+
+/** Artboard 11's E7, open: does the ticket add the saved theme choice, asked on the Behaviour's fallback line. */
+export const SAVED_CHOICE_QUESTION: BoardDecisionDocument = {
+  id:        'E7',
+  kind:      'agent-question',
+  ticketIds: [DOCUMENTS_TICKET_ID],
+  jobId:     SPEC_AGENT_JOB_ID,
+  askedBy:   'spec-agent',
+  questions: [{
+    question:    'Does this ticket add the saved theme choice?',
+    header:      'spec',
+    multiSelect: false,
+    options:     [
+      {
+        letter:           'a',
+        label:            'Yes, add it here',
+        description:      '',
+        recommended:      true,
+        touches:          ['src/theme/resolveTheme.ts', 'src/account/settingsStore.ts'],
+        tradeOff:         null,
+        acceptanceEffect: 'Adds A5: a saved choice wins over the system setting. Size M stays.',
+      },
+      {
+        letter:           'b',
+        label:            'No, follow the system only',
+        description:      '',
+        recommended:      false,
+        touches:          ['src/theme/resolveTheme.ts'],
+        tradeOff:         null,
+        acceptanceEffect: 'The saved-choice box leaves the diagram; A1 to A4 stay as they are.',
+      },
+      {
+        letter:           'c',
+        label:            'Read the old cookie once',
+        description:      '',
+        recommended:      false,
+        touches:          ['src/account/legacyCookie.ts'],
+        tradeOff:         null,
+        acceptanceEffect: 'Adds A5 for the old dark setting; widens the ticket to L.',
+      },
+    ],
+  }],
+  context:   'The repo stores no theme choice today. The old site\'s dark mode lived in a cookie that the new storefront never reads.',
+  openedAt:  '2026-11-24T13:05:00',
+  document:  'spec',
+  anchor:    questionAnchor(FALLBACK_LINE, ['Account pages dark mode', '3 Behaviour']),
+  placement: lines(FALLBACK_LINE),
+};
+
+/** E8, answered: the forge's message to the agent, the question's line, the chosen label and User's note. */
+const IMAGES_ANSWER = message({
+  messageId:      'M2',
+  decisionId:     'E8',
+  anchor:         questionAnchor(IMAGES_LINE, ['Account pages dark mode', '4 Acceptance']),
+  placement:      lines(IMAGES_LINE),
+  text:           'Do product images in order history get a dark variant?\nKeep their colours, as A4 says\n\nProduct photos are the merchant\'s; we do not touch them.',
+  agentTurn:      2,
+  deliveryNumber: 2,
+});
+
+/** The spec agent's first draft, where it asks E7 and E8, then its turn on User's answer to E8. */
+export const SPEC_TRANSCRIPT_ASKS: readonly BoardTranscriptEntryDocument[] = [
+  entry(1, 'user', 'Write the spec.'),
+  entry(
+    2,
+    'assistant',
+    'The repo leaves two things open that change the Acceptance. I asked each one on the line it changes; the spec waits for your answers before you can approve it.',
+  ),
+  entry(3, 'turn-end', ''),
+  entry(4, 'user', '{"answer":"E8"}'),
+  entry(5, 'assistant', 'Keeping the images as they are: A4 already says so, so the spec needs no edit for `E8`.'),
+  entry(6, 'turn-end', ''),
+];
+
+/** Artboard 11: spec v4 with E7 open and E8 answered. */
+export const SPEC_ASKS_DOCUMENTS: GaiaTicketDocumentsDocument = documentsOf(specDocument({
+  markdown:  SPEC_MARKDOWN_ASKS,
+  messages:  [REQUEST, IMAGES_ANSWER],
+  proposals: [FIRST_DRAFT],
+}), unwrittenPlan());
 
 export function documentsTicketOf(status: BoardTicketDocument['status'] = 'draft', buildHeld = false): BoardTicketDocument {
   return exampleTicket({

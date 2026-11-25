@@ -3,8 +3,10 @@
  * out, since the document's messages stand for them: each sent message is placed before the agent turn it opened (`agentTurn`, counted by
  * the transcript's user lines from 1), a message the agent has not taken yet after the turns, and a queued one under the composer, where
  * `×` withdraws it. A proposal's diff card follows the turn that answered its message, a settled proposal leaves one line there, and the
- * newest effect reading of the document is a card that opens its pane. The agent works while its newest turn has not ended. While it works
- * on a comment made on an older version and User has changed the document since, a notice says its edit lands on User's text.
+ * newest effect reading of the document is a card that opens its pane. The agent's question User answered stands where its answer's
+ * message would, as its card, and the questions still open stand last, as they wait (`docs/design/agent-questions.md`). The agent works
+ * while its newest turn has not ended. While it works on a comment made on an older version and User has changed the document since, a
+ * notice says its edit lands on User's text.
  */
 import type { BoardTranscriptEntryDocument } from '../../../@types/board/ConversationDocument.ts';
 import type {
@@ -14,9 +16,10 @@ import type {
   BoardLineRangeDocument,
   BoardTicketDocumentDocument
 } from '../../../@types/board/TicketDocumentsDocument.ts';
-import { ChatThreadModelUtil, type ToolCall }        from '../../conversation/ChatThreadModel.ts';
-import { CommentPopoverModel, type AnchorLineParts } from './CommentPopoverModel.ts';
-import { ProposalModel, type OpenProposalModel }     from './ProposalModel.ts';
+import { ChatThreadModelUtil, type ToolCall }                               from '../../conversation/ChatThreadModel.ts';
+import { CommentPopoverModel, type AnchorLineParts }                        from './CommentPopoverModel.ts';
+import type { AnsweredQuestionModel, DocumentQuestions, OpenQuestionModel } from './DocumentQuestionsModel.ts';
+import { ProposalModel, type OpenProposalModel }                            from './ProposalModel.ts';
 
 export interface ChatMessageItem {
   readonly kind:        'message';
@@ -72,7 +75,27 @@ export interface ChatEffectCardItem {
   readonly unresolvedCount: number;
 }
 
-export type DocumentChatItem = ChatMessageItem | ChatBoardNoteItem | ChatAgentTurnItem | ChatProposalItem | ChatProposalNoteItem | ChatEffectCardItem;
+export interface ChatOpenQuestionItem {
+  readonly kind:     'open-question';
+  readonly key:      string;
+  readonly question: OpenQuestionModel;
+}
+
+export interface ChatAnsweredQuestionItem {
+  readonly kind:     'answered-question';
+  readonly key:      string;
+  readonly answered: AnsweredQuestionModel;
+}
+
+export type DocumentChatItem =
+  | ChatMessageItem
+  | ChatBoardNoteItem
+  | ChatAgentTurnItem
+  | ChatProposalItem
+  | ChatProposalNoteItem
+  | ChatEffectCardItem
+  | ChatOpenQuestionItem
+  | ChatAnsweredQuestionItem;
 
 export interface QueuedMessageItem {
   readonly messageId:   string;
@@ -116,8 +139,11 @@ function anchorLineOf(message: BoardDocumentMessageDocument): string | null {
   return message.anchor === null || message.commentNumber === null ? null : CommentPopoverModel.anchorLineOf(message.commentNumber, message.anchor, message.placement);
 }
 
-function messageItemOf(message: BoardDocumentMessageDocument, answering: boolean, hasOpenEdit: boolean): ChatMessageItem | ChatBoardNoteItem {
+type MessageChatItem = ChatMessageItem | ChatBoardNoteItem | ChatAnsweredQuestionItem;
+
+function messageItemOf(message: BoardDocumentMessageDocument, answering: boolean, hasOpenEdit: boolean, answered: AnsweredQuestionModel | undefined): MessageChatItem {
   if (message.from === 'board') return { kind: 'board-note', key: message.messageId, text: message.text };
+  if (answered !== undefined) return { kind: 'answered-question', key: message.messageId, answered };
   return {
     kind:        'message',
     key:         message.messageId,
@@ -179,10 +205,13 @@ function effectCardOf(reading: BoardEffectReadingDocument | null): ChatEffectCar
   }];
 }
 
+const NO_QUESTIONS: DocumentQuestions = { open: [], answered: [] };
+
 function documentChatOf(
   document: BoardTicketDocumentDocument,
   entries: readonly BoardTranscriptEntryDocument[],
   effectReading: BoardEffectReadingDocument | null,
+  questions: DocumentQuestions = NO_QUESTIONS,
 ): DocumentChat {
   const turns = turnsOf(entries);
   const turnItems = turns.map((turnEntries, turnNumber) => agentTurnItemsOf(turnEntries, turnNumber));
@@ -200,9 +229,14 @@ function documentChatOf(
   const messagesWithOpenEdits = new Set(document.proposals.flatMap((proposal) => (
     proposal.state === 'proposed' && proposal.answersMessageId !== null ? [proposal.answersMessageId] : []
   )));
-  const itemOf = (message: BoardDocumentMessageDocument): ChatMessageItem | ChatBoardNoteItem => (
-    messageItemOf(message, message === answeringMessage, messagesWithOpenEdits.has(message.messageId))
+  const answeredByMessage = new Map(questions.answered.map((answered) => [answered.messageId, answered]));
+  const itemOf = (message: BoardDocumentMessageDocument): MessageChatItem => (
+    messageItemOf(message, message === answeringMessage, messagesWithOpenEdits.has(message.messageId), answeredByMessage.get(message.messageId))
   );
+  // An answer waiting for the agent's turn to end is not a message User may take back: it stands as its card, not in the queue.
+  const answeredItemOf = (answered: AnsweredQuestionModel): ChatAnsweredQuestionItem => ({ kind: 'answered-question', key: answered.messageId, answered });
+  const queuedAnswers = questions.answered.filter((answered) => answered.waitsForAgent).map(answeredItemOf);
+  const openQuestionItems = questions.open.map((question): ChatOpenQuestionItem => ({ kind: 'open-question', key: question.decisionId, question }));
 
   // The effect reading answers User's newest ask, so its card stands under that ask, before the agent's reply.
   const turnOfNewestAsk = shown.reduce<number | null>((newest, message) => {
@@ -223,8 +257,10 @@ function documentChatOf(
       ...shown.filter((message) => takenIn(message) === null).map(itemOf),
       ...document.proposals.filter((proposal) => turnOfProposal(proposal) === null).flatMap((proposal) => proposalItemOf(document, proposal)),
       ...turnOfNewestAsk === null ? effectCard : [],
+      ...queuedAnswers,
+      ...openQuestionItems,
     ],
-    queued:             document.messages.filter((message) => message.state === 'queued').map(queuedItemOf),
+    queued:             document.messages.filter((message) => message.state === 'queued' && message.decisionId === null).map(queuedItemOf),
     working,
     answeringComment:   answeringMessage?.commentNumber ?? null,
     answeringOnVersion: answeringMessage?.anchor?.versionNumber ?? null,

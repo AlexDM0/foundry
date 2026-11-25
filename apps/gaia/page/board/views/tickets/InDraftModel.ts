@@ -312,4 +312,9 @@ function inDraftModelOf(board: BoardDocument, moment: RowMoment, searchText: str
   };
 }
 
-export const InDraftModelUtil = Object.freeze({ inDraftModelOf, documentOfStage });
+/** The drafts that wait on User, oldest wait first, as the documents page's "Next waiting on you" walks them; the texts it never shows. */
+function waitingRowsOf(board: BoardDocument): readonly WaitingDraftRowModel[] {
+  return inDraftModelOf(board, { nowEpochMilliseconds: 0, slices: board.limits }, '').waiting;
+}
+
+export const InDraftModelUtil = Object.freeze({ inDraftModelOf, waitingRowsOf, documentOfStage });

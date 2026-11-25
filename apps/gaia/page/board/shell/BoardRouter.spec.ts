@@ -156,9 +156,16 @@ describe('a ticket\'s documents page', () => {
   });
 
   test('names the ticket and the document of its item, and nothing for an item of another form', () => {
-    expect(BoardRouter.documentOfRoute({ tab: 'documents', item: 'ticket/004/spec' })).toEqual({ ticketId: '004', document: 'spec' });
-    expect(['ticket/004/brief', 'ticket/004', 'draft/D1/spec', 'ticket/004/spec/extra'].map((item) => BoardRouter.documentOfRoute({ tab: 'documents', item })))
-      .toEqual([null, null, null, null]);
+    expect(BoardRouter.documentOfRoute({ tab: 'documents', item: 'ticket/004/spec' })).toEqual({ ticketId: '004', document: 'spec', line: null });
+    const items = ['ticket/004/brief', 'ticket/004', 'draft/D1/spec', 'ticket/004/spec/extra', 'ticket/004/spec/line/0', 'ticket/004/spec/line/x', 'ticket/004/spec/line/3/4'];
+    expect(items.map((item) => BoardRouter.documentOfRoute({ tab: 'documents', item }))).toEqual(items.map(() => null));
+  });
+
+  test('opens the document at a line of its head when its route names one', () => {
+    const route = BoardRouter.documentsRouteOf('004', 'spec', 16);
+    expect(route).toEqual({ tab: 'documents', item: 'ticket/004/spec/line/16' });
+    expect(BoardRouter.documentOfRoute(route)).toEqual({ ticketId: '004', document: 'spec', line: 16 });
+    expect(BoardRouter.fragmentOf('tracker-1', route)).toBe('#forge/tracker-1/documents/ticket/004/spec/line/16');
     expect(BoardRouter.documentOfRoute({ tab: 'kanban', item: 'ticket/004/spec' })).toBeNull();
   });
 });

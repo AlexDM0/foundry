@@ -3,19 +3,27 @@
  * which themselves stay out; a settled proposal's line follows the turn that answered its message; a working turn makes the agent work and
  * names the comment it answers and its running call; queued messages stand under the composer, never in the chat; a message the agent
  * has not taken yet follows the turns; the effect reading is a card with its places and unresolved count; and while the agent answers a
- * comment made before User's own version or typing, a notice says its edit lands on User's text.
+ * comment made before User's own version or typing, a notice says its edit lands on User's text. The agent's question User answered stands
+ * as its card where its answer's message would, an answer waiting for the agent's turn stands as its card after the turns and never in the
+ * queue, and the open questions stand last (artboard 11).
  */
 import { describe, expect, test } from 'bun:test';
 
+import { MarkdownBlocks }   from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import {
   DOCUMENT_STATES,
+  DOCUMENTS_TICKET_ID,
+  SAVED_CHOICE_QUESTION,
+  SPEC_ASKS_DOCUMENTS,
+  SPEC_TRANSCRIPT_ASKS,
   PLAN_EFFECT_READING,
   PLAN_TRANSCRIPT,
   SPEC_TRANSCRIPT_IDLE,
   SPEC_TRANSCRIPT_SPLIT,
   SPEC_TRANSCRIPT_WORKING
 } from '../../testing/TicketDocumentsFixture.ts';
-import { DocumentChatModel } from './DocumentChatModel.ts';
+import { DocumentChatModel }      from './DocumentChatModel.ts';
+import { DocumentQuestionsModel } from './DocumentQuestionsModel.ts';
 
 function shapeOf(items: readonly { readonly kind: string }[]): string[] {
   return items.map((item) => item.kind);
@@ -112,5 +120,27 @@ describe('the plan agent\'s chat (artboard 7)', () => {
       kind: 'effect-card', key: 'effect.2', placeCount: 6, unresolvedCount: 2
     });
     expect(shapeOf(chat.items)).toEqual(['agent-turn', 'message', 'effect-card', 'agent-turn']);
+  });
+});
+
+describe('the chat of a spec agent that asks User (artboard 11)', () => {
+  const [spec] = SPEC_ASKS_DOCUMENTS.documents;
+  if (spec === undefined) throw new Error('no spec');
+  const questionsOf = (messages = spec.messages) => DocumentQuestionsModel.documentQuestionsOf({
+    decisions: [SAVED_CHOICE_QUESTION], messages, ticketId: DOCUMENTS_TICKET_ID, document: 'spec', blocks: MarkdownBlocks.blocksOf(spec.markdown),
+  });
+
+  test('the answered question stands as its card before the turn its answer opened, and the open question last', () => {
+    const chat = DocumentChatModel.documentChatOf(spec, SPEC_TRANSCRIPT_ASKS, null, questionsOf());
+    expect(shapeOf(chat.items)).toEqual(['message', 'agent-turn', 'proposal-note', 'answered-question', 'agent-turn', 'open-question']);
+    expect(chat.items.at(-1)).toMatchObject({ kind: 'open-question', question: { decisionId: 'E7' } });
+  });
+
+  test('an answer waiting for the agent\'s turn stands as its card after the turns, and never in the queue under the composer', () => {
+    const messages = spec.messages.map((message) => (message.decisionId === null ? message : { ...message, state: 'queued' as const, agentTurn: null }));
+    const chat = DocumentChatModel.documentChatOf({ ...spec, messages }, SPEC_TRANSCRIPT_ASKS.slice(0, 3), null, questionsOf(messages));
+    expect(shapeOf(chat.items)).toEqual(['message', 'agent-turn', 'proposal-note', 'answered-question', 'open-question']);
+    expect(chat.items.find((item) => item.kind === 'answered-question')).toMatchObject({ answered: { decisionId: 'E8', waitsForAgent: true } });
+    expect(chat.queued).toEqual([]);
   });
 });

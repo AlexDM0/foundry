@@ -14,6 +14,13 @@ export function useBoardHrefOf(): (route: BoardRoute) => string {
   return (route) => BoardRouter.fragmentOf(trackerId, route);
 }
 
+/** The address of the mounted board alone, which opens the tab this viewer used last. */
+export function useBoardHomeHref(): string {
+  const trackerId = useContext(BoardTrackerContext);
+  if (trackerId === null) throw new Error('A board link was drawn outside a mounted board: no BoardTrackerContext names its tracker.');
+  return BoardRouter.boardFragmentOf(trackerId);
+}
+
 /** Moves Gaia's address to a fragment, as `BoardServices.goTo` does; whoever mounts the board provides it beside the tracker id. */
 export const BoardGoToContext = createContext<((fragment: string) => void) | null>(null);
 

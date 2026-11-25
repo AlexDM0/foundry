@@ -31,12 +31,14 @@ export type BoardMenuEntry = typeof BOARD_MENU_ENTRIES[number];
 
 const PROGRESS_PLACE = 'progress';
 
-/** A ticket's spec and plan, at `documents/ticket/<ticketId>/<spec|plan>`: never in the menu, never stored as the tab to open. */
+/** A ticket's spec and plan, at `documents/ticket/<ticketId>/<spec|plan>[/line/<n>]`: never in the menu, never stored as the tab to open. */
 const ROUTE_ONLY_TABS: ReadonlySet<BoardTab> = new Set<BoardTab>(['documents']);
 
 const DOCUMENTS_ITEM_FORM = 'ticket';
 
 const DOCUMENT_KINDS: readonly BoardTicketDocumentKind[] = ['spec', 'plan'];
+
+const DOCUMENT_LINE_FORM = 'line';
 
 /** The detail forms an old `kanban/<form>/<id>` link opened, which open on Tickets now. */
 const DETAIL_FORMS_MOVED_TO_TICKETS: ReadonlySet<string> = new Set(['ticket', 'draft']);
@@ -133,8 +135,13 @@ function placePathOf(tab: BoardTab): string {
   return isProgressView(tab) ? `${PROGRESS_PLACE}${ITEM_SEGMENT_SEPARATOR}${tab}` : tab;
 }
 
+/** The forge's board alone, `#forge/<trackerId>`, which opens the tab this viewer used last. */
+function boardFragmentOf(trackerId: string): string {
+  return `#forge/${encodeURIComponent(trackerId)}`;
+}
+
 function fragmentOf(trackerId: string, route: BoardRoute): string {
-  const trackerPath = `#forge/${encodeURIComponent(trackerId)}/${placePathOf(route.tab)}`;
+  const trackerPath = `${boardFragmentOf(trackerId)}/${placePathOf(route.tab)}`;
   if (route.item === null) return trackerPath;
   return `${trackerPath}/${route.item.split(ITEM_SEGMENT_SEPARATOR).map(encodeURIComponent).join(ITEM_SEGMENT_SEPARATOR)}`;
 }
@@ -184,18 +191,34 @@ function routeOfMenuEntry(entry: BoardMenuEntry, progressViewToOpen: ProgressVie
   return { tab: entry === 'progress' ? progressViewToOpen : entry, item: null };
 }
 
-/** The page of a ticket's document. */
-function documentsRouteOf(ticketId: string, document: BoardTicketDocumentKind): BoardRoute {
-  return { tab: 'documents', item: [DOCUMENTS_ITEM_FORM, ticketId, document].join(ITEM_SEGMENT_SEPARATOR) };
+/** The page of a ticket's document, opened at a line of its head when one is named: `documents/ticket/<id>/<spec|plan>[/line/<n>]`. */
+function documentsRouteOf(ticketId: string, document: BoardTicketDocumentKind, line: number | null = null): BoardRoute {
+  const lineSegments = line === null ? [] : [DOCUMENT_LINE_FORM, String(line)];
+  return { tab: 'documents', item: [DOCUMENTS_ITEM_FORM, ticketId, document, ...lineSegments].join(ITEM_SEGMENT_SEPARATOR) };
 }
 
-/** The ticket and document a documents route names, `null` for an item of another form. */
-function documentOfRoute(route: BoardRoute): { readonly ticketId: string; readonly document: BoardTicketDocumentKind } | null {
+export interface DocumentRouteTarget {
+  readonly ticketId: string;
+  readonly document: BoardTicketDocumentKind;
+  /** The line of the head the page opens at, `null` for its top. */
+  readonly line:     number | null;
+}
+
+function lineOfSegments(segments: readonly string[]): number | null | undefined {
+  if (segments.length === 0) return null;
+  const [form, lineText = '', ...rest] = segments;
+  const line = Number(lineText);
+  return form === DOCUMENT_LINE_FORM && rest.length === 0 && /^[1-9][0-9]*$/u.test(lineText) ? line : undefined;
+}
+
+/** The ticket, document and line a documents route names, `null` for an item of another form. */
+function documentOfRoute(route: BoardRoute): DocumentRouteTarget | null {
   if (route.tab !== 'documents' || route.item === null) return null;
   const [form, ticketId, document, ...rest] = route.item.split(ITEM_SEGMENT_SEPARATOR);
   const kind = DOCUMENT_KINDS.find((candidate) => candidate === document);
-  if (form !== DOCUMENTS_ITEM_FORM || ticketId === undefined || ticketId === '' || kind === undefined || rest.length > 0) return null;
-  return { ticketId, document: kind };
+  const line = lineOfSegments(rest);
+  if (form !== DOCUMENTS_ITEM_FORM || ticketId === undefined || ticketId === '' || kind === undefined || line === undefined) return null;
+  return { ticketId, document: kind, line };
 }
 
 /** The route that opens a served target: its question, its ticket or draft on Tickets, its job, or the Assistant for an incident. */
@@ -210,6 +233,7 @@ export const BoardRouter = Object.freeze({
   routeOfPlace,
   placeIsOld,
   fragmentOf,
+  boardFragmentOf,
   shownTabsOf,
   shownRouteOf,
   menuEntryOf,
