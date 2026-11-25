@@ -1,8 +1,8 @@
 /* The Gantt: the chart and its range control. */
-/* --------------------------------------------------------------- progress -- */
+/* ------------------------------------------------------------------ gantt -- */
 /* The panel takes every pixel the forge frame leaves under the tab bar, Gaia's frame holding the board shell to the window's height, so the
    rows scroll inside the chart card; a window shorter than the view's own rows scrolls the view instead. */
-.board-panel[data-tab="progress"] { --row-h: 36px; flex: 1; min-height: auto; display: flex; flex-direction: column; }
+.board-panel[data-tab="gantt"] { --row-h: 36px; flex: 1; min-height: auto; display: flex; flex-direction: column; }
 
 /* Registered, so the Wide titles toggle eases the name column instead of jumping. */
 @property --col-name { syntax: "<length>"; inherits: true; initial-value: 432px; }
