@@ -1,12 +1,11 @@
 /**
- * The segmented control, in a happy-dom document. What matters: the selected segment alone is pressed, and none while no segment is the
- * choice; a click hands its value on; a count shows in its own mark after the label; an accessible name names its button; each button is
- * handed to `optionRef`; the group is named by its label element; a size sets `data-size`; `mono` sets `data-mono`; `separated` sets
- * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; a disabled
- * segment cannot be clicked; a name of its own names the group where no label shows, and a group named both ways does not compile; a
- * trailing part sits last in the tray and sets `data-trailing`, its buttons no segments, and separated segments take none by type; a
- * segment of a set height keeps its label on one line, and a disabled one fades to the disabled ink every control shares; and a label is
- * text, never markup.
+ * The segmented control, in a happy-dom document. What matters: the selected segment alone is pressed, and none while no segment is the choice; a click
+ * hands its value on; a count shows in its own mark after the label, an accented one marked `data-accented`; an accessible name names its button; each
+ * button is handed to `optionRef`; the group is named by its label element; a size sets `data-size`; `mono` sets `data-mono`; `separated` sets
+ * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; a disabled segment cannot
+ * be clicked; a name of its own names the group where no label shows, and a group named both ways does not compile; a trailing part sits last in the tray
+ * and sets `data-trailing`, its buttons no segments, and separated segments take none by type; a segment of a set height keeps its label on one line, and
+ * a disabled one fades to the disabled ink every control shares; and a label is text, never markup.
  */
 import { readFileSync } from 'node:fs';
 
@@ -74,6 +73,21 @@ describe('the segmented control', () => {
     const group = renderedControl('day');
     expect([...group.querySelectorAll('button')].map((button) => button.querySelector('.design-system-segment-count')?.textContent ?? null)).toEqual(['2', '5', null]);
     expect(screen.getByRole('button', { name: 'Last hour, 2 items' }).textContent).toBe('1h 2');
+  });
+
+  test('an accented count is marked data-accented, and a plain count is not', () => {
+    render(
+      <SegmentedControl
+        accessibleName="Example items"
+        options={[{
+          value: 'hour', label: 'Waiting', count: 3, accentedCount: true
+        }, { value: 'day', label: 'Done', count: 41 }]}
+        selected="day"
+        onSelect={() => undefined}
+      />,
+    );
+    const counts = [...screen.getByRole('group', { name: 'Example items' }).querySelectorAll('.design-system-segment-count')];
+    expect(counts.map((count) => [count.textContent, count.hasAttribute('data-accented')])).toEqual([['3', true], ['41', false]]);
   });
 
   test('each button is handed to optionRef with its value', () => {

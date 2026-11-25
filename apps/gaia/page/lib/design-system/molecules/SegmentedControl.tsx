@@ -1,9 +1,9 @@
 /**
- * A choice of one among a few, drawn as joined segments: the chosen segment is pressed, each may show a count after its label, and a click
- * hands the segment's value on. The group is named by the label element `labelledBy` points at, or by `accessibleName` where no label shows.
- * A size sets its height; `fill` makes it as wide as its holder, its segments in equal columns; `mono` sets the labels in the mono face;
- * `separated` draws each segment as a button of its own, out of the tray; `trailing` sits as the tray's last segment, such as a menu of the
- * choices that do not fit. It keeps no margin: its holder spaces it.
+ * A choice of one among a few, drawn as joined segments: the chosen segment is pressed, each may show a count after its label, and a click hands the
+ * segment's value on; an accented count is drawn in the accent colours. The group is named by the label element `labelledBy` points at, or by
+ * `accessibleName` where no label shows. A size sets its height; `fill` makes it as wide as its holder, its segments in equal columns; `mono` sets the
+ * labels in the mono face; `separated` draws each segment as a button of its own, out of the tray; `trailing` sits as the tray's last segment, such as a
+ * menu of the choices that do not fit. It keeps no margin: its holder spaces it.
  */
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -13,6 +13,8 @@ export interface SegmentOption<Value extends string> {
   readonly value:           Value;
   readonly label:           string;
   readonly count?:          number;
+  /** Draws the count in the accent colours, in a pill of its own, for a count that calls for the viewer. */
+  readonly accentedCount?:  boolean;
   /** The segment's name where its label is short for it. */
   readonly accessibleName?: string;
   /** A segment that cannot be chosen now: it shows, and a click hands nothing on. */
@@ -84,7 +86,7 @@ export function SegmentedControl<Value extends string>({
             : (
               <>
                 {' '}
-                <span className="design-system-segment-count">{option.count}</span>
+                <span className="design-system-segment-count" data-accented={option.accentedCount === true ? '' : undefined}>{option.count}</span>
               </>
             )}
         </button>

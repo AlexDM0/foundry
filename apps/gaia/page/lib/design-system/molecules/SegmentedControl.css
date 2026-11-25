@@ -23,6 +23,13 @@
 /* Mono segments, for labels that are machine text such as times. */
 .design-system-segments[data-mono] > button { font-family: var(--font-mono); }
 .design-system-segment-count { margin-left: var(--space-3); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+/* On the pressed segment a plain count takes the segment's own ink, as the muted ink does not read on it. */
+.design-system-segments > button[aria-pressed="true"] .design-system-segment-count:not([data-accented]) { color: inherit; }
+/* An accented count: a pill in the accent tint, the same on a pressed segment. */
+.design-system-segment-count[data-accented] {
+  display: inline-block; padding: 0 var(--space-6); border-radius: var(--r-pill);
+  background: var(--badge-accent-tint); color: var(--badge-accent-ink); font-weight: 600;
+}
 
 /* Segments of a set height, and segments that take the whole width in equal columns, --segment-count of them. The height is handed on as
    --segment-height, so a trailing segment takes it too. A segment of a set height keeps its label on one line, so a narrow holder never

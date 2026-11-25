@@ -53,6 +53,17 @@ export const DisabledSegment: Story = {
     ],
   },
 };
+export const AccentedCount: Story = {
+  args: {
+    options: [
+      {
+        value: 'list', label: 'List', count: 3, accentedCount: true
+      },
+      { value: 'grid', label: 'Grid', count: 4 },
+      { value: 'chart', label: 'Chart', count: 41 },
+    ],
+  },
+};
 export const OwnName: Story = {
   render: (args) => (
     <SegmentedControl accessibleName="Example view" options={args.options} selected={args.selected} onSelect={args.onSelect} />
