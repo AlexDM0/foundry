@@ -347,9 +347,13 @@ function changeOfMark(mark: BoardPipelineNodeMark): FlowChange | null {
   return mark === 'changed' || mark === 'new' || mark === 'removed' ? mark : null;
 }
 
-/** A switch that changed says which way it turned; a changed gates step counts its changed gates; any other change says its word. */
+/**
+ * A switch that changed says which way it turned, and a new one says nothing, its switch being its mark; a changed gates step counts its
+ * changed gates; any other change says its word.
+ */
 function changeTextOf(node: BoardFlowNodeDocument, change: FlowChange | null): string | null {
   if (change === null) return null;
+  if (change === 'new' && switchApprovalOf(node) !== null) return null;
   if (change === 'changed' && switchApprovalOf(node) !== null) return node.switchState === 'on' ? 'Off → on' : 'On → off';
   const changedGateCount = node.gateChips.filter((chip) => changeOfMark(chip.mark) !== null).length;
   if (change === 'changed' && node.nodeKind === 'gates' && changedGateCount > 0) return countText(changedGateCount, 'change');

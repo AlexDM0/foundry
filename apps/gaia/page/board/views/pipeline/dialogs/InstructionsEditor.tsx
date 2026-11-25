@@ -106,8 +106,8 @@ export function InstructionsEditor({
           : null}
         {rows.map((row, i) => {
           const openAction = row.editHref === null
-            ? (row.text === null ? null : <TextButton label="Open" onPress={() => setOpenedRow(row)} />)
-            : <TextButton label="Edit" href={row.editHref} />;
+            ? (row.text === null ? null : <TextButton label="Open" underlined onPress={() => setOpenedRow(row)} />)
+            : <TextButton label="Edit" underlined href={row.editHref} />;
           return (
             <ListedFile
               key={row.key}
@@ -136,7 +136,7 @@ export function InstructionsEditor({
               <>
                 <span className="board-pipeline-dialog-brief-add">
                   <FlowGlyph glyph="plus" />
-                  <TextButton label="Add a file" onPress={() => setAddsFile(true)} />
+                  <TextButton label="Add a file" underlined onPress={() => setAddsFile(true)} />
                 </span>
                 <Text typeRole="tab" subtle>The file must exist on main.</Text>
               </>

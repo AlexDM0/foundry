@@ -2,9 +2,9 @@
  * A2Proposal, the design step: the Focus layout of the proposed flow, with the pipeline agent's panel in its right column, whose tabs are
  * the Conversation (the agent's chat with the design questions as decision cards, Flint's strip and the composer) and the change list.
  * The agent's newest change shows under its chat, framed under its label, with a link that opens the step's phase and selects it, and its
- * Undo. The footer's agent
- * tools open the list of the programs the design runs, kept as a draft edit. The footer says that nothing is stored before Apply, counts
- * the proposed steps and gates, and offers Discard proposal and Apply pipeline, which waits while a question is open and opens the apply
+ * Undo. The footer's agent tools open the list of the programs the design runs, kept as a draft edit. The footer's dashed Proposal pill
+ * says that nothing is stored before Apply; at the forge level of a monorepo, which draws no phase tabs to count them, it counts the
+ * proposed steps and gates; and it offers Discard proposal and Apply pipeline, which waits while a question is open and opens the apply
  * dialog, also on its own while an Apply is pending. Until the agent proposes a draft, a line over the phases says that it is designing.
  * In monorepo mode (MonoDesignEntity, MonoDesignForge) the page is one level's, which the route holds: the entity rail stands left and the
  * level's breadcrumb over the title. At an entity, its three phases, gates, dialogs, chat and changes are its own, and its settings can be
@@ -52,7 +52,6 @@ import { ForgeLevelPageModel }                                 from '../entities
 import { MonorepoLevelContext, type MonorepoLevelScope }       from '../entities/MonorepoLevelContext.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
 import { PipelineLevelRail }                                   from '../entities/PipelineLevelRail.tsx';
-import { FlowGlyph }                                           from '../flow/FlowGlyph.tsx';
 import { useFlowSelection, type FlowSelection }                from '../flow/FlowSelection.ts';
 import { BillingStepModel }                                    from './BillingStepModel.ts';
 import { DesignStepModel }                                     from './DesignStepModel.ts';
@@ -80,7 +79,10 @@ interface NewestAgentChangeProps {
   readonly level:     PipelineLevel | null;
 }
 
-/** The change the agent's last reply names, framed under its label, with its links: show the step on the flow, and undo the change. */
+/**
+ * The change the agent's last reply names, framed under its label, on one line: the link that shows it on the flow, named by its phase and
+ * what it changed, and its Undo. The reply above already says what the change does, so the card does not repeat it.
+ */
 function NewestAgentChange({
   facts, setup, selection, level
 }: NewestAgentChangeProps) {
@@ -94,14 +96,22 @@ function NewestAgentChange({
   return (
     <section className="board-pipeline-design-latest-change" aria-labelledby={labelId}>
       <span id={labelId} className="board-pipeline-design-latest-change-label">{NEWEST_AGENT_CHANGE_LABEL}</span>
-      <p className="board-pipeline-design-latest-change-text">{edit.summary}</p>
       <span className="board-pipeline-design-latest-change-links">
-        {target === null ? null : <TextButton label={DesignStepModel.showLinkTextOf(wordedField)} onPress={() => selection.showOnFlow(target)} />}
+        {target === null
+          ? null
+          : (
+            <TextButton
+              label={DesignStepModel.showLinkTextOf(wordedField, target.phase, setup.record.draft, facts.limits)}
+              underlined
+              onPress={() => selection.showOnFlow(target)}
+            />
+          )}
         <CommandButton
           label="Undo this change"
           accessibleName={`Undo the change to ${ChangeListModel.fieldWordsOf(wordedField).title}`}
           command={ChangeListModel.undoCommandOf(setup.record.setupId, edit.editId)}
           compact
+          ghost
         />
       </span>
     </section>
@@ -125,13 +135,6 @@ function LevelChanges({ setup, facts, level }: { readonly setup: BoardPipelineSe
 function levelChangeCountOf(facts: PipelineViewFacts, level: PipelineLevel): number {
   const changeList = facts.pipeline.flow?.changeList ?? [];
   return changeList.filter((change) => PipelineLevelModel.levelsAreEqual(PipelineLevelModel.levelOfField(change.field), level)).length;
-}
-
-function levelFooterSummaryOf(setup: BoardPipelineSetupDocument, level: PipelineLevel): string {
-  if (PipelineLevelModel.isForgeLevel(level)) return ForgeLevelPageModel.footerSummaryOf(setup.record.draft);
-  const entityFacts = setup.entities ?? {};
-  const summary = Object.hasOwn(entityFacts, level.key) ? entityFacts[level.key]?.summary : undefined;
-  return summary === undefined ? level.key : `${level.key}: ${DesignStepModel.footerSummaryOf(summary)}`;
 }
 
 function scopeOf(level: PipelineLevel, forgeLevelHref: string, setup: BoardPipelineSetupDocument): MonorepoLevelScope {
@@ -217,21 +220,19 @@ function DesignPage({
       label="Pipeline design actions"
       start={(
         <>
-          <Tag text="Proposal" tone="neutral" />
-          <Text bold>Nothing is stored until you apply.</Text>
+          <Tag text="Proposal" tone="state" stateTone="accent-outline" dashed />
+          <Text muted>Nothing is stored until you apply.</Text>
           <Tag text={`Agent tools: ${ToolListModel.summaryOf(record.tools)}`} tone="neutral" chip onPress={() => setToolsAreOpen(true)} />
-          <Text muted>{level === null ? DesignStepModel.footerSummaryOf(setup.summary) : levelFooterSummaryOf(setup, level)}</Text>
+          {level !== null && PipelineLevelModel.isForgeLevel(level) ? <Text muted>{ForgeLevelPageModel.footerSummaryOf(setup.record.draft)}</Text> : null}
         </>
       )}
       end={(
         <>
           <span className="board-pipeline-design-hint" data-tone={apply.hint.tone} role="status">
-            {apply.hint.tone === 'question-open'
-              ? <span className="board-pipeline-design-hint-dot" aria-hidden="true" />
-              : <FlowGlyph glyph="check" />}
+            {apply.hint.tone === 'question-open' ? <span className="board-pipeline-design-hint-dot" aria-hidden="true" /> : null}
             {apply.hint.text}
           </span>
-          <CommandButton label="Discard proposal" command={DesignStepModel.discardCommandOf(record.setupId)} />
+          <CommandButton label="Discard proposal" command={DesignStepModel.discardCommandOf(record.setupId)} ghost />
           <span className="board-pipeline-design-apply" title={apply.disabledReason ?? undefined}>
             <Button
               label="Apply pipeline"

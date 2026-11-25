@@ -15,6 +15,7 @@ import { CommentPopoverModel }                                     from './Comme
 import {
   DocumentBlocks,
   type CommentChip,
+  type CommentedQuote,
   type PlacedPart,
   type ReferenceMark
 } from './DocumentBlocks.tsx';
@@ -37,7 +38,7 @@ export interface DocumentPreviewProps {
   readonly onDraft:        (draft: CommentDraft | null) => void;
   /** The document can no longer change: its proposals offer nothing. */
   readonly settled:        boolean;
-  /** Drawn above the document, such as the plan's context line. */
+  /** Drawn under the document's title, or above the document when it opens with none, such as the plan's context line. */
   readonly lead?:          ReactNode;
   /** The comment text a screen shows half written in the popover. */
   readonly draftText?:     string;
@@ -127,10 +128,21 @@ export function DocumentPreview({
   const blocks = useMemo(() => MarkdownBlocks.blocksOf(markdown), [markdown]);
   const lineCount = useMemo(() => markdown.split('\n').length, [markdown]);
   const nextCommentNumber = CommentPopoverModel.nextCommentNumberOf(messages);
-  const openPlacements = messages.flatMap((message) => (OPEN_MESSAGE_STATES.has(message.state) && message.placement !== null ? [message.placement] : []));
+  const placedComments = messages.filter((message) => message.commentNumber !== null && message.placement !== null && message.state !== 'withdrawn');
+  const quoteOf = (message: BoardDocumentMessageDocument): string | null => (message.anchor?.diagram === null ? message.anchor.quote : null);
+  const commentedQuotes = placedComments.flatMap((message): CommentedQuote[] => {
+    const quote = quoteOf(message);
+    return quote === null || message.placement === null ? [] : [{ quote, quoteLines: message.placement, applied: message.state === 'applied' }];
+  });
+  const openPlacements = placedComments.flatMap((message) => (
+    OPEN_MESSAGE_STATES.has(message.state) && quoteOf(message) === null && message.placement !== null ? [message.placement] : []
+  ));
   const placedProposals = proposals.filter((proposal) => proposal.headLines !== null);
+  const [firstBlock] = blocks;
+  const titleLine = firstBlock?.kind === 'heading' && firstBlock.depth === 1 ? firstBlock.lines.from : null;
 
   const parts: PlacedPart[] = [
+    ...(lead === undefined || titleLine === null ? [] : [{ key: 'lead', line: titleLine, part: lead }]),
     ...placedProposals.map((proposal): PlacedPart => ({
       key:  proposal.proposalId,
       line: proposal.headLines?.to ?? 1,
@@ -166,12 +178,13 @@ export function DocumentPreview({
 
   return (
     <article className="board-document-article" aria-label={`The ${place.document}`} onMouseUp={commentOnSelection}>
-      {lead}
+      {titleLine === null ? lead : null}
       <DocumentBlocks
         blocks={blocks}
         chips={chipsOf(messages)}
         referenceMarks={referenceMarks}
         commentedLines={openPlacements}
+        commentedQuotes={commentedQuotes}
         replacedLines={placedProposals.flatMap((proposal) => (proposal.headLines === null ? [] : [proposal.headLines]))}
         parts={parts}
         markedRange={draft === null ? null : DocumentSelectionModel.markedRangeOf(draft.anchor)}

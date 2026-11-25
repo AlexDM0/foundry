@@ -37,6 +37,16 @@ export function sendKeyIsPressed(event: KeyboardEvent<HTMLTextAreaElement>): boo
   return (event.metaKey || event.ctrlKey) && event.key === 'Enter';
 }
 
+/** "§ 3 Behaviour › mermaid block **Theme flow**": the block's title in bold. */
+function SectionLine({ section, title }: { readonly section: string; readonly title: string | null }) {
+  const lead = title !== null && section.endsWith(title) ? section.slice(0, section.length - title.length) : null;
+  return (
+    <div className="board-document-popover-section">
+      {lead === null ? section : <>{lead}<b className="board-document-popover-section-title">{title}</b></>}
+    </div>
+  );
+}
+
 export function CommentPopover({
   place, draft, blocks, onClose, initialText = ''
 }: CommentPopoverProps) {
@@ -54,13 +64,13 @@ export function CommentPopover({
         <span className="board-document-micro">Comment</span>
         <span className="board-document-mono">{content.heading}</span>
       </div>
-      {content.section === null ? null : <div className="board-document-popover-section">{content.section}</div>}
+      {content.section === null ? null : <SectionLine section={content.section} title={content.sectionTitle} />}
       {content.quote === null ? null : <div className="board-document-popover-quote">{`“${content.quote}”`}</div>}
-      <label className="board-document-popover-label" htmlFor={fieldId}>Your comment</label>
+      <label className="board-visually-hidden" htmlFor={fieldId}>Your comment</label>
       <textarea
         id={fieldId}
         className="board-textarea board-document-popover-input"
-        rows={2}
+        rows={3}
         value={text}
         ref={field}
         onChange={(event) => setText(event.currentTarget.value)}
@@ -74,8 +84,10 @@ export function CommentPopover({
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
       <div className="board-document-popover-foot">
         <span className="board-document-note">{content.note}</span>
-        <Button label="Cancel" emphasis="ghost" dense onPress={onClose} />
-        <Button label="Send to agent ⌘↵" emphasis="primary" dense disabled={!sender.enabled} onPress={() => void sender.send()} />
+        <div className="board-document-popover-actions">
+          <Button label="Cancel" dense onPress={onClose} />
+          <Button label="Send to agent ⌘↵" emphasis="primary" dense disabled={!sender.enabled} onPress={() => void sender.send()} />
+        </div>
       </div>
     </div>
   );

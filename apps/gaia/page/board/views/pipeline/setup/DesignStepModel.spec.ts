@@ -1,10 +1,10 @@
 /**
- * The design step's model against the proposal fixtures. What matters: the footer counts the prepare steps and each phase's gates from
- * the facts' summary; Apply is disabled exactly while a question is open, with its reason and the amber hint, and enabled with "All
- * questions answered" at zero; the Changes tab's name says what its count counts; the panel head's dot and word come from the agent's
- * job and its ready mark; the newest change is the agent's newest edit that is not undone; each field shows on the flow in the
- * phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that lists it, an order as the gates,
- * and how a ticket is written as the Ticket phase's first step.
+ * The design step's model against the proposal fixtures. What matters: Apply is disabled exactly while a question is open, with its
+ * reason and the amber hint, and enabled with "All questions answered" at zero; the Changes tab's name says what its count counts; the
+ * panel head's dot and word come from the agent's job and its ready mark; the newest change is the agent's newest edit that is not undone;
+ * each field shows on the flow in the phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that
+ * lists it, an order as the gates, and how a ticket is written as the Ticket phase's first step; its link names that phase and what it
+ * changed, or the route a ticket is now written by.
  */
 import { describe, expect, test }                                                             from 'bun:test';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument, BoardSetupEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
@@ -25,14 +25,6 @@ function edit(changes: Partial<BoardSetupEditDocument> & Pick<BoardSetupEditDocu
     by: 'agent', field: 'gate:typecheck', summary: 'Example change.', undone: false, batch: null, ...changes,
   };
 }
-
-describe('the footer', () => {
-  test('counts the prepare steps and each phase\'s gates from the summary', () => {
-    expect(DesignStepModel.footerSummaryOf(proposal().setup.summary)).toBe('1 prepare step · 3 build gates · 3 review gates · 3 merge gates');
-    const summary = { ...proposal().setup.summary, prepareStepCount: 2, gateCountByPhase: { build: 1, review: 0, merge: 1 } };
-    expect(DesignStepModel.footerSummaryOf(summary)).toBe('2 prepare steps · 1 build gate · 0 review gates · 1 merge gate');
-  });
-});
 
 describe('Apply', () => {
   test('is disabled exactly while a question is open, with its reason and the hint', () => {
@@ -80,7 +72,7 @@ describe('show on the flow', () => {
     expect(DesignStepModel.flowTargetOf('approval:merge', flow)).toEqual({ phase: 'review', item: { kind: 'step', nodeId: 'human-code-review' } });
     expect(DesignStepModel.flowTargetOf('constitution', flow)).toBeNull();
     expect(DesignStepModel.flowTargetOf('gate:no-such-gate', flow)).toBeNull();
-    expect(DesignStepModel.showLinkTextOf('gate:typecheck')).toBe('Show typecheck on the flow');
+    expect(DesignStepModel.showLinkTextOf('gate:typecheck', 'build', null, { defaultTicketWritingRoute: 'one-ticket' })).toBe('Build · typecheck');
   });
 
   test('how a ticket is written shows as the Ticket phase\'s first step, and the document reviews and agents as their cards', () => {
@@ -95,6 +87,12 @@ describe('show on the flow', () => {
     expect(DesignStepModel.flowTargetOf('approval:spec', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'human-spec-review' } });
     expect(DesignStepModel.flowTargetOf('approval:plan', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'human-plan-review' } });
     expect(DesignStepModel.flowTargetOf('role:planAgent', flow)).toEqual({ phase: 'ticket', item: { kind: 'step', nodeId: 'plan-writing' } });
+    const oneTicketDefault = { defaultTicketWritingRoute: 'one-ticket' } as const;
+    expect([
+      DesignStepModel.showLinkTextOf('ticket-writing', 'ticket', { ticketWriting: 'spec-then-plan' }, oneTicketDefault),
+      DesignStepModel.showLinkTextOf('ticket-writing', 'ticket', null, oneTicketDefault),
+      DesignStepModel.showLinkTextOf('approval:plan', 'ticket', null, oneTicketDefault),
+    ]).toEqual(['Ticket · spec, then plan', 'Ticket · one ticket', 'Ticket · Human plan review']);
   });
 });
 

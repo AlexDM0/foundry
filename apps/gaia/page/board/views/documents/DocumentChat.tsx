@@ -1,21 +1,26 @@
 /**
  * The document agent's side of the page: its head (the agent, what it does, Ask first or Auto-apply, or Stop while a turn works), the chat
- * (comments as cards that jump to their anchor, the agent's turns, its proposed edits and the effect reading's card), which opens on its
- * newest item, then the dashed notice that the agent's edit lands on what User changed meanwhile, Flint's strip and the composer. A message
- * sent while the agent works waits in the queue under the composer, where `×` withdraws it, and the composer's button reads `Queue ⌘↵`;
- * Cmd/Ctrl+Enter sends. On a plan the composer offers the effect reading of the head.
+ * (comments as cards that jump to their anchor, the agent's turns as Markdown, its proposed edits with what Apply closes, the effect
+ * reading's card, and what the working agent reads), which opens on its newest item, then the dashed notice that the agent's edit lands
+ * on what User changed meanwhile, Flint's strip and the composer. A message sent while the agent works waits in the queue under the
+ * composer, where `×` withdraws it, and the composer's button reads `Queue ⌘↵`; Cmd/Ctrl+Enter sends. On a plan the composer offers the
+ * effect reading of the head.
  */
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
-import type { BoardProposalMode }                       from '../../../@types/board/BoardVocabulary.ts';
-import type { BoardLineRangeDocument }                  from '../../../@types/board/TicketDocumentsDocument.ts';
-import { Button, SegmentedControl, type SegmentOption } from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }                            from '../../shell/ControlCommandSender.ts';
-import { sendKeyIsPressed }                             from './CommentPopover.tsx';
-import { DocumentAgentStrip }                           from './DocumentAgentStrip.tsx';
-import type { DocumentAgentStripModel }                 from './DocumentAgentStripModel.ts';
+import { MarkdownBlocks }                                                                   from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
+import type { BoardProposalMode }                                                           from '../../../@types/board/BoardVocabulary.ts';
+import type { BoardLineRangeDocument }                                                      from '../../../@types/board/TicketDocumentsDocument.ts';
+import { Button, SegmentedControl, type SegmentOption }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
+import { useControlCommand }                                                                from '../../shell/ControlCommandSender.ts';
+import { sendKeyIsPressed }                                                                 from './CommentPopover.tsx';
+import type { AnchorLineParts }                                                             from './CommentPopoverModel.ts';
+import { DocumentAgentStrip }                                                               from './DocumentAgentStrip.tsx';
+import { DocumentAgentStripModelUtil, type DocumentAgentStripModel, type DocumentViewMode } from './DocumentAgentStripModel.ts';
+import { DocumentBlocks }                                                                   from './DocumentBlocks.tsx';
 import type {
   ChatMessageItem,
+  ChatProposalItem,
   DocumentChat as DocumentChatContent,
   DocumentChatItem,
   QueuedMessageItem
@@ -28,15 +33,53 @@ const MODE_OPTIONS: readonly SegmentOption<BoardProposalMode>[] = [
   { value: 'auto-apply', label: 'Auto-apply' },
 ];
 
-const PLACEHOLDERS = {
-  spec: 'Ask about the whole spec, or select text in it to comment on one part',
-  plan: 'Ask about the plan, or select text in it to comment on one part',
-} as const;
+const ASK_ABOUT = { spec: 'Ask about the whole spec', plan: 'Ask about the plan' } as const;
+
+/** Code takes a comment on lines, Preview and Split on text. */
+function placeholderOf(document: DocumentPlace['document'], view: DocumentViewMode): string {
+  return `${ASK_ABOUT[document]}, or select ${view === 'code' ? 'lines' : 'text in it'} to comment on one part`;
+}
+
+/**
+ * The chat opens on its newest item; where the top edge would then cut an item, the chat shows it whole when its bottom padding can give
+ * the room, else, where most of it is cut off, room under the newest item, at most a quarter of the chat, lets that edge fall between two
+ * items instead. Run on the chat element, at its end only, so a chat User scrolled stays put.
+ */
+// Its shares are defaults, not constants of the module, so a painted screen can run the function's own text.
+export function letChatTopFallBetweenItems(chat: HTMLElement | null, mostOfAnItem = 0.66, mostRoomOfTheChat = 0.25): void {
+  const items = chat?.querySelector<HTMLElement>('.board-document-chat-items');
+  if (chat === null || chat === undefined || items === null || items === undefined) return;
+  items.style.paddingBottom = '';
+  if (Math.abs(chat.scrollTop) > 1) return;
+  const topEdge = chat.getBoundingClientRect().top;
+  const cutItem = [...items.children].find((item) => {
+    const place = item.getBoundingClientRect();
+    return place.top < topEdge && place.bottom > topEdge;
+  });
+  if (cutItem === undefined) return;
+  const place = cutItem.getBoundingClientRect();
+  const shownHeight = place.bottom - topEdge;
+  const hiddenHeight = topEdge - place.top;
+  if (hiddenHeight <= (Number.parseFloat(getComputedStyle(chat).paddingBottom) || 0)) {
+    chat.scrollTop -= hiddenHeight;
+    return;
+  }
+  const room = shownHeight + (Number.parseFloat(getComputedStyle(items).rowGap) || 0);
+  if (shownHeight >= place.height * mostOfAnItem || room > chat.clientHeight * mostRoomOfTheChat) return;
+  // The browser's scroll anchoring would keep the cut item in place; the room is meant to move it, so anchoring sits out this one layout.
+  chat.style.overflowAnchor = 'none';
+  items.style.paddingBottom = `${room}px`;
+  chat.scrollTop = 0;
+  chat.style.overflowAnchor = '';
+}
 
 export interface DocumentChatProps {
   readonly place:           DocumentPlace;
   readonly chat:            DocumentChatContent;
   readonly strip:           DocumentAgentStripModel;
+  readonly view:            DocumentViewMode;
+  /** A comment is being written in the popover: the composer says where it lands. */
+  readonly draftIsOpen?:    boolean;
   readonly proposalMode:    BoardProposalMode;
   readonly headNumber:      number | null;
   /** The document can no longer change: the chat is shown, the composer and the edits offer nothing. */
@@ -67,17 +110,51 @@ function StopButton({ place }: { readonly place: DocumentPlace }) {
   return <Button label="Stop" dense disabled={!stop.enabled} onPress={() => void stop.send()} />;
 }
 
-function MessageCard({ item, onJumpToAnchor }: { readonly item: ChatMessageItem; readonly onJumpToAnchor: (lines: BoardLineRangeDocument) => void }) {
-  const { placement } = item;
-  const anchor = item.anchorLine === null
+/** "C2 · § 4 Acceptance › A3 · line 29 · Preview", the comment's name and its lines in the mono face; the view word where it is asked for. */
+function AnchorLabel({ parts, namesView }: { readonly parts: AnchorLineParts; readonly namesView: boolean }) {
+  return (
+    <span>
+      <span className="board-document-mono board-document-anchor-name">{parts.commentName}</span>
+      {parts.section === null ? null : ` · ${parts.section}`}
+      {' · '}
+      <span className="board-document-mono">{parts.linesText}</span>
+      {namesView ? ` · ${parts.viewWord}` : null}
+    </span>
+  );
+}
+
+/**
+ * While User writes a comment the chat quiets: a card names its view only where it differs from the view shown, and an edit waiting for
+ * review folds to one line, so its comment offers no `↦ show`.
+ */
+interface ChatQuieting {
+  readonly draftIsOpen: boolean;
+  readonly view:        DocumentViewMode;
+}
+
+function namesViewOf(parts: AnchorLineParts, { draftIsOpen, view }: ChatQuieting): boolean {
+  return !draftIsOpen || parts.viewWord.toLowerCase() !== view;
+}
+
+function MessageCard({ item, quieting, onJumpToAnchor }: {
+  readonly item:           ChatMessageItem;
+  readonly quieting:       ChatQuieting;
+  readonly onJumpToAnchor: (lines: BoardLineRangeDocument) => void;
+}) {
+  const { placement, anchorParts } = item;
+  const marked = item.answering || item.hasOpenEdit;
+  const anchor = anchorParts === null
     ? null
     : (
       <>
         <span>
-          <span className="board-document-mono">{item.anchorLine}</span>
-          {item.orphaned ? <span className="board-document-note">{' · its text was deleted'}</span> : null}
+          <AnchorLabel parts={anchorParts} namesView={namesViewOf(anchorParts, quieting)} />
+          {item.orphaned ? <span className="board-document-note">{' · orphaned'}</span> : null}
+          {placement !== null && item.hasOpenEdit && !quieting.draftIsOpen
+            ? <span className="board-document-anchor-show" aria-hidden="true">{' ↦ show'}</span>
+            : null}
         </span>
-        {item.quote === null ? null : <span className="board-document-quote">{`“${item.quote}”`}</span>}
+        {item.quote === null ? null : <span className="board-document-anchor-quote">{`“${item.quote}”`}</span>}
       </>
     );
   return (
@@ -85,13 +162,13 @@ function MessageCard({ item, onJumpToAnchor }: { readonly item: ChatMessageItem;
       {anchor === null
         ? null
         : placement === null
-          ? <div className="board-document-anchor" data-answering={item.answering ? '' : undefined}>{anchor}</div>
+          ? <div className="board-document-anchor" data-answering={marked ? '' : undefined}>{anchor}</div>
           : (
             <button
               type="button"
               className="board-document-anchor"
-              data-answering={item.answering ? '' : undefined}
-              aria-label={`Show ${item.anchorLine}`}
+              data-answering={marked ? '' : undefined}
+              aria-label={`Show ${item.anchorLine ?? ''}`}
               onClick={() => onJumpToAnchor(placement)}
             >
               {anchor}
@@ -102,22 +179,58 @@ function MessageCard({ item, onJumpToAnchor }: { readonly item: ChatMessageItem;
   );
 }
 
+/** An edit waiting for review, folded to one line while User writes a comment: `Show` unfolds it. */
+function ChatProposal({ item, props }: { readonly item: ChatProposalItem; readonly props: DocumentChatProps }) {
+  const [unfolded, setUnfolded] = useState(false);
+  if (props.draftIsOpen === true && !unfolded && !props.settled) {
+    return (
+      <div className="board-document-folded-proposal">
+        <span className="board-document-folded-proposal-title">{`Edit proposed for ${item.proposal.linesText}`}</span>
+        <button type="button" className="board-document-link-button" onClick={() => setUnfolded(true)}>Show</button>
+      </div>
+    );
+  }
+  return (
+    <div className="board-document-chat-proposal">
+      <ProposalDiffCard place={props.place} proposal={item.proposal} settled={props.settled} />
+      {props.settled || item.closesComment === null
+        ? null
+        : <p className="board-document-chat-note">{`Applying closes C${item.closesComment}; its mark turns to ✓ C${item.closesComment}.`}</p>}
+    </div>
+  );
+}
+
+/** "Edited lines 20, 37–39 · applied · v4", its line numbers in the mono face. */
+function ProposalNote({ text, editedNumbers }: { readonly text: string; readonly editedNumbers: string }) {
+  const at = text.indexOf(editedNumbers);
+  if (at < 0) return <p className="board-document-chat-note">{text}</p>;
+  return (
+    <p className="board-document-chat-note">
+      {text.slice(0, at)}
+      <span className="board-document-mono">{editedNumbers}</span>
+      {text.slice(at + editedNumbers.length)}
+    </p>
+  );
+}
+
 function ChatItem({ item, props }: { readonly item: DocumentChatItem; readonly props: DocumentChatProps }) {
   switch (item.kind) {
     case 'message':
-      return <MessageCard item={item} onJumpToAnchor={props.onJumpToAnchor} />;
+      return <MessageCard item={item} quieting={{ draftIsOpen: props.draftIsOpen ?? false, view: props.view }} onJumpToAnchor={props.onJumpToAnchor} />;
     case 'board-note':
-      return <p className="board-document-chat-note">{item.text}</p>;
+      return <p className="board-document-board-note">{item.text}</p>;
     case 'agent-turn':
-      return (
-        <div className="board-document-agent-turn" data-working={item.working ? '' : undefined}>
-          {item.prose.split(/\n{2,}/u).filter((paragraph) => paragraph.trim() !== '').map((paragraph, position) => <p key={position}>{paragraph}</p>)}
-        </div>
-      );
+      return item.prose.trim() === ''
+        ? null
+        : (
+          <div className="board-document-agent-turn" data-working={item.working ? '' : undefined}>
+            <DocumentBlocks blocks={MarkdownBlocks.blocksOf(item.prose)} />
+          </div>
+        );
     case 'proposal':
-      return <ProposalDiffCard place={props.place} proposal={item.proposal} settled={props.settled} />;
+      return <ChatProposal item={item} props={props} />;
     case 'proposal-note':
-      return <p className="board-document-chat-note">{item.text}</p>;
+      return <ProposalNote text={item.text} editedNumbers={item.editedNumbers} />;
     case 'effect-card': {
       const { onOpenEffect } = props;
       const facts = `${item.placeCount} ${item.placeCount === 1 ? 'place' : 'places'} · ${item.unresolvedCount} unresolved`;
@@ -136,11 +249,11 @@ function ChatItem({ item, props }: { readonly item: DocumentChatItem; readonly p
 
 function QueuedMessage({ place, item, answeringComment }: { readonly place: DocumentPlace; readonly item: QueuedMessageItem; readonly answeringComment: number | null }) {
   const withdraw = useControlCommand(TicketDocumentCommands.withdrawOf(place, item.messageId));
-  const name = item.anchorLine?.split(' · ')[0] ?? 'the message';
+  const name = item.anchorParts?.commentName ?? 'the message';
   return (
     <div className="board-document-queued">
       <div className="board-document-queued-head">
-        <span className="board-document-mono">{item.anchorLine ?? 'Message'}</span>
+        {item.anchorParts === null ? <span>Message</span> : <AnchorLabel parts={item.anchorParts} namesView={false} />}
         <button
           type="button"
           className="board-document-queued-withdraw"
@@ -151,16 +264,35 @@ function QueuedMessage({ place, item, answeringComment }: { readonly place: Docu
           ×
         </button>
       </div>
-      <span className="board-document-quote">{`“${item.text}”`}</span>
+      <span className="board-document-anchor-quote">{`“${item.text}”`}</span>
       <span className="board-document-note">{answeringComment === null ? 'Sends when the agent finishes its turn.' : `Sends when the agent finishes C${answeringComment}.`}</span>
       {withdraw.refusal === null ? null : <span className="board-refusal" role="status">{withdraw.refusal}</span>}
     </div>
   );
 }
 
+/** Where a comment lands while one is written; else the version the agent sees, said only while no edit of its waits for review. */
+function composerNoteOf(document: DocumentPlace['document'], headNumber: number | null, draftIsOpen: boolean, editWaits: boolean): string {
+  if (draftIsOpen) return 'A comment lands here as its own message';
+  return headNumber === null || editWaits ? '' : `Sees the whole ${document} at v${headNumber}`;
+}
+
+/** What the working agent reads now, with the whole path the strip shortens; nothing where the strip names the path whole. */
+function Activity({ chat }: { readonly chat: DocumentChatContent }) {
+  const call = !chat.working ? null : chat.runningCall;
+  const path = call === null ? null : DocumentAgentStripModelUtil.namedPathOf(call);
+  if (call === null || path === null || path === DocumentAgentStripModelUtil.namedFileOf(call)) return null;
+  return (
+    <p className="board-document-activity">
+      <span className="board-document-agent-dot" data-working="" aria-hidden="true" />
+      <span>Reading <span className="board-document-mono">{path}</span> …</span>
+    </p>
+  );
+}
+
 function Composer({ props }: { readonly props: DocumentChatProps }) {
   const {
-    place, chat, headNumber, settled, onOpenEffect
+    place, chat, headNumber, settled, onOpenEffect, view, draftIsOpen = false
   } = props;
   const [text, setText] = useState('');
   const trimmed = text.trim();
@@ -186,7 +318,7 @@ function Composer({ props }: { readonly props: DocumentChatProps }) {
         id={fieldId}
         className="board-textarea board-document-composer-input"
         rows={3}
-        placeholder={PLACEHOLDERS[place.document]}
+        placeholder={placeholderOf(place.document, view)}
         value={text}
         disabled={settled}
         onChange={(event) => setText(event.currentTarget.value)}
@@ -200,7 +332,7 @@ function Composer({ props }: { readonly props: DocumentChatProps }) {
       {effectRead.refusal === null ? null : <span className="board-refusal" role="status">{effectRead.refusal}</span>}
       <div className="board-document-composer-foot">
         {onOpenEffect === null
-          ? <span className="board-document-note">{headNumber === null ? '' : `Sees the whole ${place.document} at v${headNumber}`}</span>
+          ? <span className="board-document-note">{composerNoteOf(place.document, headNumber, draftIsOpen, chat.items.some((item) => item.kind === 'proposal'))}</span>
           : <Button label="Show effect in repo" dense disabled={!effectRead.enabled} onPress={() => void effectRead.send()} />}
         <Button label={queues ? 'Queue ⌘↵' : 'Send ⌘↵'} emphasis={queues ? 'quiet' : 'primary'} dense disabled={!sender.enabled} onPress={() => void sender.send()} />
       </div>
@@ -212,6 +344,12 @@ export function DocumentChat(props: DocumentChatProps) {
   const {
     place, chat, strip, proposalMode, settled, userEditNotice = null
   } = props;
+  const chatElement = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    letChatTopFallBetweenItems(chatElement.current);
+    // Items change height once the page's fonts load, so the chat's top edge is placed again then.
+    if ('fonts' in globalThis.document) void globalThis.document.fonts.ready.then(() => letChatTopFallBetweenItems(chatElement.current));
+  }, [chat.items.length, chat.working, userEditNotice]);
   return (
     <aside className="board-document-agent" aria-label={strip.agentName}>
       <div className="board-document-agent-head">
@@ -220,11 +358,14 @@ export function DocumentChat(props: DocumentChatProps) {
           <span className="board-document-agent-name">{strip.agentName}</span>
           <span className="board-document-note">{strip.headLine}</span>
         </div>
-        {settled ? null : chat.working ? <StopButton place={place} /> : <ModeSwitch place={place} mode={proposalMode} />}
+        {settled
+          ? null
+          : <div className="board-document-agent-head-control">{chat.working ? <StopButton place={place} /> : <ModeSwitch place={place} mode={proposalMode} />}</div>}
       </div>
-      <div className="board-document-chat" role="log" aria-label={`Chat with the ${strip.agentName.toLowerCase()}`}>
+      <div className="board-document-chat" ref={chatElement} role="log" aria-label={`Chat with the ${strip.agentName.toLowerCase()}`}>
         <div className="board-document-chat-items">
           {chat.items.map((item) => <ChatItem key={item.key} item={item} props={props} />)}
+          <Activity chat={chat} />
           {userEditNotice === null ? null : <p className="board-document-edit-notice">{userEditNotice}</p>}
         </div>
       </div>

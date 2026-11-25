@@ -27,16 +27,20 @@ import {
   DOCUMENTS_PROJECT,
   documentsTicketOf,
   lineOf,
+  PLAN_MARKDOWN,
   PLAN_OUT_OF_DATE_TRANSCRIPT,
   PLAN_TRANSCRIPT,
   SPEC_MARKDOWN,
   SPEC_MARKDOWN_V6,
+  SPEC_TRANSCRIPT_AFTER_C1,
   SPEC_TRANSCRIPT_IDLE,
   SPEC_TRANSCRIPT_SPLIT,
   SPEC_TRANSCRIPT_WORKING
 } from '../board/testing/TicketDocumentsFixture.ts';
 import type { CommentDraft }                                                                          from '../board/views/documents/CommentPopover.tsx';
+import { letChatTopFallBetweenItems }                                                                 from '../board/views/documents/DocumentChat.tsx';
 import { DocumentSelectionModel }                                                                     from '../board/views/documents/DocumentSelectionModel.ts';
+import { followCaretIn }                                                                              from '../board/views/documents/DocumentSplitView.tsx';
 import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
 import { FirstOpenPhaseContext }                                                                      from '../board/views/pipeline/flow/FlowSelection.ts';
 import type { PipelinePhase }                                                                         from '../board/views/pipeline/flow/PipelinePhaseModel.ts';
@@ -792,6 +796,9 @@ const SAVED_CHOICE_COMMENT: CommentDraft | null = THEME_FLOW === null ? null : {
   anchor:        DocumentSelectionModel.anchorOfNode(SPEC_BLOCKS, SPEC_LINE_COUNT, SPEC_HEAD_NUMBER, THEME_FLOW, { nodeId: 'Stored', label: 'Saved choice' }),
 };
 
+/** Artboard 8's step 2, which the plan agent's edit for spec v6 replaces, as the notice's See the proposed plan update jumps to it. */
+const PLAN_STEP_TWO_LINES = { from: lineOf(PLAN_MARKDOWN, '2. Resolver'), to: lineOf(PLAN_MARKDOWN, '2. Resolver') };
+
 export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
   {
     artboard:   1,
@@ -817,9 +824,9 @@ export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
     artboard:   3,
     title:      'Comment on lines in Code',
     designFile: 'Comment-code.dc.html',
-    documents:  DOCUMENT_STATES.specIdle,
+    documents:  DOCUMENT_STATES.specIdleAfterC1,
     shown:      'spec',
-    transcript: SPEC_TRANSCRIPT_IDLE,
+    transcript: SPEC_TRANSCRIPT_AFTER_C1,
     ticket:     documentsTicketOf(),
     atMount:    { view: 'code', draft: THEME_FLOW_COMMENT, draftText: 'Server-rendered pages paint before the resolver runs. Put the server path in the flow.' },
   },
@@ -871,7 +878,7 @@ export const TICKET_DOCUMENT_SCREENS: readonly TicketDocumentScreen[] = [
     shown:      'plan',
     transcript: PLAN_OUT_OF_DATE_TRANSCRIPT,
     ticket:     documentsTicketOf('committed', true),
-    atMount:    {},
+    atMount:    { jumpedTo: PLAN_STEP_TWO_LINES },
   },
 ];
 
@@ -911,15 +918,45 @@ export function ticketDocumentScreenMarkupOf(screen: TicketDocumentScreen): stri
 
 /** A whole page for a browser, at the artboards' 1440 by 900, in the screen's theme. */
 export function ticketDocumentScreenDocumentOf(screen: TicketDocumentScreen, theme: ScreenTheme): string {
-  const bodyMarkup = `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>${jumpScriptOf(screen)}`;
+  const bodyMarkup = `<div id="gaia-root">${ticketDocumentScreenMarkupOf(screen)}</div>${scrollScriptOf(screen)}`;
   return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
 }
 
-/** A painted page runs no effect, so a screen opened jumped to lines scrolls there by the page's own scroll, run once it is painted. */
-function jumpScriptOf(screen: TicketDocumentScreen): string {
-  const lines = screen.atMount.jumpedTo;
-  if (lines === undefined) return '';
-  return `<script>(${scrollToLines.toString()})(document.querySelector('.board-document-main'), ${JSON.stringify(lines)});</script>`;
+/**
+ * A painted page runs no effect, so the scroll an effect would leave is run once it is painted, by the page's own scroll: to the lines a
+ * screen opened jumped to, Split's preview to the caret's block, and the comment popover into view where User's selection opened it.
+ */
+/** The editor scrolls its text, mirror and gutter together on the textarea's scroll, which a painted page fires none of: scroll all three. */
+function caretLineInViewIn(editor: HTMLElement | null, caretLine: number): void {
+  const input = editor?.querySelector<HTMLElement>('.board-markdown-editor-input');
+  const line = editor?.querySelectorAll<HTMLElement>('.board-markdown-editor-gutter-line')[caretLine - 1];
+  if (editor === null || editor === undefined || input === null || input === undefined || line === undefined) return;
+  const overflow = line.getBoundingClientRect().bottom - input.getBoundingClientRect().bottom + line.offsetHeight / 2;
+  if (overflow <= 0) return;
+  for (const scrolled of editor.querySelectorAll<HTMLElement>('.board-markdown-editor-input, .board-markdown-editor-mirror, .board-markdown-editor-gutter')) {
+    scrolled.scrollTop += overflow;
+  }
+}
+
+function scrollScriptOf(screen: TicketDocumentScreen): string {
+  const chatScript = `<script>document.fonts.ready.then(() => (${letChatTopFallBetweenItems.toString()})(document.querySelector('.board-document-chat')));</script>`;
+  return chatScript + documentScrollScriptOf(screen);
+}
+
+function documentScrollScriptOf(screen: TicketDocumentScreen): string {
+  const {
+    jumpedTo, view, caretLine = null, draft = null
+  } = screen.atMount;
+  const scrollOf = (container: string, lines: { readonly from: number; readonly to: number }): string => (
+    `<script>(${scrollToLines.toString()})(document.querySelector('${container}'), ${JSON.stringify(lines)});</script>`
+  );
+  if (jumpedTo !== undefined) return scrollOf('.board-document-main', jumpedTo);
+  if (view === 'split' && caretLine !== null) {
+    return `<script>(${caretLineInViewIn.toString()})(document.querySelector('.board-markdown-editor'), ${caretLine});`
+      + `(${followCaretIn.toString()})(document.querySelector('.board-document-split-preview'));</script>`;
+  }
+  if (draft !== null) return '<script>document.querySelector(\'.board-document-popover\')?.scrollIntoView({ block: \'nearest\' });</script>';
+  return '';
 }
 
 /** The phase each artboard draws open: 9 the Ticket phase it changes, 10 the Review phase its dialog edits a step of. */
@@ -945,11 +982,17 @@ export function pipelineDocumentScreenMarkupOf(screen: PipelineDocumentScreen, t
 const OPEN_CHATS_AT_THEIR_END_SCRIPT = '<script>for (const body of document.querySelectorAll(\'.board-pipeline-panel-body\')) body.scrollTop = body.scrollHeight;</script>';
 
 /**
+ * The page opens a step's dialog on a double-click, after which the browser rings no control; a script's `showModal()` rings the first
+ * one, so the screen lets that focus go.
+ */
+const SHOW_DIALOGS_OPENED_BY_POINTER_SCRIPT = '<script>for (const dialog of document.querySelectorAll(\'dialog\')) dialog.showModal(); document.activeElement?.blur();</script>';
+
+/**
  * A whole page for a browser at the page's artboard size, in the screen's theme, with the agent's chat at its end and the artboard's dialog
  * shown as a modal.
  */
 export function pipelineDocumentScreenDocumentOf(screen: PipelineDocumentScreen, theme: ScreenTheme): string {
-  const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_SCRIPT}`;
+  const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_OPENED_BY_POINTER_SCRIPT}`;
   const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>\n${OPEN_CHATS_AT_THEIR_END_SCRIPT}${dialogScript}`;
   return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
 }

@@ -2,7 +2,9 @@
  * The document agent's side in a happy-dom document. What matters: while a turn works the head offers Stop, which ends the turn, and the
  * composer queues with `Queue ⌘↵`; a queued comment waits under the composer and `×` withdraws it; Cmd/Ctrl+Enter sends a message about
  * the whole document; an idle agent offers Ask first or Auto-apply; and an edit offers Apply, Discard and, inline, Edit first, which sends
- * User's own lines.
+ * User's own lines. The chat draws the agent's Markdown, a comment card sets only its name and lines in mono and, while an edit for it waits,
+ * is marked and offers `↦ show`, the edit's card says what Apply closes, the working agent's read names its whole path, a note of the
+ * board's stands dashed, and the composer asks for lines in Code and says where a comment being written lands.
  */
 import {
   act,
@@ -18,36 +20,54 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardTranscriptEntryDocument }                            from '../../../@types/board/ConversationDocument.ts';
-import type { GaiaTicketDocumentsDocument }                             from '../../../@types/board/TicketDocumentsDocument.ts';
-import { clickSettled, fakeControls, SENT_COMMAND_VERSION }             from '../../testing/FakeControls.ts';
-import { onBoard }                                                      from '../../testing/OnBoard.ts';
-import { DOCUMENT_STATES, SPEC_TRANSCRIPT_IDLE, SPEC_TRANSCRIPT_SPLIT } from '../../testing/TicketDocumentsFixture.ts';
-import { DocumentAgentStripModelUtil }                                  from './DocumentAgentStripModel.ts';
-import { DocumentChat }                                                 from './DocumentChat.tsx';
-import { DocumentChatModel }                                            from './DocumentChatModel.ts';
-import { InlineProposal }                                               from './ProposalCard.tsx';
-import { ProposalModel }                                                from './ProposalModel.ts';
+import type { BoardTranscriptEntryDocument }                from '../../../@types/board/ConversationDocument.ts';
+import type { GaiaTicketDocumentsDocument }                 from '../../../@types/board/TicketDocumentsDocument.ts';
+import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../testing/FakeControls.ts';
+import { onBoard }                                          from '../../testing/OnBoard.ts';
+import {
+  DOCUMENT_STATES,
+  PLAN_OUT_OF_DATE_TRANSCRIPT,
+  SPEC_TRANSCRIPT_IDLE,
+  SPEC_TRANSCRIPT_SPLIT,
+  SPEC_TRANSCRIPT_WORKING
+} from '../../testing/TicketDocumentsFixture.ts';
+import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
+import { DocumentChat }                                       from './DocumentChat.tsx';
+import { DocumentChatModel }                                  from './DocumentChatModel.ts';
+import { InlineProposal }                                     from './ProposalCard.tsx';
+import { ProposalModel }                                      from './ProposalModel.ts';
 
 afterEach(cleanup);
 
 const PLACE = { ticketId: '004', document: 'spec' } as const;
 
-function renderChat(documents: GaiaTicketDocumentsDocument, transcript: readonly BoardTranscriptEntryDocument[]) {
-  const [spec] = documents.documents;
-  if (spec === undefined) throw new Error('no spec');
-  const chat = DocumentChatModel.documentChatOf(spec, transcript, null);
+interface ChatSurroundings {
+  readonly view?:        DocumentViewMode;
+  readonly draftIsOpen?: boolean;
+  readonly shown?:       'spec' | 'plan';
+}
+
+function renderChat(
+  documents: GaiaTicketDocumentsDocument,
+  transcript: readonly BoardTranscriptEntryDocument[],
+  { view = 'preview', draftIsOpen = false, shown = 'spec' }: ChatSurroundings = {},
+) {
+  const document = documents.documents.find((candidate) => candidate.document === shown);
+  if (document === undefined) throw new Error(`no ${shown}`);
+  const chat = DocumentChatModel.documentChatOf(document, transcript, null);
   const strip = DocumentAgentStripModelUtil.stripOf({
-    document: spec, spec: null, chat, effectReading: null, view: 'preview'
+    document, spec: null, chat, effectReading: null, view
   });
   const controls = fakeControls();
   controls.render(onBoard(
     <DocumentChat
-      place={PLACE}
+      place={{ ticketId: '004', document: shown }}
       chat={chat}
       strip={strip}
+      view={view}
+      draftIsOpen={draftIsOpen}
       proposalMode="ask-first"
-      headNumber={spec.head?.number ?? null}
+      headNumber={document.head?.number ?? null}
       settled={false}
       onJumpToAnchor={() => undefined}
       onOpenEffect={null}
@@ -108,6 +128,74 @@ describe('while the agent idles with an edit proposed (artboard 4)', () => {
     await clickSettled(within(card).getByRole('button', { name: 'Apply' }));
     await clickSettled(within(card).getByRole('button', { name: 'Discard' }));
     expect<unknown[]>(controls.sent.map((command) => command.kind)).toEqual(['ticket-document-proposal-apply', 'ticket-document-proposal-discard']);
+  });
+});
+
+describe('what the chat draws', () => {
+  test('the agent\'s turns are Markdown: bold and code keep their emphasis', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
+    const log = screen.getByRole('log', { name: 'Chat with the spec agent' });
+    expect([...log.querySelectorAll('strong')].map((bold) => bold.textContent)).toContain('Saved choice');
+    expect([...log.querySelectorAll('code')].map((code) => code.textContent)).toEqual(['check:contrast', 'package.json']);
+  });
+
+  test('a comment card sets only its name and lines in mono, and one whose edit waits is marked and offers ↦ show', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
+    const waiting = screen.getByRole('button', { name: 'Show C2 · § 4 Acceptance › A3 · line 29 · Preview' });
+    const settled = screen.getByRole('button', { name: 'Show C1 · § 3 Behaviour · line 15 · Preview' });
+    expect([...waiting.querySelectorAll('.board-document-mono')].map((mono) => mono.textContent)).toEqual(['C2', 'line 29']);
+    expect([waiting.hasAttribute('data-answering'), waiting.textContent.includes('↦ show')]).toEqual([true, true]);
+    expect([settled.hasAttribute('data-answering'), settled.textContent.includes('↦ show')]).toEqual([false, false]);
+  });
+
+  test('an edit\'s card says what Apply closes', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
+    expect(screen.getByText('Applying closes C2; its mark turns to ✓ C2.')).toBeTruthy();
+  });
+
+  test('while the agent reads, the chat names the whole path it reads', () => {
+    renderChat(DOCUMENT_STATES.specSplit, SPEC_TRANSCRIPT_SPLIT);
+    expect(screen.getByText('apps/storefront/server/render.ts').closest('.board-document-activity')).toBeTruthy();
+    cleanup();
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
+    expect(document.querySelector('.board-document-activity')).toBeNull();
+  });
+
+  test('a note of the board\'s stands as a dashed note before the agent\'s turn', () => {
+    renderChat(DOCUMENT_STATES.planOutOfDate, PLAN_OUT_OF_DATE_TRANSCRIPT, { shown: 'plan' });
+    const note = screen.getByText('Spec went from v5 to v6 at 15:12. Plan v3 is marked out of date; your approval of it stays on record.');
+    expect(note.className).toBe('board-document-board-note');
+    expect(note.nextElementSibling?.className).toBe('board-document-agent-turn');
+  });
+
+  test('the composer asks for lines in Code and text elsewhere, says where a comment being written lands, and names the version only while no edit waits', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE, { view: 'code', draftIsOpen: true });
+    const composer = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the spec agent' });
+    expect(composer.placeholder).toBe('Ask about the whole spec, or select lines to comment on one part');
+    expect(screen.getByText('A comment lands here as its own message')).toBeTruthy();
+    cleanup();
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE);
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message the spec agent' }).placeholder)
+      .toBe('Ask about the whole spec, or select text in it to comment on one part');
+    expect(screen.queryByText('Sees the whole spec at v4')).toBeNull();
+    cleanup();
+    renderChat(DOCUMENT_STATES.specWorking, SPEC_TRANSCRIPT_WORKING);
+    expect(screen.getByText('Sees the whole spec at v4')).toBeTruthy();
+  });
+
+  test('while a comment is written, the waiting edit folds to one line that Show unfolds, and the cards drop the view shown', () => {
+    renderChat(DOCUMENT_STATES.specIdle, SPEC_TRANSCRIPT_IDLE, { draftIsOpen: true });
+    expect(screen.queryByText('Applying closes C2; its mark turns to ✓ C2.')).toBeNull();
+    const waiting = screen.getByRole('button', { name: 'Show C2 · § 4 Acceptance › A3 · line 29 · Preview' });
+    expect([waiting.textContent.includes('· Preview'), waiting.textContent.includes('↦ show')]).toEqual([false, false]);
+    expect(screen.getByText('Edit proposed for line 29')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(screen.getByText('Applying closes C2; its mark turns to ✓ C2.')).toBeTruthy();
+  });
+
+  test('the working agent\'s whole path shows only where the strip shortens it', () => {
+    renderChat(DOCUMENT_STATES.specWorking, SPEC_TRANSCRIPT_WORKING);
+    expect(document.querySelector('.board-document-activity')).toBeNull();
   });
 });
 

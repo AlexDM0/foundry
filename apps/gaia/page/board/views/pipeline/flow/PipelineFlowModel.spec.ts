@@ -221,6 +221,12 @@ describe('change markers', () => {
     expect(PipelineFlowModel.nodeViewOf({ ...nodeOf(flowOf('A2'), 'review'), mark: 'removed' }, WORDING).changeText).toBe('Removed');
     expect(PipelineFlowModel.nodeViewOf({ ...nodeOf(flowOf('A2'), 'review'), mark: 'new' }, WORDING).changeText).toBe('New');
   });
+
+  test('a new switch step says no word, its switch being its mark', () => {
+    const humanCodeReview = nodeOf(flowOf('flow-human-code-review-proposal'), 'human-code-review');
+    const view = PipelineFlowModel.nodeViewOf({ ...humanCodeReview, mark: 'new' }, WORDING);
+    expect([view.change, view.changeText]).toEqual(['new', null]);
+  });
 });
 
 describe('add cards', () => {

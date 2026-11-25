@@ -6,7 +6,7 @@
 .board-document-page { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; background: var(--bg); }
 
 .board-document-head {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 12px 24px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 24px;
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
 
@@ -29,9 +29,9 @@
 
 .board-document-tab-suffix { font-size: var(--fs-micro); }
 
-.board-document-build { font-size: var(--fs-small); color: var(--ink-muted); }
+.board-document-tab-suffix[data-warns] { color: var(--link); }
 
-.board-document-build[data-held] { color: var(--warn-ink); }
+.board-document-build { font-size: var(--fs-small); color: var(--ink-muted); }
 
 .board-document-draft-pill {
   display: inline-flex; align-items: center; height: 22px; padding: 0 9px; font-size: var(--fs-small); color: var(--link);
@@ -62,21 +62,35 @@
   font-size: var(--fs-micro); font-weight: 700; letter-spacing: var(--letter-spacing-micro); text-transform: uppercase; color: var(--ink-muted);
 }
 
-.board-document-link { color: var(--link); }
+.board-document-link { color: var(--link); text-decoration: underline; }
 
 .board-document-link-button { padding: 0; font: inherit; color: var(--link); text-decoration: underline; background: none; border: 0; cursor: pointer; }
 
-/* The document as a reader sees it. */
+/* The document as a reader sees it: a measure of 780px inside its padding, so the card spans the page as the artboards draw it. */
 .board-document-article {
-  max-width: 780px; margin: 0 auto; padding: 40px 56px; color: var(--ink); background: var(--surface);
+  box-sizing: content-box; max-width: 780px; margin: 0 auto; padding: 40px 56px; color: var(--ink); background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
-.board-document-context { margin: -8px 0 16px; font-size: var(--fs-small); color: var(--ink-muted); }
+/* A plan reads narrower, under its notice, beside a narrower agent; beside the effect pane too, the page ground narrows to a gutter. */
+.board-document-page[data-document="plan"] :is(.board-document-article, .board-document-notice) { box-sizing: border-box; max-width: 760px; }
+
+.board-document-page[data-document="plan"] .board-document-main { padding: 24px 32px; }
+
+.board-document-page[data-document="plan"] .board-document-article { padding: 32px 44px; }
+
+.board-document-page[data-effect-open] .board-document-main { padding: 24px; }
+
+.board-document-page[data-effect-open] .board-document-article { max-width: none; }
+
+/* The block of the line the caret stands on, in Split's preview. */
+.board-document-article[data-follows-caret] [data-caret]:not(:has([data-caret])) { background: var(--wash); border-radius: var(--r-1); }
+
+.board-document-context { margin: 0 0 10px; font-size: var(--fs-body); color: var(--ink-muted); }
 
 .board-document-heading { margin: 28px 0 8px; line-height: 1.3; }
 
-h1.board-document-heading { margin-top: 0; font-size: 26px; line-height: 1.2; }
+h1.board-document-heading { margin-top: 0; font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
 
 h2.board-document-heading { font-size: 17px; }
 
@@ -97,10 +111,18 @@ h2.board-document-heading { font-size: 17px; }
 }
 
 .board-document-code {
-  margin: 0 0 10px; padding: 12px 14px; overflow: auto; font: 12.5px/20px var(--font-mono); background: var(--wash); border-radius: var(--r-2);
+  margin: 0 0 10px; padding: 10px 12px; overflow: auto; font: 12px/1.55 var(--font-mono); background: var(--wash); border: 1px solid var(--line);
+  border-radius: var(--r-2);
 }
 
-.board-document-quote { margin: 0 0 6px; padding: 0; font-size: var(--fs-tab); color: var(--ink-muted); }
+.board-document-item-text > .board-document-code { margin: 6px 0 4px; }
+
+.board-document-quote { margin: 0 0 6px; padding: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--ink-muted); }
+
+.board-document-quote > .board-document-paragraph { margin: 0; font-size: inherit; line-height: inherit; }
+
+/* Code in a quote, such as the ticket's number in the line under the title, is set in the mono face without a chip. */
+.board-document-quote .board-document-inline-code { padding: 0; font-size: inherit; background: none; }
 
 blockquote.board-document-quote { border: 0; }
 
@@ -114,10 +136,24 @@ blockquote.board-document-quote { border: 0; }
   border-bottom: 2px dashed var(--accent-outline);
 }
 
-/* Only the replaced block's own text is struck: the edit's new lines drawn inside it are not. */
+/* The words an open comment quotes, tinted and underlined; an applied comment's keep a dotted line. */
+.board-document-commented-quote { padding: 1px 0; background: var(--link-tint); border-bottom: 2px dashed var(--accent-outline); }
+
+.board-document-commented-quote[data-applied] { padding: 0; background: none; border-bottom: 1px dashed var(--line-strong); }
+
+:is(.board-document-paragraph, .board-document-list-item)[data-replaced] .board-document-commented-quote { background: none; border-bottom: 0; }
+
+/* Only the replaced block's own text is struck: the edit's new lines drawn inside it are not, nor an item's bold label, which names it. */
 .board-document-list-item[data-replaced] > .board-document-item-text,
 .board-document-list-item[data-replaced] > .board-document-proposal-frame > .board-document-item-text,
 :is(.board-document-paragraph, .board-document-heading)[data-replaced] { text-decoration: line-through; color: var(--ink-muted); }
+
+.board-document-list-item[data-replaced] .board-document-item-text > strong:first-child { display: inline-block; color: var(--ink); }
+
+/* The edit's new item stands under the item it replaces, its label under that label: no checkbox of its own. */
+.board-document-proposal-inserted .board-document-checkbox { visibility: hidden; }
+
+.board-document-proposal-inserted ol.board-document-list { padding-left: 0; list-style: none; }
 
 /* The text an open comment points at, held marked while its popover is open. */
 .board-document-marked { padding: 1px 0; color: inherit; background: var(--comment-selection-tint); border-radius: 2px; }
@@ -131,11 +167,17 @@ blockquote.board-document-quote { border: 0; }
 .board-document-chip[data-applied] { color: var(--ink-muted); border-color: var(--line-strong); }
 
 .board-document-reference {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 3px;
-  vertical-align: 3px; font: 600 var(--fs-micro)/1 var(--font-mono); color: var(--link); background: var(--link-tint); border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; padding: 0 4px;
+  box-sizing: content-box; vertical-align: 2px; font: var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
 }
 
-.board-document-reference[data-unresolved] { color: var(--warn-ink); background: var(--warn-tint); }
+.board-document-reference[data-unresolved] { color: var(--warn-ink); border-color: var(--warn-edge); }
+
+.board-document-unresolved-item .board-document-reference { margin-left: 0; }
+
+/* Inline in the text, so the word joiner before it glues it to the last word: a line breaks before an inline-flex mark regardless. */
+:is(.board-document-paragraph, .board-document-item-text, .board-document-heading) > .board-document-reference { display: inline; padding: 1px 9px; }
 
 .board-document-unresolved-place,
 .board-document-inline-code[data-unresolved] { text-decoration: underline dashed var(--warn-edge); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
@@ -168,19 +210,24 @@ blockquote.board-document-quote { border: 0; }
   border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: var(--shadow-popover);
 }
 
-.board-document-popover-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-document-popover-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-micro); color: var(--ink-muted); }
+
+.board-document-popover-section-title { color: var(--ink); }
 
 .board-document-popover-section { font-size: var(--fs-small); color: var(--ink-muted); }
 
-.board-document-popover-quote { font-size: 12.5px; color: var(--ink); }
+.board-document-popover-quote { padding: 6px 8px; font-size: 12.5px; color: var(--ink); background: var(--wash); border-radius: var(--r-2); }
 
-.board-document-popover-label { font-size: var(--fs-small); color: var(--ink-muted); }
+/* The popover's field is the one input while it is open, so it carries the accent edge. */
+.board-document-popover .board-document-popover-input { min-height: 0; resize: none; border-color: var(--accent-edge); }
 
-.board-document-popover-input { min-height: 0; resize: vertical; }
+.board-document-popover .board-document-popover-input:focus { outline: 2px solid var(--link-tint); }
 
-.board-document-popover-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.board-document-popover-foot { display: flex; align-items: center; gap: 12px; }
 
-.board-document-popover-foot > .board-document-note { flex: 1 1 200px; }
+.board-document-popover-foot > .board-document-note { flex: 1 1 0; min-width: 0; font-size: var(--fs-micro); line-height: 1.35; }
+
+.board-document-popover-actions { display: flex; flex: none; gap: 8px; }
 
 /* An agent's edit, inline where it lands, in one frame with the lines it replaces, and as the chat's diff card. */
 .board-document-proposal {
@@ -209,15 +256,17 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-diff-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-2); overflow: hidden; }
 
-.board-document-diff-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.board-document-diff-head { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--wash); }
+
+.board-document-diff-head > .board-document-note { font-size: var(--fs-micro); }
 
 .board-document-diff-line {
   display: grid; grid-template-columns: 28px 14px 1fr; gap: 4px; padding: 2px 10px; font: 12px/18px var(--font-mono); color: var(--ink);
 }
 
-.board-document-diff-line[data-sign="removed"] { background: var(--change-removed-fill); }
+.board-document-diff-line[data-sign="removed"] > .board-document-diff-text { text-decoration: line-through; color: var(--ink-muted); }
 
-.board-document-diff-line[data-sign="added"] { background: var(--change-new-fill); }
+.board-document-diff-line[data-sign="added"] { background: var(--link-tint); }
 
 .board-document-diff-number,
 .board-document-diff-sign { color: var(--ink-muted); text-align: right; }
@@ -229,20 +278,22 @@ blockquote.board-document-quote { border: 0; }
 /* The notice over a plan the spec moved under. */
 .board-document-notice {
   display: flex; flex-direction: column; gap: 8px; max-width: 780px; margin: 0 auto 16px; padding: 14px 18px;
-  color: var(--ink); background: var(--warn-tint); border: 1px solid var(--line); border-radius: var(--r-3);
+  color: var(--ink); background: var(--warn-tint); border: 1px solid var(--accent-edge); border-radius: var(--r-2);
 }
 
 .board-document-notice-title { font-weight: 600; color: var(--warn-ink); }
 
 .board-document-notice-sentence { font-size: var(--fs-tab); }
 
-.board-document-notice-change { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--surface); border-radius: var(--r-2); }
+.board-document-notice-change {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; font-size: 12.5px; background: var(--surface); border-radius: var(--r-2);
+}
 
 .board-document-notice-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-tab); }
 
-.board-document-removed { text-decoration: line-through; color: var(--ink-muted); background: var(--change-removed-fill); }
+.board-document-removed { text-decoration: line-through; color: var(--ink-muted); }
 
-.board-document-inserted { color: var(--ink); background: var(--change-new-fill); }
+.board-document-inserted { padding: 1px 0; color: var(--ink); background: var(--link-tint); border-bottom: 2px solid var(--accent-edge); }
 
 /* Code and Split. */
 .board-document-code-view {
@@ -258,12 +309,20 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-split > .board-document-code-view { flex: 1 1 420px; }
 
+/* Each pane is at most as tall as Split, so it scrolls inside itself and the preview can follow the caret while the editor stays put. */
+.board-document-split > :is(.board-document-code-view, .board-document-split-preview) { max-height: 100%; }
+
 .board-document-split-preview {
   display: flex; flex: 1 1 420px; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-3);
 }
 
 .board-document-split-preview > .board-document-article { margin: 0; padding: 20px 28px; border: 0; }
+
+/* Room under the document, so following the caret brings a block near the end to the middle as well. */
+.board-document-split-preview > .board-document-article[data-follows-caret] { padding-bottom: 50vh; }
+
+.board-document-split-preview > .board-document-pane-head { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 
 /* What the plan names. */
 .board-document-effect {
@@ -289,6 +348,14 @@ blockquote.board-document-quote { border: 0; }
 }
 
 .board-document-tree-row[data-kind="folder"] { color: var(--ink-muted); }
+
+.board-document-tree-row[data-root]:not(:first-child) { margin-top: 6px; }
+
+.board-document-tree-row[data-change="adds"] .board-document-tree-name { font-weight: 600; }
+
+.board-document-tree-row[data-change="removes"] .board-document-tree-name { text-decoration: line-through; }
+
+.board-document-tree-count { color: var(--ink-muted); }
 
 .board-document-tree-sigil { font-weight: 700; color: var(--ink-muted); }
 
@@ -319,13 +386,22 @@ blockquote.board-document-quote { border: 0; }
   background: var(--surface); border-left: 1px solid var(--line);
 }
 
+/* Split and a plan give the document more room: the agent's side is narrower there. */
+.board-document-page:is([data-view="split"], [data-document="plan"]) .board-document-agent { flex-basis: 360px; max-width: 420px; }
+
+.board-document-page[data-effect-open] .board-document-agent { flex-basis: 320px; max-width: 380px; }
+
+/* The mode switch or Stop stands on the title's row, at its end, where the line under the name fits beside it on one line; else on a row of
+   its own under the title, still at the end. */
 .board-document-agent-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+
+.board-document-agent-head-control { flex: none; margin-left: auto; }
 
 .board-document-agent-dot { flex: none; width: 8px; height: 8px; background: var(--line-strong); border-radius: var(--r-pill); }
 
 .board-document-agent-dot[data-working] { background: var(--signal); }
 
-.board-document-agent-title { display: flex; flex: 1 1 160px; flex-direction: column; min-width: 0; }
+.board-document-agent-title { display: flex; flex: 1 0 auto; flex-direction: column; max-width: calc(100% - 18px); }
 
 .board-document-agent-name { font-size: 15px; font-weight: 600; }
 
@@ -334,10 +410,13 @@ blockquote.board-document-quote { border: 0; }
 
 .board-document-chat-items { display: flex; flex-direction: column; gap: 16px; }
 
-.board-document-edit-notice {
+.board-document-edit-notice,
+.board-document-board-note {
   margin: 0; padding: 10px 12px; font-size: var(--fs-small); color: var(--ink-muted); background: var(--wash);
   border: 1px dashed var(--line-strong); border-radius: var(--r-2);
 }
+
+.board-document-activity { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
 .board-document-message { display: flex; flex-direction: column; align-self: flex-end; gap: 6px; max-width: 92%; }
 
@@ -350,13 +429,34 @@ button.board-document-anchor { cursor: pointer; }
 
 button.board-document-anchor:hover { background: var(--wash); }
 
-.board-document-anchor[data-answering] { border-color: var(--accent-outline); }
+.board-document-anchor[data-answering] { border-color: var(--accent-edge); }
+
+.board-document-anchor[data-answering] .board-document-anchor-name,
+.board-document-queued .board-document-anchor-name,
+.board-document-anchor-show { color: var(--link); }
+
+.board-document-anchor-show { white-space: nowrap; }
+
+.board-document-anchor-quote { color: var(--ink); }
 
 .board-document-bubble { padding: 10px 12px; font-size: var(--fs-tab); white-space: pre-wrap; background: var(--wash); border-radius: var(--r-3); }
 
 .board-document-agent-turn { max-width: 94%; font-size: var(--fs-tab); }
 
-.board-document-agent-turn > p { margin: 0 0 8px; }
+.board-document-agent-turn :is(.board-document-paragraph, .board-document-list-item) { margin: 0 0 8px; font-size: var(--fs-tab); line-height: 1.5; }
+
+.board-document-agent-turn > :last-child { margin-bottom: 0; }
+
+.board-document-agent-turn .board-document-inline-code { padding: 0; font-size: 12px; background: none; }
+
+.board-document-chat-proposal { display: flex; flex-direction: column; gap: 8px; }
+
+.board-document-folded-proposal {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; font-size: var(--fs-small);
+  border: 1px solid var(--line); border-radius: var(--r-2);
+}
+
+.board-document-folded-proposal-title { font-weight: 600; color: var(--link); }
 
 .board-document-chat-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -377,12 +477,12 @@ button.board-document-anchor:hover { background: var(--wash); }
 
 .board-document-composer { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; border-top: 1px solid var(--line); }
 
-.board-document-composer-input { min-height: 0; resize: none; }
+.board-document-composer .board-document-composer-input { min-height: 0; padding: 8px 10px; font-size: var(--fs-body); resize: none; }
 
 .board-document-composer-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 
 .board-document-queued {
-  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: var(--fs-small); border: 1px dashed var(--line-strong);
+  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: var(--fs-small); border: 1px dashed var(--accent-edge);
   border-radius: var(--r-2);
 }
 
