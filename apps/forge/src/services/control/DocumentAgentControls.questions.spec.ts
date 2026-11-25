@@ -111,6 +111,12 @@ describe('a document agent\'s question', () => {
     expect(fixture.board.jobById('J9')?.state).toBe('running');
   });
 
+  test('carries the context the agent gives, trimmed, as the decision\'s context', () => {
+    const fixture = questionBoard();
+    const opened  = apply(fixture, { ...QUESTION, context: ' The repo stores no basket yet. ' } as ControlCommand) as DecisionOpened;
+    expect(opened.decision?.context).toBe('The repo stores no basket yet.');
+  });
+
   test.each([
     ['question', { question: ' ' }],
     ['options', { options: [{ label: 'Per viewer' }] }],
@@ -119,6 +125,7 @@ describe('a document agent\'s question', () => {
     ['options', { options: [{ label: 'Per viewer', recommended: true }, { label: 'Per forge', recommended: true }] }],
     ['options[1].label', { options: [{ label: 'Per viewer' }, { label: '' }] }],
     ['options[0]', { options: [{ label: 'Per viewer', touches: [] }, { label: 'Per forge' }] }],
+    ['context', { context: 4 }],
     ['lines', { lines: { from: 6, to: 5 } }],
     ['lines', { lines: { from: 6, to: 99 } }],
   ] as const)('a malformed %s is refused before the Board sees it', (field, overrides) => {

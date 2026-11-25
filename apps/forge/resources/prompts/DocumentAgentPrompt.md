@@ -24,9 +24,10 @@ facts that the {{document}} needs. Do not run a script. Do not change a file. {{
 - Ask User a question only when the {{document}} cannot be correct without the answer. Settle all other things
   yourself.
 - Ask with `{{program}} document ask`. Write the question as JSON after `--`:
-  `{"version": <n>, "lines": {"from": <n>, "to": <n>}, "question": "<text>", "options": [{"label": "<text>",
-  "touches": ["<path>"], "acceptanceEffect": "<text>", "recommended": true}]}`.
-- `version` is the version that you read. `lines` are the lines of that version that the answer changes.
+  `{"version": <n>, "lines": {"from": <n>, "to": <n>}, "question": "<text>", "context": "<text>", "options": [{"label":
+  "<text>", "touches": ["<path>"], "acceptanceEffect": "<text>", "recommended": true}]}`.
+- `version` is the version that you read. `lines` are the lines of that version that the answer changes. `context` says
+  in one or two short sentences what you found that makes you ask.
 - Give two, three or four options. For each option, give the repository paths that it changes (`touches`). Give what
   it does to the Acceptance items, by their labels, for example "A2 changes" (`acceptanceEffect`). Write each fact as
   one short sentence. Recommend one option only when you have a reason for it.

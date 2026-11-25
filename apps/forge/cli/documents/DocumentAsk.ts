@@ -1,7 +1,7 @@
 /**
- * `document ask`: the agent asks User a question as JSON, `{version, lines, question, options}`, after `--` or on standard input. The lines
- * are those of the version that the question changes, and each option is `{label, description?, touches?, tradeOff?, acceptanceEffect?,
- * recommended?}`; Hephaestus checks the fields.
+ * `document ask`: the agent asks User a question as JSON, `{version, lines, question, context?, options}`, after `--` or on standard input.
+ * The lines are those of the version that the question changes, the context why it asks, and each option is `{label, description?,
+ * touches?, tradeOff?, acceptanceEffect?, recommended?}`; Hephaestus checks the fields.
  */
 import type { LineRange }                        from '../../src/lib/tracker-model/@types/TicketDocument.ts';
 import type { DocumentQuestionOptionSubmission } from '../../src/shared/@types/ControlCommand.ts';
@@ -35,6 +35,7 @@ export async function askDocumentQuestion(commandArguments: ArgumentParser, cont
     version:  question['version'] as number,
     lines:    question['lines'] as LineRange,
     question: question['question'] as string,
+    ...(question['context'] === undefined ? {} : { context: question['context'] as string }),
     options:  question['options'] as DocumentQuestionOptionSubmission[],
   }, usage);
 }

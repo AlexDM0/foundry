@@ -173,7 +173,8 @@ options, each naming what it touches and its effect on the Acceptance, one optio
 decision that names its `document` (`spec` or `plan`), its `anchor` (the contract's `CommentAnchorDocument`, at the version the agent read)
 and its `placement` (those lines on the head now, `null` once gone); every option names its `letter`. A `decision-answer`'s letters may
 carry a `note`, and a one-question decision takes free text alone. The answer reaches the document's agent as its next message, which
-names the decision in `decisionId`, and the agent then proposes the edit. While such a question is open, the document's approval is
+names the decision in `decisionId`, and the agent then proposes the edit. The agent may give its question a `context`, what it found that
+makes it ask, which the decision carries as its `context`. While such a question is open, the document's approval is
 refused `document-has-open-questions`, with the forge's sentence. Each ticket being written carries `draft` on the board document: its
 `stage` (`spec`, `spec-review`, `plan`, `plan-review`, or `ticket-review` for a ticket in `ready-for-review` on either route), what of it
 `waitsOnUser` (`answer`, `proposal`, `approval`), its live `agent` (`jobId`, `role`, `tokens`, `since`) and `waitingSince`. Forge adds them

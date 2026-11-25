@@ -190,6 +190,7 @@ function ask(command: ControlCommandOf<'ticket-document-agent-ask'>, change: Boa
   requireVersion(change.board, agent.ticketId, agent.document, command.version);
   const versionText = change.board.ticketDocuments().versionTextOf(agent.ticketId, agent.document, command.version) ?? '';
   if (!isFilledText(command.question)) malformed(command.kind, 'question');
+  if (command.context !== undefined && typeof command.context !== 'string') malformed(command.kind, 'context');
   const options = questionOptionsOf(command.options);
   const lines   = questionLinesOf(command.lines, versionText);
   return change.board.openDecision({
@@ -201,7 +202,7 @@ function ask(command: ControlCommandOf<'ticket-document-agent-ask'>, change: Boa
     questions: [{
       question: command.question.trim(), header: agent.document, multiSelect: false, options
     }],
-    context:  '',
+    context:  command.context?.trim() ?? '',
     document: agent.document,
     anchor:   CommentAnchorUtil.anchorOfLines(versionText, command.version, lines),
   }, change.at);

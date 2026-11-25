@@ -333,6 +333,8 @@ export type ControlCommand =
     version:  number;
     lines:    LineRange;
     question: string;
+    /** Why the agent asks, the facts behind the question; absent with none. */
+    context?: string;
     options:  DocumentQuestionOptionSubmission[];
   }
   /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */
