@@ -9,11 +9,12 @@ import type {
   HandPose,
   PosePart,
 } from '../../SpritePose.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import { GestureMarkUtil }                 from '../GestureMarkUtil.ts';
-import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
-import type { BatonState }                 from './BatonProp.ts';
+import { LOWERED_HAPPY_GLINTS_ANCHOR_Y_UNITS } from '../../marks/happy-glints/constants/HappyGlintsValues.ts';
+import type { GestureInput }                   from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf }     from '../GestureDefinition.ts';
+import { GestureMarkUtil }                     from '../GestureMarkUtil.ts';
+import { GestureTimelineUtil }                 from '../GestureTimelineUtil.ts';
+import type { BatonState }                     from './BatonProp.ts';
 import {
   BATON_PASS_EXTENT,
   BATON_PASS_FLICKER,
@@ -69,12 +70,13 @@ function eyesAt(elapsedMilliseconds: number): Partial<EyesPose> {
   return {};
 }
 
-/** The glints of the Happy emote, from the catch until the happy step ends. */
+/** The glints of the Happy emote, held as low as it holds them, from the catch until the happy step ends. */
 function glintsAt(elapsedMilliseconds: number): EmoteMarkPoseOf<'happy-glints'> | null {
-  return GestureMarkUtil.springingMarkIn('happy-glints', elapsedMilliseconds, {
+  const glints = GestureMarkUtil.springingMarkIn('happy-glints', elapsedMilliseconds, {
     startMilliseconds: BATON_PASS_TIMELINE.CATCH_MILLISECONDS,
     endMilliseconds:   BATON_PASS_TIMELINE.HAPPY_ENDS_MILLISECONDS,
   });
+  return glints === null ? null : { ...glints, anchorY: LOWERED_HAPPY_GLINTS_ANCHOR_Y_UNITS };
 }
 
 /** The return: bright and glowing, both fading in a straight line, with one hop; the catch squashes the body for a moment. */

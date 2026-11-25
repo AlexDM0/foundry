@@ -3,8 +3,8 @@
  * seed walks the same way each run; it does not walk while it gestures; a Flint off its floor walks back onto it; a Flint that a
  * behaviour left above its floor comes down at the body rate, while its floor still follows the box at once when the page scrolls; and
  * under reduced motion it stands still and on its floor. In a box that keeps Flint inside, it rests its attendants' reach from each wall,
- * and a gesture laid over the rest waits while Flint steps, without walking, to where the gesture's extent fits, turning when that is
- * nearer, and then plays there; under reduced motion at once.
+ * and a gesture laid over the rest waits while Flint walks to where the gesture's extent fits, turning when that is nearer, and then
+ * plays there; under reduced motion at once.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -122,12 +122,12 @@ describe('in a box that keeps Flint inside', () => {
     expect(Math.max(...positions)).toBeLessThanOrEqual(SLOT_BOX.rightX - reachUnits);
   });
 
-  test('a gesture laid over the rest waits while Flint steps, without walking, to where the gesture fits, and plays there', () => {
+  test('a gesture laid over the rest waits while Flint walks to where the gesture fits, and plays there', () => {
     const run = runInSlot();
     run.change((state) => ({ ...state, motion: { ...state.motion, positionX: (SLOT_BOX.leftX + SLOT_BOX.rightX) / 2, facing: 1 } }));
     run.give('research');
     run.frame();
-    expect([run.state().gesture, run.state().pendingIntent?.intent, run.state().motion.walkDirection]).toEqual([null, 'research', 0]);
+    expect([run.state().gesture, run.state().pendingIntent?.intent, run.state().motion.walkDirection, run.state().motion.facing]).toEqual([null, 'research', -1, -1]);
     const { extent } = intendedGestureOf('research').form;
     const stepped = run.runFor(500);
     expect(stepped.motion).toMatchObject({ positionX: SLOT_BOX.rightX - extent.frontUnits, facing: 1 });

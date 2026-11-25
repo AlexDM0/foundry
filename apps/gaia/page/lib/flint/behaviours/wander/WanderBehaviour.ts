@@ -4,8 +4,8 @@
  * so a run is the same each time. A walk the host steers wins over the wander's own walk. It is the rest: every other behaviour ends in it,
  * and its intent only wakes Flint, while a gesture or an emote is laid over it. A Flint that a behaviour left above its floor comes down
  * at the body rate, while the floor itself follows its box at once. In a box that keeps Flint inside it rests far enough from the walls
- * for its attendants, and a gesture or an emote laid over it waits while Flint turns and steps, without walking, to where all it draws
- * fits, and then plays there.
+ * for its attendants, and a gesture or an emote laid over it waits while Flint walks to where all it draws fits, and then plays there,
+ * turned the way it fits.
  */
 import { WALK }                                 from '../../constants/Motion.ts';
 import type { BehaviourPart }                   from '../../mind/BehaviourPart.ts';
@@ -90,9 +90,12 @@ export function wanderAfterFrame(state: SpriteMindState, wander: WanderState, pe
   if (stance !== null) {
     const steppedX = perception.reducedMotion ? stance.standX : MovementUtil.stepToward(positionX, stance.standX, WALK.SPEED_UNITS_PER_SECOND, time.deltaMilliseconds);
     const resting = wanderStateOf(null, wander.restUntilMilliseconds, liftUnits);
-    const placed = { ...standing, motion: { ...standing.motion, positionX: steppedX, facing: stance.facing }, behaviour: resting };
+    if (steppedX === stance.standX) {
+      return withWalking({ ...standing, motion: { ...standing.motion, positionX: steppedX, facing: stance.facing }, behaviour: resting }, 0);
+    }
     // Until Flint stands there nothing it reaches with shows, since it would show over the box's edge.
-    return withWalking(steppedX === stance.standX ? placed : withPlayingDeferred(placed), 0);
+    const walking = withWalking(withPlayingDeferred(standing), MovementUtil.directionToward(positionX, stance.standX));
+    return { ...walking, motion: { ...walking.motion, positionX: steppedX }, behaviour: resting };
   }
   if (perception.reducedMotion) return withWalking({ ...standing, motion: { ...standing.motion, positionX: heldX }, behaviour: lowered }, 0);
   if (state.steeredWalk !== 0) {

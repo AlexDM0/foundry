@@ -80,6 +80,6 @@ export const RENEWAL = {
 export const MOLT_EXTENT: DrawnExtent = {
   backUnits:       41.5,
   frontUnits:      32.5,
-  aboveFloorUnits: 66.5,
+  aboveFloorUnits: 71,
   belowFloorUnits: -0.5,
 };
