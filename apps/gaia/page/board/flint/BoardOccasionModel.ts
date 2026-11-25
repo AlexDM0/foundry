@@ -40,6 +40,22 @@ export interface BoardReading {
 
 export const WATCHER_SPARK_ATTENDANT: SpriteAttendant = 'watcher-spark';
 
+/** The intent of each row of the table, which Flint performs wherever it is, a strip's small slot included. */
+export const BOARD_OCCASION_INTENTS = Object.freeze({
+  UNPLUGGED:        'unplugged',
+  BANK_FIRE:        'bank-fire',
+  BATON_PASS:       'baton-pass',
+  REGROUP:          'regroup',
+  OUT_OF_FUEL:      'out-of-fuel',
+  REFUEL:           'refuel',
+  HOLD:             'hold',
+  INTERCEPT:        'intercept',
+  INCIDENT_SETTLED: 'happy',
+  PIPELINE_APPLIED: 'happy',
+  REFUSE:           'refuse',
+  RECONNECTED:      'wave',
+} as const satisfies Readonly<Record<string, SpriteIntent>>);
+
 /** One spark for each agent in flight, up to the number the attendant shows. */
 const WATCHER_SPARK_MAXIMUM_COUNT = 4;
 
@@ -93,16 +109,16 @@ function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLiv
   const questionsHabitatAnswers = flintLivesIn === QUESTIONS_SPRITE_HABITAT.kind;
   const incidentSettled = QuestionsSpriteModel.incidentSettled(previous.questionHistory ?? [], next.questionHistory ?? []);
   const rows: readonly (readonly [boolean, SpriteIntent])[] = [
-    [previous.hephaestus.state !== DOWN_STATE && next.hephaestus.state === DOWN_STATE, 'bank-fire'],
+    [previous.hephaestus.state !== DOWN_STATE && next.hephaestus.state === DOWN_STATE, BOARD_OCCASION_INTENTS.BANK_FIRE],
     // A rise after a restarting board is the restart already shown; only a restart the page missed shows on the rise.
-    [!restartWasShown && (next.hephaestus.state === RESTARTING_STATE || generationIsNew), 'baton-pass'],
-    [generationIsNew && next.jobs.length > 0, 'regroup'],
-    [resetsAtOf(previous.usage) === null && resetsAtOf(next.usage) !== null, 'out-of-fuel'],
-    [resetsAtOf(previous.usage) !== null && resetsAtOf(next.usage) === null, 'refuel'],
-    [!previous.hephaestus.paused && next.hephaestus.paused, 'hold'],
-    [!questionsHabitatAnswers && next.incidents.some((incident) => !previousIncidentIds.has(incident.id)), 'intercept'],
-    [!questionsHabitatAnswers && incidentSettled, 'happy'],
-    [pipelineWasApplied(previous, next), 'happy'],
+    [!restartWasShown && (next.hephaestus.state === RESTARTING_STATE || generationIsNew), BOARD_OCCASION_INTENTS.BATON_PASS],
+    [generationIsNew && next.jobs.length > 0, BOARD_OCCASION_INTENTS.REGROUP],
+    [resetsAtOf(previous.usage) === null && resetsAtOf(next.usage) !== null, BOARD_OCCASION_INTENTS.OUT_OF_FUEL],
+    [resetsAtOf(previous.usage) !== null && resetsAtOf(next.usage) === null, BOARD_OCCASION_INTENTS.REFUEL],
+    [!previous.hephaestus.paused && next.hephaestus.paused, BOARD_OCCASION_INTENTS.HOLD],
+    [!questionsHabitatAnswers && next.incidents.some((incident) => !previousIncidentIds.has(incident.id)), BOARD_OCCASION_INTENTS.INTERCEPT],
+    [!questionsHabitatAnswers && incidentSettled, BOARD_OCCASION_INTENTS.INCIDENT_SETTLED],
+    [pipelineWasApplied(previous, next), BOARD_OCCASION_INTENTS.PIPELINE_APPLIED],
   ];
   return rows.flatMap(([matches, intent]) => (matches ? [intent] : []));
 }
@@ -112,11 +128,11 @@ function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLiv
  * home. Keep `previous` as `keptReadingOf` gives it, so a stream that keeps reopening is unplugged once.
  */
 function occasionsOf(previous: BoardReading, next: BoardReading, flintLivesIn: string | null): readonly SpriteIntent[] {
-  const unplugged: SpriteIntent[] = previous.connection !== DOWN_STATE && next.connection === DOWN_STATE ? ['unplugged'] : [];
+  const unplugged: SpriteIntent[] = previous.connection !== DOWN_STATE && next.connection === DOWN_STATE ? [BOARD_OCCASION_INTENTS.UNPLUGGED] : [];
   const boardOccasions = previous.board === null || next.board === null ? [] : boardOccasionsOf(previous.board, next.board, flintLivesIn);
-  const refused: SpriteIntent[] = next.refusedCommandCount > previous.refusedCommandCount ? ['refuse'] : [];
+  const refused: SpriteIntent[] = next.refusedCommandCount > previous.refusedCommandCount ? [BOARD_OCCASION_INTENTS.REFUSE] : [];
   // A one action, so it ends the unplugged loop; last, since a board that came back with news says more.
-  const reconnected: SpriteIntent[] = previous.connection === DOWN_STATE && next.connection === LIVE_STATE ? ['wave'] : [];
+  const reconnected: SpriteIntent[] = previous.connection === DOWN_STATE && next.connection === LIVE_STATE ? [BOARD_OCCASION_INTENTS.RECONNECTED] : [];
   return [...unplugged, ...boardOccasions, ...refused, ...reconnected];
 }
 

@@ -3,15 +3,20 @@
  * way to a grey tick, and Flint doubts it, with no happy eyes. The initials read from left to right on the screen whatever the facing, and
  * the pen stays right of their written end on the screen, as the pen of Make a ticket.
  */
-import type { Facing, Point }                            from '../../SpriteGeometry.ts';
-import type { HandPose, PosePart }                       from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }                         from '../../constants/BodyShape.ts';
-import type { GestureInput }                             from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }               from '../GestureDefinition.ts';
-import { GestureTimelineUtil }                           from '../GestureTimelineUtil.ts';
-import { PEN }                                           from '../constants/PenMotion.ts';
-import { WaiverInitialsUtil }                            from './WaiverInitialsUtil.ts';
-import { WAIVER_POSE, WAIVER_INITIALS, WAIVER_TIMELINE } from './constants/WaiverValues.ts';
+import type { Facing, Point }              from '../../SpriteGeometry.ts';
+import type { HandPose, PosePart }         from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
+import type { GestureInput }               from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
+import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
+import { PEN }                             from '../constants/PenMotion.ts';
+import { WaiverInitialsUtil }              from './WaiverInitialsUtil.ts';
+import {
+  WAIVER_EXTENT,
+  WAIVER_INITIALS,
+  WAIVER_POSE,
+  WAIVER_TIMELINE,
+} from './constants/WaiverValues.ts';
 
 /** The pen right of the written end on the screen: facing left, the initials are mirrored back about their middle. */
 function penAt(writtenEnd: Point, facing: Facing): HandPose {
@@ -66,7 +71,7 @@ function waiverPartOf(input: GestureInput): PosePart {
 
 export const WAIVER_GESTURE = gestureDefinition({
   name:                  'waiver',
-  intents:               { waiver: singleFormOf(null, WAIVER_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { waiver: singleFormOf(null, WAIVER_TIMELINE.STILL_MOMENT_MILLISECONDS, WAIVER_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

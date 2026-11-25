@@ -29,6 +29,9 @@ export type {
   SpriteSuggestion,
   VisitTargetPolicy
 } from './SpriteHabitat.ts';
+export { intentExtentOf } from './IntentMeaning.ts';
+export type { DrawnExtent } from './SpriteGeometry.ts';
+export { attendantExtentOf } from './attendants/AttendantRoster.ts';
 export { Flint } from './react/Flint.tsx';
 export type { FlintProperties } from './react/Flint.tsx';
 export { useFlintHabitat } from './react/UseFlintHabitat.ts';

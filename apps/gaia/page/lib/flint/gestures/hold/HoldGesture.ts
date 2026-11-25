@@ -2,14 +2,19 @@
  * Held: an entrance in which a ready ticket fades in, a clamp slides down over it and a hexagon
  * fastens it; then a steady pose in which Flint faces the user and holds up a square as a flat palm.
  */
-import type { HandPose, PosePart }                     from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }                       from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                                  from '../../constants/HandShape.ts';
-import type { GestureInput }                           from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }             from '../GestureDefinition.ts';
-import { GestureTimelineUtil }                         from '../GestureTimelineUtil.ts';
-import { NORMAL_WORKING_VARIANT }                      from '../constants/WorkingVariantValues.ts';
-import { HELD_TICKET_SHAPE, HOLD_POSE, HOLD_TIMELINE } from './constants/HoldValues.ts';
+import type { HandPose, PosePart }         from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
+import type { GestureInput }               from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
+import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
+import { NORMAL_WORKING_VARIANT }          from '../constants/WorkingVariantValues.ts';
+import {
+  HELD_TICKET_SHAPE,
+  HOLD_EXTENT,
+  HOLD_POSE,
+  HOLD_TIMELINE,
+} from './constants/HoldValues.ts';
 
 function fastenerAt(elapsedMilliseconds: number): HandPose {
   const fastening = GestureTimelineUtil.progressBetween(elapsedMilliseconds, HOLD_TIMELINE.FASTEN_STARTS_MILLISECONDS, HOLD_TIMELINE.PALM_STARTS_MILLISECONDS);
@@ -59,7 +64,7 @@ function holdPartOf(input: GestureInput): PosePart {
 
 export const HOLD_GESTURE = gestureDefinition({
   name:                  'hold',
-  intents:               { hold: singleFormOf(null, HOLD_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { hold: singleFormOf(null, HOLD_TIMELINE.STILL_MOMENT_MILLISECONDS, HOLD_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

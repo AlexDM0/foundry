@@ -21,6 +21,7 @@ import { GestureTimelineUtil }               from '../GestureTimelineUtil.ts';
 import type { SurveyPostState, SurveyState } from './SurveyBlueprintProp.ts';
 import { postBaseOf }                        from './SurveyBlueprintProp.ts';
 import {
+  SURVEY_EXTENT,
   SURVEY_EYES,
   SURVEY_HAND,
   SURVEY_POSTS,
@@ -144,7 +145,7 @@ function surveyPartOf(input: GestureInput): PosePart {
 
 export const SURVEY_GESTURE = gestureDefinition({
   name:                  'survey',
-  intents:               { survey: singleFormOf(null, SURVEY_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { survey: singleFormOf(null, SURVEY_TIMELINE.STILL_MOMENT_MILLISECONDS, SURVEY_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

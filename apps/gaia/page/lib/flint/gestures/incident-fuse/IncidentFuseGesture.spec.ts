@@ -22,7 +22,7 @@ const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => INCIDENT_FUS
 const fuseAt = (elapsedMilliseconds: number) => partAt(elapsedMilliseconds).props?.incidentFuse;
 
 test('incident fuse is one loop that reduced motion holds at 3000', () => {
-  expect(INCIDENT_FUSE_GESTURE.intents['incident-fuse']).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3000 });
+  expect(INCIDENT_FUSE_GESTURE.intents['incident-fuse']).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3000 });
 });
 
 describe('the burn', () => {

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Molt: a full context spills pages, Flint sheds a husk and comes out bright, in one
  * action; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
@@ -73,3 +75,11 @@ export const RENEWAL = {
   GLINTS_END_MILLISECONDS:   2200,
   HAPPY_EYES_MILLISECONDS:   1500,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const MOLT_EXTENT: DrawnExtent = {
+  backUnits:       41.5,
+  frontUnits:      32.5,
+  aboveFloorUnits: 71,
+  belowFloorUnits: -0.5,
+};

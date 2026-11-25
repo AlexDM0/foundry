@@ -11,6 +11,7 @@ import { GestureTimelineUtil }                      from '../GestureTimelineUtil
 import { TypingUtil }                               from '../TypingUtil.ts';
 import type { TypingHands }                         from '../TypingUtil.ts';
 import {
+  SANDBOX_EXTENT,
   SANDBOX_REACH,
   SANDBOX_SWEAT,
   SANDBOX_TIMELINE,
@@ -71,7 +72,7 @@ function sandboxPartOf(input: GestureInput): PosePart {
 
 export const SANDBOX_GESTURE = gestureDefinition({
   name:                  'sandbox',
-  intents:               { sandbox: singleFormOf(null, SANDBOX_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { sandbox: singleFormOf(null, SANDBOX_TIMELINE.STILL_MOMENT_MILLISECONDS, SANDBOX_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

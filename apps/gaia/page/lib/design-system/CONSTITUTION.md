@@ -77,8 +77,10 @@ design-system/
 - **The handoff's names are the design's own vocabulary, not host words:** `FlintSlot` with its sizes and grounds, the
   `decision` flag of `Card`, and the tokens such as `--lane-bg` and `--pass-tint`.
 - **A place that the host fills is an empty box with a ref prop.** `FlintSlot` draws no sprite and says nothing of what
-  the sprite does. It is the square box (its size, its ground and its accessible name), and it gives its element through
-  `slotRef`. The host puts its sprite there. Each size is at least 50px square, the smallest place the sprite fits.
+  the sprite does. It is the box (its size, its ground and its accessible name), and it gives its element through
+  `slotRef`. The host puts its sprite there. Each size is at least 50px on a side, the smallest place the sprite fits; the
+  square sizes hold the sprite with room around it, and the strip's `60x50` keeps 50px of height and adds 10px of width,
+  the room in front of the sprite that its gestures reach into.
 - **Graphs, charts, Gantt charts, flow graphs and editors are not design system.** They stay in the host and compose
   the library. The owner's criticism of an earlier app was that "lib components and design system are mixed in there".
 - **A building block of the host that draws data** (a dependency graph, a Gantt chart, a markdown editor) is a lib

@@ -3,21 +3,26 @@
  * only while it does nothing else, and under reduced motion it stands still. Its points come from the seeded sequence in the mind's state,
  * so a run is the same each time. A walk the host steers wins over the wander's own walk. It is the rest: every other behaviour ends in it,
  * and its intent only wakes Flint, while a gesture or an emote is laid over it. A Flint that a behaviour left above its floor comes down
- * at the body rate, while the floor itself follows its box at once.
+ * at the body rate, while the floor itself follows its box at once. In a box that keeps Flint inside it rests far enough from the walls
+ * for its attendants, and a gesture or an emote laid over it waits while Flint walks to where all it draws fits, and then plays there,
+ * turned the way it fits.
  */
-import { WALK }                       from '../../constants/Motion.ts';
-import type { BehaviourPart }         from '../../mind/BehaviourPart.ts';
-import { PLAIN_BEHAVIOUR_PART }       from '../../mind/BehaviourPart.ts';
-import type { SpriteMindState }       from '../../mind/MindState.ts';
-import { withWalking, withWokenUp }   from '../../mind/MindTransitions.ts';
-import type { FrameTime, Perception } from '../../mind/Perception.ts';
-import { MovementUtil }               from '../../mind/utils/MovementUtil.ts';
-import { PlaceUtil }                  from '../../mind/utils/PlaceUtil.ts';
-import { SeededSequenceUtil }         from '../../mind/utils/SeededSequenceUtil.ts';
-import { sleepIsActive }              from '../../sleep/SleepSequence.ts';
-import { WalkMotionUtil }             from '../../utils/WalkMotionUtil.ts';
-import { behaviourDefinition }        from '../BehaviourDefinition.ts';
-import { WANDER }                     from './constants/WanderValues.ts';
+import { WALK }                                             from '../../constants/Motion.ts';
+import type { BehaviourPart }                               from '../../mind/BehaviourPart.ts';
+import { PLAIN_BEHAVIOUR_PART }                             from '../../mind/BehaviourPart.ts';
+import type { ActiveEmote, ActiveGesture, SpriteMindState } from '../../mind/MindState.ts';
+import { withWalking, withWokenUp }                         from '../../mind/MindTransitions.ts';
+import type { FrameTime, Perception, PlaceBox }             from '../../mind/Perception.ts';
+import { MovementUtil }                                     from '../../mind/utils/MovementUtil.ts';
+import type { StandingRange }                               from '../../mind/utils/PlaceUtil.ts';
+import { PlaceUtil }                                        from '../../mind/utils/PlaceUtil.ts';
+import { SeededSequenceUtil }                               from '../../mind/utils/SeededSequenceUtil.ts';
+import type { Stance }                                      from '../../mind/utils/StanceUtil.ts';
+import { StanceUtil }                                       from '../../mind/utils/StanceUtil.ts';
+import { sleepIsActive }                                    from '../../sleep/SleepSequence.ts';
+import { WalkMotionUtil }                                   from '../../utils/WalkMotionUtil.ts';
+import { behaviourDefinition }                              from '../BehaviourDefinition.ts';
+import { WANDER }                                           from './constants/WanderValues.ts';
 
 const { nextSeedOf, fractionOf } = SeededSequenceUtil;
 
@@ -28,7 +33,17 @@ export interface WanderState {
   readonly restUntilMilliseconds: number;
   /** How far above its floor Flint still is; absent until the first frame of the wander measures it. */
   readonly liftUnits?:            number;
+  /** In a box that keeps Flint inside, what waits while Flint walks to where it fits; absent when nothing waits. */
+  readonly deferredPlay?:         DeferredPlay;
 }
+
+/** A gesture and an emote laid over the rest that wait, each as it was given, so an intent given meanwhile waits beside them. */
+interface DeferredPlay {
+  readonly gesture: ActiveGesture | null;
+  readonly emote:   ActiveEmote | null;
+}
+
+const NOTHING_DEFERRED: DeferredPlay = Object.freeze({ gesture: null, emote: null });
 
 function wanderStateOf(walkToX: number | null, restUntilMilliseconds: number, liftUnits: number): WanderState {
   return {
@@ -45,25 +60,71 @@ function restUntilAfter(elapsedMilliseconds: number, seed: number): number {
   return elapsedMilliseconds + WANDER.REST_SHORTEST_MILLISECONDS + (fractionOf(seed) * WANDER.REST_SPREAD_MILLISECONDS);
 }
 
+function keepsFlintInside(state: SpriteMindState, perception: Perception): boolean {
+  return PlaceUtil.habitatById(perception, state.livesIn)?.keepsFlintInside === true;
+}
+
+function restingRangeOf(state: SpriteMindState, perception: Perception, box: PlaceBox): StandingRange {
+  return keepsFlintInside(state, perception) ? StanceUtil.restingRangeOf(box, state) : PlaceUtil.standingRangeOf(box);
+}
+
+function clampedToRange(positionX: number, range: StandingRange): number {
+  return Math.min(range.highestX, Math.max(range.lowestX, positionX));
+}
+
+/** What plays or waits: a gesture or an emote given since it was deferred replaces the one that waits, as it would replace one that plays. */
+function playOf(state: SpriteMindState, deferred: DeferredPlay): DeferredPlay {
+  return { gesture: state.gesture ?? deferred.gesture, emote: state.emote ?? deferred.emote };
+}
+
+/** The play that waited starts again from its beginning, now that Flint stands where it fits. */
+function withPlayResumed(state: SpriteMindState, play: DeferredPlay, elapsedMilliseconds: number): SpriteMindState {
+  const gesture = state.gesture ?? (play.gesture === null ? null : { ...play.gesture, startedAtMilliseconds: elapsedMilliseconds, verdict: null });
+  const emote = state.emote ?? (play.emote === null ? null : { ...play.emote, startedAtMilliseconds: elapsedMilliseconds });
+  return { ...state, gesture, emote };
+}
+
+/** In a box that keeps Flint inside, where a gesture or an emote laid over the rest fits nearest to where Flint stands; null elsewhere. */
+function playingStanceOf(state: SpriteMindState, perception: Perception, box: PlaceBox): Stance | null {
+  const extent = StanceUtil.playingExtentOf(state);
+  if (extent === null || !keepsFlintInside(state, perception)) return null;
+  return StanceUtil.stanceOf(box, extent, state.motion, state.motion.positionX);
+}
+
 export function wanderAfterFrame(state: SpriteMindState, wander: WanderState, perception: Perception, time: FrameTime): SpriteMindState {
   const box = PlaceUtil.boxWhereFlintLives(state, perception);
   if (box === null) return withWalking(state, 0);
   const measuredLiftUnits = wander.liftUnits ?? MovementUtil.liftAbove(state.motion.floorY, box.floorY);
   const liftUnits = MovementUtil.loweredLiftOf(measuredLiftUnits, time.deltaMilliseconds, perception.reducedMotion);
-  const standing = { ...state, motion: { ...state.motion, floorY: box.floorY - liftUnits } };
+  const play = playOf(state, wander.deferredPlay ?? NOTHING_DEFERRED);
   const { positionX } = state.motion;
-  const heldX = PlaceUtil.clampedToFloor(positionX, box);
+  const range = restingRangeOf(state, perception, box);
+  const heldX = clampedToRange(positionX, range);
   const lowered = wanderStateOf(wander.walkToX, wander.restUntilMilliseconds, liftUnits);
+  const stance = state.steeredWalk === 0 ? playingStanceOf({ ...state, ...play }, perception, box) : null;
+  const floored = { ...state, motion: { ...state.motion, floorY: box.floorY - liftUnits } };
+  if (stance !== null) {
+    const steppedX = perception.reducedMotion ? stance.standX : MovementUtil.stepToward(positionX, stance.standX, WALK.SPEED_UNITS_PER_SECOND, time.deltaMilliseconds);
+    const resting = wanderStateOf(null, wander.restUntilMilliseconds, liftUnits);
+    const waiting: WanderState = { ...resting, deferredPlay: play };
+    if (steppedX === stance.standX) {
+      const playing = withPlayResumed(floored, play, time.elapsedMilliseconds);
+      return withWalking({ ...playing, motion: { ...playing.motion, positionX: steppedX, facing: stance.facing }, behaviour: resting }, 0);
+    }
+    // Until Flint stands there nothing it reaches with shows, since it would show over the box's edge.
+    const walking = withWalking({ ...floored, gesture: null, emote: null }, MovementUtil.directionToward(positionX, stance.standX));
+    return { ...walking, motion: { ...walking.motion, positionX: steppedX }, behaviour: waiting };
+  }
+  const standing = withPlayResumed(floored, play, time.elapsedMilliseconds);
   if (perception.reducedMotion) return withWalking({ ...standing, motion: { ...standing.motion, positionX: heldX }, behaviour: lowered }, 0);
   if (state.steeredWalk !== 0) {
-    const range = PlaceUtil.standingRangeOf(box);
     const walking = withWalking(standing, state.steeredWalk);
     const steppedX = WalkMotionUtil.positionAfterStep(positionX, state.steeredWalk, time.deltaMilliseconds, range.lowestX, range.highestX);
     const resting = wanderStateOf(null, time.elapsedMilliseconds + WANDER.REST_SHORTEST_MILLISECONDS, liftUnits);
     return { ...walking, motion: { ...walking.motion, positionX: steppedX }, behaviour: resting };
   }
   const isOffItsFloor = heldX !== positionX;
-  const isBusy = state.gesture !== null || state.emote !== null || sleepIsActive(state.sleep);
+  const isBusy = standing.gesture !== null || standing.emote !== null || sleepIsActive(state.sleep);
   if (isBusy && !isOffItsFloor) return withWalking({ ...standing, behaviour: wanderStateOf(null, wander.restUntilMilliseconds, liftUnits) }, 0);
 
   let seed = state.sequenceSeed;
@@ -72,14 +133,13 @@ export function wanderAfterFrame(state: SpriteMindState, wander: WanderState, pe
     walkToX = heldX;
   } else if (walkToX === null && time.elapsedMilliseconds >= restUntilMilliseconds) {
     seed = nextSeedOf(seed);
-    const range = PlaceUtil.standingRangeOf(box);
     const pickedX = range.lowestX + (fractionOf(seed) * (range.highestX - range.lowestX));
     if (Math.abs(pickedX - positionX) >= WANDER.SHORTEST_WALK_UNITS) walkToX = pickedX;
     else restUntilMilliseconds = restUntilAfter(time.elapsedMilliseconds, seed);
   }
   if (walkToX === null) return withWalking({ ...standing, sequenceSeed: seed, behaviour: wanderStateOf(walkToX, restUntilMilliseconds, liftUnits) }, 0);
 
-  const targetX = PlaceUtil.clampedToFloor(walkToX, box);
+  const targetX = clampedToRange(walkToX, range);
   const steppedX = MovementUtil.stepToward(positionX, targetX, WALK.SPEED_UNITS_PER_SECOND, time.deltaMilliseconds);
   const walking = withWalking(standing, MovementUtil.directionToward(positionX, targetX));
   if (steppedX !== targetX) {

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Interview: two rounds of asking, listening and writing, then an end; in milliseconds from the loop's start. */
 export const INTERVIEW_TIMELINE = {
   CYCLE_MILLISECONDS:             5600,
@@ -36,3 +38,11 @@ export const INTERVIEW_NOTEPAD = {
   TICK_START_X_UNITS: 40,
   TICK_START_Y_UNITS: -50,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const INTERVIEW_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      51,
+  aboveFloorUnits: 71.5,
+  belowFloorUnits: -3,
+};

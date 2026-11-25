@@ -114,7 +114,7 @@ test('facing left gives the same part: the renderer mirrors it, and the sockets 
 });
 
 test('two intents, loops; reduced motion holds three lit sockets, and the full ticket waiting with its drop', () => {
-  expect(SLOTS_GESTURE.intents).toEqual({
+  expect(SLOTS_GESTURE.intents).toMatchObject({
     'slots':      { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3400 },
     'slots-full': { variant: 'full', durationMilliseconds: null, stillMomentMilliseconds: 2800 },
   });

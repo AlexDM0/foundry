@@ -13,10 +13,11 @@ import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import type { AirlockChamberState }        from './AirlockChamberProp.ts';
 import {
+  AIRLOCK_EXTENT,
   AIRLOCK_EYES,
   AIRLOCK_HAND,
   AIRLOCK_SHAPE,
-  AIRLOCK_TIMELINE
+  AIRLOCK_TIMELINE,
 } from './constants/AirlockValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -82,7 +83,7 @@ function airlockPartOf(input: GestureInput): PosePart {
 
 export const AIRLOCK_GESTURE = gestureDefinition({
   name:                  'airlock',
-  intents:               { airlock: singleFormOf(null, AIRLOCK_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { airlock: singleFormOf(null, AIRLOCK_TIMELINE.STILL_MOMENT_MILLISECONDS, AIRLOCK_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

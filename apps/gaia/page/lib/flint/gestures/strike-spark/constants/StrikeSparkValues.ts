@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Strike a spark: one action, in milliseconds and sprite units, for Flint facing right. */
 export const STRIKE_SPARK_TIMELINE = {
   DURATION_MILLISECONDS:           1500,
@@ -64,3 +66,11 @@ export const STRUCK_WATCHER = {
   FLOAT_UNITS:                2,
   FLOAT_DIVISOR_MILLISECONDS: 300,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const STRIKE_SPARK_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      43,
+  aboveFloorUnits: 60,
+  belowFloorUnits: -3,
+};

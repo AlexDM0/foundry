@@ -71,7 +71,7 @@ describe('the loop of 3800 ms', () => {
 });
 
 test('reduced motion holds the made chain with sheet B at rest', () => {
-  expect(CHAIN_GESTURE.intents.chain).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2000 });
+  expect(CHAIN_GESTURE.intents.chain).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2000 });
   const part = partAt(2000);
   expect(part.props?.chainedSheets?.linkScales).toEqual([1, 1, 1]);
   expect(part.props?.chainedSheets?.sheetBOffsetX).toBeCloseTo(0);

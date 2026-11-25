@@ -96,7 +96,7 @@ describe('facing left, the measure along the top, the posts and the lamps go fro
 });
 
 test('one intent, a loop; reduced motion holds the three posts with their lamps passed', () => {
-  expect(SURVEY_GESTURE.intents).toEqual({ survey: { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 4200 } });
+  expect(SURVEY_GESTURE.intents).toMatchObject({ survey: { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 4200 } });
   const still = partAt(SURVEY_GESTURE.intents.survey.stillMomentMilliseconds);
   expect(still.props?.surveyBlueprint?.posts).toEqual([1, 1, 1].map(() => ({ growth: 1, lampOpacity: 1, lamp: 'passed' })));
   expect(still.eyes?.happiness).toBe(1);

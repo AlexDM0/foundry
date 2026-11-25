@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** The busy and angry variants of Type; the hands and normal typing are `flint/gestures/constants/TypingHands.ts`. */
 
 /** The eye shift takes the next value of the list every `EYE_SHIFT_STEP_MILLISECONDS`. */
@@ -26,3 +28,25 @@ export const KEYBOARD_JOLT = {
   START_FRACTION:     0.82,
   DROP_UNITS:         1.6,
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const TYPE_EXTENTS = {
+  TYPE: {
+    backUnits:       20,
+    frontUnits:      45,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -1,
+  },
+  TYPE_BUSY: {
+    backUnits:       20,
+    frontUnits:      45,
+    aboveFloorUnits: 59,
+    belowFloorUnits: -1,
+  },
+  TYPE_ANGRY: {
+    backUnits:       20,
+    frontUnits:      46,
+    aboveFloorUnits: 69.5,
+    belowFloorUnits: -0.5,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

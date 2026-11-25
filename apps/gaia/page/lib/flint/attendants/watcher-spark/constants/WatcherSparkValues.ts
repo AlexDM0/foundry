@@ -1,11 +1,15 @@
-/** The spark companion: one spark for each running Watcher, behind Flint; `sin(t / n)` names `n` a divisor. */
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
+/** The spark companion: one spark for each running Watcher, along Flint's back; `sin(t / n)` names `n` a divisor. */
 export const WATCHER_SPARK = {
-  MAXIMUM_COUNT:                4,
-  /** Spark n is at (FIRST_X - ZIGZAG_X × (n mod 2), FIRST_Y + STEP_Y × n). */
-  FIRST_X_UNITS:                -26,
-  ZIGZAG_X_UNITS:               9,
-  FIRST_Y_UNITS:                -44,
-  STEP_Y_UNITS:                 11,
+  MAXIMUM_COUNT: 4,
+  /** Spark n rests at place n: up along Flint's back, close enough that the sparks stay in a strip's slot. */
+  PLACES:        [
+    { X_UNITS: -7, Y_UNITS: -49 },
+    { X_UNITS: -13, Y_UNITS: -42 },
+    { X_UNITS: -18, Y_UNITS: -34.5 },
+    { X_UNITS: -22, Y_UNITS: -27 },
+  ],
   BOB_UNITS:                    2,
   BOB_DIVISOR_MILLISECONDS:     500,
   /** Each spark bobs this far behind the one before it, in radians of the bob. */
@@ -15,3 +19,11 @@ export const WATCHER_SPARK = {
   PULSE_FACTOR:                 0.08,
   PULSE_DIVISOR_MILLISECONDS:   300,
 } as const;
+
+/** All that the sparks draw at their most, with Flint's body, from its bottom tip for Flint facing right: the room they take. */
+export const WATCHER_SPARK_EXTENT: DrawnExtent = {
+  backUnits:       25.5,
+  frontUnits:      20,
+  aboveFloorUnits: 62.5,
+  belowFloorUnits: -3,
+};

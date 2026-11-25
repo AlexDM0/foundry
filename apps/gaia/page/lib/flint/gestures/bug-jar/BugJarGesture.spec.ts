@@ -124,7 +124,7 @@ test('facing left, the lens reads from the left of the screen: it stops at 0.6 a
 });
 
 test('one intent, a loop; reduced motion holds the caught bug on its way to the open jar', () => {
-  expect(BUG_JAR_GESTURE.intents).toEqual({ 'bug-jar': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2600 } });
+  expect(BUG_JAR_GESTURE.intents).toMatchObject({ 'bug-jar': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2600 } });
   const still = partAt(BUG_JAR_GESTURE.intents['bug-jar'].stillMomentMilliseconds);
   expect(still.nearHand?.placement).toEqual({ heldTo: 'bugJar' });
   expect(still.props?.bugJar).toMatchObject({ bugOpacity: 1, jarOpacity: 1, lidLift: 6 });

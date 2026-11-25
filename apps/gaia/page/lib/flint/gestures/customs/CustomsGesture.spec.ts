@@ -98,7 +98,7 @@ test('from 4700 the props fade out, and the verdict ends', () => {
 
 test('reduced motion holds 1200: the item lifted, the eyes on the list and the first tick', () => {
   const still = partAt(CUSTOMS_GESTURE.intents.customs.stillMomentMilliseconds);
-  expect(CUSTOMS_GESTURE.intents.customs).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1200 });
+  expect(CUSTOMS_GESTURE.intents.customs).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 1200 });
   expect(still.nearHand?.centreY).toBe(-30);
   expect(still.props?.customsCrate?.itemOpacity).toBe(1);
   expect(still.eyes?.lift).toBe(-3);

@@ -3,14 +3,19 @@
  * eyes follow the lamp that runs; when all have passed a tick shows and Flint is happy, then the rail fades out. No hands. A failed gate is
  * the gesture Gate failed.
  */
-import type { PosePart }                                     from '../../SpritePose.ts';
-import { BODY_SHAPE }                                        from '../../constants/BodyShape.ts';
-import type { LampState }                                    from '../../props/shapes/LampShapeUtil.ts';
-import { AnimationCurveUtil }                                from '../../utils/AnimationCurveUtil.ts';
-import type { GestureInput }                                 from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf }                   from '../GestureDefinition.ts';
-import { GestureTimelineUtil }                               from '../GestureTimelineUtil.ts';
-import { GATE_RAIL_SHAPE, GATE_RUN_POSE, GATE_RUN_TIMELINE } from './constants/GateRunValues.ts';
+import type { PosePart }                   from '../../SpritePose.ts';
+import { BODY_SHAPE }                      from '../../constants/BodyShape.ts';
+import type { LampState }                  from '../../props/shapes/LampShapeUtil.ts';
+import { AnimationCurveUtil }              from '../../utils/AnimationCurveUtil.ts';
+import type { GestureInput }               from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
+import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
+import {
+  GATE_RAIL_SHAPE,
+  GATE_RUN_EXTENT,
+  GATE_RUN_POSE,
+  GATE_RUN_TIMELINE,
+} from './constants/GateRunValues.ts';
 
 const LAST_LAMP_INDEX = GATE_RAIL_SHAPE.LAMP_X_UNITS.length - 1;
 
@@ -56,7 +61,7 @@ function gateRunPartOf(input: GestureInput): PosePart {
 
 export const GATE_RUN_GESTURE = gestureDefinition({
   name:                  'gate-run',
-  intents:               { 'gate-run': singleFormOf(null, GATE_RUN_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'gate-run': singleFormOf(null, GATE_RUN_TIMELINE.STILL_MOMENT_MILLISECONDS, GATE_RUN_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

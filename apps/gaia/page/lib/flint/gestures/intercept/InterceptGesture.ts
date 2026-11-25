@@ -14,6 +14,7 @@ import type { InterceptEnvelopeState }       from './InterceptEnvelopeProp.ts';
 import {
   INTERCEPT_BODY,
   INTERCEPT_ENVELOPE,
+  INTERCEPT_EXTENT,
   INTERCEPT_EYES,
   INTERCEPT_HANDS,
   INTERCEPT_LETTER_SHAPE,
@@ -144,7 +145,7 @@ function interceptPartOf(input: GestureInput): PosePart {
 
 export const INTERCEPT_GESTURE = gestureDefinition({
   name:                  'intercept',
-  intents:               { intercept: singleFormOf(null, INTERCEPT_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { intercept: singleFormOf(null, INTERCEPT_TIMELINE.STILL_MOMENT_MILLISECONDS, INTERCEPT_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

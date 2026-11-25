@@ -16,6 +16,7 @@ import {
   FLAME_SHAPE,
   INCIDENT_BODY,
   INCIDENT_EYES,
+  INCIDENT_FUSE_EXTENT,
   INCIDENT_FUSE_TIMELINE,
   INCIDENT_STAMP,
 } from './constants/IncidentFuseValues.ts';
@@ -102,7 +103,7 @@ function incidentFusePartOf(input: GestureInput): PosePart {
 
 export const INCIDENT_FUSE_GESTURE = gestureDefinition({
   name:                  'incident-fuse',
-  intents:               { 'incident-fuse': singleFormOf(null, INCIDENT_FUSE_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'incident-fuse': singleFormOf(null, INCIDENT_FUSE_TIMELINE.STILL_MOMENT_MILLISECONDS, INCIDENT_FUSE_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

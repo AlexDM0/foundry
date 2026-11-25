@@ -24,11 +24,10 @@ import type { BoardReading }                          from './BoardOccasionModel
 import { dwellingOf, FlintDwellingContext }           from './FlintDwelling.ts';
 import { flintHabitatStorageOf }                      from './FlintHabitatStorage.ts';
 import { FlintSlotShowingContext }                    from './FlintSlotShowing.ts';
+import { BOARD_FLINT_PIXELS_FOR_ONE_UNIT }            from './FlintStripSlot.ts';
 import { useBoardOccasions }                          from './UseBoardOccasions.ts';
 import { createVisitTargetTracker }                   from './VisitTargetTracker.ts';
 
-/** Flint is 40 by 50 units; at this size it takes 30 by 37.5 pixels. */
-const PIXELS_FOR_ONE_UNIT = 0.75;
 
 /** `roams-the-page` lets Flint come around a habitat's corner, be carried by the pointer and play with it again. */
 const FLINT_CONFINEMENT: NonNullable<FlintOptions['confinement']> = 'stays-in-its-box';
@@ -67,7 +66,7 @@ export function BoardFlint({
       <FlintSlotShowingContext.Provider value={visitTargetTracker.slotShown}>
         <Flint
           home={home}
-          pixelsForOneUnit={PIXELS_FOR_ONE_UNIT}
+          pixelsForOneUnit={BOARD_FLINT_PIXELS_FOR_ONE_UNIT}
           confinement={FLINT_CONFINEMENT}
           visitTarget={visitTargetTracker.visitTarget}
           {...(storage === null ? {} : { storage })}

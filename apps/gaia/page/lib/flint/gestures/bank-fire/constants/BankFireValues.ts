@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Bank the fire: the stop of Hephaestus, an entrance of 2000 ms and then a steady pose
  * in which Flint is dark, landed and awake a little; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a
@@ -17,10 +19,10 @@ export const BANK_FIRE = {
  */
 export const PATS = {
   HAND_CENTRE_X_UNITS:    -4,
-  HAND_CENTRE_Y_UNITS:    -59,
-  HAND_RADIUS_UNITS:      6.5,
+  HAND_CENTRE_Y_UNITS:    -57.5,
+  HAND_RADIUS_UNITS:      5.5,
   HAND_TURN_DEGREES:      0,
-  DEPTH_UNITS:            4,
+  DEPTH_UNITS:            3.5,
   /** Each pat starts here; the hand first grows to its place. */
   STARTS_MILLISECONDS:    [200, 500],
   PAT_MILLISECONDS:       300,
@@ -48,8 +50,17 @@ export const BANKED_GLOW = {
   GLOW_FADE_IN_STARTS_MILLISECONDS: 1600,
 } as const;
 
-/** Only ember 2 of Sleep rises, from the end of the entrance, with a smaller side. */
+/** Only ember 2 of Sleep rises, from the end of the entrance, with a smaller side, and only this share of Sleep's rise. */
 export const BANKED_EMBER = {
   EMBER_INDEX: 2,
   SIDE_UNITS:  2.5,
+  RISE_SHARE:  0.6,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const BANK_FIRE_EXTENT: DrawnExtent = {
+  backUnits:       22.5,
+  frontUnits:      20,
+  aboveFloorUnits: 64.5,
+  belowFloorUnits: 0,
+};

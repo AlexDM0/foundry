@@ -126,7 +126,7 @@ describe('the fit and the snap', () => {
 });
 
 test('reduced motion holds 2800: the merged block with its tick and the happy eyes', () => {
-  expect(CONFLICT_GESTURE.intents.conflict).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2800 });
+  expect(CONFLICT_GESTURE.intents.conflict).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2800 });
   const still = partAt(CONFLICT_GESTURE.intents.conflict.stillMomentMilliseconds);
   expect(still.props?.conflictBlocks).toMatchObject({ mergedOpacity: 1, tickOpacity: 1, blocksOpacity: 0 });
   expect(still.eyes?.happiness).toBe(1);

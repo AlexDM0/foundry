@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** The Nervous emote: how long it shows, and its moves; `sin(age / n)` names `n` a divisor. */
 export const NERVOUS_MOTION = {
   DURATION_MILLISECONDS:      2100,
@@ -8,3 +10,11 @@ export const NERVOUS_MOTION = {
   SHAKE_UNITS:                1.1,
   SHAKE_DIVISOR_MILLISECONDS: 22,
 } as const;
+
+/** All that the emote draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const NERVOUS_EXTENT: DrawnExtent = {
+  backUnits:       29,
+  frontUnits:      29,
+  aboveFloorUnits: 67.5,
+  belowFloorUnits: -3,
+};

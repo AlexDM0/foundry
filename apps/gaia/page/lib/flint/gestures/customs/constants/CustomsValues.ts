@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Customs: a loop that checks three claims against a crate, in milliseconds and sprite units, facing right. */
 export const CUSTOMS_TIMELINE = {
   CYCLE_MILLISECONDS:              5200,
@@ -86,3 +88,11 @@ export const CUSTOMS_LIST_SHAPE = {
   /** The tick's corner sits below the middle of its height: its start goes this far below the centre of the box. */
   SMALL_TICK_DROP_UNITS: 0.2,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const CUSTOMS_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      55,
+  aboveFloorUnits: 61.5,
+  belowFloorUnits: -3,
+};

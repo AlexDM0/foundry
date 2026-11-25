@@ -77,7 +77,7 @@ describe('the loop of 4000 ms', () => {
 });
 
 test('reduced motion holds the tied bundle with its bow and the happy eyes', () => {
-  expect(RIBBON_GESTURE.intents.ribbon).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2300 });
+  expect(RIBBON_GESTURE.intents.ribbon).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2300 });
   expect(partAt(2300).props?.ribbonBundle).toMatchObject({
     gathered: 1, wrapped: 1, bowScale: 1, offsetX: 0
   });

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Review: the hand that holds the lens, and the verdicts; the lens reads as `flint/gestures/constants/ReadingLens.ts`
  * gives.
@@ -25,3 +27,25 @@ export const REVIEW_PACES = {
   busy:   { LINE_MILLISECONDS: 280, VERDICT_MILLISECONDS: 350, STACKED_PAGE_COUNT: 1 },
   angry:  { LINE_MILLISECONDS: 500, VERDICT_MILLISECONDS: 900, STACKED_PAGE_COUNT: 3 },
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const REVIEW_EXTENTS = {
+  REVIEW: {
+    backUnits:       20,
+    frontUnits:      53.5,
+    aboveFloorUnits: 66,
+    belowFloorUnits: -3,
+  },
+  REVIEW_BUSY: {
+    backUnits:       20,
+    frontUnits:      55.5,
+    aboveFloorUnits: 72.5,
+    belowFloorUnits: -2.5,
+  },
+  REVIEW_ANGRY: {
+    backUnits:       20,
+    frontUnits:      58.5,
+    aboveFloorUnits: 69.5,
+    belowFloorUnits: -3,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

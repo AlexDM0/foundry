@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Sandbox: Flint types under a dome, reaches out, meets the dome and sweats; in sprite units, facing right. */
 import { EYE_SHAPE }              from '../../../constants/BodyShape.ts';
 import { NORMAL_TYPING }          from '../../constants/TypingHands.ts';
@@ -61,3 +63,11 @@ export const DOME_SHAPE = {
   RIPPLE_HALF_ANGLE_DEGREES: 50,
   RIPPLE_STROKE_UNITS:       1.5,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const SANDBOX_EXTENT: DrawnExtent = {
+  backUnits:       34.5,
+  frontUnits:      45,
+  aboveFloorUnits: 67.5,
+  belowFloorUnits: 3.5,
+};

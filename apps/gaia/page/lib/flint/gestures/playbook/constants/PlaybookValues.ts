@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Playbook: one Pass of Hephaestus, observe, read the Playbook, act; in sprite units, facing right. */
 export const PLAYBOOK_TIMELINE = {
   CYCLE_MILLISECONDS:          4000,
@@ -54,3 +56,11 @@ export const PLAYBOOK_BOOK_SHAPE = {
   LINE_Y_UNITS:        [-35, -31, -27, -23],
   LINE_STROKE_UNITS:   1.5,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const PLAYBOOK_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      46.5,
+  aboveFloorUnits: 61,
+  belowFloorUnits: -3,
+};

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Gate run: four lamps on a rail run one after the other and pass; sprite units, for Flint facing right. */
 export const GATE_RUN_TIMELINE = {
   CYCLE_MILLISECONDS:           4200,
@@ -28,3 +30,11 @@ export const GATE_RAIL_SHAPE = {
   TICK_START_X_UNITS:  36,
   TICK_START_Y_UNITS:  -44,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const GATE_RUN_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      54,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -3,
+};

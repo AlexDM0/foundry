@@ -2,14 +2,14 @@
  * Grab: two pentagons reach from the body centre to the target, as far as the reach allows,
  * and close on it. The catch is the `verdict`, taken once when the hands close; the mind turns Flint to the target before the grab.
  */
-import type { Point }                      from '../../SpriteGeometry.ts';
-import type { HandPose, PosePart }         from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
-import { AnimationCurveUtil }              from '../../utils/AnimationCurveUtil.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import { GRAB_GESTURE_VALUES }             from './constants/GrabValues.ts';
+import type { Point }                       from '../../SpriteGeometry.ts';
+import type { HandPose, PosePart }          from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }            from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                       from '../../constants/HandShape.ts';
+import { AnimationCurveUtil }               from '../../utils/AnimationCurveUtil.ts';
+import type { GestureInput }                from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf }  from '../GestureDefinition.ts';
+import { GRAB_EXTENT, GRAB_GESTURE_VALUES } from './constants/GrabValues.ts';
 
 const BODY_CENTRE: Point = Object.freeze({ x: 0, y: BODY_SHAPE.CENTRE_Y_UNITS });
 
@@ -66,7 +66,7 @@ function grabPartOf(input: GestureInput): PosePart {
 
 export const GRAB_GESTURE = gestureDefinition({
   name:                  'grab',
-  intents:               { grab: singleFormOf(GRAB_GESTURE_VALUES.DURATION_MILLISECONDS, GRAB_GESTURE_VALUES.CLOSE_MILLISECONDS) },
+  intents:               { grab: singleFormOf(GRAB_GESTURE_VALUES.DURATION_MILLISECONDS, GRAB_GESTURE_VALUES.CLOSE_MILLISECONDS, GRAB_EXTENT) },
   continuesWhileWalking: true,
   continuesWhileJumping: false,
   aimsAtElement:         true,

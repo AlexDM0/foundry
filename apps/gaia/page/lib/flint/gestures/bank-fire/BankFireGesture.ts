@@ -13,11 +13,12 @@ import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import type { BankedEmberState }           from './BankedEmberProp.ts';
 import {
-  BANK_FIRE,
   BANKED_EMBER,
   BANKED_GLOW,
+  BANK_FIRE,
+  BANK_FIRE_EXTENT,
   COOLING,
-  PATS
+  PATS,
 } from './constants/BankFireValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -54,12 +55,16 @@ function bankedEmberAt(elapsedMilliseconds: number): BankedEmberState {
   // Sleep starts ember n that long after its first one, so the rise is moved back to start this one at the end of the entrance.
   const risingSince = BANK_FIRE.ENTRANCE_MILLISECONDS - (BANKED_EMBER.EMBER_INDEX * EMBER_RISE.START_INTERVAL_MILLISECONDS);
   const ember = embersOf(risingSince, 1, elapsedMilliseconds)[BANKED_EMBER.EMBER_INDEX];
-  return ember === undefined ? {
-    shown: 0,
-    ember: {
-      x: 0, y: 0, turnDegrees: 0, opacity: 0
-    }
-  } : { shown: 1, ember };
+  if (ember === undefined) {
+    return {
+      shown: 0,
+      ember: {
+        x: 0, y: 0, turnDegrees: 0, opacity: 0
+      }
+    };
+  }
+  const risenUnits = (ember.y - EMBER_RISE.START_Y_UNITS) * BANKED_EMBER.RISE_SHARE;
+  return { shown: 1, ember: { ...ember, y: EMBER_RISE.START_Y_UNITS + risenUnits } };
 }
 
 function bankedGlowAt(elapsedMilliseconds: number): number {
@@ -90,7 +95,7 @@ function bankFirePartOf(input: GestureInput): PosePart {
 
 export const BANK_FIRE_GESTURE = gestureDefinition({
   name:                  'bank-fire',
-  intents:               { 'bank-fire': singleFormOf(null, BANK_FIRE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'bank-fire': singleFormOf(null, BANK_FIRE.STILL_MOMENT_MILLISECONDS, BANK_FIRE_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

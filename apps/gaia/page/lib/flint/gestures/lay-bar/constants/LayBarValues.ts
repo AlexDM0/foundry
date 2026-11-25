@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Lay the bar: while the host walks Flint along a row, a bar grows behind it and one hand presses it down. In
  * milliseconds from the start of the cycle, and in sprite units for Flint facing right; negative x is behind Flint.
@@ -48,3 +50,11 @@ export const LAY_BAR_EYES = {
   HEIGHT_UNITS:          6,
   LOOK_BACK_SHIFT_UNITS: -2,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const LAY_BAR_EXTENT: DrawnExtent = {
+  backUnits:       53.5,
+  frontUnits:      30.5,
+  aboveFloorUnits: 59,
+  belowFloorUnits: 0.5,
+};

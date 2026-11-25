@@ -1,4 +1,4 @@
-/** The Happy emote. What matters: the happy eyes; two bounces of 4 units in the first 600 ms; two glints that spring in on the width. */
+/** The Happy emote. What matters: the happy eyes; two bounces of 3 units in the first 600 ms; two glints that spring in on the width. */
 import { describe, expect, test } from 'bun:test';
 
 import { HAPPY_EMOTE } from './HappyEmote.ts';
@@ -11,7 +11,7 @@ describe('the Happy emote', () => {
   });
 
   test('bounces twice in the first 600 ms', () => {
-    expect([150, 450].map((ageMilliseconds) => partAt(ageMilliseconds).body?.addedLift)).toEqual([4, 4]);
+    expect([150, 450].map((ageMilliseconds) => partAt(ageMilliseconds).body?.addedLift)).toEqual([3, 3]);
     expect(partAt(300).body?.addedLift).toBeCloseTo(0, 9);
     expect(partAt(600).body?.addedLift).toBe(0);
     expect(partAt(150, true).body?.addedLift).toBe(0);

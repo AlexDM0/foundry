@@ -3,7 +3,7 @@
  * the record's one session and shows no level line; at an entity the panel follows that entity's session alone, shows its questions and
  * messages its job with no picture, as it offers none, and never mixes in the forge's or another entity's thread; at the forge the
  * entities' questions stay out of the thread and a line counts them with a link to each entity's level. The agent strip's Flint slot is
- * 50px square, and Flint lives in it.
+ * a strip's 60 by 50 px, and Flint lives in it.
  */
 import {
   cleanup,
@@ -98,7 +98,7 @@ describe('the panel at a level', () => {
 });
 
 describe('the agent strip', () => {
-  test('Flint\'s slot is 50px square, and Flint lives in it', () => {
+  test('Flint\'s slot is a strip\'s 60 by 50 px, and Flint lives in it', () => {
     const strip: AgentStripView = { text: 'Proposal ready', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE };
     const scene = flintHabitatSceneOf<AgentStripView>({
       storedHabitatKind: 'pipeline-design-slot',
@@ -106,7 +106,7 @@ describe('the agent strip', () => {
       firstProps:        strip,
       placeView:         () => placeAt(screen.getByRole('img', { name: PIPELINE_AGENT_FLINT_LABEL }), 100, 100, 50, 50),
     });
-    expect(screen.getByRole('img', { name: PIPELINE_AGENT_FLINT_LABEL }).getAttribute('data-size')).toBe('50');
+    expect(screen.getByRole('img', { name: PIPELINE_AGENT_FLINT_LABEL }).getAttribute('data-size')).toBe('60x50');
     expect(scene.handle.livesIn()).toBe('pipeline-design-slot');
   });
 });

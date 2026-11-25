@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Airlock: one loop in which one block passes the chamber; in milliseconds and sprite units, for Flint facing right. */
 export const AIRLOCK_TIMELINE = {
   CYCLE_MILLISECONDS:             4800,
@@ -60,3 +62,11 @@ export const AIRLOCK_SHAPE = {
   MAIN_LINE_Y_UNITS:          -20,
   MAIN_LINE_STROKE_UNITS:     1.6,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const AIRLOCK_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      59,
+  aboveFloorUnits: 59,
+  belowFloorUnits: -3,
+};

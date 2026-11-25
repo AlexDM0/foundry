@@ -76,7 +76,7 @@ test('facing left gives the same part: the renderer mirrors it and mirrors the t
 });
 
 test('one action of 2.4 s; reduced motion holds the salute beside the shelved block and its tick', () => {
-  expect(SHIP_GESTURE.intents).toEqual({ ship: { variant: 'normal', durationMilliseconds: 2400, stillMomentMilliseconds: 1500 } });
+  expect(SHIP_GESTURE.intents).toMatchObject({ ship: { variant: 'normal', durationMilliseconds: 2400, stillMomentMilliseconds: 1500 } });
   const still = partAt(SHIP_GESTURE.intents.ship.stillMomentMilliseconds);
   expect(still.nearHand?.turnDegrees).toBe(20);
   expect(still.props?.shipShelf).toMatchObject({ blockX: 36, blockY: -38, tickOpacity: 1 });

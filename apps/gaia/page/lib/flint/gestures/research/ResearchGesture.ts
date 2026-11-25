@@ -25,8 +25,9 @@ import {
   HOLOGRAM_STUDY,
   NOTES_STUDY,
   RESEARCH,
+  RESEARCH_EXTENT,
   SEARCH_BAR_SHAPE,
-  SEARCH_STUDY
+  SEARCH_STUDY,
 } from './constants/ResearchValues.ts';
 
 export type ResearchStudy = 'book' | 'notes' | 'search' | 'hologram';
@@ -162,7 +163,7 @@ function researchPartOf(input: GestureInput): PosePart {
 
 export const RESEARCH_GESTURE = gestureDefinition({
   name:                  'research',
-  intents:               { research: singleFormOf(null, RESEARCH.STILL_MOMENT_MILLISECONDS) },
+  intents:               { research: singleFormOf(null, RESEARCH.STILL_MOMENT_MILLISECONDS, RESEARCH_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

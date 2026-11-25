@@ -13,6 +13,7 @@ import type { SpilledPageState }                  from './SpilledPagesProp.ts';
 import {
   HUSK,
   MOLT,
+  MOLT_EXTENT,
   RENEWAL,
   SHED,
   SPILLED_PAGES,
@@ -102,7 +103,7 @@ function moltPartOf(input: GestureInput): PosePart {
 
 export const MOLT_GESTURE = gestureDefinition({
   name:                  'molt',
-  intents:               { molt: singleFormOf(MOLT.DURATION_MILLISECONDS, MOLT.STILL_MOMENT_MILLISECONDS) },
+  intents:               { molt: singleFormOf(MOLT.DURATION_MILLISECONDS, MOLT.STILL_MOMENT_MILLISECONDS, MOLT_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

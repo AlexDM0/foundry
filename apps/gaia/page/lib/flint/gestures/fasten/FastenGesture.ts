@@ -1,11 +1,11 @@
 /** Fasten: a bolt slides in and one hexagon turns it in steps. */
-import type { PosePart }                   from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
-import { AnimationCurveUtil }              from '../../utils/AnimationCurveUtil.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { FASTEN_GESTURE_VALUES }           from './constants/FastenValues.ts';
+import type { PosePart }                        from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }                from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                           from '../../constants/HandShape.ts';
+import { AnimationCurveUtil }                   from '../../utils/AnimationCurveUtil.ts';
+import { gestureDefinition, singleFormOf }      from '../GestureDefinition.ts';
+import type { GestureInput }                    from '../GestureDefinition.ts';
+import { FASTEN_EXTENT, FASTEN_GESTURE_VALUES } from './constants/FastenValues.ts';
 
 /** A hexagon looks the same after each turn of 60 degrees, so the turn of one cycle is the whole turn the hand shows. */
 function handTurnDegreesAt(elapsedMilliseconds: number): number {
@@ -33,7 +33,7 @@ function fastenPartOf(input: GestureInput): PosePart {
 
 export const FASTEN_GESTURE = gestureDefinition({
   name:                  'fasten',
-  intents:               { fasten: singleFormOf(null, 0) },
+  intents:               { fasten: singleFormOf(null, 0, FASTEN_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

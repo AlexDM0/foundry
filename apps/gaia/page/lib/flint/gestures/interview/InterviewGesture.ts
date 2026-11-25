@@ -15,6 +15,7 @@ import type { WritingPaper }               from '../PenWritingUtil.ts';
 import { PenWritingUtil }                  from '../PenWritingUtil.ts';
 import {
   INTERVIEW_ASKING,
+  INTERVIEW_EXTENT,
   INTERVIEW_NOD,
   INTERVIEW_NOTEPAD,
   INTERVIEW_TIMELINE,
@@ -101,7 +102,7 @@ function interviewPartOf(input: GestureInput): PosePart {
 
 export const INTERVIEW_GESTURE = gestureDefinition({
   name:                  'interview',
-  intents:               { interview: singleFormOf(null, INTERVIEW_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { interview: singleFormOf(null, INTERVIEW_TIMELINE.STILL_MOMENT_MILLISECONDS, INTERVIEW_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

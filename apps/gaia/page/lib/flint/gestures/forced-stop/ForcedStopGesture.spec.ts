@@ -67,6 +67,6 @@ describe('the spark dies', () => {
 });
 
 test('one action of 1800 ms; reduced motion holds 900; the part does not depend on the facing', () => {
-  expect(FORCED_STOP_GESTURE.intents['forced-stop']).toEqual({ variant: 'normal', durationMilliseconds: 1800, stillMomentMilliseconds: 900 });
+  expect(FORCED_STOP_GESTURE.intents['forced-stop']).toMatchObject({ variant: 'normal', durationMilliseconds: 1800, stillMomentMilliseconds: 900 });
   expect(FORCED_STOP_GESTURE.targetPose(inputAt(900, -1))).toEqual(partAt(900));
 });

@@ -10,10 +10,11 @@ import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import { movedCardGripOf }                 from './ReorderStackProp.ts';
 import {
+  REORDER_EXTENT,
   REORDER_EYES,
   REORDER_HAND,
   REORDER_STACK,
-  REORDER_TIMELINE
+  REORDER_TIMELINE,
 } from './constants/ReorderValues.ts';
 
 const MOVED_CARD_REST_Y_UNITS = REORDER_STACK.CARD_Y_UNITS[REORDER_STACK.MOVED_CARD_INDEX] ?? 0;
@@ -77,7 +78,7 @@ function reorderPartOf(input: GestureInput): PosePart {
 
 export const REORDER_GESTURE = gestureDefinition({
   name:                  'reorder',
-  intents:               { reorder: singleFormOf(null, REORDER_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { reorder: singleFormOf(null, REORDER_TIMELINE.STILL_MOMENT_MILLISECONDS, REORDER_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

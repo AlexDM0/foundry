@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Out of fuel and Refuel: a steady pose in which Flint waits by an empty gauge, and the
  * one action that fills it; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a divisor.
@@ -67,3 +69,19 @@ export const REFUEL_SPARKS = {
   CENTRE_Y_UNITS: -24,
   TRAVEL_FACTOR:  1.5,
 } as const;
+
+/** All that each form of the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const OUT_OF_FUEL_EXTENTS = {
+  OUT_OF_FUEL: {
+    backUnits:       22,
+    frontUnits:      40.5,
+    aboveFloorUnits: 57.5,
+    belowFloorUnits: 0,
+  },
+  REFUEL: {
+    backUnits:       28.5,
+    frontUnits:      40.5,
+    aboveFloorUnits: 61.5,
+    belowFloorUnits: 0,
+  },
+} as const satisfies Readonly<Record<string, DrawnExtent>>;

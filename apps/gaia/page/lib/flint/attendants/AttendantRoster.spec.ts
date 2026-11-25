@@ -33,8 +33,8 @@ test('each member is placed by its attendant at the time asked, with its age sin
   const roster = rosterAttended(EMPTY_ATTENDANT_ROSTER, 'watcher-spark', 2, 1000);
   const members = attendantMembersAt(roster, 1000, true);
   expect(members.map((member) => [member.name, member.index, member.x, member.y, member.scale])).toEqual([
-    ['watcher-spark', 0, -26, -44, 1],
-    ['watcher-spark', 1, -35, -33, 1],
+    ['watcher-spark', 0, -7, -49, 1],
+    ['watcher-spark', 1, -13, -42, 1],
   ]);
   expect(attendantMembersAt(roster, 1000, false).map((member) => member.scale)).toEqual([0, 0]);
 });

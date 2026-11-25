@@ -97,7 +97,7 @@ test('facing left gives the same part: the renderer mirrors the chase, and nothi
 });
 
 test('one intent, a loop; reduced motion holds the lifted bug above the block with its trace', () => {
-  expect(ESCAPED_BUG_GESTURE.intents).toEqual({ 'escaped-bug': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3500 } });
+  expect(ESCAPED_BUG_GESTURE.intents).toMatchObject({ 'escaped-bug': { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3500 } });
   const still = partAt(ESCAPED_BUG_GESTURE.intents['escaped-bug'].stillMomentMilliseconds);
   expect(still.nearHand?.placement).toEqual({ heldTo: 'escapedBug' });
   expect(still.props?.escapedBug).toMatchObject({

@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Quiet job: Flint listens at a dark block, taps it, and wonders; sprite units, for Flint facing right. */
 export const LISTEN_TIMELINE = {
   CYCLE_MILLISECONDS:        3600,
@@ -35,3 +37,11 @@ export const LISTEN_BLOCK_SHAPE = {
   WIDTH_UNITS:  14,
   HEIGHT_UNITS: 10,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const LISTEN_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      44,
+  aboveFloorUnits: 71.5,
+  belowFloorUnits: -3,
+};

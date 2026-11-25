@@ -10,10 +10,11 @@ import type { GestureInput }               from '../GestureDefinition.ts';
 import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
 import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
 import {
+  LAY_BAR_EXTENT,
   LAY_BAR_EYES,
   LAY_BAR_HAND,
   LAY_BAR_SHAPE,
-  LAY_BAR_TIMELINE
+  LAY_BAR_TIMELINE,
 } from './constants/LayBarValues.ts';
 
 const { progressBetween, timeInCycleOf } = GestureTimelineUtil;
@@ -56,7 +57,7 @@ function layBarPartOf(input: GestureInput): PosePart {
 
 export const LAY_BAR_GESTURE = gestureDefinition({
   name:                  'lay-bar',
-  intents:               { 'lay-bar': singleFormOf(null, LAY_BAR_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'lay-bar': singleFormOf(null, LAY_BAR_TIMELINE.STILL_MOMENT_MILLISECONDS, LAY_BAR_EXTENT) },
   continuesWhileWalking: true,
   continuesWhileJumping: false,
   aimsAtElement:         false,

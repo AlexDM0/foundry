@@ -19,7 +19,7 @@ function inputAt(elapsedMilliseconds: number, facing: Facing = 1): GestureInput<
 const partAt = (elapsedMilliseconds: number, facing: Facing = 1) => PLAYBOOK_GESTURE.targetPose(inputAt(elapsedMilliseconds, facing));
 
 test('playbook is one loop that reduced motion holds at 2000', () => {
-  expect(PLAYBOOK_GESTURE.intents.playbook).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2000 });
+  expect(PLAYBOOK_GESTURE.intents.playbook).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2000 });
 });
 
 describe('the loop', () => {

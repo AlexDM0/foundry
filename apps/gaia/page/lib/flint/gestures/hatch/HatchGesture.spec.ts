@@ -105,7 +105,7 @@ describe('hatch-queued', () => {
 });
 
 test('two looping intents, each with its variant and still moment', () => {
-  expect(HATCH_GESTURE.intents).toEqual({
+  expect(HATCH_GESTURE.intents).toMatchObject({
     'hatch':        { variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2600 },
     'hatch-queued': { variant: 'queued', durationMilliseconds: null, stillMomentMilliseconds: 3200 },
   });

@@ -1,16 +1,14 @@
 /**
  * Needs an answer. What matters: in `ask` one pentagon of radius 6 is held to the card, the card bobs by
- * 1.5 × sin(t / 300) and turns back from upright by 4 × (1 + sin(t / 600)) / 2 around the hand, so its drawn far edge, stroke
- * included, stays within the gesture's forward reach through a whole sway, the body leans 3, the eyes are 8 high and shifted 3, and in the last
+ * 1.5 × sin(t / 300) and turns 4 × sin(t / 600) around the hand, the body leans 3, the eyes are 8 high and shifted 3, and in the last
  * 400 ms of each 3 seconds shifted 6; in `ask-knock` Flint faces the user (lean 0, shift 0, height 9), the far hand holds the card at 85%
  * and 6 lower, and a square of radius 5.5 at (26, -38) knocks at 200 and 420 of each 1600 ms: to radius 7.5 and back in 90 ms with a
  * lift of 1, with arcs that fade in 200 ms. Both loop; reduced motion holds 0 and 245.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { GestureInput }        from '../GestureDefinition.ts';
-import { ASK_GESTURE }              from './AskGesture.ts';
-import { ASK_CARD_SHAPE, ASK_POSE } from './constants/AskValues.ts';
+import type { GestureInput } from '../GestureDefinition.ts';
+import { ASK_GESTURE }       from './AskGesture.ts';
 
 function inputAt(elapsedMilliseconds: number, variant: 'normal' | 'knock'): GestureInput<'normal' | 'knock'> {
   return {
@@ -25,24 +23,11 @@ describe('ask', () => {
     expect(part.farHand).toBeNull();
   });
 
-  test('the card bobs by 1.5 × sin(t / 300) and turns back by 4 × (1 + sin(t / 600)) / 2 degrees, at full size', () => {
+  test('the card bobs by 1.5 × sin(t / 300) and turns 4 × sin(t / 600) degrees, at full size', () => {
     const card = ASK_GESTURE.targetPose(inputAt(500, 'normal')).props?.askCard;
     expect(card?.scale).toBe(1);
     expect(card?.offsetY).toBeCloseTo(1.5 * Math.sin(500 / 300));
-    expect(card?.turnDegrees).toBeCloseTo(-4 * (1 + Math.sin(500 / 600)) / 2);
-  });
-
-  test('the card\'s drawn far edge, its stroke included, stays within the forward reach through a whole sway', () => {
-    const fullSwayMilliseconds = 2 * Math.PI * ASK_POSE.TURN_DIVISOR_MILLISECONDS;
-    const hold = { x: ASK_CARD_SHAPE.X_UNITS, y: ASK_CARD_SHAPE.Y_UNITS + ASK_CARD_SHAPE.HEIGHT_UNITS + ASK_CARD_SHAPE.HOLD_BELOW_CORNER_UNITS };
-    const farEdgeX = ASK_CARD_SHAPE.X_UNITS + ASK_CARD_SHAPE.WIDTH_UNITS;
-    const farCorners = [ASK_CARD_SHAPE.Y_UNITS, ASK_CARD_SHAPE.Y_UNITS + ASK_CARD_SHAPE.HEIGHT_UNITS].map((cornerY) => ({ x: farEdgeX, y: cornerY }));
-    const farthestX = Math.max(...Array.from({ length: 100 }, (_unused, i) => {
-      const turnDegrees = ASK_GESTURE.targetPose(inputAt((i / 100) * fullSwayMilliseconds, 'normal')).props?.askCard?.turnDegrees ?? 0;
-      const radians = (turnDegrees * Math.PI) / 180;
-      return Math.max(...farCorners.map((corner) => hold.x + ((corner.x - hold.x) * Math.cos(radians)) - ((corner.y - hold.y) * Math.sin(radians))));
-    }));
-    expect(farthestX + (ASK_CARD_SHAPE.STROKE_UNITS / 2)).toBeLessThanOrEqual(ASK_GESTURE.forwardReachUnits ?? 0);
+    expect(card?.turnDegrees).toBeCloseTo(4 * Math.sin(500 / 600));
   });
 
   test('the body leans 3 and the eyes are 8 high, shifted 3; in the last 400 ms of each 3 seconds Flint looks at the card', () => {

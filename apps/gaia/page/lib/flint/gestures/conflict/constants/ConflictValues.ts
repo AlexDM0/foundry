@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /**
  * Conflict: Merge with one more step, in milliseconds and sprite units, for Flint facing right. The blocks, the
  * hands, the snap and the leave are the shared press (`flint/gestures/constants/BlockPress.ts`); these are the values Conflict adds.
@@ -75,3 +77,11 @@ export const CONFLICT_SHAVINGS = {
   FALL_UNITS:             8,
   FALL_MILLISECONDS:      300,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const CONFLICT_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      56,
+  aboveFloorUnits: 64,
+  belowFloorUnits: -0.5,
+};

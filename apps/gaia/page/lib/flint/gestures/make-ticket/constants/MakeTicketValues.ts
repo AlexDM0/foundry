@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** The make-a-ticket gesture: one cycle of writing, stamping and filing, in milliseconds. */
 export const MAKE_TICKET_TIMELINE = {
   CYCLE_MILLISECONDS:           3200,
@@ -36,3 +38,11 @@ export const TICKET_SHAPE = {
   SEAL_CENTRE_Y_UNITS: -15,
   SEAL_TURN_DEGREES:   45,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const MAKE_TICKET_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      62,
+  aboveFloorUnits: 63,
+  belowFloorUnits: -3,
+};

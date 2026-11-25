@@ -1,9 +1,9 @@
 /** Point: one triangle points forward and swings; Flint can walk and jump while it points. */
-import type { PosePart }                   from '../../SpritePose.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { pointingHandAt }                  from '../PointingHand.ts';
-import { POINT_GESTURE_VALUES }            from './constants/PointValues.ts';
+import type { PosePart }                      from '../../SpritePose.ts';
+import { gestureDefinition, singleFormOf }    from '../GestureDefinition.ts';
+import type { GestureInput }                  from '../GestureDefinition.ts';
+import { pointingHandAt }                     from '../PointingHand.ts';
+import { POINT_EXTENT, POINT_GESTURE_VALUES } from './constants/PointValues.ts';
 
 function pointPartOf(input: GestureInput): PosePart {
   return {
@@ -16,7 +16,7 @@ function pointPartOf(input: GestureInput): PosePart {
 
 export const POINT_GESTURE = gestureDefinition({
   name:                  'point',
-  intents:               { point: singleFormOf(null, 0) },
+  intents:               { point: singleFormOf(null, 0, POINT_EXTENT) },
   continuesWhileWalking: true,
   continuesWhileJumping: true,
   aimsAtElement:         false,

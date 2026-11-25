@@ -2,14 +2,14 @@
  * Quiet job: a loop in which Flint leans in to listen at a dark block, taps it twice with a
  * triangle, then leans back and shows the question mark of the Doubt emote, with its spring at its start and its fade in its last 160 ms.
  */
-import type { PosePart }                   from '../../SpritePose.ts';
-import { BODY_SHAPE, EYE_SHAPE }           from '../../constants/BodyShape.ts';
-import { HAND_SHAPE }                      from '../../constants/HandShape.ts';
-import type { GestureInput }               from '../GestureDefinition.ts';
-import { gestureDefinition, singleFormOf } from '../GestureDefinition.ts';
-import { GestureMarkUtil }                 from '../GestureMarkUtil.ts';
-import { GestureTimelineUtil }             from '../GestureTimelineUtil.ts';
-import { LISTEN_POSE, LISTEN_TIMELINE }    from './constants/ListenValues.ts';
+import type { PosePart }                               from '../../SpritePose.ts';
+import { BODY_SHAPE, EYE_SHAPE }                       from '../../constants/BodyShape.ts';
+import { HAND_SHAPE }                                  from '../../constants/HandShape.ts';
+import type { GestureInput }                           from '../GestureDefinition.ts';
+import { gestureDefinition, singleFormOf }             from '../GestureDefinition.ts';
+import { GestureMarkUtil }                             from '../GestureMarkUtil.ts';
+import { GestureTimelineUtil }                         from '../GestureTimelineUtil.ts';
+import { LISTEN_EXTENT, LISTEN_POSE, LISTEN_TIMELINE } from './constants/ListenValues.ts';
 
 /** How far the tap that runs is, from 0 to 1; null between taps. */
 function tapProgressAt(timeInCycle: number): number | null {
@@ -81,7 +81,7 @@ function listenPartOf(input: GestureInput): PosePart {
 
 export const LISTEN_GESTURE = gestureDefinition({
   name:                  'listen',
-  intents:               { listen: singleFormOf(null, LISTEN_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { listen: singleFormOf(null, LISTEN_TIMELINE.STILL_MOMENT_MILLISECONDS, LISTEN_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

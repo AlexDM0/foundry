@@ -13,9 +13,10 @@ import { stampingHandAt }                  from '../StampingHand.ts';
 import type { StampTimeline }              from '../StampingHand.ts';
 import {
   FILED_TICKET,
+  MAKE_TICKET_EXTENT,
   MAKE_TICKET_TIMELINE,
   STAMP,
-  TICKET_SHAPE
+  TICKET_SHAPE,
 } from './constants/MakeTicketValues.ts';
 
 const TICKET_PAPER: WritingPaper = Object.freeze({
@@ -69,7 +70,7 @@ function makeTicketPartOf(input: GestureInput): PosePart {
 
 export const MAKE_TICKET_GESTURE = gestureDefinition({
   name:                  'make-ticket',
-  intents:               { 'make-ticket': singleFormOf(null, MAKE_TICKET_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { 'make-ticket': singleFormOf(null, MAKE_TICKET_TIMELINE.STILL_MOMENT_MILLISECONDS, MAKE_TICKET_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

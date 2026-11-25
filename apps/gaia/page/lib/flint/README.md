@@ -76,7 +76,7 @@ registered, so a host whose storage comes later (once it knows whose page it sho
 | Subject | The host gives |
 | --- | --- |
 | Home | The element whose bottom edge is Flint's floor. |
-| Habitats | Each large component registers its element with a `SpriteHabitat`: its kind, a description, its suggestions, and optionally `contentFor`. Flint ignores a habitat smaller than 50 by 50 pixels. A box with content around it, such as a slot, sets `keepsFlintInside`: Flint never shows outside it, a visit pops in through its edge in place of around its corner, and a copy stands Flint where its gesture's `forwardReachUnits` fits. |
+| Habitats | Each large component registers its element with a `SpriteHabitat`: its kind, a description, its suggestions, and optionally `contentFor`. Flint ignores a habitat smaller than 50 by 50 pixels. A box with content around it, such as a slot, sets `keepsFlintInside`: Flint never shows outside it, a visit pops in through its edge in place of around its corner, Flint rests its attendants' reach from each wall, and a copy or a gesture or emote laid over the rest stands Flint, turned if that is nearer, where all its declared `extent` fits. A host keeps a box that fits the extents of what plays there: `intentExtentOf` and `attendantExtentOf` give them. |
 | Cues | The host's own cue names, sent with `cue` while Flint lives in that habitat. |
 | Confinement | `roams-the-page` (the default): Flint comes around a habitat's corner, the user carries it and it plays with the pointer. `stays-in-its-box`: all of Flint, its page shapes too, is drawn only inside the box it stands in (its home, or the habitat it lives in or visits); every visit pops in through an edge; it reads no pointer, so it is never carried, a press on it reaches the page, it never plays with the pointer and the `under-pointer` visit target picks no habitat; it hears only the cues of the box it lives in, copies only inside that habitat's element, and `perform` refuses an element outside the element of that box with `outside-its-box`. |
 | Visit target | Which habitat is "the component the user works in": `last-focused-or-clicked` (the default), `under-pointer`, `content-changed-last`, or a function of the host. |
@@ -131,7 +131,7 @@ never mirrored and never eased. Once the behaviour gives none, the last ones fad
 | `sleep/` | The sleep sequence and its embers. |
 | `constants/` | The values the core uses, with their unit in their name, and the palette. |
 | `react/` | The React layer: `<Flint>`, `useFlintHabitat` and `useFlintPerform`. |
-| `testing/` | The manual frame source, the mind run, and the frame capture. |
+| `testing/` | The manual frame source, the mind run, the frame capture, and the extent a pose draws, measured without a browser. |
 | `demo/` | The demo page: a playground that shows every animation. |
 
 The library's own guard, `PackageIsolation.spec.ts`, holds that no file imports outside the folder and that nothing
@@ -181,7 +181,10 @@ needs one only when it has values); and when a prop is not in the prop catalog.
 4. Make the module: `<Name>Gesture.ts` exporting `<NAME>_GESTURE = gestureDefinition({ … })`, `<Name>Emote.ts` exporting
    `<NAME>_EMOTE = emoteDefinition({ … })`, `<Name>Mark.ts` exporting `<NAME>_MARK = markDefinition({ … })`,
    `<Name>Attendant.ts` exporting `<NAME>_ATTENDANT = attendantDefinition({ … })`, or `<Name>Behaviour.ts` exporting
-   `<NAME>_BEHAVIOUR = behaviourDefinition({ … })`.
+   `<NAME>_BEHAVIOUR = behaviourDefinition({ … })`. Each gesture form, emote and attendant declares its `extent`: all that
+   Flint draws with it, its body included, in sprite units from the bottom tip facing right, as `<NAME>_EXTENT` (or
+   `<NAME>_EXTENTS` by intent) in its values file. Its catalog's `.extent.spec.ts` plays it without a browser and fails,
+   naming the drawn value, unless the declaration covers the drawing and is at most half a unit larger.
 5. Put a spec beside each module, `<Module>.spec.ts`, that opens with a docblock of what matters and why.
 6. Register it: one import and one line at the end of the list in `flint/gestures/GestureCatalog.ts`,
    `flint/emotes/EmoteCatalog.ts`, `flint/marks/MarkCatalog.ts`, `flint/attendants/AttendantCatalog.ts` or

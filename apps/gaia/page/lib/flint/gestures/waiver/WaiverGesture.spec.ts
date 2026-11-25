@@ -64,7 +64,7 @@ describe('the loop of 3400 ms', () => {
 });
 
 test('reduced motion holds the grey tick and the look of doubt', () => {
-  expect(WAIVER_GESTURE.intents.waiver).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2200 });
+  expect(WAIVER_GESTURE.intents.waiver).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 2200 });
   const part = partAt(2200);
   expect(part.props?.waiverSheet).toMatchObject({ writtenShare: 1, waived: 1, cycleOpacity: 1 });
   expect(part.eyes?.happiness).toBeUndefined();

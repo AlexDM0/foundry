@@ -12,10 +12,11 @@ import { gestureDefinition, singleFormOf }            from '../GestureDefinition
 import { GestureTimelineUtil }                        from '../GestureTimelineUtil.ts';
 import type { RegroupSparkState, RegroupSparksState } from './RegroupSparksProp.ts';
 import {
+  REGROUP_EXTENT,
   REGROUP_EYES,
   REGROUP_HANDS,
   REGROUP_SPARKS,
-  REGROUP_TIMELINE
+  REGROUP_TIMELINE,
 } from './constants/RegroupValues.ts';
 
 const { progressBetween } = GestureTimelineUtil;
@@ -130,7 +131,7 @@ function regroupPartOf(input: GestureInput): PosePart {
 
 export const REGROUP_GESTURE = gestureDefinition({
   name:                  'regroup',
-  intents:               { regroup: singleFormOf(null, REGROUP_TIMELINE.STILL_MOMENT_MILLISECONDS) },
+  intents:               { regroup: singleFormOf(null, REGROUP_TIMELINE.STILL_MOMENT_MILLISECONDS, REGROUP_EXTENT) },
   continuesWhileWalking: false,
   continuesWhileJumping: false,
   aimsAtElement:         false,

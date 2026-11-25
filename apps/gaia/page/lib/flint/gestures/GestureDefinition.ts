@@ -3,8 +3,8 @@
  * its variant, the facing and the gesture's own input to its part of the target pose. A gesture never eases and never reads a clock; the
  * easing step makes it smooth. Each gesture names its own intents, one for each variant, with the timing of that variant.
  */
-import type { Facing, Point } from '../SpriteGeometry.ts';
-import type { PosePart }      from '../SpritePose.ts';
+import type { DrawnExtent, Facing, Point } from '../SpriteGeometry.ts';
+import type { PosePart }                   from '../SpritePose.ts';
 
 export interface GestureInput<Variant extends string = string> {
   /** Since the gesture started; under reduced motion, the variant's still moment. Use it as `t` in a `sin(t / n)`. */
@@ -33,6 +33,11 @@ export interface GestureForm<Variant extends string = string> {
   readonly durationMilliseconds:    number | null;
   /** The moment of the gesture that reduced motion holds as its still pose. */
   readonly stillMomentMilliseconds: number;
+  /**
+   * All that Flint draws while the form plays, its body included, over its whole timeline and its still moment, with no target; in a box
+   * that keeps Flint inside, Flint stands where it fits.
+   */
+  readonly extent:                  DrawnExtent;
 }
 
 export interface GestureDefinition<Name extends string = string, Intent extends string = string, Variant extends string = string> {
@@ -46,11 +51,6 @@ export interface GestureDefinition<Name extends string = string, Intent extends 
   /** True when `perform(intent, element)` aims the gesture at that element's centre, on each frame. */
   readonly aimsAtElement:         boolean;
   readonly verdict:               GestureVerdict<Variant> | null;
-  /**
-   * How far in front of the bottom tip its props reach at rest, in sprite units facing right; absent stays within the body. A copy in a
-   * box that keeps Flint inside stands where that reach fits.
-   */
-  readonly forwardReachUnits?:    number;
   targetPose(input: GestureInput<Variant>): PosePart;
 }
 
@@ -62,6 +62,8 @@ export function gestureDefinition<const Name extends string, const Intent extend
 }
 
 /** The form of a gesture with one intent and no variant: the intent is the gesture's name, and the variant is `normal`. */
-export function singleFormOf(durationMilliseconds: number | null, stillMomentMilliseconds: number): GestureForm<'normal'> {
-  return Object.freeze({ variant: 'normal', durationMilliseconds, stillMomentMilliseconds });
+export function singleFormOf(durationMilliseconds: number | null, stillMomentMilliseconds: number, extent: DrawnExtent): GestureForm<'normal'> {
+  return Object.freeze({
+    variant: 'normal', durationMilliseconds, stillMomentMilliseconds, extent,
+  });
 }

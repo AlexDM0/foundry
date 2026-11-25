@@ -11,13 +11,13 @@ export interface PageEdge {
   readonly topY: number;
 }
 
-/** A book point after the book's turn of `BOOK_SHAPE.TILT_DEGREES` clockwise around its tilt centre, and its drop. */
+/** A book point after the book's turn of `BOOK_SHAPE.TILT_DEGREES` clockwise around its tilt centre, its drop and its move nearer to Flint. */
 function pointOnBook(bookPoint: Point): Point {
   const angle = AnimationCurveUtil.radiansOf(BOOK_SHAPE.TILT_DEGREES);
   const fromCentreX = bookPoint.x - BOOK_SHAPE.TILT_CENTRE_X_UNITS;
   const fromCentreY = bookPoint.y - BOOK_SHAPE.TILT_CENTRE_Y_UNITS;
   return {
-    x: BOOK_SHAPE.TILT_CENTRE_X_UNITS + (fromCentreX * Math.cos(angle)) - (fromCentreY * Math.sin(angle)),
+    x: BOOK_SHAPE.TILT_CENTRE_X_UNITS + (fromCentreX * Math.cos(angle)) - (fromCentreY * Math.sin(angle)) - BOOK_SHAPE.HELD_IN_UNITS,
     y: BOOK_SHAPE.TILT_CENTRE_Y_UNITS + (fromCentreX * Math.sin(angle)) + (fromCentreY * Math.cos(angle)) + BOOK_SHAPE.DROP_UNITS,
   };
 }

@@ -2,7 +2,7 @@
  * The envelope of Assistant intercept. What matters: it is the envelope of the
  * shared vocabulary, turned and scaled around its own centre; a closed flap is drawn over the front, an open flap behind the paper and the
  * front, folded up to `M0 0 L7 -5 L14 0`; the paper of 10 by 8 with two lines stands out of the top by its rise and is hidden inside; the
- * tick starts at (36, -48) and is never mirrored; a hand holds the lower corner; the hidden state draws.
+ * tick starts at (30, -48) and is never mirrored; a hand holds the lower corner; the hidden state draws.
  */
 import { expect, test } from 'bun:test';
 
@@ -49,9 +49,9 @@ test('the envelope turns and scales around its own centre, and fades with its ow
   expect(front).toMatchObject({ fill: 'paper', stroke: 'alarm', opacity: 0.4 });
 });
 
-test('the tick starts at (36, -48) and is never mirrored', () => {
+test('the tick starts at (30, -48) and is never mirrored', () => {
   const tick = shapesOf({ ...HELD_OPEN, tickOpacity: 1 }).find((shape) => shape.key === 'tick');
-  expect(tick?.kind === 'path' ? tick.pathData : '').toBe('M36 -48 l3 3 l6 -7');
+  expect(tick?.kind === 'path' ? tick.pathData : '').toBe('M30 -48 l3 3 l6 -7');
   expect(tick?.unmirroredAboutX).toBeDefined();
 });
 

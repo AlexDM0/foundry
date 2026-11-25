@@ -1,3 +1,5 @@
+import type { DrawnExtent } from '../../../SpriteGeometry.ts';
+
 /** Chain: one loop in which a ticket is chained to the ticket it waits for; in milliseconds. */
 export const CHAIN_TIMELINE = {
   CYCLE_MILLISECONDS:         3800,
@@ -54,3 +56,11 @@ export const CHAIN_EYES = {
   PULL_LIFT_UNITS:      2,
   LOOK_AT_A_LIFT_UNITS: -2,
 } as const;
+
+/** All that the gesture draws, its body included, from its bottom tip for Flint facing right: the room it takes. */
+export const CHAIN_EXTENT: DrawnExtent = {
+  backUnits:       20,
+  frontUnits:      56,
+  aboveFloorUnits: 59.5,
+  belowFloorUnits: -3,
+};

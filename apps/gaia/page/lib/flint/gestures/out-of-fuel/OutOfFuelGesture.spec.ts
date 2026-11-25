@@ -51,7 +51,7 @@ describe('out of fuel', () => {
   });
 
   test('a steady pose: it runs until something stops it', () => {
-    expect(OUT_OF_FUEL_GESTURE.intents['out-of-fuel']).toEqual({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3000 });
+    expect(OUT_OF_FUEL_GESTURE.intents['out-of-fuel']).toMatchObject({ variant: 'normal', durationMilliseconds: null, stillMomentMilliseconds: 3000 });
   });
 });
 
@@ -93,7 +93,7 @@ describe('refuel', () => {
   });
 
   test('one action of 1600 ms; reduced motion holds 900; the part does not depend on the facing', () => {
-    expect(OUT_OF_FUEL_GESTURE.intents.refuel).toEqual({ variant: 'refuel', durationMilliseconds: 1600, stillMomentMilliseconds: 900 });
+    expect(OUT_OF_FUEL_GESTURE.intents.refuel).toMatchObject({ variant: 'refuel', durationMilliseconds: 1600, stillMomentMilliseconds: 900 });
     expect(OUT_OF_FUEL_GESTURE.targetPose(inputAt(900, 'refuel', -1))).toEqual(partAt(900, 'refuel'));
   });
 });

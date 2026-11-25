@@ -7,3 +7,14 @@ export interface Point {
   readonly x: number;
   readonly y: number;
 }
+
+/**
+ * How far a drawing reaches from the bottom tip of the body on its floor, in sprite units, for Flint facing right: behind it, in front of
+ * it, above the floor and below it (negative while all of it stays above the floor).
+ */
+export interface DrawnExtent {
+  readonly backUnits:       number;
+  readonly frontUnits:      number;
+  readonly aboveFloorUnits: number;
+  readonly belowFloorUnits: number;
+}
