@@ -81,5 +81,5 @@ Per forge and per viewer, in this browser's storage through the board's preferen
 
 - The caret's menu announces a dialog, not a menu: it is the library's one menu part, whose items are buttons in a dialog with Esc and
   outside dismissal, so every menu in Gaia reads and works alike.
-- The artboard's "New request" button at the right of the menu row is Tickets' (another lane's work); the row's end keeps the
-  finished-work filter over the views that show finished work.
+- The artboard's "New request" button at the right of the menu row is not built: the owner's decisions name no behaviour for it, so the
+  row's end keeps the finished-work filter over the views that show finished work (`tickets.md`, "Not built").

@@ -1,6 +1,6 @@
 /**
  * The Progress tab opened through the board's shell and its table of tab views, in a happy-dom document. What matters: the shell draws the
- * chart and the finished-work card under it in its main area.
+ * chart in its main area, and no finished-work card under it, which Tickets' Finished segment holds now.
  */
 import {
   cleanup,
@@ -66,7 +66,7 @@ afterEach(() => {
   cleanup();
 });
 
-test('the shell draws the Progress tab from its table of tab views: the chart, then the finished-work card', async () => {
+test('the shell draws the Progress tab from its table of tab views: the chart, with no finished-work card under it', async () => {
   render(
     <BoardApp
       services={servicesAnswering(BOARD)}
@@ -79,6 +79,5 @@ test('the shell draws the Progress tab from its table of tab views: the chart, t
   const mainArea = screen.getByRole('main');
   expect(mainArea.getAttribute('data-tab')).toBe('gantt');
   expect(mainArea.contains(heading)).toBe(true);
-  const finishedWork = within(mainArea).getByRole('region', { name: 'Finished work' });
-  expect(within(finishedWork).getByText('Build the example')).toBeDefined();
+  expect(within(mainArea).queryByRole('region', { name: 'Finished work' })).toBeNull();
 });

@@ -45,7 +45,7 @@ function PipelineTabView({ board, route, services }: BoardTabViewProps) {
 }
 
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
-  tickets:   ({ board, boardStore }) => <TicketsView board={board} boardStore={boardStore} />,
+  tickets:   ({ board, route, boardStore }) => <TicketsView board={board} boardStore={boardStore} routeItem={route.item} />,
   kanban:    KanbanTabView,
   waves:     WavesTabView,
   gantt:     ProgressTabView,

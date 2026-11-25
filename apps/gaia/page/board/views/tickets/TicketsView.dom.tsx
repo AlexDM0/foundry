@@ -1,11 +1,10 @@
 /**
- * The Tickets view in a happy-dom document: the title row's heading and its lead, which names what the finished-work window hides; the
- * table newest first, each id linking to its detail panel and a click, Enter or Space on a
- * row opening its row form while a link inside it stays its own; the open row marked; the finished-work window hiding old closed tickets
- * until something narrows; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status
- * chips narrow as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every
- * row and returns to the search; a header sorts and reverses; grouping by epic is stored under its key; a planted title stays text; after a
- * board update a moved or new row is marked changed once, until its highlight has played; and the view is a workplace of Flint.
+ * The Tickets view in a happy-dom document. What matters: the segments show their counts, In draft's accented while something there waits
+ * on User; the view opens on a routed segment, else on In draft while something waits, else on the stored segment, and a choice stores
+ * it per forge (In draft, the default, removing the key); In draft draws the running intake, then the drafts waiting on User with their
+ * actions opening the document page, then the drafts an agent writes with Watch; Active's rows open their ticket's detail by a click or
+ * Enter; Finished's "show all" widens the finished-work window; each segment keeps its own search; a planted title stays text; and the
+ * view is a workplace of Flint.
  */
 import {
   act,
@@ -22,73 +21,117 @@ import {
   test
 } from 'bun:test';
 
-import { boardPreferenceStoreOf }                    from '../../preferences/PreferenceStore.ts';
-import type { DetailItem }                           from '../../shell/DetailRoute.ts';
-import { FinishedWorkWindowContext }                 from '../../shell/FinishedWorkWindow.ts';
-import { boardHrefOf }                               from '../../testing/BoardRouteSurroundings.tsx';
-import { FIXTURE_TRACKER_ID }                        from '../../testing/BoardStateFixture.ts';
-import { routedOnTab, type RoutedView }              from '../../testing/DetailRoutingFixture.ts';
-import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
-import { TicketsView }                               from './TicketsView.tsx';
+import type { BoardDocument }                                 from '../../../@types/board/BoardDocument.ts';
+import { boardPreferenceStoreOf }                             from '../../preferences/PreferenceStore.ts';
+import { FinishedWorkWindowContext, type FinishedWorkWindow } from '../../shell/FinishedWorkWindow.ts';
+import { boardHrefOf }                                        from '../../testing/BoardRouteSurroundings.tsx';
+import {
+  exampleAgentJob,
+  exampleAskingDecision,
+  FIXTURE_NOW,
+  FIXTURE_TRACKER_ID
+} from '../../testing/BoardStateFixture.ts';
+import { routedOnTab, type RoutedView } from '../../testing/DetailRoutingFixture.ts';
+import { productOwnerJob }              from '../../testing/IntakeBoardFixture.ts';
+import {
+  exampleDocumentQuestion,
+  exampleDocumentsSummary,
+  exampleDraft,
+  exampleTicketsBoard,
+  exampleTicketsTicket
+} from '../../testing/TicketsBoardFixture.ts';
+import { TicketsView } from './TicketsView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
-const BOARD = exampleTicketsBoard({
-  tickets: [
-    exampleTicketsTicket('001', {
-      title: 'Add dark mode', branch: 'ticket-001', status: 'delivered', delivered: '2026-09-01T10:00:00+02:00', task: 3
+const SEGMENT_KEY = `gaia:board:${FIXTURE_TRACKER_ID}:tickets-segment`;
+
+const WRITING_AND_FINISHED = [
+  exampleTicketsTicket('23', {
+    title:     'Address autocomplete',
+    status:    'draft',
+    documents: exampleDocumentsSummary(['drafting', 1]),
+    draft:     exampleDraft({
+      stage: 'spec',
+      agent: {
+        jobId: 'J9', role: 'spec-agent', tokens: 18_000, since: '2026-10-29T11:55:48'
+      }
     }),
-    exampleTicketsTicket('002', {
-      title: 'Fix the export', type: 'bug', epics: ['billing'], priority: 'high'
-    }),
-    exampleTicketsTicket('003', { title: 'Research a vendor', type: 'research', epics: ['checkout'] }),
-    exampleTicketsTicket('004', { title: PLANTED_TITLE, status: 'in-progress' }),
-  ],
-  waitingOn: { '003': ['002'] },
+  }),
+  exampleTicketsTicket('12', { title: 'Checkout address form', status: 'in-progress' }),
+  exampleTicketsTicket('16', { title: PLANTED_TITLE }),
+  exampleTicketsTicket('10', { title: 'Wishlist sharing', status: 'delivered', delivered: '2026-10-29T11:05:00' }),
+  exampleTicketsTicket('3', { title: 'Size guide modal', status: 'delivered', delivered: '2026-10-20T10:00:00' }),
+];
+
+/** Nothing waits on User: a spec agent writes #23. */
+const QUIET_BOARD = exampleTicketsBoard({
+  tickets: WRITING_AND_FINISHED,
+  jobs:    [exampleAgentJob({ id: 'J2', ticketIds: ['12'] })],
 });
 
-const GROUPING_KEY = `gaia:board:${FIXTURE_TRACKER_ID}:ticket-grouping`;
-
-/** Closed tickets from the last day show; #001 closed weeks before. */
-const LAST_DAY_WINDOW = {
-  choice:                  '1d',
-  cutoffEpochMilliseconds: Date.parse('2026-09-17T12:00:00+02:00'),
-  nowEpochMilliseconds:    Date.parse('2026-09-18T12:00:00+02:00'),
-} as const;
+/** #22's spec agent asks User, and an intake runs and asks User. */
+const WAITING_BOARD = exampleTicketsBoard({
+  tickets: [
+    exampleTicketsTicket('22', {
+      title:     'Order email footer links',
+      status:    'draft',
+      documents: exampleDocumentsSummary(['drafting', 2]),
+      draft:     exampleDraft({ stage: 'spec', waitsOnUser: 'answer', waitingSince: '2026-10-29T11:54:00' }),
+    }),
+    ...WRITING_AND_FINISHED,
+  ],
+  jobs: [
+    exampleAgentJob({ id: 'J2', ticketIds: ['12'] }),
+    productOwnerJob({
+      id: 'J8', state: 'running', intake: { text: 'Account area changes', title: 'Account area changes' }, launchedAt: '2026-10-29T11:51:00'
+    }),
+  ],
+  decisions: [exampleDocumentQuestion('E7', '22', 'spec', '2026-10-29T11:54:00'), exampleAskingDecision({ id: 'E5', jobId: 'J8', askedBy: 'product-owner' })],
+});
 
 interface RenderedTickets {
-  readonly storage: Map<string, string>;
-  readonly routed:  RoutedView;
+  readonly storage:   Map<string, string>;
+  readonly routed:    RoutedView;
+  readonly showAsked: { count: number };
+  /** Draws the view again on another route item, as the shell does when the address moves under a mounted view. */
+  readonly routeTo:   (routeItem: string | null) => void;
 }
 
-function renderTickets(storedEntries: readonly [string, string][] = [], openItem: DetailItem | null = null, insideLastDayWindow = false): RenderedTickets {
+function renderTickets(board: BoardDocument, storedEntries: readonly [string, string][] = [], routeItem: string | null = null): RenderedTickets {
   const storage = new Map<string, string>(storedEntries);
   const boardStore = boardPreferenceStoreOf(FIXTURE_TRACKER_ID, () => ({
     getItem:    (key) => storage.get(key) ?? null,
     setItem:    (key, value) => storage.set(key, value),
     removeItem: (key) => storage.delete(key),
   }));
-  const routed = routedOnTab('tickets', <TicketsView board={BOARD} boardStore={boardStore} />, openItem);
-  render(insideLastDayWindow ? <FinishedWorkWindowContext.Provider value={LAST_DAY_WINDOW}>{routed.element}</FinishedWorkWindowContext.Provider> : routed.element);
-  return { storage, routed };
+  const showAsked = { count: 0 };
+  const finishedWorkWindow: FinishedWorkWindow = {
+    choice:                  '1d',
+    cutoffEpochMilliseconds: FIXTURE_NOW.getTime() - 86_400_000,
+    nowEpochMilliseconds:    FIXTURE_NOW.getTime(),
+    showAll:                 () => {
+      showAsked.count += 1;
+    },
+  };
+  const elementOn = (item: string | null) => (
+    <FinishedWorkWindowContext value={finishedWorkWindow}>
+      {routedOnTab('tickets', <TicketsView board={board} boardStore={boardStore} routeItem={item} />).element}
+    </FinishedWorkWindowContext>
+  );
+  const routed = routedOnTab('tickets', <TicketsView board={board} boardStore={boardStore} routeItem={routeItem} />);
+  const { rerender } = render(<FinishedWorkWindowContext value={finishedWorkWindow}>{routed.element}</FinishedWorkWindowContext>);
+  return {
+    storage, routed, showAsked, routeTo: (item) => act(() => rerender(elementOn(item)))
+  };
 }
 
-function shownIds(): (string | null)[] {
-  return [...document.querySelectorAll('tbody tr[data-ticket-id]')].map((row) => row.getAttribute('data-ticket-id'));
+function segmentButton(name: RegExp): HTMLElement {
+  return within(screen.getByRole('group', { name: 'Which tickets' })).getByRole('button', { name });
 }
 
-function idLinkOf(ticketId: string): HTMLElement {
-  return document.querySelector(`tr[data-ticket-id="${ticketId}"] td:first-child a`) as HTMLElement;
-}
-
-function chipNamed(group: string, name: RegExp): HTMLElement {
-  return within(screen.getByRole('group', { name: group })).getByRole('button', { name });
-}
-
-function typed(text: string): void {
-  act(() => {
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search tickets' }), { target: { value: text } });
-  });
+function pressedSegment(): string | null {
+  return within(screen.getByRole('group', { name: 'Which tickets' })).getAllByRole('button').find((button) => button.getAttribute('aria-pressed') === 'true')?.textContent ?? null;
 }
 
 function clicked(element: HTMLElement): void {
@@ -97,183 +140,122 @@ function clicked(element: HTMLElement): void {
   });
 }
 
+function typed(searchName: string, text: string): void {
+  act(() => {
+    fireEvent.change(screen.getByRole('searchbox', { name: searchName }), { target: { value: text } });
+  });
+}
+
 afterEach(() => {
   cleanup();
 });
 
-describe('the table', () => {
-  test('shows every ticket newest first, each id linking to its detail panel, with the count', () => {
-    renderTickets();
-    expect(shownIds()).toEqual(['004', '003', '002', '001']);
-    expect(idLinkOf('002').getAttribute('href')).toBe(boardHrefOf('tickets/ticket-row/002'));
-    expect(screen.getByText('4 of 4 tickets · 1 in progress')).toBeTruthy();
+describe('the segments', () => {
+  test('show their counts, In draft\'s accented while something there waits on User', () => {
+    renderTickets(WAITING_BOARD);
+    expect([segmentButton(/^In draft/).textContent, segmentButton(/^Active/).textContent, segmentButton(/^Finished/).textContent])
+      .toEqual(['In draft 2', 'Active 2', 'Finished 2']);
+    expect(segmentButton(/^In draft/).getAttribute('aria-label')).toBe('In draft, 2, something waits on you');
   });
 
-  test('a row shows its state badge, priority, type, epics, waiting-on links and its task by the ticket\'s own id', () => {
-    renderTickets();
-    const row = document.querySelector('tr[data-ticket-id="002"]');
-    expect(row?.querySelector('.design-system-state-badge')?.textContent).toBe('To do');
-    expect(row?.querySelector('.board-priority-mark')?.textContent).toBe('high');
-    expect(row?.querySelector('.board-type-mark')?.textContent).toBe('bug');
-    expect(document.querySelector('tr[data-ticket-id="004"] .board-type-mark')?.textContent).toBe('ticket');
-    expect(row?.querySelector('.board-epic-chip')?.textContent).toBe('Example billing');
-    const waiting = document.querySelector('tr[data-ticket-id="003"] .board-waiting-on');
-    expect([waiting?.textContent, waiting?.querySelector('a')?.getAttribute('href')]).toEqual(['waiting on #002', boardHrefOf('tickets/ticket-row/002')]);
-    const task = document.querySelector('tr[data-ticket-id="001"] td:last-child a');
-    expect([task?.textContent, task?.getAttribute('href')]).toEqual(['#001', boardHrefOf('progress/gantt/task-row/3')]);
+  test('the view opens on In draft while something there waits, whatever was stored', () => {
+    renderTickets(WAITING_BOARD, [[SEGMENT_KEY, 'finished']]);
+    expect(pressedSegment()).toBe('In draft 2');
   });
 
-  test('a click, Enter or Space on a row opens its row form, and a link inside the row stays its own', () => {
-    const { routed } = renderTickets();
-    const row = document.querySelector('tr[data-ticket-id="003"]') as HTMLElement;
+  test('with nothing waiting it opens on the stored segment, and a routed segment wins over both', () => {
+    renderTickets(QUIET_BOARD, [[SEGMENT_KEY, 'active']]);
+    expect(pressedSegment()).toBe('Active 2');
+    cleanup();
+    renderTickets(WAITING_BOARD, [[SEGMENT_KEY, 'active']], 'finished');
+    expect(pressedSegment()).toBe('Finished 2');
+  });
+
+  test('a segment the address names while the view is open is shown, and a detail item keeps the segment', () => {
+    const { routeTo } = renderTickets(QUIET_BOARD);
+    routeTo('active');
+    expect(pressedSegment()).toBe('Active 2');
+    routeTo('ticket/12');
+    expect(pressedSegment()).toBe('Active 2');
+  });
+
+  test('a choice is stored per forge, and In draft, the default, removes the key', () => {
+    const { storage } = renderTickets(QUIET_BOARD);
+    clicked(segmentButton(/^Finished/));
+    expect(storage.get(SEGMENT_KEY)).toBe('finished');
+    clicked(segmentButton(/^In draft/));
+    expect(storage.has(SEGMENT_KEY)).toBe(false);
+  });
+});
+
+describe('In draft', () => {
+  test('draws the running intake first, linking to its session in Intake', () => {
+    renderTickets(WAITING_BOARD);
+    const intake = screen.getByRole('region', { name: 'Intake Account area changes' });
+    expect(within(intake).getByText('Waiting on you · 1 question')).toBeDefined();
+    expect(within(intake).getByRole('link', { name: 'Open intake' }).getAttribute('href')).toBe(boardHrefOf('intake/J8'));
+  });
+
+  test('a draft waiting on User has its wait and an action opening its document, and its id opens the document too', () => {
+    renderTickets(WAITING_BOARD);
+    const waiting = screen.getByRole('region', { name: 'Waiting on you' });
+    expect(within(waiting).getByText('1 question from the spec agent')).toBeDefined();
+    expect(within(waiting).getByRole('link', { name: 'Answer #22' }).getAttribute('href')).toBe(boardHrefOf('documents/ticket/22/spec'));
+    expect(within(waiting).getByRole('link', { name: '#22' }).getAttribute('href')).toBe(boardHrefOf('documents/ticket/22/spec'));
+  });
+
+  test('a draft an agent writes shows the agent and Watch opens its document', () => {
+    renderTickets(QUIET_BOARD);
+    const writing = screen.getByRole('region', { name: 'Agent writing' });
+    expect(within(writing).getByText('J9')).toBeDefined();
+    expect(within(writing).getByText('spec agent')).toBeDefined();
+    expect(within(writing).getByRole('link', { name: 'Watch #23' }).getAttribute('href')).toBe(boardHrefOf('documents/ticket/23/spec'));
+    expect(screen.queryByRole('region', { name: 'Waiting on you' })).toBeNull();
+  });
+});
+
+describe('Active and Finished', () => {
+  test('an Active row opens its ticket\'s detail by a click or Enter, and its id links there', () => {
+    const { routed } = renderTickets(QUIET_BOARD, [], 'active');
+    const row = document.querySelector('tr[data-ticket-id="12"]') as HTMLElement;
+    expect(within(row).getByRole('link', { name: '#12' }).getAttribute('href')).toBe(boardHrefOf('tickets/ticket/12'));
     clicked(row);
     act(() => {
       fireEvent.keyDown(row, { key: 'Enter' });
-      fireEvent.keyDown(row, { key: ' ' });
     });
-    clicked(idLinkOf('002'));
-    expect(routed.navigatedRoutes).toEqual([
-      { tab: 'tickets', item: 'ticket-row/003' }, { tab: 'tickets', item: 'ticket-row/003' }, { tab: 'tickets', item: 'ticket-row/003' },
-    ]);
+    expect(routed.navigatedRoutes).toEqual([{ tab: 'tickets', item: 'ticket/12' }, { tab: 'tickets', item: 'ticket/12' }]);
   });
 
-  test('the row the panel shows is marked, and its opener closes it', () => {
-    renderTickets([], { form: 'ticket-row', ticketId: '002' });
-    expect([...document.querySelectorAll('tr[data-selected]')].map((row) => row.getAttribute('data-ticket-id'))).toEqual(['002']);
-    expect(idLinkOf('002').getAttribute('href')).toBe(boardHrefOf('tickets'));
-  });
-
-  test('a planted payload in a title reaches the DOM only as text', () => {
-    renderTickets();
-    expect(document.querySelector('tr[data-ticket-id="004"] td:nth-child(2)')?.textContent).toBe(PLANTED_TITLE);
-    expect(document.querySelector('tbody img')).toBeNull();
-    expect((window as unknown as { plantedRan?: boolean }).plantedRan).toBeUndefined();
+  test('Finished shows the window\'s tickets and its show all widens the window', () => {
+    const { showAsked } = renderTickets(QUIET_BOARD, [], 'finished');
+    const finished = screen.getByRole('region', { name: 'Finished tickets' });
+    expect(within(finished).getByText('Wishlist sharing')).toBeDefined();
+    expect(within(finished).queryByText('Size guide modal')).toBeNull();
+    expect(within(finished).getByText(/1 earlier ticket/)).toBeDefined();
+    clicked(within(finished).getByRole('button', { name: 'show all' }));
+    expect(showAsked.count).toBe(1);
   });
 });
 
-describe('the finished-work window', () => {
-  test('unnarrowed, a ticket closed before the window hides; a search looks through it again', () => {
-    renderTickets([], null, true);
-    expect(shownIds()).toEqual(['004', '003', '002']);
-    expect(screen.getByText('3 of 4 tickets · 1 in progress')).toBeTruthy();
-    typed('dark');
-    expect(shownIds()).toEqual(['001']);
-  });
-
-  test('the title row heads the view and its lead names what the window hides, until a search looks through every ticket', () => {
-    renderTickets([], null, true);
-    expect(screen.getByRole('heading', { level: 2, name: 'Tickets' })).toBeTruthy();
-    const lead = screen.getByText('3 of 4 tickets · 1 in progress').parentElement;
-    expect(lead?.textContent).toBe('3 of 4 tickets · 1 in progress. Closed tickets not finished in the last day are hidden. Search to see every ticket.');
-    typed('dark');
-    expect(lead?.textContent).toBe('1 of 4 tickets · 1 in progress.');
-  });
+test('each segment keeps its own search', () => {
+  renderTickets(QUIET_BOARD, [], 'active');
+  typed('Search active', 'checkout');
+  expect(screen.getByText('Checkout address form')).toBeDefined();
+  expect(document.querySelector('tr[data-ticket-id="16"]')).toBeNull();
+  clicked(segmentButton(/^Finished/));
+  expect((screen.getByRole('searchbox', { name: 'Search finished' }) as HTMLInputElement).value).toBe('');
+  clicked(segmentButton(/^Active/));
+  expect((screen.getByRole('searchbox', { name: 'Search active' }) as HTMLInputElement).value).toBe('checkout');
 });
 
-describe('the search', () => {
-  test('typing narrows the table and marks each match in the title and branch', () => {
-    renderTickets();
-    typed('DARK');
-    expect(shownIds()).toEqual(['001']);
-    expect([...document.querySelectorAll('mark.board-match')].map((mark) => mark.textContent)).toEqual(['dark']);
-    expect(screen.getByText('1 of 4 tickets · 1 in progress')).toBeTruthy();
-  });
-
-  test('an id query looks at the id alone and marks nothing', () => {
-    renderTickets();
-    typed('#1');
-    expect(shownIds()).toEqual(['001']);
-    expect(document.querySelectorAll('mark').length).toBe(0);
-  });
-});
-
-describe('the chips', () => {
-  test('type chips are alternatives, and their counts ignore their own group', () => {
-    renderTickets();
-    clicked(chipNamed('Type', /^bug/));
-    clicked(chipNamed('Type', /^research/));
-    expect(shownIds()).toEqual(['003', '002']);
-    expect(chipNamed('Type', /^ticket/).querySelector('.board-chip-count')?.textContent).toBe('2');
-    expect(chipNamed('Type', /^bug/).getAttribute('aria-pressed')).toBe('true');
-  });
-
-  test('an epic chip and a status chip hold together, and the no-epic chip keeps the tickets in none', () => {
-    renderTickets();
-    clicked(chipNamed('Epic', /^no epic/));
-    expect(shownIds()).toEqual(['004', '001']);
-    clicked(chipNamed('Status', /^In progress/));
-    expect(shownIds()).toEqual(['004']);
-  });
-
-  test('a table nothing matches says what was asked, and its Clear brings every row back', () => {
-    renderTickets();
-    typed('nothing like it');
-    clicked(chipNamed('Type', /^bug/));
-    expect(shownIds()).toEqual([]);
-    const empty = document.querySelector('.board-ticket-empty');
-    expect(empty?.querySelector('p strong')?.textContent).toBe('No ticket matches “nothing like it”, type bug.');
-    clicked(within(empty as HTMLElement).getByRole('button', { name: 'Clear search and filters' }));
-    expect(shownIds()).toEqual(['004', '003', '002', '001']);
-    expect(screen.queryByRole('button', { name: 'Clear search and filters' })).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search tickets' }));
-  });
-});
-
-describe('the sort and the grouping', () => {
-  test('a header sorts ascending, marks itself sorted, and a second press reverses it', () => {
-    renderTickets();
-    const titleButton = screen.getByRole('button', { name: 'title' });
-    clicked(titleButton);
-    expect(shownIds()).toEqual(['004', '001', '002', '003']);
-    expect(titleButton.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
-    expect(screen.getByRole('button', { name: 'id' }).closest('th')?.hasAttribute('aria-sort')).toBe(false);
-    clicked(titleButton);
-    expect(shownIds()).toEqual(['003', '002', '001', '004']);
-  });
-
-  test('grouping by epic puts each epic\'s tickets under its head and stores the choice under its key', () => {
-    const { storage } = renderTickets();
-    clicked(screen.getByRole('button', { name: 'Group by epic' }));
-    expect([...document.querySelectorAll('.board-ticket-epic-title')].map((title) => title.textContent)).toEqual(['Example billing', 'Example checkout', 'No epic']);
-    expect(document.querySelector('.board-ticket-epic-title')?.getAttribute('href')).toBe(boardHrefOf('epics/epic/billing'));
-    expect(storage.get(GROUPING_KEY)).toBe('epic');
-    clicked(screen.getByRole('button', { name: 'Group by epic' }));
-    expect(storage.has(GROUPING_KEY)).toBe(false);
-  });
-
-  test('a stored grouping is read back on render', () => {
-    renderTickets([[GROUPING_KEY, 'epic']]);
-    expect(screen.getByRole('button', { name: 'Group by epic' }).getAttribute('aria-pressed')).toBe('true');
-    expect(document.querySelectorAll('.board-ticket-epic-head').length).toBe(3);
-  });
-});
-
-describe('the change highlight', () => {
-  test('marks nothing on the first board, then each moved or new row until its highlight has played', () => {
-    const view = (board: typeof BOARD) => routedOnTab('tickets', <TicketsView board={board} boardStore={null} />).element;
-    const { rerender } = render(view(BOARD));
-    expect(document.querySelectorAll('tr[data-changed]')).toHaveLength(0);
-
-    const movedBoard = exampleTicketsBoard({
-      tickets: [
-        ...BOARD.page.tickets.map((ticket) => (ticket.id === '002' ? { ...ticket, status: 'in-progress' as const } : ticket)),
-        exampleTicketsTicket('005', { title: 'Example new ticket' }),
-      ],
-      waitingOn: { '003': ['002'] },
-    });
-    rerender(view(movedBoard));
-    expect([...document.querySelectorAll('tr[data-changed]')].map((row) => row.getAttribute('data-ticket-id'))).toEqual(['005', '002']);
-
-    const movedRow = document.querySelector('tr[data-ticket-id="002"]') as HTMLElement;
-    fireEvent.animationEnd(movedRow.querySelector('td') as HTMLElement);
-    expect(movedRow.hasAttribute('data-changed')).toBe(true);
-    fireEvent.animationEnd(movedRow);
-    expect(movedRow.hasAttribute('data-changed')).toBe(false);
-    expect(document.querySelector('tr[data-ticket-id="005"]')?.hasAttribute('data-changed')).toBe(true);
-  });
+test('a planted payload in a title reaches the DOM only as text', () => {
+  renderTickets(QUIET_BOARD, [], 'active');
+  expect(screen.getByText(PLANTED_TITLE)).toBeDefined();
+  expect(document.querySelector('img')).toBeNull();
+  expect((window as unknown as { plantedRan?: boolean }).plantedRan).toBeUndefined();
 });
 
 test('the view is a workplace of Flint', () => {
-  renderTickets();
+  renderTickets(QUIET_BOARD);
   expect(screen.getByRole('region', { name: 'Tickets' }).hasAttribute('data-flint-workplace')).toBe(true);
 });

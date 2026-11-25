@@ -48,7 +48,9 @@ const EPICS_FRAGMENT = `#forge/${FIXTURE_TRACKER_ID}/epics`;
 function renderedEpics(options: RenderedEpicsOptions = {}) {
   const choice = options.choice ?? 'all';
   const nowEpochMilliseconds = EPICS_FIXTURE_NOW.getTime();
-  const finishedWorkWindow = { choice, cutoffEpochMilliseconds: FinishedWorkUtil.cutoffEpochMillisecondsOf(choice, nowEpochMilliseconds), nowEpochMilliseconds };
+  const finishedWorkWindow = {
+    choice, cutoffEpochMilliseconds: FinishedWorkUtil.cutoffEpochMillisecondsOf(choice, nowEpochMilliseconds), nowEpochMilliseconds, showAll: () => undefined
+  };
   const board = options.onlySettled === true ? epicsBoardFixture([SETTLED_FIXTURE_EPIC]) : epicsBoardFixture();
   const view = <EpicsView board={board} pointedEpicKey={options.pointedEpicKey ?? null} connection={options.connection ?? 'live'} />;
   const routed = routedOnTab('epics', view, options.openItem ?? null);

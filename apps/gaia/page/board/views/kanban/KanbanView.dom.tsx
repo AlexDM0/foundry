@@ -71,7 +71,9 @@ const BOARD = exampleBoard({
 
 const MERGE_QUEUE_HREF = '#forge/example-tracker/progress/kanban/merge-queue';
 
-const SHOWING_ALL_FINISHED: FinishedWorkWindow = { choice: 'all', cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS };
+const SHOWING_ALL_FINISHED: FinishedWorkWindow = {
+  choice: 'all', cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS, showAll: () => undefined
+};
 
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -656,7 +658,9 @@ describe('the finished-work window', () => {
   });
   const DAY_MILLISECONDS = 24 * 60 * 60 * MILLISECONDS_PER_SECOND;
   const CUTOFF_EPOCH_MILLISECONDS = EXAMPLE_NOW_EPOCH_MILLISECONDS - DAY_MILLISECONDS;
-  const LAST_DAY: FinishedWorkWindow = { choice: '1d', cutoffEpochMilliseconds: CUTOFF_EPOCH_MILLISECONDS, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS };
+  const LAST_DAY: FinishedWorkWindow = {
+    choice: '1d', cutoffEpochMilliseconds: CUTOFF_EPOCH_MILLISECONDS, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS, showAll: () => undefined
+  };
 
   test('a closed lane shows what the window lets through, says how many it hides, and its show all widens the window', async () => {
     const kanban = renderKanbanWith({ initialBoard: CLOSED_BOARD, finishedWork: LAST_DAY });

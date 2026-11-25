@@ -75,7 +75,8 @@ export function useBoardTabFilters(
     choice:                  finishedWorkChoice,
     cutoffEpochMilliseconds: FinishedWorkUtil.cutoffEpochMillisecondsOf(finishedWorkChoice, boardNowEpochMilliseconds),
     nowEpochMilliseconds:    boardNowEpochMilliseconds,
-  }), [finishedWorkChoice, boardNowEpochMilliseconds]);
+    showAll:                 showAllFinished,
+  }), [finishedWorkChoice, boardNowEpochMilliseconds, showAllFinished]);
 
   const onKanban = shownTab === 'kanban' && kanbanFilters !== null;
   const filterLine = board === null || !DetailRoute.isDetailTab(shownTab) ? null : (

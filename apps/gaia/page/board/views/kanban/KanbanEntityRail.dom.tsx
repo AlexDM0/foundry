@@ -76,7 +76,9 @@ function renderKanban(boardState: BoardDocument): void {
   render(
     <ControlSurroundingsContext value={surroundings}>
       <BoardClockContext value={STILL_CLOCK}>
-        <FinishedWorkWindowContext value={{ choice: 'all', cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS }}>
+        <FinishedWorkWindowContext value={{
+          choice: 'all', cutoffEpochMilliseconds: Number.NEGATIVE_INFINITY, nowEpochMilliseconds: EXAMPLE_NOW_EPOCH_MILLISECONDS, showAll: () => undefined
+        }}>
           <QuestionPanelOpenerContext value={() => undefined}>
             <QuestionPanelShownContext value={false}>
               {routedOnTab('kanban', <ChoosingKanban boardState={boardState} />, null).element}

@@ -162,7 +162,7 @@ segment is URL-encoded.
 | `#forges/add` | Forges with the "Add a repository" dialog open |
 | `#forge/<trackerId>` | The forge's board in place, at the tab this browser last chose, else the first it shows |
 | `#forge/<trackerId>/<place>` | The board at a place: `tickets`, `progress/kanban`, `progress/waves`, `progress/gantt`, `epics`, `agents`, `questions`, `assistant`, `intake`, `pipeline` |
-| `#forge/<trackerId>/<place>/<item>` | The board with an item open: `questions/<decisionId>`, `tickets/ticket/<ticketId>`, `tickets/draft/<draftId>`, `agents/<jobId>`; an incident opens `assistant` alone |
+| `#forge/<trackerId>/<place>/<item>` | The board with an item open: `questions/<decisionId>`, `tickets/ticket/<ticketId>`, `tickets/draft/<draftId>`, `agents/<jobId>`; an incident opens `assistant` alone; `tickets/in-draft`, `tickets/active` and `tickets/finished` open Tickets on that segment (`tickets.md`) |
 
 An old board link (`kanban`, `waves`, `progress`) is redirected to the route it names (`board-menu.md`, "Routes"). A path after the
 tracker id that names no board place, and the form with `#` before the tab (`#forge/<trackerId>/#questions/E2`), open the

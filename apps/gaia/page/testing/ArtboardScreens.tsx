@@ -58,6 +58,7 @@ import { FLEET_OUTAGE_ENDINGS }                                                 
 import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG }     from './fixtures/fleet-storefront-crashed.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                                 from './fixtures/fleet-versions.ts';
 import { storefrontBoardOf }                                                                          from './fixtures/storefront-board.ts';
+import { STOREFRONT_ONE_TICKET_BOARD, STOREFRONT_TICKETS_BOARD }                                      from './fixtures/storefront-tickets-board.ts';
 
 export type ScreenTheme = 'dark' | 'light';
 
@@ -952,4 +953,50 @@ export function pipelineDocumentScreenDocumentOf(screen: PipelineDocumentScreen,
   const dialogScript = screen.openRequest === null ? '' : `\n${SHOW_DIALOGS_SCRIPT}`;
   const bodyMarkup = `<div id="gaia-root">${pipelineDocumentScreenMarkupOf(screen, theme)}</div>\n${OPEN_CHATS_AT_THEIR_END_SCRIPT}${dialogScript}`;
   return documentAround(`Documents ${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
+}
+
+/** The Tickets artboard, 0 of the spec and plan design, drawn at this size. */
+export const TICKETS_ARTBOARD_SIZE_PIXELS = { width: 1680, height: 1180 } as const;
+
+export interface TicketsScreen {
+  readonly artboard:   '0';
+  readonly title:      string;
+  readonly designFile: 'TicketsSegmented.dc.html';
+  readonly board:      BoardDocument;
+  /** The segment the route opens Tickets on. */
+  readonly segment:    'in-draft' | 'active' | 'finished';
+}
+
+/** Each segment of artboard 0 on the spec-then-plan route, and In draft again on the one-ticket route. */
+export const TICKETS_SCREENS: readonly TicketsScreen[] = [
+  {
+    artboard: '0', title: 'Tickets, In draft', designFile: 'TicketsSegmented.dc.html', board: STOREFRONT_TICKETS_BOARD, segment: 'in-draft'
+  },
+  {
+    artboard: '0', title: 'Tickets, Active', designFile: 'TicketsSegmented.dc.html', board: STOREFRONT_TICKETS_BOARD, segment: 'active'
+  },
+  {
+    artboard: '0', title: 'Tickets, Finished', designFile: 'TicketsSegmented.dc.html', board: STOREFRONT_TICKETS_BOARD, segment: 'finished'
+  },
+  {
+    artboard: '0', title: 'Tickets, In draft on the one-ticket route', designFile: 'TicketsSegmented.dc.html', board: STOREFRONT_ONE_TICKET_BOARD, segment: 'in-draft'
+  },
+];
+
+/** Example Storefront in place on Tickets at the screen's segment, drawn from the screen's board. */
+export function ticketsScreenMarkupOf(screen: TicketsScreen, theme: ScreenTheme): string {
+  const storefrontOnTickets: ArtboardScreen = {
+    artboard:      'B1',
+    title:         screen.title,
+    designFile:    screen.designFile,
+    fleetDocument: FLEET_FIVE_FORGES,
+    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'tickets', item: screen.segment } }),
+    viewState:     'as-routed',
+  };
+  return screenMarkupOf(storefrontOnTickets, theme, screen.board);
+}
+
+/** A whole page for a browser, opened at the artboard's 1680 by 1180, in the screen's theme. */
+export function ticketsScreenDocumentOf(screen: TicketsScreen, theme: ScreenTheme): string {
+  return documentAround(`Tickets ${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${ticketsScreenMarkupOf(screen, theme)}</div>`);
 }

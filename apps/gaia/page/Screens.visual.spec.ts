@@ -8,7 +8,8 @@
  * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
  * warnings of monitor contract 2, a failed restart as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
  * state, the forge program found. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
- * fixture, one screen per board render, Example Billing's Update forge at each of its steps.
+ * fixture, one screen per board render, Example Billing's Update forge at each of its steps. Artboard 0, Tickets, is painted once per segment
+ * on the spec-then-plan route and once more for In draft on the one-ticket route.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`. A screen
@@ -59,6 +60,9 @@ import {
   TICKET_DOCUMENT_SCREENS,
   ticketDocumentScreenDocumentOf,
   ticketDocumentScreenMarkupOf,
+  TICKETS_SCREENS,
+  ticketsScreenDocumentOf,
+  ticketsScreenMarkupOf,
   VERSIONS_SCREENS,
   WHAT_NOTIFIES_SCREENS,
   whatNotifiesDocumentOf,
@@ -608,6 +612,47 @@ describe('the pipeline document screens', () => {
         const screenDocument = pipelineDocumentScreenDocumentOf(screen, theme);
         expect([screen.artboard, screenDocument.includes(`<html lang="en" data-theme="${theme}">`), screenDocument.includes('showModal()')])
           .toEqual([screen.artboard, true, screen.artboard === '10']);
+      }
+    }
+  });
+});
+
+/** What each Tickets screen shows, in the words the page draws, by its title. */
+const TICKETS_SCREEN_STATES: Readonly<Record<string, readonly string[]>> = {
+  'Tickets, In draft': [
+    'Opens on In draft while something there waits on you.',
+    'Account area changes',
+    'Waiting on you · 2 questions',
+    'Approve spec v3',
+    '2 questions from the spec agent',
+    'Approve plan v1',
+    'Agent writing',
+    'spec agent',
+    '18k tokens',
+    '4m 12s',
+  ],
+  'Tickets, Active':                           ['Asks E2', 'J3 builder asks you', 'J2 builder · 84k tokens', 'Waits on #012', 'ready 09:40'],
+  'Tickets, Finished':                         ['Wishlist sharing', 'today 13:05', 'Abandoned', '35 earlier tickets · ', 'show all'],
+  'Tickets, In draft on the one-ticket route': ['Ticket to review', 'Review ticket', '✓ Shape', 'Ticket review', 'Draft to make ready'],
+};
+
+describe('the Tickets screens', () => {
+  test('artboard 0 is painted for each segment, and In draft again on the one-ticket route', () => {
+    expect(TICKETS_SCREENS.map((screen) => [screen.artboard, screen.segment])).toEqual([['0', 'in-draft'], ['0', 'active'], ['0', 'finished'], ['0', 'in-draft']]);
+  });
+
+  test('each screen shows the segment and the state its artboard draws', () => {
+    for (const screen of TICKETS_SCREENS) {
+      const text = MarkupTree.textOf(MarkupTree.parse(ticketsScreenMarkupOf(screen, 'light')));
+      for (const shown of TICKETS_SCREEN_STATES[screen.title] ?? []) expect([screen.title, shown, text.includes(shown)]).toEqual([screen.title, shown, true]);
+    }
+  });
+
+  test('a screen holds no colour of its own, and its document names its theme', () => {
+    for (const screen of TICKETS_SCREENS) {
+      for (const theme of SCREEN_THEMES) {
+        for (const inlineStyle of inlineStylesOf(ticketsScreenMarkupOf(screen, theme))) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
+        expect(ticketsScreenDocumentOf(screen, theme).includes(`<html lang="en" data-theme="${theme}">`)).toBe(true);
       }
     }
   });

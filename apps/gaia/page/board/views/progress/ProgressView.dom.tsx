@@ -305,7 +305,9 @@ describe('the finished-work window', () => {
   });
 
   function renderInWindow(boardState: BoardDocument, cutoffEpochMilliseconds: number) {
-    const finishedWorkWindow = { choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00') } as const;
+    const finishedWorkWindow = {
+      choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00'), showAll: () => undefined
+    } as const;
     const view = <ProgressView board={boardState} boardStore={memoryBoardStore()} nowEpochMilliseconds={finishedWorkWindow.nowEpochMilliseconds} todayCalendarDate="2026-09-18" />;
     return render(routedOnTab('gantt', <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>{view}</FinishedWorkWindowContext.Provider>).element);
   }
@@ -328,7 +330,9 @@ describe('the finished-work window', () => {
       removeItem: (key) => storage.delete(key),
     }));
     const viewOf = (cutoffEpochMilliseconds: number) => {
-      const finishedWorkWindow = { choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00') } as const;
+      const finishedWorkWindow = {
+        choice: '1d', cutoffEpochMilliseconds, nowEpochMilliseconds: Date.parse('2026-09-18T13:00:00+02:00'), showAll: () => undefined
+      } as const;
       return routedOnTab('gantt', (
         <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
           <ProgressView board={WINDOW_BOARD} boardStore={boardStore} nowEpochMilliseconds={finishedWorkWindow.nowEpochMilliseconds} todayCalendarDate="2026-09-18" />
