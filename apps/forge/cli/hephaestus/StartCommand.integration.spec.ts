@@ -29,6 +29,7 @@ import {
   test
 } from 'bun:test';
 
+import { HEPHAESTUS_LOCK_FORMAT_VERSION }                 from '../../src/adapters/hephaestus-lock/HephaestusLockIngestion.ts';
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { childFilesOf, talosRecordPathOf }                from '../../src/lib/talos/TalosFiles.ts';
 import { type TalosRecord, talosRecordOf }                from '../../src/lib/talos/TalosRecord.ts';
@@ -101,6 +102,7 @@ function storedLogKindsOf(repository: string): string[] {
 function plantDeadLock(generation: number): void {
   mkdirSync(hephaestusDirectory(), { recursive: true });
   writeFileSync(join(hephaestusDirectory(), `lock-${generation}.json`), JSON.stringify({
+    version:              HEPHAESTUS_LOCK_FORMAT_VERSION,
     processId:            process.pid,
     processStartStamp:    '1',
     bootIdentity:         'example-boot',

@@ -764,7 +764,10 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       await server.stop();
       throw hephaestusLockRefusalOf(acquisition, files);
     }
-    const { generation } = acquisition;
+    const { generation, unreadableTakenOver } = acquisition;
+    if (unreadableTakenOver !== undefined) {
+      log(`The Hephaestus lock ${unreadableTakenOver.hephaestusLockFilePath} could not be read (${unreadableTakenOver.reason}); generation ${generation} took it over.`);
+    }
     const ownBroker = EventBroker.createEventBroker(generation);
     const ownMonitorStream = MonitorStream.createMonitorStream();
     const publishState = () => {
