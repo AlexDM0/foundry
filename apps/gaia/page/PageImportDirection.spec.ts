@@ -1,9 +1,11 @@
 /**
  * The page's folders import one way: the shell draws the views, so no view and nothing shared imports the shell, and nothing shared
- * imports a view; the board, which a view may draw, imports neither the shell nor a view. And the page reaches no forge: no module the page
- * project compiles, the shared files its tsconfig names among them, imports `forge-contracts` or a path under `apps/forge/`, and no page
- * module or shared file reaches a file outside `page/` but those shared files; read through the compiler, the page program compiles no
- * Gaia file the tsconfig leaves out, nothing under `apps/forge/` and no `forge-contracts` file. Gaia's own components under
+ * imports a view; the board, which a view may draw, imports neither the shell nor a view. Inside the board no view imports another,
+ * `board/shared/` imports no view and no shell, only `Board.tsx` and `board/testing/` import the shell, and `page/shared/` imports nothing of
+ * the board, today's breaks aside, held exactly. And the page reaches no forge: no module the page project compiles, the shared files its
+ * tsconfig names among them, imports `forge-contracts` or a path under `apps/forge/`, and no page module or shared file reaches a file
+ * outside `page/` but those shared files; read through the compiler, the page program compiles no Gaia file the tsconfig leaves out,
+ * nothing under `apps/forge/` and no `forge-contracts` file. Gaia's own components under
  * `page/components/` import no shell, view or board. The Flint library is imported only from `page/board/`; that every import of a library
  * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. What matters: the rules read every shipping module, specs aside,
  * since a spec may render the whole shell; and each guard is first proved on a planted case, in memory.
@@ -131,6 +133,314 @@ function flintReachesOf(modulePath: string, source: string): string[] {
     .map((importedName) => `${moduleName} imports ${importedName} outside ${BOARD_FOLDER_PREFIX}`);
 }
 
+const BOARD_SHELL_FOLDER_PREFIX = 'page/board/shell/';
+const BOARD_SHARED_FOLDER_PREFIX = 'page/board/shared/';
+const BOARD_TESTING_FOLDER_PREFIX = 'page/board/testing/';
+const BOARD_ENTRY_MODULE = 'page/board/Board.tsx';
+const PAGE_SHARED_FOLDER_PREFIX = 'page/shared/';
+
+interface BoardImportRule {
+  readonly breach:     string;
+  readonly isBrokenBy: (moduleName: string, importedName: string) => boolean;
+}
+
+interface BoardImportReport {
+  readonly breaks:           readonly string[];
+  readonly unusedAllowances: readonly string[];
+}
+
+interface ScannedModule {
+  readonly path:   string;
+  readonly source: string;
+}
+
+/** The view a page name sits in, by its folder under `page/board/views/`; a file directly in that folder is no view. */
+function viewFolderOf(pageName: string): string | null {
+  return /^page\/board\/views\/([^/]+)\//.exec(pageName)?.[1] ?? null;
+}
+
+/** Each import holds to at most one rule's breach, so the shell rule leaves `board/shared/` and `page/shared/` to their own rules. */
+const BOARD_IMPORT_RULES: readonly BoardImportRule[] = [
+  {
+    breach:     'a view imports another view',
+    isBrokenBy: (moduleName, importedName) => {
+      const moduleView = viewFolderOf(moduleName);
+      const importedView = viewFolderOf(importedName);
+      return moduleView !== null && importedView !== null && moduleView !== importedView;
+    },
+  },
+  {
+    breach:     'board/shared/ imports a view',
+    isBrokenBy: (moduleName, importedName) => moduleName.startsWith(BOARD_SHARED_FOLDER_PREFIX) && viewFolderOf(importedName) !== null,
+  },
+  {
+    breach:     'board/shared/ imports the shell',
+    isBrokenBy: (moduleName, importedName) => moduleName.startsWith(BOARD_SHARED_FOLDER_PREFIX) && importedName.startsWith(BOARD_SHELL_FOLDER_PREFIX),
+  },
+  {
+    breach:     'only Board.tsx and board/testing/ import the shell',
+    isBrokenBy: (moduleName, importedName) => importedName.startsWith(BOARD_SHELL_FOLDER_PREFIX)
+      && moduleName !== BOARD_ENTRY_MODULE
+      && ![BOARD_SHELL_FOLDER_PREFIX, BOARD_TESTING_FOLDER_PREFIX, BOARD_SHARED_FOLDER_PREFIX, PAGE_SHARED_FOLDER_PREFIX].some((prefix) => moduleName.startsWith(prefix)),
+  },
+  {
+    breach:     'page/shared/ imports the board',
+    isBrokenBy: (moduleName, importedName) => moduleName.startsWith(PAGE_SHARED_FOLDER_PREFIX) && importedName.startsWith(BOARD_FOLDER_PREFIX),
+  },
+];
+
+/** A module's imports that break the board's isolation, each as `<module> imports <file> (<breach>)`, named from Gaia's folder. */
+function boardImportBreaksOf(modulePath: string, source: string): string[] {
+  const moduleName = relative(GAIA_FOLDER, modulePath);
+  return importSpecifiersOf(source)
+    .filter((specifier) => specifier.startsWith('.'))
+    .map((specifier) => relative(GAIA_FOLDER, join(dirname(modulePath), specifier)))
+    .flatMap((importedName) => BOARD_IMPORT_RULES
+      .filter((rule) => rule.isBrokenBy(moduleName, importedName))
+      .map((rule) => `${moduleName} imports ${importedName} (${rule.breach})`));
+}
+
+function boardImportReportOf(modules: readonly ScannedModule[], allowances: readonly string[]): BoardImportReport {
+  const found = modules.flatMap((scannedModule) => boardImportBreaksOf(scannedModule.path, scannedModule.source));
+  return {
+    breaks:           found.filter((line) => !allowances.includes(line)),
+    unusedAllowances: allowances.filter((line) => !found.includes(line)),
+  };
+}
+
+/** Today's breaks of the board's isolation, each list named for the change that ends it; an allowance nothing breaks fails the spec. */
+const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {
+  'waits on the design-system package, which replaces ItemPresence': [
+    'page/board/conversation/ChatThread.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/DecisionCard.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/TranscriptLog.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
+  ],
+  'waits on merging views/question-panel/ into views/questions/panel/': [
+    'page/board/views/question-panel/QuestionPanel.tsx imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
+    'page/board/views/question-panel/QuestionPanelModel.ts imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
+    'page/board/views/question-panel/QuestionPanelState.ts imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/views/question-panel/QuestionPanelState.ts (a view imports another view)',
+  ],
+  'waits on composing the Kanban with the merge queue in the shell': [
+    'page/board/views/kanban/KanbanTabView.tsx imports page/board/shell/WaitingOnUserModel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanTabView.tsx imports page/board/views/merge-queue/MergeQueueModel.ts (a view imports another view)',
+    'page/board/views/kanban/KanbanTabView.tsx imports page/board/views/merge-queue/MergeQueueView.tsx (a view imports another view)',
+  ],
+  'waits on hoisting the ticket helpers to board/shared/tickets/': [
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/views/tickets/InDraftModel.ts (a view imports another view)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/views/tickets/TicketsModel.ts (a view imports another view)',
+    'page/board/views/tickets/InDraftModel.ts imports page/board/views/intake/IntakeModel.ts (a view imports another view)',
+  ],
+  'waits on moving the parts every view reads to board/shared/': [
+    'page/board/@types/BoardServices.ts imports page/board/shell/ProgramFileChooser.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/chips/EpicChip.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/chips/EpicChip.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/Composer.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/ConversationParts.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/ConversationParts.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/DecisionCard.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/conversation/ToolUseFold.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/markdown-editor/MarkdownEditor.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/markdown-editor/MarkdownEditor.tsx imports page/board/shell/ChangeHighlight.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/markdown-editor/MarkdownEditor.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/AgentsView.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/AgentsView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/AgentsView.tsx imports page/board/shell/IncidentNoticeModel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/AskUserRow.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/ConcurrencyLimitControl.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/JobControls.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/JobMessageBox.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/JobPanel.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/JobRow.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/SessionCard.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/TicketChips.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/TicketChips.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/agents/TranscriptPanel.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/assistant/AssistantView.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailControls.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailFactsModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailPanel.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailPanelModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailParts.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailParts.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/DetailParts.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/JobStopMenu.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketDetail.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketDetail.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketDetail.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketDetailModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketMoves.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketOverview.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketOverview.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketOverview.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/detail-panel/TicketOverviewModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/CommentPopover.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/DiagramFrame.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/DocumentAgentStrip.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/DocumentChat.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/DocumentQuestionCard.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/EffectPane.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/ProposalCard.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/epics/EpicsView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/epics/EpicsView.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/epics/EpicsView.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/epics/EpicsView.tsx imports page/board/shell/FinishedWorkWindow.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeAside.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeAside.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeAside.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeSessionList.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeSessionRow.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/IntakeView.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/NewChatPane.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/PictureAttachments.ts imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/PictureAttachments.ts imports page/board/shell/ControlAvailability.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/PictureAttachments.ts imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/intake/ProductOwnerAtWork.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanFilterSections.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanFilterSections.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanTabView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanTabView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/ChangedSinceMount.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/FinishedWorkWindow.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/kanban/KanbanView.tsx imports page/board/shell/QuestionPanelOpener.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/merge-queue/MergeQueueView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/merge-queue/MergeQueueView.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/PipelineView.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/PipelineView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/PipelineView.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/PipelineView.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/PipelineViewModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent-panel/AgentStrip.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent-panel/SetupQuestionForm.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/AgentProgramPanel.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/AgentProgramPanel.tsx imports page/board/shell/ProgramFileChooser.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/NotLaunchedJob.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/NotLaunchedJob.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/ToolListDialog.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/agent/ToolListDialog.tsx imports page/board/shell/ProgramFileChooser.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/ApplyDialog.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/ApplyDialogModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/ApplyDialogModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/ApplyPendingState.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/ChangeList.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/EntityAssignmentProgress.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/EntityAssignmentProgressModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/EntityAssignmentProgressModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/apply/InFlightNote.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/dialogs/PipelineAgentQuestionSender.ts imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/dialogs/PipelineDialogs.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/dialogs/ProfileBox.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/editing/CopyBetweenEntitiesDialog.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/editing/EditingAside.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/editing/EditingAside.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/entities/ChangeGroup.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/entities/ForgeLevelPage.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/entities/PipelineLevelModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/flow/OpenPhase.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/flow/PipelineFlowEditSender.ts imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/flow/StepCard.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/gates/CopyToEntityMenu.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/gates/GateRow.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/gates/GatesTable.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/CrossingNow.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/EntityWorkModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/FlowActivityPanel.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/FlowActivityPanel.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/FlowActivityPanel.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/FlowActivityPanelModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/FlowActivityPanelModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/ForgeLevelLive.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/ForgeLevelLiveModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/ForgeSettings.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/ForgeSettings.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/LiveFooter.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/live/LiveFooter.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/AgentStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/AgentStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/BillingStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/BillingStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/BillingStep.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ConstitutionStep.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ConstitutionStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ConstitutionStep.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ConstitutionStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/DesignStep.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/DesignStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/DesignStep.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/DesignStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/EntitiesStep.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/EntitiesStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/EntitiesStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/EntitySessionList.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResearchStep.tsx imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResearchStep.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResearchStep.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResearchStep.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResumeSummary.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResumeSummary.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResumeSummary.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/ResumeSummaryModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/pipeline/setup/SourceChoices.tsx imports page/board/shell/ControlCommandSender.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/BoardLifetimeControls.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ChartPanelRoom.ts imports page/board/shell/BoardClock.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ChartPanelRoom.ts imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ChartPanelRoom.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressTabView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressTabView.tsx imports page/board/shell/FinishedWorkWindow.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/ChangeHighlight.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/CoveringPanel.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/progress/ProgressView.tsx imports page/board/shell/FinishedWorkWindow.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/question-panel/QuestionAskColumn.tsx imports page/board/shell/CommandButton.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/question-panel/QuestionBackgroundColumn.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/question-panel/QuestionBackgroundColumn.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/question-panel/QuestionBackgroundColumn.tsx imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/questions/QuestionsView.tsx imports page/board/shell/QuestionPanelOpener.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/ActiveSegment.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/FinishedSegment.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/InDraftModel.ts imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/InDraftModel.ts imports page/board/shell/DetailRoute.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/InDraftSegment.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/TicketRowParts.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/TicketsView.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/tickets/TicketsView.tsx imports page/board/shell/FinishedWorkWindow.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/waves/WavesView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/board/views/waves/WavesView.tsx imports page/board/shell/DetailRouting.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/shared/HashRouter.ts imports page/board/shell/BoardRouter.ts (page/shared/ imports the board)',
+    'page/shell/GaiaApp.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/ArtboardScreens.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/ArtboardScreens.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/ArtboardScreens.tsx imports page/board/shell/ControlAvailability.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/PipelineDocumentArtboards.tsx imports page/board/shell/BoardRouteLinks.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/PipelineDocumentArtboards.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/PipelineDocumentArtboards.tsx imports page/board/shell/ControlAvailability.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/testing/ShellSurroundingsAt.ts imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+    'page/views/forge/ForgeView.tsx imports page/board/shell/BoardRouter.ts (only Board.tsx and board/testing/ import the shell)',
+    'page/views/forge/ForgeView.tsx imports page/board/shell/BoardTabViews.tsx (only Board.tsx and board/testing/ import the shell)',
+  ],
+};
+
+const ALLOWED_BOARD_BREAK_LINES = Object.values(ALLOWED_BOARD_BREAKS).flat();
 describe('the page\'s import direction', () => {
   test('the guard catches a view that imports the shell and a shared module that imports a view', () => {
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'agents', 'Planted.ts'), 'import { RailModel } from \'../../shell/RailModel.ts\';'))
@@ -161,6 +471,71 @@ describe('the page\'s import direction', () => {
     const forbidden = Object.keys(FORBIDDEN_IMPORTS).flatMap((folder) => shippingModulesUnder(join(PAGE_FOLDER, folder))
       .flatMap((modulePath) => forbiddenImportsOf(folder, modulePath, readFileSync(modulePath, 'utf8'))));
     expect(forbidden).toEqual([]);
+  });
+});
+
+describe('the board\'s isolation', () => {
+  const plantedKanbanModule = join(PAGE_FOLDER, 'board', 'views', 'kanban', 'cards', 'Planted.tsx');
+  const plantedBoardSharedModule = join(PAGE_FOLDER, 'board', 'shared', 'routing', 'Planted.ts');
+
+  test('the guard names a view, nested or not, that imports another view, and passes its own folder and ViewTitle', () => {
+    expect(boardImportBreaksOf(plantedKanbanModule, 'import { MergeQueueView } from \'../../merge-queue/MergeQueueView.tsx\';'))
+      .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/views/merge-queue/MergeQueueView.tsx (a view imports another view)']);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'views', 'tickets', 'Planted.ts'), 'import type { IntakeModel } from \'../intake/model/IntakeModel.ts\';'))
+      .toEqual(['page/board/views/tickets/Planted.ts imports page/board/views/intake/model/IntakeModel.ts (a view imports another view)']);
+    expect(boardImportBreaksOf(plantedKanbanModule, 'import { KanbanModel } from \'../KanbanModel.ts\';')).toEqual([]);
+    expect(boardImportBreaksOf(plantedKanbanModule, 'import { ViewTitle } from \'../../ViewTitle.tsx\';')).toEqual([]);
+  });
+
+  test('the guard names board/shared/ importing a view or the shell, and passes it importing the board\'s utils', () => {
+    expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { QuestionsModelUtil } from \'../../views/questions/QuestionsModel.ts\';'))
+      .toEqual(['page/board/shared/routing/Planted.ts imports page/board/views/questions/QuestionsModel.ts (board/shared/ imports a view)']);
+    expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { HeaderModel } from \'../../shell/HeaderModel.ts\';'))
+      .toEqual(['page/board/shared/routing/Planted.ts imports page/board/shell/HeaderModel.ts (board/shared/ imports the shell)']);
+    expect(boardImportBreaksOf(plantedBoardSharedModule, 'import { TimeUtil } from \'../../utils/TimeUtil.ts\';')).toEqual([]);
+  });
+
+  test('the guard names the shell imported from a view, a board folder or the page, and passes Board.tsx, board/testing/ and the shell itself', () => {
+    const shellImport = (depth: number): string => `import { HeaderModel } from '${'../'.repeat(depth)}board/shell/HeaderModel.ts';`;
+    expect(boardImportBreaksOf(plantedKanbanModule, shellImport(4)))
+      .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/shell/HeaderModel.ts (only Board.tsx and board/testing/ import the shell)']);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'conversation', 'Planted.tsx'), shellImport(2)))
+      .toEqual(['page/board/conversation/Planted.tsx imports page/board/shell/HeaderModel.ts (only Board.tsx and board/testing/ import the shell)']);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'shell', 'Planted.tsx'), shellImport(1)))
+      .toEqual(['page/shell/Planted.tsx imports page/board/shell/HeaderModel.ts (only Board.tsx and board/testing/ import the shell)']);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'Board.tsx'), shellImport(1))).toEqual([]);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'testing', 'Planted.ts'), shellImport(2))).toEqual([]);
+    expect(boardImportBreaksOf(join(PAGE_FOLDER, 'board', 'shell', 'Planted.tsx'), 'import { HeaderModel } from \'./HeaderModel.ts\';')).toEqual([]);
+  });
+
+  test('the guard names page/shared/ importing anything under page/board/, and passes it importing the page\'s types', () => {
+    const plantedPageSharedModule = join(PAGE_FOLDER, 'shared', 'Planted.ts');
+    expect(boardImportBreaksOf(plantedPageSharedModule, 'import { HeaderModel } from \'../board/shell/HeaderModel.ts\';'))
+      .toEqual(['page/shared/Planted.ts imports page/board/shell/HeaderModel.ts (page/shared/ imports the board)']);
+    expect(boardImportBreaksOf(plantedPageSharedModule, 'import { TimeUtil } from \'../board/utils/TimeUtil.ts\';'))
+      .toEqual(['page/shared/Planted.ts imports page/board/utils/TimeUtil.ts (page/shared/ imports the board)']);
+    expect(boardImportBreaksOf(plantedPageSharedModule, 'import type { BoardTab } from \'../@types/board/BoardVocabulary.ts\';')).toEqual([]);
+  });
+
+  const scannedModules: readonly ScannedModule[] = shippingModulesUnder(PAGE_FOLDER).map((path) => ({ path, source: readFileSync(path, 'utf8') }));
+
+  test('the scan reads the board\'s shell, its views and the page around it, and no spec', () => {
+    const scannedNames = scannedModules.map((scannedModule) => relative(GAIA_FOLDER, scannedModule.path));
+    expect(scannedNames).toContain(BOARD_ENTRY_MODULE);
+    expect(scannedNames).toContain('page/board/shell/BoardApp.tsx');
+    expect(scannedNames.filter((moduleName) => viewFolderOf(moduleName) !== null).length).toBeGreaterThan(0);
+    expect(scannedNames.filter((moduleName) => /\.(?:spec|dom)\.tsx?$/.test(moduleName))).toEqual([]);
+  });
+
+  test('no shipping module breaks the board\'s isolation but the allowed breaks, and every allowance is still used', () => {
+    expect(boardImportReportOf(scannedModules, ALLOWED_BOARD_BREAK_LINES)).toEqual({ breaks: [], unusedAllowances: [] });
+  });
+
+  test('removing an allowance leaves its break named, and an allowance nothing breaks is named', () => {
+    const removedAllowance = ALLOWED_BOARD_BREAK_LINES[0] ?? '';
+    const plantedAllowance = 'page/board/views/agents/Planted.tsx imports page/board/views/kanban/KanbanView.tsx (a view imports another view)';
+    expect(boardImportReportOf(scannedModules, ALLOWED_BOARD_BREAK_LINES.slice(1))).toEqual({ breaks: [removedAllowance], unusedAllowances: [] });
+    expect(boardImportReportOf(scannedModules, [...ALLOWED_BOARD_BREAK_LINES, plantedAllowance])).toEqual({ breaks: [], unusedAllowances: [plantedAllowance] });
   });
 });
 
