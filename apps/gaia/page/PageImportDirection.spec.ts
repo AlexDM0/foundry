@@ -44,13 +44,42 @@ function shippingModulesUnder(folder: string): string[] {
     .map((path) => join(folder, path));
 }
 
-function importSpecifiersOf(source: string): string[] {
-  return typescript.preProcessFile(source, true, true).importedFiles.map((importedFile) => importedFile.fileName);
+function stringLiteralTextOf(expression: typescript.Expression | undefined): string[] {
+  return expression !== undefined && typescript.isStringLiteralLike(expression) ? [expression.text] : [];
+}
+
+function isRequireCall(callee: typescript.Expression): boolean {
+  if (typescript.isIdentifier(callee)) return callee.text === 'require';
+  return typescript.isPropertyAccessExpression(callee) && callee.name.text === 'require'
+    && typescript.isMetaProperty(callee.expression) && callee.expression.name.text === 'meta';
+}
+
+/** Every module specifier a source names, read from its syntax tree, since `preProcessFile` skips `export * as name from`. */
+function importSpecifiersOf(modulePath: string, source: string): string[] {
+  const scriptKind = modulePath.endsWith('.tsx') ? typescript.ScriptKind.TSX : typescript.ScriptKind.TS;
+  const sourceFile = typescript.createSourceFile(modulePath, source, typescript.ScriptTarget.ESNext, true, scriptKind);
+  const specifiers: string[] = [];
+  const visit = (node: typescript.Node): void => {
+    if (typescript.isImportDeclaration(node)) {
+      specifiers.push(...stringLiteralTextOf(node.moduleSpecifier));
+    } else if (typescript.isExportDeclaration(node)) {
+      specifiers.push(...stringLiteralTextOf(node.moduleSpecifier));
+    } else if (typescript.isImportEqualsDeclaration(node) && typescript.isExternalModuleReference(node.moduleReference)) {
+      specifiers.push(...stringLiteralTextOf(node.moduleReference.expression));
+    } else if (typescript.isCallExpression(node) && (node.expression.kind === typescript.SyntaxKind.ImportKeyword || isRequireCall(node.expression))) {
+      specifiers.push(...stringLiteralTextOf(node.arguments[0]));
+    } else if (typescript.isImportTypeNode(node) && typescript.isLiteralTypeNode(node.argument)) {
+      specifiers.push(...stringLiteralTextOf(node.argument.literal));
+    }
+    typescript.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return specifiers;
 }
 
 /** The page folder each relative import of a module lands in, by its first segment under `page/`. */
 function importedPageFoldersOf(modulePath: string, source: string): string[] {
-  return importSpecifiersOf(source)
+  return importSpecifiersOf(modulePath, source)
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => relative(PAGE_FOLDER, join(dirname(modulePath), specifier)).split('/')[0] ?? '');
 }
@@ -110,7 +139,7 @@ function sharedFilesOf(projectModules: readonly string[]): ReadonlySet<string> {
  */
 function forgeReachesOf(modulePath: string, source: string, sharedFiles: ReadonlySet<string>): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
-  return importSpecifiersOf(source).flatMap((specifier) => {
+  return importSpecifiersOf(modulePath, source).flatMap((specifier) => {
     if (specifier === FORGE_CONTRACTS_PACKAGE || specifier.startsWith(`${FORGE_CONTRACTS_PACKAGE}/`)) {
       return [`${moduleName} imports ${specifier}`];
     }
@@ -128,7 +157,7 @@ function forgeReachesOf(modulePath: string, source: string, sharedFiles: Readonl
 function flintReachesOf(modulePath: string, source: string): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
   if (moduleName.startsWith(BOARD_FOLDER_PREFIX) || moduleName.startsWith(FLINT_LIBRARY_FOLDER_PREFIX)) return [];
-  return importSpecifiersOf(source)
+  return importSpecifiersOf(modulePath, source)
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => relative(GAIA_FOLDER, join(dirname(modulePath), specifier)))
     .filter((importedName) => importedName.startsWith(FLINT_LIBRARY_FOLDER_PREFIX))
@@ -138,7 +167,7 @@ function flintReachesOf(modulePath: string, source: string): string[] {
 /** A module's imports of Gaia by its own package name, which resolve past every rule here that reads relative paths only. */
 function selfReferencesOf(modulePath: string, source: string): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
-  return importSpecifiersOf(source)
+  return importSpecifiersOf(modulePath, source)
     .filter((specifier) => specifier === GAIA_PACKAGE_NAME || specifier.startsWith(`${GAIA_PACKAGE_NAME}/`))
     .map((specifier) => `${moduleName} imports ${specifier}, Gaia by its package name; use a relative path`);
 }
@@ -202,7 +231,7 @@ const BOARD_IMPORT_RULES: readonly BoardImportRule[] = [
 /** A module's imports that break the board's isolation, each as `<module> imports <file> (<breach>)`, named from Gaia's folder. */
 function boardImportBreaksOf(modulePath: string, source: string): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
-  return importSpecifiersOf(source)
+  return importSpecifiersOf(modulePath, source)
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => relative(GAIA_FOLDER, join(dirname(modulePath), specifier)))
     .flatMap((importedName) => BOARD_IMPORT_RULES
@@ -236,6 +265,8 @@ describe('the page\'s import direction', () => {
       .toEqual(['views/agents/Planted.ts imports page/shell']);
     expect(forbiddenImportsOf('shared', join(PAGE_FOLDER, 'shared', 'utils', 'Planted.ts'), 'import type { AgentsContent } from \'../../views/agents/AgentsModel.ts\';'))
       .toEqual(['shared/utils/Planted.ts imports page/views']);
+    expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'agents', 'Planted.ts'), 'export * as rail from \'../../shell/RailModel.ts\';'))
+      .toEqual(['views/agents/Planted.ts imports page/shell']);
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'agents', 'Planted.ts'), 'import { HashRouter } from \'../../shared/HashRouter.ts\';')).toEqual([]);
   });
 
@@ -306,13 +337,17 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(plantedPageSharedModule, 'import type { BoardTab } from \'../@types/board/BoardVocabulary.ts\';')).toEqual([]);
   });
 
-  test('the guard reads a re-export, a type re-export, a dynamic import and an import type query alike', () => {
+  test('the guard reads a re-export, a namespace re-export, a dynamic import, a require and an import type query alike', () => {
     const importFormsOf = (path: string): string[] => [
       `export { HeaderModel } from '${path}';`,
       `export type { HeaderContent } from '${path}';`,
       `const headerModule = await import('${path}');`,
       `type HeaderModule = typeof import('${path}');`,
       `let headerContent: import('${path}').HeaderContent;`,
+      `export * as headerModule from '${path}';`,
+      `export type * as headerTypes from '${path}';`,
+      `const requiredHeaderModule = require('${path}');`,
+      `const requiredMetaHeaderModule = import.meta.require('${path}');`,
     ];
     const plantedConversationModule = join(PAGE_FOLDER, 'board', 'conversation', 'Planted.tsx');
     for (const source of importFormsOf('../shell/HeaderModel.ts')) {
@@ -437,6 +472,8 @@ describe('Gaia by its package name', () => {
       .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shell/ItemPresence.ts, Gaia by its package name; use a relative path`]);
     expect(selfReferencesOf(plantedViewModule, `export * from '${GAIA_PACKAGE_NAME}';`))
       .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}, Gaia by its package name; use a relative path`]);
+    expect(selfReferencesOf(plantedViewModule, `export * as gaia from '${GAIA_PACKAGE_NAME}/page/board/shell/HeaderModel.ts';`))
+      .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shell/HeaderModel.ts, Gaia by its package name; use a relative path`]);
     expect(selfReferencesOf(plantedViewModule, 'import { AgentsModel } from \'./AgentsModel.ts\';')).toEqual([]);
     expect(selfReferencesOf(plantedViewModule, `import { something } from '${GAIA_PACKAGE_NAME}-planted/Planted.ts';`)).toEqual([]);
   });
@@ -457,6 +494,8 @@ describe('Flint on the page', () => {
       .toEqual(['page/views/agents/Planted.tsx imports page/lib/flint/FlintInterface.ts outside page/board/']);
     expect(flintReachesOf(join(PAGE_FOLDER, 'Planted.tsx'), 'import { mindOf } from \'./lib/flint/mind/Mind.ts\';'))
       .toEqual(['page/Planted.tsx imports page/lib/flint/mind/Mind.ts outside page/board/']);
+    expect(flintReachesOf(join(PAGE_FOLDER, 'views', 'agents', 'Planted.tsx'), 'export * as flint from \'../../lib/flint/FlintInterface.ts\';'))
+      .toEqual(['page/views/agents/Planted.tsx imports page/lib/flint/FlintInterface.ts outside page/board/']);
     expect(flintReachesOf(join(PAGE_FOLDER, 'board', 'flint', 'Planted.tsx'), flintInterfaceImport)).toEqual([]);
     expect(flintReachesOf(join(PAGE_FOLDER, 'lib', 'flint', 'react', 'Planted.tsx'), 'import { createFlint } from \'../CreateFlint.ts\';')).toEqual([]);
   });
