@@ -24,6 +24,11 @@ function valueIsANumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isFinite(value));
 }
 
+/** A stored word of a vocabulary. */
+function oneOf(words: readonly unknown[]): (value: unknown) => boolean {
+  return (value) => words.includes(value);
+}
+
 /** A field a writer leaves out until it is set: absent, or as `check` wants it. */
 function optional(check: (value: unknown) => boolean): (value: unknown) => boolean {
   return (value) => value === undefined || check(value);
@@ -46,6 +51,7 @@ export const JobFileShapeUtil = {
   valueIsATextRecord,
   valueIsTextOrNull,
   valueIsANumberOrNull,
+  oneOf,
   optional,
   firstFieldProblemOf,
 } as const;

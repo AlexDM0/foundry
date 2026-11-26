@@ -10,12 +10,12 @@
  * at its start: a pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and
  * the settlement stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first
  * gate's red. Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version
- * 1's words, or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase. A job of an entity
- * installs with its entity's prepare steps and runs its entity's gates, each folder read from the entity's first home, under a stamp that
- * names the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates. Each step line that ran is recorded
- * with its run time, once, in the hold that consumes it: an install's when the job leaves `preparing`, a gate run's at its settlement in
- * the manifest's phase; a line stopped at its bound records `time-bound`, a paused instance's run never, and a run that ran no line none.
- * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
+ * 1's words is none; a kept verdict changed by hand into any other shape is unreadable, never judged again; the settlement logs each
+ * gate's report with the manifest's phase. A job of an entity installs with its entity's prepare steps and runs its entity's gates, each
+ * folder read from the entity's first home, under a stamp that names the entity's phase hash; a job of an entity the pipeline no longer
+ * holds cannot run its gates. Each step line that ran is recorded with its run time, once, in the hold that consumes it: an install's when
+ * the job leaves `preparing`, a gate run's at its settlement in the manifest's phase; a line stopped at its bound records `time-bound`, a
+ * paused instance's run never, and a run that ran no line none. git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -376,7 +376,7 @@ describe('the gate-run manifest', () => {
     const scene = gatingScene();
     const running = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE]) as { treeId: string };
     const keptVerdictOf = (phaseHash: string): string => `${JSON.stringify({
-      treeId: running.treeId, phase: 'build', phaseHash, outcome: 'passed', output: '', exitCode: 0
+      version: 1, treeId: running.treeId, phase: 'build', phaseHash, outcome: 'passed', output: '', exitCode: 0
     })}\n`;
 
     writeFileSync(jobFileOf(scene, 'gate-1-verdict.json'), keptVerdictOf('another-manifest'));
@@ -484,10 +484,11 @@ describe('a gate\'s cache report', () => {
     expect(reportFiles.map(existsSync)).toEqual([false, false]);
   });
 
-  testWhenGitIsRecorded('kept in a verdict changed by hand to a word outside the cache words, reads as none', async () => {
+  testWhenGitIsRecorded('kept in a verdict changed by hand to a word outside the cache words, makes the verdict unreadable, never judged again', async () => {
     const scene = gatingScene();
     const running = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE]) as { treeId: string };
     writeFileSync(jobFileOf(scene, 'gate-1-verdict.json'), `${JSON.stringify({
+      version:     1,
       treeId:      running.treeId,
       phase:       'build',
       phaseHash:   PipelineUtil.phaseHashOf(PIPELINE, 'build'),
@@ -497,9 +498,18 @@ describe('a gate\'s cache report', () => {
       cacheReport: 'warm',
     })}\n`);
 
-    const cacheReports = [{ gateName: 'tests', cacheReport: null }];
+    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J2/gate-1-verdict.json', reason: 'its "cacheReport" is not a cache report' };
 
-    expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'judged', outcome: 'failed', cacheReports });
+    expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toEqual(unreadable);
+  });
+
+  testWhenGitIsRecorded('a kept verdict that is not JSON stops the run on it, and its ended line is not judged again over it', async () => {
+    const scene = gatingScene();
+    endStepExited(scene, 'gate-1', 1);
+    writeFileSync(jobFileOf(scene, 'gate-1-verdict.json'), '{"treeId": ');
+
+    expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J2/gate-1-verdict.json' });
+    expect(readFileSync(jobFileOf(scene, 'gate-1-verdict.json'), 'utf8')).toBe('{"treeId": ');
   });
 
   test('is logged at the settlement with the phase of the manifest the run judged by', () => {

@@ -13,27 +13,28 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { JobStartIngestion, type JobStart } from '../../adapters/job-start/JobStartIngestion.ts';
-import { createJobStartWriter }             from '../../adapters/job-start/JobStartWriter.ts';
-import { TicketHandoffUtil }                from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
-import type { AgentAdapter }                from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }              from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }                   from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                       from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                     from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf }            from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS }            from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }               from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }             from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ShellExitReport }             from '../../lib/shell-line/ShellLine.ts';
-import type { ChildInput }                  from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                    from '../../lib/talos/ChildRecord.ts';
-import type { ReviewBarRequest }            from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Decision }                    from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase, GateRunStamp }     from '../../lib/tracker-model/@types/GatePhase.ts';
+import { JobStartIngestion, type JobStart }                             from '../../adapters/job-start/JobStartIngestion.ts';
+import { createJobStartWriter }                                         from '../../adapters/job-start/JobStartWriter.ts';
+import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict } from '../../adapters/step-verdict/StepVerdictIngestion.ts';
+import { createStepVerdictWriter }                                      from '../../adapters/step-verdict/StepVerdictWriter.ts';
+import { TicketHandoffUtil }                                            from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
+import type { AgentAdapter }                                            from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                                          from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }                                               from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                                   from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                 from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf }                                        from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }                                        from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                             from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }                                           from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                         from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ShellExitReport }                                         from '../../lib/shell-line/ShellLine.ts';
+import type { ChildInput }                                              from '../../lib/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                                                from '../../lib/talos/ChildRecord.ts';
+import type { ReviewBarRequest }                                        from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { Decision }                                                from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase, GateRunStamp }                                 from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
-  GateCacheReport,
   GateCacheReportOfGate,
   GateOutcome,
   InterruptionCause,
@@ -54,7 +55,6 @@ import type { DecisionDraft, DecisionWording }            from '../../lib/tracke
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }       from '../../lib/tracker-model/JobControls.ts';
 import { PARKED_HOLD_PREFIX }                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { GATE_CACHE_REPORTS }                             from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { FIRST_CHILD_INSTANCE, HANDOFF_RED_INTERRUPTION } from '../../lib/tracker-model/constants/JobStates.ts';
 import { EntityOwnershipUtil, type PipelineEntities }     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { GroupNameUtil }                                  from '../../lib/tracker-model/utils/GroupNameUtil.ts';
@@ -158,8 +158,6 @@ export interface JobLaunchContext {
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
 export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'worktree-unnormalised' | 'installing' | 'install-failed' | 'installed';
 
-export type GateStepOutcome = GateOutcome | 'setup-failed';
-
 /**
  * A gate run's phase, its phase hash and the steps it runs, fixed as the run starts: a pipeline edited or reordered mid-run changes neither
  * the gate a step folder runs nor the hash the settlement stamps.
@@ -209,18 +207,6 @@ interface GateStep {
   folder:      string;
   in:          string | null;
   confinement: GateConfinement;
-}
-
-/** Kept beside the step's folder with the stamp of the manifest it ran under, and reused only on the same tree under an equal manifest. */
-interface StepVerdict extends GateRunStamp {
-  treeId:       string;
-  outcome:      GateStepOutcome;
-  output:       string;
-  exitCode?:    number | null;
-  /** What a gate reported of its cache; written only once it reported. */
-  cacheReport?: GateCacheReport;
-  /** The step's line with its run time; absent when the line never ran, or in a verdict kept before run times were. */
-  stepRun?:     PipelineStepRun;
 }
 
 export interface BuildJobObservation {
@@ -883,18 +869,9 @@ function lineOutputOf(children: BoardChildren, lineFolder: string): string {
   return `${output}${GateRun.timeBoundLineOf(record.timeBoundMilliseconds ?? LINE_TIME_BOUND_MILLISECONDS)}\n`;
 }
 
-function readStepVerdict(verdictPath: string): StepVerdict | null {
-  try {
-    return JSON.parse(readFileSync(verdictPath, 'utf8')) as StepVerdict;
-  } catch {
-    return null;
-  }
-}
-
-/** A kept cache report outside the report's words is no report, so a verdict file changed by hand marks nothing. */
-function keptCacheReportOf(verdict: Readonly<StepVerdict>): GateCacheReport | null {
-  const cacheReports: readonly unknown[] = GATE_CACHE_REPORTS;
-  return cacheReports.includes(verdict.cacheReport) ? verdict.cacheReport ?? null : null;
+/** The stamp alone, never the manifest's steps it may carry. */
+function gateRunStampOnlyOf(stamp: Readonly<GateRunStamp>): GateRunStamp {
+  return { phase: stamp.phase, phaseHash: stamp.phaseHash, ...(stamp.entityPhaseHashes === undefined ? {} : { entityPhaseHashes: stamp.entityPhaseHashes }) };
 }
 
 /** A gate step's report path; a prepare step is no gate run and is handed none. */
@@ -904,13 +881,20 @@ function stepReportFileOf(jobFolder: string, step: Pick<GateStep, 'kind' | 'fold
 
 /**
  * The step's verdict once its child ended, `null` before. Kept in the job folder as it is first read, so a later gate that changes the tree
- * never turns an earlier pass red; it is this job's record of its own run, never a result another job reads.
+ * never turns an earlier pass red; it is this job's record of its own run, never a result another job reads. A kept verdict that cannot be
+ * read is never judged again, since judging the line afresh could turn the step's pass red.
  */
-function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: string, step: GateStep, stamp: GateRunStamp): StepVerdict | null {
+function stepVerdictOf(
+  context: JobLaunchContext, job: Readonly<Job>, treeId: string, step: GateStep, stamp: GateRunStamp
+): StepVerdict | null | StoredFileUnreadable {
   const jobFolder   = jobFolderOf(context.workspace, job);
   const verdictPath = join(jobFolder, `${step.folder}${STEP_VERDICT_SUFFIX}`);
-  const kept        = readStepVerdict(verdictPath);
-  if (kept !== null && kept.treeId === treeId && kept.phase === stamp.phase && kept.phaseHash === stamp.phaseHash) return kept;
+  const kept        = new StepVerdictIngestion(verdictPath).read();
+  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(context.workspace.trackerDirectory, verdictPath, kept.reason);
+  if (kept.verdict === 'readable') {
+    const { stepVerdict } = kept;
+    if (stepVerdict.treeId === treeId && stepVerdict.phase === stamp.phase && stepVerdict.phaseHash === stamp.phaseHash) return stepVerdict;
+  }
   const lineFolder = join(jobFolder, step.folder);
   const end = lineEndOf(context.boardChildren, lineFolder);
   // A paused or lost line is never judged, so a crash never reads as a red gate: its next instance runs it again.
@@ -923,13 +907,13 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   if (step.kind === 'prepare') {
     const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));
     judged = {
-      treeId, ...stamp, outcome: failureOutput === null ? 'passed' : 'setup-failed', output: failureOutput ?? run.output, exitCode: run.exitCode
+      treeId, ...gateRunStampOnlyOf(stamp), outcome: failureOutput === null ? 'passed' : 'setup-failed', output: failureOutput ?? run.output, exitCode: run.exitCode
     };
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
     judged = {
       treeId,
-      ...stamp,
+      ...gateRunStampOnlyOf(stamp),
       outcome:  GateRun.gateOutcomeOf(shellLine, run, trackedChanges),
       output:   GateRun.gateErrorOutputOf(shellLine, run, trackedChanges),
       exitCode: run.exitCode,
@@ -938,7 +922,7 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   }
   const [stepRun] = stepRunsOfLine(step, end, judged.outcome === 'passed');
   const verdict: StepVerdict = stepRun === undefined ? judged : { ...judged, stepRun };
-  writeFileAtomically(verdictPath, `${JSON.stringify(verdict)}\n`);
+  createStepVerdictWriter(verdictPath).write(verdict);
   if (verdict.outcome !== 'passed') writeFileAtomically(join(jobFolder, GATE_LOG_FILE), `${step.name}\n${verdict.output}`);
   return verdict;
 }
@@ -979,7 +963,8 @@ function gateRunProgressOf(
   for (const [stepIndex, step] of gateStepsOf(manifest, place, job).entries()) {
     const verdict = stepVerdictOf(context, job, treeId, step, manifest);
     if (verdict === null) return { verdict: 'running', treeId, stepIndex };
-    if (step.kind === 'gate') cacheReports.push({ gateName: step.name, cacheReport: keptCacheReportOf(verdict) });
+    if (StoredFileUnreadable.isUnreadableFile(verdict)) return verdict;
+    if (step.kind === 'gate') cacheReports.push({ gateName: step.name, cacheReport: verdict.cacheReport ?? null });
     if (verdict.stepRun !== undefined) stepRuns.push(verdict.stepRun);
     if (verdict.outcome !== 'passed') return {
       verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest, cacheReports, stepRuns

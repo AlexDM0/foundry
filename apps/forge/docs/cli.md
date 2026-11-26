@@ -893,8 +893,8 @@ them then. A session resumed after a red handoff runs again under `gate-run-<ins
 under `target-gate-run.json`, and the merge before User's Merge under `main-gate-run.json`
 (`main-gate-run-<instance>.json` in a later round). The run reads only its manifest and never rewrites it: each step's
 child folder is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no
-gate that did not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase
-and hash. The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not
+gate that did not run. A step's kept verdict (`<folder>-verdict.json`, `"version": 1`) counts only on the same tree under
+the same phase and hash; one that cannot be read is never judged again, and opens `system-file-unreadable` on the job. The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not
 current and the ticket is gated again: such a passing review waits unqueued for its next review, and without a review
 phase such a build waits unqueued for that gate run. A manifest that cannot be read is never replaced: the run ends
 `gate-cannot-run`. An Airlock's merged tree and a stale green are gated from one read of the pipeline, and record that
