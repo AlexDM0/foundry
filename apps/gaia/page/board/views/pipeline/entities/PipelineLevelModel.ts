@@ -4,7 +4,7 @@
  * takes two segments because a key may be any word, `forge` too. An item with no level is a single-mode route and reads as it always did.
  * A draft field belongs to the entity its `entity:<key>` scope names, and every other field to the forge.
  */
-import type { BoardRoute } from '../../../shell/BoardRouter.ts';
+import type { BoardRoute } from '../../../../shared/BoardRouter.ts';
 
 /** The forge's own level: its kind is a value of the route and of this union, never the program's name. */
 export interface ForgeLevel {

@@ -18,8 +18,8 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shell/ControlCommandSender.ts';
-import { ProgramFileChooserContext }                                    from '../../../shell/ProgramFileChooser.ts';
+import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shared/commands/ControlCommandSender.ts';
+import { ProgramFileChooserContext }                                    from '../../../shared/commands/ProgramFileChooser.ts';
 import {
   AgentChoiceModel,
   type AgentChoiceTarget,

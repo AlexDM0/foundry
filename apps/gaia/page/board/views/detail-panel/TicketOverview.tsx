@@ -20,9 +20,9 @@ import {
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }               from '../../flint/FlintSlotHabitats.ts';
-import { useBoardHrefOf }                    from '../../shell/BoardRouteLinks.ts';
-import { CommandButton }                     from '../../shell/CommandButton.tsx';
-import { useQuestionPanelHoldsTheFlintSlot } from '../../shell/CoveringPanel.ts';
+import { useQuestionPanelHoldsTheFlintSlot } from '../../shared/CoveringPanel.ts';
+import { CommandButton }                     from '../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf }                    from '../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                     from '../../utils/StateToneUtil.ts';
 import { DetailFacts, TextParts }            from './DetailParts.tsx';
 import { JobStopMenu }                       from './JobStopMenu.tsx';

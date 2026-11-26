@@ -9,8 +9,8 @@
  * an item, never from the menu or the stored tab. The router reads and writes no address bar: whoever mounts the board hands it the path
  * and the way to go.
  */
-import type { BoardTargetDocument }                         from '../../@types/board/BoardTargetDocument.ts';
-import type { BoardTargetSubject, BoardTicketDocumentKind } from '../../@types/board/BoardVocabulary.ts';
+import type { BoardTargetDocument }                         from '../@types/board/BoardTargetDocument.ts';
+import type { BoardTargetSubject, BoardTicketDocumentKind } from '../@types/board/BoardVocabulary.ts';
 
 /** The tabs a route opens, in the menu's order with the Progress views in its place, then the pages reached only by a route. */
 export const BOARD_TABS = ['tickets', 'kanban', 'waves', 'gantt', 'epics', 'agents', 'questions', 'assistant', 'intake', 'pipeline', 'documents'] as const;

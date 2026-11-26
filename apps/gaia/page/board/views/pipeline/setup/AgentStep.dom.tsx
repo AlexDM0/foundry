@@ -26,7 +26,7 @@ import { useState } from 'react';
 import type { BoardPipelineAgentDocument }                                         from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                               from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDocument }                                                      from '../../../../@types/board/BoardDocument.ts';
-import { ProgramFileChooserContext }                                               from '../../../shell/ProgramFileChooser.ts';
+import { ProgramFileChooserContext }                                               from '../../../shared/commands/ProgramFileChooser.ts';
 import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR, LATER_EXAMPLE_VENDORS } from '../../../testing/AgentFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                        from '../../../testing/FakeControls.ts';
 import { onBoard }                                                                 from '../../../testing/OnBoard.ts';

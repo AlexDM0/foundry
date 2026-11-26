@@ -33,10 +33,10 @@ import {
 import { useTranscript }                                              from '../../conversation/TranscriptLog.tsx';
 import { FlintSlotHabitat }                                           from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }                                        from '../../flint/FlintSlotHabitats.ts';
-import { useBoardClock }                                              from '../../shell/BoardClock.ts';
-import { useBoardHrefOf }                                             from '../../shell/BoardRouteLinks.ts';
-import { useControlCommand }                                          from '../../shell/ControlCommandSender.ts';
-import { useCoveringPanelHoldsTheFlintSlot }                          from '../../shell/CoveringPanel.ts';
+import { useBoardClock }                                              from '../../shared/BoardClock.ts';
+import { useCoveringPanelHoldsTheFlintSlot }                          from '../../shared/CoveringPanel.ts';
+import { useControlCommand }                                          from '../../shared/commands/ControlCommandSender.ts';
+import { useBoardHrefOf }                                             from '../../shared/routing/BoardRouteLinks.ts';
 import { presenceAttributeOf, useItemPresence }                       from '../../shell/ItemPresence.ts';
 import { IncidentTrailUtil, type IncidentEntry }                      from '../../utils/IncidentTrailUtil.ts';
 import type { ItemPresence }                                          from '../../utils/ItemPresenceUtil.ts';

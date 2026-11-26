@@ -12,10 +12,10 @@ import {
 } from 'react';
 
 import type { BoardDocument }           from '../../@types/board/BoardDocument.ts';
+import { useBoardClock }                from '../shared/BoardClock.ts';
+import { DetailRoute, type DetailItem } from '../shared/routing/DetailRoute.ts';
+import { useDetailRouting }             from '../shared/routing/DetailRouting.ts';
 import { DetailPanel }                  from '../views/detail-panel/DetailPanel.tsx';
-import { useBoardClock }                from './BoardClock.ts';
-import { DetailRoute, type DetailItem } from './DetailRoute.ts';
-import { useDetailRouting }             from './DetailRouting.ts';
 
 export interface DetailPanelHostProps {
   readonly board:             BoardDocument;

@@ -5,8 +5,8 @@
  */
 import { createContext, useContext } from 'react';
 
+import { BoardRouter, type BoardRoute }                 from '../../../shared/BoardRouter.ts';
 import { BoardTrackerContext, useBoardNavigation }      from './BoardRouteLinks.ts';
-import { BoardRouter, type BoardRoute }                 from './BoardRouter.ts';
 import { DetailRoute, type DetailItem, type DetailTab } from './DetailRoute.ts';
 
 export interface DetailRouting {

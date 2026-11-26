@@ -21,11 +21,11 @@ import {
 import { useState } from 'react';
 
 import type { BoardDocument }                 from '../../../@types/board/BoardDocument.ts';
-import { BoardClockContext, type BoardClock } from '../../shell/BoardClock.ts';
-import { ControlSurroundingsContext }         from '../../shell/ControlAvailability.ts';
-import { QuestionPanelShownContext }          from '../../shell/CoveringPanel.ts';
-import { FinishedWorkWindowContext }          from '../../shell/FinishedWorkWindow.ts';
-import { QuestionPanelOpenerContext }         from '../../shell/QuestionPanelOpener.ts';
+import { BoardClockContext, type BoardClock } from '../../shared/BoardClock.ts';
+import { QuestionPanelShownContext }          from '../../shared/CoveringPanel.ts';
+import { FinishedWorkWindowContext }          from '../../shared/FinishedWorkWindow.ts';
+import { ControlSurroundingsContext }         from '../../shared/commands/ControlAvailability.ts';
+import { QuestionPanelOpenerContext }         from '../../shared/routing/QuestionPanelOpener.ts';
 import { routedOnTab }                        from '../../testing/DetailRoutingFixture.ts';
 import { EXAMPLE_NOW_EPOCH_MILLISECONDS }     from '../../testing/KanbanBoardFixture.ts';
 import { exampleBoard, exampleTicket }        from '../../testing/KanbanBoardFixture.ts';

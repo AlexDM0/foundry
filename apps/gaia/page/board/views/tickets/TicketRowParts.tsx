@@ -3,7 +3,7 @@ import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
 import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts';
 import { StateDot }               from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useDetailRouting }       from '../../shell/DetailRouting.ts';
+import { useDetailRouting }       from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
 import type { DraftStep }         from './InDraftModel.ts';
 import type { RowEpic }           from './TicketRowFactsUtil.ts';

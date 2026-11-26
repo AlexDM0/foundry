@@ -19,9 +19,9 @@ import {
 } from 'react';
 
 import { Tag, TextButton }                      from '../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardClock }                        from '../shell/BoardClock.ts';
-import { useChangedKeys }                       from '../shell/ChangeHighlight.ts';
-import { useControlCommand, type SentCommands } from '../shell/ControlCommandSender.ts';
+import { useBoardClock }                        from '../shared/BoardClock.ts';
+import { useChangedKeys }                       from '../shared/ChangeHighlight.ts';
+import { useControlCommand, type SentCommands } from '../shared/commands/ControlCommandSender.ts';
 import {
   MarkdownEditorModel,
   type EditorLine,

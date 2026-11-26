@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../@types/board/BoardCommandDocument.ts';
 import { Button, ConfirmStrip }      from '../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }             from '../../shell/CommandButton.tsx';
+import { CommandButton }             from '../../shared/commands/CommandButton.tsx';
 import { ProgressModel }             from './ProgressModel.ts';
 import type { StoredViewOverride }   from './utils/ChartPreferenceUtil.ts';
 

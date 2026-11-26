@@ -4,8 +4,8 @@
  * count; and whether the forge level still shows the line that opens it. User assigns nothing here.
  */
 import type { BoardEntityAssignmentDocument, BoardEntityAssignmentTicketDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardRoute }                                                         from '../../../shell/BoardRouter.ts';
-import { DetailRoute }                                                             from '../../../shell/DetailRoute.ts';
+import type { BoardRoute }                                                         from '../../../../shared/BoardRouter.ts';
+import { DetailRoute }                                                             from '../../../shared/routing/DetailRoute.ts';
 
 /** Assigned; waiting while the product owner still runs; not assigned once it ended without one. */
 export type EntityAssignmentRowState = 'assigned' | 'waiting' | 'not-assigned';

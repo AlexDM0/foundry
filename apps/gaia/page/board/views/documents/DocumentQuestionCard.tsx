@@ -11,7 +11,7 @@ import type { BoardCommandDocument }                       from '../../../@types
 import type { BoardLineRangeDocument }                     from '../../../@types/board/TicketDocumentsDocument.ts';
 import { ChoiceInput, ChoiceMark, ChoiceOption }           from '../../../lib/design-system/DesignSystemInterface.ts';
 import { OptionConsequencesUtil, type OptionConsequences } from '../../conversation/OptionConsequencesUtil.ts';
-import { CommandButton }                                   from '../../shell/CommandButton.tsx';
+import { CommandButton }                                   from '../../shared/commands/CommandButton.tsx';
 import type {
   AnsweredQuestionModel,
   OpenQuestionModel,

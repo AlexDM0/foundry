@@ -43,10 +43,10 @@ import type { TranscriptFollowOptions }                 from '../../@types/Board
 import type { CommandOutcome }                          from '../../api/BoardCommandClient.ts';
 import type { EventStreamHandlers }                     from '../../api/BoardEventStreamClient.ts';
 import type { TranscriptStreamHandlers }                from '../../api/TranscriptStreamClient.ts';
+import { BoardClockContext, type BoardClock }           from '../../shared/BoardClock.ts';
+import { QuestionPanelShownContext }                    from '../../shared/CoveringPanel.ts';
+import { ControlSurroundingsContext }                   from '../../shared/commands/ControlAvailability.ts';
 import { BoardApp }                                     from '../../shell/BoardApp.tsx';
-import { BoardClockContext, type BoardClock }           from '../../shell/BoardClock.ts';
-import { ControlSurroundingsContext }                   from '../../shell/ControlAvailability.ts';
-import { QuestionPanelShownContext }                    from '../../shell/CoveringPanel.ts';
 import { boardHrefOf, boardRouteSurroundings }          from '../../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,

@@ -50,7 +50,7 @@ import type {
 } from '../../@types/board/BoardVocabulary.ts';
 import { BOARD_FORGE_LEVEL_AGENT_ROLES }               from '../../@types/board/BoardVocabulary.ts';
 import type { ProfileLogFollower, TranscriptFollower } from '../@types/BoardServices.ts';
-import type { BoardClock }                             from '../shell/BoardClock.ts';
+import type { BoardClock }                             from '../shared/BoardClock.ts';
 import {
   EXAMPLE_AGENT_TOOLS,
   EXAMPLE_NOT_LAUNCHED,

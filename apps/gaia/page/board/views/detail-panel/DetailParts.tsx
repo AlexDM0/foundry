@@ -6,9 +6,9 @@ import { Fragment, type ReactNode } from 'react';
 import { FactList, Stamp }          from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { EpicChips }        from '../../chips/EpicChips.tsx';
-import { useBoardHrefOf }   from '../../shell/BoardRouteLinks.ts';
-import { DetailRoute }      from '../../shell/DetailRoute.ts';
-import { useDetailRouting } from '../../shell/DetailRouting.ts';
+import { useBoardHrefOf }   from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }      from '../../shared/routing/DetailRoute.ts';
+import { useDetailRouting } from '../../shared/routing/DetailRouting.ts';
 import type {
   DetailFactModel,
   DetailLinkModel,

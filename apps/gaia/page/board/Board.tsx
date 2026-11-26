@@ -5,7 +5,9 @@
  */
 import { useState } from 'react';
 
+import type { BoardRoute }        from '../shared/BoardRouter.ts';
 import type { BoardServices }     from './@types/BoardServices.ts';
+import type { BoardTabViewTable } from './@types/BoardTabViewProps.ts';
 import { BoardCommandClient }     from './api/BoardCommandClient.ts';
 import { BoardEventStreamClient } from './api/BoardEventStreamClient.ts';
 import { BoardReadClient }        from './api/BoardReadClient.ts';
@@ -14,8 +16,6 @@ import { ProfileStreamClient }    from './api/ProfileStreamClient.ts';
 import { TranscriptStreamClient } from './api/TranscriptStreamClient.ts';
 import { BROWSER_STORAGE_AREAS }  from './preferences/PreferenceStore.ts';
 import { BoardApp }               from './shell/BoardApp.tsx';
-import type { BoardRoute }        from './shell/BoardRouter.ts';
-import type { BoardTabViewTable } from './shell/BoardTabViews.tsx';
 import { QuestionAlerts }         from './views/questions/QuestionAlerts.ts';
 
 /** Makes the services of one forge's board; called once for each tracker id the board is mounted for. */

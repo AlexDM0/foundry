@@ -6,9 +6,9 @@
  */
 import { useContext, useState } from 'react';
 
-import type { BoardCommandDocument }                           from '../../@types/board/BoardCommandDocument.ts';
-import type { BoardCommandResult, CommandOutcome }             from '../api/BoardCommandClient.ts';
-import type { ForgeRefusalFacts }                              from '../api/RefusalOf.ts';
+import type { BoardCommandDocument }                           from '../../../@types/board/BoardCommandDocument.ts';
+import type { BoardCommandResult, CommandOutcome }             from '../../api/BoardCommandClient.ts';
+import type { ForgeRefusalFacts }                              from '../../api/RefusalOf.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
 export const UNREACHABLE_WORDING = 'Hephaestus could not be reached. Try again.';

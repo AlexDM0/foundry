@@ -1,6 +1,6 @@
 /** The tickets a job works on as chips, each linked to its ticket row with its title on hover; a dash for a job on no ticket. */
-import { useBoardHrefOf }        from '../../shell/BoardRouteLinks.ts';
-import { DetailRoute }           from '../../shell/DetailRoute.ts';
+import { useBoardHrefOf }        from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }           from '../../shared/routing/DetailRoute.ts';
 import type { AgentJobDocument } from './AgentJobDocument.ts';
 import { SubjectChip }           from './SubjectChip.tsx';
 

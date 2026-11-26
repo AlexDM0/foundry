@@ -1,7 +1,7 @@
 /** Control surroundings over a fake command client that records every board command and answers with the outcome a spec sets. Test-only. */
 import type { BoardCommandDocument }                     from '../../@types/board/BoardCommandDocument.ts';
 import type { CommandOutcome }                           from '../api/BoardCommandClient.ts';
-import type { ControlAvailability, ControlSurroundings } from '../shell/ControlAvailability.ts';
+import type { ControlAvailability, ControlSurroundings } from '../shared/commands/ControlAvailability.ts';
 
 export interface FakeControlSurroundings {
   readonly surroundings: ControlSurroundings;

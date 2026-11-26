@@ -23,7 +23,7 @@ import {
 
 import type { BoardDocument }                                 from '../../../@types/board/BoardDocument.ts';
 import { boardPreferenceStoreOf }                             from '../../preferences/PreferenceStore.ts';
-import { FinishedWorkWindowContext, type FinishedWorkWindow } from '../../shell/FinishedWorkWindow.ts';
+import { FinishedWorkWindowContext, type FinishedWorkWindow } from '../../shared/FinishedWorkWindow.ts';
 import { boardHrefOf }                                        from '../../testing/BoardRouteSurroundings.tsx';
 import {
   exampleAgentJob,

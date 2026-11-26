@@ -7,20 +7,20 @@
  */
 import { MicroCapsLabel, Tag } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { FlintSlotHabitat }    from '../flint/FlintSlotHabitat.tsx';
-import { FLINT_SLOT_HABITATS } from '../flint/FlintSlotHabitats.ts';
-import { FlintSlotCueUtil }    from '../utils/FlintSlotCueUtil.ts';
-import type { PresentItem }    from '../utils/ItemPresenceUtil.ts';
-import { StateToneUtil }       from '../utils/StateToneUtil.ts';
+import { FlintSlotHabitat }               from '../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }            from '../flint/FlintSlotHabitats.ts';
+import { useTickingNow, type BoardClock } from '../shared/BoardClock.ts';
+import { useChangedSinceMount }           from '../shared/ChangedSinceMount.ts';
+import { useBoardHrefOf }                 from '../shared/routing/BoardRouteLinks.ts';
+import { FlintSlotCueUtil }               from '../utils/FlintSlotCueUtil.ts';
+import type { PresentItem }               from '../utils/ItemPresenceUtil.ts';
+import { StateToneUtil }                  from '../utils/StateToneUtil.ts';
 import {
   ActivityStripModel,
   IDLE_ACTIVITY_TEXT,
   type ActivityStripFacts,
   type WorkerChip
 } from './ActivityStripModel.ts';
-import { useTickingNow, type BoardClock }       from './BoardClock.ts';
-import { useBoardHrefOf }                       from './BoardRouteLinks.ts';
-import { useChangedSinceMount }                 from './ChangedSinceMount.ts';
 import { presenceAttributeOf, useItemPresence } from './ItemPresence.ts';
 
 export interface ActivityStripProps {

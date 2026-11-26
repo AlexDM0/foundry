@@ -33,7 +33,7 @@ import type { BoardDocument }                                   from '../../../@
 import type { TranscriptFollower }                              from '../../@types/BoardServices.ts';
 import type { CommandOutcome }                                  from '../../api/BoardCommandClient.ts';
 import { boardPreferenceStoreOf }                               from '../../preferences/PreferenceStore.ts';
-import { ControlSurroundingsContext, type ControlAvailability } from '../../shell/ControlAvailability.ts';
+import { ControlSurroundingsContext, type ControlAvailability } from '../../shared/commands/ControlAvailability.ts';
 import { boardRouteSurroundings, boardHrefOf }                  from '../../testing/BoardRouteSurroundings.tsx';
 import { FIXTURE_TRACKER_ID }                                   from '../../testing/BoardStateFixture.ts';
 import { clickSettled, fakeTranscripts }                        from '../../testing/FakeControls.ts';

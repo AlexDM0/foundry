@@ -8,7 +8,7 @@
 import type { BoardFlowNodeDocument, BoardPipelineFlowDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_GATE_PHASES, type BoardGatePhase, type BoardPipelineNodeMark }              from '../../../../@types/board/BoardVocabulary.ts';
 import type { ProfileLogFollower }                                                         from '../../../@types/BoardServices.ts';
-import { useBoardHrefOf }                                                                  from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                                                                  from '../../../shared/routing/BoardRouteLinks.ts';
 import type { PipelineViewFacts }                                                          from '../PipelineViewModel.ts';
 import { PipelineViewModel }                                                               from '../PipelineViewModel.ts';
 import { PipelineAgentPanelModel }                                                         from '../agent-panel/PipelineAgentPanelModel.ts';

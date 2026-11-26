@@ -22,8 +22,8 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardCommandDocument }                     from '../../@types/board/BoardCommandDocument.ts';
-import type { BoardCommandResult, CommandOutcome }       from '../api/BoardCommandClient.ts';
+import type { BoardCommandDocument }                     from '../../../@types/board/BoardCommandDocument.ts';
+import type { BoardCommandResult, CommandOutcome }       from '../../api/BoardCommandClient.ts';
 import type { ControlAvailability, ControlSurroundings } from './ControlAvailability.ts';
 import { ControlSurroundingsContext }                    from './ControlAvailability.ts';
 import {

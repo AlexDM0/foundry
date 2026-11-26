@@ -21,7 +21,7 @@ import type {
 } from '../../../@types/board/BoardVocabulary.ts';
 import type { StepperStatus } from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import type { BoardRoute }                                     from '../../shell/BoardRouter.ts';
+import type { BoardRoute }                                     from '../../../shared/BoardRouter.ts';
 import { AgentChoiceModel }                                    from './agent/AgentChoiceModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './entities/PipelineLevelModel.ts';
 import { MinimalPipelineNoteModel }                            from './live/MinimalPipelineNoteModel.ts';

@@ -12,8 +12,8 @@ import type { ProfileOutputLine }                    from '../api/ProfileStreamC
 import type { TranscriptStreamHandlers }             from '../api/TranscriptStreamClient.ts';
 import type { FlintFrameSource }                     from '../flint/BoardFlint.tsx';
 import type { PreferenceStorage }                    from '../preferences/PreferenceStore.ts';
-import type { ProgramFileChooser }                   from '../shell/ProgramFileChooser.ts';
-import type { QuestionNotifier }                     from '../views/questions/QuestionAlerts.ts';
+import type { ProgramFileChooser }                   from '../shared/commands/ProgramFileChooser.ts';
+import type { QuestionNotifier }                     from './QuestionNotifier.ts';
 
 /** Follows one job's transcript until closed, from after the cursor `after` where one is given. */
 export type TranscriptFollower = (jobId: string, handlers: TranscriptStreamHandlers, options?: TranscriptFollowOptions) => { close: () => void };

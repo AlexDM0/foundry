@@ -18,9 +18,9 @@ import {
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { FlintSlotHabitat }                                             from '../../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }                                          from '../../../flint/FlintSlotHabitats.ts';
-import { useBoardHrefOf, useBoardNavigation }                           from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
-import { useCoveringPanelHoldsTheFlintSlot }                            from '../../../shell/CoveringPanel.ts';
+import { useCoveringPanelHoldsTheFlintSlot }                            from '../../../shared/CoveringPanel.ts';
+import { CommandButton }                                                from '../../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf, useBoardNavigation }                           from '../../../shared/routing/BoardRouteLinks.ts';
 import { PipelinePage }                                                 from '../PipelinePage.tsx';
 import { PipelinePanel, PipelinePanelBody }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';

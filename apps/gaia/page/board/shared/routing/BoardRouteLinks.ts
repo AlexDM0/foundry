@@ -4,7 +4,7 @@
  */
 import { createContext, useContext } from 'react';
 
-import { BoardRouter, type BoardRoute } from './BoardRouter.ts';
+import { BoardRouter, type BoardRoute } from '../../../shared/BoardRouter.ts';
 
 export const BoardTrackerContext = createContext<string | null>(null);
 

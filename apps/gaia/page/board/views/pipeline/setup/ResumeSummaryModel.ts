@@ -9,7 +9,7 @@ import type { BoardCommandDocument }                                            
 import type { BoardBillingDocument, BoardPipelineDefinitionDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardJobState, BoardSetupStep }                                                     from '../../../../@types/board/BoardVocabulary.ts';
 import type { StepperStatus }                                                                     from '../../../../lib/design-system/DesignSystemInterface.ts';
-import type { BoardRoute }                                                                        from '../../../shell/BoardRouter.ts';
+import type { BoardRoute }                                                                        from '../../../../shared/BoardRouter.ts';
 import { PipelineViewModel, SETUP_STEP_LABELS }                                                   from '../PipelineViewModel.ts';
 import type { AgentSessionState }                                                                 from '../agent-panel/AgentSessionModel.ts';
 import { ApplyPendingStateModel }                                                                 from '../apply/ApplyPendingStateModel.ts';

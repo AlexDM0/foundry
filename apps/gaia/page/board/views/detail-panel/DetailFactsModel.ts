@@ -11,7 +11,7 @@ import type {
   BoardTicketDocument
 } from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts';
-import type { DetailItem }        from '../../shell/DetailRoute.ts';
+import type { DetailItem }        from '../../shared/routing/DetailRoute.ts';
 import { RowLabelUtil }           from '../../utils/RowLabelUtil.ts';
 import { TimeUtil }               from '../../utils/TimeUtil.ts';
 import { LogClaimUtil }           from './LogClaimUtil.ts';

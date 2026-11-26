@@ -2,8 +2,8 @@
  * The Kanban tab as the board shell draws it: the Kanban, with how many drafts wait on User in Tickets, or at its item `merge-queue` the
  * Merge queue lane's own detail, both from the forge's served facts.
  */
-import { useBoardHrefOf }           from '../../shell/BoardRouteLinks.ts';
-import type { BoardTabViewProps }   from '../../shell/BoardTabViews.tsx';
+import type { BoardTabViewProps }   from '../../@types/BoardTabViewProps.ts';
+import { useBoardHrefOf }           from '../../shared/routing/BoardRouteLinks.ts';
 import { WaitingOnUserModel }       from '../../shell/WaitingOnUserModel.ts';
 import { MergeQueueModel }          from '../merge-queue/MergeQueueModel.ts';
 import { MergeQueueView }           from '../merge-queue/MergeQueueView.tsx';

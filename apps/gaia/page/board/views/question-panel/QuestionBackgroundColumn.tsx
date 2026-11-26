@@ -16,15 +16,15 @@ import {
   TitledBlock
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 
+import type { BoardRoute }         from '../../../shared/BoardRouter.ts';
 import type { TranscriptFollower } from '../../@types/BoardServices.ts';
 import { EpicChips }               from '../../chips/EpicChips.tsx';
 import { ChatCard, ChatThread }    from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }     from '../../conversation/ChatThreadModel.ts';
 import { useTranscript }           from '../../conversation/TranscriptLog.tsx';
 import { SandboxedHtmlFrame }      from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { useBoardHrefOf }          from '../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }         from '../../shell/BoardRouter.ts';
-import { DetailRoute }             from '../../shell/DetailRoute.ts';
+import { useBoardHrefOf }          from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }             from '../../shared/routing/DetailRoute.ts';
 import {
   QUESTION_PANEL_STEPS_SHOWN,
   QuestionPanelModel,

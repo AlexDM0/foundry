@@ -13,8 +13,8 @@ import {
   TextButton
 } from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CountTextUtil }                                                      from '../../../shared/utils/CountTextUtil.ts';
-import { useBoardHrefOf }                                                     from '../../shell/BoardRouteLinks.ts';
-import { DetailRoute }                                                        from '../../shell/DetailRoute.ts';
+import { useBoardHrefOf }                                                     from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                                        from '../../shared/routing/DetailRoute.ts';
 import { EpicRollupUtil }                                                     from '../../utils/EpicRollupUtil.ts';
 import { KANBAN_SWIMLANES, type KanbanSwimlanes }                             from './KanbanEntityFilterModel.ts';
 import type { KanbanFilterChoices }                                           from './KanbanFilterChoices.ts';

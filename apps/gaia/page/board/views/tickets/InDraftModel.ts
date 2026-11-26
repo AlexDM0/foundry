@@ -6,9 +6,9 @@
 import type { BoardDocument }                                               from '../../../@types/board/BoardDocument.ts';
 import type { BoardFilingDraftDocument, BoardTicketDocument }               from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState, BoardDraftStage, BoardTicketDocumentKind } from '../../../@types/board/BoardVocabulary.ts';
+import { BoardRouter, type BoardRoute }                                     from '../../../shared/BoardRouter.ts';
 import { CountTextUtil }                                                    from '../../../shared/utils/CountTextUtil.ts';
-import { BoardRouter, type BoardRoute }                                     from '../../shell/BoardRouter.ts';
-import { DetailRoute }                                                      from '../../shell/DetailRoute.ts';
+import { DetailRoute }                                                      from '../../shared/routing/DetailRoute.ts';
 import { DraftWordsUtil }                                                   from '../../utils/DraftWordsUtil.ts';
 import { IntakeModelUtil }                                                  from '../intake/IntakeModel.ts';
 import { TicketRowFactsUtil, type RowEpic, type RowMoment }                 from './TicketRowFactsUtil.ts';

@@ -27,7 +27,7 @@ import {
 import { useState }                                                from 'react';
 import { PAGE_CONTRACT_VERSIONS }                                  from '../../../../src/shared/constants/PageContractVersions.ts';
 import { DIAGRAM_FRAME_PROTOCOL }                                  from '../../../shared/@types/DiagramFrameMessages.ts';
-import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from '../../shell/BoardClock.ts';
+import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from '../../shared/BoardClock.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }        from '../../testing/FakeControls.ts';
 import { onBoard }                                                 from '../../testing/OnBoard.ts';
 import {

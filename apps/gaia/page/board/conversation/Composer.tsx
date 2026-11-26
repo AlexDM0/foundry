@@ -16,7 +16,7 @@ import {
 import type { BoardCommandDocument } from '../../@types/board/BoardCommandDocument.ts';
 import { Tag, type TagProps }        from '../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardCommandResult }   from '../api/BoardCommandClient.ts';
-import { useControlCommand }         from '../shell/ControlCommandSender.ts';
+import { useControlCommand }         from '../shared/commands/ControlCommandSender.ts';
 import { ChatCueRelayContext }       from './ChatCueRelay.ts';
 import { CHAT_CUES }                 from './ChatSpriteHabitat.ts';
 import { JobLink }                   from './ConversationParts.tsx';

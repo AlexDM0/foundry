@@ -23,7 +23,7 @@ import { OptionConsequenceFacts }                      from '../../conversation/
 import { FLINT_SLOT_CUES }                             from '../../flint/FlintSlotCues.ts';
 import { FlintSlotHabitat }                            from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }                         from '../../flint/FlintSlotHabitats.ts';
-import { CommandButton }                               from '../../shell/CommandButton.tsx';
+import { CommandButton }                               from '../../shared/commands/CommandButton.tsx';
 import type { QuestionModel, QuestionPanelViewModel }  from './QuestionPanelModel.ts';
 
 export interface QuestionAskColumnProps {

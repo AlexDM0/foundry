@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketSection } from '../../shell/DetailRoute.ts';
+import type { TicketSection } from '../../shared/routing/DetailRoute.ts';
 import {
   EXAMPLE_DETAIL_FORMAT,
   exampleDetailBoard,

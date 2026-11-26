@@ -16,7 +16,7 @@ import {
 
 import type { BoardDocument }                                              from '../../../../@types/board/BoardDocument.ts';
 import type { BoardApplyStateDocument }                                    from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardRoute }                                                 from '../../../shell/BoardRouter.ts';
+import type { BoardRoute }                                                 from '../../../../shared/BoardRouter.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                from '../../../testing/FakeControls.ts';
 import { onBoard }                                                         from '../../../testing/OnBoard.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf, withPipelineFacts } from '../../../testing/PipelineFixture.ts';

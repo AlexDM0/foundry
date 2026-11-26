@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
 import { SendButton }             from '../../conversation/SendButton.tsx';
-import { useControlCommand }      from '../../shell/ControlCommandSender.ts';
+import { useControlCommand }      from '../../shared/commands/ControlCommandSender.ts';
 
 export function JobMessageBox({ jobId }: { readonly jobId: string }) {
   const [message, setMessage] = useState('');

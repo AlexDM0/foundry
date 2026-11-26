@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }              from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardConcurrencyBoundsDocument } from '../../../@types/board/BoardFactDocuments.ts';
-import { CommandButton }                       from '../../shell/CommandButton.tsx';
+import { CommandButton }                       from '../../shared/commands/CommandButton.tsx';
 import { AgentsModel }                         from './AgentsModel.ts';
 
 export interface ConcurrencyLimitControlProps {

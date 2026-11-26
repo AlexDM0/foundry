@@ -6,7 +6,7 @@
  */
 import { createContext, useContext } from 'react';
 
-import { useDetailRouting } from './DetailRouting.ts';
+import { useDetailRouting } from './routing/DetailRouting.ts';
 
 /** The `tokens.css` width of the panel that covers the view. */
 export type CoveringPanelWidthProperty = '--side-panel-width' | '--side-panel-wide-width';

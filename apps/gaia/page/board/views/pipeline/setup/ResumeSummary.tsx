@@ -18,9 +18,9 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf, useBoardNavigation }  from '../../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                     from '../../../shell/BoardRouter.ts';
-import { CommandButton }                       from '../../../shell/CommandButton.tsx';
+import type { BoardRoute }                     from '../../../../shared/BoardRouter.ts';
+import { CommandButton }                       from '../../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf, useBoardNavigation }  from '../../../shared/routing/BoardRouteLinks.ts';
 import { ViewTitle }                           from '../../ViewTitle.tsx';
 import { PipelineViewModel }                   from '../PipelineViewModel.ts';
 import { AgentSessionModel, type SessionJob }  from '../agent-panel/AgentSessionModel.ts';

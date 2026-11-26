@@ -9,8 +9,8 @@ import { PAGE_CONTRACT_VERSIONS }                                               
 import type { BoardCommandDocument }                                                                    from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardAppliedPipelineDocument, BoardPipelineDefinitionDocument, BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardForgeRefusalDocument }                                                               from '../../../../@types/board/BoardRelayDocuments.ts';
-import type { BoardRoute }                                                                              from '../../../shell/BoardRouter.ts';
-import { DetailRoute }                                                                                  from '../../../shell/DetailRoute.ts';
+import type { BoardRoute }                                                                              from '../../../../shared/BoardRouter.ts';
+import { DetailRoute }                                                                                  from '../../../shared/routing/DetailRoute.ts';
 import { ForgeLevelPageModel }                                                                          from '../entities/ForgeLevelPageModel.ts';
 import { ConstitutionCommitListModel }                                                                  from './ConstitutionCommitListModel.ts';
 

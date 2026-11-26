@@ -30,10 +30,10 @@ import {
 
 import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument }      from '../../../@types/board/BoardJobDocuments.ts';
-import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
-import type { ControlAvailability }   from '../../shell/ControlAvailability.ts';
-import { QuestionPanelShownContext }  from '../../shell/CoveringPanel.ts';
-import type { DetailItem }            from '../../shell/DetailRoute.ts';
+import { QuestionPanelShownContext }  from '../../shared/CoveringPanel.ts';
+import { ControlSurroundingsContext } from '../../shared/commands/ControlAvailability.ts';
+import type { ControlAvailability }   from '../../shared/commands/ControlAvailability.ts';
+import type { DetailItem }            from '../../shared/routing/DetailRoute.ts';
 import { boardHrefOf }                from '../../testing/BoardRouteSurroundings.tsx';
 import {
   EXAMPLE_DETAIL_FORMAT,

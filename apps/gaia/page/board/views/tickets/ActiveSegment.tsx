@@ -3,7 +3,7 @@
  * place as its id link does.
  */
 import { StateBadge }                                    from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useDetailRouting }                              from '../../shell/DetailRouting.ts';
+import { useDetailRouting }                              from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }                                 from '../../utils/StateToneUtil.ts';
 import type { ActiveTicketRowModel, ActiveTicketsModel } from './ActiveTicketsModel.ts';
 import {

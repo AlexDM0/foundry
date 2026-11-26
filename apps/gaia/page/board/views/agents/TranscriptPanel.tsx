@@ -10,7 +10,7 @@ import { EmptyState, Row, Text }             from '../../../lib/design-system/De
 import type { TranscriptFollower }           from '../../@types/BoardServices.ts';
 import { ChatTurnWordingUtil }               from '../../conversation/ChatTurnWordingUtil.ts';
 import { TranscriptLog }                     from '../../conversation/TranscriptLog.tsx';
-import { useBoardClock }                     from '../../shell/BoardClock.ts';
+import { useBoardClock }                     from '../../shared/BoardClock.ts';
 import { TimeUtil }                          from '../../utils/TimeUtil.ts';
 import { AgentsModel }                       from './AgentsModel.ts';
 

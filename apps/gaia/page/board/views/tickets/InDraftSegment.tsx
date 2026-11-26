@@ -4,7 +4,7 @@
  * sends a command.
  */
 import { Button, StateDot }                  from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }                    from '../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                    from '../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                     from '../../utils/StateToneUtil.ts';
 import type { InDraftModel, IntakeRowModel } from './InDraftModel.ts';
 import {

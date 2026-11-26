@@ -17,7 +17,6 @@ import type { FleetDocument }                                            from '.
 import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
 import { browserBoardServicesOf }                                        from '../board/Board.tsx';
-import { BOARD_TAB_VIEWS }                                               from '../board/shell/BoardTabViews.tsx';
 import { BrandBar }                                                      from '../components/BrandBar.tsx';
 import { PageHead }                                                      from '../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
@@ -224,7 +223,6 @@ export function browserShellSurroundings({ sessionWasLost }: ShellSessionSurroun
     forgeView:       {
       requestCrashLog: (trackerId, crashLogNumber) => CrashLogRequest.requestCrashLog((path, requestOptions) => fetch(path, requestOptions), trackerId, crashLogNumber),
       boardServicesOf: (trackerId) => browserBoardServicesOf(trackerId, { goTo: hash.goTo, sessionWasLost }),
-      boardTabViews:   BOARD_TAB_VIEWS,
       openInNewTab:    (fragment) => {
         window.open(`${window.location.origin}${window.location.pathname}${fragment}`, '_blank', 'noopener');
       },

@@ -11,8 +11,8 @@ import type { BoardDocument }                   from '../../../@types/board/Boar
 import { SegmentedControl, type SegmentOption } from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useTicketsHabitat }                    from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                 from '../../preferences/PreferenceStore.ts';
-import { useBoardNavigation }                   from '../../shell/BoardRouteLinks.ts';
-import { useFinishedWorkWindow }                from '../../shell/FinishedWorkWindow.ts';
+import { useFinishedWorkWindow }                from '../../shared/FinishedWorkWindow.ts';
+import { useBoardNavigation }                   from '../../shared/routing/BoardRouteLinks.ts';
 import { FinishedWorkUtil }                     from '../../utils/FinishedWorkUtil.ts';
 import { SearchMatchUtil }                      from '../../utils/SearchMatchUtil.ts';
 import { ViewTitle }                            from '../ViewTitle.tsx';

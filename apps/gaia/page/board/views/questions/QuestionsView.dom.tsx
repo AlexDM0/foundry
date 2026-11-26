@@ -26,7 +26,8 @@ import type { ReactElement } from 'react';
 
 import type { BoardDecisionDocument }          from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                  from '../../../@types/board/BoardDocument.ts';
-import { QuestionPanelOpenerContext }          from '../../shell/QuestionPanelOpener.ts';
+import type { QuestionNotifier }               from '../../@types/QuestionNotifier.ts';
+import { QuestionPanelOpenerContext }          from '../../shared/routing/QuestionPanelOpener.ts';
 import { boardRouteSurroundings, boardHrefOf } from '../../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,
@@ -34,10 +35,10 @@ import {
   exampleAgentJob,
   exampleTicket
 } from '../../testing/BoardStateFixture.ts';
-import { clickSettled, fakeControls }            from '../../testing/FakeControls.ts';
-import { decisionRecordOf, exampleOption }       from '../../testing/QuestionPanelFixture.ts';
-import { QuestionAlerts, type QuestionNotifier } from './QuestionAlerts.ts';
-import { QuestionsView }                         from './QuestionsView.tsx';
+import { clickSettled, fakeControls }      from '../../testing/FakeControls.ts';
+import { decisionRecordOf, exampleOption } from '../../testing/QuestionPanelFixture.ts';
+import { QuestionAlerts }                  from './QuestionAlerts.ts';
+import { QuestionsView }                   from './QuestionsView.tsx';
 
 const AT = '2026-10-29T20:00:00+01:00';
 const PLANTED = '<img src=x onerror="window.planted = true">';

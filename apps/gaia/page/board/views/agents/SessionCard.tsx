@@ -4,7 +4,7 @@
  */
 import { Pane, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardHrefOf }                                from '../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                                from '../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                                 from '../../utils/StateToneUtil.ts';
 import type { TimestampSlices }                          from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument, AskingDecisionDocument } from './AgentJobDocument.ts';

@@ -12,8 +12,8 @@ import {
   type ReactNode
 } from 'react';
 
-import { BoardGoToContext, BoardTrackerContext } from '../shell/BoardRouteLinks.ts';
-import { BoardRouter, type BoardRoute }          from '../shell/BoardRouter.ts';
+import { BoardRouter, type BoardRoute }          from '../../shared/BoardRouter.ts';
+import { BoardGoToContext, BoardTrackerContext } from '../shared/routing/BoardRouteLinks.ts';
 import { FIXTURE_TRACKER_ID }                    from './BoardStateFixture.ts';
 
 const BOARD_ADDRESS_PREFIX = `#forge/${FIXTURE_TRACKER_ID}/`;

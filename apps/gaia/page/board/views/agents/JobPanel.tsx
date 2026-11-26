@@ -18,7 +18,7 @@ import {
 import type { TranscriptFollower }                    from '../../@types/BoardServices.ts';
 import { FlintSlotHabitat }                           from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }                        from '../../flint/FlintSlotHabitats.ts';
-import { useCoveringPanelHoldsTheFlintSlot }          from '../../shell/CoveringPanel.ts';
+import { useCoveringPanelHoldsTheFlintSlot }          from '../../shared/CoveringPanel.ts';
 import { ElapsedTimeUtil }                            from '../../utils/ElapsedTimeUtil.ts';
 import { FlintSlotCueUtil }                           from '../../utils/FlintSlotCueUtil.ts';
 import { StateToneUtil }                              from '../../utils/StateToneUtil.ts';

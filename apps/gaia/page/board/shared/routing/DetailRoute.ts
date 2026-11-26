@@ -4,7 +4,7 @@
  * is open closes it; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`. The ticket form opens on a section,
  * `#<tab>/ticket/<id>/<section>`, Overview with none; the section is where the form stands, never which item it is.
  */
-import type { BoardRoute, BoardTab } from './BoardRouter.ts';
+import type { BoardRoute, BoardTab } from '../../../shared/BoardRouter.ts';
 
 export const DETAIL_TABS = ['tickets', 'kanban', 'waves', 'gantt', 'epics'] as const;
 

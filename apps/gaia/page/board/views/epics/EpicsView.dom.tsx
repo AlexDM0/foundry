@@ -22,8 +22,8 @@ import {
 } from 'bun:test';
 
 import type { ConnectionState }      from '../../api/BoardEventStreamClient.ts';
-import type { DetailItem }           from '../../shell/DetailRoute.ts';
-import { FinishedWorkWindowContext } from '../../shell/FinishedWorkWindow.ts';
+import { FinishedWorkWindowContext } from '../../shared/FinishedWorkWindow.ts';
+import type { DetailItem }           from '../../shared/routing/DetailRoute.ts';
 import { FIXTURE_TRACKER_ID }        from '../../testing/BoardStateFixture.ts';
 import { routedOnTab }               from '../../testing/DetailRoutingFixture.ts';
 import {

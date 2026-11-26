@@ -5,7 +5,7 @@
 import { useState }                                                    from 'react';
 import { MultipleChoiceQuestion, QuestionOption, QuestionOtherOption } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useControlCommand }                                                   from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }                                                   from '../../../shared/commands/ControlCommandSender.ts';
 import { OTHER_OPTION_LABEL, PipelineAgentPanelModel, type SetupQuestionCard } from './PipelineAgentPanelModel.ts';
 
 export interface SetupQuestionFormProps {

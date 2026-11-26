@@ -8,7 +8,7 @@ import { useState } from 'react';
 import type { BoardDocument }      from '../../../@types/board/BoardDocument.ts';
 import { EmptyState, Tag, Text }   from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower } from '../../@types/BoardServices.ts';
-import { useBoardClock }           from '../../shell/BoardClock.ts';
+import { useBoardClock }           from '../../shared/BoardClock.ts';
 import { TimeUtil }                from '../../utils/TimeUtil.ts';
 import { IntakeChatPane }          from './IntakeChatPane.tsx';
 import { IntakeModelUtil }         from './IntakeModel.ts';

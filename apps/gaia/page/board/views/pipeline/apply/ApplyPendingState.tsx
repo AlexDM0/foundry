@@ -11,7 +11,7 @@ import { useState }                                             from 'react';
 import type { BoardCommandDocument }                            from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardApplyStateDocument }                         from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BusyIndicator, Button, Dialog }                        from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                        from '../../../shell/CommandButton.tsx';
+import { CommandButton }                                        from '../../../shared/commands/CommandButton.tsx';
 import { ApplyPendingStateModel, type EntityConstitutionCount } from './ApplyPendingStateModel.ts';
 
 export interface ApplyPendingStateProps {

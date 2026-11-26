@@ -2,9 +2,9 @@
  * The one control that posts a board command: disabled whenever the board says controls may not act, and showing the forge's refusal
  * verbatim beside itself, or that the forge could not be reached.
  */
-import { Button, type ButtonEmphasis } from '../../lib/design-system/DesignSystemInterface.ts';
+import { Button, type ButtonEmphasis } from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import type { BoardCommandResult }              from '../api/BoardCommandClient.ts';
+import type { BoardCommandResult }              from '../../api/BoardCommandClient.ts';
 import { useControlCommand, type SentCommands } from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {

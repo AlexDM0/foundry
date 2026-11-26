@@ -2,7 +2,7 @@
 import { Button, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { ChatTurnWordingUtil }                      from '../../conversation/ChatTurnWordingUtil.ts';
-import { useBoardHrefOf }                           from '../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                           from '../../shared/routing/BoardRouteLinks.ts';
 import { INTAKE_NEW_CHAT_ITEM, type IntakeSession } from './IntakeModel.ts';
 import { IntakePane }                               from './IntakePane.tsx';
 import { IntakeSessionRow, NewChatRow }             from './IntakeSessionRow.tsx';

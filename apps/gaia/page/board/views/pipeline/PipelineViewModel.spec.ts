@@ -14,7 +14,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { BoardDocument }                             from '../../../@types/board/BoardDocument.ts';
 import type { BoardSetupRecordDocument }                  from '../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardRoute }                                from '../../shell/BoardRouter.ts';
+import type { BoardRoute }                                from '../../../shared/BoardRouter.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../testing/PipelineFixture.ts';
 import { PipelineViewModel }                              from './PipelineViewModel.ts';
 

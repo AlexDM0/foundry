@@ -13,8 +13,8 @@ import type {
   BoardPipelineHistoryEntryDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardProfileRunState, BoardSetupMode }               from '../../../../@types/board/BoardVocabulary.ts';
-import type { BoardRoute }                                         from '../../../shell/BoardRouter.ts';
-import { DetailRoute, type DetailItem }                            from '../../../shell/DetailRoute.ts';
+import type { BoardRoute }                                         from '../../../../shared/BoardRouter.ts';
+import { DetailRoute, type DetailItem }                            from '../../../shared/routing/DetailRoute.ts';
 import { ElapsedTimeUtil }                                         from '../../../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                          from '../../../utils/TimeUtil.ts';
 import type { PanelStatus }                                        from '../PipelinePanel.tsx';

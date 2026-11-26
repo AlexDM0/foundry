@@ -12,8 +12,8 @@ import {
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardHrefOf, useBoardNavigation } from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }                      from '../../../shell/CommandButton.tsx';
+import { CommandButton }                      from '../../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf, useBoardNavigation } from '../../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                      from '../../../utils/StateToneUtil.ts';
 import { PipelineViewModel }                  from '../PipelineViewModel.ts';
 import { UPDATE_START_COMMAND }               from '../flow/PipelineFlowEditSender.ts';

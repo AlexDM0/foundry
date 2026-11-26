@@ -14,7 +14,7 @@ import {
 } from 'bun:test';
 import { Button } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { BoardTrackerContext }        from '../shell/BoardRouteLinks.ts';
+import { BoardTrackerContext }        from '../shared/routing/BoardRouteLinks.ts';
 import { AskItem, type AskItemProps } from './AskItem.tsx';
 import { TicketLinks }                from './ConversationParts.tsx';
 

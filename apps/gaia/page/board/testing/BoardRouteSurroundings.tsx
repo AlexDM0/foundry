@@ -4,7 +4,7 @@
  */
 import type { ReactElement, ReactNode } from 'react';
 
-import { BoardGoToContext, BoardTrackerContext } from '../shell/BoardRouteLinks.ts';
+import { BoardGoToContext, BoardTrackerContext } from '../shared/routing/BoardRouteLinks.ts';
 import { FIXTURE_TRACKER_ID }                    from './BoardStateFixture.ts';
 
 export interface BoardRouteSurroundings {

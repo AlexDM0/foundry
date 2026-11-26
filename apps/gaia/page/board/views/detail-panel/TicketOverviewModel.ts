@@ -12,8 +12,8 @@ import type { BoardTaskDocument, BoardTicketDocument }                         f
 import type { BoardTicketDocumentSummaryDocument }                             from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState, BoardInterruptionCause, BoardTicketPriority } from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardDocumentStanding, BoardTicketDocumentKind }                 from '../../../@types/board/BoardVocabulary.ts';
+import { BoardRouter, type BoardRoute }                                        from '../../../shared/BoardRouter.ts';
 import type { FlintSlotCue }                                                   from '../../flint/FlintSlotCues.ts';
-import { BoardRouter, type BoardRoute }                                        from '../../shell/BoardRouter.ts';
 import { DisplayStateWordingUtil }                                             from '../../utils/DisplayStateWordingUtil.ts';
 import { FlintSlotCueUtil }                                                    from '../../utils/FlintSlotCueUtil.ts';
 import { JobLiveFactsUtil }                                                    from '../../utils/JobLiveFactsUtil.ts';

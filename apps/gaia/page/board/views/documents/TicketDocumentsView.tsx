@@ -31,14 +31,14 @@ import {
   Tooltip,
   type SegmentOption
 } from '../../../lib/design-system/DesignSystemInterface.ts';
+import { BoardRouter, type BoardRoute }                       from '../../../shared/BoardRouter.ts';
 import type { BoardServices }                                 from '../../@types/BoardServices.ts';
+import type { BoardTabViewProps }                             from '../../@types/BoardTabViewProps.ts';
 import { TicketDocumentsClient, type TicketDocumentsRead }    from '../../api/TicketDocumentsClient.ts';
 import { useTranscript }                                      from '../../conversation/TranscriptLog.tsx';
-import { useBoardHomeHref, useBoardHrefOf }                   from '../../shell/BoardRouteLinks.ts';
-import { BoardRouter, type BoardRoute }                       from '../../shell/BoardRouter.ts';
-import type { BoardTabViewProps }                             from '../../shell/BoardTabViews.tsx';
-import { useControlCommand }                                  from '../../shell/ControlCommandSender.ts';
-import { DetailRoute }                                        from '../../shell/DetailRoute.ts';
+import { useControlCommand }                                  from '../../shared/commands/ControlCommandSender.ts';
+import { useBoardHomeHref, useBoardHrefOf }                   from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                        from '../../shared/routing/DetailRoute.ts';
 import { TimeUtil }                                           from '../../utils/TimeUtil.ts';
 import { InDraftModelUtil }                                   from '../tickets/InDraftModel.ts';
 import { TICKET_SEGMENT_LABELS, TicketsModel }                from '../tickets/TicketsModel.ts';

@@ -18,7 +18,7 @@ import {
   Text,
   TextButton
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }        from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }        from '../../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }         from '../../../utils/StateToneUtil.ts';
 import type { OccupantChipView } from '../live/FlowActivityPanelModel.ts';
 

@@ -12,7 +12,7 @@ import {
 
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
-import { useControlCommand }         from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }         from '../../../shared/commands/ControlCommandSender.ts';
 
 import type { PipelineAgentAsker } from './AgentStepDialog.tsx';
 

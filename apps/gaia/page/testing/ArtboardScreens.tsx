@@ -21,9 +21,8 @@ import type { GaiaTicketDocumentsDocument }                             from '..
 import { type CommandSender, CommandSenderContext, type CommandStates } from '../api/CommandSender.ts';
 import type { BoardServices }                                           from '../board/@types/BoardServices.ts';
 import { PaintedTranscriptsContext }                                    from '../board/conversation/TranscriptLog.tsx';
-import { BoardGoToContext, BoardTrackerContext }                        from '../board/shell/BoardRouteLinks.ts';
-import { BoardRouter, type BoardRoute }                                 from '../board/shell/BoardRouter.ts';
-import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shell/ControlAvailability.ts';
+import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shared/commands/ControlAvailability.ts';
+import { BoardGoToContext, BoardTrackerContext }                        from '../board/shared/routing/BoardRouteLinks.ts';
 import {
   DOCUMENT_STATES,
   DOCUMENTS_PROJECT,
@@ -49,6 +48,7 @@ import { followCaretIn }                                                        
 import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
 import { FirstOpenPhaseContext }                                                                      from '../board/views/pipeline/flow/FlowSelection.ts';
 import type { PipelinePhase }                                                                         from '../board/views/pipeline/flow/PipelinePhaseModel.ts';
+import { BoardRouter, type BoardRoute }                                                               from '../shared/BoardRouter.ts';
 import { HashRouter }                                                                                 from '../shared/HashRouter.ts';
 import { GaiaShell, viewPartsOf }                                                                     from '../shell/GaiaApp.tsx';
 import { ForgesLayout }                                                                               from '../views/forges/ForgesLayout.tsx';

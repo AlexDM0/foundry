@@ -4,8 +4,8 @@
  */
 import { createContext } from 'react';
 
-import type { BoardCommandClient }  from '../api/BoardCommandClient.ts';
-import type { PictureUploadClient } from '../api/PictureUploadClient.ts';
+import type { BoardCommandClient }  from '../../api/BoardCommandClient.ts';
+import type { PictureUploadClient } from '../../api/PictureUploadClient.ts';
 
 export type ControlAvailability = 'enabled' | 'stream-down' | 'install-held';
 

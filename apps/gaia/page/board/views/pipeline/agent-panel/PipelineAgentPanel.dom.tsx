@@ -19,9 +19,9 @@ import {
 } from 'bun:test';
 
 import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { BoardRouter }                     from '../../../../shared/BoardRouter.ts';
 import { FLINT_SLOT_CUES }                 from '../../../flint/FlintSlotCues.ts';
 import { FLINT_SLOT_HABITATS }             from '../../../flint/FlintSlotHabitats.ts';
-import { BoardRouter }                     from '../../../shell/BoardRouter.ts';
 import { FIXTURE_TRACKER_ID }              from '../../../testing/BoardStateFixture.ts';
 import {
   clickSettled,

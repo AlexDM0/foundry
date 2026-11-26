@@ -6,7 +6,7 @@
 import { act, cleanup, render }    from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';
 
-import { BoardClockContext, type BoardClock }                         from './BoardClock.ts';
+import { BoardClockContext, type BoardClock }                         from '../shared/BoardClock.ts';
 import { LEAVING_MILLISECONDS, presenceAttributeOf, useItemPresence } from './ItemPresence.ts';
 
 afterEach(cleanup);

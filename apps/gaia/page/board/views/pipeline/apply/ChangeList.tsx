@@ -5,7 +5,7 @@
  */
 import type { BoardPipelineChangeDocument, BoardSetupEditDocument }    from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { ChangeRow }                                                   from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                               from '../../../shell/CommandButton.tsx';
+import { CommandButton }                                               from '../../../shared/commands/CommandButton.tsx';
 import { ChangeListModel, type ChangeListEditing, type ChangeRowView } from './ChangeListModel.ts';
 
 export interface ChangeListProps {

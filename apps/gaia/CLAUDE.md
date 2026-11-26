@@ -133,10 +133,13 @@ src/testing/       the scratch root, the test run preload, the leak check, the r
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system library (rule 11)
 page/lib/          the page's libraries, each behind its interface file: design-system, flint, brand (rule 11)
 page/components/   Gaia's own parts that no library has, composed from the libraries (rule 10)
-page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
+page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it; it imports nothing of the board
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
 page/board/        the board's views, Gaia's own; a view may draw the board, the board imports no view and no shell (rule 10)
+page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it
+page/board/views/  one folder per tab or panel; no view imports another (`page/PageImportDirection.spec.ts`)
+page/board/shared/ what the board's views and the shell read alike: routing, commands, the clock, the covering panel; imports no view, no shell
 ```
 
 ## Boundaries

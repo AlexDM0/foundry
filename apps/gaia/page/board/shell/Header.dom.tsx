@@ -29,11 +29,14 @@ import {
 } from 'bun:test';
 import type { ReactElement } from 'react';
 
-import type { BoardDocument }                  from '../../@types/board/BoardDocument.ts';
-import type { BoardJobDocument }               from '../../@types/board/BoardJobDocuments.ts';
-import type { NotificationAllowance }          from '../../notifications/NotificationBoundary.ts';
-import type { ConnectionState }                from '../api/BoardEventStreamClient.ts';
-import { boardHrefOf, boardRouteSurroundings } from '../testing/BoardRouteSurroundings.tsx';
+import type { BoardDocument }                            from '../../@types/board/BoardDocument.ts';
+import type { BoardJobDocument }                         from '../../@types/board/BoardJobDocuments.ts';
+import type { NotificationAllowance }                    from '../../notifications/NotificationBoundary.ts';
+import { BoardRouter, type BoardTab, type ProgressView } from '../../shared/BoardRouter.ts';
+import type { QuestionNotifier }                         from '../@types/QuestionNotifier.ts';
+import type { ConnectionState }                          from '../api/BoardEventStreamClient.ts';
+import type { BoardClock }                               from '../shared/BoardClock.ts';
+import { boardHrefOf, boardRouteSurroundings }           from '../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,
   exampleAgentJob,
@@ -50,12 +53,9 @@ import {
   WAITING_FIXTURE_NOW,
   waitingOnUserBoard
 } from '../testing/WaitingOnUserFixture.ts';
-import type { QuestionNotifier }                         from '../views/questions/QuestionAlerts.ts';
-import type { BoardClock }                               from './BoardClock.ts';
-import { BoardRouter, type BoardTab, type ProgressView } from './BoardRouter.ts';
-import { Header }                                        from './Header.tsx';
-import { headerModelOf, type HeaderFigureLane }          from './HeaderModel.ts';
-import { WaitingOnUserModel }                            from './WaitingOnUserModel.ts';
+import { Header }                               from './Header.tsx';
+import { headerModelOf, type HeaderFigureLane } from './HeaderModel.ts';
+import { WaitingOnUserModel }                   from './WaitingOnUserModel.ts';
 
 const STILL_CLOCK: BoardClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined };
 

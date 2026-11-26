@@ -4,11 +4,11 @@
  */
 import { createElement, type ReactElement } from 'react';
 
-import { BoardGoToContext, BoardTrackerContext } from '../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                       from '../shell/BoardRouter.ts';
-import { BoardRouter }                           from '../shell/BoardRouter.ts';
-import type { DetailItem, DetailTab }            from '../shell/DetailRoute.ts';
-import { DetailRoutingContext, detailRoutingOf } from '../shell/DetailRouting.ts';
+import type { BoardRoute }                       from '../../shared/BoardRouter.ts';
+import { BoardRouter }                           from '../../shared/BoardRouter.ts';
+import { BoardGoToContext, BoardTrackerContext } from '../shared/routing/BoardRouteLinks.ts';
+import type { DetailItem, DetailTab }            from '../shared/routing/DetailRoute.ts';
+import { DetailRoutingContext, detailRoutingOf } from '../shared/routing/DetailRouting.ts';
 import { FIXTURE_TRACKER_ID }                    from './BoardStateFixture.ts';
 
 export interface RoutedView {

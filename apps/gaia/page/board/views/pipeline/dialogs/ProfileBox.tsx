@@ -17,7 +17,7 @@ import {
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { ProfileOutputLine } from '../../../api/ProfileStreamClient.ts';
-import { CommandButton }          from '../../../shell/CommandButton.tsx';
+import { CommandButton }          from '../../../shared/commands/CommandButton.tsx';
 
 import { GateDialogModel, type ProfileBoxView } from './GateDialogModel.ts';
 

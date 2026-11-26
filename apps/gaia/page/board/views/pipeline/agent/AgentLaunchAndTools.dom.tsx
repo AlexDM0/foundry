@@ -22,9 +22,9 @@ import {
   test
 } from 'bun:test';
 
+import { ProgramFileChooserContext }                                              from '../../../shared/commands/ProgramFileChooser.ts';
 import { AgentNotice }                                                            from '../../../shell/AgentNotice.tsx';
 import { AgentNoticeModel, type AgentNoticeView }                                 from '../../../shell/AgentNoticeModel.ts';
-import { ProgramFileChooserContext }                                              from '../../../shell/ProgramFileChooser.ts';
 import { EXAMPLE_NOT_LAUNCHED }                                                   from '../../../testing/AgentFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
 import { onBoard }                                                                from '../../../testing/OnBoard.ts';

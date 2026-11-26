@@ -23,7 +23,7 @@ import {
 import { useState } from 'react';
 
 import type { BoardDocumentMessageDocument }                   from '../../../@types/board/TicketDocumentsDocument.ts';
-import { BROWSER_BOARD_CLOCK, BoardClockContext }              from '../../shell/BoardClock.ts';
+import { BROWSER_BOARD_CLOCK, BoardClockContext }              from '../../shared/BoardClock.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }    from '../../testing/FakeControls.ts';
 import { onBoard }                                             from '../../testing/OnBoard.ts';
 import { DOCUMENT_STATES, SPEC_MARKDOWN }                      from '../../testing/TicketDocumentsFixture.ts';

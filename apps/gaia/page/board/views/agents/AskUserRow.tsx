@@ -7,7 +7,7 @@ import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts
 import { Button }                 from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { AskItem }         from '../../conversation/AskItem.tsx';
-import { useBoardHrefOf }  from '../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }  from '../../shared/routing/BoardRouteLinks.ts';
 import { ElapsedTimeUtil } from '../../utils/ElapsedTimeUtil.ts';
 import { StateToneUtil }   from '../../utils/StateToneUtil.ts';
 import type { JobAsk }     from './AgentsModel.ts';

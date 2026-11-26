@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PAGE_CONTRACT_VERSIONS }                  from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }               from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDraftEditDocument }             from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { useControlCommand }                       from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }                       from '../../../shared/commands/ControlCommandSender.ts';
 import { EntityLevelFactsModel }                   from '../entities/EntityLevelFactsModel.ts';
 import { entityKeyOfScope, useMonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
 
