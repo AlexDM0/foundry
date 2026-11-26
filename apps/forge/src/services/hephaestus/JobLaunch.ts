@@ -17,6 +17,8 @@ import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
 import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
 import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
+import { MergeSettlementIngestion, type TargetMergeSettlement }                    from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
+import { createMergeSettlementWriter }                                             from '../../adapters/merge-settlement/MergeSettlementWriter.ts';
 import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
 import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
@@ -100,35 +102,30 @@ import {
   CUSTOMS_CHECKS,
   clearCustoms
 } from '../lifecycle/Customs.ts';
-import { type GateConfinement, GateRun } from '../lifecycle/GateRun.ts';
-import type { SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
-import {
-  CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE,
-  MergeRun,
-  type ReReviewVerdict,
-  type TargetMergeSettlement
-} from '../lifecycle/MergeRun.ts';
-import { type PackageReviewSettlement, ReviewOutcome }                 from '../lifecycle/ReviewOutcome.ts';
-import type { BoardTransaction }                                       from '../tracker/BoardTransaction.ts';
-import { type ProjectLocation, projectLocationOf }                     from '../tracker/ProjectLocation.ts';
-import type { Workspace }                                              from '../tracker/Workspace.ts';
-import type { BoardChildren }                                          from './BoardChildren.ts';
-import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
-import { CrossingStages }                                              from './CrossingStages.ts';
-import { DependentFixTickets }                                         from './DependentFixTickets.ts';
-import type { GateRunSlots }                                           from './GateRunSlots.ts';
-import { GroupWorktrees }                                              from './GroupWorktrees.ts';
-import { GuardCommand }                                                from './GuardCommand.ts';
-import { HatchInbox }                                                  from './HatchInbox.ts';
-import { jobFolderIn }                                                 from './HephaestusFiles.ts';
-import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
-import type { SessionLaunchSettings }                                  from './LaunchSettings.ts';
-import { LineSandbox, type ProcessSandboxRequest }                     from './LineSandbox.ts';
-import { NeedTickets }                                                 from './NeedTickets.ts';
-import { PipelineAgentSessions }                                       from './PipelineAgentSessions.ts';
-import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
-import { StoredFileUnreadable }                                        from './StoredFileUnreadable.ts';
-import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
+import { type GateConfinement, GateRun }                                         from '../lifecycle/GateRun.ts';
+import type { SharedRepositoryLanding }                                          from '../lifecycle/Landing.ts';
+import { CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE, MergeRun, type ReReviewVerdict } from '../lifecycle/MergeRun.ts';
+import { type PackageReviewSettlement, ReviewOutcome }                           from '../lifecycle/ReviewOutcome.ts';
+import type { BoardTransaction }                                                 from '../tracker/BoardTransaction.ts';
+import { type ProjectLocation, projectLocationOf }                               from '../tracker/ProjectLocation.ts';
+import type { Workspace }                                                        from '../tracker/Workspace.ts';
+import type { BoardChildren }                                                    from './BoardChildren.ts';
+import { ConstitutionCommits }                                                   from './ConstitutionCommits.ts';
+import { CrossingStages }                                                        from './CrossingStages.ts';
+import { DependentFixTickets }                                                   from './DependentFixTickets.ts';
+import type { GateRunSlots }                                                     from './GateRunSlots.ts';
+import { GroupWorktrees }                                                        from './GroupWorktrees.ts';
+import { GuardCommand }                                                          from './GuardCommand.ts';
+import { HatchInbox }                                                            from './HatchInbox.ts';
+import { jobFolderIn }                                                           from './HephaestusFiles.ts';
+import { InstructionFiles, type InstructionFileRead }                            from './InstructionFiles.ts';
+import type { SessionLaunchSettings }                                            from './LaunchSettings.ts';
+import { LineSandbox, type ProcessSandboxRequest }                               from './LineSandbox.ts';
+import { NeedTickets }                                                           from './NeedTickets.ts';
+import { PipelineAgentSessions }                                                 from './PipelineAgentSessions.ts';
+import { RedHandoff, type RedHandoffFacts }                                      from './RedHandoff.ts';
+import { StoredFileUnreadable }                                                  from './StoredFileUnreadable.ts';
+import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest }           from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
   platformPorts:        PlatformPorts;
@@ -1009,6 +1006,13 @@ function mergeSidesOf(trackerDirectory: string, sidesFilePath: string): TargetMe
   return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, sidesFilePath, reading.reason);
 }
 
+/** How the merge settled once its process ended; `null` before. */
+function mergeSettlementOf(trackerDirectory: string, settlementFilePath: string): TargetMergeSettlement | null | StoredFileUnreadable {
+  const reading = new MergeSettlementIngestion(settlementFilePath).read();
+  if (reading.verdict === 'readable') return reading.settlement;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, settlementFilePath, reading.reason);
+}
+
 /** The first look: the target's tip as it stands now, and whether the branch already holds it. */
 function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): TargetCatchUp {
   const worktree  = worktreeOf(context.workspace, job);
@@ -1029,7 +1033,8 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   const record = mergeSidesOf(context.workspace.trackerDirectory, join(jobFolder, JOB_FILES.targetMerge));
   if (StoredFileUnreadable.isUnreadableFile(record)) return record;
   if (record === null) return firstTargetCheckOf(context, job);
-  const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolder, JOB_FILES.targetMergeSettlement));
+  const settlement = mergeSettlementOf(context.workspace.trackerDirectory, join(jobFolder, JOB_FILES.targetMergeSettlement));
+  if (StoredFileUnreadable.isUnreadableFile(settlement)) return settlement;
   if (settlement === null) {
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolder, TARGET_MERGE_CHILD_FOLDER));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
@@ -1112,7 +1117,8 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     return treeId === null ? unreadableTree : { verdict: 'up-to-date', treeId };
   }
   const files = mainMergeIntoTreeFilesOf(round);
-  const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolderOf(context.workspace, job), files.settlementFile));
+  const settlement = mergeSettlementOf(context.workspace.trackerDirectory, join(jobFolderOf(context.workspace, job), files.settlementFile));
+  if (StoredFileUnreadable.isUnreadableFile(settlement)) return settlement;
   if (settlement === null) {
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolderOf(context.workspace, job), files.childFolder));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
@@ -2634,7 +2640,7 @@ async function launchLineChild(
 const TARGET_CATCH_UP_MERGE: MergeIntoTreeFiles = { childFolder: TARGET_MERGE_CHILD_FOLDER, settlementFile: JOB_FILES.targetMergeSettlement };
 
 function writeMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, files: MergeIntoTreeFiles, settlement: TargetMergeSettlement): void {
-  writeFileAtomically(join(jobFolderOf(context.workspace, job), files.settlementFile), `${JSON.stringify(settlement)}\n`);
+  createMergeSettlementWriter(join(jobFolderOf(context.workspace, job), files.settlementFile)).write(settlement);
 }
 
 /**

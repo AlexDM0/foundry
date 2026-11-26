@@ -6,15 +6,16 @@
  * the ticket's last worker, as a red handoff; a resolution larger than `airlock.reReview.thresholdLines`, or one git cannot measure, gets a
  * conflict re-reviewer before the gates, one at or below it and a pipeline with no `airlock.reReview` go straight on; a re-review that
  * does not hold fails the job. The crash rows: each round of a job keeps its own files, so a resumed session never reads an earlier round's
- * merge; a merge that ended while Hephaestus was down is settled once; a replaced re-reviewer relaunches with the same attempt; and a stop
- * while a re-reviewer works stops it first. The folders are real; git answers from recorded answer sets, the launcher is fake, and the spec
- * ends each line itself.
+ * merge; a merge that ended while Hephaestus was down is settled once, and a settlement that cannot be read never again; a replaced
+ * re-reviewer relaunches with the same attempt; and a stop while a re-reviewer works stops it first. The folders are real; git answers from
+ * recorded answer sets, the launcher is fake, and the spec ends each line itself.
  */
 import {
   existsSync,
   mkdirSync,
   readFileSync,
-  realpathSync
+  realpathSync,
+  writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
 
@@ -525,7 +526,25 @@ testWhenGitIsRecorded('crash row: a merge that ended while Hephaestus was down i
 
   expect(readFileSync(join(scene.jobFolder(), 'main-merge-settlement.json'), 'utf8')).toBe(settlement);
   expect(scene.spawnedFolders().filter((folder) => folder.endsWith('main-merge'))).toHaveLength(1);
-  expect(JSON.parse(settlement)).toEqual({ verdict: 'merged', mergeCommit: MERGED_TIP });
+  expect(JSON.parse(settlement)).toEqual({ version: 1, verdict: 'merged', mergeCommit: MERGED_TIP });
+});
+
+testWhenGitIsRecorded('a settlement that cannot be read is never settled over: the job waits in merging-main on the file\'s incident', async () => {
+  const scene = mergingMainScene('review', REVIEW_PIPELINE);
+  recordedGit.answerFrom(worktreeAt(scene, BRANCH_TIP, false, BRANCH_TREE));
+  await scene.pass();
+  endLine(join(scene.jobFolder(), 'main-merge'), CLEAN_EXIT_CODE);
+  writeFileSync(join(scene.jobFolder(), 'main-merge-settlement.json'), `${JSON.stringify({ version: 1, verdict: 'merged' })}\n`);
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+  await scene.pass();
+
+  expect(readFileSync(join(scene.jobFolder(), 'main-merge-settlement.json'), 'utf8')).toBe(`${JSON.stringify({ version: 1, verdict: 'merged' })}\n`);
+  expect(scene.job()?.state).toBe('merging-main');
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file'], incident.facts['reason']])).toEqual([
+    ['system-file-unreadable', `jobs/${scene.jobId}/main-merge-settlement.json`, 'its "mergeCommit" is not a commit'],
+  ]);
 });
 
 testWhenGitIsRecorded('crash row: a re-reviewer whose session could not resume is replaced by a fresh one with the same attempt', async () => {

@@ -4,8 +4,9 @@
  * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
  * own and settled here, and who takes a crossing ticket's conflict or red gate: the entity that owns it (strategy 5.7).
  */
-import type { MergeSides }         from '../../adapters/merge-sides/MergeSidesIngestion.ts';
-import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
+import type { TargetMergeSettlement } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
+import type { MergeSides }            from '../../adapters/merge-sides/MergeSidesIngestion.ts';
+import { readMergeResolutionDiff }    from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
   resetTo,
@@ -75,11 +76,6 @@ function headHoldsCommit(worktreePath: string, commit: string): 'holds' | 'lacks
 function targetMergeCommandOf(gitProgramPath: string, targetTip: string): string[] {
   return GitProcess.commandOf(gitProgramPath, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip], 'hooks-off');
 }
-
-export type TargetMergeSettlement =
-  | { verdict: 'merged'; mergeCommit: string }
-  | { verdict: 'conflicted'; conflictedFiles: string[] }
-  | { verdict: 'failed'; reason: string };
 
 /**
  * Read once the merge's process ended. A conflict is aborted and the worktree reset to the branch tip, so nothing of the merge stays; a
