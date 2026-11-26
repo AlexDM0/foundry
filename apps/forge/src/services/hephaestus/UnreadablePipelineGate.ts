@@ -1,5 +1,5 @@
+import type { MergedTreeGate }  from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import type { PipelineReading } from '../../adapters/pipeline/PipelineFile.ts';
-import type { MergedTreeGate }  from './Airlocks.ts';
 
 /** The gate step a merge records when the stored pipeline cannot be read; it names the record, never where it is kept. */
 export const UNREADABLE_PIPELINE_STEP = 'stored-pipeline';

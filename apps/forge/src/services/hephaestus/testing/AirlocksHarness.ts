@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
 import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
+import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                                 from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../lib/tracker-model/@types/Job.ts';
@@ -30,7 +31,6 @@ import {
   createAirlocks,
   type DeclinedCleanup,
   type MergeAgentReading,
-  type MergedTreeGate,
   type Airlocks
 } from '../Airlocks.ts';
 import { GroupWorktrees } from '../GroupWorktrees.ts';

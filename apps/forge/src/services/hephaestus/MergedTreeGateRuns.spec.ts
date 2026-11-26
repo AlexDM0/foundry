@@ -21,15 +21,15 @@ import {
   test
 } from 'bun:test';
 
+import type { MergedTreeGate }                            from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION }        from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
 import type { GateRunStamp }                              from '../../lib/tracker-model/@types/GatePhase.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../testing/WaitUntil.ts';
 import { LinePausedError }                                from '../lifecycle/GateRun.ts';
-import type { MergedTreeGate }                            from './Airlocks.ts';
 import {
   createMergedTreeGateRuns,
   MERGED_TREE_GATE_OUTCOME_FILE,
-  MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION,
   MERGED_TREE_GATE_RUNS_FOLDER,
   type MergedTreeGateRunRequest,
   type MergedTreeGateRuns
@@ -306,6 +306,33 @@ describe('a kept outcome that is no outcome', () => {
     const subject = runsUnderTest();
     plantOutcome(subject, JSON.stringify({ formatVersion: MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION + 1, gate: PASSED_GATE }));
     expect(subject.runs.gateOf(subject.requestOf())).toBe('running');
+  });
+
+  test('an unreadable outcome of an ended run runs the gate again, logged, and the new run\'s outcome replaces it', async () => {
+    const subject = runsUnderTest();
+    subject.runs.gateOf(subject.requestOf());
+    subject.fakeRun.finish(PASSED_GATE);
+    await keptOutcomeOf(subject, subject.requestOf());
+    const [folderName] = subject.runFolders();
+    writeFileSync(join(subject.boardFolder, MERGED_TREE_GATE_RUNS_FOLDER, folderName ?? '', MERGED_TREE_GATE_OUTCOME_FILE), '{"formatVersion": 1, "gate": {}}');
+
+    expect(subject.runs.gateOf(subject.requestOf())).toBe('running');
+    expect(subject.fakeRun.started).toBe(2);
+    expect(subject.sentences.filter((sentence) => sentence.includes('cannot be read'))).toHaveLength(1);
+    subject.fakeRun.finish(PASSED_GATE);
+    expect(await keptOutcomeOf(subject, subject.requestOf())).toEqual(PASSED_GATE);
+  });
+
+  test('settleAtStart removes a run folder whose kept outcome cannot be read, logged', async () => {
+    const subject = runsUnderTest();
+    const unreadableRunFolder = join(subject.boardFolder, MERGED_TREE_GATE_RUNS_FOLDER, '0123456789abcdef');
+    mkdirSync(unreadableRunFolder, { recursive: true });
+    writeFileSync(join(unreadableRunFolder, MERGED_TREE_GATE_OUTCOME_FILE), '{"gate": ');
+
+    await subject.runs.settleAtStart();
+
+    expect(existsSync(unreadableRunFolder)).toBe(false);
+    expect(subject.sentences).toEqual([expect.stringContaining('0123456789abcdef is removed: its kept outcome cannot be read')]);
   });
 
   test('an outcome of the current format version is the kept outcome', () => {

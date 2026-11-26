@@ -2118,7 +2118,8 @@ sweep after the run ended settles the job from the outcome the run kept in `<dat
 (`{formatVersion: 1, gate}`), written once at its end. The folder's hash covers the worktree, the tree, the phase, the
 gated entities and the phase hashes of the pipeline the run read, so a changed pipeline is another run, and an ask while
 a run is in flight starts none. The folder goes once its outcome settled the job. A run that Hephaestus's stop ended
-keeps no outcome, and the next start removes its folder and runs it again.
+keeps no outcome, and the next start removes its folder and runs it again. A kept outcome that cannot be read is logged
+and is no outcome: the gate runs again, or the next start removes its folder.
 
 The ticket's last worker is its newest ended build or review job, read from the log whatever the pipeline says now, with
 that job's role: a review step removed since still gives the reviewer. With none ended, it is the reviewer, or the

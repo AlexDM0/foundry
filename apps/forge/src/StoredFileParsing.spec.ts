@@ -40,8 +40,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(path, \'utf8\')) as Content;':            STORED_FILE_OFFENDER,
   'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(verdictPath, \'utf8\')) as StepVerdict;': STORED_FILE_OFFENDER,
-  'src/services/hephaestus/MergedTreeGateRuns.ts: const kept = JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), \'utf8\')));':
-    STORED_FILE_OFFENDER,
   'src/services/hephaestus/PipelineAgentSessions.ts: return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), \'utf8\')) as SnapshotStart;':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/Presence.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
