@@ -6,6 +6,7 @@
  * and the view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
  */
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -21,6 +22,7 @@ import { BOARD_TAB_VIEWS }                                               from '.
 import { BrandBar }                                                      from '../components/BrandBar.tsx';
 import { PageHead }                                                      from '../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
+import type { SetupProgress }                                            from '../shared/@types/SetupProgress.ts';
 import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
 import type { ViewParts }                                                from '../shared/@types/ViewParts.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings }             from '../shared/HashRouter.ts';
@@ -37,18 +39,20 @@ import type { FleetSource }                                              from '.
 import { MotionReadiness }                                               from './MotionReadiness.ts';
 import { PageClock }                                                     from './PageClock.ts';
 import { Rail }                                                          from './Rail.tsx';
-import { RailModel }                                                     from './RailModel.ts';
+import { type OpenForgeSetup, RailModel }                                from './RailModel.ts';
 import { SecondsOnScreen }                                               from './SecondsOnScreen.ts';
 import { type ThemeChoiceState, ThemeBootstrap, type ThemeSurroundings } from './ThemeBootstrap.ts';
 import { WindowTitle }                                                   from './WindowTitle.ts';
 
 export interface GaiaShellProps {
-  readonly fleetDocument: FleetDocument | null;
-  readonly streamState:   FleetStreamState;
-  readonly route:         GaiaRoute;
-  readonly view:          ViewParts;
-  readonly themeChoice:   ThemeChoice;
-  readonly onThemeChoice: (choice: ThemeChoice) => void;
+  readonly fleetDocument:   FleetDocument | null;
+  readonly streamState:     FleetStreamState;
+  readonly route:           GaiaRoute;
+  readonly view:            ViewParts;
+  readonly themeChoice:     ThemeChoice;
+  readonly onThemeChoice:   (choice: ThemeChoice) => void;
+  /** Where the setup of the forge shown in place stands, as its board told the page; `null` while no board in setup shows. */
+  readonly openForgeSetup?: OpenForgeSetup | null;
 }
 
 /** The browser around the page, so a spec can stand in for each part. */
@@ -114,7 +118,7 @@ export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, 
 
 /** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (`docs/design/screens.md`, the brand bar). */
 export function GaiaShell({
-  fleetDocument, streamState, route, view, themeChoice, onThemeChoice
+  fleetDocument, streamState, route, view, themeChoice, onThemeChoice, openForgeSetup = null
 }: GaiaShellProps) {
   return (
     <div className="gaia-shell">
@@ -124,7 +128,7 @@ export function GaiaShell({
           themeButton={route.view === 'forge' ? null : { choice: themeChoice, onCycle: onThemeChoice }}
         />
         <div className="gaia-shell-body">
-          <Rail content={RailModel.railContentOf(fleetDocument, route)} />
+          <Rail content={RailModel.railContentOf(fleetDocument, route, openForgeSetup)} />
           <main className="gaia-shell-main">
             {view.title === null ? null : (
               <div className="gaia-shell-page-title">
@@ -182,6 +186,12 @@ export function GaiaApp({
   const windowTitle = WindowTitle.windowTitleOf(WindowTitle.viewTitleOf(route, fleetDocument), fleetDocument);
   useEffect(() => setWindowTitle(windowTitle), [setWindowTitle, windowTitle]);
 
+  const [openForgeSetup, setOpenForgeSetup] = useState<OpenForgeSetup | null>(null);
+  const reportSetupProgress = useCallback((trackerId: string, progress: SetupProgress | null) => {
+    setOpenForgeSetup((previous) => RailModel.openForgeSetupAfterReport(previous, trackerId, progress));
+  }, []);
+  const forgeViewSurroundings = useMemo(() => ({ ...forgeView, reportSetupProgress }), [forgeView, reportSetupProgress]);
+
   const motionMayStart = MotionReadiness.motionMayStartWith(fleetDocument);
   useEffect(() => {
     if (motionMayStart) markMotionReady();
@@ -195,12 +205,13 @@ export function GaiaApp({
         route={route}
         view={viewPartsOf(route, fleetDocument, {
           readAtMilliseconds,
-          timeZone: clock.timeZone,
-          goTo:     hash.goTo,
-          forgeView,
+          timeZone:  clock.timeZone,
+          goTo:      hash.goTo,
+          forgeView: forgeViewSurroundings,
         })}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
+        openForgeSetup={openForgeSetup}
       />
     </CommandSenderContext>
   );

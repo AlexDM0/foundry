@@ -3,8 +3,10 @@
  * comes back, follows the stream's connection, says whether controls may act, and draws the banners, the incident line, the header with its
  * tabs, and the main area, where every tab is drawn by its view in `BOARD_TAB_VIEWS`. Over a detail tab the detail panel opens on the
  * routed item. Beside every tab the question panel shows one open decision, opened by a view, by a decision that opens, or by
- * `questions/<id>`. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way to go to every
- * link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
+ * `questions/<id>`, but never while the board is in setup. It navigates by Gaia's address alone, through `services.goTo`, and provides
+ * the tracker id and the way to go to every link below it. Flint lives over the whole board, its habitat stored with the board's
+ * preferences. The page's own head over the board, its children, heads the shell, told through `BoardSetupHeadContext` while the board is
+ * in setup, when it holds the setup step bar and the board draws no header of its own.
  */
 import {
   useCallback,
@@ -24,6 +26,7 @@ import type { BoardReading }                                       from '../flin
 import { boardPreferenceStoreOf }                                  from '../preferences/PreferenceStore.ts';
 import { TimeUtil }                                                from '../utils/TimeUtil.ts';
 import { KanbanTabSurroundingsContext }                            from '../views/kanban/KanbanTabSurroundings.ts';
+import { PipelineViewModel }                                       from '../views/pipeline/PipelineViewModel.ts';
 import { QuestionPanel }                                           from '../views/question-panel/QuestionPanel.tsx';
 import { QuestionPanelModel }                                      from '../views/question-panel/QuestionPanelModel.ts';
 import { ShownQuestionContext, useQuestionPanelState }             from '../views/question-panel/QuestionPanelState.ts';
@@ -41,6 +44,7 @@ import {
   type BoardRoute,
   type BoardTab
 } from './BoardRouter.ts';
+import { type BoardSetupHead, BoardSetupHeadContext }                                    from './BoardSetupHead.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
 import { useBoardTabFilters }                                                            from './BoardTabFilters.tsx';
 import { BOARD_TAB_VIEWS, type BoardTabViewTable }                                       from './BoardTabViews.tsx';
@@ -52,11 +56,13 @@ import { DetailRoute }                                                          
 import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from './DetailRouting.ts';
 import { FinishedWorkWindowContext }                                                     from './FinishedWorkWindow.ts';
 import { Header }                                                                        from './Header.tsx';
-import { headerModelOf }                                                                 from './HeaderModel.ts';
+import { type HeaderModel, headerModelOf, setupProgressOnStartingStepOf }                from './HeaderModel.ts';
+import { HomeFolderContext }                                                             from './HomeFolder.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                                                       from './IncidentNoticeModel.ts';
 import { ProgramFileChooserContext }                                                     from './ProgramFileChooser.ts';
 import { QuestionPanelOpenerContext }                                                    from './QuestionPanelOpener.ts';
+import { SetupStepBar }                                                                  from './SetupStepBar.tsx';
 import { WaitingOnUserModel }                                                            from './WaitingOnUserModel.ts';
 
 export interface BoardAppProps {
@@ -67,6 +73,8 @@ export interface BoardAppProps {
   readonly project:   string;
   /** The view of every tab; `BOARD_TAB_VIEWS` unless a spec hands its own. */
   readonly tabViews?: BoardTabViewTable;
+  /** The page's own head, drawn at the top of the board; in setup it holds the setup step bar (`BoardSetupHeadContext`). */
+  readonly children?: ReactNode;
 }
 
 const HELD_BY_INSTALL_CHANGE = 'held-by-install-change';
@@ -133,8 +141,18 @@ function useBoardReading(services: BoardServices): {
   return { board, connection, boardShownAsOf };
 }
 
+/**
+ * The head's part in setup: the step bar while a setup record walks its steps, and on the agent step that starts one, where the stepper's
+ * Agent is current; on the welcome before a record opens the head shows none.
+ */
+function setupHeadOf({ setupSteps, setupProgress }: HeaderModel, agentStepStartsSetup: boolean): BoardSetupHead | null {
+  if (setupSteps === null || setupProgress === null) return null;
+  const progress = setupProgress.stage === 'not-started' && agentStepStartsSetup ? setupProgressOnStartingStepOf(setupSteps) : setupProgress;
+  return { stepBar: progress.stage === 'setting-up' ? <SetupStepBar steps={setupSteps} /> : null, progress };
+}
+
 export function BoardApp({
-  services, route, project, tabViews = BOARD_TAB_VIEWS
+  services, route, project, tabViews = BOARD_TAB_VIEWS, children
 }: BoardAppProps) {
   const { board, connection, boardShownAsOf } = useBoardReading(services);
   const boardStore = useMemo(() => boardPreferenceStoreOf(services.trackerId, services.storage), [services]);
@@ -198,10 +216,12 @@ export function BoardApp({
     mainPanelRef.current?.focus();
   };
   const agentNotice = useMemo(() => (board === null ? null : AgentNoticeModel.agentNoticeOf(board)), [board]);
-  const questionQueue = useMemo(() => (board === null ? [] : QuestionsModelUtil.openDecisionsOf(board)), [board]);
-  const pipelineReadingVerdict = board?.pipeline.applied.readingVerdict ?? null;
-  const quietDecisionIds = useMemo(() => QuestionPanelModel.decisionIdsTheSetupAnswersOf(questionQueue, pipelineReadingVerdict), [questionQueue, pipelineReadingVerdict]);
-  const questionPanel = useQuestionPanelState(boardStore, questionQueue, quietDecisionIds);
+  const boardIsInSetup = board !== null && PipelineViewModel.isInSetup(board);
+  const questionQueue = useMemo(
+    () => (board === null ? [] : QuestionPanelModel.panelQueueOf(QuestionsModelUtil.openDecisionsOf(board), boardIsInSetup)),
+    [board, boardIsInSetup],
+  );
+  const questionPanel = useQuestionPanelState(boardStore, questionQueue);
   // `questions/<id>` opens that open question's panel, when the route arrives and when the question does.
   const routedQuestionId = shownRoute.tab === 'questions' ? shownRoute.item : null;
   const routedQuestionIsOpen = routedQuestionId !== null && questionQueue.some(({ decision }) => decision.id === routedQuestionId);
@@ -211,6 +231,8 @@ export function BoardApp({
   }, [routedQuestionIsOpen, routedQuestionId, openQuestionPanel]);
   const flintBoardReading = useMemo((): BoardReading => ({ board, connection, refusedCommandCount }), [board, connection, refusedCommandCount]);
   const headerModel = headerModelOf(board, services.now(), connection);
+  const agentStepStartsSetup = board !== null && shownRoute.tab === 'pipeline' && PipelineViewModel.screenOf(board, shownRoute).screen === 'setup-start';
+  const setupHead = setupHeadOf(headerModel, agentStepStartsSetup);
   const TabView = tabViews[shownRoute.tab];
   const { tab: shownTab, item: shownItem } = shownRoute;
   const tabFilters = useBoardTabFilters(board, shownTab, boardStore, boardNow);
@@ -254,6 +276,7 @@ export function BoardApp({
                   {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
                 >
                   <div className="board-shell">
+                    <BoardSetupHeadContext value={setupHead}>{children}</BoardSetupHeadContext>
                     <ConnectionBanners
                       streamIsDown={streamIsDown}
                       boardShownAsOf={boardShownAsOf}
@@ -287,7 +310,7 @@ export function BoardApp({
                     >
                       <QuestionPanelShownContext value={shownQuestion !== null}>
                         <ShownQuestionContext value={shownQuestion?.decision.id ?? null}>
-                          {mainArea()}
+                          <HomeFolderContext value={services.homeFolder ?? null}>{mainArea()}</HomeFolderContext>
                         </ShownQuestionContext>
                       </QuestionPanelShownContext>
                     </main>

@@ -284,8 +284,9 @@ function figuresFoldIntoTheMainColumn(fleetDocument: FleetDocument): boolean {
 
 function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   const {
-    waitingOnUser, agentsInFlight, machineLimit, readyTickets, deliveredToday, tokensToday, openIncidents, incompleteFor
+    agentsInFlight, machineLimit, readyTickets, deliveredToday, tokensToday, openIncidents, incompleteFor
   } = fleetDocument.figures;
+  const waitingOnUser = FleetDocumentUtil.waitingOnUserTotalOf(fleetDocument);
   const agentsText = `${agentsInFlight}${FleetDocumentUtil.forgesWhoseAgentsAreNotCountedIn(fleetDocument).length > 0 ? '+' : ''}`;
   const todayFigures: AttentionFigure[] = aForgeReportsToday(fleetDocument)
     ? [
@@ -373,7 +374,7 @@ function outageAlertRowOf(item: FleetDocumentFleetAttentionItem, fleetDocument: 
 function rowsOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[], clock: ClockReading): AttentionRow[] {
   const forgesById = new Map(forges.map((forge) => [forge.trackerId, forge]));
   let primaryIsGiven = false;
-  return fleetDocument.attention.flatMap((item) => {
+  return FleetDocumentUtil.fleetAttentionWaitingOnUserOf(fleetDocument).flatMap((item) => {
     if (item.trackerId === null) {
       const isPrimary = !primaryIsGiven;
       primaryIsGiven = true;
@@ -772,7 +773,8 @@ function runningNoteOf(forges: readonly FleetDocumentForge[]): string | null {
 
 function attentionContentOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[], clock: ClockReading): AttentionContent {
   const forgesById = new Map(forges.map((forge) => [forge.trackerId, forge]));
-  const { waitingOnUser, incompleteFor } = fleetDocument.figures;
+  const { incompleteFor } = fleetDocument.figures;
+  const waitingOnUser = FleetDocumentUtil.waitingOnUserTotalOf(fleetDocument);
   const morePossible = incompleteFor.length > 0;
   const waitingCount = morePossible ? `${waitingOnUser} known, more possible` : String(waitingOnUser);
   const looks = looksOf(fleetDocument, forgesById, clock);

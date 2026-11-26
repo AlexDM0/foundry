@@ -79,12 +79,7 @@ describe('the status lines', () => {
       .toBe('Pipeline agent J4 · research done · snapshot of main at 1111111');
   });
 
-  test('the footer counts the scripts and the open research questions', () => {
-    expect(ResearchStepModel.footerCountsOf(withRecord(researchSetup(), { readyToContinue: [] }))).toBe('2 scripts found · 1 open question');
-    expect(ResearchStepModel.footerCountsOf(withRecord(researchSetup(), { questions: [] }))).toBe('2 scripts found');
-  });
-
-  test('the panel head and the footer pill say whether the agent researches, is done or stopped', () => {
+  test('the panel head says whether the agent researches, is done or stopped', () => {
     const statusOf = (setup: BoardPipelineSetupDocument) => ResearchStepModel.panelStatusOf(
       ResearchStepModel.researchStateOf(setup, AgentSessionModel.setupSessionStateOf(setup, [])),
     );
@@ -103,8 +98,8 @@ describe('the status lines', () => {
   });
 
   test('the heading names the project', () => {
-    expect(ResearchStepModel.headingOf('Example Agency')).toBe('Getting to know Example Agency');
-    expect(ResearchStepModel.headingOf('')).toBe('Getting to know the repository');
+    expect(ResearchStepModel.headingOf('Example Agency')).toBe('What Example Agency is made of');
+    expect(ResearchStepModel.headingOf('')).toBe('What the repository is made of');
   });
 });
 

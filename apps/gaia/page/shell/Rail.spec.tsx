@@ -4,14 +4,16 @@
  * on User and plain otherwise, its mark as the badge's qualifier, which its holder's title words; the current row, and only it, carries
  * `aria-current`; a forge row leads with its condition dot, which the package hides from the accessibility tree, and carries the model's
  * title; with no forge registered the forges' group says "No forge is registered" and the slot meter is handed every slot free; and this
- * machine is one link to the Forges view, with its slot meter and its lines.
+ * machine is one link to the Forges view, with its slot meter and its lines. A forge with no pipeline says where its setup stands under its name,
+ * and in its count's place, while nothing else of it waits, the package's dashed tag Set up in the warn tone.
  */
 import { describe, expect, test } from 'bun:test';
 import {
   CountBadge,
   MicroCapsLabel,
   SlotMeter,
-  StateDot
+  StateDot,
+  Tag
 } from '../lib/design-system/DesignSystemInterface.ts';
 
 import { DEFAULT_ROUTE, type GaiaRoute }                    from '../shared/HashRouter.ts';
@@ -163,5 +165,18 @@ describe('the rail', () => {
     const rows = tree.hostElementsIn(unfoldedRail(FLEET_VERSIONS, DEFAULT_ROUTE), tree.withClass('gaia-rail-row')).slice(4);
     expect(rows.map((row) => row.props['title'])).toEqual(RailModel.railContentOf(FLEET_VERSIONS, DEFAULT_ROUTE).forges.map((forge) => forge.title));
     expect(rows[3]?.props['title']).toBe('Older than this Gaia · update the forge');
+  });
+
+  test('a forge with no pipeline says so under its name and offers the dashed Set up in its count\'s place', () => {
+    const storefront = FLEET_FIVE_FORGES.forges[0];
+    if (storefront === undefined) throw new Error('The fixture has no forge.');
+    const noPipelineQuestion = { ...storefront.attention[0], decisionKind: 'checks-not-set' } as (typeof storefront.attention)[number];
+    const fleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, attention: [noPipelineQuestion] }] };
+    const row = tree.hostElementsIn(unfoldedRail(fleetDocument, DEFAULT_ROUTE), tree.withClass('gaia-rail-row')).slice(4)[0];
+    if (row === undefined) throw new Error('The rail has no forge row.');
+    expect(row.props['data-setup']).toBe('');
+    expect(tree.textOf([tree.onlyWithClass([row], 'gaia-rail-row-setup')])).toBe('Not set up yet');
+    expect(['text', 'tone', 'dashed'].map((propName) => tree.onlyOfComponent([row], Tag).props[propName])).toEqual(['Set up', 'warn', true]);
+    expect(tree.hostElementsIn([row], tree.withComponent(CountBadge))).toEqual([]);
   });
 });

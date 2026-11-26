@@ -6,7 +6,7 @@ the document is corrected in the same change.
 
 | Document | Holds | Cited as |
 | --- | --- | --- |
-| `screens.md` | The rules for every screen, the shell, and each screen by its mark (A1 to A4, B1 to B4, C2, C3): its purpose, its parts, every control and its effect, its states and its acceptance | "`docs/design/screens.md` A4", "B2 acceptance 3", "the shell" |
+| `screens.md` | The rules for every screen, the shell, and each screen by its mark (A1 to A4, B1 to B4, C2, C3), the onboarding of a forge with no pipeline among B1's states: its purpose, its parts, every control and its effect, its states and its acceptance | "`docs/design/screens.md` A4", "B2 acceptance 3", "the shell" |
 | `versions.md` | How the screens show a forge at a version this Gaia cannot fully use (U1 to U3, and U4's sheet of the shared parts), with the copy and the steps of Update forge | "`docs/design/versions.md` U2" |
 | `components.md` | Gaia's design rules, its own tokens, its own parts under `page/components/`, how a state reaches a library tone, and the text pairs and contrast floors `page/StyleContract.spec.ts` holds | "`docs/design/components.md` 3.2", "section 4" |
 | `board.md` | The tables and definitions the board's views under `page/board/` are built to | "`docs/design/board.md`", with the section's title |

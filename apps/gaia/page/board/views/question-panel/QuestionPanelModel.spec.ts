@@ -6,8 +6,8 @@
  * conversation, no steps and is asked by Hephaestus; the ticket block reads the first ticket's sections and Acceptance as served, a
  * wrapped line joined to its paragraph as Markdown reads it, and omits them when the board serves none; the earlier answers join the
  * openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the asking call current; the
- * queue foot names the later decisions, wrapping round; `open since` is the sliced stamp, never the clock; and the board's "no pipeline"
- * question never opens the panel by itself while no pipeline can be read, since the setup the Pipeline view then shows answers it. The
+ * queue foot names the later decisions, wrapping round; `open since` is the sliced stamp, never the clock; and while the board is in setup
+ * the panel holds no decision, since the onboarding is then all the board shows. The
  * recommendation is the served `recommended` field alone: a label ending in "(Recommended)" without it marks nothing.
  */
 import { describe, expect, test } from 'bun:test';
@@ -57,22 +57,20 @@ describe('QuestionPanelModel.shownDecisionOf', () => {
   });
 });
 
-describe('QuestionPanelModel.decisionIdsTheSetupAnswersOf', () => {
+describe('QuestionPanelModel.panelQueueOf', () => {
   const checksNotSet: BoardDecisionDocument = {
     ...PARKED_DECISION, id: 'E1', kind: 'checks-not-set', ticketIds: [], jobId: null
   };
 
-  test('the no-pipeline question is quiet while no pipeline can be read, so it never covers the setup by itself', () => {
+  test('holds no decision while the board is in setup, so the panel never shows beside the onboarding', () => {
     const queue = queueOf(checksNotSet, DARK_MODE_QUESTION);
-    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, null)).toEqual([]);
-    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'malformed')).toEqual(['E1']);
-    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'older')).toEqual(['E1']);
-    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'absent')).toEqual(['E1']);
-    expect(QuestionPanelModel.panelIsShownOf(queueOf(checksNotSet), ['E1'], false)).toBe(false);
+    expect(QuestionPanelModel.panelQueueOf(queue, true)).toEqual([]);
+    expect(QuestionPanelModel.panelIsShownOf(QuestionPanelModel.panelQueueOf(queue, true), [], true)).toBe(false);
   });
 
-  test('once a pipeline is readable, as after a gate verb, it opens the panel like any question', () => {
-    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queueOf(checksNotSet), 'readable')).toEqual([]);
+  test('holds every open decision once a pipeline is readable, the no-pipeline question among them', () => {
+    const queue = queueOf(checksNotSet, DARK_MODE_QUESTION);
+    expect(QuestionPanelModel.panelQueueOf(queue, false)).toBe(queue);
   });
 });
 

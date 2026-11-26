@@ -3,8 +3,8 @@
  * route of each step (`pipeline/setup/<step>`). The screen follows the facts first: a record in `setup` mode opens the route's
  * step, or the resume summary on the bare `#pipeline`; outside it `pipeline/settings` is the forge's settings, its agent and its tools; a
  * record in `update` or `advise` mode is the flow being edited; a readable pipeline is the live flow; anything else is the setup landing,
- * the agent step that starts a setup, which names an unreadable file's reason. In monorepo mode a route leads with its level
- * (`PipelineLevelModel`), and the screen reads the item under it.
+ * the welcome, and at `pipeline/setup/agent` the agent step that starts a setup; both carry an unreadable file's reason. In monorepo
+ * mode a route leads with its level (`PipelineLevelModel`), and the screen reads the item under it.
  */
 import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
 import type {
@@ -39,6 +39,17 @@ export const SETUP_STEP_LABELS: Readonly<Record<BoardSetupStep, string>> = {
   apply:        'Apply',
 };
 
+/** What each setup step decides, in one line, as the welcome lists the steps. */
+export const SETUP_STEP_SUMMARIES: Readonly<Record<BoardSetupStep, string>> = {
+  agent:        'The coding agent every job runs.',
+  billing:      'How that agent\'s work is paid for.',
+  research:     'The agent reads the repository: stack, conventions, scripts. It runs nothing.',
+  entities:     'The codebases of the monorepo, each with a pipeline of its own.',
+  constitution: 'The rules every agent reads before it touches the code.',
+  design:       'Ticket, build, review, merge: who does each, and its gates.',
+  apply:        'Read the whole pipeline once more and switch it on.',
+};
+
 const SETUP_ITEM_PREFIX = 'setup/';
 
 const CONSTITUTION_EDIT_ITEM = 'edit/constitution';
@@ -48,8 +59,11 @@ const FORGE_SETTINGS_ITEM = 'settings';
 
 const FORGE_SETTINGS_ROUTE: BoardRoute = Object.freeze({ tab: 'pipeline', item: FORGE_SETTINGS_ITEM });
 
-/** The bare `#pipeline` of a forge with no record and no readable pipeline: the setup landing. */
+/** The bare `#pipeline` of a forge with no record and no readable pipeline: the setup landing, the welcome. */
 const SETUP_LANDING_ROUTE: BoardRoute = Object.freeze({ tab: 'pipeline', item: null });
+
+/** The agent step before a record exists: the page holds the choice, and its Continue starts the setup with it. */
+const SETUP_START_ROUTE: BoardRoute = Object.freeze({ tab: 'pipeline', item: `${SETUP_ITEM_PREFIX}${'agent' satisfies BoardSetupStep}` });
 
 /** The facts the Pipeline view reads; its screens read the pipeline's, the jobs, the tickets in flight, the board's limit and its stamp slices. */
 export type PipelineViewFacts = Pick<BoardDocument, 'project' | 'jobs' | 'pipeline' | 'page' | 'concurrency' | 'limits' | 'agent'>;
@@ -72,6 +86,7 @@ export interface NotLaunchedFix {
 
 export type PipelineScreen =
   | { readonly screen: 'setup-landing'; readonly unreadable: UnreadablePipeline | null }
+  | { readonly screen: 'setup-start'; readonly unreadable: UnreadablePipeline | null }
   | { readonly screen: 'setup-resume' }
   | { readonly screen: 'setup-step'; readonly step: BoardSetupStep }
   | { readonly screen: 'constitution-edit' }
@@ -147,7 +162,8 @@ function screenOf(facts: Pick<BoardDocument, 'pipeline'>, route: BoardRoute): Pi
   if (item === FORGE_SETTINGS_ITEM) return { screen: 'forge-settings' };
   if (record !== null) return item === CONSTITUTION_EDIT_ITEM ? { screen: 'constitution-edit' } : { screen: 'flow', stage: 'editing' };
   if (facts.pipeline.applied.readingVerdict === 'readable') return { screen: 'flow', stage: 'live' };
-  return { screen: 'setup-landing', unreadable: unreadablePipelineOf(facts.pipeline.applied) };
+  const unreadable = unreadablePipelineOf(facts.pipeline.applied);
+  return item === SETUP_START_ROUTE.item ? { screen: 'setup-start', unreadable } : { screen: 'setup-landing', unreadable };
 }
 
 /** The record's current step is current, a done step done and a `needs-recheck` step recheck; with no record, Agent is current. */
@@ -182,8 +198,21 @@ function setupStepRouteOf(step: BoardSetupStep, level: PipelineLevel | null = nu
 function agentChoiceRouteOf(facts: Pick<BoardDocument, 'pipeline'>): BoardRoute {
   const record = facts.pipeline.setup?.record ?? null;
   if (record?.mode === 'setup') return setupStepRouteOf('agent');
-  if (record === null && facts.pipeline.applied.readingVerdict !== 'readable') return SETUP_LANDING_ROUTE;
+  if (record === null && isInSetup(facts)) return SETUP_LANDING_ROUTE;
   return FORGE_SETTINGS_ROUTE;
+}
+
+/** The board is in setup while its pipeline is anything but readable; its view is then the onboarding alone. */
+function isInSetup(facts: Pick<BoardDocument, 'pipeline'>): boolean {
+  return facts.pipeline.applied.readingVerdict !== 'readable';
+}
+
+/** The refusal cause of a job not launched only because no agent is chosen yet, which the setup's agent step chooses. */
+const NO_AGENT_CHOSEN_CAUSE: BoardAgentProgramRefusalCause = 'no-agent-chosen';
+
+/** Whether a job, or a notice's cause, waits only for an agent to be chosen: while the board is in setup, the onboarding on screen says it. */
+function isNotLaunchedForWantOfAnAgent(cause: unknown): boolean {
+  return cause === NO_AGENT_CHOSEN_CAUSE;
 }
 
 /**
@@ -212,6 +241,8 @@ function screenTitleOf(screen: PipelineScreen): string {
   switch (screen.screen) {
     case 'setup-landing':
       return 'Set up the pipeline';
+    case 'setup-start':
+      return SETUP_STEP_LABELS.agent;
     case 'setup-resume':
       return 'Resume setup';
     case 'setup-step':
@@ -290,8 +321,11 @@ export const PipelineViewModel = Object.freeze({
   constitutionRouteOf,
   agentChoiceRouteOf,
   notLaunchedFixOf,
+  isInSetup,
+  isNotLaunchedForWantOfAnAgent,
   forgeSettingsRoute: FORGE_SETTINGS_ROUTE,
   setupLandingRoute:  SETUP_LANDING_ROUTE,
+  setupStartRoute:    SETUP_START_ROUTE,
   flowPageWordsOf,
   screenTitleOf,
   unreadableTextOf,

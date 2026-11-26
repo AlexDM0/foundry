@@ -1,19 +1,18 @@
 /**
  * The research step's model, pure: the findings by topic with their source paths, the scripts as rows (a script that needs a network or a
- * service carries that note), the status line over the page, the panel head's status, the footer's counts, and the commands of Continue
+ * service carries that note), the status line over the page, the panel head's status, and the commands of Continue
  * and Stop. The research runs nothing: no finding offers to run a script. Continue is always offered; the agent's `readyToContinue` only
  * draws attention to it. In monorepo mode the layout the agent reports first stands apart from the findings, and Continue opens `entities`.
  */
-import { PAGE_CONTRACT_VERSIONS }                                                                    from '../../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardJobNotLaunchedDocument }                                                          from '../../../../@types/board/BoardAgentDocuments.ts';
-import type { BoardCommandDocument }                                                                 from '../../../../@types/board/BoardCommandDocument.ts';
-import type { BoardJobDocument }                                                                     from '../../../../@types/board/BoardJobDocuments.ts';
-import type { BoardPipelineSetupDocument, BoardResearchFindingDocument, BoardSetupQuestionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardFindingTopic, BoardSetupStep }                                                    from '../../../../@types/board/BoardVocabulary.ts';
-import { ChatTurnWordingUtil }                                                                       from '../../../conversation/ChatTurnWordingUtil.ts';
-import { ElapsedTimeUtil }                                                                           from '../../../utils/ElapsedTimeUtil.ts';
-import type { PanelStatus }                                                                          from '../PipelinePanel.tsx';
-import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }                                         from '../agent-panel/AgentSessionModel.ts';
+import { PAGE_CONTRACT_VERSIONS }                                        from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardJobNotLaunchedDocument }                              from '../../../../@types/board/BoardAgentDocuments.ts';
+import type { BoardCommandDocument }                                     from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardJobDocument }                                         from '../../../../@types/board/BoardJobDocuments.ts';
+import type { BoardPipelineSetupDocument, BoardResearchFindingDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { BoardFindingTopic, BoardSetupStep }                        from '../../../../@types/board/BoardVocabulary.ts';
+import { ElapsedTimeUtil }                                               from '../../../utils/ElapsedTimeUtil.ts';
+import type { PanelStatus }                                              from '../PipelinePanel.tsx';
+import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }             from '../agent-panel/AgentSessionModel.ts';
 
 /** Scripts are rows of their own, and the layout belongs to the `entities` step. */
 export type CardTopic = Exclude<BoardFindingTopic, 'scripts' | 'layout'>;
@@ -140,10 +139,6 @@ const STATE_WORDS: Readonly<Record<ResearchState, string>> = {
   'stopped':      'stopped',
 };
 
-function openResearchQuestionsOf(questions: readonly BoardSetupQuestionDocument[]): BoardSetupQuestionDocument[] {
-  return questions.filter((question) => question.step === 'research' && question.answer === null);
-}
-
 /**
  * "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s", or "· not launched" while forge refused its launch; the time only
  * while the agent runs and its launch is known.
@@ -194,22 +189,13 @@ function notLaunchedOf(setup: BoardPipelineSetupDocument, jobs: readonly Pick<Bo
   return jobs.find((job) => job.id === setup.record.agentJobId)?.notLaunched ?? null;
 }
 
-/** The panel head's dot and word, and the footer's pill: "Researching", or "Not launched" while forge refused its launch. */
+/** The panel head's dot and word: "Researching", or "Not launched" while forge refused its launch. */
 function panelStatusOf(state: ResearchState): PanelStatus {
   return PANEL_STATUSES[state];
 }
 
-/** "6 scripts found · 1 open question", after the footer's pill. */
-function footerCountsOf(setup: BoardPipelineSetupDocument): string {
-  const { record } = setup;
-  const scriptCount = scriptFindingsOf(record.findings).length;
-  const openQuestionCount = openResearchQuestionsOf(record.questions).length;
-  const questions = openQuestionCount === 0 ? [] : [ChatTurnWordingUtil.countTextOf(openQuestionCount, 'open question', 'open questions')];
-  return [`${ChatTurnWordingUtil.countTextOf(scriptCount, 'script', 'scripts')} found`, ...questions].join(' · ');
-}
-
 function headingOf(project: string): string {
-  return project === '' ? 'Getting to know the repository' : `Getting to know ${project}`;
+  return project === '' ? 'What the repository is made of' : `What ${project} is made of`;
 }
 
 /** Offered at every moment of the research: User moves on when ready, and the step marks itself done. */
@@ -245,7 +231,6 @@ export const ResearchStepModel = Object.freeze({
   panelStatusOf,
   researchIsUnderWay,
   notLaunchedOf,
-  footerCountsOf,
   headingOf,
   continueCommandOf,
   continueHasAttention,

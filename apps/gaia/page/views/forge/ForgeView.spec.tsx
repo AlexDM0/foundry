@@ -9,16 +9,21 @@
  * left to a frame. The bar's Open in new tab opens the same route of Gaia's own address, for a forge Gaia cannot talk to as for any other,
  * and sends no command. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect. The bar's
  * controls are held whole to the hook-free controls drawn for the state the sender holds, whose buttons the spec reads unfolded, so no
- * spec reads the markup the package draws.
+ * spec reads the markup the package draws. While the board, read at mount, has no readable pipeline, the bar of a forge Gaia talks to is the
+ * setup bar, whatever its condition: its name, the setup step bar the board hands it, or the repository's path before a setup record opens,
+ * the condition's word while it is not live, and one menu, with no status line, no Pause and no versions line, and the board draws no header
+ * of its own; a paused, held, restarting or unreachable forge keeps the steps.
  */
 import { describe, expect, test }         from 'bun:test';
 import { isValidElement, type ReactNode } from 'react';
 import { renderToStaticMarkup }           from 'react-dom/server';
 
 import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { FleetDocument, FleetDocumentForge }                                   from '../../@types/FleetDocument.ts';
+import type { BoardDocument }                                                       from '../../@types/board/BoardDocument.ts';
 import { CommandSender }                                                            from '../../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../../api/FleetStreamClient.ts';
+import { pipelineBoardStateOf }                                                     from '../../board/testing/PipelineFixture.ts';
 import { Refusal }                                                                  from '../../components/Refusal.tsx';
 import { Text }                                                                     from '../../lib/design-system/DesignSystemInterface.ts';
 import { HashRouter }                                                               from '../../shared/HashRouter.ts';
@@ -261,5 +266,62 @@ describe('the bar\'s commands', () => {
     const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="hephaestus-still-live" sentence="Hephaestus did not stop within its tries." onDismiss={doNothing} />;
     expect(markup).toContain(`<div class="gaia-forge-frame-refusal">${renderToStaticMarkup(refusal)}</div>`);
     expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+  });
+});
+
+/** The forge view at a fragment with its board read at mount, as a page painted without effects shows it. */
+function markupWithBoardAt(fragment: string, fleetDocument: FleetDocument, board: BoardDocument): string {
+  const source = createFleetSource();
+  source.publish(fleetDocument);
+  const shellSurroundings = shellSurroundingsAt(fragment);
+  const boardServicesOf = (trackerId: string) => ({ ...silentBoardServicesOf(trackerId), readingAtMount: { board, connection: 'live' as const } });
+  const surroundings = { ...shellSurroundings, forgeView: { ...shellSurroundings.forgeView, boardServicesOf } };
+  return renderToStaticMarkup(<GaiaApp fleetSource={source} fleetStream={LIVE_STREAM} commandSender={senderOver([])} surroundings={surroundings} />);
+}
+
+/** The forge's bar, from its opening tag to its end. */
+function barIn(markup: string): string {
+  const barStart = markup.indexOf('<header class="gaia-forge-frame-bar"');
+  return markup.slice(barStart, markup.indexOf('</header>', barStart) + '</header>'.length);
+}
+
+describe('a forge whose board is in setup', () => {
+  test('a live forge\'s bar is its name, the setup step bar and one menu, and the board draws no header of its own', () => {
+    const markup = markupWithBoardAt(`#forge/${TRACKER_IDS.exampleStorefront}`, FLEET_FIVE_FORGES, pipelineBoardStateOf('A0b-recheck'));
+    const bar = barIn(markup);
+    expect(bar).toStartWith('<header class="gaia-forge-frame-bar" data-setup="">');
+    expect(bar).toContain('<h1 class="gaia-forge-frame-bar-name">Example Storefront</h1><span class="gaia-forge-frame-bar-setup"><div class="board-setup-step-bar">');
+    expect(bar).toContain('aria-label="Setup steps"');
+    expect(bar).toContain('aria-label="Forge actions of Example Storefront"');
+    expect([bar.includes('gaia-forge-frame-bar-status'), bar.includes('>Pause<'), markup.includes('gaia-forge-frame-running')]).toEqual([false, false, false]);
+    expect(markup).not.toContain('class="board-header"');
+  });
+
+  test('before a setup record opens the bar shows the repository\'s path in the step bar\'s place', () => {
+    const bar = barIn(markupWithBoardAt(`#forge/${TRACKER_IDS.exampleStorefront}`, FLEET_FIVE_FORGES, pipelineBoardStateOf('A0')));
+    expect(bar).toContain('~/development/example-storefront');
+    expect(bar).not.toContain('aria-label="Setup steps"');
+  });
+
+  test('a paused, held, restarting or unreachable forge keeps the setup bar and its steps, and says its condition', () => {
+    const storefrontIn = (condition: FleetDocumentForge['condition']): FleetDocument => ({
+      ...FLEET_FIVE_FORGES,
+      forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, condition } : forge)),
+    });
+    const bars = [
+      ...(['paused', 'held', 'restarting'] as const).map((condition) => (
+        barIn(markupWithBoardAt(`#forge/${TRACKER_IDS.exampleStorefront}`, storefrontIn(condition), pipelineBoardStateOf('A0b-recheck')))
+      )),
+      barIn(markupWithBoardAt(`#forge/${TRACKER_IDS.invoiceService}`, FLEET_DEGRADED, pipelineBoardStateOf('A0b-recheck'))),
+    ];
+    for (const bar of bars) {
+      expect([
+        bar.includes('data-setup'),
+        bar.includes('aria-label="Setup steps"'),
+        bar.includes('gaia-forge-frame-bar-condition'),
+        bar.includes('gaia-forge-frame-bar-status'),
+        bar.includes('gaia-forge-frame-running'),
+      ]).toEqual([true, true, true, false, false]);
+    }
   });
 });

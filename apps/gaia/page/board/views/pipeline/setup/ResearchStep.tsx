@@ -1,17 +1,19 @@
 /**
- * A1Reading, the research step, as FlowResearch draws it: the agent's status line over the page's title row, what it found by topic in
- * cards two by two and the scripts as a table, grey lines until the first finding comes; beside it the pipeline agent's panel with the
- * research questions as decision cards, Flint reading the repository and the composer. The footer says how far the research is, and
- * offers Stop the pipeline agent and Continue to constitution, which is offered at every moment of the research.
+ * A1Reading, the research step, as FlowResearch draws it: its place in the steps over the page's title row, the agent's status line, what it
+ * found by topic in cards two by two and the scripts as a table, grey lines until the first finding comes; beside it the pipeline agent's
+ * panel with the research questions as decision cards, Flint reading the repository and the composer, its head offering Stop. The footer
+ * says the step is saved and the agent keeps working, and offers Back to billing and Continue to constitution at every moment of the research.
  * In monorepo mode (MonoResearch) the layout the agent reports comes first; once entities have sessions of their own, the sessions list
- * stands beside the findings of the session shown, which the route's level holds, and the panel holds that session's chat. Each live
- * session has its own Stop, and the footer offers Stop all and Continue to the next step. No setting limits how many sessions run.
+ * stands beside the findings of the session shown, which the route's level holds, and the panel holds that session's chat. Each live session
+ * has its own Stop, and the footer says how far the sessions are and offers Stop all, Back and Continue to the next step. No setting limits how
+ * many sessions run.
  */
 
 import type { ReactNode }                                                from 'react';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import {
   ActionBar,
+  Button,
   MonoId,
   Skeleton,
   Tag,
@@ -56,8 +58,7 @@ const SKELETON_LINES = 3;
 
 const RESEARCH_ITEM = 'setup/research';
 
-const SINGLE_MODE_LEAD = 'The agent finds the stack, the conventions and the scripts. It runs nothing and proposes nothing yet. Tell it what it got '
-  + 'wrong or missed, so the design starts from the right facts.';
+const SINGLE_MODE_LEAD = 'The agent finds the stack, the conventions and the scripts. It runs nothing and proposes nothing yet. Tell it what it got wrong.';
 
 const MONOREPO_LEAD = 'The agent reports the layout first, then researches each codebase on its own. It runs nothing and proposes nothing yet. '
   + 'Tell it what it got wrong, per entity.';
@@ -69,7 +70,7 @@ const MONOREPO_PLACEHOLDER = 'Correct a finding of this entity, for example: e2e
 /** Stands for the findings while forge did not start the agent, in place of grey lines that would read as work under way. */
 const NOT_LAUNCHED_EMPTY_TEXT = 'Nothing found yet: forge has not started the agent.';
 
-const SINGLE_MODE_FOOTER_NOTE = 'Continue at any time. The agent keeps its findings for the design.';
+const SINGLE_MODE_FOOTER_NOTE = 'Saved as you go · the agent keeps working if you leave';
 
 const MONOREPO_FOOTER_NOTE = 'Continue at any time. Stopped entities keep what they found.';
 
@@ -182,12 +183,13 @@ function ResearchPage({
   const main = (
     <>
       <View gap="two">
-        <span className="board-pipeline-research-status" data-state={state}>
-          <span className="board-pipeline-research-status-dot" aria-hidden="true" />
-          {statusLine}
-        </span>
+        <Text typeRole="small" mono muted>{PipelineViewModel.stepPositionTextOf(record, 'research')}</Text>
         <ViewTitle title={ResearchStepModel.headingOf(facts.project ?? '')} lead={monorepoMode ? MONOREPO_LEAD : SINGLE_MODE_LEAD} />
       </View>
+      <span className="board-pipeline-research-status" data-state={state}>
+        <span className="board-pipeline-research-status-dot" aria-hidden="true" />
+        {statusLine}
+      </span>
       {notLaunched === null
         ? null
         : <NotLaunchedJob jobId={record.agentJobId} notLaunched={notLaunched} fix={PipelineViewModel.notLaunchedFixOf(facts, notLaunched.cause)} />}
@@ -203,7 +205,22 @@ function ResearchPage({
       label="Pipeline agent"
       title={sessionName ?? 'Pipeline agent'}
       status={status}
-      headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} {...(sessionName === undefined ? {} : { sessionName })} />}
+      headEnd={(
+        <>
+          <AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} {...(sessionName === undefined ? {} : { sessionName })} />
+          {research === null
+            ? (
+              <CommandButton
+                label="Stop"
+                accessibleName="Stop the pipeline agent"
+                command={ResearchStepModel.stopCommandOf(setup)}
+                compact
+                onApplied={() => navigateTo({ tab: 'pipeline', item: null })}
+              />
+            )
+            : null}
+        </>
+      )}
     >
       <PipelineAgentPanel
         setup={setup}
@@ -217,50 +234,44 @@ function ResearchPage({
       />
     </PipelinePanel>
   );
-  const stopEvery = research === null ? null : EntitySessionListModel.stopEveryCommandsOf(research.rows);
-  const footer = (
-    <ActionBar
-      label="Research actions"
-      start={(
-        <>
-          {status.tone === 'failed'
-            ? <Tag text={status.text} tone="error" />
-            : <Tag text={status.text} tone="neutral" stateTone={StateToneUtil.toneOf('in-progress')} dot={status.tone === 'working'} />}
-          <span className="board-pipeline-research-footer-status" aria-live="polite">
-            {research === null ? ResearchStepModel.footerCountsOf(setup) : EntitySessionListModel.footerCountsOf(research.rows)}
-          </span>
-          <Text muted>{research === null ? SINGLE_MODE_FOOTER_NOTE : MONOREPO_FOOTER_NOTE}</Text>
-        </>
-      )}
-      end={(
-        <>
-          {stopEvery === null
-            ? (
-              <CommandButton
-                label="Stop the pipeline agent"
-                command={ResearchStepModel.stopCommandOf(setup)}
-                onApplied={() => navigateTo({ tab: 'pipeline', item: null })}
-              />
-            )
-            : (
-              <CommandButton
-                label="Stop all"
-                accessibleName="Stop every research session"
-                command={stopEvery}
-                onApplied={() => navigateTo({ tab: 'pipeline', item: null })}
-              />
-            )}
-          <CommandButton
-            label={`Continue to ${continueStep}`}
-            command={ResearchStepModel.continueCommandOf(setup)}
-            primary
-            attention={ResearchStepModel.continueHasAttention(setup)}
-            onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf(continueStep))}
-          />
-        </>
-      )}
+  const back = <Button label="Back" href={boardHrefOf(PipelineViewModel.setupStepRouteOf('billing'))} />;
+  const continueButton = (
+    <CommandButton
+      label={`Continue to ${continueStep}`}
+      command={ResearchStepModel.continueCommandOf(setup)}
+      primary
+      attention={ResearchStepModel.continueHasAttention(setup)}
+      onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf(continueStep))}
     />
   );
+  const footer = research === null
+    ? <ActionBar label="Research actions" start={<Text muted>{SINGLE_MODE_FOOTER_NOTE}</Text>} end={<>{back}{continueButton}</>} />
+    : (
+      <ActionBar
+        label="Research actions"
+        start={(
+          <>
+            {status.tone === 'failed'
+              ? <Tag text={status.text} tone="error" />
+              : <Tag text={status.text} tone="neutral" stateTone={StateToneUtil.toneOf('in-progress')} dot={status.tone === 'working'} />}
+            <span className="board-pipeline-research-footer-status" aria-live="polite">{EntitySessionListModel.footerCountsOf(research.rows)}</span>
+            <Text muted>{MONOREPO_FOOTER_NOTE}</Text>
+          </>
+        )}
+        end={(
+          <>
+            <CommandButton
+              label="Stop all"
+              accessibleName="Stop every research session"
+              command={EntitySessionListModel.stopEveryCommandsOf(research.rows)}
+              onApplied={() => navigateTo({ tab: 'pipeline', item: null })}
+            />
+            {back}
+            {continueButton}
+          </>
+        )}
+      />
+    );
   return (
     <div className="board-pipeline-research" data-state={state}>
       <PipelinePage main={main} panel={panel} footer={footer} />

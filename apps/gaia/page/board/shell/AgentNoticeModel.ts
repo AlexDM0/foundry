@@ -1,7 +1,8 @@
 /**
  * The board's notice about its agent, pure: a job whose launch forge refused, worded with forge's own reason, or a forge with a pipeline
  * and no agent, which launches nothing; each with where it is fixed (`PipelineViewModel.notLaunchedFixOf`), the setup landing on a forge
- * with no pipeline and no setup. `null` while every job launched and the forge has an agent.
+ * with no pipeline and no setup. `null` while every job launched and the forge has an agent. While the board has no readable pipeline a
+ * job not launched for want of an agent says nothing: the setup on screen is where the agent is chosen.
  */
 import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
 import { PipelineViewModel }  from '../views/pipeline/PipelineViewModel.ts';
@@ -26,7 +27,9 @@ function notLaunchedTextOf(jobIds: readonly string[], reason: string): string {
 function agentNoticeOf(facts: AgentNoticeFacts): AgentNoticeView | null {
   const { agent, pipeline } = facts;
   const setupMode = pipeline.setup?.record.mode ?? null;
-  const notLaunchedJobs = facts.jobs.filter((job) => job.notLaunched !== null);
+  const isInSetup = PipelineViewModel.isInSetup(facts);
+  const notLaunchedJobs = facts.jobs.filter((job) => job.notLaunched !== null
+    && !(isInSetup && PipelineViewModel.isNotLaunchedForWantOfAnAgent(job.notLaunched.cause)));
   const [firstNotLaunched] = notLaunchedJobs;
   if (firstNotLaunched?.notLaunched !== undefined && firstNotLaunched.notLaunched !== null) {
     const fix = PipelineViewModel.notLaunchedFixOf(facts, firstNotLaunched.notLaunched.cause);
@@ -38,7 +41,7 @@ function agentNoticeOf(facts: AgentNoticeFacts): AgentNoticeView | null {
       offersLookAgain: true,
     };
   }
-  const agentIsMissing = agent.choice === null && pipeline.applied.readingVerdict === 'readable' && setupMode !== 'setup';
+  const agentIsMissing = agent.choice === null && !isInSetup && setupMode !== 'setup';
   if (!agentIsMissing) return null;
   return {
     tone:            'warn',

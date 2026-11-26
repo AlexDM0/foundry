@@ -1,15 +1,15 @@
 /**
  * The Pipeline tab: the screen `PipelineViewModel.screenOf` picks from the board's pipeline facts and the route. The setup landing shows the
- * agent step, which starts the setup, the agent, billing, research, entities and constitution steps their pages (the constitution also at
- * `pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow beside the pipeline agent, the
- * bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other screen shows its title. The
- * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the Focus layout (the phase stepper, the open
- * phase, the stage's panel in its right column and its footer under both). While an applied pipeline is edited, the panel is the editing
- * panel (the smallest pipeline's About panel instead), and the footer counts the changes, or names the smallest pipeline's removed
- * steps, and the version the board runs on until Apply, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply
- * dialog; one modal dialog is open at a time. Once a setup is applied, the live flow takes back the bare `#pipeline` route, with the
- * activity panel (About first on the smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast once the
- * facts carry the version it made. A gate dialog on any screen reads a profile's output through the follower the view provides.
+ * welcome, which leads to the agent step that starts the setup; the agent, billing, research, entities and constitution steps show their
+ * pages (the constitution also at `pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow
+ * beside the pipeline agent, the bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other
+ * screen shows its title. The welcome names an unreadable `pipeline.json` in a warn banner. The flow screen draws the Focus layout (the
+ * phase stepper, the open phase, the stage's panel in its right column and its footer under both). While an applied pipeline is edited, the
+ * panel is the editing panel (the smallest pipeline's About panel instead), and the footer counts the changes, or names the smallest
+ * pipeline's removed steps, and the version the board runs on until Apply, beside Discard, which returns to `#pipeline`, and Apply, which
+ * opens the apply dialog; one modal dialog is open at a time. Once a setup is applied, the live flow takes back the bare `#pipeline` route,
+ * with the activity panel (About first on the smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast
+ * once the facts carry the version it made. A gate dialog on any screen reads a profile's output through the follower the view provides.
  * A live monorepo pipeline (MonoLive) is one level's page, held in the route: the entity rail stands left and the level's breadcrumb over
  * the title, each rail row counting its level's work. An entity's level draws its three phases with only its own tickets on them, under
  * the crossings that run a package stage now; the forge's level draws what every entity shares; the activity panel lists every entity's
@@ -22,7 +22,6 @@ import { useEffect, useState }                                        from 'reac
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../@types/board/BoardPipelineDocuments.ts';
 import {
   ActionBar,
-  Banner,
   Button,
   Tag,
   Text,
@@ -69,6 +68,7 @@ import { DesignStep }                                                     from '
 import { EntitiesStep }                                                   from './setup/EntitiesStep.tsx';
 import { ResearchStep }                                                   from './setup/ResearchStep.tsx';
 import { ResumeSummary }                                                  from './setup/ResumeSummary.tsx';
+import { SetupWelcome }                                                   from './setup/SetupWelcome.tsx';
 
 export interface PipelineViewProps {
   readonly facts:            LivePipelineFacts;
@@ -377,16 +377,8 @@ function ScreenContent({
   facts, screen, route, followTranscript, clock, onApplySent
 }: ScreenContentProps) {
   const { setup } = facts.pipeline;
-  if (screen.screen === 'setup-landing') {
-    return (
-      <>
-        {screen.unreadable === null
-          ? null
-          : <div className="board-pipeline-unreadable-notice"><Banner tone="warn" role="status" text={PipelineViewModel.unreadableTextOf(screen.unreadable)} /></div>}
-        <AgentStep facts={facts} setup={null} replacesUnreadablePipeline={screen.unreadable !== null} />
-      </>
-    );
-  }
+  if (screen.screen === 'setup-landing') return <SetupWelcome facts={facts} unreadable={screen.unreadable} />;
+  if (screen.screen === 'setup-start') return <AgentStep facts={facts} setup={null} replacesUnreadablePipeline={screen.unreadable !== null} />;
   if (screen.screen === 'setup-step' && screen.step === 'agent' && setup !== null) return <AgentStep facts={facts} setup={setup} replacesUnreadablePipeline={false} />;
   if (screen.screen === 'setup-step' && screen.step === 'billing' && setup !== null) return <BillingStep facts={facts} setup={setup} />;
   if (screen.screen === 'setup-step' && screen.step === 'research' && setup !== null) {

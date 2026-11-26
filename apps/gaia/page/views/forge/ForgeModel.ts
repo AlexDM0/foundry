@@ -2,7 +2,8 @@
  * What a forge in place shows of a fleet document (`docs/design/screens.md` B1): Gaia's bar over the board, with the forge's name, its condition, one
  * short line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the board of a
  * Hephaestus that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge whose board Gaia cannot
- * read. Also the steps of an older forge's Update forge.
+ * read. Also the steps of an older forge's Update forge. While its board is in setup a forge Gaia talks to shows a quieter bar, whatever its
+ * condition: its name, the setup, its condition's word only while it is not live, and its rare controls in one menu.
  */
 
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
@@ -32,6 +33,7 @@ import {
   type VersionsPairText,
   type VersionsText,
 } from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { PathTextUtil }  from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil } from '../../shared/utils/StampTextUtil.ts';
 
 export interface BarCommand {
@@ -98,6 +100,10 @@ export interface BarVersions {
 export interface ForgeBar {
   readonly trackerId:              string;
   readonly project:                string;
+  /** The forge's repository, from `~` under the home folder. */
+  readonly root:                   string;
+  /** The setup bar says the forge's condition only while it is not live: paused, held, restarting or not answering. */
+  readonly conditionIsLive:        boolean;
   readonly status:                 ForgeBarStatus;
   readonly pauseOrUnpause:         BarCommand | null;
   readonly stop:                   StopQuestion | null;
@@ -286,6 +292,8 @@ function barCannotTalkOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions):
 
 const NEWER_INSTALLED_WORDS = ' · newer installed ';
 
+const LIVE_CONDITION = 'live';
+
 /** A code version is a content hash, so a newer one is one that differs; a protocol version that differs is newer or older alike. */
 function hephaestusPairOf({ hephaestusRunning, hephaestusNewest }: FleetDocumentRunningVersions): BarVersionPair {
   const newerIsInstalled = hephaestusNewest !== null && hephaestusNewest !== hephaestusRunning;
@@ -345,12 +353,14 @@ function barVersionsOf(forge: FleetDocumentForge): BarVersions {
   };
 }
 
-function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: ClockReading): ForgeBar {
+function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, homeFolder: string, clock: ClockReading): ForgeBar {
   const cannotTalk = barCannotTalkOf(forge, gaiaVersions);
   const talks = cannotTalk === null;
   return {
     trackerId:              forge.trackerId,
     project:                forge.project,
+    root:                   PathTextUtil.homeRelativePathOf(forge.root, homeFolder),
+    conditionIsLive:        ForgeTextUtil.shownConditionOf(forge) === LIVE_CONDITION,
     status:                 barStatusOf(forge, gaiaVersions, clock),
     pauseOrUnpause:         talks ? pauseOrUnpauseOf(forge) : null,
     stop:                   talks ? stopQuestionOf(forge) : null,
@@ -390,7 +400,8 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVe
 function forgeContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ClockReading): ForgeContent {
   const forge = fleetDocument.forges.find((candidate) => candidate.trackerId === trackerId);
   const gaiaVersions = fleetDocument.gaia.versions;
-  return { bar: forge === undefined ? null : barOf(forge, gaiaVersions, clock), area: areaOf(trackerId, forge, gaiaVersions) };
+  const bar = forge === undefined ? null : barOf(forge, gaiaVersions, fleetDocument.gaia.homeFolder, clock);
+  return { bar, area: areaOf(trackerId, forge, gaiaVersions) };
 }
 
 function kindIsSentAgainAsItWas(kind: CommandKind): kind is KindSentAgainAsItWas {

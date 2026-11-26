@@ -17,6 +17,7 @@ import type { PageFigure }    from '../../shared/@types/ViewParts.ts';
 import { HashRouter }         from '../../shared/HashRouter.ts';
 import { ACTIVITY_SENTENCES } from '../../shared/constants/ActivitySentences.ts';
 import { CountTextUtil }      from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }  from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeTextUtil }      from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }      from '../../shared/utils/StampTextUtil.ts';
 
@@ -236,7 +237,8 @@ function tokensTodayOf(fleetDocument: FleetDocument): TodayList {
 
 /** What waits on User, with `+` while a forge is not fully read, then today's landings and tokens, each only when a forge reports today. */
 function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
-  const { waitingOnUser, incompleteFor } = fleetDocument.figures;
+  const { incompleteFor } = fleetDocument.figures;
+  const waitingOnUser = FleetDocumentUtil.waitingOnUserTotalOf(fleetDocument);
   const landedTotal = landedTodayOf(fleetDocument).totalText;
   const tokensTotal = tokensTodayOf(fleetDocument).totalText;
   return [

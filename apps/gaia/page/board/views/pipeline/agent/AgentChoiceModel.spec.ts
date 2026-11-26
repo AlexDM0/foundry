@@ -1,6 +1,6 @@
 /**
- * The agent choice's model. What matters: every vendor card comes from what the forge sends, one it cannot run is drawn by its own name
- * as coming later and never selectable, and no card of Gaia's own stands for agents the forge does not name; this machine's program is the
+ * The agent choice's model. What matters: every vendor card comes from what the forge sends, the vendors it cannot run share one line
+ * by their own names and get no card, and nothing of Gaia's own stands for agents the forge does not name; this machine's program is the
  * one kept, else the first place found; a program chosen for every forge is kept as this machine's before it is followed, and pinned
  * otherwise; changing a program other forges follow asks first and names how many; Continue waits until the record's program runs; and the
  * landing's start sends the program the page holds, kept for the machine first where it must be, or nothing while no program is there.
@@ -23,28 +23,42 @@ const VERSION = { boardCommandVersion: 3 } as const;
 const SETUP = { kind: 'setup', setupId: 'S1' } as const;
 
 describe('the vendor cards', () => {
-  test('a supported vendor is selectable and found, and each vendor forge cannot run yet is its own card by its name, coming later', () => {
+  test('a vendor forge runs is a card, found where forge knows its program, and the vendors it cannot run yet get no card', () => {
     expect(AgentChoiceModel.vendorCardsOf(exampleBoardAgent())).toEqual([
       {
-        vendor: EXAMPLE_AGENT_VENDOR, label: 'Example Agent', description: 'Runs every job of this forge.', selectable: true, tag: { text: 'Found', tone: 'neutral' }
+        vendor: EXAMPLE_AGENT_VENDOR, label: 'Example Agent', description: 'Runs every job of this forge.', programIsFound: true
       },
-      ...LATER_EXAMPLE_VENDORS.map((vendor) => ({
-        vendor:      vendor.vendor,
-        label:       vendor.displayName,
-        description: 'Forge runs it in a later version.',
-        selectable:  false,
-        tag:         { text: 'Coming later', tone: 'neutral' as const },
-      })),
     ]);
   });
 
-  test('a forge that names only the vendor it runs gets that one card, and no card of Gaia\'s own stands for others', () => {
-    const agent = exampleBoardAgent({ vendors: exampleBoardAgent().vendors.filter((vendor) => vendor.supported) });
-    expect(AgentChoiceModel.vendorCardsOf(agent).map((card) => card.label)).toEqual(['Example Agent']);
+  test('a program found nowhere marks the vendor not found', () => {
+    expect(AgentChoiceModel.vendorCardsOf(nothingFoundBoardAgent())[0]?.programIsFound).toBe(false);
+  });
+});
+
+describe('the vendors forge cannot run yet', () => {
+  test('share one line, each by the name the forge sends', () => {
+    const [second, third] = LATER_EXAMPLE_VENDORS;
+    expect(AgentChoiceModel.laterVendorsTextOf(exampleBoardAgent()))
+      .toBe(`${second?.displayName} and ${third?.displayName} come in a later version of forge.`);
   });
 
-  test('a program found nowhere marks the vendor not found', () => {
-    expect(AgentChoiceModel.vendorCardsOf(nothingFoundBoardAgent())[0]?.tag).toEqual({ text: 'Not found', tone: 'warn' });
+  test('one alone comes later in the singular, three are listed with commas', () => {
+    const supported = exampleBoardAgent().vendors.filter((vendor) => vendor.supported);
+    const laterVendorOf = (displayName: string) => ({
+      vendor: displayName.toLowerCase(), displayName, supported: false, billingOptions: []
+    });
+    expect(AgentChoiceModel.laterVendorsTextOf(exampleBoardAgent({ vendors: [...supported, laterVendorOf('Example Later')] })))
+      .toBe('Example Later comes in a later version of forge.');
+    const threeLater = [...supported, laterVendorOf('Example One'), laterVendorOf('Example Two'), laterVendorOf('Example Three')];
+    expect(AgentChoiceModel.laterVendorsTextOf(exampleBoardAgent({ vendors: threeLater })))
+      .toBe('Example One, Example Two and Example Three come in a later version of forge.');
+  });
+
+  test('a forge that names only the vendor it runs has no such line, and no card of Gaia\'s own stands for others', () => {
+    const agent = exampleBoardAgent({ vendors: exampleBoardAgent().vendors.filter((vendor) => vendor.supported) });
+    expect(AgentChoiceModel.laterVendorsTextOf(agent)).toBeNull();
+    expect(AgentChoiceModel.vendorCardsOf(agent).map((card) => card.label)).toEqual(['Example Agent']);
   });
 });
 

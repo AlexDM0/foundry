@@ -3,7 +3,7 @@
  * this forge only, chosen in the system's file chooser. A chosen program is kept for every forge on this machine while the box is ticked,
  * and changing a program other forges follow asks first, naming how many do. The program's run shows as forge reports it, and a program
  * forge refuses shows forge's sentence and is not kept. Nothing found shows where to choose it instead. On the setup's landing no record
- * holds the choice yet: the page holds it, and the landing's start sends it.
+ * holds the choice yet: the page holds it, and the landing's start sends it. Where forge looked may fold under this machine's program.
  */
 import { useContext, useId, useState }                         from 'react';
 import type { BoardAgentDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -26,14 +26,17 @@ import {
   type MachineProgram,
   type ProgramStatus
 } from './AgentChoiceModel.ts';
+import { ProgramPathText } from './ProgramPathText.tsx';
 
 export interface AgentProgramPanelProps {
-  readonly agent:         BoardAgentDocument;
+  readonly agent:                  BoardAgentDocument;
   /** The setup record's agent while a setup is open, else the forge's. */
-  readonly choice:        BoardPipelineAgentDocument | null;
-  readonly target:        AgentChoiceTarget;
-  readonly project:       string;
-  readonly programChoice: ProgramChoiceState;
+  readonly choice:                 BoardPipelineAgentDocument | null;
+  readonly target:                 AgentChoiceTarget;
+  readonly project:                string;
+  readonly programChoice:          ProgramChoiceState;
+  /** Where forge looked, folded under this machine's program, for a page with no panel to list it in. */
+  readonly foldsWhereForgeLooked?: boolean;
 }
 
 /** The program a person chose and has not kept yet, and whether it is kept for every forge. */
@@ -98,7 +101,7 @@ export function ProgramStatusTag({ status }: { readonly status: ProgramStatus | 
 function PathLine({ path, status }: { readonly path: string; readonly status: ProgramStatus | null }) {
   return (
     <span className="board-agent-path-line">
-      <Text mono>{path}</Text>
+      <ProgramPathText path={path} />
       <ProgramStatusTag status={status} />
     </span>
   );
@@ -116,7 +119,7 @@ interface ChosenProgramProps {
 function HeldProgram({ displayName, project, programChoice }: Pick<ChosenProgramProps, 'displayName' | 'project' | 'programChoice'>) {
   return (
     <div className="board-agent-chosen-program" aria-label="The chosen program">
-      <Text mono>{programChoice.chosenPath}</Text>
+      {programChoice.chosenPath === null ? null : <ProgramPathText path={programChoice.chosenPath} />}
       <Checkbox
         label="Use it for every forge on this machine"
         checked={programChoice.forEveryForge}
@@ -141,7 +144,7 @@ function ChosenProgram({
   const asksFirst = AgentChoiceModel.machineChangeAsksFirst(agent, programChoice.forEveryForge);
   return (
     <div className="board-agent-chosen-program" aria-label="The chosen program">
-      <Text mono>{programChoice.chosenPath}</Text>
+      {programChoice.chosenPath === null ? null : <ProgramPathText path={programChoice.chosenPath} />}
       <Checkbox
         label="Use it for every forge on this machine"
         checked={programChoice.forEveryForge}
@@ -182,7 +185,7 @@ function heldChoiceKindOf(machineProgram: MachineProgram | null, programChoice: 
 }
 
 export function AgentProgramPanel({
-  agent, choice, target, project, programChoice
+  agent, choice, target, project, programChoice, foldsWhereForgeLooked = false
 }: AgentProgramPanelProps) {
   const groupName = useId();
   const sender = useControlCommandSequence();
@@ -204,6 +207,7 @@ export function AgentProgramPanel({
   const chooseButton = (
     <Button label="Choose program…" compact disabled={!programChoice.chooserIsOffered} onPress={() => void programChoice.choose()} />
   );
+  const placesFold = foldsWhereForgeLooked ? <WhereForgeLookedFold agent={agent} /> : null;
   return (
     <section className="board-agent-program" aria-label={`The ${displayName} program`}>
       <Text typeRole="title" element="h3">{nothingFound ? `Where is ${displayName} on this machine?` : `The ${displayName} program this forge starts`}</Text>
@@ -212,6 +216,7 @@ export function AgentProgramPanel({
           <View gap="eight">
             <Text muted>{`Forge looked where installers put ${displayName} and found no program. Choose it: the chooser opens in your home folder with hidden files shown.`}</Text>
             <span>{chooseButton}</span>
+            {placesFold}
           </View>
         )
         : (
@@ -219,23 +224,26 @@ export function AgentProgramPanel({
             {machineProgram === null || vendor === null
               ? null
               : (
-                <ChoiceOption
-                  label={`This machine's ${displayName}`}
-                  description={`Every forge on this machine that follows it keeps up when ${displayName} moves or updates.`}
-                  chosen={choiceKind === 'machine'}
-                  variant="row"
-                  facts={<PathLine path={machineProgram.path} status={choiceKind === 'machine' ? status : null} />}
-                  input={(
-                    <ChoiceInput
-                      type="radio"
-                      name={groupName}
-                      checked={choiceKind === 'machine'}
-                      accessibleName={`This machine's ${displayName}`}
-                      disabled={!choiceIsHeld && !sender.canSend}
-                      onChange={() => chooseMachineProgram(machineProgram, vendor)}
-                    />
-                  )}
-                />
+                <>
+                  <ChoiceOption
+                    label={`This machine's ${displayName}`}
+                    description={`Every forge on this machine that follows it keeps up when ${displayName} moves or updates.`}
+                    chosen={choiceKind === 'machine'}
+                    variant="row"
+                    facts={<PathLine path={machineProgram.path} status={choiceKind === 'machine' ? status : null} />}
+                    input={(
+                      <ChoiceInput
+                        type="radio"
+                        name={groupName}
+                        checked={choiceKind === 'machine'}
+                        accessibleName={`This machine's ${displayName}`}
+                        disabled={!choiceIsHeld && !sender.canSend}
+                        onChange={() => chooseMachineProgram(machineProgram, vendor)}
+                      />
+                    )}
+                  />
+                  {placesFold}
+                </>
               )}
             <ChoiceOption
               label="A program for this forge only"
@@ -254,6 +262,7 @@ export function AgentProgramPanel({
                 />
               )}
             />
+            {machineProgram === null || vendor === null ? placesFold : null}
             <span className="board-agent-program-choose">{chooseButton}</span>
           </div>
         )}
@@ -266,6 +275,16 @@ export function AgentProgramPanel({
   );
 }
 
+/** Where forge looked, closed until opened. */
+function WhereForgeLookedFold({ agent }: { readonly agent: BoardAgentDocument }) {
+  return (
+    <details className="board-agent-places-fold">
+      <summary className="board-agent-places-fold-toggle">Where forge looked</summary>
+      <WhereForgeLooked agent={agent} />
+    </details>
+  );
+}
+
 /** Where forge looked for the agent's program, each place found or not there. */
 export function WhereForgeLooked({ agent }: { readonly agent: BoardAgentDocument }) {
   return (
@@ -274,8 +293,8 @@ export function WhereForgeLooked({ agent }: { readonly agent: BoardAgentDocument
         {AgentChoiceModel.placeRowsOf(agent).map((place) => (
           <li key={place.path} className="board-agent-place" data-found={place.found}>
             <span className="board-agent-place-dot" aria-hidden="true" />
-            <span className="board-agent-place-path" title={place.path}>
-              <Text mono {...(place.found ? {} : { subtle: true })}>{place.path}</Text>
+            <span className="board-agent-place-path">
+              <ProgramPathText path={place.path} subtle={!place.found} />
             </span>
             <span className="board-agent-place-word">
               <Text typeRole="small" subtle>{place.word}</Text>

@@ -2,8 +2,7 @@
  * The header's rows: the title row (the Forge mark and wordmark, the project title, the state pill and its quiet details, then at its right
  * end the figures closed by the Waiting on User pill), the "Agents at work" strip, and the tab bar, its tabs counting what waits on User,
  * with whatever the shell puts at its right end. The forge's controls and the theme are Gaia's own, outside the board. In setup, while the
- * board has no readable pipeline, the header is the title row (the mark, the title, the Setting up pill, the new-code notice) over the setup
- * step bar: no figures, no Waiting on User pill, no activity strip and no tabs.
+ * board has no readable pipeline, the board draws no header at all: the page's own head names the forge and holds the setup step bar.
  */
 
 import type { ReactNode } from 'react';
@@ -13,7 +12,6 @@ import {
   type CountBadgeColours,
   type LinkTabItem,
   MenuItem,
-  type StepperStep,
   Tabs,
   Text
 } from '../../lib/design-system/DesignSystemInterface.ts';
@@ -31,14 +29,8 @@ import {
   type BoardTab,
   type ProgressView
 } from './BoardRouter.ts';
-import { useChangedSinceMount } from './ChangedSinceMount.ts';
-import type {
-  HeaderFigureLane,
-  HeaderModel,
-  HeaderStatistic,
-  SetupStepView
-} from './HeaderModel.ts';
-import { SetupStepBar } from './SetupStepBar.tsx';
+import { useChangedSinceMount }                                from './ChangedSinceMount.ts';
+import type { HeaderFigureLane, HeaderModel, HeaderStatistic } from './HeaderModel.ts';
 import {
   WaitingOnUserModel,
   type TabCount,
@@ -111,7 +103,7 @@ function ProductBrand() {
   );
 }
 
-/** Running is the orange pill with the live dot; every other state, setup among them, is the quiet pill. A new state's pill pops in. */
+/** Running is the orange pill with the live dot; every other state is the quiet pill. A new state's pill pops in. */
 function StatusPill({ model }: { readonly model: HeaderModel }) {
   const hasChanged = useChangedSinceMount(model.statusToken);
   return (
@@ -205,41 +197,13 @@ function tabItemOf(entry: BoardMenuEntry, tabCount: TabCount | undefined, surrou
   return { ...item, countBadge: <CountBadge count={tabCount.count} {...COUNT_BADGE_OF_TONE[tabCount.tone]} />, accessibleName };
 }
 
-interface SetupHeaderProps {
-  readonly project:    string;
-  readonly model:      HeaderModel;
-  readonly setupSteps: readonly SetupStepView[];
-}
-
-/** A step that reopens links to its route under the mounted board. */
-function stepperStepOf(step: SetupStepView, hrefOf: (route: BoardRoute) => string): StepperStep {
-  const { reopensAt, ...stepFields } = step;
-  return reopensAt === null ? stepFields : { ...stepFields, href: hrefOf(reopensAt) };
-}
-
-function SetupHeader({ project, model, setupSteps }: SetupHeaderProps) {
-  const hrefOf = useBoardHrefOf();
-  return (
-    <header className="board-header">
-      <div className="board-head-title-row">
-        <ProductBrand />
-        <span className="board-head-divider" aria-hidden="true" />
-        <h1 className="board-title">{project}</h1>
-        <StatusPill model={model} />
-        <StatusDetails model={model} />
-      </div>
-      <SetupStepBar steps={setupSteps.map((step) => stepperStepOf(step, hrefOf))} />
-    </header>
-  );
-}
-
 export function Header({
   project, model, selectedTab, shownTabs, progressViewToOpen, activityIsLive, sidePanelIsOpen, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts, questionNotifier,
   timestampSlices
 }: HeaderProps) {
   const hrefOf = useBoardHrefOf();
   const navigate = useBoardNavigation();
-  if (model.setupSteps !== null) return <SetupHeader project={project} model={model} setupSteps={model.setupSteps} />;
+  if (model.setupSteps !== null) return null;
   const menuEntrySurroundings: MenuEntrySurroundings = {
     shownTabs, selectedTab, progressViewToOpen, hrefOf, navigate
   };

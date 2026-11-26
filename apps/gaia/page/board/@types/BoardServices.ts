@@ -49,6 +49,8 @@ export interface BoardServices {
   readonly flintFrameSource?:   FlintFrameSource;
   /** Called with Flint's handle once it exists and with null once it is gone. */
   readonly onFlintHandle?:      (handle: FlintHandle | null) => void;
+  /** The machine's home folder, so the board prints a path under it from `~`; absent, paths print whole. */
+  readonly homeFolder?:         string;
   /** The system's file chooser for an agent's program; absent, the board offers no chooser. */
   readonly chooseProgramFile?:  ProgramFileChooser;
   /** Absent for a board that starts from nothing; a page painted without effects, such as a screen of the visual pass, hands one. */

@@ -1,10 +1,9 @@
 /**
- * The agent step, the setup's first: which agent builds the forge, from the vendors the forge knows (one it cannot run yet shows as coming
- * later and cannot be chosen), and which of its programs this forge starts; beside it where forge looked for that program. With no record
- * it is the setup's landing, under the setup's title row and over what the pipeline decides: the page holds the choice, and the footer's
- * Continue starts the setup with it, which opens the billing step. With a record the choice is the record's: Continue moves a record still
- * at this step on to billing, and a record past it is reached again by the way back to its current step. While nothing is found the
- * primary action opens the file chooser instead.
+ * The agent step, the setup's first: which agent builds the forge, a card for each vendor the forge runs and one line naming those it runs
+ * in a later version, and which of its programs this forge starts, with where forge looked folded under it. With no record it is reached
+ * from the welcome: the page holds the choice, Back returns to the welcome, and the footer's Continue starts the setup with it, which opens
+ * the billing step. With a record the choice is the record's: Continue moves a record still at this step on to billing, and a record past
+ * it is reached again by the way back to its current step. While nothing is found the primary action opens the file chooser instead.
  */
 import { useId, useState }                 from 'react';
 import type { BoardAgentDocument }         from '../../../../@types/board/BoardAgentDocuments.ts';
@@ -15,40 +14,40 @@ import {
   ChoiceInput,
   ChoiceOption,
   ConfirmStrip,
-  Tag
+  Tag,
+  Text,
+  View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf, useBoardNavigation }                           from '../../../shell/BoardRouteLinks.ts';
 import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
 import { ViewTitle }                                                    from '../../ViewTitle.tsx';
 import { PipelinePage }                                                 from '../PipelinePage.tsx';
-import { PipelinePanel, PipelinePanelBody }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
-import { AgentChoiceModel, type VendorCard }                            from '../agent/AgentChoiceModel.ts';
-import {
-  AgentProgramPanel,
-  useProgramChoice,
-  WhereForgeLooked,
-  type ProgramChoiceState
-} from '../agent/AgentProgramPanel.tsx';
-import { PhaseOverview, SetupStepHead, SetupTitleRow } from './SetupIntro.tsx';
+import { AgentChoiceModel }                                             from '../agent/AgentChoiceModel.ts';
+import { AgentProgramPanel, useProgramChoice, type ProgramChoiceState } from '../agent/AgentProgramPanel.tsx';
 
 export interface AgentStepProps {
   readonly facts:                      PipelineViewFacts;
-  /** `null` on the setup's landing, before the setup starts. */
+  /** `null` before the setup starts, while the page holds the choice. */
   readonly setup:                      BoardPipelineSetupDocument | null;
-  /** The landing of an unreadable `pipeline.json`: the start says that Apply replaces the file. */
+  /** A forge whose `pipeline.json` cannot be read: the start says that Apply replaces the file. */
   readonly replacesUnreadablePipeline: boolean;
 }
 
 const CONTINUE_LABEL = `Continue to ${SETUP_STEP_LABELS.billing.toLowerCase()}`;
 
-const STEP_LEAD = 'The coding agent every job runs, and the program forge starts for it. Its vendor decides how it can be billed.';
+const SAVED_AS_YOU_GO = 'Saved as you go';
 
-function VendorCards({ cards, chosenVendor }: { readonly cards: readonly VendorCard[]; readonly chosenVendor: string | null }) {
+const STEP_LEAD = 'The coding agent every job runs, and the program forge starts for it. Its vendor decides how it can be billed, the next step.';
+
+/** The vendors forge runs as cards, the chosen one checked with whether its program is found, and the ones it runs later in one line. */
+function VendorChoice({ agent, chosenVendor }: { readonly agent: BoardAgentDocument; readonly chosenVendor: string | null }) {
   const groupName = useId();
+  const laterVendorsText = AgentChoiceModel.laterVendorsTextOf(agent);
   return (
-    <div className="board-agent-vendor-cards">
-      {cards.map((card) => (
+    <section className="board-agent-vendors" aria-label="The agent's vendor">
+      <Text typeRole="title" element="h3">Agent</Text>
+      {AgentChoiceModel.vendorCardsOf(agent).map((card) => (
         <ChoiceOption
           key={card.vendor}
           label={card.label}
@@ -56,20 +55,14 @@ function VendorCards({ cards, chosenVendor }: { readonly cards: readonly VendorC
           chosen={card.vendor === chosenVendor}
           variant="card"
           tone="question"
-          marks={<Tag text={card.tag.text} tone={card.tag.tone} />}
+          marks={card.programIsFound ? <Tag text="Found" tone="state" stateTone="success" dot /> : <Tag text="Not found" tone="warn" />}
           input={(
-            <ChoiceInput
-              type="radio"
-              name={groupName}
-              checked={card.vendor === chosenVendor}
-              accessibleName={card.label}
-              disabled={!card.selectable}
-              onChange={() => undefined}
-            />
+            <ChoiceInput type="radio" name={groupName} checked={card.vendor === chosenVendor} accessibleName={card.label} onChange={() => undefined} />
           )}
         />
       ))}
-    </div>
+      {laterVendorsText === null ? null : <Text typeRole="small" muted element="p">{laterVendorsText}</Text>}
+    </section>
   );
 }
 
@@ -85,7 +78,7 @@ function ChooseProgramButton({ displayName, programChoice }: { readonly displayN
   );
 }
 
-interface LandingFooterProps {
+interface StartFooterProps {
   readonly agent:                      BoardAgentDocument;
   readonly displayName:                string;
   readonly programChoice:              ProgramChoiceState;
@@ -93,16 +86,16 @@ interface LandingFooterProps {
 }
 
 /**
- * The landing's footer: the program the start sends and the start itself, which asks first when it changes a program other forges follow;
- * while no program is there, the file chooser.
+ * The footer before a record, when nothing is saved yet: Back to the welcome, and the start itself, which asks first when it changes a
+ * program other forges follow; while no program is there, the file chooser.
  */
-function LandingFooter({
+function StartFooter({
   agent, displayName, programChoice, replacesUnreadablePipeline
-}: LandingFooterProps) {
+}: StartFooterProps) {
   const [isAsking, setIsAsking] = useState(false);
+  const hrefOf = useBoardHrefOf();
   const navigateTo = useBoardNavigation();
   const startCommands = AgentChoiceModel.startCommandsOf(agent, programChoice, replacesUnreadablePipeline);
-  const programPath = programChoice.chosenPath ?? AgentChoiceModel.machineProgramOf(agent)?.path ?? null;
   const openBilling = (): void => navigateTo(PipelineViewModel.setupStepRouteOf('billing'));
   const asksFirst = programChoice.chosenPath !== null && AgentChoiceModel.machineChangeAsksFirst(agent, programChoice.forEveryForge);
   if (isAsking && startCommands !== null) {
@@ -126,9 +119,10 @@ function LandingFooter({
   return (
     <ActionBar
       label="Agent actions"
-      start={<Tag text={AgentChoiceModel.footerTextOf(displayName, programPath)} tone="neutral" chip />}
+      start={null}
       end={(
         <>
+          <Button label="Back" href={hrefOf(PipelineViewModel.setupLandingRoute)} />
           {startCommands === null ? <ChooseProgramButton displayName={displayName} programChoice={programChoice} /> : null}
           {startCommands !== null && asksFirst ? <Button label={CONTINUE_LABEL} emphasis="primary" attention onPress={() => setIsAsking(true)} /> : null}
           {startCommands !== null && !asksFirst ? <CommandButton label={CONTINUE_LABEL} command={startCommands} primary attention onApplied={openBilling} /> : null}
@@ -145,7 +139,7 @@ interface RecordFooterProps {
   readonly programChoice: ProgramChoiceState;
 }
 
-/** A record's footer: its program, and Continue while the record stands at this step, else the way back to where it stands. */
+/** A record's footer: that it is saved as User goes, and Continue while the record stands at this step, else the way back to where it stands. */
 function RecordFooter({
   agent, setup, displayName, programChoice
 }: RecordFooterProps) {
@@ -172,7 +166,7 @@ function RecordFooter({
   return (
     <ActionBar
       label="Agent actions"
-      start={<Tag text={AgentChoiceModel.footerTextOf(displayName, record.agent === null ? null : agent.programPath)} tone="neutral" chip />}
+      start={<Text muted>{SAVED_AS_YOU_GO}</Text>}
       end={primaryOf()}
     />
   );
@@ -185,48 +179,25 @@ export function AgentStep({ facts, setup, replacesUnreadablePipeline }: AgentSte
   const recordAgent = record?.agent ?? null;
   const vendor = AgentChoiceModel.chosenVendorOf(agent, recordAgent);
   const displayName = AgentChoiceModel.displayNameOf(agent, vendor);
-  const stepCard = (
-    <section className="board-pipeline-setup-card" aria-label={`${PipelineViewModel.stepPositionTextOf(record, 'agent')}: Agent`}>
-      <SetupStepHead step="agent" record={record} lead={STEP_LEAD} />
-      <VendorCards cards={AgentChoiceModel.vendorCardsOf(agent)} chosenVendor={vendor} />
-      <div className="board-agent-step-program">
-        <AgentProgramPanel
-          agent={agent}
-          choice={recordAgent}
-          target={record === null ? { kind: 'start', replacesUnreadablePipeline } : { kind: 'setup', setupId: record.setupId }}
-          project={project}
-          programChoice={programChoice}
-        />
-      </div>
-    </section>
-  );
-  const main = record === null
-    ? (
-      <>
-        <SetupTitleRow facts={facts} />
-        {stepCard}
-        <PhaseOverview />
-      </>
-    )
-    : (
-      <>
-        <ViewTitle
-          title={project === '' ? 'Which agent builds this forge' : `Which agent builds ${project}`}
-          lead={'Every job of this forge runs this agent: the pipeline agent, builders and reviewers. You can change it later in the forge\'s '
-            + 'settings.'}
-        />
-        {stepCard}
-      </>
-    );
-  const panel = (
-    <PipelinePanel label="Where forge looked" title="Where forge looked" status={{ tone: 'idle', text: displayName }}>
-      <PipelinePanelBody>
-        <WhereForgeLooked agent={agent} />
-      </PipelinePanelBody>
-    </PipelinePanel>
+  const main = (
+    <div className="board-pipeline-setup-column">
+      <View gap="two">
+        <Text typeRole="small" mono muted>{PipelineViewModel.stepPositionTextOf(record, 'agent')}</Text>
+        <ViewTitle title={project === '' ? 'Which agent builds this forge' : `Which agent builds ${project}`} lead={STEP_LEAD} />
+      </View>
+      <VendorChoice agent={agent} chosenVendor={vendor} />
+      <AgentProgramPanel
+        agent={agent}
+        choice={recordAgent}
+        target={record === null ? { kind: 'start', replacesUnreadablePipeline } : { kind: 'setup', setupId: record.setupId }}
+        project={project}
+        programChoice={programChoice}
+        foldsWhereForgeLooked
+      />
+    </div>
   );
   const footer = setup === null
-    ? <LandingFooter agent={agent} displayName={displayName} programChoice={programChoice} replacesUnreadablePipeline={replacesUnreadablePipeline} />
+    ? <StartFooter agent={agent} displayName={displayName} programChoice={programChoice} replacesUnreadablePipeline={replacesUnreadablePipeline} />
     : <RecordFooter agent={agent} setup={setup} displayName={displayName} programChoice={programChoice} />;
-  return <PipelinePage main={main} panel={panel} footer={footer} />;
+  return <PipelinePage main={main} panel={null} footer={footer} />;
 }

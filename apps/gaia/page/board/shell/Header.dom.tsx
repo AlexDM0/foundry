@@ -9,9 +9,8 @@
  * with no side panel open, cued by the first running chip, and ticks from the injected clock only while it is live; the Waiting on User pill names the
  * total and the escalated, opens its inbox in the served order with each action at its served target's route, closes on Esc (handing the focus back), a
  * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero. In
- * setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice and the setup step bar, whose done
- * steps show a check and link to their route, whose current step is `aria-current="step"` and which says which step this is; with a pipeline set the
- * Pipeline tab is last.
+ * setup (no readable pipeline) the board draws no header at all, since the page's own head names the forge and holds the setup step bar
+ * (`SetupStepBar.dom.tsx`); with a pipeline set the Pipeline tab is last.
  */
 import {
   act,
@@ -560,53 +559,13 @@ describe('the tab counts', () => {
 });
 
 describe('the header in setup', () => {
-  function renderedSetupHeader(board: BoardDocument): void {
-    renderedHeader(board, { selectedTab: 'pipeline', shownTabs: BoardRouter.shownTabsOf(true, true, false), waitingBoard: waitingOnUserBoard() });
-  }
-
-  test('with no readable pipeline the tabs, statistics, pill, activity strip and forge controls are absent', () => {
-    renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
-    expect(screen.queryByRole('navigation', { name: 'Views' })).toBeNull();
-    expect(document.querySelector('.design-system-tabs')).toBeNull();
-    expect(screen.queryByLabelText('Statistics')).toBeNull();
-    expect(document.querySelector('.board-attention')).toBeNull();
-    expect(document.querySelector('.board-activity')).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Hephaestus controls' })).toBeNull();
-    const pill = document.querySelector('.board-status-pill');
-    expect([pill?.textContent, pill?.querySelector('.board-status-dot')]).toEqual(['Setting up', null]);
-  });
-
-  test('the step bar shows the record\'s statuses, the current step is aria-current, and done and recheck steps link to their route', () => {
-    renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
-    const stepper = screen.getByRole('list', { name: 'Setup steps' });
-    expect(stepper.hasAttribute('data-compact')).toBe(true);
-    const steps = [...stepper.querySelectorAll('.design-system-stepper-step')];
-    expect(steps.map((step) => step.getAttribute('data-status'))).toEqual(['done', 'done', 'current', 'recheck', 'recheck', 'upcoming']);
-    expect(steps.map((step) => step.querySelector('.design-system-stepper-check') !== null)).toEqual([true, true, false, false, false, false]);
-    expect(steps.map((step) => step.querySelector('.design-system-stepper-circle') !== null)).toEqual([true, true, true, false, false, false]);
-    expect(steps[2]?.getAttribute('aria-current')).toBe('step');
-    expect(screen.getByText('Step 3 of 6 · saved as you go')).toBeDefined();
-    expect(within(stepper).getByRole('link', { name: 'Billing' }).getAttribute('href')).toBe(boardHrefOf('pipeline/setup/billing'));
-    expect(within(stepper).getByRole('link', { name: 'Constitution' }).getAttribute('href')).toBe(boardHrefOf('pipeline/setup/constitution'));
-    expect(within(stepper).queryByRole('link', { name: 'Research' })).toBeNull();
-    expect(within(stepper).queryByRole('link', { name: 'Apply' })).toBeNull();
-  });
-
-  test('a board without a record starts on Agent, and shows no usage', () => {
-    renderedSetupHeader({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage });
-    expect(screen.getByRole('list', { name: 'Setup steps' }).querySelector('[aria-current="step"]')?.textContent).toContain('Agent');
-    expect(document.querySelector('.board-status-details')).toBeNull();
-  });
-
-  test('with new code on disk it shows the forge\'s new-code notice, though it offers no Restart', () => {
-    renderedSetupHeader({
-      ...pipelineBoardStateOf('A0'),
-      notices: [{
-        kind: 'new-code', facts: {}, text: 'Example: new code is on disk', causeText: null
-      }]
-    });
-    expect(document.querySelector('.board-status-notice')?.textContent).toBe('Example: new code is on disk');
-    expect(screen.queryByRole('button', { name: 'Restart' })).toBeNull();
+  test('with no readable pipeline the board draws no header: no brand, title, pill, step bar, tabs, statistics or strip', () => {
+    for (const board of [pipelineBoardStateOf('A0'), pipelineBoardStateOf('A0b-recheck'), pipelineBoardStateOf('A0-unreadable')]) {
+      renderedHeader(board, { selectedTab: 'pipeline', shownTabs: BoardRouter.shownTabsOf(true, true, false), waitingBoard: waitingOnUserBoard() });
+      expect(document.querySelector('header')).toBeNull();
+      expect(screen.queryByRole('list', { name: 'Setup steps' })).toBeNull();
+      cleanup();
+    }
   });
 });
 

@@ -9,7 +9,7 @@
  * with Update forge and its steps, a newer one a neutral dashed callout that only explains, each with its versions line; the figures stay in the title
  * with the agents marked `+`, the side panel names each forge by its version, and the totals and the running cards name the forges they leave out. B4: no
  * forge gives its own screen, while every forge hidden does not; the forge program is missing only when neither the settings nor Gaia know one, and a
- * known one is named from ~.
+ * known one is named from ~. A forge's "no pipeline" question waits on nobody, so the list and its figures agree with the rail's count.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -27,6 +27,7 @@ import {
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
 import { FLEET_OUTAGE_ENDINGS }                       from '../../testing/fixtures/fleet-outage-endings.ts';
+import { FLEET_STOREFRONT_IN_SETUP }                  from '../../testing/fixtures/fleet-storefront-in-setup.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
 import {
   type AttentionContent,
@@ -121,6 +122,16 @@ describe('what waits on User (A1)', () => {
     const content = fleetContentOf(nothingWaits);
     expect([content.rows, content.nothingText, content.waitingHead]).toEqual([[], 'Nothing waits on you.', 'Waiting on you · 0']);
     expect(content.figures.map((figure) => figure.label)).toEqual(['waiting on you', 'agents', 'tickets ready', 'done today', 'tokens today', 'open incidents']);
+  });
+});
+
+describe('a forge with no pipeline', () => {
+  test('its "no pipeline" question is neither listed nor counted, so the list holds what its figures say', () => {
+    const content = fleetContentOf(FLEET_STOREFRONT_IN_SETUP);
+    expect(content.rows.some((row) => row.idText === 'E1' && row.project === 'Example Storefront')).toBe(false);
+    expect(content.rows).toHaveLength(FLEET_STOREFRONT_IN_SETUP.figures.waitingOnUser - 1);
+    expect(content.waitingHead).toBe(`Waiting on you · ${content.rows.length}`);
+    expect(content.figures[0]?.value).toBe(String(content.rows.length));
   });
 });
 
