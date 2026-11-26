@@ -1860,7 +1860,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job)
       || DocumentAgentSessions.opensWithAMessage(trackerDirectory, written.board, job);
     await JobResumption.deliverResumeMessages(request.boardChildren, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);
-    await DocumentAgentSessions.sendDeliveries(request.boardChildren, trackerDirectory, written.board, request.agentAdapter);
+    await DocumentAgentSessions.sendDeliveries(request.boardChildren, trackerDirectory, written.board, request.agentAdapter, request.log);
     await AnswerDelivery.deliverAnswers({
       boardChildren:   request.boardChildren,
       board:           written.board,

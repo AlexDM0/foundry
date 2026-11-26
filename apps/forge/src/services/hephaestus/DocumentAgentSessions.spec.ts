@@ -8,11 +8,13 @@
  * untouched applies the turn's requests, on recorded git; a turn end whose snapshot fails Customs refuses the turn's requests, logs it,
  * opens one incident on the ticket and ends the job `failed`; and each document has a snapshot of its own, so the spec's and the plan's
  * agents never reset or dirty each other's, removed once no agent of the document holds it, a waiting one included, and tried again after a
- * later agent held it.
+ * later agent held it. A snapshot start or launch note that cannot be read opens the unreadable file's incident on the job, which then takes
+ * no step on it; a seen head that cannot be read is logged, carries the head again and is written anew.
  */
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   writeFileSync
 } from 'node:fs';
@@ -26,6 +28,7 @@ import {
 } from 'bun:test';
 
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
+import { createSnapshotStartWriter }                                                    from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives }             from '../../lib/git/GitWorktrees.ts';
 import type { ChildInput }                                                              from '../../lib/talos/@types/TalosFrame.ts';
@@ -74,6 +77,8 @@ interface SessionFixture extends BoardFixture {
   trackerDirectory: string;
   children:         BoardChildren;
   sentLines:        () => string[];
+  loggedLines:      string[];
+  log:              (line: string) => void;
 }
 
 function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status: TicketStatus = 'draft'): SessionFixture {
@@ -94,8 +99,9 @@ function sessionFixture(record: LoadedTicketDocumentRecord, jobs: Job[], status:
     },
   } as unknown as BoardChildren;
   const sentLines = (): string[] => inputs.flatMap((input) => (input.act === 'write-line' ? [input.line] : []));
+  const loggedLines: string[] = [];
   return {
-    ...fixture, rootDirectory, trackerDirectory, children, sentLines
+    ...fixture, rootDirectory, trackerDirectory, children, sentLines, loggedLines, log: (line) => loggedLines.push(line)
   };
 }
 
@@ -174,7 +180,7 @@ describe('the messages', () => {
 
     DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
     DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
-    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
     const messages = fixture.board.ticketDocuments().documentOf('004', 'spec')?.messages ?? [];
     expect(messages.map((message) => [message.messageId, message.state, message.deliveryNumber, message.agentTurn]))
@@ -197,8 +203,8 @@ describe('the messages', () => {
     launched(fixture, job);
     DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
 
-    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
-    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
     expect(fixture.sentLines().map((line) => JSON.parse(line) as unknown)).toEqual([{
       messageId:     'M2',
@@ -247,9 +253,46 @@ describe('the messages', () => {
     DocumentAgentSessions.deliverWhenIdle(fixture.board, [], fixture.trackerDirectory, ['J9'], AT);
 
     expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(true);
-    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER);
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
     expect(fixture.sentLines()).toHaveLength(1);
     expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(true);
+  });
+
+  test('a launch note that cannot be read opens the unreadable file\'s incident on the job, once, which takes no message and keeps running', async () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(structuredClone(SPEC_WITH_MESSAGES), [job]);
+    launched(fixture, job);
+    writeFileSync(join(jobFolderIn(fixture.trackerDirectory, 'J9'), 'document-agent-launch.json'), '{"deliveryBase":0}\n');
+
+    DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
+    DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
+
+    expect(fixture.board.incidents().map((incident) => [incident.kind, incident.ticketIds, incident.jobId, incident.facts])).toEqual([[
+      'system-file-unreadable', ['004'], 'J9', { file: 'jobs/J9/document-agent-launch.json', reason: 'its version is not 1' },
+    ]]);
+    expect(fixture.board.ticketDocuments().nextQueuedMessageOf('004', 'spec')?.messageId).toBe('M2');
+    expect(fixture.board.jobById('J9')?.state).toBe('running');
+    expect(fixture.sentLines()).toEqual([]);
+  });
+
+  test('a seen head that cannot be read is logged, the line carries the head again, and the seen head is written anew', async () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(structuredClone(SPEC_WITH_MESSAGES), [job]);
+    launched(fixture, job);
+    const seenHeadFilePath = join(jobFolderIn(fixture.trackerDirectory, 'J9'), 'document-agent-seen-head.json');
+    const seenHeadAtLaunch = readFileSync(seenHeadFilePath, 'utf8');
+    writeFileSync(seenHeadFilePath, '{');
+    DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
+
+    await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
+
+    expect(fixture.loggedLines).toHaveLength(1);
+    expect(fixture.loggedLines[0]).toContain('is unreadable, so its next line carries the head again');
+    expect(fixture.sentLines()).toHaveLength(1);
+    expect(fixture.sentLines()[0]).toContain('The spec at version 1:');
+    expect(readFileSync(seenHeadFilePath, 'utf8')).toBe(seenHeadAtLaunch);
+    expect(fixture.board.incidents()).toEqual([]);
   });
 });
 
@@ -287,7 +330,8 @@ function untouchedSnapshotFor(fixture: SessionFixture): void {
   const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
   mkdirSync(jobFolder, { recursive: true });
   const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME));
-  writeFileSync(join(jobFolder, 'document-agent-start.json'), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+  if (launchSnapshot === null) throw new Error('the recorded snapshot answers its refs');
+  createSnapshotStartWriter(join(jobFolder, 'document-agent-start.json')).write({ startCommit: START_COMMIT, launchSnapshot });
 }
 
 describe('a turn end whose snapshot Customs finds untouched', () => {
@@ -303,6 +347,27 @@ describe('a turn end whose snapshot Customs finds untouched', () => {
     expect(replies.map((reply) => reply.reply.outcome)).toEqual(['done']);
     expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.readyAtNumber).toBe(1);
     expect(fixture.board.incidents()).toEqual([]);
+    expect(fixture.board.jobById('J9')?.state).toBe('running');
+  });
+});
+
+describe('a turn end whose snapshot start cannot be read', () => {
+  test('opens the unreadable file\'s incident on the job, once, answers no request, and keeps the job running', () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [job]);
+    const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
+    mkdirSync(jobFolder, { recursive: true });
+    writeFileSync(join(jobFolder, 'document-agent-start.json'), 'not JSON');
+    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
+    const context = turnEndContextOf(fixture, join(fixture.rootDirectory, 'worktrees'));
+
+    const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), context, ['J9', 'J9'], [request], ECHOED_CONTROL_CONTEXT);
+
+    expect(replies).toEqual([]);
+    expect(fixture.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+      ['system-file-unreadable', 'J9', 'jobs/J9/document-agent-start.json'],
+    ]);
+    expect(fixture.records.some((record) => record.kind === 'ticket-document-snapshot-touched')).toBe(false);
     expect(fixture.board.jobById('J9')?.state).toBe('running');
   });
 });

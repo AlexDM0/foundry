@@ -6,6 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 
+import type { AssistantChat }                                           from '../../adapters/assistant-chats/AssistantChatsIngestion.ts';
 import type { AgentPicture, SentLine }                                  from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                                       from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }                                           from '../../lib/talos/EventLog.ts';
@@ -13,7 +14,7 @@ import { clientEntryOf }                                                from '..
 import type { LogRecord }                                               from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';
-import { AssistantSession, type AssistantChat }                         from './AssistantSession.ts';
+import { AssistantSession }                                             from './AssistantSession.ts';
 import type { BoardChildren }                                           from './BoardChildren.ts';
 
 export interface TranscriptCursor {
@@ -25,7 +26,7 @@ export interface TranscriptCursor {
 export interface TranscriptSenderFacts {
   /** User's texts to the job in log order: its `job-messaged` and `job-reopened` records, but those `byHephaestus`. */
   userMessageTexts:              readonly string[];
-  /** The Assistant's chats past the first, from its chats file; `null` for every other job. */
+  /** The Assistant's chats past the first, from its chats file, none while it cannot be read; `null` for every other job. */
   assistantChats:                readonly AssistantChat[] | null;
   /** The requests the Assistant answered under an incident; every other answer is User's. */
   requestIdsAnsweredByAssistant: readonly string[];
@@ -237,10 +238,16 @@ function senderFactsOf(logRecords: readonly LogRecord[], trackerDirectory: strin
   }
   return {
     userMessageTexts,
-    assistantChats: isAssistant ? AssistantSession.chatsOf(trackerDirectory, jobId) : null,
+    assistantChats: isAssistant ? assistantChatsOf(trackerDirectory, jobId) : null,
     requestIdsAnsweredByAssistant,
     pictureNamesById,
   };
+}
+
+/** A read-only reader opens no incident: a chats file that cannot be read shows each later chat as Hephaestus's. */
+function assistantChatsOf(trackerDirectory: string, jobId: string): readonly AssistantChat[] {
+  const reading = AssistantSession.chatsOf(trackerDirectory, jobId);
+  return reading.verdict === 'readable' ? reading.chats : [];
 }
 
 export const JobTranscript = Object.freeze({ cursorOf, entriesAfter, senderFactsOf });

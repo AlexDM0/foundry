@@ -6,18 +6,17 @@
  * and waits with no session, and the next message resumes it; an agent whose document is done ends `closed`. A document's snapshot is
  * removed once no agent of that document holds it.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { join }                               from 'node:path';
 
+import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
+import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
+import { SeenHeadIngestion }                                                              from '../../adapters/seen-head/SeenHeadIngestion.ts';
+import { createSeenHeadWriter }                                                           from '../../adapters/seen-head/SeenHeadWriter.ts';
+import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
-import { writeFileAtomically }                                                            from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
@@ -27,24 +26,20 @@ import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                               
 import { DocumentAgentJobUtil }                                                           from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
 import { TicketDocumentVersionUtil }                                                      from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlContext }                                                            from '../../shared/@types/ControlContext.ts';
-import {
-  clearCustoms,
-  launchSnapshotOf,
-  type CustomsVerdict,
-  type LaunchSnapshot
-} from '../lifecycle/Customs.ts';
-import type { BoardTransaction }                                        from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }                                            from '../tracker/ProjectLocation.ts';
-import type { BoardChildren }                                           from './BoardChildren.ts';
-import { DocumentAgentWording }                                         from './DocumentAgentWording.ts';
-import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest } from './HatchInbox.ts';
-import { jobFolderIn }                                                  from './HephaestusFiles.ts';
+import { clearCustoms, launchSnapshotOf, type CustomsVerdict }                            from '../lifecycle/Customs.ts';
+import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
+import type { BoardChildren }                                                             from './BoardChildren.ts';
+import { DocumentAgentWording }                                                           from './DocumentAgentWording.ts';
+import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest }                   from './HatchInbox.ts';
+import { jobFileInDataFolderOf, jobFolderIn }                                             from './HephaestusFiles.ts';
 import {
   DOCUMENT_AGENT_SNAPSHOT_FOLDER,
   PipelineAgentSessions,
   type SnapshotContext,
   type TurnEndContext
 } from './PipelineAgentSessions.ts';
+import { UnreadableJobFileIncident } from './UnreadableJobFileIncident.ts';
 
 const SNAPSHOT_START_FILE = 'document-agent-start.json';
 
@@ -60,11 +55,6 @@ const DELIVERY_MARKERS_FOLDER = 'document-messages';
 const SNAPSHOT_TOUCHED_INCIDENT = 'document-snapshot-touched';
 
 const FAILED_CAUSE = 'document-snapshot-touched';
-
-interface SnapshotStart {
-  startCommit:    string;
-  launchSnapshot: LaunchSnapshot;
-}
 
 /** What the agent's session printed in its current instance, read from its event log. */
 export interface DocumentAgentReading {
@@ -103,14 +93,6 @@ function snapshotIsDirty(snapshot: string): boolean {
   return status === null || !GitProcess.succeeded(status) || status.standardOutput.trim() !== '';
 }
 
-function readJson<Value>(path: string): Value | null {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Value;
-  } catch {
-    return null;
-  }
-}
-
 function documentOf(board: Board, job: Readonly<Job>): Readonly<TicketDocument> | null {
   return board.ticketDocuments().documentOf(job.ticketIds[0] ?? '', documentOfJob(job));
 }
@@ -142,7 +124,7 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
   const launchSnapshot = launchSnapshotOf(snapshot);
   const jobFolder      = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
-  if (startCommit !== null && launchSnapshot !== null) writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit, launchSnapshot })}\n`);
+  if (startCommit !== null && launchSnapshot !== null) createSnapshotStartWriter(join(jobFolder, SNAPSHOT_START_FILE)).write({ startCommit, launchSnapshot });
   noteLaunch(context.workspace.trackerDirectory, board, job);
   return snapshot;
 }
@@ -153,18 +135,12 @@ function noteLaunch(trackerDirectory: string, board: Board, job: Readonly<Job>):
   if (existsSync(join(jobFolder, LAUNCH_FILE))) return;
   mkdirSync(jobFolder, { recursive: true });
   const document = documentOf(board, job);
-  writeFileSync(join(jobFolder, LAUNCH_FILE), `${JSON.stringify({ deliveryBase: newestDeliveryNumberOf(document) })}\n`);
+  createDeliveryBaseWriter(join(jobFolder, LAUNCH_FILE)).write(newestDeliveryNumberOf(document));
   writeSeenHead(jobFolder, document);
 }
 
 function writeSeenHead(jobFolder: string, document: Readonly<TicketDocument> | null): void {
-  const contentHash = document === null ? null : TicketDocumentVersionUtil.headOf(document)?.contentHash ?? null;
-  writeFileAtomically(join(jobFolder, SEEN_HEAD_FILE), `${JSON.stringify({ contentHash })}\n`);
-}
-
-/** The commit the job's current instance was launched on, which its document moves are stamped with; `null` before a launch. */
-function snapshotCommitOf(trackerDirectory: string, jobId: string): string | null {
-  return readJson<SnapshotStart>(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE))?.startCommit ?? null;
+  createSeenHeadWriter(join(jobFolder, SEEN_HEAD_FILE)).write(document === null ? null : TicketDocumentVersionUtil.headOf(document)?.contentHash ?? null);
 }
 
 /** It reads the snapshot and writes only its Hatch folder: no network, no question, no skill. */
@@ -214,8 +190,10 @@ function readingsOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'events
   return jobs.filter((job) => isDocumentAgentJob(job) && job.state === 'running').map((job) => readingOf(children, adapter, job));
 }
 
+/** `null` before the launch was noted, and while its file cannot be read, for which `deliverWhenIdle` opens the incident in the hold. */
 function deliveryBaseOf(jobFolder: string): number | null {
-  return readJson<{ deliveryBase: number }>(join(jobFolder, LAUNCH_FILE))?.deliveryBase ?? null;
+  const reading = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
+  return reading.verdict === 'readable' ? reading.deliveryBase : null;
 }
 
 /** Each delivery number the job's instances took, with the instance that took it. */
@@ -302,9 +280,19 @@ function deliverNextMessage(trackerDirectory: string, board: Board, job: Readonl
   return true;
 }
 
+/** In the hold: a launch file that cannot be read opens its incident, and a job with such an incident open takes no message until a move. */
+function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Readonly<Job>, at: string): boolean {
+  const launch = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
+  if (launch.verdict === 'unreadable') {
+    UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
+  }
+  return launch.verdict === 'unreadable' || UnreadableJobFileIncident.standsOpenFor(board, job.id);
+}
+
 /**
  * Run in the hold after the lifecycle. An idle agent takes the oldest queued message; an idle agent with none has its input closed, and an
- * instance resumed from waiting opens with the next message. A waiting agent whose document is done ends `closed`.
+ * instance resumed from waiting opens with the next message. A waiting agent whose document is done ends `closed`. A running agent with an
+ * unreadable file of its own takes nothing.
  */
 function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[], trackerDirectory: string, resumedFromWaitingJobIds: readonly string[], at: string): void {
   for (const job of board.jobs().filter(isDocumentAgentJob)) {
@@ -313,6 +301,7 @@ function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[]
       continue;
     }
     const jobFolder = jobFolderIn(trackerDirectory, job.id);
+    if (job.state !== 'running' || unreadableFileHoldsDeliveryOf(board, jobFolder, job, at)) continue;
     if (job.state === 'running' && resumedFromWaitingJobIds.includes(job.id) && linesTakenOf(jobFolder, job.childInstance) === 0) {
       deliverNextMessage(trackerDirectory, board, job);
       continue;
@@ -340,9 +329,20 @@ function settleEndedSessions(board: Board, jobIds: readonly string[], at: string
   }
 }
 
-/** After the hold: each delivered message's line, in order, to the live instance; a marker per line keeps a restart from sending it twice. */
+/** The head's content hash the agent saw last; one that cannot be read is logged and taken as none, so the line carries the head again. */
+function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string | null {
+  const seenHeadFilePath = join(jobFolder, SEEN_HEAD_FILE);
+  const seenHead = new SeenHeadIngestion(seenHeadFilePath).read();
+  if (seenHead.verdict === 'unreadable') log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${seenHead.reason}`);
+  return seenHead.verdict === 'readable' ? seenHead.contentHash : null;
+}
+
+/**
+ * After the hold: each delivered message's line, in order, to the live instance; a marker per line keeps a restart from sending it twice.
+ * Each line rewrites the seen head, which heals one that could not be read.
+ */
 async function sendDeliveries(
-  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>,
+  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: (line: string) => void,
 ): Promise<void> {
   for (const job of board.jobs().filter((candidate) => isDocumentAgentJob(candidate) && candidate.state === 'running')) {
     const jobFolder = children.jobFolderOf(job.id);
@@ -351,7 +351,7 @@ async function sendDeliveries(
     for (const message of pendingMessagesOf(trackerDirectory, board, job)) {
       const held       = documentOf(board, job);
       const head       = held === null ? null : TicketDocumentVersionUtil.headOf(held);
-      const seenHash   = readJson<{ contentHash: string | null }>(join(jobFolder, SEEN_HEAD_FILE))?.contentHash ?? null;
+      const seenHash   = seenHeadHashOf(jobFolder, log);
       const changedText = head === null || head.contentHash === seenHash ? null : board.ticketDocuments().versionTextOf(job.ticketIds[0] ?? '', document, head.number);
       const line = DocumentAgentWording.messageLineOf(message, document, { versionNumber: head?.number ?? null, changedText });
       const marker = join(jobFolder, DELIVERY_MARKERS_FOLDER, `${message.deliveryNumber ?? 0}.${job.childInstance}`);
@@ -362,8 +362,8 @@ async function sendDeliveries(
   }
 }
 
-function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>): CustomsVerdict {
-  const start = readJson<SnapshotStart>(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE));
+/** With no snapshot start, the launch could not take one, so the check fails closed. */
+function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>, start: SnapshotStart | null): CustomsVerdict {
   if (start === null) return {
     verdict: 'refused', check: 'V16', reason: 'git-failed', facts: ['no snapshot start']
   };
@@ -387,7 +387,8 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 /**
  * In the hold, at each turn end of a document agent (its `result`, or its session's end): Customs on its snapshot. A clean snapshot applies
  * the turn's Hatch requests; a changed one refuses every one of them `document-snapshot-touched`, logs it, opens one incident on the
- * ticket and ends the job `failed`. Answers the replies to write once the hold committed.
+ * ticket and ends the job `failed`. A snapshot start that cannot be read opens the unreadable file's incident on the job in place of
+ * Customs, and the turn's requests wait unanswered. Answers the replies to write once the hold committed.
  */
 function verifyTurnEnds(
   change: BoardTransaction,
@@ -402,11 +403,16 @@ function verifyTurnEnds(
   for (const jobId of new Set(turnEndJobIds)) {
     const job = board.jobById(jobId);
     if (job === undefined || !isDocumentAgentJob(job)) continue;
+    const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
+    if (snapshotStart.verdict === 'unreadable') {
+      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      continue;
+    }
+    const start    = snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null;
     const requests = pending.filter((request) => request.jobId === job.id);
-    const verdict  = turnEndVerdictOf(context, board, job);
+    const verdict  = turnEndVerdictOf(context, board, job, start);
     if (verdict.verdict === 'verified') {
-      const snapshotCommit = snapshotCommitOf(context.workspace.trackerDirectory, job.id);
-      replies.push(...HatchInbox.applyTurnEndRequests(change, repositoryRoot, requests, controlContext, snapshotCommit));
+      replies.push(...HatchInbox.applyTurnEndRequests(change, repositoryRoot, requests, controlContext, start?.startCommit ?? null));
       continue;
     }
     const ticketId = job.ticketIds[0] ?? '';
@@ -465,7 +471,6 @@ export const DocumentAgentSessions = Object.freeze({
   snapshotDirectoryOf,
   prepareSnapshot,
   noteLaunch,
-  snapshotCommitOf,
   documentAgentProfileOf,
   documentAgentFactsOf,
   readingsOf,

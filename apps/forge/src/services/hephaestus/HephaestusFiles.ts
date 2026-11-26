@@ -26,14 +26,16 @@ export function hephaestusFilesIn(trackerDirectory: string): HephaestusFiles {
   };
 }
 
+const JOBS_FOLDER = 'jobs';
+
 /** `<data>/jobs/<J>/`: a job's own files, its children's among them. */
 export function jobFolderIn(trackerDirectory: string, jobId: string): string {
-  return join(trackerDirectory, 'jobs', jobId);
+  return join(trackerDirectory, JOBS_FOLDER, jobId);
 }
 
-/** A file of a job's folder by its path inside the board's data folder, `/`-separated on every platform, as an unreadable file is named. */
+/** `jobs/<J>/<file>`, with `/` on every platform: a job's file as named inside the board's data folder. */
 export function jobFileInDataFolderOf(jobId: string, fileName: string): string {
-  return ['jobs', jobId, fileName].join('/');
+  return [JOBS_FOLDER, jobId, fileName].join('/');
 }
 
 /** The API token, in the board's owner-only folder; every reader takes the path from the Hephaestus lock's `tokenFile`. */

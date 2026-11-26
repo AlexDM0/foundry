@@ -4,9 +4,13 @@
  * turn's call budget defaults them too; past the context-token count its input closes; one that went down ends, never resumes, and what it
  * was delivered goes to the fresh one, but for one a network outage or a lease end interrupted, which waits for User's resume as any job; a
  * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; a
- * wind-down once asked completes, the switch on again or not, and one that went down while winding down ends `closed`; and every move
- * outside its incidents is refused at the Hatch.
+ * wind-down once asked completes, the switch on again or not, and one that went down while winding down ends `closed`; a chats file that
+ * cannot be read opens its incident on the Assistant in the hold, which then is delivered nothing and never idle, and is never overwritten;
+ * and every move outside its incidents is refused at the Hatch.
  */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
+
 import { describe, expect, test } from 'bun:test';
 
 import type { IncidentOpening }                                              from '../../lib/tracker-model/@types/Incident.ts';
@@ -22,6 +26,8 @@ import { ticketFixture }                                                     fro
 import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
 import { Bouncer }                                                           from '../control/Bouncer.ts';
 import { type AssistantReading, AssistantSession }                           from './AssistantSession.ts';
+import type { BoardChildren }                                                from './BoardChildren.ts';
+import { jobFolderIn }                                                       from './HephaestusFiles.ts';
 
 const FIXTURE_AT = '2026-10-28T10:00:00+01:00';
 
@@ -394,6 +400,68 @@ describe('User\'s message waits for an idle point (A7)', () => {
     board.markIncidentDelivered(incident?.id ?? '', { jobId: ASSISTANT_ID, chatSequence: 2 });
     expect(AssistantSession.assistantIsIdle(scratch, board, assistant, readingOf(1))).toBe(false);
     expect(AssistantSession.assistantIsIdle(scratch, board, assistant, readingOf(2))).toBe(true);
+  });
+});
+
+describe('a chats file that cannot be read', () => {
+  const OLD_BARE_LIST = '[{"sequence":2,"incidentIds":[],"messageNumber":1}]\n';
+
+  function unreadableChatsFixture(): { board: Board; trackerDirectory: string; chatsFilePath: string } {
+    const trackerDirectory = createScratchDirectory('assistant-session-unreadable-chats');
+    const jobFolder = jobFolderIn(trackerDirectory, ASSISTANT_ID);
+    mkdirSync(jobFolder, { recursive: true });
+    const chatsFilePath = join(jobFolder, 'assistant-chats.json');
+    writeFileSync(chatsFilePath, OLD_BARE_LIST);
+    const { board } = assistantBoard();
+    return { board, trackerDirectory, chatsFilePath };
+  }
+
+  test('opens its incident on the Assistant in the hold, once, which then takes no incident, is never idle and is not counted mid-turn', () => {
+    const { board, trackerDirectory } = unreadableChatsFixture();
+    board.openIncident(BLOCKED, FIXTURE_AT);
+    const readings = [readingOf(1, { lastContextTokens: ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH })];
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      AssistantSession.closeInputWhenIdle(board, readings, trackerDirectory, FIXTURE_AT);
+      AssistantSession.deliverIncidentsWhenIdle(board, readings, trackerDirectory);
+    }
+
+    expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts, incident.deliveredInTurn])).toEqual([
+      ['blocked', null, {}, null],
+      ['system-file-unreadable', ASSISTANT_ID, { file: `jobs/${ASSISTANT_ID}/assistant-chats.json`, reason: 'it is not a JSON object' }, null],
+    ]);
+    const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
+    expect(assistant.state).toBe('running');
+    expect(AssistantSession.assistantIsIdle(trackerDirectory, board, assistant, readingOf(1))).toBe(false);
+    expect(AssistantSession.midTurnJobIdsOf(trackerDirectory, board, [readingOf(0)])).toEqual([]);
+    removeScratchDirectory(trackerDirectory);
+  });
+
+  test('after the hold the Assistant is sent nothing and the file is kept as it was', async () => {
+    const { board, trackerDirectory, chatsFilePath } = unreadableChatsFixture();
+    board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', [], FIXTURE_AT);
+    const sentLines: string[] = [];
+    const boardChildren = {
+      jobFolderOf:   (jobId: string) => jobFolderIn(trackerDirectory, jobId),
+      sendInputOnce: (_marker: string, _folder: string, _instance: number, inputs: readonly { line?: string }[]) => {
+        sentLines.push(...inputs.flatMap((input) => (input.line === undefined ? [] : [input.line])));
+        return Promise.resolve(true);
+      },
+    } as unknown as BoardChildren;
+
+    await AssistantSession.deliverChats({
+      boardChildren,
+      trackerDirectory,
+      board,
+      adapter:    { chatLineOf: (text) => text, interruptLineOf: () => 'interrupt' },
+      readings:   [readingOf(1, { callsSinceLastResult: ASSISTANT_TURN_CALL_BUDGET })],
+      chatTextOf: () => 'Example chat',
+    });
+
+    expect(sentLines).toEqual([]);
+    expect(readFileSync(chatsFilePath, 'utf8')).toBe(OLD_BARE_LIST);
+    expect(AssistantSession.unsentMessageCountOf(board, trackerDirectory, board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT)).toBe(1);
+    removeScratchDirectory(trackerDirectory);
   });
 });
 

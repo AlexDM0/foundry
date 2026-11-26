@@ -20,6 +20,7 @@ import {
   test
 } from 'bun:test';
 
+import { createAssistantChatsWriter }                     from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
@@ -414,9 +415,15 @@ describe('JobTranscript.senderFactsOf', () => {
   test('reads the Assistant\'s chats file for an Assistant job', () => {
     const trackerDirectory = scratchTrackerDirectory();
     const chats = [{ sequence: 2, incidentIds: ['I3'], messageNumber: null }];
+    createAssistantChatsWriter(join(jobFolderIn(trackerDirectory, 'J1'), 'assistant-chats.json')).write(chats);
+    expect(JobTranscript.senderFactsOf([launched('J1', 'assistant')], trackerDirectory, 'J1').assistantChats).toEqual(chats);
+  });
+
+  test('an Assistant\'s chats file that cannot be read gives no chats', () => {
+    const trackerDirectory = scratchTrackerDirectory();
     const jobFolder = jobFolderIn(trackerDirectory, 'J1');
     mkdirSync(jobFolder, { recursive: true });
-    writeFileSync(join(jobFolder, 'assistant-chats.json'), `${JSON.stringify(chats)}\n`);
-    expect(JobTranscript.senderFactsOf([launched('J1', 'assistant')], trackerDirectory, 'J1').assistantChats).toEqual(chats);
+    writeFileSync(join(jobFolder, 'assistant-chats.json'), '[{"sequence":2,"incidentIds":["I3"],"messageNumber":null}]\n');
+    expect(JobTranscript.senderFactsOf([launched('J1', 'assistant')], trackerDirectory, 'J1').assistantChats).toEqual([]);
   });
 });
