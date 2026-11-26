@@ -9,11 +9,18 @@
  * review's catch-up that conflicts in the package's files goes back to its package's build, the ticket left in progress; a red catch-up
  * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
  * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
- * ticket for User. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the
- * launcher is fake, and the spec ends each line itself.
+ * ticket for User. A merge record that cannot be read is never settled or merged again: the review waits on its incident. The folders
+ * are real; git answers from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends each line
+ * itself.
  */
-import { mkdirSync, readFileSync, realpathSync } from 'node:fs';
-import { join }                                  from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import { afterEach, expect } from 'bun:test';
 
@@ -321,6 +328,24 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   expect(handoffCycleResumes(scene)).toBe(1);
   const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
   expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
+});
+
+testWhenGitIsRecorded('a merge record that cannot be read is never settled or merged again: the review waits on the record\'s incident', async () => {
+  const scene = catchUpScene();
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
+  await scene.pass();
+  endMergeLine(scene, CLEAN_EXIT_CODE);
+  writeFileSync(join(scene.jobFolder(), 'target-merge.json'), '{"startTip": ');
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+  await scene.pass();
+
+  expect(scene.reviewJob()?.state).toBe('preparing');
+  expect(existsSync(join(scene.jobFolder(), 'target-merge-settlement.json'))).toBe(false);
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+    ['system-file-unreadable', scene.reviewJobId, `jobs/${scene.reviewJobId}/target-merge.json`],
+  ]);
 });
 
 /** The review phase's gate comes first in the gate list, so a catch-up that ran it would name it. */

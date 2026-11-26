@@ -2207,7 +2207,7 @@ as the last step of its review, so `merging-main` finds the branch up to date un
 | the round | what Hephaestus does |
 | --- | --- |
 | the worktree holds the target's tip and its green is current in the job's phase | the job ends (`reviewed`, or `built` with its Handoff), the ticket is marked `mergeQueued` and waits for User's Merge |
-| the worktree lacks the tip | it records both tips (`main-merge.json`) and merges the tip in with every hook off, in a line Talos runs in a child folder of its own (`main-merge`), as the merge before review does |
+| the worktree lacks the tip | it records both tips (`main-merge.json`, `{ "version": 1, startTip, mergedTip }`; unreadable, it opens `system-file-unreadable` and merges nothing) and merges the tip in with every hook off, in a line Talos runs in a child folder of its own (`main-merge`), as the merge before review does |
 | the merge is clean, or the worktree holds the tip on a tree whose green is not current | it gates the tree with the job's phase's gates, `review`, or `build` with no review phase (`main-gate-run.json`); green ends the job and queues the ticket |
 | a gate is red | a red handoff: the job's own session resumes, the reviewer, or with no review phase the builder |
 | the merge conflicts | the merge is aborted and the worktree reset to the branch tip (`main-conflict.json`); a red handoff of kind `merge-conflict`: the job's own session resumes to merge the tip itself, resolve, commit and report again |

@@ -17,6 +17,8 @@ import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
 import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
 import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
+import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
+import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
 import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
 import { createStepVerdictWriter }                                                 from '../../adapters/step-verdict/StepVerdictWriter.ts';
 import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
@@ -103,7 +105,6 @@ import type { SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import {
   CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE,
   MergeRun,
-  type MergeSides,
   type ReReviewVerdict,
   type TargetMergeSettlement
 } from '../lifecycle/MergeRun.ts';
@@ -1001,6 +1002,13 @@ function readJsonFile<Content>(path: string): Content | null {
   }
 }
 
+/** The tips a merge into the worktree was checked against; `null` before its first look found the branch behind. */
+function mergeSidesOf(trackerDirectory: string, sidesFilePath: string): TargetMergeRecord | null | StoredFileUnreadable {
+  const reading = new MergeSidesIngestion(sidesFilePath).read();
+  if (reading.verdict === 'readable') return reading.sides;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, sidesFilePath, reading.reason);
+}
+
 /** The first look: the target's tip as it stands now, and whether the branch already holds it. */
 function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): TargetCatchUp {
   const worktree  = worktreeOf(context.workspace, job);
@@ -1018,7 +1026,8 @@ function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): Targ
 function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline> | null): TargetCatchUp {
   if (job.kind !== REVIEW_JOB_KIND || job.state !== 'preparing' || pipeline === null) return { verdict: 'not-checked' };
   const jobFolder = jobFolderOf(context.workspace, job);
-  const record = readJsonFile<TargetMergeRecord>(join(jobFolder, JOB_FILES.targetMerge));
+  const record = mergeSidesOf(context.workspace.trackerDirectory, join(jobFolder, JOB_FILES.targetMerge));
+  if (StoredFileUnreadable.isUnreadableFile(record)) return record;
   if (record === null) return firstTargetCheckOf(context, job);
   const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolder, JOB_FILES.targetMergeSettlement));
   if (settlement === null) {
@@ -1094,7 +1103,8 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     if (progress.verdict === 'unreadable-file') return progress;
     return progress.verdict === 'running' ? { verdict: 'gating', stepIndex: progress.stepIndex } : { verdict: 'gated', gate: progress };
   }
-  const record = readJsonFile<TargetMergeRecord>(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round));
+  const record = mergeSidesOf(context.workspace.trackerDirectory, mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round));
+  if (StoredFileUnreadable.isUnreadableFile(record)) return record;
   if (record === null) {
     const check = firstTargetCheckOf(context, job);
     if (check.verdict === 'behind' || check.verdict === 'merge-failed') return check;
@@ -2662,12 +2672,13 @@ async function runTargetCatchUpEffects(context: JobLaunchContext, job: Readonly<
   if (catchUp.verdict === 'behind') {
     const record: TargetMergeRecord = { startTip: catchUp.branchTip, mergedTip: catchUp.targetTip };
     mkdirSync(jobFolder, { recursive: true });
-    writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
+    createMergeSidesWriter(recordPath).write(record);
     await launchMergeIntoTree(context, job, TARGET_CATCH_UP_MERGE, record);
     return;
   }
-  const record = readJsonFile<TargetMergeRecord>(recordPath);
-  if (record === null) return;
+  // An unreadable record already read as the catch-up's verdict, so nothing merges or settles on it.
+  const record = mergeSidesOf(context.workspace.trackerDirectory, recordPath);
+  if (record === null || StoredFileUnreadable.isUnreadableFile(record)) return;
   if (catchUp.verdict === 'merging') await launchMergeIntoTree(context, job, TARGET_CATCH_UP_MERGE, record);
   if (catchUp.verdict === 'merge-ended') writeMergeSettlement(context, job, TARGET_CATCH_UP_MERGE, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
   if (catchUp.verdict === 'gating') await spawnGateRunStep(context, job, { place: TARGET_GATE_RUN, pipeline, stepIndex: catchUp.stepIndex });
@@ -2686,14 +2697,16 @@ async function runMainMergeEffects(context: JobLaunchContext, board: Board, job:
   if (step.verdict === 'behind') {
     const record: TargetMergeRecord = { startTip: step.branchTip, mergedTip: step.targetTip };
     mkdirSync(dirname(recordPath), { recursive: true });
-    writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
+    createMergeSidesWriter(recordPath).write(record);
     await launchMergeIntoTree(context, job, files, record);
     return;
   }
-  const record = readJsonFile<TargetMergeRecord>(recordPath);
-  if (step.verdict === 'merging' && record !== null) await launchMergeIntoTree(context, job, files, record);
-  if (step.verdict === 'merge-ended' && record !== null) writeMergeSettlement(context, job, files, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
   if (step.verdict === 'gating') await spawnGateRunStep(context, job, { place: mainMergeGateRunOf(job, round), pipeline, stepIndex: step.stepIndex });
+  // An unreadable record already read as the round's verdict, so nothing merges or settles on it.
+  const record = mergeSidesOf(context.workspace.trackerDirectory, recordPath);
+  if (record === null || StoredFileUnreadable.isUnreadableFile(record)) return;
+  if (step.verdict === 'merging') await launchMergeIntoTree(context, job, files, record);
+  if (step.verdict === 'merge-ended') writeMergeSettlement(context, job, files, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
 }
 
 /** A checkout dirty before anyone touched it is a repository whose stored files `.gitattributes` would convert; its paths stop the install. */

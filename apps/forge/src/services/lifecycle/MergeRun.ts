@@ -4,6 +4,7 @@
  * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
  * own and settled here, and who takes a crossing ticket's conflict or red gate: the entity that owns it (strategy 5.7).
  */
+import type { MergeSides }         from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
@@ -26,12 +27,6 @@ import type {
   VerificationRefusalReason
 } from './Customs.ts';
 import { CHECKS_OF_ROLE, CUSTOMS_CHECKS } from './Customs.ts';
-
-/** The commit the slot worktree starts from, its merge's first parent, and the one merged into it, its second. */
-export interface MergeSides {
-  startTip:  string;
-  mergedTip: string;
-}
 
 const DIFF_FILE_HEADER = /^(?:\+\+\+|---) /;
 const CHANGED_LINE     = /^[+-]/;

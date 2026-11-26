@@ -508,7 +508,7 @@ testWhenGitIsRecorded('crash row: a resumed session\'s round keeps its own files
   await scene.pass();
 
   expect(scene.spawnedFolders().at(-1)).toBe(join(scene.jobFolder(), 'main-merge-2'));
-  expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-merge-2.json'), 'utf8'))).toEqual({ startTip: RESOLUTION_TIP, mergedTip: TARGET_TIP });
+  expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-merge-2.json'), 'utf8'))).toEqual({ version: 1, startTip: RESOLUTION_TIP, mergedTip: TARGET_TIP });
 });
 
 testWhenGitIsRecorded('crash row: a merge that ended while Hephaestus was down is settled once on the restart, and never run again', async () => {

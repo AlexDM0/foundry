@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
+import type { MergeSides }                                from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
@@ -13,7 +14,7 @@ import { GIT_SCENARIOS }                                  from '../../testing/Re
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
 import type { ProjectScope }                              from './Customs.ts';
-import { MergeRun, type MergeSides }                      from './MergeRun.ts';
+import { MergeRun }                                       from './MergeRun.ts';
 
 const PROJECT_PREFIX = 'apps/example';
 /** The file each conflict scenario resolves, at the repository's root, outside the project's folder. */
