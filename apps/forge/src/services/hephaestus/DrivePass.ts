@@ -139,6 +139,7 @@ import { RefusedForcedStops }                                         from './Re
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
 import { SessionConfinement }                                         from './SessionConfinement.ts';
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
+import { StoredFileUnreadable }                                       from './StoredFileUnreadable.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
@@ -219,6 +220,12 @@ interface SetupBillingNotChosen {
 /** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
 interface AirlockConflictsUnknown {
   readonly airlockConflictsUnknownFor: string;
+}
+
+/** A job file the launch reads cannot be read: nothing launches, and the pass's hold opens the file's incident on the job. */
+interface UnreadableLaunchFile {
+  readonly unreadableLaunchFileOfJob: string;
+  readonly unreadable:                StoredFileUnreadable;
 }
 
 /** A session forge's confinement cannot hold, of a job with no incident of its own for it: the next pass tries it again. */
@@ -859,13 +866,17 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
-/** `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict. */
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string): AirlockFacts | null | 'conflicts-unknown' {
+/**
+ * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; a job file
+ * of the merge job the agent is told of that cannot be read stops the launch.
+ */
+function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string): AirlockFacts | null | 'conflicts-unknown' | StoredFileUnreadable {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   if (mergeJob?.state === 'merging-main') {
     const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
+    if (StoredFileUnreadable.isUnreadableFile(conflict)) return conflict;
     return {
       mergePlacement:  'before-human-code-review',
       worktree:        checkout,
@@ -1032,6 +1043,11 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Read
   return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
 
+function unreadableLaunchFileOf(request: Pick<DrivePassRequest, 'log'>, job: Readonly<Job>, unreadable: StoredFileUnreadable): UnreadableLaunchFile {
+  request.log(`Job ${job.id} did not launch: its launch reads ${unreadable.file}, which cannot be read (${unreadable.reason}).`);
+  return { unreadableLaunchFileOfJob: job.id, unreadable };
+}
+
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
@@ -1046,7 +1062,7 @@ async function launchAgentChild(
   effectReadings: EffectReadings,
 ): Promise<
   LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | SetupBillingNotChosen | AirlockConflictsUnknown | TalosDidNotLaunch
-  | SessionConfinementRefused | null
+  | SessionConfinementRefused | UnreadableLaunchFile | null
   > {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
@@ -1092,6 +1108,7 @@ async function launchAgentChild(
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
   }
+  if (StoredFileUnreadable.isUnreadableFile(airlock)) return unreadableLaunchFileOf(request, job, airlock);
   const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
   const launchFacts      = { ...launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place }), effectReading };
   const text             = request.launchTextOf(job, launchFacts);
@@ -1766,6 +1783,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const agentProgramRefusals: AgentProgramRefused[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
+    const unreadableLaunchFiles: UnreadableLaunchFile[] = [];
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
       ? []
@@ -1777,6 +1795,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
       else if ('setupBillingNotChosenFor' in refusal) continue;
+      else if ('unreadableLaunchFileOfJob' in refusal) unreadableLaunchFiles.push(refusal);
       else if ('notLaunchedJobId' in refusal) agentProgramRefusals.push(refusal);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
@@ -1787,7 +1806,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       && openApiKeyDecisionIdsOf(written.board).length > 0;
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
-      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0;
+      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0 || unreadableLaunchFiles.length > 0;
     let refusalResolvedSinceItsLaunch = false;
     if (holdIsDue) await holdTracker((hold) => {
       for (const refused of agentProgramRefusals) {
@@ -1800,6 +1819,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       }
       hold.board.retryNotLaunched(hold.at, (job) => notLaunchedJobIdsToRetry.includes(job.id));
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+      for (const { unreadableLaunchFileOfJob, unreadable } of unreadableLaunchFiles) {
+        StoredFileUnreadable.openIncidentOn(hold.board, unreadableLaunchFileOfJob, unreadable, hold.at);
+      }
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);

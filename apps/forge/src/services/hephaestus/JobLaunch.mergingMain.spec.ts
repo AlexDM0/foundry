@@ -338,7 +338,7 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree and resu
     kind: 'merge-conflict', name: TARGET, mergedTip: TARGET_TIP, commit: BRANCH_TIP, resume: 1
   });
   expect(readFileSync(join(scene.jobFolder(), 'gate-failure.md'), 'utf8')).toContain(`- ${CONFLICTED_FILE}`);
-  expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-conflict.json'), 'utf8'))).toEqual(KEPT_CONFLICT);
+  expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-conflict.json'), 'utf8'))).toEqual({ version: 1, ...KEPT_CONFLICT });
   expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-review');
 });
 
@@ -448,6 +448,35 @@ testWhenGitIsRecorded('a resolution larger than the merge train\'s re-review thr
   const kept = JSON.parse(readFileSync(join(scene.jobFolder(), 'main-resolution.json'), 'utf8')) as unknown;
   expect(kept).toMatchObject({ conflictRound: 1, resolutionCommit: RESOLUTION_TIP, lines: RE_REVIEW_THRESHOLD_LINES + 1 });
   expect(JobLaunch.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(KEPT_CONFLICT);
+});
+
+testWhenGitIsRecorded('a conflict that cannot be read stops the look: the resolution is never measured, and the job waits on the incident', async () => {
+  const scene = await conflictedScene('review', RE_REVIEW_PIPELINE);
+  for (const state of ['running', 'in-customs', 'gating', 'merging-main'] as const) scene.board.moveJob(scene.jobId, state, AT);
+  writeFileSync(join(scene.jobFolder(), 'main-conflict.json'), `${JSON.stringify(KEPT_CONFLICT)}\n`);
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+
+  expect(existsSync(join(scene.jobFolder(), 'main-resolution.json'))).toBe(false);
+  expect(scene.reReviewer()).toBeUndefined();
+  expect(scene.job()?.state).toBe('merging-main');
+  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.jobId}/main-conflict.json`, reason: 'its version is not 1' } as const;
+  expect(JobLaunch.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(unreadable);
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file']])).toEqual([['system-file-unreadable', unreadable.file]]);
+});
+
+testWhenGitIsRecorded('a resolution kept that cannot be read is never measured again against a later HEAD', async () => {
+  const scene = await resolvedScene(RE_REVIEW_PIPELINE, RE_REVIEW_THRESHOLD_LINES);
+  writeFileSync(join(scene.jobFolder(), 'main-resolution.json'), '{"conflictRound": ');
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+
+  expect(readFileSync(join(scene.jobFolder(), 'main-resolution.json'), 'utf8')).toBe('{"conflictRound": ');
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file']])).toEqual([
+    ['system-file-unreadable', `jobs/${scene.jobId}/main-resolution.json`],
+  ]);
 });
 
 testWhenGitIsRecorded('a resolution git cannot measure is re-reviewed', async () => {

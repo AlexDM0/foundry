@@ -17,6 +17,10 @@ import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
 import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
 import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
+import { MainMergeConflictIngestion, type MainMergeConflict }                      from '../../adapters/main-conflict/MainMergeConflictIngestion.ts';
+import { createMainMergeConflictWriter }                                           from '../../adapters/main-conflict/MainMergeConflictWriter.ts';
+import { MainMergeResolutionIngestion, type MainMergeResolution }                  from '../../adapters/main-resolution/MainMergeResolutionIngestion.ts';
+import { createMainMergeResolutionWriter }                                         from '../../adapters/main-resolution/MainMergeResolutionWriter.ts';
 import { MergeSettlementIngestion, type TargetMergeSettlement }                    from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
 import { createMergeSettlementWriter }                                             from '../../adapters/merge-settlement/MergeSettlementWriter.ts';
 import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
@@ -261,23 +265,13 @@ export type MainMergeStep =
   | { verdict: 'gated'; gate: Extract<GateProgress, { verdict: 'judged' }> }
   | StoredFileUnreadable;
 
-/** The newest conflict a job in `merging-main` sent its session, and the resolution its session committed for it, kept at the first look. */
-export interface MainMergeResolution {
-  conflictRound:    number;
-  targetTip:        string;
-  branchTip:        string;
-  conflictedFiles:  string[];
-  resolutionCommit: string;
-  /** `null` when git cannot tell, which is re-reviewed. */
-  lines:            number | null;
-}
-
 /** The conflict re-reviewer working under a job in `merging-main`, read like a session; its report is judged once it reached Customs. */
 export interface ConflictReReviewReading {
   jobId:        string;
   calls:        number;
   sessionEnded: boolean;
-  verdict:      ReReviewVerdict | null;
+  /** The resolution it is judged against cannot be read: it is judged by nothing until a move on the file's incident. */
+  verdict:      ReReviewVerdict | StoredFileUnreadable | null;
 }
 
 export interface MainMergeReading {
@@ -286,12 +280,6 @@ export interface MainMergeReading {
   resolution: MainMergeResolution | null;
 }
 
-/** What a round whose merge conflicted keeps, for the resolution read after it and the conflict re-reviewer's launch. */
-export interface MainMergeConflict {
-  targetTip:       string;
-  branchTip:       string;
-  conflictedFiles: string[];
-}
 
 /** Where one merge of the target into a ticket's worktree runs and settles: the catch-up before a review, or a round of `merging-main`. */
 interface MergeIntoTreeFiles {
@@ -1049,40 +1037,33 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   return { verdict: 'gated', targetTip: record.mergedTip, gate: progress };
 }
 
-function isTextList(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
-}
-
-function isMainMergeConflict(value: unknown): value is MainMergeConflict {
-  return typeof reportFieldOf(value, 'targetTip') === 'string' && typeof reportFieldOf(value, 'branchTip') === 'string'
-    && isTextList(reportFieldOf(value, 'conflictedFiles'));
-}
-
-function isMainMergeResolution(value: unknown): value is MainMergeResolution {
-  const lines = reportFieldOf(value, 'lines');
-  return isMainMergeConflict(value) && typeof reportFieldOf(value, 'conflictRound') === 'number' && typeof reportFieldOf(value, 'resolutionCommit') === 'string'
-    && (lines === null || typeof lines === 'number');
-}
-
-/** The newest round before the current one whose merge conflicted; `null` when none did. */
-function newestMainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): { round: number; conflict: MainMergeConflict } | null {
+/**
+ * The newest round before the current one whose merge conflicted; `null` when none did. A round's conflict that cannot be read stops the
+ * look, so no older round's conflict stands in for it.
+ */
+function newestMainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): { round: number; conflict: MainMergeConflict } | null | StoredFileUnreadable {
   for (let round = job.childInstance - 1; round >= FIRST_CHILD_INSTANCE; round -= 1) {
-    const conflict = readJsonFile<unknown>(mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.conflict, round));
-    if (isMainMergeConflict(conflict)) return { round, conflict };
+    const conflictFilePath = mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.conflict, round);
+    const reading = new MainMergeConflictIngestion(conflictFilePath).read();
+    if (reading.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, reading.reason);
+    if (reading.verdict === 'readable') return { round, conflict: reading.conflict };
   }
   return null;
 }
 
 /**
  * The resolution of the newest conflict, kept at the first look after the session that resolved it reached `merging-main` again: its HEAD
- * then, and the lines that commit changed against git's automatic merge, so a later commit on top never changes what was measured.
+ * then, and the lines that commit changed against git's automatic merge, so a later commit on top never changes what was measured. One kept
+ * that cannot be read is never measured again.
  */
-function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): MainMergeResolution | null {
-  const newest = newestMainMergeConflictOf(context.workspace.trackerDirectory, job);
-  if (newest === null) return null;
-  const resolutionPath = mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.resolution, newest.round);
-  const kept = readJsonFile<unknown>(resolutionPath);
-  if (isMainMergeResolution(kept)) return kept;
+function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): MainMergeResolution | null | StoredFileUnreadable {
+  const { trackerDirectory } = context.workspace;
+  const newest = newestMainMergeConflictOf(trackerDirectory, job);
+  if (newest === null || StoredFileUnreadable.isUnreadableFile(newest)) return newest;
+  const resolutionPath = mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.resolution, newest.round);
+  const kept = new MainMergeResolutionIngestion(resolutionPath).read();
+  if (kept.verdict === 'readable') return kept.resolution;
+  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, resolutionPath, kept.reason);
   const worktree = worktreeOf(context.workspace, job);
   const resolutionCommit = MergeRun.headOf(worktree);
   // Fail closed: a HEAD git cannot read is re-reviewed against no commit, which refuses, and nothing is kept for it.
@@ -1092,7 +1073,7 @@ function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): M
   const resolution: MainMergeResolution = {
     conflictRound: newest.round, ...newest.conflict, resolutionCommit, lines: context.resolutionLinesOf(worktree)
   };
-  writeFileAtomically(resolutionPath, `${JSON.stringify(resolution)}\n`);
+  createMainMergeResolutionWriter(resolutionPath).write(resolution);
   return resolution;
 }
 
@@ -1134,10 +1115,10 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
 function mainMergeReadingOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], job: Readonly<Job>, pipeline: Readonly<Pipeline> | null): MainMergeReading | null {
   if (job.state !== 'merging-main' || pipeline === null) return null;
   if (conflictReReviewerOf(jobs, job) !== undefined) return { step: { verdict: 're-reviewing' }, resolution: null };
-  return {
-    step:       mainMergeStepOf(context, job, pipeline),
-    resolution: pipeline.airlock?.reReview === undefined ? null : mainMergeResolutionOf(context, job),
-  };
+  const resolution = pipeline.airlock?.reReview === undefined ? null : mainMergeResolutionOf(context, job);
+  // The round settles on its resolution, so one that cannot be read is the round's step: nothing of the round goes on.
+  if (StoredFileUnreadable.isUnreadableFile(resolution)) return { step: resolution, resolution: null };
+  return { step: mainMergeStepOf(context, job, pipeline), resolution };
 }
 
 /** The conflict re-reviewer is judged by the reviewer column's checks once its report reached Customs, against the resolution it re-reviewed. */
@@ -1149,11 +1130,14 @@ function conflictReReviewReadingOf(
   const liveness = context.boardChildren.livenessOf(jobFolderOf(context.workspace, reReviewer), reReviewer.childInstance);
   const { calls, report } = sessionReadingOf(context, reReviewer);
   const resolution = reReviewer.state === 'in-customs' && pipeline?.airlock?.reReview !== undefined ? mainMergeResolutionOf(context, job) : null;
+  const judgedOn = resolution === null || StoredFileUnreadable.isUnreadableFile(resolution) ? resolution : resolution.resolutionCommit;
   return {
     jobId:        reReviewer.id,
     calls,
     sessionEnded: liveness.verdict !== 'live',
-    verdict:      resolution === null ? null : MergeRun.reReviewVerdictOf(worktreeOf(context.workspace, job), resolution.resolutionCommit, report, context.agentAdapter),
+    verdict:      judgedOn === null || StoredFileUnreadable.isUnreadableFile(judgedOn)
+      ? judgedOn
+      : MergeRun.reReviewVerdictOf(worktreeOf(context.workspace, job), judgedOn, report, context.agentAdapter),
   };
 }
 
@@ -2031,7 +2015,8 @@ function settleConflictReReviewer(hold: HoldContext, reReviewer: Readonly<Job>, 
     endJob(hold, reReviewer, userStopEndingOf(reReviewer) ?? { outcome: 'stopped', cause: BUILD_JOB_CAUSES.outOfCalls });
     return;
   }
-  if (reReviewer.state !== 'in-customs' || reading.verdict === null) return;
+  // Its parent's hold opened the incident for a resolution that cannot be read, and judges nothing on it.
+  if (reReviewer.state !== 'in-customs' || reading.verdict === null || reading.verdict.verdict === 'unreadable-file') return;
   if (reading.verdict.verdict === 'holds') endJob(hold, reReviewer, { outcome: 'reviewed' });
   else endJob(hold, reReviewer, { outcome: 'does-not-hold', cause: BUILD_JOB_CAUSES.reReviewFailed });
 }
@@ -2050,8 +2035,7 @@ function stopTheConflictReReviewer(hold: HoldContext, reReviewer: Readonly<Job>,
 function sendConflictToTheSession(hold: HoldContext, job: Readonly<Job>, conflict: Extract<MainMergeStep, { verdict: 'conflicted' }>): void {
   const conflictPath = mainMergeFileOf(hold.context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.conflict, job.childInstance);
   mkdirSync(dirname(conflictPath), { recursive: true });
-  const kept: MainMergeConflict = { targetTip: conflict.targetTip, branchTip: conflict.branchTip, conflictedFiles: conflict.conflictedFiles };
-  writeFileAtomically(conflictPath, `${JSON.stringify(kept)}\n`);
+  createMainMergeConflictWriter(conflictPath).write({ targetTip: conflict.targetTip, branchTip: conflict.branchTip, conflictedFiles: conflict.conflictedFiles });
   interruptOnRedHandoff(hold, job, {
     kind:        'merge-conflict',
     name:        job.target ?? hold.context.mainLine,
@@ -2284,9 +2268,17 @@ function recordLostLineOnce(hold: HoldContext, job: Readonly<Job>, lostLine: Los
   hold.logged.push(...board.recordLineLost(job.id, lostLine, cause, at).logged);
 }
 
-/** The first job file the observation could not read; the hold then takes none of the job's steps this pass. */
-function unreadableFileOfObservation(observation: BuildJobObservation): StoredFileUnreadable | null {
-  const readings: readonly unknown[] = [observation.gate, observation.targetCatchUp, observation.mainMerge?.step];
+/**
+ * The first job file the observation could not read where the job's state acts on it; the hold then takes none of the job's steps this
+ * pass. A conflict re-reviewer is judged only in `merging-main`, so a stop never waits on its resolution.
+ */
+function unreadableFileOfObservation(observation: BuildJobObservation, state: JobState | undefined): StoredFileUnreadable | null {
+  const readings: readonly unknown[] = [
+    observation.gate,
+    observation.targetCatchUp,
+    observation.mainMerge?.step,
+    state === 'merging-main' ? observation.conflictReReview?.verdict : null,
+  ];
   return readings.find(StoredFileUnreadable.isUnreadableFile) ?? null;
 }
 
@@ -2295,7 +2287,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
   recordLostLineOnce(hold, job, observation.lostLine);
-  const unreadable = unreadableFileOfObservation(observation);
+  const unreadable = unreadableFileOfObservation(observation, job.state);
   if (unreadable !== null) {
     openUnreadableFileIncident(hold, job, unreadable);
     return;
@@ -2372,7 +2364,7 @@ function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobOb
   return observations.some((observation) => {
     const state = board.jobById(observation.jobId)?.state;
     // An unreadable file holds the job until a move on its incident, which brings its own pass.
-    if (unreadableFileOfObservation(observation) !== null) return false;
+    if (unreadableFileOfObservation(observation, state) !== null) return false;
     if (state === 'launching') return true;
     if (state !== undefined && STATES_A_SANDBOX_REFUSAL_ENDS.has(state) && observation.sandboxRefusal !== null) return true;
     if (state === 'preparing') {
@@ -2697,7 +2689,8 @@ async function runTargetCatchUpEffects(context: JobLaunchContext, job: Readonly<
 async function runMainMergeEffects(context: JobLaunchContext, board: Board, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
   if (conflictReReviewerOf(board.jobs(), job) !== undefined) return;
   const round = job.childInstance;
-  const step = mainMergeStepOf(context, job, pipeline);
+  const step = mainMergeReadingOf(context, board.jobs(), job, pipeline)?.step;
+  if (step === undefined) return;
   const files = mainMergeIntoTreeFilesOf(round);
   const recordPath = mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round);
   if (step.verdict === 'behind') {
@@ -3029,8 +3022,9 @@ function recordedLaunchSettingsOf(jobFolder: string): SessionLaunchSettings | nu
 }
 
 /** What the conflict re-reviewer under a job in `merging-main` is told: the newest conflict its job's session resolved; `null` with none. */
-function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): MainMergeConflict | null {
-  return newestMainMergeConflictOf(trackerDirectory, job)?.conflict ?? null;
+function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): MainMergeConflict | null | StoredFileUnreadable {
+  const newest = newestMainMergeConflictOf(trackerDirectory, job);
+  return newest === null || StoredFileUnreadable.isUnreadableFile(newest) ? newest : newest.conflict;
 }
 
 export const JobLaunch = Object.freeze({
