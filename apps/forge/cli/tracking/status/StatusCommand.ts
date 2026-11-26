@@ -5,8 +5,8 @@ import type { WordedLogEntry }                          from '../../../src/share
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }                                 from '../../BoardStoreOf.ts';
 import type { CommandHandler }                          from '../../CommandHandler.ts';
+import { hephaestusStatusTextOf, readHephaestusStatus } from '../../HephaestusStatusReading.ts';
 import { fullDocumentOf, workingDocumentOf }            from '../../StatusDocuments.ts';
-import { hephaestusStatusTextOf, readHephaestusStatus } from '../../hephaestus/HephaestusStatusReading.ts';
 import { NextLineUtil }                                 from '../../utils/NextLineUtil.ts';
 import { OutputUtil }                                   from '../../utils/OutputUtil.ts';
 import { confinementInForceOf, readConfinementInForce } from './ConfinementInForceReading.ts';

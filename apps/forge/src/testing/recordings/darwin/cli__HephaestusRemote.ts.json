@@ -1,6 +1,6 @@
 {
   "stamp": {
-    "boundary": "cli/hephaestus/HephaestusRemote.ts",
+    "boundary": "cli/HephaestusRemote.ts",
     "system": "operating system",
     "version": "Darwin 25.6.0",
     "os": "darwin"

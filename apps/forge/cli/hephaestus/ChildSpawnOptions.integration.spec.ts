@@ -34,9 +34,9 @@ import { processIsRunning, stopProcesses }                from '../../src/testin
 import { createScratchTalos, type ScratchTalos }          from '../../src/testing/ScratchTalos.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { HephaestusRemote }                               from '../HephaestusRemote.ts';
 import FROZEN_POSIX_CHILD_SPAWN                           from './FrozenPosixChildSpawn.json';
 import { spawnSuccessor }                                 from './HephaestusForeground.ts';
-import { HephaestusRemote }                               from './HephaestusRemote.ts';
 
 const NATIVE_PORTS = nativePlatformPorts();
 const DESCENDANT_LINE = /^descendant (\d+)$/mu;
@@ -198,7 +198,7 @@ describe('the three programs that outlive their parent', () => {
       import { nativePlatformPorts } from ${moduleUrl('../../src/testing/NativePlatformPorts.ts')};
       import { waitUntil } from ${moduleUrl('../../src/testing/WaitUntil.ts')};
       import { spawnTalos } from ${moduleUrl('../../src/services/hephaestus/TalosStart.ts')};
-      import { HephaestusRemote } from ${moduleUrl('./HephaestusRemote.ts')};
+      import { HephaestusRemote } from ${moduleUrl('../HephaestusRemote.ts')};
       import { spawnSuccessor } from ${moduleUrl('./HephaestusForeground.ts')};
       process.chdir(${JSON.stringify(subfolder)});
       const root = ${JSON.stringify(rootDirectory)};

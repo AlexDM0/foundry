@@ -2,33 +2,22 @@
  * The words Hephaestus's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                from 'node:fs';
-import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentAdapter }           from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { AgentBillingUtil }            from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
-import type { DecisionQuestionOption } from '../../src/lib/tracker-model/@types/Decision.ts';
-import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type {
-  CheckedGate,
-  ConstitutionSources,
-  PipelineCheck,
-  PipelineCheckResult,
-  PipelineSetup,
-  PipelineSetupMode,
-  PipelineSetupStep,
-  ResearchFinding,
-  SetupQuestion
-} from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }       from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import type { DocumentApprover, TicketDocumentKind } from '../../src/lib/tracker-model/@types/TicketDocument.ts';
-import { ENTITY_DECISION_ANSWERS }                   from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { DEFAULT_CONSTITUTION_SOURCES }              from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { ROOT_ENTITY_KEY }                           from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }            from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                       from '../../src/services/hephaestus/AssistantBoot.ts';
-import type { AssistantChatFacts }                   from '../../src/services/hephaestus/AssistantSession.ts';
+import { readFileSync }                                       from 'node:fs';
+import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { AgentBillingUtil }                                   from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
+import type { DecisionQuestionOption }                        from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { Incident }                                      from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                                           from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineGate }                        from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, ResearchFinding, SetupQuestion } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording }                from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import type { DocumentApprover, TicketDocumentKind }          from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import { ENTITY_DECISION_ANSWERS }                            from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
+import { DEFAULT_CONSTITUTION_SOURCES }                       from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { ROOT_ENTITY_KEY }                                    from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }                     from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import type { AssistantFacts }                                from '../../src/services/hephaestus/AssistantBoot.ts';
+import type { AssistantChatFacts }                            from '../../src/services/hephaestus/AssistantSession.ts';
 import type {
   CrossedPackageResult,
   CrossingStageFacts,
@@ -40,20 +29,18 @@ import type {
   AirlockFacts,
   JobLaunchFacts,
   JobLaunchText,
-  ReviewFindingsFacts,
-  HephaestusNotice
+  ReviewFindingsFacts
 } from '../../src/services/hephaestus/DrivePass.ts';
 import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/hephaestus/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/hephaestus/NeedTickets.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/hephaestus/RedHandoff.ts';
-import type { RestartFailure }                                        from '../../src/services/hephaestus/Restart.ts';
-import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                                         from '../../src/shared/ResourceFilePath.ts';
 import { DISPATCH_PROTOCOL }                                          from '../../src/shared/constants/DispatchProtocol.ts';
 import { ASSISTANT_TURN_CALL_BUDGET, RED_HANDOFF_RESUME_CALL_BUDGET } from '../../src/shared/constants/HephaestusLimits.ts';
 import { PRODUCT_NAMES }                                              from '../../src/shared/constants/ProductNames.ts';
 import { LINE_GRAMMAR_WORDING }                                       from '../LineGrammarWording.ts';
+import { PipelineAgentWording }                                       from '../PipelineAgentWording.ts';
 import { documentLaunchTextOf }                                       from './DocumentLaunchText.ts';
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
@@ -749,43 +736,6 @@ function promptOf(fileName: string): string {
   return readFileSync(resourceFilePathOf('prompts', fileName), 'utf8');
 }
 
-/** The shortest fence markdown reads as one. */
-const MARKDOWN_FENCE_LENGTH = 3;
-
-/** A fence longer than any run of backticks in the text, so a document holding a fence of its own is shown whole. */
-function fencedBlockOf(text: string, language: string): string {
-  const longestRun = Math.max(0, ...[...text.matchAll(/`+/gu)].map((run) => run[0].length));
-  const fence = '`'.repeat(Math.max(MARKDOWN_FENCE_LENGTH, longestRun + 1));
-  return `${fence}${language}\n${text.endsWith('\n') ? text : `${text}\n`}${fence}`;
-}
-
-/**
- * The step blocks a step works under: the research block also while the agent or billing is open, since the agent starts reading at once; the entities
- * block, which turns the layout the research found into entities; the design block also at Apply, so the agent still answers User's
- * changes there. An advise session reads the design rules too.
- */
-function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): readonly string[] {
-  if (mode === 'advise') return ['PipelineAgentAdvise.md', 'PipelineAgentDesign.md'];
-  switch (step) {
-    case 'agent':
-    case 'billing':
-    case 'research':
-      return ['PipelineAgentResearch.md'];
-    case 'entities':
-      return ['PipelineAgentEntities.md'];
-    case 'constitution':
-      return ['PipelineAgentConstitution.md'];
-    case 'design':
-    case 'apply':
-      return ['PipelineAgentDesign.md'];
-  }
-}
-
-function stepInstructionsOf(mode: PipelineSetupMode, step: PipelineSetupStep, promptFills: PromptFills): string {
-  const fills = { ...promptFills, program: PRODUCT_NAMES.PROGRAM, pipelineSetupSkill: PRODUCT_NAMES.PIPELINE_SETUP_SKILL };
-  return stepPromptFilesOf(mode, step).map((fileName) => filledTemplateOf(promptOf(fileName), fills).trim()).join('\n\n');
-}
-
 function findingLineOf(finding: Readonly<ResearchFinding>): string {
   const value  = finding.value === null ? '' : `: ${finding.value}`;
   const script = finding.script === null
@@ -807,28 +757,19 @@ function questionLinesOf(question: Readonly<SetupQuestion>): string[] {
   return [`- ${question.questionId} (${question.step}${subject}${question.multiple ? ', several options' : ''}): ${question.question}`, ...options, answerLine];
 }
 
-function sourceTicksTextOf(draftedFrom: Readonly<ConstitutionSources>): string {
-  const ticks = [
-    ...(draftedFrom.contributing ? ['CONTRIBUTING.md'] : []),
-    ...(draftedFrom.research ? ['the research findings'] : []),
-    ...(draftedFrom.installedDefault ? ['the installed default constitution'] : []),
-  ];
-  return ticks.length === 0 ? 'none' : ticks.join(', ');
-}
-
 function constitutionLinesOf(constitution: Readonly<PipelineSetup>['constitution']): string[] {
-  if (constitution === null) return [`No constitution is drafted yet. The SOURCES ticks select: ${sourceTicksTextOf(DEFAULT_CONSTITUTION_SOURCES)}.`];
+  if (constitution === null) return [`No constitution is drafted yet. The SOURCES ticks select: ${PipelineAgentWording.sourceTicksTextOf(DEFAULT_CONSTITUTION_SOURCES)}.`];
   const sources = constitution.annotations.map((annotation) => `- Line "${annotation.lineText}" (occurrence ${annotation.occurrence}): `
     + `${annotation.kind}${annotation.path === null ? '' : `, ${annotation.path}`}`);
   return [
-    `Revision ${constitution.revision}. The SOURCES ticks select: ${sourceTicksTextOf(constitution.draftedFrom)}.`,
-    fencedBlockOf(constitution.markdown, 'markdown'),
+    `Revision ${constitution.revision}. The SOURCES ticks select: ${PipelineAgentWording.sourceTicksTextOf(constitution.draftedFrom)}.`,
+    PipelineAgentWording.fencedBlockOf(constitution.markdown, 'markdown'),
     ...(sources.length === 0 ? ['No line names a source.'] : ['Sources:', ...sources]),
   ];
 }
 
 function pipelineBlockOf(pipeline: Readonly<Pipeline>): string {
-  return fencedBlockOf(JSON.stringify(pipeline, null, 2), 'json');
+  return PipelineAgentWording.fencedBlockOf(JSON.stringify(pipeline, null, 2), 'json');
 }
 
 /** The session's own part of the record: the forge's, or its entity's, which holds nothing until the session records into it. */
@@ -866,7 +807,7 @@ function setupFactsTextOf(facts: PipelineAgentFacts): string {
     );
   }
   if (facts.mode !== 'advise' && facts.installedConstitution !== null) {
-    sections.push(`### The installed default constitution\n\n${fencedBlockOf(facts.installedConstitution, 'markdown')}`);
+    sections.push(`### The installed default constitution\n\n${PipelineAgentWording.fencedBlockOf(facts.installedConstitution, 'markdown')}`);
   }
   if (facts.mode === 'advise') {
     sections.push(`### Gate history, newest last\n\n${facts.gateHistory.length === 0 ? 'None recorded.' : facts.gateHistory.join('\n')}`);
@@ -892,7 +833,7 @@ function pipelineAgentTextOf(
     pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
     lineGrammar:         LINE_GRAMMAR_WORDING[facts.lineGrammar],
     setupFacts:          setupFactsTextOf(facts),
-    stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research', promptFills),
+    stepInstructions:    PipelineAgentWording.stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research', promptFills),
   });
   return { firstMessage: `${facts.firstLine}\n\n${procedure}`, roleBrief: filledTemplateOf(instructions, fills) };
 }
@@ -963,105 +904,6 @@ function answerMessageOf(answer: Readonly<Record<string, string>>): string {
   return `You were interrupted while waiting for the answer to your question; carry on with it.\n\n${answerLines.join('\n\n')}`;
 }
 
-/** A Continue carries the next step's block, unless the agent already works under it. */
-function stepContinuedMessageOf(mode: PipelineSetupMode, step: PipelineSetupStep, currentStep: PipelineSetupStep, promptFills: PromptFills): string {
-  const moved = `User completed the ${step} step. The current step is ${currentStep}.`;
-  const nextInstructions = stepInstructionsOf(mode, currentStep, promptFills);
-  return nextInstructions === stepInstructionsOf(mode, step, promptFills) ? moved : `${moved}\n\n${nextInstructions}`;
-}
-
-function checkedGateLinesOf(gate: Readonly<CheckedGate>): string {
-  const heading = `- \`${gate.name}\`: ${gate.verdict}. Runs: ${gate.outcomes.join(', ')}.`;
-  return gate.output === '' ? heading : `${heading} The end of the output:\n\n${fencedBlockOf(gate.output, '')}`;
-}
-
-function prepareResultOf(prepare: Readonly<PipelineCheckResult['prepare']>): string {
-  const failedSteps = prepare.failedSteps.map((step, index) => (step === null ? `run ${index + 1} passed` : `run ${index + 1} failed at \`${step}\``));
-  const result = `${failedSteps.join(', ')}.`;
-  return prepare.output === '' ? result : `${result} The end of the output:\n\n${fencedBlockOf(prepare.output, '')}`;
-}
-
-/** The check's result for the agent, or why it could not run; a check that has no result yet tells nothing. */
-function checkEndedMessageOf(check: Readonly<PipelineCheck>): string {
-  if (check.result === null) {
-    return `User's check of draft revision ${check.draftRevision} could not run: ${check.reason ?? 'no reason was recorded'}. `
-      + 'Tell User. Do not run a gate or a script yourself.';
-  }
-  return filledTemplateOf(promptOf('PipelineAgentCheck.md'), {
-    draftRevision:  String(check.draftRevision),
-    snapshotCommit: check.result.snapshotCommit,
-    prepareResult:  prepareResultOf(check.result.prepare),
-    gateResults:    check.result.gates.map(checkedGateLinesOf).join('\n'),
-    program:        PRODUCT_NAMES.PROGRAM,
-  }).trim();
-}
-
-/** The constitution as User left it: the whole new text and the new SOURCES ticks, each only when the move changed it. */
-function constitutionEditedMessageOf(revision: number, markdown: string | null, draftedFrom: Readonly<ConstitutionSources> | null): string {
-  const lines = [`User changed the constitution (revision ${revision}). Keep User's change when you change the constitution.`];
-  if (markdown !== null) lines.push('The full text is now:', fencedBlockOf(markdown, 'markdown'));
-  if (draftedFrom !== null) lines.push(`The SOURCES ticks now select: ${sourceTicksTextOf(draftedFrom)}.`);
-  return lines.join('\n\n');
-}
-
-/** Each draft field the move changed, with the value the draft holds there now, so the agent never reads the draft again. */
-function draftChangesTextOf(changes: readonly DraftFieldValue[]): string {
-  if (changes.length === 0) return 'No value of the draft changed.';
-  const lines = changes.map(({ field, value }) => `- \`${field}\`: ${value === null ? 'null (the draft holds no value here)' : JSON.stringify(value)}`);
-  return ['The draft now holds these values:', ...lines].join('\n');
-}
-
-/** The refusals the draft's entities still hold, which Continue and Apply wait on; nothing when none stands. */
-function standingEntityRefusalsTextOf(standingEntityRefusals: readonly string[]): string[] {
-  if (standingEntityRefusals.length === 0) return [];
-  const lines = standingEntityRefusals.map((refusal) => `- ${refusal}`);
-  return [['The draft\'s entities still hold these refusals, so Continue and Apply wait until User resolves them:', ...lines].join('\n')];
-}
-
-/**
- * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, and when
- * User's check ends. The agent has no read of the record, so each message carries what changed.
- */
-function setupMessageWordingOf(message: SetupMessage, promptFills: PromptFills): string {
-  switch (message.kind) {
-    case 'question-answered':
-      return 'letters' in message.reply
-        ? `User answered ${message.questionId}: ${message.reply.letters.join(', ')}.`
-        : `User answered ${message.questionId}: ${message.reply.text}`;
-    case 'step-continued':
-      return stepContinuedMessageOf(message.mode, message.step, message.currentStep, promptFills);
-    case 'constitution-edited':
-      return constitutionEditedMessageOf(message.revision, message.markdown, message.draftedFrom);
-    case 'draft-edited':
-      return [
-        `User changed the draft pipeline (revision ${message.draftRevision}): ${message.fields.join(', ')}. `
-          + 'Keep User\'s change when you propose a change.',
-        draftChangesTextOf(message.changes),
-        ...standingEntityRefusalsTextOf(message.standingEntityRefusals),
-      ].join('\n\n');
-    case 'draft-edit-undone':
-      return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).\n\n`
-        + draftChangesTextOf(message.changes);
-    case 'draft-batch-undone':
-      return `User undid the edits ${message.editIds.join(', ')} (${message.fields.join(', ')}) of the draft pipeline together `
-        + `(revision ${message.draftRevision}).\n\n${draftChangesTextOf(message.changes)}`;
-    case 'draft-discarded':
-      return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).\n\n${draftChangesTextOf(message.changes)}`;
-    case 'setup-resumed':
-      if (message.mainMovedByCommits === 0) return 'User resumed the setup. Main did not move.';
-      return filledTemplateOf(promptOf('PipelineAgentMainMoved.md'), {
-        count:        String(message.mainMovedByCommits),
-        commits:      message.mainMovedByCommits === 1 ? 'commit' : 'commits',
-        changedPaths: message.changedPaths.length === 0 ? 'none' : message.changedPaths.join(', '),
-      }).trim().replaceAll('\n', ' ');
-    case 'check-requested':
-      return `User asked for a check of draft revision ${message.draftRevision}. Hephaestus runs these gates two times in a fresh worktree `
-        + `of main: ${message.gateNames.join(', ')}. You get the result in a later message. Do not run a gate or a script yourself.`;
-    case 'check-ended':
-      return checkEndedMessageOf(message.check);
-  }
-}
-
 /**
  * The first line of a session resumed to fix its red gate or Customs check, which points it to the restart; a merge of the target that
  * conflicted before User's code review asks the session to merge that tip again itself.
@@ -1102,61 +944,6 @@ function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: JobLaunch
   const redHandoff = facts.redHandoff ?? null;
   const opening = redHandoff === null ? EARLIER_SESSION_NOTE : `${EARLIER_SESSION_NOTE} ${redHandoffMessageOf(redHandoff)}`;
   return { ...text, firstMessage: `${opening}\n\n${text.firstMessage}` };
-}
-
-/** What `status` reads of the live Hephaestus's state document; anything it does not recognise reads as no document. */
-export interface HephaestusStateReading {
-  runtimeState:   string;
-  notices:        HephaestusNotice[];
-  restartWarning: RestartFailure | null;
-}
-
-function hephaestusStateOf(document: unknown): HephaestusStateReading | null {
-  if (typeof document !== 'object' || document === null) return null;
-  const { hephaestus, notices } = document as { hephaestus?: unknown; notices?: unknown };
-  if (typeof hephaestus !== 'object' || hephaestus === null || !Array.isArray(notices)) return null;
-  const { state: runtimeState, restartWarning } = hephaestus as { state?: unknown; restartWarning?: unknown };
-  if (typeof runtimeState !== 'string') return null;
-  return { runtimeState, notices: notices as HephaestusNotice[], restartWarning: (restartWarning ?? null) as RestartFailure | null };
-}
-
-const ABANDONED_PASS_REASON_TEXT: Readonly<Record<Extract<HephaestusNotice, { kind: 'passes-abandoned' }>['reason'], string>> = {
-  'tracker-lock-held': 'another process held the board\'s lock past its wait',
-  'lock-taken-over':   'another process took the board\'s lock over',
-};
-
-function noticeTextOf(notice: HephaestusNotice): string {
-  switch (notice.kind) {
-    case 'install-version-changed':
-      return `the install version changed, so launches are held: run \`${PRODUCT_NAMES.PROGRAM} update\``;
-    case 'new-code':
-      return `new code: run \`${PRODUCT_NAMES.PROGRAM} update\``;
-    case 'attribution-found':
-      return `ticket #${notice.ticketId} carries an AI attribution`;
-    case 'rounds-not-converging':
-      return `ticket #${notice.ticketId}'s review rounds are not converging`;
-    case 'dirty-main-checkout':
-      return notice.blockingFiles.length === 0
-        ? `landings on ${notice.target} wait: the main checkout is on ${notice.branch ?? 'no branch'}, not ${notice.target}`
-        : `landings on ${notice.target} wait: the main checkout's changes to ${notice.blockingFiles.join(', ')} block the fast-forward`;
-    case 'target-file-held':
-      return `landings on ${notice.target} wait: another process holds ${notice.heldFiles.join(', ')} open, so git cannot replace what is held; close that program`;
-    case 'incident-defaulted':
-      return `incident ${notice.incidentId} took its default, ${notice.move}, as no Assistant handled it (${notice.cause})`;
-    case 'cleanup-declined':
-      return `git declined the ${notice.cleanup} cleanup of ${notice.groupBranch}, so it is left in place: ${notice.reason}`;
-    case 'instructions-missing':
-      return `job ${notice.jobId} is not launched: the instruction file ${notice.path} its pipeline names is missing`;
-    case 'agent-program-refused':
-      return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.reason, notice.repair);
-    case 'passes-abandoned':
-      return `${notice.inARow} drive passes in a row were abandoned (${notice.reason}), the last as ${ABANDONED_PASS_REASON_TEXT[notice.reason]}; `
-        + 'Hephaestus keeps running and tries again at each wake-up';
-  }
-}
-
-function restartWarningTextOf(failure: RestartFailure): string {
-  return `the restart to code ${failure.successorCodeVersion} failed at ${failure.step}: ${failure.error}; this Hephaestus keeps driving`;
 }
 
 /** The proposal of the crossing ticket as a fenced diff, which a diff's own backtick fences cannot close. */
@@ -1223,8 +1010,4 @@ export const HephaestusWording = Object.freeze({
   resumeMessage,
   redHandoffMessageOf,
   answerMessageOf,
-  setupMessageWordingOf,
-  hephaestusStateOf,
-  noticeTextOf,
-  restartWarningTextOf,
 });

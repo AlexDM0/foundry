@@ -70,13 +70,13 @@ import { createScratchDirectory, removeScratchDirectory }    from '../../src/tes
 import { childFilesIn, talosChildReadingsWith }              from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                         from '../../src/testing/WaitUntil.ts';
+import { HephaestusNoticeWording }                           from '../HephaestusNoticeWording.ts';
 import { createCapturedCommandContext }                      from '../testing/CapturedCommandContext.ts';
 import { runCommandLineWithHephaestusMoves }                 from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository }            from '../testing/InitializedScratchRepository.ts';
 import { fileReadyTicket }                                   from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                                   from '../testing/StoredLogText.ts';
 import { storedProgressOf }                                  from '../testing/StoredProgress.ts';
-import { HephaestusWording }                                 from './HephaestusWording.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -249,7 +249,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
       kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
     }));
-    const noticeTexts = drivePass.state().notices.map(HephaestusWording.noticeTextOf);
+    const noticeTexts = drivePass.state().notices.map(HephaestusNoticeWording.noticeTextOf);
     expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
     const notLaunchedLines = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"job-not-launched"'));

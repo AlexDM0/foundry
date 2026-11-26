@@ -11,9 +11,9 @@ import { PRODUCT_NAMES }                                  from '../../../src/sha
 import { JsonTextUtil }                                   from '../../../src/shared/utils/JsonTextUtil.ts';
 import type { CommandContext }                            from '../../CommandContext.ts';
 import type { CommandHandler }                            from '../../CommandHandler.ts';
+import { HephaestusRemote }                               from '../../HephaestusRemote.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { INSTALL_VERSION }                                from '../../constants/InstallVersion.ts';
-import { HephaestusRemote }                               from '../../hephaestus/HephaestusRemote.ts';
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import {

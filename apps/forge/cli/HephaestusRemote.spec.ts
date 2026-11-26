@@ -15,14 +15,14 @@ import {
   test
 } from 'bun:test';
 
-import type { PlatformPorts }                                                         from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { hephaestusFilesIn }                                                          from '../../src/services/hephaestus/HephaestusFiles.ts';
-import { HephaestusLock, type HephaestusLockRecord }                                  from '../../src/services/hephaestus/HephaestusLock.ts';
-import { nativePlatformPorts }                                                        from '../../src/testing/NativePlatformPorts.ts';
-import { recordedHephaestusAnswerOf, useRecordedHephaestusFetch }                     from '../../src/testing/RecordedHephaestusAnswers.ts';
-import { HEPHAESTUS_CALL_SHAPES, type RecordedHttpResponse, type RecordedHephaestus } from '../../src/testing/RecordedHephaestusFetch.ts';
-import { useRecordedProcessTable }                                                    from '../../src/testing/RecordedProcessTable.ts';
-import { createScratchDirectory, removeScratchDirectory }                             from '../../src/testing/ScratchWorkspace.ts';
+import type { PlatformPorts }                                                         from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import { hephaestusFilesIn }                                                          from '../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock, type HephaestusLockRecord }                                  from '../src/services/hephaestus/HephaestusLock.ts';
+import { nativePlatformPorts }                                                        from '../src/testing/NativePlatformPorts.ts';
+import { recordedHephaestusAnswerOf, useRecordedHephaestusFetch }                     from '../src/testing/RecordedHephaestusAnswers.ts';
+import { HEPHAESTUS_CALL_SHAPES, type RecordedHttpResponse, type RecordedHephaestus } from '../src/testing/RecordedHephaestusFetch.ts';
+import { useRecordedProcessTable }                                                    from '../src/testing/RecordedProcessTable.ts';
+import { createScratchDirectory, removeScratchDirectory }                             from '../src/testing/ScratchWorkspace.ts';
 import { HephaestusRemote }                                                           from './HephaestusRemote.ts';
 
 const recordedHephaestus = useRecordedHephaestusFetch();

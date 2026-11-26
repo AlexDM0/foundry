@@ -7,8 +7,8 @@ import { requireWorkspace }              from '../../src/services/tracker/Worksp
 import { PRODUCT_NAMES }                 from '../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler }           from '../CommandHandler.ts';
 import { hatchWhenUnderJob }             from '../HatchUnderJob.ts';
+import { HephaestusRemote }              from '../HephaestusRemote.ts';
 import { OutputUtil }                    from '../utils/OutputUtil.ts';
-import { HephaestusRemote }              from './HephaestusRemote.ts';
 import { stopAndCloseTheLiveHephaestus } from './HephaestusStop.ts';
 import { startOriginArgumentsOf }        from './StartGateAdmission.ts';
 

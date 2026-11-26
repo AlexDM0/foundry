@@ -8,9 +8,9 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { SetupMessage } from '../../src/shared/@types/ControlContext.ts';
-import { fakeAgentAdapter }  from '../../src/testing/FakeAgentAdapter.ts';
-import { HephaestusWording } from './HephaestusWording.ts';
+import type { SetupMessage }    from '../src/shared/@types/ControlContext.ts';
+import { fakeAgentAdapter }     from '../src/testing/FakeAgentAdapter.ts';
+import { PipelineAgentWording } from './PipelineAgentWording.ts';
 
 const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
@@ -44,11 +44,11 @@ test.each<[SetupMessage, string]>([
     'User discarded all proposed changes to the draft pipeline (revision 7).\n\nNo value of the draft changed.',
   ],
 ])('%o is worded for the agent', (message, wording) => {
-  expect(HephaestusWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
+  expect(PipelineAgentWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
 });
 
 test('a constitution edit carries the whole new text and the new SOURCES ticks, so the agent keeps User\'s change without a read', () => {
-  const wording = HephaestusWording.setupMessageWordingOf({
+  const wording = PipelineAgentWording.setupMessageWordingOf({
     kind:        'constitution-edited',
     setupId:     'S1',
     revision:    4,
@@ -65,11 +65,11 @@ test('a constitution edit carries the whole new text and the new SOURCES ticks, 
 });
 
 test('a constitution edit of the ticks alone carries no text, and one of the text alone no ticks', () => {
-  const ticksOnly = HephaestusWording.setupMessageWordingOf({
+  const ticksOnly = PipelineAgentWording.setupMessageWordingOf({
     kind: 'constitution-edited', setupId: 'S1', revision: 5, markdown: null, draftedFrom: { contributing: false, research: false, installedDefault: false }
   }, PROMPT_FILLS);
   expect(ticksOnly).toBe('User changed the constitution (revision 5). Keep User\'s change when you change the constitution.\n\nThe SOURCES ticks now select: none.');
-  const textOnly = HephaestusWording.setupMessageWordingOf({
+  const textOnly = PipelineAgentWording.setupMessageWordingOf({
     kind: 'constitution-edited', setupId: 'S1', revision: 6, markdown: 'Example text.', draftedFrom: null
   }, PROMPT_FILLS);
   expect(textOnly).not.toContain('SOURCES');
@@ -77,7 +77,7 @@ test('a constitution edit of the ticks alone carries no text, and one of the tex
 });
 
 test('a draft edit carries each changed field with its value now as JSON, so the agent never reads the draft again', () => {
-  const wording = HephaestusWording.setupMessageWordingOf({
+  const wording = PipelineAgentWording.setupMessageWordingOf({
     kind:          'draft-edited',
     setupId:       'S1',
     draftRevision: 5,
@@ -99,7 +99,7 @@ test('a draft edit carries each changed field with its value now as JSON, so the
 });
 
 test('a draft edit that leaves the entities refused names each refusal that stands, which Continue and Apply wait on', () => {
-  const wording = HephaestusWording.setupMessageWordingOf({
+  const wording = PipelineAgentWording.setupMessageWordingOf({
     kind:                   'draft-edited',
     setupId:                'S1',
     draftRevision:          6,
@@ -120,7 +120,7 @@ test.each([
   ['research', 'constitution', '### Constitution'],
   ['constitution', 'design', '### Pipeline design'],
 ] as const)('a Continue from %s carries the block of the %s step', (step, currentStep, heading) => {
-  const wording = HephaestusWording.setupMessageWordingOf({
+  const wording = PipelineAgentWording.setupMessageWordingOf({
     kind: 'step-continued', setupId: 'S1', mode: 'setup', step, currentStep
   }, PROMPT_FILLS);
 
@@ -145,18 +145,18 @@ test.each<[SetupMessage, string]>([
     'User resumed the setup. Main moved 3 commits. These paths changed: package.json, Makefile. Check the findings that name them.',
   ],
 ])('a resume is worded as %o', (message, wording) => {
-  expect(HephaestusWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
+  expect(PipelineAgentWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
 });
 
 test('a check\'s request names the gates Hephaestus runs', () => {
-  expect(HephaestusWording.setupMessageWordingOf({
+  expect(PipelineAgentWording.setupMessageWordingOf({
     kind: 'check-requested', setupId: 'S1', draftRevision: 3, gateNames: ['tests', 'lint']
   }, PROMPT_FILLS)).toBe('User asked for a check of draft revision 3. Hephaestus runs these gates two times in a fresh worktree of main: tests, lint. '
     + 'You get the result in a later message. Do not run a gate or a script yourself.');
 });
 
 test('a checked result gives each gate\'s verdict, its runs and the end of its output, with every hole filled', () => {
-  const wording = HephaestusWording.setupMessageWordingOf({
+  const wording = PipelineAgentWording.setupMessageWordingOf({
     kind:    'check-ended',
     setupId: 'S1',
     check:   {
@@ -189,7 +189,7 @@ test('a checked result gives each gate\'s verdict, its runs and the end of its o
 });
 
 test('a check that could not run says why', () => {
-  expect(HephaestusWording.setupMessageWordingOf({
+  expect(PipelineAgentWording.setupMessageWordingOf({
     kind:    'check-ended',
     setupId: 'S1',
     check:   {

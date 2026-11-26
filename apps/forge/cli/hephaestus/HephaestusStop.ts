@@ -1,7 +1,7 @@
 /** What `stop` and `restart` share: the stop of the live Hephaestus, closed in its place when it ended before finishing, and its report. */
 import type { HephaestusFiles }                                      from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusRemote, type HephaestusEnding, type StopOutcome } from '../HephaestusRemote.ts';
 import { type StoppedHephaestusRequest, closeTheStoppedHephaestus }  from './HephaestusForeground.ts';
-import { HephaestusRemote, type HephaestusEnding, type StopOutcome } from './HephaestusRemote.ts';
 
 export interface StopReport {
   entity:    { outcome: 'done' | 'nothing-to-do'; ending?: Exclude<HephaestusEnding, 'clean'> };

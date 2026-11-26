@@ -89,13 +89,14 @@ import {
 import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { insideHephaestusControlContextOf }                             from '../CommandControlContext.ts';
+import { hephaestusPollScheduleOf }                                     from '../HephaestusPollSchedule.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
+import { PipelineAgentWording }                                         from '../PipelineAgentWording.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
 import { writeAsHephaestus }                                            from './HephaestusBoardWrites.ts';
-import { hephaestusPollScheduleOf }                                     from './HephaestusPollSchedule.ts';
 import { HephaestusWording }                                            from './HephaestusWording.ts';
 import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
 import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
@@ -852,7 +853,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         resumeMessage:             HephaestusWording.resumeMessage(),
         redHandoffMessageOf:       HephaestusWording.redHandoffMessageOf,
         answerMessageOf:           HephaestusWording.answerMessageOf,
-        setupMessageWordingOf:     (message) => HephaestusWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
+        setupMessageWordingOf:     (message) => PipelineAgentWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
         homeDirectory:             context.homeDirectory,
         log,
         onHephaestusLockTakenOver: (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),

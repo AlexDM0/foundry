@@ -124,13 +124,8 @@ interface ExactReach {
   readonly target:   string;
 }
 
-/** Today's imports of a command set by another set or by the `cli/` root, each to be hoisted away. */
-const COMMAND_SET_REACHES: readonly ExactReach[] = [
-  { importer: 'cli/CommandControlContext.ts',                      target: 'cli/hephaestus/HephaestusWording.ts' },
-  { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/hephaestus/HephaestusRemote.ts' },
-  { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/hephaestus/HephaestusRemote.ts' },
-  { importer: 'cli/tracking/status/StatusCommand.ts',              target: 'cli/hephaestus/HephaestusStatusReading.ts' },
-];
+/** Imports of a command set by another set or by the `cli/` root that the rules let through, exact both ways; none today. */
+const COMMAND_SET_REACHES: readonly ExactReach[] = [];
 
 /** The one file at the `cli/` root that imports the command sets: it composes them into the verbs `cli/Main.ts` dispatches. */
 const COMMAND_SET_COMPOSER = 'cli/CommandTable.ts';

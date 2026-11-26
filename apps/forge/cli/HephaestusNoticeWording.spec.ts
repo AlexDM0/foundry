@@ -5,11 +5,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { HephaestusWording } from './HephaestusWording.ts';
+import { HephaestusNoticeWording } from './HephaestusNoticeWording.ts';
 
-describe('HephaestusWording.noticeTextOf, passes abandoned in a row', () => {
+describe('HephaestusNoticeWording.noticeTextOf, passes abandoned in a row', () => {
   test('a held lock names the count, the reason and that Hephaestus keeps running', () => {
-    expect(HephaestusWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 3, reason: 'tracker-lock-held' })).toBe(
+    expect(HephaestusNoticeWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 3, reason: 'tracker-lock-held' })).toBe(
       '3 drive passes in a row were abandoned (tracker-lock-held), the last as another process held the board\'s lock past its wait; '
       + 'Hephaestus keeps running and tries again at each wake-up',
     );
@@ -17,8 +17,8 @@ describe('HephaestusWording.noticeTextOf, passes abandoned in a row', () => {
 
   test('a lock taken over names its own reason, and neither sentence calls the passes failed', () => {
     const sentences = [
-      HephaestusWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 4, reason: 'lock-taken-over' }),
-      HephaestusWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 3, reason: 'tracker-lock-held' }),
+      HephaestusNoticeWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 4, reason: 'lock-taken-over' }),
+      HephaestusNoticeWording.noticeTextOf({ kind: 'passes-abandoned', inARow: 3, reason: 'tracker-lock-held' }),
     ];
     expect(sentences[0]).toBe(
       '4 drive passes in a row were abandoned (lock-taken-over), the last as another process took the board\'s lock over; '

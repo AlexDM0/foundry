@@ -6,12 +6,12 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }                                                    from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { HephaestusFiles }                                                  from '../../src/services/hephaestus/HephaestusFiles.ts';
-import { type HephaestusLockReading, type HephaestusLockRecord, HephaestusLock } from '../../src/services/hephaestus/HephaestusLock.ts';
-import { Presence }                                                              from '../../src/services/hephaestus/Presence.ts';
-import { outlivingProgramEnvironment, hephaestusPollIntervalOverride }           from '../../src/shared/Environment.ts';
-import { OperationRefusal }                                                      from '../../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }                                                    from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { HephaestusFiles }                                                  from '../src/services/hephaestus/HephaestusFiles.ts';
+import { type HephaestusLockReading, type HephaestusLockRecord, HephaestusLock } from '../src/services/hephaestus/HephaestusLock.ts';
+import { Presence }                                                              from '../src/services/hephaestus/Presence.ts';
+import { outlivingProgramEnvironment, hephaestusPollIntervalOverride }           from '../src/shared/Environment.ts';
+import { OperationRefusal }                                                      from '../src/shared/OperationRefusal.ts';
 import {
   HEPHAESTUS_READY_INTERVAL_MILLISECONDS,
   HEPHAESTUS_READY_TRIES,
@@ -20,8 +20,8 @@ import {
   HEPHAESTUS_STOP_TRIES,
   RESTART_RELEASE_TRIES,
   RESTART_REQUEST_TIMEOUT_MILLISECONDS
-} from '../../src/shared/constants/HephaestusLimits.ts';
-import type { CommandContext }      from '../CommandContext.ts';
+} from '../src/shared/constants/HephaestusLimits.ts';
+import type { CommandContext }      from './CommandContext.ts';
 import { hephaestusPollScheduleOf } from './HephaestusPollSchedule.ts';
 
 export type RuntimeStopKind = 'hephaestus-stop' | 'hephaestus-restart';

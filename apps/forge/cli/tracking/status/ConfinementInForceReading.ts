@@ -7,8 +7,8 @@ import { hephaestusFilesIn }                        from '../../../src/services/
 import { HephaestusLock }                           from '../../../src/services/hephaestus/HephaestusLock.ts';
 import type { Workspace }                           from '../../../src/services/tracker/Workspace.ts';
 import type { CommandContext }                      from '../../CommandContext.ts';
+import { HephaestusRemote }                         from '../../HephaestusRemote.ts';
 import type { ConfinementInForce }                  from '../../StatusDocuments.ts';
-import { HephaestusRemote }                         from '../../hephaestus/HephaestusRemote.ts';
 
 const CONFINEMENT_VERDICTS: Readonly<Record<ConfinementVerdict, true>> = { confined: true, unavailable: true, 'unconfined-by-design': true };
 

@@ -223,8 +223,8 @@ describe('the scan saw the tree', () => {
   test('the spawn scan finds every production spawn site, the port\'s and the plain windowsHide ones', () => {
     const spawnSites = SOURCES.filter((source) => isShippingCode(source.path) && spawnCallsIn(source.text).length > 0).map((source) => source.path);
     expect([...spawnSites].sort()).toEqual([
+      'cli/HephaestusRemote.ts',
       'cli/hephaestus/HephaestusForeground.ts',
-      'cli/hephaestus/HephaestusRemote.ts',
       'cli/setup/ProcessSetupHost.ts',
       'launcher.ts',
       'src/lib/gate-confinement/GateConfinementFor.ts',
