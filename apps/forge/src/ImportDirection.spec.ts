@@ -7,6 +7,8 @@
  * it. No import leaves the program and the packages it declares by a path, into
  * another app or package of the workspace, and a workspace package is imported by name only once `package.json` declares it. Only the
  * agent port's seam and its adapters, the fake agent among them, import the vendor's adapter.
+ * A command set is a folder directly under `cli/`, its subfolders included, but the folders every set shares. No set imports another, and
+ * the `cli/` root (its top-level files and shared folders) imports a set only in the command table, which composes them, or in test code.
  */
 import { readFileSync } from 'node:fs';
 
@@ -20,6 +22,7 @@ type ImportViolation =
   | 'layer-imports-upward'
   | 'command-imports-a-sibling-command'
   | 'command-set-imports-another-set'
+  | 'cli-root-imports-a-set'
   | 'workspace-package-reached-by-path'
   | 'workspace-entry-not-exported'
   | 'workspace-package-not-declared'
@@ -121,16 +124,16 @@ interface ExactReach {
   readonly target:   string;
 }
 
-/**
- * A command set reaching another set's file: `cli/hephaestus/HephaestusRemote.ts` is the one client of a live Hephaestus's API, and its path is a
- * boundary's recording key, so it stays in its set until that boundary is moved with it. `status` prints Hephaestus's process facts above
- * the board, and their reading asks that client, so it stays beside it.
- */
+/** Today's imports of a command set by another set or by the `cli/` root, each to be hoisted away. */
 const COMMAND_SET_REACHES: readonly ExactReach[] = [
+  { importer: 'cli/CommandControlContext.ts',                      target: 'cli/hephaestus/HephaestusWording.ts' },
   { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/hephaestus/HephaestusRemote.ts' },
   { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/hephaestus/HephaestusRemote.ts' },
   { importer: 'cli/tracking/status/StatusCommand.ts',              target: 'cli/hephaestus/HephaestusStatusReading.ts' },
 ];
+
+/** The one file at the `cli/` root that imports the command sets: it composes them into the verbs `cli/Main.ts` dispatches. */
+const COMMAND_SET_COMPOSER = 'cli/CommandTable.ts';
 
 interface Allowlists {
   readonly testingFolderImporters: Readonly<Record<string, readonly string[]>>;
@@ -330,6 +333,14 @@ function commandSetFinding(edge: ImportEdge, targetPath: string, allowlists: All
   return edgeFinding(edge, 'command-set-imports-another-set', `the command set ${fromSet} imports another set's folder; hoist what both need above them`);
 }
 
+function commandSetFromTheRootFinding(edge: ImportEdge, targetPath: string, allowlists: Allowlists): Finding | null {
+  const targetSet = commandSetFolderOf(targetPath);
+  if (layerOf(edge.fromPath) !== 'cli' || commandSetFolderOf(edge.fromPath) !== null || targetSet === null) return null;
+  if (edge.fromPath === COMMAND_SET_COMPOSER || isTestOnly(edge.fromPath)) return null;
+  if (allowlists.commandSetReaches.some((reach) => reach.importer === edge.fromPath && reach.target === targetPath)) return null;
+  return edgeFinding(edge, 'cli-root-imports-a-set', `the cli/ root imports the command set ${targetSet}, which only ${COMMAND_SET_COMPOSER} composes; hoist what it needs`);
+}
+
 /** Outside its own folder, a workspace package is imported by its name: a relative or absolute path is a finding. */
 function workspacePackagePathFinding(edge: ImportEdge, targetPath: string): Finding | null {
   const targetPackage = workspacePackageOf(targetPath);
@@ -407,6 +418,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
     directionFinding(edge, targetPath),
     commandFinding(edge, targetPath),
     commandSetFinding(edge, targetPath, allowlists),
+    commandSetFromTheRootFinding(edge, targetPath, allowlists),
     testingFolderFinding(edge, targetPath, allowlists),
     vendorSeamFinding(edge, targetPath),
     workspacePackagePathFinding(edge, targetPath),
@@ -582,6 +594,12 @@ describe('the scan itself', () => {
     const libPackages = new Set(GRAPH.scannedPaths.flatMap((path) => libPackageOf(path) ?? []));
     expect(commandFolders.size, 'command folders under cli/').toBeGreaterThanOrEqual(10);
     expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
+    const composedSets = new Set(GRAPH.edges.flatMap((edge) => (edge.fromPath === COMMAND_SET_COMPOSER && edge.target.kind === 'repository-file'
+      ? commandSetFolderOf(edge.target.path) ?? []
+      : [])));
+    const rootShippingFiles = GRAPH.scannedPaths.filter((path) => layerOf(path) === 'cli' && commandSetFolderOf(path) === null && !isTestOnly(path));
+    expect(composedSets.size, 'command sets the command table composes').toBeGreaterThanOrEqual(10);
+    expect(rootShippingFiles.length, 'shipping files at the cli/ root and in its shared folders').toBeGreaterThanOrEqual(20);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'talos']);
     expect(declaredLibDependenciesOf(GRAPH).get('talos')).toEqual(['atomic-file', 'json-record', 'owner-only-files', 'process-identity']);
@@ -669,6 +687,21 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     const importingSharedFiles = `${importing('../../constants/JobVerbs.ts')}${importing('../../RecordedIncidentMove.ts').replaceAll('planted', 'plantedMove')}`;
     expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importingSharedFiles })).toEqual([]);
+  });
+
+  test('the cli/ root or a shared folder importing a command set, and not the command table, the root\'s specs or cli/testing/', () => {
+    expect(plantedSentencesOf({ 'cli/PlantedContext.ts': importing('./hephaestus/StartCommand.ts') })).toEqual([
+      'cli-root-imports-a-set — cli/PlantedContext.ts:1 imports cli/hephaestus/StartCommand.ts: '
+        + 'the cli/ root imports the command set cli/hephaestus/, which only cli/CommandTable.ts composes; hoist what it needs',
+    ]);
+    expect(plantedSentencesOf({ 'cli/utils/PlantedUtil.ts': importing('../tracking/status/StatusCommand.ts') })).toEqual([
+      'cli-root-imports-a-set — cli/utils/PlantedUtil.ts:1 imports cli/tracking/status/StatusCommand.ts: '
+        + 'the cli/ root imports the command set cli/tracking/, which only cli/CommandTable.ts composes; hoist what it needs',
+    ]);
+    expect(plantedSentencesOf({ 'cli/CommandTable.ts': `${GRAPH.sourceTextOf('cli/CommandTable.ts')}${importing('./hephaestus/StartCommand.ts')}` }))
+      .toEqual([]);
+    expect(plantedSentencesOf({ 'cli/PlantedSurface.spec.ts': importing('./hephaestus/StartCommand.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'cli/testing/PlantedMoves.ts': importing('../tickets/utils/TicketLookupUtil.ts') })).toEqual([]);
   });
 
   test('a package of the workspace-package layer importing the forge, or another package by path or undeclared, and the forge reaching it from below shared/', () => {
@@ -881,6 +914,10 @@ describe('the imports of the tree', () => {
 
   test('no cli/ command set imports another set\'s folder but through COMMAND_SET_REACHES', () => {
     expect(sentencesAbout(FINDINGS, 'command-set-imports-another-set')).toEqual([]);
+  });
+
+  test('the cli/ root imports no command set but in the command table and test code, or through COMMAND_SET_REACHES', () => {
+    expect(sentencesAbout(FINDINGS, 'cli-root-imports-a-set')).toEqual([]);
   });
 
   test('outside its own folder, every workspace package is imported by its name, never by a file path', () => {
