@@ -7,14 +7,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { LocalTimeUtil }            from '../../lib/local-time/LocalTimeUtil.ts';
-import { UNREADABLE_BOOT_IDENTITY } from '../../lib/process-identity/ProcessIdentity.ts';
-import type {
-  HeartbeatRecord,
-  PresenceEnding,
-  PresenceFileReading,
-  PresenceRecord
-} from './@types/PresenceRecord.ts';
+import type { PresenceEnding, PresenceRecord }              from '../../adapters/presence/@types/PresenceRecord.ts';
+import { LocalTimeUtil }                                    from '../../lib/local-time/LocalTimeUtil.ts';
+import { UNREADABLE_BOOT_IDENTITY }                         from '../../lib/process-identity/ProcessIdentity.ts';
+import type { HeartbeatRecord, PresenceFileReading }        from './@types/PresenceRecord.ts';
 import type { HephaestusLockReading, HephaestusLockRecord } from './HephaestusLock.ts';
 import { StartClassification, type StartEvidence }          from './StartClassification.ts';
 import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }         from './constants/PresenceLimits.ts';

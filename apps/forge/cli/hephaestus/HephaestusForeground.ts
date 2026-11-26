@@ -492,7 +492,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const { startOrigin } = origin;
   // Before any Hephaestus lock, port or Talos, so a start that stays off leaves nothing a later start would read as its own.
   const startAdmission = await admitTheStart({
-    context, workspace, boardStore, files, origin, log
+    context, workspace, boardStore, files, origin, log, unreadableBoardFiles
   });
   // Git runs at the repository's root, never in a tracker's folder below it.
   const { repositoryRoot } = projectLocationOf(workspace.rootDirectory);
@@ -835,6 +835,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         boardChildren,
         lineRunner,
         ensureTalosIfLost,
+        unreadableBoardFiles,
         programCommand:            context.programCommand,
         codeVersion,
         agentAdapter:              context.agentAdapter,

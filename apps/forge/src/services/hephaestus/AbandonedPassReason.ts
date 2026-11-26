@@ -2,8 +2,8 @@
  * What a throw out of a drive pass is: one of the tracker lock's two expected conditions abandons the pass, which waits for the next
  * wake-up; anything else, every other refusal included, is a crash on its first occurrence.
  */
+import type { AbandonedPassReason as ReasonOfAnAbandonedPass } from '../../adapters/presence/@types/PresenceRecord.ts';
 import { refusalIsOperationRefusal }                           from '../../shared/OperationRefusal.ts';
-import type { AbandonedPassReason as ReasonOfAnAbandonedPass } from './@types/PresenceRecord.ts';
 
 export type PassThrowReading =
   | { verdict: 'abandoned'; reason: ReasonOfAnAbandonedPass; detail: string }

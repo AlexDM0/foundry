@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 
 import type { GateConfinement }                                          from '../../src/lib/gate-confinement/GateConfinement.ts';
 import type { HephaestusFiles }                                          from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { createUnreadableBoardFiles }                                    from '../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import type { Workspace }                                                from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                              from '../../src/shared/OperationRefusal.ts';
 import { boardStoreIn }                                                  from '../BoardStoreOf.ts';
@@ -43,8 +44,10 @@ export async function startHephaestusDetached({
   context, workspace, files, portArguments, startOrigin
 }: DetachedHephaestusStartRequest): Promise<string> {
   requireNoLiveHephaestus(context.platformPorts, files);
+  // The child reports a board file it cannot read: only a serving Hephaestus has a board header to warn in.
+  const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
   await admitTheStart({
-    context, workspace, boardStore: boardStoreIn(context, workspace), files, origin: { startOrigin }, log: hephaestusLoggerOf(context, files)
+    context, workspace, boardStore: boardStoreIn(context, workspace), files, origin: { startOrigin }, log: hephaestusLoggerOf(context, files), unreadableBoardFiles
   });
   return HephaestusRemote.startDetached(context, workspace.rootDirectory, files, [...portArguments, ...startOriginArgumentsOf(startOrigin)]);
 }

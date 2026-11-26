@@ -10,6 +10,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { TalosRecord }                from '../../lib/talos/TalosRecord.ts';
 import type { InterruptionCause }          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                   from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -19,7 +20,6 @@ import { LIFECYCLE_LIMITS }                from '../../shared/constants/Lifecycl
 import { boardFixture, ticketFixture }     from '../../testing/BoardFixtures.ts';
 import type { CrashLogRecord }             from './@types/CrashLogRecord.ts';
 import type { HeartbeatRecord }            from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict } from './@types/StartClassification.ts';
 import { CrashLog }                        from './CrashLog.ts';
 import {
   PresenceDocumentAssembly,

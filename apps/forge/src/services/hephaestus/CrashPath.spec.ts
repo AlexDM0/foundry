@@ -19,9 +19,9 @@ import {
   test
 } from 'bun:test';
 
+import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { CrashLogRecord }                                        from './@types/CrashLogRecord.ts';
-import type { PresenceRecord }                                        from './@types/PresenceRecord.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import { CrashPath, type CrashPathContext, type RegistryCrashReport } from './CrashPath.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                    from './HephaestusFiles.ts';
@@ -180,6 +180,15 @@ describe('the crash path', () => {
     expect(outcome.crashLog).toBe('written');
     expect(storedCrashLog().activeJobs).toBeNull();
     expect(fake.logLines.some((line) => line.includes('example renewal failure'))).toBe(true);
+  });
+
+  test('an unreadable presence record is logged and left out of the crash log, and no ending is written over it', async () => {
+    writeFileSync(files.presenceFilePath, 'not JSON\n');
+    const fake = fakeCrashPathOf();
+    const outcome = await CrashPath.record(fake.context, HEPHAESTUS_CRASH);
+    expect(outcome).toMatchObject({ crashLog: 'written', presence: 'no-record' });
+    expect(storedCrashLog()).toMatchObject({ codeVersion: null, startedAt: null });
+    expect(fake.logLines.some((line) => line.includes('leaves out presence.json, which cannot be read'))).toBe(true);
   });
 
   test('a newer generation\'s presence is never given the crashed ending, and the log names no process of it', async () => {

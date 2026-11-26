@@ -8,7 +8,8 @@ import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-import { MachineConfigFile } from '../../adapters/machine-config/MachineConfigFile.ts';
+import { MachineConfigFile }               from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -76,7 +77,7 @@ import { lockTakerOf }                                from '../tracker/LockHolde
 import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
 import { registeredRepositoryRootsIn }                from '../tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                             from '../tracker/Workspace.ts';
-import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
+import type { PresenceUpdate }                        from './@types/PresenceRecord.ts';
 import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
 import { AgentSlots }                                 from './AgentSlots.ts';
 import {
@@ -140,6 +141,7 @@ import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Re
 import { SessionConfinement }                                         from './SessionConfinement.ts';
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
+import type { UnreadableBoardFiles }                                  from './UnreadableBoardFiles.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
@@ -270,6 +272,8 @@ export interface DrivePassRequest {
   lineRunner:                    LineRunner;
   /** Called as each pass begins: Hephaestus starts or attaches to a Talos there once its connection to the last one closed. */
   ensureTalosIfLost?:            () => Promise<void>;
+  /** The board-wide files Hephaestus could not read, which the board header warns of until it restarts. */
+  unreadableBoardFiles:          UnreadableBoardFiles;
   /** The runtime, isolating arguments and entry script this Hephaestus was started with, which a job's network guard hook runs. */
   programCommand:                readonly string[];
   codeVersion:                   string;
@@ -1853,9 +1857,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   /** A presence write that fails is logged and passed over: the pass's own outcome stands, and presence is shown only. */
-  function recordInPresence(write: () => unknown): void {
+  function recordInPresence(write: () => PresenceUpdate): void {
     try {
-      write();
+      const update = write();
+      if (update.verdict === 'no-record') Presence.reportUnreadablePresence(update.reading, request.unreadableBoardFiles);
     } catch (thrown) {
       request.log(`Presence could not record the pass: ${describedThrowOf(thrown)}`);
     }

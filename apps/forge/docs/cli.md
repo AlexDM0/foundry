@@ -1445,7 +1445,9 @@ is off after a crash of Hephaestus lock <n>; read why with `forge crash-log`, an
 the board log (`start-classified`, right after `hephaestus-started`).
 
 `presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
-written whole by Hephaestus; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
+written whole by Hephaestus under `presenceVersion` 2; one Hephaestus cannot read is a board header warning until it
+restarts, and the start that reads it unreadable classifies a crash and writes a new one. `heartbeat.json` is its newest
+beat, rewritten at each lease renewal Talos confirmed.
 
 #### After a crash
 

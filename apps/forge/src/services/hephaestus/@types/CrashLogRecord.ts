@@ -1,8 +1,9 @@
-import type { ProcessIdentity }                 from '../../../lib/process-identity/ProcessIdentity.ts';
-import type { StartOrigin }                     from '../../../lib/tracker-model/@types/Job.ts';
-import type { CRASH_LOG_FORMAT_VERSION }        from '../constants/PresenceLimits.ts';
-import type { HeartbeatRecord, PresenceRecord } from './PresenceRecord.ts';
-import type { StartClassificationVerdict }      from './StartClassification.ts';
+import type { PresenceRecord }             from '../../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict } from '../../../adapters/presence/@types/StartClassificationVerdict.ts';
+import type { ProcessIdentity }            from '../../../lib/process-identity/ProcessIdentity.ts';
+import type { StartOrigin }                from '../../../lib/tracker-model/@types/Job.ts';
+import type { CRASH_LOG_FORMAT_VERSION }   from '../constants/PresenceLimits.ts';
+import type { HeartbeatRecord }            from './PresenceRecord.ts';
 
 export type CrashedComponent = 'hephaestus' | 'talos';
 

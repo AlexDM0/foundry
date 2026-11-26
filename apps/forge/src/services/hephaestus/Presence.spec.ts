@@ -14,11 +14,13 @@ import {
   test
 } from 'bun:test';
 
+import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { PresenceRecord, PresenceStart }             from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict }                from './@types/StartClassification.ts';
+import type { PresenceStart }                             from './@types/PresenceRecord.ts';
 import { hephaestusFilesIn, type HephaestusFiles }        from './HephaestusFiles.ts';
 import { Presence }                                       from './Presence.ts';
+import { createUnreadableBoardFiles }                     from './UnreadableBoardFiles.ts';
 
 const STARTED_AT = '2026-11-19T09:00:00.000+01:00';
 const ENDED_AT = '2026-11-19T10:00:00.000+01:00';
@@ -88,21 +90,22 @@ describe('the presence record', () => {
     expect(Presence.readPresence(files)).toEqual({ verdict: 'absent' });
   });
 
-  test('a file that is not JSON, or misses a field, reads as unreadable', () => {
-    Presence.writeStartedPresence(files, startOf(1));
+  test('an unreadable record reads as unreadable, and an ending finds no record to end', () => {
     writeFileSync(files.presenceFilePath, '{ "presenceVersion": 2, ');
-    expect(Presence.readPresence(files).verdict).toBe('unreadable');
 
-    const { codeVersion: _codeVersion, ...withoutCodeVersion } = Presence.writeStartedPresence(files, startOf(1));
-    writeFileSync(files.presenceFilePath, JSON.stringify(withoutCodeVersion));
-    expect(Presence.readPresence(files)).toEqual({ verdict: 'unreadable', reason: 'codeVersion is not a string' });
+    expect(Presence.readPresence(files).verdict).toBe('unreadable');
+    expect(Presence.writeEnding(files, 1, { kind: 'stopped' }, ENDED_AT)).toMatchObject({ verdict: 'no-record', reading: { verdict: 'unreadable' } });
   });
 
-  test('a record of another version reads as unreadable', () => {
-    const written = Presence.writeStartedPresence(files, startOf(1));
-    writeFileSync(files.presenceFilePath, JSON.stringify({ ...written, presenceVersion: 1 }));
+  test('an unreadable record is reported to the board header, a readable or absent one is not', () => {
+    const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
+    Presence.writeStartedPresence(files, startOf(1));
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
+    writeFileSync(files.presenceFilePath, '[]');
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
 
-    expect(Presence.readPresence(files)).toEqual({ verdict: 'unreadable', reason: 'presenceVersion 1 is not 2' });
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: 'it is not a JSON object' }]);
   });
 
   test('a stop writes its ending on its own generation\'s record', () => {

@@ -10,7 +10,7 @@ import {
   test
 } from 'bun:test';
 
-import type { StartClassificationVerdict }        from '../../src/services/hephaestus/@types/StartClassification.ts';
+import type { StartClassificationVerdict }        from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import { CrashLog }                               from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';

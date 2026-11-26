@@ -1,7 +1,5 @@
 import { LEASE_RENEWAL_INTERVAL_MILLISECONDS } from '../../../shared/constants/HephaestusLimits.ts';
 
-export const PRESENCE_FORMAT_VERSION = 2;
-
 export const HEARTBEAT_FORMAT_VERSION = 1;
 
 export const CRASH_LOG_FORMAT_VERSION = 2;

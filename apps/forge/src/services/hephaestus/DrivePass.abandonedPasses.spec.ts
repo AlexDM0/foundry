@@ -5,8 +5,8 @@
  * runs the crash path once and no wake-up runs another pass. The throws come from the hold's first phase; git answers from the recorded flow
  * stages and Talos from `src/testing/RecordedTalosStages.ts`.
  */
-import { mkdirSync } from 'node:fs';
-import { join }      from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -14,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import type { PresenceRecord }                               from '../../adapters/presence/@types/PresenceRecord.ts';
 import { OperationRefusal }                                  from '../../shared/OperationRefusal.ts';
 import { createScratchDrivePass }                            from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter }                                  from '../../testing/FakeAgentAdapter.ts';
@@ -27,7 +28,6 @@ import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../testing
 import { writeReadableTracker }                              from '../../testing/TrackerFileFixtures.ts';
 import { localStoreLayoutOf }                                from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }                 from '../tracker/Workspace.ts';
-import type { PresenceRecord }                               from './@types/PresenceRecord.ts';
 import type { DrivePass }                                    from './DrivePass.ts';
 import { hephaestusFilesIn }                                 from './HephaestusFiles.ts';
 import { Presence }                                          from './Presence.ts';
@@ -164,6 +164,18 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a pass abandoned on a held lo
     await passOnce(current, false);
     expect(holdsEntered).toBe(holdsOfTheSettledBoard + 2);
     expect(storedAbandonedPasses().inARow).toBe(0);
+  });
+
+  test('an abandoned pass that finds presence unreadable reports it to the board header and leaves the file as it found it', async () => {
+    const current = startedDrivePass();
+    const { presenceFilePath } = hephaestusFilesIn(workspace.trackerDirectory);
+    writeFileSync(presenceFilePath, 'not JSON\n');
+
+    throwsOfThePasses = [lockHeld()];
+    await passOnce(current, true);
+
+    expect(readFileSync(presenceFilePath, 'utf8')).toBe('not JSON\n');
+    expect(hephaestusLog.some((line) => line.includes('cannot read the board file hephaestus/presence.json'))).toBe(true);
   });
 });
 

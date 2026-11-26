@@ -2,8 +2,8 @@
  * `crash-log [<number>]`: prints one of the board's crash logs, the newest when no number is given. It reads the files alone, so it works
  * with the forge up or down, and takes no lock.
  */
+import type { StartClassificationVerdict }         from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import type { CrashLogJob, CrashLogRecord }        from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
-import type { StartClassificationVerdict }         from '../../src/services/hephaestus/@types/StartClassification.ts';
 import { CrashLog }                                from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn, type HephaestusFiles } from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { requireWorkspace }                        from '../../src/services/tracker/Workspace.ts';

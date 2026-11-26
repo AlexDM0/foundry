@@ -3,13 +3,14 @@
  * Hephaestus lock, Talos's newest record, the boot, and how this start came about. It reads no file, process or clock; the start gate, `status`
  * and the presence document all read its one verdict.
  */
-import { LocalTimeUtil }                                             from '../../lib/local-time/LocalTimeUtil.ts';
-import { sameBoot, sameProcess }                                     from '../../lib/process-identity/ProcessIdentity.ts';
-import type { StartKind, StartOrigin }                               from '../../lib/tracker-model/@types/Job.ts';
-import type { HeartbeatRecord, PresenceFileReading, PresenceRecord } from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict }                           from './@types/StartClassification.ts';
-import type { HephaestusLockReading }                                from './HephaestusLock.ts';
-import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }                  from './constants/PresenceLimits.ts';
+import type { PresenceRecord }                       from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict }           from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import { LocalTimeUtil }                             from '../../lib/local-time/LocalTimeUtil.ts';
+import { sameBoot, sameProcess }                     from '../../lib/process-identity/ProcessIdentity.ts';
+import type { StartKind, StartOrigin }               from '../../lib/tracker-model/@types/Job.ts';
+import type { HeartbeatRecord, PresenceFileReading } from './@types/PresenceRecord.ts';
+import type { HephaestusLockReading }                from './HephaestusLock.ts';
+import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }  from './constants/PresenceLimits.ts';
 
 /** Talos's newest record: none, quit, still live, or not quit with its process gone, in the boot it ran in. */
 export type TalosRecordReading =

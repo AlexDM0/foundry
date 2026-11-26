@@ -114,6 +114,7 @@ import type { StartOriginReading }                                  from './Star
 import { StartGate }                                                from './StartGate.ts';
 import { quitTalosForRestart }                                      from './TalosRestart.ts';
 import { TALOS_START_BOUNDS, type TalosStartBounds, talosRecordAt } from './TalosStart.ts';
+import { createUnreadableBoardFiles }                               from './UnreadableBoardFiles.ts';
 
 const recordedGit = useRecordedGit();
 const ports = nativePlatformPorts();
@@ -533,11 +534,12 @@ function sessionBoardReads(): StoreReadFace {
 async function forgeStart(origin: StartOriginReading, adapter: AgentAdapter, options: ForgeStartOptions = {}): Promise<ForgeStart> {
   const verdict = StartGate.admit({
     ports,
-    files:      forgeFiles(),
-    workspace:  sessionWorkspace,
-    boardReads: sessionBoardReads(),
+    files:                forgeFiles(),
+    workspace:            sessionWorkspace,
+    boardReads:           sessionBoardReads(),
     origin,
-    stampNow:   () => SESSION_STAMP,
+    stampNow:             () => SESSION_STAMP,
+    unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
   });
   if (verdict.verdict === 'stay-off') return { verdict, serving: null };
   forgeStartsSoFar += 1;

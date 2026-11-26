@@ -30,6 +30,7 @@ import {
   type TalosStartContext,
   talosRecordAt
 } from '../services/hephaestus/TalosStart.ts';
+import { createUnreadableBoardFiles } from '../services/hephaestus/UnreadableBoardFiles.ts';
 import { createLocalFilesBoardStore } from '../services/store/LocalFilesBoardStore.ts';
 import type { LockHolder }            from '../services/tracker/GenerationLock.ts';
 import { requireProgressFile }        from '../services/tracker/TrackerReader.ts';
@@ -102,6 +103,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     setupMessageWordingOf:        (message) => JSON.stringify(message),
     homeDirectory:                request.monitorFolder,
     branchNames:                  branchNamesOf(null),
+    unreadableBoardFiles:         createUnreadableBoardFiles(request.log),
     onHephaestusLockTakenOver:    () => request.log('taken over'),
     onPassCrashed:                () => {
       request.log('crashed');
