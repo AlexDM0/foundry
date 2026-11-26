@@ -2755,8 +2755,10 @@ phase, a model or effort outside the lists above, an instruction entry listed tw
 makes it malformed: the board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each
 launch writes `<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex
 digits of each file's SHA-256 as it was read. A job's first launch writes `<data>/jobs/<J>/launch-settings.json`,
-`{ model, effort }`, the pair its session runs on, and never rewrites it: every resume of that session, a later
-instance's or another job's that carries it on, runs on the recorded pair, whatever the pipeline says by then.
+`{ "version": 1, model, effort }`, the pair its session runs on, and never rewrites it: every resume of that session, a
+later instance's or another job's that carries it on, runs on the recorded pair, whatever the pipeline says by then. A
+recorded pair that cannot be read launches nothing and opens `system-file-unreadable` on the launching job; one naming
+a model or effort forge no longer offers is resolved again from the pipeline.
 
 #### API billing set-up
 

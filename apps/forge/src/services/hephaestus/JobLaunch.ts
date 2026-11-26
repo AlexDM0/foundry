@@ -7,7 +7,6 @@
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   rmSync,
   writeFileSync
 } from 'node:fs';
@@ -17,6 +16,8 @@ import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
 import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
 import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
+import { LaunchSettingsIngestion }                                                 from '../../adapters/launch-settings/LaunchSettingsIngestion.ts';
+import { createLaunchSettingsWriter }                                              from '../../adapters/launch-settings/LaunchSettingsWriter.ts';
 import { MainMergeConflictIngestion, type MainMergeConflict }                      from '../../adapters/main-conflict/MainMergeConflictIngestion.ts';
 import { createMainMergeConflictWriter }                                           from '../../adapters/main-conflict/MainMergeConflictWriter.ts';
 import { MainMergeResolutionIngestion, type MainMergeResolution }                  from '../../adapters/main-resolution/MainMergeResolutionIngestion.ts';
@@ -3000,22 +3001,20 @@ function recordInstructionsRead(jobFolder: string, childInstance: number, files:
 function recordLaunchSettings(jobFolder: string, settings: SessionLaunchSettings): void {
   if (existsSync(join(jobFolder, JOB_FILES.launchSettings))) return;
   mkdirSync(jobFolder, { recursive: true });
-  writeFileAtomically(join(jobFolder, JOB_FILES.launchSettings), `${JSON.stringify({ model: settings.model, effort: settings.effort }, null, 2)}\n`);
+  createLaunchSettingsWriter(join(jobFolder, JOB_FILES.launchSettings)).write(settings);
 }
 
-/** The pair the job's first launch recorded; `null` with none, or one that is unreadable or names a value outside the vocabularies. */
-function recordedLaunchSettingsOf(jobFolder: string): SessionLaunchSettings | null {
-  let recorded: unknown;
-  try {
-    recorded = JSON.parse(readFileSync(join(jobFolder, JOB_FILES.launchSettings), 'utf8'));
-  } catch {
-    return null;
-  }
-  const model  = reportFieldOf(recorded, 'model');
-  const effort = reportFieldOf(recorded, 'effort');
-  if (typeof model !== 'string' || !VocabularyUtil.agentModelIsKnown(model)) return null;
-  if (typeof effort !== 'string' || !VocabularyUtil.agentEffortIsKnown(effort)) return null;
-  return { model, effort };
+/**
+ * The pair the job's first launch recorded; `null` with none, or one naming a model or effort forge no longer offers, which a later forge
+ * may have retired, so the session's pair is resolved again as before. A pair that cannot be read stops the launch that reads it.
+ */
+function recordedLaunchSettingsOf(trackerDirectory: string, jobId: string): SessionLaunchSettings | null | StoredFileUnreadable {
+  const settingsFilePath = join(jobFolderIn(trackerDirectory, jobId), JOB_FILES.launchSettings);
+  const recorded = new LaunchSettingsIngestion(settingsFilePath).read();
+  if (recorded.verdict === 'absent') return null;
+  if (recorded.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, settingsFilePath, recorded.reason);
+  const { model, effort } = recorded.settings;
+  return VocabularyUtil.agentModelIsKnown(model) && VocabularyUtil.agentEffortIsKnown(effort) ? { model, effort } : null;
 }
 
 /** What the conflict re-reviewer under a job in `merging-main` is told: the newest conflict its job's session resolved; `null` with none. */

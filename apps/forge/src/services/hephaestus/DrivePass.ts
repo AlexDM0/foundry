@@ -1126,6 +1126,10 @@ async function launchAgentChild(
   const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
     ? null
     : JobResumption.staleGreenSessionOwnerOf(children, workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
+  // Read before the launch writes anything, so a pair that cannot be read leaves the job as it was.
+  const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
+  if (StoredFileUnreadable.isUnreadableFile(launchSettings)) return unreadableLaunchFileOf(request, job, launchSettings);
   JobResumption.recordStaleGreenSessionOwner(workspace.trackerDirectory, job, staleGreenSessionOwner);
   // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
@@ -1133,8 +1137,6 @@ async function launchAgentChild(
   if (!launchParts.resume && redHandoffTakenOver !== null) RedHandoff.adoptRedHandoff(jobFolder, redHandoffTakenOver);
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.childInstance, launchParts.firstMessage);
-  const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
-  const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
   const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
   const { workingDirectory } = resumesASession
     ? SessionPlaces.resumedSessionPlaceOf(place, children.jobFolderOf(sessionOwnerJobId), request.agentAdapter.capabilities)
@@ -1195,12 +1197,16 @@ async function launchAgentChild(
  * The pair a launch runs its session on, so a later pipeline edit never changes a running session: the pair the job recorded at its first
  * launch, else the one recorded by the job whose session it resumes, else resolved now.
  */
-function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Readonly<Job>, sessionOwnerJobId: string): SessionLaunchSettings {
-  const recordedOf = (jobId: string): SessionLaunchSettings | null => JobLaunch.recordedLaunchSettingsOf(jobFolderIn(trackerDirectory, jobId));
+function sessionLaunchSettingsOf(
+  trackerDirectory: string, board: Board, job: Readonly<Job>, sessionOwnerJobId: string
+): SessionLaunchSettings | StoredFileUnreadable {
+  const recordedOf = (jobId: string): SessionLaunchSettings | null | StoredFileUnreadable => JobLaunch.recordedLaunchSettingsOf(trackerDirectory, jobId);
   const recorded = recordedOf(job.id) ?? (sessionOwnerJobId === job.id ? null : recordedOf(sessionOwnerJobId));
   if (recorded !== null) return recorded;
   const lastWorkerJobId = JobResumption.lastWorkerJobIdOf(board.logRecordsSoFar(), job);
-  return LaunchSettings.launchSettingsOf(board.pipeline(), job, lastWorkerJobId === null ? null : recordedOf(lastWorkerJobId));
+  const lastWorkers = lastWorkerJobId === null ? null : recordedOf(lastWorkerJobId);
+  if (StoredFileUnreadable.isUnreadableFile(lastWorkers)) return lastWorkers;
+  return LaunchSettings.launchSettingsOf(board.pipeline(), job, lastWorkers);
 }
 
 /** The jobs standing not launched whose program now reads otherwise than at the refusal: it resolves, or names another path or cause. */

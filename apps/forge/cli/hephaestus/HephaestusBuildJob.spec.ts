@@ -529,8 +529,23 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
       [true, 'fable', 'xhigh'],
       [true, 'fable', 'xhigh'],
     ]);
-    expect(JSON.parse(readFileSync(join(jobFolderOf(jobId), 'launch-settings.json'), 'utf8'))).toEqual({ model: 'fable', effort: 'xhigh' });
+    expect(JSON.parse(readFileSync(join(jobFolderOf(jobId), 'launch-settings.json'), 'utf8'))).toEqual({ version: 1, model: 'fable', effort: 'xhigh' });
     expect(readFileSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json'), 'utf8')).toContain('"haiku"');
+  });
+
+  test('a resume whose recorded pair cannot be read launches nothing, and opens system-file-unreadable on the job, naming the file', async () => {
+    await run(['gate', 'add', 'tests', '--', RED_TESTS_LINE]);
+    afterEachLaunchPlan = (request) => {
+      if (request.environment[JOB_ID_VARIABLE] === firstBuildJobId()) writeFileSync(join(jobFolderOf(firstBuildJobId()), 'launch-settings.json'), '{"model": ');
+    };
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => openIncidentKinds().includes('system-file-unreadable'), 'the unreadable pair\'s incident');
+
+    const jobId = firstBuildJobId();
+    expect(launchRequests.filter((request) => request.environment[JOB_ID_VARIABLE] === jobId)).toHaveLength(1);
+    const incident = (storedProgressOf(repositoryDirectory).incidents ?? []).find((opened) => opened.kind === 'system-file-unreadable');
+    expect(incident).toMatchObject({ jobId, facts: { file: `jobs/${jobId}/launch-settings.json` } });
+    expect(hephaestusLog.join('\n')).toContain(`Job ${jobId} did not launch: its launch reads jobs/${jobId}/launch-settings.json, which cannot be read`);
   });
 
   test('a changed pipeline is gated without a restart, and the row records the build phase and the hash of its gates', async () => {
