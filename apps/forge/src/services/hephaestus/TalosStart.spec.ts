@@ -44,6 +44,7 @@ import {
   type TalosStartContext,
   type TalosSpawnRequest
 } from './TalosStart.ts';
+import { createUnreadableBoardFiles } from './UnreadableBoardFiles.ts';
 
 const THIS_BOOT = 'example-boot';
 const OTHER_BOOT = 'example-earlier-boot';
@@ -247,8 +248,9 @@ function contextWith(
       spawnedTalos(request);
       return undefined;
     },
-    hold: createTalosStartHold(),
-    log:  (sentence) => logged.push(sentence),
+    hold:                 createTalosStartHold(),
+    log:                  (sentence) => logged.push(sentence),
+    unreadableBoardFiles: createUnreadableBoardFiles((sentence) => logged.push(sentence)),
   };
   return {
     context, spawned, logged, connects
@@ -371,6 +373,18 @@ test('a serving record whose process is gone is lost without a connect; a child 
   expect(childFileText('jobs/J-3', 'lost-cause')).toBe('reboot\n');
 });
 
+test('a registry line that does not fit is reported to the board header, its other lines are swept, and a cut-short last line is passed over', async () => {
+  plantTalos(1, { talos: { processId: 4242, startStamp: '9', bootIdentity: THIS_BOOT } });
+  plantChild(1, 'jobs/J-1', { childProcess: { processId: 4243, startStamp: '9', bootIdentity: THIS_BOOT } });
+  const registryPath = launchRegistryPathOf(boardFolder, 1);
+  writeFileSync(registryPath, `not a launch\n${readFileSync(registryPath, 'utf8')}{"childId":"jobs/J-2#1","childFol`);
+  const { context } = contextWith(() => WELCOMED);
+
+  expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 1 });
+  expect(childFileText('jobs/J-1', 'lost-cause')).toBe('agent-crashed\n');
+  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'talos/launches-1.ndjson', reason: expect.stringMatching(/^line 1: it is not valid JSON/) }]);
+});
+
 test('a refused forced stop of an orphan stores the refusal, no cause, and is not counted as swept', async () => {
   plantTalos(1, { talos: { processId: 4242, startStamp: '9', bootIdentity: THIS_BOOT } });
   const stubbornChild = processTable.born();
@@ -380,8 +394,22 @@ test('a refused forced stop of an orphan stores the refusal, no cause, and is no
 
   expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 0 });
   expect(childFileText('jobs/J-1', 'lost-cause')).toBeNull();
-  expect(JSON.parse(childFileText('jobs/J-1', 'refused-forced-stops') ?? 'null')).toEqual({ refusals: 1, treeProcessIds: [stubbornChild.processId] });
+  expect(JSON.parse(childFileText('jobs/J-1', 'refused-forced-stops') ?? 'null')).toEqual({ version: 1, refusals: 1, treeProcessIds: [stubbornChild.processId] });
   expect(logged).toContain('The forced stop of jobs/J-1#1, a child of the lost Talos 1, was refused.');
+});
+
+test('refusals that cannot be read are reported to the board header and count none, so the stop is tried and the next refusal is stored anew', async () => {
+  plantTalos(1, { talos: { processId: 4242, startStamp: '9', bootIdentity: THIS_BOOT } });
+  const stubbornChild = processTable.born();
+  processTable.refuseStops(stubbornChild);
+  plantChild(1, 'jobs/J-1', { childProcess: stubbornChild });
+  writeFileSync(`${dirname(childFilesOf(boardFolder, 'jobs/J-1', 1).recordPath)}/child-1.refused-forced-stops`, '{"refusals":2,"treeProcessIds":[]}\n');
+  const { context, logged } = contextWith(() => WELCOMED);
+
+  expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 0 });
+  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'jobs/J-1/child-1.refused-forced-stops', reason: 'its version is not 1' }]);
+  expect(logged.some((line) => line.includes('cannot read the board file jobs/J-1/child-1.refused-forced-stops'))).toBe(true);
+  expect(JSON.parse(childFileText('jobs/J-1', 'refused-forced-stops') ?? 'null')).toEqual({ version: 1, refusals: 1, treeProcessIds: [stubbornChild.processId] });
 });
 
 test('a Talos that quit is followed by the next start number, with no connect to it', async () => {

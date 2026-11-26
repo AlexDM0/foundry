@@ -14,11 +14,13 @@ import {
   test
 } from 'bun:test';
 
+import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { PresenceRecord, PresenceStart }             from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict }                from './@types/StartClassification.ts';
+import type { PresenceStart }                             from './@types/PresenceRecord.ts';
 import { hephaestusFilesIn, type HephaestusFiles }        from './HephaestusFiles.ts';
 import { Presence }                                       from './Presence.ts';
+import { createUnreadableBoardFiles }                     from './UnreadableBoardFiles.ts';
 
 const STARTED_AT = '2026-11-19T09:00:00.000+01:00';
 const ENDED_AT = '2026-11-19T10:00:00.000+01:00';
@@ -88,21 +90,22 @@ describe('the presence record', () => {
     expect(Presence.readPresence(files)).toEqual({ verdict: 'absent' });
   });
 
-  test('a file that is not JSON, or misses a field, reads as unreadable', () => {
-    Presence.writeStartedPresence(files, startOf(1));
+  test('an unreadable record reads as unreadable, and an ending finds no record to end', () => {
     writeFileSync(files.presenceFilePath, '{ "presenceVersion": 2, ');
-    expect(Presence.readPresence(files).verdict).toBe('unreadable');
 
-    const { codeVersion: _codeVersion, ...withoutCodeVersion } = Presence.writeStartedPresence(files, startOf(1));
-    writeFileSync(files.presenceFilePath, JSON.stringify(withoutCodeVersion));
-    expect(Presence.readPresence(files)).toEqual({ verdict: 'unreadable', reason: 'codeVersion is not a string' });
+    expect(Presence.readPresence(files).verdict).toBe('unreadable');
+    expect(Presence.writeEnding(files, 1, { kind: 'stopped' }, ENDED_AT)).toMatchObject({ verdict: 'no-record', reading: { verdict: 'unreadable' } });
   });
 
-  test('a record of another version reads as unreadable', () => {
-    const written = Presence.writeStartedPresence(files, startOf(1));
-    writeFileSync(files.presenceFilePath, JSON.stringify({ ...written, presenceVersion: 1 }));
+  test('an unreadable record is reported to the board header, a readable or absent one is not', () => {
+    const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
+    Presence.writeStartedPresence(files, startOf(1));
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
+    writeFileSync(files.presenceFilePath, '[]');
+    Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
 
-    expect(Presence.readPresence(files)).toEqual({ verdict: 'unreadable', reason: 'presenceVersion 1 is not 2' });
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: 'it is not a JSON object' }]);
   });
 
   test('a stop writes its ending on its own generation\'s record', () => {
@@ -174,13 +177,13 @@ describe('the heartbeat', () => {
   });
 
   test('the sequence starts at 1 and rises by one at each beat of a generation', () => {
-    expect(Presence.writeHeartbeat(files, 1, STARTED_AT)).toEqual({
+    expect(Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined)).toEqual({
       verdict: 'written',
       record:  {
         heartbeatVersion: 1, generation: 1, sequence: 1, at: STARTED_AT
       },
     });
-    Presence.writeHeartbeat(files, 1, ENDED_AT);
+    Presence.writeHeartbeat(files, 1, ENDED_AT, () => undefined);
 
     expect(Presence.readHeartbeat(files)).toEqual({
       verdict: 'read',
@@ -191,44 +194,44 @@ describe('the heartbeat', () => {
   });
 
   test('a newer generation\'s first beat starts its own sequence at 1', () => {
-    Presence.writeHeartbeat(files, 1, STARTED_AT);
-    Presence.writeHeartbeat(files, 1, STARTED_AT);
+    Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined);
+    Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined);
 
-    const written = Presence.writeHeartbeat(files, 2, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 2, ENDED_AT, () => undefined);
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
   });
 
   test('a beat of an older generation never replaces a newer one whose record is current', () => {
     Presence.writeStartedPresence(files, startOf(3));
-    Presence.writeHeartbeat(files, 3, STARTED_AT);
+    Presence.writeHeartbeat(files, 3, STARTED_AT, () => undefined);
     const before = readFileSync(files.heartbeatFilePath, 'utf8');
 
-    expect(Presence.writeHeartbeat(files, 2, ENDED_AT)).toEqual({ verdict: 'newer-generation-beats', storedGeneration: 3 });
+    expect(Presence.writeHeartbeat(files, 2, ENDED_AT, () => undefined)).toEqual({ verdict: 'newer-generation-beats', storedGeneration: 3 });
     expect(readFileSync(files.heartbeatFilePath, 'utf8')).toBe(before);
   });
 
   test('a run whose generations started again at 1 beats over the last beat of an ended run of a higher generation', () => {
     Presence.writeStartedPresence(files, startOf(5));
-    Presence.writeHeartbeat(files, 5, STARTED_AT);
+    Presence.writeHeartbeat(files, 5, STARTED_AT, () => undefined);
     Presence.writeEnding(files, 5, { kind: 'stopped' }, STARTED_AT);
     Presence.writeStartedPresence(files, startOf(1));
 
-    const written = Presence.writeHeartbeat(files, 1, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, () => undefined);
     expect(written.verdict === 'written' && written.record).toEqual({
       heartbeatVersion: 1, generation: 1, sequence: 1, at: ENDED_AT
     });
   });
 
-  test('a malformed beat, or one of another version, reads as unreadable and the next beat starts again at 1', () => {
-    writeFileSync(files.heartbeatFilePath, 'not json');
-    expect(Presence.readHeartbeat(files).verdict).toBe('unreadable');
-
+  test('an unreadable beat is logged, and the next beat rewrites it starting again at 1', () => {
     writeFileSync(files.heartbeatFilePath, JSON.stringify({
       heartbeatVersion: 2, generation: 1, sequence: 7, at: STARTED_AT
     }));
-    expect(Presence.readHeartbeat(files)).toEqual({ verdict: 'unreadable', reason: 'heartbeatVersion 2 is not 1' });
+    const loggedLines: string[] = [];
 
-    const written = Presence.writeHeartbeat(files, 1, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, (line) => loggedLines.push(line));
+
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
+    expect(loggedLines).toEqual(['heartbeat.json could not be read (its heartbeatVersion is not 1); this beat rewrites it.']);
+    expect(Presence.readHeartbeat(files).verdict).toBe('read');
   });
 });

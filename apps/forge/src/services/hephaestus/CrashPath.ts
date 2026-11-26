@@ -2,18 +2,15 @@
  * The one path every crash a live forge process sees runs: it writes the crash log once, ends the generation's presence `crashed` and stops the
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
-import type { PresenceRegistration } from '../tracker/MonitorRegistration.ts';
-import type {
-  CrashedComponent,
-  CrashLogError,
-  CrashLogJob,
-  CrashLogWrite
-} from './@types/CrashLogRecord.ts';
-import type { PresenceUpdate }                    from './@types/PresenceRecord.ts';
-import { CrashLog }                               from './CrashLog.ts';
-import type { HephaestusFiles }                   from './HephaestusFiles.ts';
-import { Presence }                               from './Presence.ts';
-import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS } from './constants/PresenceLimits.ts';
+import type { CrashedComponent, CrashLogError, CrashLogJob } from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
+import type { CrashLogWrite }                                from './@types/CrashLogRecord.ts';
+import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
+import { CrashLog }                                          from './CrashLog.ts';
+import type { HephaestusFiles }                              from './HephaestusFiles.ts';
+import { Presence }                                          from './Presence.ts';
+import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
+import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
 
 /** The registry's presence key of a crash, which the crash path's registry step writes. */
 export type RegistryCrashReport = Extract<PresenceRegistration, { state: 'crashed' }>;
@@ -30,6 +27,8 @@ export interface CrashPathContext {
   writeRegistryCrash:         (report: RegistryCrashReport) => Promise<unknown>;
   stampNow:                   () => string;
   log:                        (line: string) => void;
+  /** The serving Hephaestus's board files it could not read; the crash path reports a crash log it cannot read there. */
+  unreadableBoardFiles:       UnreadableBoardFiles;
   registryBoundMilliseconds?: number;
 }
 
@@ -62,6 +61,10 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   const { files, generation } = context;
   const presenceReading = readingOrNull(() => Presence.readPresence(files));
   const heartbeatReading = readingOrNull(() => Presence.readHeartbeat(files));
+  // The dying process has no board header left to warn in, so an unreadable file is logged and left out of the crash log.
+  for (const [fileName, reading] of [['presence.json', presenceReading], ['heartbeat.json', heartbeatReading]] as const) {
+    if (reading?.verdict === 'unreadable') context.log(`The crash log of Hephaestus lock ${generation} leaves out ${fileName}, which cannot be read: ${reading.reason}`);
+  }
   const presence = presenceReading?.verdict === 'read' && presenceReading.record.generation === generation ? presenceReading.record : null;
   const heartbeat = heartbeatReading?.verdict === 'read' && heartbeatReading.record.generation === generation ? heartbeatReading.record : null;
   const record = CrashLog.assemble({
@@ -80,7 +83,7 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
     logTail:              CrashLog.logTailOf(files.logFilePath),
   });
   try {
-    return CrashLog.writeOnce(files, record);
+    return CrashLog.writeOnce(files, record, context.unreadableBoardFiles);
   } catch (thrown) {
     context.log(`The crash log of Hephaestus lock ${generation} could not be written: ${describedFailureOf(thrown)}`);
     return 'not-written';

@@ -30,6 +30,7 @@ import {
   type TalosStartContext,
   talosRecordAt
 } from '../services/hephaestus/TalosStart.ts';
+import { createUnreadableBoardFiles } from '../services/hephaestus/UnreadableBoardFiles.ts';
 import { createLocalFilesBoardStore } from '../services/store/LocalFilesBoardStore.ts';
 import type { LockHolder }            from '../services/tracker/GenerationLock.ts';
 import { requireProgressFile }        from '../services/tracker/TrackerReader.ts';
@@ -102,6 +103,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     setupMessageWordingOf:        (message) => JSON.stringify(message),
     homeDirectory:                request.monitorFolder,
     branchNames:                  branchNamesOf(null),
+    unreadableBoardFiles:         createUnreadableBoardFiles(request.log),
     onHephaestusLockTakenOver:    () => request.log('taken over'),
     onPassCrashed:                () => {
       request.log('crashed');
@@ -137,17 +139,18 @@ export async function startScratchBoardTalos(request: ScratchBoardTalosRequest):
   const boardFolder = request.workspace.trackerDirectory;
   const context: TalosStartContext = {
     boardFolder,
-    monitorFolder:  request.monitorFolder,
-    trackerId:      requireProgressFile(request.workspace).trackerId,
-    codeVersion:    'code-example',
-    repositoryRoot: request.workspace.rootDirectory,
-    ports:          request.platformPorts,
-    bounds:         request.bounds ?? TALOS_START_BOUNDS,
-    waits:          TALOS_START_WAITS,
-    connect:        connectToTalos,
-    startTalos:     spawnTalos,
-    hold:           createTalosStartHold(),
-    log:            request.log,
+    monitorFolder:        request.monitorFolder,
+    trackerId:            requireProgressFile(request.workspace).trackerId,
+    codeVersion:          'code-example',
+    repositoryRoot:       request.workspace.rootDirectory,
+    ports:                request.platformPorts,
+    bounds:               request.bounds ?? TALOS_START_BOUNDS,
+    waits:                TALOS_START_WAITS,
+    connect:              connectToTalos,
+    startTalos:           spawnTalos,
+    hold:                 createTalosStartHold(),
+    log:                  request.log,
+    unreadableBoardFiles: createUnreadableBoardFiles(request.log),
   };
   const launches: ChildLaunch[] = [];
   let current: { connection: TalosConnection; startNumber: number } | null = null;

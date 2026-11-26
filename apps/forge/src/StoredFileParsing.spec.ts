@@ -23,23 +23,17 @@ const STORED_FILE_OFFENDER = 'A stored file, still parsed in the service until i
 /** `<path>: <trimmed line>`, sorted by path, with what each parse reads. */
 const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);':                                                                        STORED_FILE_OFFENDER,
-  'src/services/hephaestus/CrashLog.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
   'src/services/hephaestus/GateProfiling.ts: const parsed: unknown = JSON.parse(lineText);':                                                      STORED_FILE_OFFENDER,
   'src/services/hephaestus/GateRunSlots.ts: recordedProcess = JSON.parse(slotText.slice(separatorIndex + HOLDING_SEPARATOR.length));':            STORED_FILE_OFFENDER,
   'src/services/hephaestus/HatchInbox.ts: const parsed: unknown = JSON.parse(text);':                                                             STORED_FILE_OFFENDER,
   'src/services/hephaestus/HephaestusLock.ts: return hephaestusLockRecordOfStored(JSON.parse(readFileSync(hephaestusLockFilePath, \'utf8\')));':  STORED_FILE_OFFENDER,
   'src/services/hephaestus/HephaestusServer.ts: body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));':                                 'The body of an HTTP request.',
   'src/services/hephaestus/InstallChangeWatch.ts: const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;': 'The output of a process.',
-  'src/services/hephaestus/Presence.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
-  'src/services/hephaestus/Regrouping.ts: const stored = JSON.parse(readFileSync(refusedForcedStopsFileOf(childFolder, instance), \'utf8\')) as Partial<ForcedStopRefusals>;':
-    STORED_FILE_OFFENDER,
-  'src/services/hephaestus/Restart.ts: const parsed = JSON.parse(lastLine) as Record<string, unknown> | null;':                     'The output of a process.',
-  'src/services/hephaestus/TalosConnection.ts: const parsed: unknown = JSON.parse(line);':                                          'A line Talos sends on the socket.',
-  'src/services/hephaestus/TalosStart.ts: const entry = JSON.parse(line) as Partial<RegisteredChild>;':                             STORED_FILE_OFFENDER,
-  'src/services/hephaestus/TalosStart.ts: const stored = JSON.parse(readFileSync(path, \'utf8\')) as Partial<ForcedStopRefusals>;': STORED_FILE_OFFENDER,
-  'src/services/hephaestus/TalosStart.ts: return [JSON.parse(text) as unknown];':                                                   STORED_FILE_OFFENDER,
-  'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));':                     STORED_FILE_OFFENDER,
-  'src/services/tracker/GenerationLock.ts: const parsed: unknown = JSON.parse(generationText);':                                    STORED_FILE_OFFENDER,
+  'src/services/hephaestus/Restart.ts: const parsed = JSON.parse(lastLine) as Record<string, unknown> | null;':                                   'The output of a process.',
+  'src/services/hephaestus/TalosConnection.ts: const parsed: unknown = JSON.parse(line);':
+    'A line Talos sends on the socket.',
+  'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));': STORED_FILE_OFFENDER,
+  'src/services/tracker/GenerationLock.ts: const parsed: unknown = JSON.parse(generationText);':                STORED_FILE_OFFENDER,
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_PARSES);

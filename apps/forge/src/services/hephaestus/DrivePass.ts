@@ -8,8 +8,10 @@ import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-import { MachineConfigFile }    from '../../adapters/machine-config/MachineConfigFile.ts';
-import type { RedHandoffFacts } from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import { MachineConfigFile }               from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import type { RedHandoffFacts }            from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import type { ForcedStopRefusals }         from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -77,7 +79,7 @@ import { lockTakerOf }                                         from '../tracker/
 import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
 import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
-import type { StartClassificationVerdict }                     from './@types/StartClassification.ts';
+import type { PresenceUpdate }                                 from './@types/PresenceRecord.ts';
 import { AbandonedPassReason, type PassThrowReading }          from './AbandonedPassReason.ts';
 import { AgentSlots }                                          from './AgentSlots.ts';
 import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
@@ -117,31 +119,32 @@ import {
   type JobLaunchContext,
   type TargetCatchUpHandover
 } from './JobLaunch.ts';
-import { JobResumption }                                              from './JobResumption.ts';
-import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
-import { LineSandbox }                                                from './LineSandbox.ts';
-import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
-import { mergedTreeGateStampOf, runMergedTreeGates }                  from './MergedTreeGateRun.ts';
-import { createMergedTreeGateRuns }                                   from './MergedTreeGateRuns.ts';
-import { NeedTickets, type NeedsSettledFacts }                        from './NeedTickets.ts';
-import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
-import { PipelineChecking }                                           from './PipelineChecking.ts';
-import { Presence }                                                   from './Presence.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
-import { QuestionRouting }                                            from './QuestionRouting.ts';
-import { ReconcileCauses }                                            from './ReconcileCauses.ts';
-import { RedHandoff }                                                 from './RedHandoff.ts';
-import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
-import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
-import { SessionConfinement }                                         from './SessionConfinement.ts';
-import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
-import { StoredFileUnreadable }                                       from './StoredFileUnreadable.ts';
-import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
-import { UnreadableJobFileIncident, type UnreadableJobFile }          from './UnreadableJobFileIncident.ts';
-import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
-import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
-import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
-import { ABANDONED_PASSES_BEFORE_NOTICE }                             from './constants/PresenceLimits.ts';
+import { JobResumption }                                     from './JobResumption.ts';
+import { LaunchSettings, type SessionLaunchSettings }        from './LaunchSettings.ts';
+import { LineSandbox }                                       from './LineSandbox.ts';
+import { MachineAgentLimit }                                 from './MachineAgentLimit.ts';
+import { mergedTreeGateStampOf, runMergedTreeGates }         from './MergedTreeGateRun.ts';
+import { createMergedTreeGateRuns }                          from './MergedTreeGateRuns.ts';
+import { NeedTickets, type NeedsSettledFacts }               from './NeedTickets.ts';
+import { PipelineAgentSessions, type PipelineAgentFacts }    from './PipelineAgentSessions.ts';
+import { PipelineChecking }                                  from './PipelineChecking.ts';
+import { Presence }                                          from './Presence.ts';
+import { type ProcessStarts, REAL_PROCESS_STARTS }           from './ProcessStarts.ts';
+import { QuestionRouting }                                   from './QuestionRouting.ts';
+import { ReconcileCauses }                                   from './ReconcileCauses.ts';
+import { RedHandoff }                                        from './RedHandoff.ts';
+import { RefusedForcedStops }                                from './RefusedForcedStops.ts';
+import { Regrouping, type RegroupingReport }                 from './Regrouping.ts';
+import { SessionConfinement }                                from './SessionConfinement.ts';
+import { SessionPlaces, type SessionPlace }                  from './SessionPlace.ts';
+import { StoredFileUnreadable }                              from './StoredFileUnreadable.ts';
+import { stopLiveLinesUnder as stopLiveLinesUnderAt }        from './TalosLines.ts';
+import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
+import { unreadablePipelineGateOf }                          from './UnreadablePipelineGate.ts';
+import { type UsageLimitHit, UsageLimits }                   from './UsageLimits.ts';
+import { type FolderMaker, WorkerProfiles }                  from './WorkerProfiles.ts';
+import { ABANDONED_PASSES_BEFORE_NOTICE }                    from './constants/PresenceLimits.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -273,6 +276,8 @@ export interface DrivePassRequest {
   lineRunner:                    LineRunner;
   /** Called as each pass begins: Hephaestus starts or attaches to a Talos there once its connection to the last one closed. */
   ensureTalosIfLost?:            () => Promise<void>;
+  /** The board-wide files Hephaestus could not read, which the board header warns of until it restarts. */
+  unreadableBoardFiles:          UnreadableBoardFiles;
   /** The runtime, isolating arguments and entry script this Hephaestus was started with, which a job's network guard hook runs. */
   programCommand:                readonly string[];
   codeVersion:                   string;
@@ -538,7 +543,9 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     const recognisedEndings = children.recognisedEndingsOf(jobFolder, job.childInstance);
     if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.childInstance}, is malformed; its events wait.`);
     const lostCause = liveness.verdict === 'lost' && job.role !== null
-      ? Regrouping.settleLostChildIn(workspace.trackerDirectory, request.platformPorts, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id))
+      ? Regrouping.settleLostChildIn(
+        workspace.trackerDirectory, request.platformPorts, request.unreadableBoardFiles, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id),
+      )
       : null;
     return {
       jobId:              job.id,
@@ -547,7 +554,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
       events:             events === 'malformed' ? [] : events,
       recognisedEndings,
       lostCause,
-      forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.childInstance),
+      forcedStopRefusals: RefusedForcedStops.storedOf(workspace.trackerDirectory, jobFolder, job.childInstance, request.unreadableBoardFiles),
       sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(children, jobFolder, job.childInstance, request.agentAdapter),
     };
   });
@@ -1905,9 +1912,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   /** A presence write that fails is logged and passed over: the pass's own outcome stands, and presence is shown only. */
-  function recordInPresence(write: () => unknown): void {
+  function recordInPresence(write: () => PresenceUpdate): void {
     try {
-      write();
+      const update = write();
+      if (update.verdict === 'no-record') Presence.reportUnreadablePresence(update.reading, request.unreadableBoardFiles);
     } catch (thrown) {
       request.log(`Presence could not record the pass: ${describedThrowOf(thrown)}`);
     }
@@ -1986,7 +1994,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function regroup(): Promise<RegroupingReport> {
-    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace, request.boardStore.reads);
+    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace, request.boardStore.reads, request.unreadableBoardFiles);
     await mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();

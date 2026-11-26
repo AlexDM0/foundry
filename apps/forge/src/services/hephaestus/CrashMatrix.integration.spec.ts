@@ -38,6 +38,7 @@ import {
   expect,
   test,
 } from 'bun:test';
+import type { CrashedComponent, CrashLogError }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeHatchRequest }                       from '../../adapters/hatch/HatchFolder.ts';
 import type { AgentAdapter }                       from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
@@ -96,7 +97,6 @@ import { writeTracker }                                             from '../tra
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                        from '../tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                   from '../tracker/constants/MonitorRegistryFiles.ts';
-import type { CrashedComponent, CrashLogError }                     from './@types/CrashLogRecord.ts';
 import type { StartGateVerdict }                                    from './@types/StartClassification.ts';
 import type { BoardChildren }                                       from './BoardChildren.ts';
 import { CrashLog }                                                 from './CrashLog.ts';
@@ -114,6 +114,7 @@ import type { StartOriginReading }                                  from './Star
 import { StartGate }                                                from './StartGate.ts';
 import { quitTalosForRestart }                                      from './TalosRestart.ts';
 import { TALOS_START_BOUNDS, type TalosStartBounds, talosRecordAt } from './TalosStart.ts';
+import { createUnreadableBoardFiles }                               from './UnreadableBoardFiles.ts';
 
 const recordedGit = useRecordedGit();
 const ports = nativePlatformPorts();
@@ -495,7 +496,7 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
     wallNowMilliseconds:  () => Date.now(),
     log:                  (line) => hephaestusLog.push(line),
     onRenewed:            () => {
-      Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()));
+      Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()), () => undefined);
     },
   });
   leaseRenewals.push(renewal);
@@ -504,14 +505,15 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
 
 function crashPathContextOf(serving: ForgeServing): CrashPathContext {
   return {
-    files:              forgeFiles(),
-    generation:         serving.generation,
-    activeJobs:         () => storedJobs().map(CrashLog.activeJobOf),
-    talosChildren:      () => null,
-    stopLeaseRenewal:   () => serving.renewal?.stop(),
-    writeRegistryCrash: (report) => registerTheForge(report),
-    stampNow:           () => SESSION_STAMP,
-    log:                (line) => hephaestusLog.push(line),
+    files:                forgeFiles(),
+    generation:           serving.generation,
+    activeJobs:           () => storedJobs().map(CrashLog.activeJobOf),
+    talosChildren:        () => null,
+    unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
+    stopLeaseRenewal:     () => serving.renewal?.stop(),
+    writeRegistryCrash:   (report) => registerTheForge(report),
+    stampNow:             () => SESSION_STAMP,
+    log:                  (line) => hephaestusLog.push(line),
   };
 }
 
@@ -533,11 +535,13 @@ function sessionBoardReads(): StoreReadFace {
 async function forgeStart(origin: StartOriginReading, adapter: AgentAdapter, options: ForgeStartOptions = {}): Promise<ForgeStart> {
   const verdict = StartGate.admit({
     ports,
-    files:      forgeFiles(),
-    workspace:  sessionWorkspace,
-    boardReads: sessionBoardReads(),
+    files:                forgeFiles(),
+    workspace:            sessionWorkspace,
+    boardReads:           sessionBoardReads(),
     origin,
-    stampNow:   () => SESSION_STAMP,
+    stampNow:             () => SESSION_STAMP,
+    unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
+    log:                  () => undefined,
   });
   if (verdict.verdict === 'stay-off') return { verdict, serving: null };
   forgeStartsSoFar += 1;
@@ -599,7 +603,7 @@ async function rebootTheForge(serving: ForgeServing, job: Readonly<Job>, lastBea
   const hephaestusLockPath = HephaestusLock.filePathFor(files.hephaestusDirectory, serving.generation);
   writeFileSync(hephaestusLockPath, JSON.stringify({ ...JSON.parse(readFileSync(hephaestusLockPath, 'utf8')) as object, bootIdentity: FOREIGN_BOOT }));
   const lastBeatAt = new Date(bootStartedAtEpochSeconds * MILLISECONDS_PER_SECOND - lastBeatBeforeBootMilliseconds);
-  Presence.writeHeartbeat(files, serving.generation, LocalTimeUtil.formatLocalIso(lastBeatAt));
+  Presence.writeHeartbeat(files, serving.generation, LocalTimeUtil.formatLocalIso(lastBeatAt), () => undefined);
 }
 
 function childEndReasonOf(jobId: string, instance: number): string | null {
@@ -1308,7 +1312,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     PlantedChild.plantChildRecord({ boardFolder: monitorFolder, childFolder: 'J99', instance: 1 }, { talos: reused, childProcess: reused, childProcessGroupId: process.pid });
     const jobFolder = join(monitorFolder, 'J99');
     expect(talosChildReadingsWith(ports, monitorFolder).livenessOf(jobFolder, 1).verdict).toBe('lost');
-    expect(Regrouping.settleLostChildIn(monitorFolder, ports, jobFolder, 1)).toBe('agent-crashed');
+    expect(Regrouping.settleLostChildIn(monitorFolder, ports, createUnreadableBoardFiles(() => undefined), jobFolder, 1)).toBe('agent-crashed');
     expect(processIsAlive(self)).toBe(true);
   });
 
@@ -1491,7 +1495,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(CrashLog.read(forgeFiles(), 2)).toMatchObject({ verdict: 'read', record: { crashedGeneration: 1, crashedProcess: crashedAgain.holder } });
       expect(StartGate.loggedCrashLogOf(forgeFiles(), StartGate.evidenceOf({
         ports, files: forgeFiles(), workspace: sessionWorkspace, origin: successorOrigin
-      }), successorStart.verdict.classification)).toBe(2);
+      }), successorStart.verdict.classification, createUnreadableBoardFiles(() => undefined))).toBe(2);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
     test('an unexpected error in a pass: the crash path writes the crash log with the error and the registry presence crashed, the forge ends, '

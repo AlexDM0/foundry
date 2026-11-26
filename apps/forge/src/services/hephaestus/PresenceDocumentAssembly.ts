@@ -11,19 +11,20 @@ import type {
   ForgeRunningTalos
 } from 'forge-contracts/ForgePresenceDocument';
 
-import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }  from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
-import type { TalosRecord }                     from '../../lib/talos/TalosRecord.ts';
-import type { InterruptionCause, Job }          from '../../lib/tracker-model/@types/Job.ts';
-import type { LifecycleThresholds }             from '../../lib/tracker-model/@types/LifecycleLimits.ts';
-import type { LogRecord }                       from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import { Playbook }                             from '../../lib/tracker-model/Playbook.ts';
-import { INTERRUPTED_HOLD_PREFIX }              from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { CRASH_INTERRUPTION_CAUSES }            from '../../lib/tracker-model/constants/JobStates.ts';
-import type { CrashLogJob, CrashLogRecord }     from './@types/CrashLogRecord.ts';
-import type { HeartbeatRecord, PresenceRecord } from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict }      from './@types/StartClassification.ts';
-import { PresenceStatus }                       from './PresenceStatus.ts';
+import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE } from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
+import type { CrashLogJob, CrashLogRecord }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import type { HeartbeatRecord }                from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceRecord }                 from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict }     from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import type { TalosRecord }                    from '../../lib/talos/TalosRecord.ts';
+import type { InterruptionCause, Job }         from '../../lib/tracker-model/@types/Job.ts';
+import type { LifecycleThresholds }            from '../../lib/tracker-model/@types/LifecycleLimits.ts';
+import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                          from '../../lib/tracker-model/Board.ts';
+import { Playbook }                            from '../../lib/tracker-model/Playbook.ts';
+import { INTERRUPTED_HOLD_PREFIX }             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { CRASH_INTERRUPTION_CAUSES }           from '../../lib/tracker-model/constants/JobStates.ts';
+import { PresenceStatus }                      from './PresenceStatus.ts';
 
 /** A crash log as `CrashLog.list` and `CrashLog.read` found it. */
 export interface NumberedCrashLog {

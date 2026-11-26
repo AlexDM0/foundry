@@ -1,0 +1,1 @@
+export const CRASH_LOG_FORMAT_VERSION = 2;

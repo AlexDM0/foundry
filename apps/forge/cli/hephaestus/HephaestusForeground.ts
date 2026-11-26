@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 
+import type { CrashedComponent }                                                     from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeOwnerOnlyFileAtomically }                                              from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                             from '../../src/lib/local-time/LocalTimeUtil.ts';
@@ -24,7 +25,6 @@ import type { StartOrigin }                                                     
 import type { LogRecordFieldsOf }                                                    from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
-import type { CrashedComponent }                                                     from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
 import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                                        from '../../src/services/hephaestus/BoardChildren.ts';
@@ -216,9 +216,9 @@ export async function recordTheHandover(
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
-export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number): (renewedAtWallMilliseconds: number) => void {
+export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number, log: (line: string) => void): (renewedAtWallMilliseconds: number) => void {
   return (renewedAtWallMilliseconds) => {
-    Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)));
+    Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)), log);
   };
 }
 
@@ -492,7 +492,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const { startOrigin } = origin;
   // Before any Hephaestus lock, port or Talos, so a start that stays off leaves nothing a later start would read as its own.
   const startAdmission = await admitTheStart({
-    context, workspace, boardStore, files, origin, log
+    context, workspace, boardStore, files, origin, log, unreadableBoardFiles
   });
   // Git runs at the repository's root, never in a tracker's folder below it.
   const { repositoryRoot } = projectLocationOf(workspace.rootDirectory);
@@ -544,6 +544,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     startTalos:     spawnTalos,
     hold:           talosStartHold,
     log,
+    unreadableBoardFiles,
   });
 
   /** A connection that closes, by Talos's quit or its loss, has the next pass ensure a Talos before it launches anything. */
@@ -570,11 +571,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     files,
     generation,
     activeJobs:         () => (boardStore.reads.requireProgress().jobs ?? []).map(CrashLog.activeJobOf),
-    talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber)),
+    talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber, unreadableBoardFiles)),
     stopLeaseRenewal:   () => leaseRenewal?.stop(),
     writeRegistryCrash: (report) => registerHephaestus(request, { presence: report }),
     stampNow:           () => LocalTimeUtil.formatLocalIso(context.now()),
     log,
+    unreadableBoardFiles,
   });
   crashPathReach.contextNow = () => (crashableGeneration === null ? null : crashPathContextOf(crashableGeneration));
 
@@ -835,6 +837,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         boardChildren,
         lineRunner,
         ensureTalosIfLost,
+        unreadableBoardFiles,
         programCommand:            context.programCommand,
         codeVersion,
         agentAdapter:              context.agentAdapter,
@@ -897,7 +900,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         passProgress:         { passInFlight: () => drivePass?.passInFlight() ?? null },
         wallNowMilliseconds:  () => context.now().getTime(),
         log,
-        onRenewed:            heartbeatOnRenewalOf(files, generation),
+        onRenewed:            heartbeatOnRenewalOf(files, generation, log),
       });
       const serving: Serving = {
         generation, server, drivePass, dataFolderWatch, lifetime, boardChildren

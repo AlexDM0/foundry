@@ -1439,15 +1439,20 @@ intervals at the boot) and `crashed` (Hephaestus or Talos). After `crashed`, or 
 crash, the start writes the crash log `<data>/hephaestus/crash-logs/crash-<number>.json` once; a log already there, from
 the crash itself or an earlier start, stays. A crash log's number is its own, one above the highest log on disk (1 again
 once the folder is emptied), never the Hephaestus lock generation, which starts again at 1 after a stop; the crashed
-generation is a field inside the log. Only a start by `user` then serves. A successor that finds a crash before it
-stays off: it writes the registry's `presence` as `crashed`, logs one line to `hephaestus.log`,
+generation is a field inside the log, which carries `crashLogVersion` 2; a log Hephaestus cannot read is a board header
+warning until it restarts, and a crash it may have recorded is logged anew. Only a start by `user` then serves. A
+successor that finds a crash before it stays off: it writes the registry's `presence` as `crashed`, logs one line to
+`hephaestus.log`,
 takes no Hephaestus lock, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge
 is off after a crash of Hephaestus lock <n>; read why with `forge crash-log`, and start it yourself with
 `forge start`."). A start that serves records its kind in `presence.json` (`startClassification`, `startOrigin`) and in
 the board log (`start-classified`, right after `hephaestus-started`).
 
 `presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
-written whole by Hephaestus; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
+written whole by Hephaestus under `presenceVersion` 2; one Hephaestus cannot read is a board header warning until it
+restarts, and the start that reads it unreadable classifies a crash and writes a new one. `heartbeat.json` is its newest
+beat under `heartbeatVersion` 1, rewritten at each lease renewal Talos confirmed; one that cannot be read is logged, and
+the next beat rewrites it.
 
 #### After a crash
 
@@ -1476,8 +1481,11 @@ Hephaestus starts once per board and which outlives Hephaestus. It runs every ag
 gate and merge line, the gates Hephaestus runs itself included. Its files are in `<data>/talos/`: the start file
 `start-<n>.json` Hephaestus writes, with the lease and the bounds; its record `talos-<n>.json`, with its start number,
 protocol version and state; its log `talos-<n>.log`, which names a child by its label and id only; and
-`launches-<n>.ndjson`. The identity document names its protocol (`talosProtocolVersion`). A Talos of another protocol
-answers Hephaestus's first frame with `version-mismatch` and quits cleanly; one Hephaestus has just started that
+`launches-<n>.ndjson`, one line per accepted launch, appended before the child spawns. Its lines carry no version, so
+a Hephaestus still reads the registry of a Talos of older code; a cut-short last line names no child that ran, and any
+other line Hephaestus cannot read is a board header warning until it restarts. The identity document names its
+protocol (`talosProtocolVersion`). A Talos of another protocol answers Hephaestus's first frame with `version-mismatch`
+and quits cleanly; one Hephaestus has just started that
 still does not fit refuses Hephaestus's start.
 
 - **The child record.** Each child has a folder of its own: a job's sessions in the job folder, each line in its step's

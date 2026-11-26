@@ -15,25 +15,26 @@ import {
   test
 } from 'bun:test';
 
-import { LocalTimeUtil }                                  from '../../lib/local-time/LocalTimeUtil.ts';
-import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
-import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { writeReadableTracker }                           from '../../testing/TrackerFileFixtures.ts';
-import { createLocalFilesBoardStore }                     from '../store/LocalFilesBoardStore.ts';
-import { type Workspace, workspacePathsFor }              from '../tracker/Workspace.ts';
-import type { CrashLogError }                             from './@types/CrashLogRecord.ts';
-import type { PresenceEndingToWrite }                     from './@types/PresenceRecord.ts';
-import { CrashLog }                                       from './CrashLog.ts';
-import { hephaestusFilesIn, type HephaestusFiles }        from './HephaestusFiles.ts';
-import { HephaestusLock }                                 from './HephaestusLock.ts';
-import { Presence }                                       from './Presence.ts';
-import type { StartOriginReading }                        from './StartClassification.ts';
-import { StartGate }                                      from './StartGate.ts';
-import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }       from './constants/PresenceLimits.ts';
+import type { CrashLogError }                                    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import { LocalTimeUtil }                                         from '../../lib/local-time/LocalTimeUtil.ts';
+import type { PlatformPorts }                                    from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                  from '../../lib/process-identity/ProcessIdentity.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                               from '../../testing/LockTakers.ts';
+import { nativePlatformPorts }                                   from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                          from '../../testing/PlantedChild.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import { writeReadableTracker }                                  from '../../testing/TrackerFileFixtures.ts';
+import { createLocalFilesBoardStore }                            from '../store/LocalFilesBoardStore.ts';
+import { type Workspace, workspacePathsFor }                     from '../tracker/Workspace.ts';
+import type { PresenceEndingToWrite }                            from './@types/PresenceRecord.ts';
+import { CrashLog }                                              from './CrashLog.ts';
+import { hephaestusFilesIn, type HephaestusFiles }               from './HephaestusFiles.ts';
+import { HephaestusLock }                                        from './HephaestusLock.ts';
+import { Presence }                                              from './Presence.ts';
+import type { StartOriginReading }                               from './StartClassification.ts';
+import { StartGate }                                             from './StartGate.ts';
+import { createUnreadableBoardFiles, type UnreadableBoardFiles } from './UnreadableBoardFiles.ts';
+import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }              from './constants/PresenceLimits.ts';
 
 const CURRENT_BOOT = 'example-boot-today';
 const EARLIER_BOOT = 'example-boot-yesterday';
@@ -52,12 +53,16 @@ const USER: StartOriginReading = { startOrigin: 'user' };
 let scratchDirectory = '';
 let workspace: Workspace;
 let files: HephaestusFiles;
+let unreadableBoardFiles: UnreadableBoardFiles;
+let loggedLines: string[] = [];
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('start-gate');
   workspace = workspacePathsFor(scratchDirectory);
   writeReadableTracker(workspace);
   files = hephaestusFilesIn(workspace.trackerDirectory);
+  unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+  loggedLines = [];
 });
 
 afterEach(() => {
@@ -111,7 +116,7 @@ function plantPreviousGeneration(bootIdentity: string, ending: PresenceEndingToW
 }
 
 function beatBeforeBoot(millisecondsBeforeBoot: number): void {
-  Presence.writeHeartbeat(files, CRASHED_GENERATION, LocalTimeUtil.formatLocalIso(new Date(BOOT_STARTED_AT_MILLISECONDS - millisecondsBeforeBoot)));
+  Presence.writeHeartbeat(files, CRASHED_GENERATION, LocalTimeUtil.formatLocalIso(new Date(BOOT_STARTED_AT_MILLISECONDS - millisecondsBeforeBoot)), () => undefined);
 }
 
 function boardReads() {
@@ -120,7 +125,7 @@ function boardReads() {
 
 function admit(origin: StartOriginReading, ports = portsInBoot()) {
   return StartGate.admit({
-    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT
+    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT, unreadableBoardFiles, log: (line) => loggedLines.push(line)
   });
 }
 
@@ -177,7 +182,14 @@ describe('after a crash in this boot', () => {
     const firstLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const again = StartGate.admit({
-      ports: portsInBoot(), files, workspace, boardReads: boardReads(), origin: SUCCESSOR, stampNow: () => '2026-11-19T10:00:00+01:00'
+      ports:      portsInBoot(),
+      files,
+      workspace,
+      boardReads: boardReads(),
+      origin:     SUCCESSOR,
+      stampNow:   () => '2026-11-19T10:00:00+01:00',
+      unreadableBoardFiles,
+      log:        (line) => loggedLines.push(line),
     });
 
     expect(again).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER });
@@ -189,7 +201,7 @@ describe('after a crash in this boot', () => {
     const earlierRun = { processId: 4141, startStamp: '1699990000', bootIdentity: CURRENT_BOOT };
     CrashLog.writeOnce(files, crashPathLogOf(CRASHED_GENERATION, {
       origin: 'pass', name: 'EarlierError', message: 'an earlier crash of the same generation', stack: null
-    }, earlierRun));
+    }, earlierRun), createUnreadableBoardFiles(() => undefined));
     const olderLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const verdict = admit(SUCCESSOR);
@@ -216,7 +228,7 @@ test('a user start after a crash the crash path recorded serves and finds that c
   plantPreviousGeneration(CURRENT_BOOT, { kind: 'crashed', component: 'hephaestus', crashLogNumber: FIRST_CRASH_LOG_NUMBER }, true);
   CrashLog.writeOnce(files, crashPathLogOf(CRASHED_GENERATION, {
     origin: 'pass', name: 'Error', message: 'example failure', stack: null
-  }));
+  }), createUnreadableBoardFiles(() => undefined));
 
   const verdict = admit(USER);
 
@@ -285,7 +297,7 @@ test('a start that took Hephaestus lock 1 again after a stop and died before its
 test('a crash whose generation nothing names is logged under the next number with no generation, and a second start finds that log', () => {
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   writeFileSync(files.presenceFilePath, 'not JSON\n');
-  CrashLog.writeOnce(files, crashPathLogOf(2));
+  CrashLog.writeOnce(files, crashPathLogOf(2), createUnreadableBoardFiles(() => undefined));
 
   const first = admit(SUCCESSOR);
   const second = admit(SUCCESSOR);
@@ -294,4 +306,23 @@ test('a crash whose generation nothing names is logged under the next number wit
   expect(second).toMatchObject({ verdict: 'stay-off', crashLogNumber: 2, crashedGeneration: null });
   expect(CrashLog.list(files)).toEqual([FIRST_CRASH_LOG_NUMBER, 2]);
   expect(storedCrashLog(2).crashedGeneration).toBeNull();
+});
+
+test('an unreadable presence record is reported as a board file Hephaestus cannot read, and the start still classifies it as a crash', () => {
+  mkdirSync(files.hephaestusDirectory, { recursive: true });
+  writeFileSync(files.presenceFilePath, 'not JSON\n');
+
+  const verdict = admit(USER);
+
+  expect(verdict.classification.evidence.presence).toBe('unreadable');
+  expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: expect.stringContaining('not valid JSON') }]);
+});
+
+test('an unreadable heartbeat is logged, never reported, since the next beat rewrites it', () => {
+  plantPreviousGeneration(CURRENT_BOOT, { kind: 'stopped' }, false);
+  writeFileSync(files.heartbeatFilePath, '{ "heartbeatVersion": 1, ');
+
+  expect(admit(USER).classification.evidence.lastHeartbeatAt).toBeNull();
+  expect(loggedLines.some((line) => line.startsWith('heartbeat.json could not be read'))).toBe(true);
+  expect(unreadableBoardFiles.files()).toEqual([]);
 });

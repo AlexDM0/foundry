@@ -12,11 +12,19 @@ import {
   readdirSync,
   readFileSync
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import {
+  dirname,
+  join,
+  relative,
+  sep
+} from 'node:path';
 
+import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
+import { LaunchRegistryIngestion }                           from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
 import { writeFileAtomically, writeOwnerOnlyFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                    from '../../lib/process-identity/ProcessIdentity.ts';
+import type { LaunchRegistryEntry }                          from '../../lib/talos/ChildLaunch.ts';
 import { type ChildRecord, childRecordOf }                   from '../../lib/talos/ChildRecord.ts';
 import {
   childFilesOf,
@@ -44,11 +52,15 @@ import {
   TALOS_TICK_GAP_MILLISECONDS,
   TALOS_TICK_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
+import { RefusedForcedStops }                                                   from './RefusedForcedStops.ts';
 import type { TalosConnection, TalosConnectionOutcome, TalosConnectionRequest } from './TalosConnection.ts';
+import type { UnreadableBoardFiles }                                            from './UnreadableBoardFiles.ts';
 
 export const TALOS_ENTRY_PATH = join(import.meta.dir, '..', '..', '..', 'talos.ts');
 
 const TALOS_SECRET_BYTES = 24;
+
+const STORED_PATH_SEPARATOR = '/';
 
 export type TalosAvailability =
   | { verdict: 'attached'; connection: TalosConnection; startNumber: number }
@@ -99,18 +111,20 @@ export interface TalosStartHold {
 }
 
 export interface TalosStartContext {
-  boardFolder:    string;
-  monitorFolder:  string;
-  trackerId:      string;
-  codeVersion:    string;
-  repositoryRoot: string;
-  ports:          PlatformPorts;
-  bounds:         TalosStartBounds;
-  waits:          TalosStartWaits;
-  connect:        (request: TalosConnectionRequest) => Promise<TalosConnectionOutcome>;
-  startTalos:     TalosSpawn;
-  hold:           TalosStartHold;
-  log:            (sentence: string) => void;
+  boardFolder:          string;
+  monitorFolder:        string;
+  trackerId:            string;
+  codeVersion:          string;
+  repositoryRoot:       string;
+  ports:                PlatformPorts;
+  bounds:               TalosStartBounds;
+  waits:                TalosStartWaits;
+  connect:              (request: TalosConnectionRequest) => Promise<TalosConnectionOutcome>;
+  startTalos:           TalosSpawn;
+  hold:                 TalosStartHold;
+  log:                  (sentence: string) => void;
+  /** The board files Hephaestus could not read, which the board header warns of until it restarts. */
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 export function createTalosStartHold(): TalosStartHold {
@@ -198,64 +212,45 @@ function pause(milliseconds: number): Promise<void> {
   return Bun.sleep(milliseconds);
 }
 
-interface RegisteredChild {
-  childFolder: string;
-  instance:    number;
-}
-
-/** The registry's well-formed lines; Talos appends a line before it spawns, so a cut-short last line names no child that ran. */
-function registeredChildrenOf(boardFolder: string, startNumber: number): RegisteredChild[] {
-  const text = textOf(launchRegistryPathOf(boardFolder, startNumber)) ?? '';
-  return text.split('\n').flatMap((line) => {
-    try {
-      const entry = JSON.parse(line) as Partial<RegisteredChild>;
-      return typeof entry.childFolder === 'string' && Number.isSafeInteger(entry.instance) ? [{ childFolder: entry.childFolder, instance: entry.instance as number }] : [];
-    } catch {
-      return [];
-    }
-  });
-}
-
-/** Each child record a Talos registered, copied as stored: parsed where it is JSON, its text where it is not; one never written is left out. */
-export function persistedChildRecordsOf(boardFolder: string, startNumber: number): unknown[] {
-  return registeredChildrenOf(boardFolder, startNumber).flatMap(({ childFolder, instance }) => {
-    const text = textOf(childFilesOf(boardFolder, childFolder, instance).recordPath);
-    if (text === null) return [];
-    try {
-      return [JSON.parse(text) as unknown];
-    } catch {
-      return [text];
-    }
-  });
-}
-
-function childFileOf(boardFolder: string, childFolder: string, instance: number, suffix: 'lost-cause' | 'refused-forced-stops'): string {
-  return join(dirname(childFilesOf(boardFolder, childFolder, instance).recordPath), `child-${instance}.${suffix}`);
-}
-
-/** The forced stops of a lost child's tree that were refused, and the tree's process ids at the last one, its root first. */
-interface ForcedStopRefusals {
-  refusals:       number;
-  treeProcessIds: number[];
-}
-
-function refusedForcedStopsOf(path: string): ForcedStopRefusals {
-  try {
-    const stored = JSON.parse(readFileSync(path, 'utf8')) as Partial<ForcedStopRefusals>;
-    return { refusals: typeof stored.refusals === 'number' ? stored.refusals : 0, treeProcessIds: Array.isArray(stored.treeProcessIds) ? stored.treeProcessIds : [] };
-  } catch {
-    return { refusals: 0, treeProcessIds: [] };
+/**
+ * The registry's well-formed lines. The registry is board-wide and never heals, so a line that does not fit, or a registry that cannot be read
+ * at all, is reported to the board header; the readable lines still count, so a sweep stops every child it can name.
+ */
+function registeredChildrenOf(boardFolder: string, startNumber: number, unreadableBoardFiles: UnreadableBoardFiles): LaunchRegistryEntry[] {
+  const registryPath = launchRegistryPathOf(boardFolder, startNumber);
+  const reading = new LaunchRegistryIngestion(registryPath).read();
+  const file = relative(boardFolder, registryPath).split(sep).join(STORED_PATH_SEPARATOR);
+  if (reading.verdict === 'absent') return [];
+  if (reading.verdict === 'unreadable') {
+    unreadableBoardFiles.report({ file, reason: reading.reason });
+    return [];
   }
+  const [firstUnreadableLine] = reading.unreadableLines;
+  if (firstUnreadableLine !== undefined) unreadableBoardFiles.report({ file, reason: `line ${firstUnreadableLine.lineNumber}: ${firstUnreadableLine.reason}` });
+  return reading.entries;
+}
+
+/** Each child record a Talos registered, copied as stored for a crash log; one never written is left out. */
+export function persistedChildRecordsOf(boardFolder: string, startNumber: number, unreadableBoardFiles: UnreadableBoardFiles): unknown[] {
+  return registeredChildrenOf(boardFolder, startNumber, unreadableBoardFiles).flatMap(({ childFolder, instance }) => {
+    const copied = new TalosChildRecordCopy(childFilesOf(boardFolder, childFolder, instance).recordPath).read();
+    return copied.verdict === 'readable' ? [copied.copy] : [];
+  });
+}
+
+function childFolderPathOf(boardFolder: string, childFolder: string, instance: number): string {
+  return dirname(childFilesOf(boardFolder, childFolder, instance).recordPath);
 }
 
 export interface LostChildRequest {
-  boardFolder:       string;
-  childFolder:       string;
-  instance:          number;
+  boardFolder:          string;
+  childFolder:          string;
+  instance:             number;
   /** The lost Talos's boot, where its record names one: a child is never older than its Talos. */
-  talosBootIdentity: string | null;
+  talosBootIdentity:    string | null;
   /** A refused forced stop is tried again only when this says so. */
-  retryRefusedStop:  boolean;
+  retryRefusedStop:     boolean;
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 /**
@@ -264,11 +259,11 @@ export interface LostChildRequest {
  * commander (still stored as `talos-lost`); otherwise the child ended with it. A refused forced stop stores no cause and answers `null`.
  */
 export function settleLostChild({ processSupervision }: PlatformPorts, request: LostChildRequest): InterruptionCause | null {
-  const lostCausePath = childFileOf(request.boardFolder, request.childFolder, request.instance, 'lost-cause');
+  const childFolderPath = childFolderPathOf(request.boardFolder, request.childFolder, request.instance);
+  const lostCausePath = join(childFolderPath, `child-${request.instance}.lost-cause`);
   const storedCause = textOf(lostCausePath)?.trim();
   if (storedCause !== undefined && storedCause !== '') return storedCause as InterruptionCause;
-  const refusedStopsPath = childFileOf(request.boardFolder, request.childFolder, request.instance, 'refused-forced-stops');
-  const refusedStops = refusedForcedStopsOf(refusedStopsPath);
+  const refusedStops = RefusedForcedStops.storedOf(request.boardFolder, childFolderPath, request.instance, request.unreadableBoardFiles);
   if (refusedStops.refusals > 0 && !request.retryRefusedStop) return null;
   const record = childRecordAt(request.boardFolder, request.childFolder, request.instance);
   const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
@@ -280,7 +275,7 @@ export function settleLostChild({ processSupervision }: PlatformPorts, request: 
     const { verdict } = processSupervision.stopTree(record.childProcess, 'force', treeMembers);
     if (verdict === 'refused') {
       const treeProcessIds = [...new Set([record.childProcess.processId, ...treeMembers.map((member) => member.processId)])];
-      writeFileAtomically(refusedStopsPath, `${JSON.stringify({ refusals: refusedStops.refusals + 1, treeProcessIds })}\n`);
+      RefusedForcedStops.store(childFolderPath, request.instance, { refusals: refusedStops.refusals + 1, treeProcessIds });
       return null;
     }
     if (verdict === 'signalled') cause = 'talos-lost';
@@ -292,10 +287,15 @@ export function settleLostChild({ processSupervision }: PlatformPorts, request: 
 /** Settles every child of the Talos's registry whose record is not `ended`; answers how many it settled. */
 function sweepOrphansOf(context: TalosStartContext, startNumber: number, talos: ProcessIdentity | null): number {
   let swept = 0;
-  for (const { childFolder, instance } of registeredChildrenOf(context.boardFolder, startNumber)) {
+  for (const { childFolder, instance } of registeredChildrenOf(context.boardFolder, startNumber, context.unreadableBoardFiles)) {
     if (childRecordAt(context.boardFolder, childFolder, instance)?.state === 'ended') continue;
     const cause = settleLostChild(context.ports, {
-      boardFolder: context.boardFolder, childFolder, instance, talosBootIdentity: talos?.bootIdentity ?? null, retryRefusedStop: true,
+      boardFolder:          context.boardFolder,
+      childFolder,
+      instance,
+      talosBootIdentity:    talos?.bootIdentity ?? null,
+      retryRefusedStop:     true,
+      unreadableBoardFiles: context.unreadableBoardFiles,
     });
     if (cause === null) context.log(`The forced stop of ${childFolder}#${instance}, a child of the lost Talos ${startNumber}, was refused.`);
     else swept += 1;

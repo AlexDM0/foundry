@@ -2,12 +2,13 @@
  * The `presence` block of `status`, read from the board's files alone: with the forge down
  * it classifies the evidence as a start by the user would, and writes nothing, not even a crash log.
  */
+import type { HeartbeatRecord }                                       from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { StartClassificationVerdict }                            from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { LeaseStanding }                                         from '../../lib/talos/SupervisionLease.ts';
 import type { TalosRecord }                                           from '../../lib/talos/TalosRecord.ts';
 import type { Workspace }                                             from '../tracker/Workspace.ts';
-import type { HeartbeatRecord, PresenceRecord }                       from './@types/PresenceRecord.ts';
-import type { StartClassificationVerdict }                            from './@types/StartClassification.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import type { HephaestusFiles }                                       from './HephaestusFiles.ts';
 import { HephaestusLock }                                             from './HephaestusLock.ts';
@@ -15,6 +16,7 @@ import { Presence }                                                   from './Pr
 import { StartClassification }                                        from './StartClassification.ts';
 import { StartGate }                                                  from './StartGate.ts';
 import { newestTalosStartNumberIn, runningIdentityOf, talosRecordAt } from './TalosStart.ts';
+import { createUnreadableBoardFiles }                                 from './UnreadableBoardFiles.ts';
 
 export type PresenceState = 'serving' | 'starting' | 'down' | 'off-after-crash';
 
@@ -154,11 +156,13 @@ function downReadingOf(request: PresenceStatusRequest): StatusPresenceReading {
   const classification = StartClassification.classify(evidence);
   const stored = storedPresenceOf(files);
   const offAfterCrash = StartGate.crashToLogOf(classification);
+  // `status` shows what it reads; with no Hephaestus serving there is no board header to warn in, and the next start reports the file.
+  const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
   return {
     presence: {
       state:           offAfterCrash ? 'off-after-crash' : 'down',
       lastStart:       stored?.startClassification ?? null,
-      crashLog:        offAfterCrash ? statusCrashLogOf(files, StartGate.loggedCrashLogOf(files, evidence, classification)) : null,
+      crashLog:        offAfterCrash ? statusCrashLogOf(files, StartGate.loggedCrashLogOf(files, evidence, classification, unreadableBoardFiles)) : null,
       heartbeat:       storedHeartbeatOf(files),
       supervision:     supervisionOf(request),
       abandonedPasses: stored?.abandonedPasses ?? null,

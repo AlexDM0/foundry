@@ -28,6 +28,7 @@ import {
   type TalosAvailability,
   type TalosStartContext
 } from './TalosStart.ts';
+import { createUnreadableBoardFiles } from './UnreadableBoardFiles.ts';
 
 const SHORT_BOUNDS = {
   leaseMilliseconds:           60_000,
@@ -63,18 +64,19 @@ function scratchTalos(): ScratchTalos {
 function startContext(logged: string[] = []): TalosStartContext {
   const scratch = scratchTalos();
   return {
-    boardFolder:    scratch.boardFolder,
-    monitorFolder:  scratch.monitorFolder,
-    trackerId:      'tracker-example',
-    codeVersion:    'code-example',
-    repositoryRoot: scratch.boardFolder,
-    ports:          nativePlatformPorts(),
-    bounds:         SHORT_BOUNDS,
-    waits:          WAITS,
-    connect:        connectToTalos,
-    startTalos:     spawnTalos,
-    hold:           createTalosStartHold(),
-    log:            (sentence) => logged.push(sentence),
+    boardFolder:          scratch.boardFolder,
+    monitorFolder:        scratch.monitorFolder,
+    trackerId:            'tracker-example',
+    codeVersion:          'code-example',
+    repositoryRoot:       scratch.boardFolder,
+    ports:                nativePlatformPorts(),
+    bounds:               SHORT_BOUNDS,
+    waits:                WAITS,
+    connect:              connectToTalos,
+    startTalos:           spawnTalos,
+    hold:                 createTalosStartHold(),
+    log:                  (sentence) => logged.push(sentence),
+    unreadableBoardFiles: createUnreadableBoardFiles((sentence) => logged.push(sentence)),
   };
 }
 

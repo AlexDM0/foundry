@@ -19,13 +19,14 @@ import {
   test
 } from 'bun:test';
 
+import type { CrashLogRecord }                                        from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import type { CrashLogRecord }                                        from './@types/CrashLogRecord.ts';
-import type { PresenceRecord }                                        from './@types/PresenceRecord.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import { CrashPath, type CrashPathContext, type RegistryCrashReport } from './CrashPath.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                    from './HephaestusFiles.ts';
 import { Presence }                                                   from './Presence.ts';
+import { createUnreadableBoardFiles }                                 from './UnreadableBoardFiles.ts';
 
 const CRASHED_AT = '2026-11-19T09:03:10.000+01:00';
 
@@ -48,7 +49,7 @@ beforeEach(() => {
     startedAt:           '2026-11-19T09:00:00.000+01:00',
     startClassification: null,
   });
-  Presence.writeHeartbeat(files, 4, '2026-11-19T09:03:00.000+01:00');
+  Presence.writeHeartbeat(files, 4, '2026-11-19T09:03:00.000+01:00', () => undefined);
 });
 
 afterEach(() => {
@@ -68,13 +69,14 @@ function fakeCrashPathOf(overrides: Partial<CrashPathContext> = {}): FakeCrashPa
   const logLines: string[] = [];
   const context: CrashPathContext = {
     files,
-    generation:         4,
-    activeJobs:         () => [],
-    talosChildren:      () => [{ state: 'running' }],
-    stopLeaseRenewal:   () => { renewalStops += 1; },
-    writeRegistryCrash: async (report) => { registryReports.push(report); },
-    stampNow:           () => CRASHED_AT,
-    log:                (line) => { logLines.push(line); },
+    generation:           4,
+    activeJobs:           () => [],
+    talosChildren:        () => [{ state: 'running' }],
+    stopLeaseRenewal:     () => { renewalStops += 1; },
+    writeRegistryCrash:   async (report) => { registryReports.push(report); },
+    stampNow:             () => CRASHED_AT,
+    log:                  (line) => { logLines.push(line); },
+    unreadableBoardFiles: createUnreadableBoardFiles((line) => { logLines.push(line); }),
     ...overrides,
   };
   return {
@@ -180,6 +182,15 @@ describe('the crash path', () => {
     expect(outcome.crashLog).toBe('written');
     expect(storedCrashLog().activeJobs).toBeNull();
     expect(fake.logLines.some((line) => line.includes('example renewal failure'))).toBe(true);
+  });
+
+  test('an unreadable presence record is logged and left out of the crash log, and no ending is written over it', async () => {
+    writeFileSync(files.presenceFilePath, 'not JSON\n');
+    const fake = fakeCrashPathOf();
+    const outcome = await CrashPath.record(fake.context, HEPHAESTUS_CRASH);
+    expect(outcome).toMatchObject({ crashLog: 'written', presence: 'no-record' });
+    expect(storedCrashLog()).toMatchObject({ codeVersion: null, startedAt: null });
+    expect(fake.logLines.some((line) => line.includes('leaves out presence.json, which cannot be read'))).toBe(true);
   });
 
   test('a newer generation\'s presence is never given the crashed ending, and the log names no process of it', async () => {

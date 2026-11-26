@@ -19,13 +19,16 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                                                  from '../../lib/tracker-model/@types/Job.ts';
-import { createScratchDirectory, removeScratchDirectory }            from '../../testing/ScratchWorkspace.ts';
-import type { CrashLogInputs }                                       from './@types/CrashLogRecord.ts';
-import type { HeartbeatRecord, PresenceRecord }                      from './@types/PresenceRecord.ts';
-import { CrashLog }                                                  from './CrashLog.ts';
-import { hephaestusFilesIn, type HephaestusFiles }                   from './HephaestusFiles.ts';
-import { CRASH_LOG_FORMAT_VERSION, CRASH_LOG_TAIL_READ_BOUND_BYTES } from './constants/PresenceLimits.ts';
+import { CRASH_LOG_FORMAT_VERSION }                              from '../../adapters/crash-log/constants/CrashLogFileVersions.ts';
+import type { HeartbeatRecord }                                  from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceRecord }                                   from '../../adapters/presence/@types/PresenceRecord.ts';
+import type { Job }                                              from '../../lib/tracker-model/@types/Job.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import type { CrashLogInputs }                                   from './@types/CrashLogRecord.ts';
+import { CrashLog }                                              from './CrashLog.ts';
+import { hephaestusFilesIn, type HephaestusFiles }               from './HephaestusFiles.ts';
+import { createUnreadableBoardFiles, type UnreadableBoardFiles } from './UnreadableBoardFiles.ts';
+import { CRASH_LOG_TAIL_READ_BOUND_BYTES }                       from './constants/PresenceLimits.ts';
 
 const PRESENCE: PresenceRecord = {
   presenceVersion:     2,
@@ -83,10 +86,12 @@ function inputsOf(overrides: Partial<CrashLogInputs> = {}): CrashLogInputs {
 
 let boardFolder = '';
 let files: HephaestusFiles = hephaestusFilesIn('');
+let unreadableBoardFiles: UnreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
 
 beforeEach(() => {
   boardFolder = createScratchDirectory('crash-log');
   files = hephaestusFilesIn(boardFolder);
+  unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
   mkdirSync(files.hephaestusDirectory);
 });
 
@@ -152,19 +157,19 @@ describe('assembling a crash log', () => {
 
 describe('writing a crash log once', () => {
   test('the first crash log is number 1, and the same crash written again answers already-written and leaves it byte for byte', () => {
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 1 });
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 1 });
     const firstText = readFileSync(CrashLog.pathOf(files, 1), 'utf8');
-    const again = CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ logTail: ['a later, shorter tail'], error: null })));
+    const again = CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ logTail: ['a later, shorter tail'], error: null })), unreadableBoardFiles);
     expect(again).toEqual({ verdict: 'already-written', crashLogNumber: 1 });
     expect(readFileSync(CrashLog.pathOf(files, 1), 'utf8')).toBe(firstText);
     expect(CrashLog.list(files)).toEqual([1]);
   });
 
   test('a crash of a generation that came round again, by another process, gets a number of its own and keeps the generation inside', () => {
-    CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()));
+    CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles);
     const laterRun = { ...PRESENCE, process: { ...PRESENCE.process, processId: 4343, startStamp: '1700009000' } };
 
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: laterRun })))).toEqual({ verdict: 'written', crashLogNumber: 2 });
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: laterRun })), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 2 });
 
     const reading = CrashLog.read(files, 2);
     expect(reading.verdict === 'read' ? reading.record : null).toMatchObject({ crashedGeneration: 4, crashedProcess: { processId: 4343 } });
@@ -172,13 +177,13 @@ describe('writing a crash log once', () => {
 
   test('numbers rise from the highest log on disk: removing an older one frees no number, and an emptied folder starts again at 1', () => {
     for (const processId of [1001, 1002]) {
-      CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: { ...PRESENCE, process: { ...PRESENCE.process, processId } } })));
+      CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: { ...PRESENCE, process: { ...PRESENCE.process, processId } } })), unreadableBoardFiles);
     }
     rmSync(CrashLog.pathOf(files, 1));
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 3 });
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 3 });
 
     for (const crashLogNumber of CrashLog.list(files)) rmSync(CrashLog.pathOf(files, crashLogNumber));
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 1 });
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 1 });
   });
 
   test('with no presence record, the dead Hephaestus lock\'s holder names the crashed process', () => {
@@ -188,17 +193,23 @@ describe('writing a crash log once', () => {
 
   test('a written log reads back as itself', () => {
     const record = CrashLog.assemble(inputsOf());
-    CrashLog.writeOnce(files, record);
+    CrashLog.writeOnce(files, record, unreadableBoardFiles);
     expect(CrashLog.read(files, 1)).toEqual({ verdict: 'read', record: JSON.parse(JSON.stringify(record)) });
   });
 
-  test('a missing log reads as absent, and a malformed one, or one naming no generation, as unreadable', () => {
+  test('a missing log reads as absent, and a malformed one as unreadable', () => {
     expect(CrashLog.read(files, 9)).toEqual({ verdict: 'absent' });
     mkdirSync(files.crashLogDirectory, { recursive: true });
     writeFileSync(CrashLog.pathOf(files, 5), 'not json');
     expect(CrashLog.read(files, 5).verdict).toBe('unreadable');
-    writeFileSync(CrashLog.pathOf(files, 6), JSON.stringify({ ...CrashLog.assemble(inputsOf()), crashedGeneration: 'four' }));
-    expect(CrashLog.read(files, 6)).toEqual({ verdict: 'unreadable', reason: 'crashedGeneration is not a generation or null' });
+  });
+
+  test('an unreadable newest log is reported to the board header, and the crash is logged anew under the next number', () => {
+    mkdirSync(files.crashLogDirectory, { recursive: true });
+    writeFileSync(CrashLog.pathOf(files, 1), 'not json');
+
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 2 });
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/crash-logs/crash-1.json', reason: expect.stringContaining('not valid JSON') }]);
   });
 });
 
