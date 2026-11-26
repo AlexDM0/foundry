@@ -22,9 +22,7 @@ const STORED_FILE_OFFENDER = 'A stored file, still parsed in the service until i
 
 /** `<path>: <trimmed line>`, sorted by path, with what each parse reads. */
 const ALLOWED_PARSES: Readonly<Record<string, string>> = {
-  'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);':                                                                              STORED_FILE_OFFENDER,
-  'src/services/hephaestus/AirlockFactsFile.ts: const parsed: unknown = JSON.parse(readFileSync(join(mergeJobFolder, AIRLOCK_FACTS_FILE), \'utf8\'));': STORED_FILE_OFFENDER,
-  'src/services/hephaestus/AirlockFactsFile.ts: const parsed: unknown = JSON.parse(readFileSync(factsPath, \'utf8\'));':                                STORED_FILE_OFFENDER,
+  'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);': STORED_FILE_OFFENDER,
   'src/services/hephaestus/AssistantSession.ts: const parsed: unknown = JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), CHATS_FILE), \'utf8\'));':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/CrashLog.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
@@ -35,9 +33,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/HephaestusLock.ts: return hephaestusLockRecordOfStored(JSON.parse(readFileSync(hephaestusLockFilePath, \'utf8\')));':  STORED_FILE_OFFENDER,
   'src/services/hephaestus/HephaestusServer.ts: body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));':                                 'The body of an HTTP request.',
   'src/services/hephaestus/InstallChangeWatch.ts: const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;': 'The output of a process.',
-  'src/services/hephaestus/JobResumption.ts: const recorded: unknown = JSON.parse(readFileSync(path, \'utf8\'));':                                STORED_FILE_OFFENDER,
-  'src/services/hephaestus/MergedTreeGateRuns.ts: const kept = JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), \'utf8\')));':
-    STORED_FILE_OFFENDER,
   'src/services/hephaestus/PipelineAgentSessions.ts: return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), \'utf8\')) as SnapshotStart;':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/Presence.ts: parsed = JSON.parse(text);': STORED_FILE_OFFENDER,
@@ -49,7 +44,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/TalosStart.ts: const stored = JSON.parse(readFileSync(path, \'utf8\')) as Partial<ForcedStopRefusals>;': STORED_FILE_OFFENDER,
   'src/services/hephaestus/TalosStart.ts: return [JSON.parse(text) as unknown];':                                                   STORED_FILE_OFFENDER,
   'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));':                     STORED_FILE_OFFENDER,
-  'src/services/lifecycle/ReviewOutcome.ts: parsed = JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), \'utf8\'));':        STORED_FILE_OFFENDER,
   'src/services/tracker/GenerationLock.ts: const parsed: unknown = JSON.parse(generationText);':                                    STORED_FILE_OFFENDER,
 };
 

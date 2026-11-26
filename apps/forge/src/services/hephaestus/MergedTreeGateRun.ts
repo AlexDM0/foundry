@@ -2,6 +2,7 @@
  * The gate run of a merged tree or a stale green, on the pipeline Hephaestus read for it: a pipeline without entities runs once from the
  * tracker's project folder; a pipeline with entities runs each gated entity's part from its first home folder.
  */
+import type { MergedTreeGate }          from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { EntityKey, Pipeline }     from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
@@ -12,7 +13,6 @@ import {
   type PipelineRunRequest,
   type PipelineVerdict
 } from '../lifecycle/GateRun.ts';
-import type { MergedTreeGate } from './Airlocks.ts';
 
 export interface MergedTreeGateRunRequest {
   /** The pipeline read as the run starts; `null` when none is stored, which runs no step. */

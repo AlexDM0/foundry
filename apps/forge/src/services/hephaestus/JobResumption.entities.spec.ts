@@ -26,7 +26,7 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
 import type { BoardChildren }                             from './BoardChildren.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { JobResumption }                                  from './JobResumption.ts';
+import { JobResumption, type SessionOwnerAnswer }         from './JobResumption.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                  from './RedHandoff.ts';
 
 const AT = '2026-11-17T10:00:00+01:00';
@@ -148,7 +148,7 @@ describe('a stale green that turned red', () => {
   });
 
   /** J1 reviewed, left a stale-green handoff and started its session; J2 is the next review. */
-  function staleGreenSessionOwnerOf(earlierScope: EntityAndStage, laterScope: EntityAndStage): string | null {
+  function staleGreenSessionOwnerOf(earlierScope: EntityAndStage, laterScope: EntityAndStage): SessionOwnerAnswer<string | null> {
     const folder = join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder);
     mkdirSync(folder, { recursive: true });
     RedHandoff.writeRedHandoff(folder, {
@@ -177,10 +177,10 @@ describe('a stale green that turned red', () => {
   }
 
   test('resumes the session of its own entity and stage', () => {
-    expect(staleGreenSessionOwnerOf(HOME_STAGE_FIVE, HOME_STAGE_FIVE)).toBe('J1');
+    expect(staleGreenSessionOwnerOf(HOME_STAGE_FIVE, HOME_STAGE_FIVE)).toEqual({ verdict: 'answered', sessionOwnerJobId: 'J1' });
   });
 
   test('leaves the handoff to a fresh session when the ended session ran another entity or stage', () => {
-    expect(staleGreenSessionOwnerOf(PACKAGE_STAGE_TWO, HOME_STAGE_FIVE)).toBeNull();
+    expect(staleGreenSessionOwnerOf(PACKAGE_STAGE_TWO, HOME_STAGE_FIVE)).toEqual({ verdict: 'answered', sessionOwnerJobId: null });
   });
 });

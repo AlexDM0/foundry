@@ -3,26 +3,26 @@
  * the round verdict, and the move it makes: a failed pass back to a fixer, a fresh reviewer, a waiver for User, or the merge queue, which
  * with merge approval on waits for the merge of the target into the ticket's worktree first.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { join } from 'node:path';
 
-import { writeFileAtomically }                 from '../../lib/atomic-file/AtomicFile.ts';
-import { readChangeSize, readCommitsDiff }     from '../../lib/git/BranchDiffs.ts';
-import { GitProcess }                          from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                        from '../../lib/git/GitWorktrees.ts';
-import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                       from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { ReviewClaim, ReviewFinding }     from '../../lib/tracker-model/@types/ReviewRecord.ts';
-import type { RoundLimits }                    from '../../lib/tracker-model/@types/ReviewRound.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { RoundVerdictUtil }                    from '../../lib/tracker-model/utils/RoundVerdictUtil.ts';
-import { TicketStageUtil }                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import { TICKET_SECTION_PATTERNS }             from '../../shared/constants/TicketSectionPatterns.ts';
-import { ReworkCountUtil }                     from '../../shared/rework/utils/ReworkCountUtil.ts';
-import { ticketIdFiledByRequest }              from './Customs.ts';
+import { WaiverProposalsIngestion, type WaiverProposal } from '../../adapters/waiver-proposals/WaiverProposalsIngestion.ts';
+import { createWaiverProposalsWriter }                   from '../../adapters/waiver-proposals/WaiverProposalsWriter.ts';
+import { readChangeSize, readCommitsDiff }               from '../../lib/git/BranchDiffs.ts';
+import { GitProcess }                                    from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                  from '../../lib/git/GitWorktrees.ts';
+import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }           from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { ReviewClaim, ReviewFinding }               from '../../lib/tracker-model/@types/ReviewRecord.ts';
+import type { RoundLimits }                              from '../../lib/tracker-model/@types/ReviewRound.ts';
+import type { Board }                                    from '../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                                  from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { RoundVerdictUtil }                              from '../../lib/tracker-model/utils/RoundVerdictUtil.ts';
+import { TicketStageUtil }                               from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import { TICKET_SECTION_PATTERNS }                       from '../../shared/constants/TicketSectionPatterns.ts';
+import { ReworkCountUtil }                               from '../../shared/rework/utils/ReworkCountUtil.ts';
+import { ticketIdFiledByRequest }                        from './Customs.ts';
 
 export interface ReviewPassRequest {
   board:             Board;
@@ -65,11 +65,6 @@ export interface ReviewPassOutcome {
   reworkedLines: number;
   headCommit:    string;
   logged:        LogRecord[];
-}
-
-interface WaiverProposal {
-  item:   string;
-  reason: string;
 }
 
 /** The answer that refuses a waiver; any other grants it. */
@@ -190,24 +185,6 @@ function waiverProposalsPathOf(jobFolder: string): string {
   return join(jobFolder, WAIVER_PROPOSALS_FILE);
 }
 
-type WaiverProposalsReading = { verdict: 'read'; proposals: WaiverProposal[] } | { verdict: 'unreadable' };
-
-function isWaiverProposal(value: unknown): value is WaiverProposal {
-  return typeof value === 'object' && value !== null
-    && typeof (value as Record<string, unknown>)['item'] === 'string' && typeof (value as Record<string, unknown>)['reason'] === 'string';
-}
-
-/** A settled waiver always stores at least one proposal, so an empty list is as unreadable as a missing or malformed file. */
-function readWaiverProposals(jobFolder: string): WaiverProposalsReading {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), 'utf8'));
-  } catch {
-    return { verdict: 'unreadable' };
-  }
-  return Array.isArray(parsed) && parsed.length > 0 && parsed.every(isWaiverProposal) ? { verdict: 'read', proposals: parsed } : { verdict: 'unreadable' };
-}
-
 /** In the hold after the reviewer's gate passed. */
 function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   const {
@@ -276,7 +253,7 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
       logged.push(...board.endJob(job.id, { outcome: 'round-granted', commit: headCommit }, at).logged);
       break;
     case 'waiver': {
-      writeFileAtomically(waiverProposalsPathOf(request.jobFolder), `${JSON.stringify(proposals, null, 2)}\n`);
+      createWaiverProposalsWriter(waiverProposalsPathOf(request.jobFolder)).write(proposals);
       board.setTicketMergeQueued(ticketId, false, at);
       const draft: DecisionDraft = { kind: 'waiver', ticketIds: [ticketId], jobId: job.id };
       logged.push(...board.openDecision({
@@ -330,7 +307,8 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
  * Acts on User's recorded answer to the review job's `waiver` decision, in Hephaestus's hold after the answer: granted, each proposed
  * item is written waived and the ticket queued to merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits
  * unqueued for a fresh review, which gates it); refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant
- * whose stored proposals cannot be read waives nothing it cannot name, so it fails closed as that same failed pass.
+ * whose stored proposals are missing or cannot be read waives nothing it cannot name, so it fails closed as that same failed pass, its cause
+ * recorded: User's answer is already taken, and a job left waiting on it would act on the same answer again at every pass.
  */
 function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string): LogRecord[] {
   const job = board.jobById(jobId);
@@ -343,8 +321,8 @@ function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string
     return logged;
   };
   if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
-  const reading = readWaiverProposals(jobFolder);
-  if (reading.verdict === 'unreadable') return endAsFailedPass('waiver-proposals-unreadable');
+  const reading = new WaiverProposalsIngestion(waiverProposalsPathOf(jobFolder)).read();
+  if (reading.verdict !== 'readable') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, writtenBy: 'board' }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);

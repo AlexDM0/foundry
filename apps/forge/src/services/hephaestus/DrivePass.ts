@@ -63,29 +63,24 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }                           from '../../shared/constants/LifecycleLimits.ts';
-import { AgentProgramWordingUtil }                    from '../../shared/utils/AgentProgramWordingUtil.ts';
-import { type AgentProgramResolution, AgentPrograms } from '../control/AgentPrograms.ts';
-import { AgentTools }                                 from '../control/AgentTools.ts';
-import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun.ts';
-import { Landing }                                    from '../lifecycle/Landing.ts';
-import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
-import type { BoardStore }                            from '../store/BoardStore.ts';
-import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
-import { lockTakerOf }                                from '../tracker/LockHolders.ts';
-import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
-import { registeredRepositoryRootsIn }                from '../tracker/RegisteredRepositoryRoots.ts';
-import type { Workspace }                             from '../tracker/Workspace.ts';
-import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
-import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
-import { AgentSlots }                                 from './AgentSlots.ts';
-import {
-  AIRLOCK_FACT_NAMES,
-  AirlockFactsFile,
-  KEPT_FACT_TRUE,
-  type AirlockAgentPhase
-} from './AirlockFactsFile.ts';
+import { LIFECYCLE_LIMITS }                                    from '../../shared/constants/LifecycleLimits.ts';
+import { AgentProgramWordingUtil }                             from '../../shared/utils/AgentProgramWordingUtil.ts';
+import { type AgentProgramResolution, AgentPrograms }          from '../control/AgentPrograms.ts';
+import { AgentTools }                                          from '../control/AgentTools.ts';
+import type { GateConfinement, LineRunner }                    from '../lifecycle/GateRun.ts';
+import { Landing }                                             from '../lifecycle/Landing.ts';
+import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
+import type { BoardStore }                                     from '../store/BoardStore.ts';
+import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
+import { lockTakerOf }                                         from '../tracker/LockHolders.ts';
+import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
+import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
+import type { Workspace }                                      from '../tracker/Workspace.ts';
+import type { StartClassificationVerdict }                     from './@types/StartClassification.ts';
+import { AbandonedPassReason, type PassThrowReading }          from './AbandonedPassReason.ts';
+import { AgentSlots }                                          from './AgentSlots.ts';
+import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
@@ -142,6 +137,7 @@ import { SessionConfinement }                                         from './Se
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { StoredFileUnreadable }                                       from './StoredFileUnreadable.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile }          from './UnreadableJobFileIncident.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
@@ -223,10 +219,9 @@ interface AirlockConflictsUnknown {
   readonly airlockConflictsUnknownFor: string;
 }
 
-/** A job file the launch reads cannot be read: nothing launches, and the pass's hold opens the file's incident on the job. */
-interface UnreadableLaunchFile {
-  readonly unreadableLaunchFileOfJob: string;
-  readonly unreadable:                StoredFileUnreadable;
+/** A file the launch needs that its ingestion could not read: nothing launches, and the pass's hold opens its incident on the job named. */
+interface UnreadableJobFileRefusal {
+  readonly unreadableJobFile: UnreadableJobFile;
 }
 
 /** A session forge's confinement cannot hold, of a job with no incident of its own for it: the next pass tries it again. */
@@ -708,9 +703,13 @@ function applyChildEvents(
     const childIsGone = childObservation.liveness.verdict === 'ended' || childObservation.liveness.verdict === 'lost';
     const sessionExitedByItself = childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.reason === 'exited';
     const sessionEndedCleanly   = sessionExitedByItself && childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.exitCode === 0;
-    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(
+    const sessionOwner = job !== undefined && state === 'running'
+      ? JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter)
+      : null;
+    if (sessionOwner?.verdict === 'unreadable') UnreadableJobFileIncident.openOnce(board, sessionOwner.unreadableFile, at);
+    if (job !== undefined && sessionOwner?.verdict === 'answered' && JobResumption.resumeFailed(
       job,
-      JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter),
+      sessionOwner.sessionOwnerJobId,
       sessionExitedByItself,
       childObservation.sessionStarted,
     )) {
@@ -868,16 +867,19 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
 }
 
 /**
- * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; a job file
- * of the merge job the agent is told of that cannot be read stops the launch.
+/**
+ * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; a file of
+ * the merge job the agent is told of that cannot be read stops the launch.
  */
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string): AirlockFacts | null | 'conflicts-unknown' | StoredFileUnreadable {
+function airlockFactsOf(
+  board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string
+): AirlockFacts | null | 'conflicts-unknown' | UnreadableJobFileRefusal {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   if (mergeJob?.state === 'merging-main') {
     const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
-    if (StoredFileUnreadable.isUnreadableFile(conflict)) return conflict;
+    if (StoredFileUnreadable.isUnreadableFile(conflict)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(job.id, conflict) };
     return {
       mergePlacement:  'before-human-code-review',
       worktree:        checkout,
@@ -891,11 +893,14 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   }
   const mergeJobFolder = jobFolderIn(trackerDirectory, job.parentJobId);
   const phase          = airlockAgentPhaseOf(board, job);
-  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
+  const kept           = AirlockFactsFile.keptFactsOf(mergeJobFolder, job.parentJobId);
+  if (kept.verdict === 'unreadable') return { unreadableJobFile: kept.unreadableFile };
+  const keptFacts      = kept.verdict === 'kept' ? kept.facts : null;
+  const conflicts      = AirlockFactsFile.conflictedFilesOf(keptFacts, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
-  const leavesTheMergeOpen = phase === 'resolving' && AirlockFactsFile.keptFactOf(mergeJobFolder, AIRLOCK_FACT_NAMES.leavesTheMergeOpen) === KEPT_FACT_TRUE;
+  const leavesTheMergeOpen = phase === 'resolving' && keptFacts?.leavesTheMergeOpen === true;
   const redHandoff = RedHandoff.redHandoffFactsOf(trackerDirectory, mergeJobFolder);
-  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return redHandoff;
+  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return { unreadableJobFile: StoredFileUnreadable.unreadableJobFileOn(job.id, redHandoff) };
   return {
     mergePlacement:  'airlock',
     worktree:        checkout,
@@ -1055,15 +1060,19 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Read
   return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
 
-function unreadableLaunchFileOf(request: Pick<DrivePassRequest, 'log'>, job: Readonly<Job>, unreadable: StoredFileUnreadable): UnreadableLaunchFile {
-  request.log(`Job ${job.id} did not launch: its launch reads ${unreadable.file}, which cannot be read (${unreadable.reason}).`);
-  return { unreadableLaunchFileOfJob: job.id, unreadable };
+/** Logs the refused launch; a file read for the launch is the reading job's, unless its reading names the job it belongs to. */
+function unreadableJobFileRefusalOf(
+  request: Pick<DrivePassRequest, 'log'>, job: Readonly<Job>, unreadable: UnreadableJobFile | StoredFileUnreadable
+): UnreadableJobFileRefusal {
+  const unreadableJobFile = StoredFileUnreadable.isUnreadableFile(unreadable) ? StoredFileUnreadable.unreadableJobFileOn(job.id, unreadable) : unreadable;
+  request.log(`Job ${job.id} did not launch: its launch reads ${unreadableJobFile.file}, which cannot be read (${unreadableJobFile.reason}).`);
+  return { unreadableJobFile };
 }
 
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
- * marks its instance spawned, so the next pass tries it again.
+ * marks its instance spawned, so the next pass tries it again. A job file the launch needs that cannot be read answers that file.
  */
 async function launchAgentChild(
   request: DrivePassRequest,
@@ -1074,7 +1083,7 @@ async function launchAgentChild(
   effectReadings: EffectReadings,
 ): Promise<
   LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | SetupBillingNotChosen | AirlockConflictsUnknown | TalosDidNotLaunch
-  | SessionConfinementRefused | UnreadableLaunchFile | null
+  | SessionConfinementRefused | UnreadableJobFileRefusal | null
   > {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
@@ -1116,27 +1125,29 @@ async function launchAgentChild(
     }
   }
   const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
+  if (airlock !== null && airlock !== 'conflicts-unknown' && 'unreadableJobFile' in airlock) return unreadableJobFileRefusalOf(request, job, airlock.unreadableJobFile);
   if (airlock === 'conflicts-unknown') {
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
   }
-  if (StoredFileUnreadable.isUnreadableFile(airlock)) return unreadableLaunchFileOf(request, job, airlock);
   const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
   const factsRead = launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
-  if (StoredFileUnreadable.isUnreadableFile(factsRead)) return unreadableLaunchFileOf(request, job, factsRead);
+  if (StoredFileUnreadable.isUnreadableFile(factsRead)) return unreadableJobFileRefusalOf(request, job, factsRead);
   const launchFacts      = { ...factsRead, effectReading };
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
-  if (StoredFileUnreadable.isUnreadableFile(resumeLine)) return unreadableLaunchFileOf(request, job, resumeLine);
+  if (StoredFileUnreadable.isUnreadableFile(resumeLine)) return unreadableJobFileRefusalOf(request, job, resumeLine);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
   // A resumed instance reads the owner its first instance recorded, though the handoff it took over may read otherwise by now.
-  const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
+  const staleGreenSessionOwnerAnswer = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
     ? null
     : JobResumption.staleGreenSessionOwnerOf(children, workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  if (staleGreenSessionOwnerAnswer?.verdict === 'unreadable') return unreadableJobFileRefusalOf(request, job, staleGreenSessionOwnerAnswer.unreadableFile);
+  const staleGreenSessionOwner = staleGreenSessionOwnerAnswer?.sessionOwnerJobId ?? null;
   const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   // Read before the launch writes anything, so a pair that cannot be read leaves the job as it was.
   const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
-  if (StoredFileUnreadable.isUnreadableFile(launchSettings)) return unreadableLaunchFileOf(request, job, launchSettings);
+  if (StoredFileUnreadable.isUnreadableFile(launchSettings)) return unreadableJobFileRefusalOf(request, job, launchSettings);
   JobResumption.recordStaleGreenSessionOwner(workspace.trackerDirectory, job, staleGreenSessionOwner);
   // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
@@ -1567,7 +1578,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     startHoldsOrphans:     startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
-    keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(request.boardChildren.jobFolderOf(mergeJob.id), name),
+    keptAirlockFactsOf:    (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
     jobFolderOf:           (job) => request.boardChildren.jobFolderOf(job.id),
     jobFolderOfId:         (jobId) => request.boardChildren.jobFolderOf(jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -1803,8 +1814,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const launchRefusals: LaunchRefusal[] = [];
     const agentProgramRefusals: AgentProgramRefused[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
+    const unreadableJobFiles: UnreadableJobFile[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
-    const unreadableLaunchFiles: UnreadableLaunchFile[] = [];
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
       ? []
@@ -1816,8 +1827,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
       else if ('setupBillingNotChosenFor' in refusal) continue;
-      else if ('unreadableLaunchFileOfJob' in refusal) unreadableLaunchFiles.push(refusal);
       else if ('notLaunchedJobId' in refusal) agentProgramRefusals.push(refusal);
+      else if ('unreadableJobFile' in refusal) unreadableJobFiles.push(refusal.unreadableJobFile);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
@@ -1827,7 +1838,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       && openApiKeyDecisionIdsOf(written.board).length > 0;
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
-      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0 || unreadableLaunchFiles.length > 0;
+      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0 || unreadableJobFiles.length > 0;
     let refusalResolvedSinceItsLaunch = false;
     if (holdIsDue) await holdTracker((hold) => {
       for (const refused of agentProgramRefusals) {
@@ -1840,9 +1851,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       }
       hold.board.retryNotLaunched(hold.at, (job) => notLaunchedJobIdsToRetry.includes(job.id));
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
-      for (const { unreadableLaunchFileOfJob, unreadable } of unreadableLaunchFiles) {
-        StoredFileUnreadable.openIncidentOn(hold.board, unreadableLaunchFileOfJob, unreadable, hold.at);
-      }
+      for (const unreadableJobFile of unreadableJobFiles) UnreadableJobFileIncident.openOnce(hold.board, unreadableJobFile, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);

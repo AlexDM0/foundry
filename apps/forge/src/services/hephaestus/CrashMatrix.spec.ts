@@ -1072,7 +1072,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
         change.board.setJobSlot(mergeJob.id, {
           target: 'main', targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), phase: 're-reviewing'
         });
-        AirlockFactsFile.keep(sessionJobFolder(mergeJob.id), { conflictedFiles: 'shared.txt' });
+        AirlockFactsFile.keep(sessionJobFolder(mergeJob.id), { conflictedFiles: ['shared.txt'], leavesTheMergeOpen: false, filesResolvedBefore: [] });
         reReviewerJobId = change.board.launchJob({
           kind: 'merge-agent', role: 'conflict-re-reviewer', ticketIds: ['001'], parentJobId: mergeJob.id, attempt: 1, target: 'main',
         }, change.at).job.id;
@@ -1080,6 +1080,36 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     });
     await passOnce(await startedHephaestus(adapter));
     expect(plans.get(reReviewerJobId)).toEqual({ reportTitle: 'reviewer report', askUser: false });
+  });
+
+  test('an Airlock agent whose merge job\'s kept facts cannot be read launches nothing, and system-file-unreadable opens on the merge job', async () => {
+    let mergeJobId = '';
+    let reReviewerJobId = '';
+    await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        mergeJobId = change.board.launchJob({
+          kind: 'merge', role: null, ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job.id;
+        change.board.setJobSlot(mergeJobId, {
+          target: 'main', targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), phase: 're-reviewing'
+        });
+        mkdirSync(sessionJobFolder(mergeJobId), { recursive: true });
+        writeFileSync(join(sessionJobFolder(mergeJobId), 'airlock-facts.json'), '{"conflictedFiles":"shared.txt"}\n');
+        reReviewerJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'conflict-re-reviewer', ticketIds: ['001'], parentJobId: mergeJobId, attempt: 1, target: 'main',
+        }, change.at).job.id;
+      },
+    });
+
+    await passOnce(await startedHephaestus(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
+
+    const incidents = (requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'system-file-unreadable');
+    expect(incidents).toMatchObject([{ jobId: mergeJobId, facts: { file: `jobs/${mergeJobId}/airlock-facts.json`, reason: 'its version is not 1' } }]);
+    expect(launches.filter((launch) => launch.jobId === reReviewerJobId)).toEqual([]);
   });
 
   test('a conflict re-reviewer under a job in merging-main launches as the reviewer it is, outside any Airlock, with the conflict its job resolved', async () => {
@@ -1286,6 +1316,18 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
     const nextLaunch = buildLaunches.find((launch) => launch.jobId === nextBuildJobId);
     expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
+  });
+
+  test('a stale-green resume whose recorded session owner cannot be read opens system-file-unreadable on its job and launches nothing', async () => {
+    const { nextBuildJobId } = await plantStartedStaleGreen();
+    mkdirSync(sessionJobFolder(nextBuildJobId), { recursive: true });
+    writeFileSync(join(sessionJobFolder(nextBuildJobId), 'stale-green-session-owner.json'), '{"sessionOwnerJobId":');
+
+    await passOnce(await startedHephaestus(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
+
+    const incidents = (requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'system-file-unreadable');
+    expect(incidents).toMatchObject([{ jobId: nextBuildJobId, facts: { file: `jobs/${nextBuildJobId}/stale-green-session-owner.json` } }]);
+    expect(launches.filter((launch) => launch.jobId === nextBuildJobId)).toEqual([]);
   });
 
   test('a stale-green resume interrupted after its session started resumes the ended builder\'s session again at its next instance, once User resumes it', async () => {

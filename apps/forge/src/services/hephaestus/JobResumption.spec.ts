@@ -15,18 +15,18 @@ import {
   test
 } from 'bun:test';
 
-import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
-import type { BoardChildren }                             from './BoardChildren.ts';
-import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { JobResumption, RESUME_FAILED_CAUSE }             from './JobResumption.ts';
-import { RED_HANDOFF_FILES, RedHandoff }                  from './RedHandoff.ts';
-import { keptRedHandoffOf }                               from './testing/KeptRedHandoff.ts';
+import { createEventLogWriter }                                        from '../../lib/talos/EventLog.ts';
+import type { Job }                                                    from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                              from '../../lib/tracker-model/@types/LogRecord.ts';
+import { fakeAgentAdapter, fakeStartedLine }                           from '../../testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }                        from '../../testing/TalosChildReadings.ts';
+import type { BoardChildren }                                          from './BoardChildren.ts';
+import { jobFolderIn }                                                 from './HephaestusFiles.ts';
+import { JobResumption, RESUME_FAILED_CAUSE, type SessionOwnerAnswer } from './JobResumption.ts';
+import { RED_HANDOFF_FILES, RedHandoff }                               from './RedHandoff.ts';
+import { keptRedHandoffOf }                                            from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-04T19:30:00+01:00';
 
@@ -39,6 +39,10 @@ beforeEach(() => {
 afterEach(() => {
   removeScratchDirectory(trackerDirectory);
 });
+
+function answered<SessionOwner extends string | null>(sessionOwnerJobId: SessionOwner): SessionOwnerAnswer<SessionOwner> {
+  return { verdict: 'answered', sessionOwnerJobId };
+}
 
 function reviewJob(overrides: Partial<Job> = {}): Job {
   return {
@@ -142,19 +146,19 @@ describe('a stale green that turned red', () => {
     writeStaleGreenFacts('J1');
     writeSessionStart('J1');
 
-    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBe('J1');
+    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toEqual(answered('J1'));
   });
 
   test('leaves the handoff to a fresh session when the ended session never started', () => {
     writeStaleGreenFacts('J1');
 
-    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBeNull();
+    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toEqual(answered(null));
   });
 
   test('resumes nothing after an ended job with no stale-green handoff', () => {
     writeSessionStart('J1');
 
-    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toBeNull();
+    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter())).toEqual(answered(null));
   });
 
   test('a resumed instance resumes the same ended session as its first instance, never a session of its own', () => {
@@ -163,23 +167,24 @@ describe('a stale green that turned red', () => {
 
     expect(JobResumption.staleGreenSessionOwnerOf(
       childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
-    )).toBe('J1');
+    )).toEqual(answered('J1'));
     expect(JobResumption.launchSessionOwnerJobIdOf(
       childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
-    )).toBe('J1');
+    )).toEqual(answered('J1'));
   });
 
   test('a resumed instance resumes the session its first instance recorded, though another same-work job ended between the two instances', () => {
     writeStaleGreenFacts('J1');
     writeSessionStart('J1');
     const firstInstanceOwner = JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter());
-    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), firstInstanceOwner);
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), firstInstanceOwner.verdict === 'answered' ? firstInstanceOwner.sessionOwnerJobId : null);
     const recordsAfterJ4Ended = [...RECORDS, launched('J4'), ended('J4')];
     const secondInstance = reviewJob({ childInstance: 2 });
 
-    expect(firstInstanceOwner).toBe('J1');
-    expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toBe('J1');
-    expect(JobResumption.launchSessionOwnerJobIdOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toBe('J1');
+    expect(firstInstanceOwner).toEqual(answered('J1'));
+    const children = childrenOfTheTracker(trackerDirectory);
+    expect(JobResumption.staleGreenSessionOwnerOf(children, trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toEqual(answered('J1'));
+    expect(JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toEqual(answered('J1'));
   });
 
   test('a resumed instance whose first instance recorded no stale-green session resumes its own, though a later same-work job left one', () => {
@@ -190,7 +195,7 @@ describe('a stale green that turned red', () => {
 
     expect(JobResumption.launchSessionOwnerJobIdOf(
       childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
-    )).toBe('J2');
+    )).toEqual(answered('J2'));
   });
 
   test('a resumed instance never overwrites the answer its first instance recorded', () => {
@@ -199,7 +204,25 @@ describe('a stale green that turned red', () => {
 
     expect(JobResumption.staleGreenSessionOwnerOf(
       childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
-    )).toBe('J1');
+    )).toEqual(answered('J1'));
+  });
+
+  test('a recorded answer that cannot be read is unreadable, naming the job\'s file, and no other session is guessed', () => {
+    writeStaleGreenFacts('J1');
+    writeSessionStart('J1');
+    mkdirSync(jobFolderIn(trackerDirectory, 'J2'), { recursive: true });
+    writeFileSync(join(jobFolderIn(trackerDirectory, 'J2'), 'stale-green-session-owner.json'), '{"sessionOwnerJobId":"J1"}\n');
+    const unreadable = {
+      verdict:        'unreadable' as const,
+      unreadableFile: { jobId: 'J2', file: 'jobs/J2/stale-green-session-owner.json', reason: 'its version is not 1' },
+    };
+
+    expect(JobResumption.staleGreenSessionOwnerOf(
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
+    )).toEqual(unreadable);
+    expect(JobResumption.launchSessionOwnerJobIdOf(
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
+    )).toEqual(unreadable);
   });
 
   test('hands the fresh job after a failed stale-green resume the red handoff the replaced job adopted', () => {

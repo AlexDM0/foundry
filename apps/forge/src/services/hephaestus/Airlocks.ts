@@ -9,16 +9,17 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
 
-import { readCurrentBranch }            from '../../lib/git/BranchIntegration.ts';
-import { GitProcess }                   from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                 from '../../lib/git/GitWorktrees.ts';
-import { predictMerge, predictMerges }  from '../../lib/git/MergeTree.ts';
-import type { DecisionKind }            from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { KeptAirlockFacts }       from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
+import type { MergedTreeGate }         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }                  from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
+import { predictMerge, predictMerges } from '../../lib/git/MergeTree.ts';
+import type { DecisionKind }           from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase }              from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   GateRunCacheReports,
-  GateRunStepRuns,
   Job,
   JobEnding,
   JobRole,
@@ -58,12 +59,13 @@ import {
   type CrossingLanding,
   type RedGateOwner
 } from '../lifecycle/MergeRun.ts';
-import { AIRLOCK_FACT_NAMES, KEPT_FACT_TRUE }               from './AirlockFactsFile.ts';
+import type { KeptAirlockFactsAnswer }                      from './AirlockFactsFile.ts';
 import { ConstitutionCommits, type ConstitutionFileCommit } from './ConstitutionCommits.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
 import { CONSTITUTION_FILE_PATH, InstructionFiles }         from './InstructionFiles.ts';
 import { JobResumption }                                    from './JobResumption.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
+import { UnreadableJobFileIncident }                        from './UnreadableJobFileIncident.ts';
 
 export interface AirlockHold {
   board: Board;
@@ -132,9 +134,9 @@ export interface AirlocksContext {
   startHoldsOrphans?:     boolean;
   decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
-  keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
-  /** One fact kept beside the merge job; `null` when none was kept under that name. */
-  keptAirlockFactOf:      (mergeJob: Readonly<Job>, name: string) => string | null;
+  keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: KeptAirlockFacts) => void;
+  /** The facts kept beside the merge job: `absent` when none were kept, `unreadable` when the merge job's file cannot be read. */
+  keptAirlockFactsOf:     (mergeJob: Readonly<Job>) => KeptAirlockFactsAnswer;
   /** The job's own folder, where a merge-gate fixer's red handoff is written for its resumed session. */
   jobFolderOf:            (job: Readonly<Job>) => string;
   /** An ended job's folder, where a stale green turned red is written for the next session of its kind. */
@@ -149,23 +151,6 @@ export interface AirlocksContext {
   mainConstitutionOf:     (constitutionPath: string) => MainConstitutionReading;
   /** The repository sets `commit.gpgsign`, so a constitution commit git cannot make is an unsigned one. */
   repositorySignsCommits: () => boolean;
-}
-
-/** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
-export interface MergedTreeGate {
-  /** `setup-failed` when a prepare step did not exit 0, `sandbox-unavailable` when a line was refused: no gate judged the tree. */
-  outcome:       GateOutcome | 'setup-failed' | 'sandbox-unavailable';
-  /** The red gate or the failed or refused step; `null` on a pass. */
-  step:          string | null;
-  /** On a pipeline with entities, the entity whose gate or step that is; absent on a pass. */
-  entity?:       EntityKey;
-  output:        string;
-  /** The phase and phase hash of the pipeline the run read as it started, which a row's green records; `null` when it read none. */
-  stamp:         GateRunStamp | null;
-  /** What each gate that ended reported of its cache; absent when no gate ran. */
-  cacheReports?: GateRunCacheReports;
-  /** Each step line that ran, with its run time; absent when none ran. */
-  stepRuns?:     GateRunStepRuns;
 }
 
 function gateRanFieldsOf(tree: string, outcome: GateOutcome, cacheReports: GateRunCacheReports | undefined): LogRecordFieldsOf<'gate-ran'> {
@@ -495,12 +480,8 @@ function conflictPartScopeOf(part: Readonly<ConflictPart>, homeScope: AirlockAge
 }
 
 /** What the agent of one part of a conflict is told through the kept facts; a ticket that crossed into no package keeps only its files. */
-function conflictPartFactsOf(part: Readonly<ConflictPart>, filesResolvedBefore: readonly string[]): Record<string, string> {
-  return {
-    [AIRLOCK_FACT_NAMES.conflictedFiles]: part.files.join('\n'),
-    ...(part.leavesTheMergeOpen ? { [AIRLOCK_FACT_NAMES.leavesTheMergeOpen]: KEPT_FACT_TRUE } : {}),
-    ...(filesResolvedBefore.length === 0 ? {} : { [AIRLOCK_FACT_NAMES.filesResolvedBefore]: filesResolvedBefore.join('\n') }),
-  };
+function conflictPartFactsOf(part: Readonly<ConflictPart>, filesResolvedBefore: readonly string[]): KeptAirlockFacts {
+  return { conflictedFiles: part.files, leavesTheMergeOpen: part.leavesTheMergeOpen, filesResolvedBefore };
 }
 
 /** A ticket that crossed into packages, as its landing reads it; `null` for every other ticket, whose Airlock runs as it always did. */
@@ -1079,10 +1060,18 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const resolvedFiles = reportFieldOf(reading.report, 'resolvedFiles');
     const resolvedFileList = Array.isArray(resolvedFiles) ? resolvedFiles.map(String) : [];
     const isResolving = slotOf(job).phase === 'resolving';
+    const kept = isResolving ? context.keptAirlockFactsOf(job) : null;
+    if (kept?.verdict === 'unreadable') {
+      // The resolution is not settled on facts that cannot be read: the merge job waits on its incident.
+      await context.hold((hold) => UnreadableJobFileIncident.openOnce(hold.board, kept.unreadableFile, hold.at));
+      return true;
+    }
+    const keptFacts = kept?.verdict === 'kept' ? kept.facts : null;
     const landing = isResolving ? await context.hold((hold) => crossingLandingOf(hold.board, ticketIdOf(job))) : null;
     // Only a crossing ticket's conflict is split by owner, so only its resolution asks git whether the merge was left open.
-    if (landing !== null && MergeRun.mergeIsInProgress(worktree)) return handOnTheOpenMerge(job, agent, landing, resolvedFileList, notes);
-    const filesResolvedBefore = filesResolvedBeforeOf(job);
+    if (landing !== null && MergeRun.mergeIsInProgress(worktree)) return handOnTheOpenMerge(job, agent, landing, resolvedFileList, notes, keptFacts);
+    // The files the workers before this one resolved, on a crossing ticket's conflict split by owner; none for every other merge.
+    const filesResolvedBefore = keptFacts?.filesResolvedBefore ?? [];
     if (isResolving && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), [...filesResolvedBefore, ...resolvedFileList], context.agentNaming)) {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
       return true;
@@ -1106,27 +1095,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return true;
   }
 
-  /** A list of files kept as one fact, newline-separated; none when the fact was not kept. */
-  function keptFileListOf(job: Readonly<Job>, factName: string): string[] {
-    return (context.keptAirlockFactOf(job, factName) ?? '').split('\n').filter((path) => path !== '');
-  }
-
-  /** The files the workers before the current one resolved, on a crossing ticket's conflict split by owner; none for every other merge. */
-  function filesResolvedBeforeOf(job: Readonly<Job>): string[] {
-    return keptFileListOf(job, AIRLOCK_FACT_NAMES.filesResolvedBefore);
-  }
-
   /**
    * A worker that left the merge open hands it on (E64): the files of its own part and of the parts before it resolved, whatever its report
    * lists, and the rest still unmerged, the next part's worker is launched in the same worktree, the home's last, which commits the one
    * merge. Anything else refuses the merge, so a worker that hands on its own part unresolved is never launched again on it.
    */
   async function handOnTheOpenMerge(
-    job: Readonly<Job>, agent: Readonly<Job>, landing: Readonly<CrossingLanding>, resolvedFiles: readonly string[], notes: string
+    job: Readonly<Job>, agent: Readonly<Job>, landing: Readonly<CrossingLanding>, resolvedFiles: readonly string[], notes: string, keptFacts: KeptAirlockFacts | null
   ): Promise<boolean> {
     const sides = MergeRun.sidesOf(job, slotOf(job));
-    const ownPartFiles = keptFileListOf(job, AIRLOCK_FACT_NAMES.conflictedFiles);
-    const filesResolvedBefore = [...new Set([...filesResolvedBeforeOf(job), ...ownPartFiles, ...resolvedFiles])];
+    const ownPartFiles = keptFacts?.conflictedFiles ?? [];
+    const filesResolvedBefore = [...new Set([...keptFacts?.filesResolvedBefore ?? [], ...ownPartFiles, ...resolvedFiles])];
     const verdict = ownPartFiles.length === 0 ? { verdict: 'unresolved' } as const : MergeRun.openMergeVerdictOf(slotWorktreeOf(job), sides, filesResolvedBefore);
     if (verdict.verdict === 'unresolved') {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);

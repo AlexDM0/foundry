@@ -9,26 +9,22 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
   rmSync
 } from 'node:fs';
 import { basename, join } from 'node:path';
 
-import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
-import { JsonRecordUtil }               from '../../lib/json-record/JsonRecordUtil.ts';
-import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey }               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { LinePausedError }              from '../lifecycle/GateRun.ts';
-import type { MergedTreeGate }          from './Airlocks.ts';
+import type { MergedTreeGate }                                               from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import { MergedTreeGateOutcomeIngestion, type MergedTreeGateOutcomeReading } from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
+import { createMergedTreeGateOutcomeWriter }                                 from '../../adapters/gate-outcome/MergedTreeGateOutcomeWriter.ts';
+import type { GatePhase, GateRunStamp }                                      from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { EntityKey }                                                    from '../../lib/tracker-model/@types/Pipeline.ts';
+import { LinePausedError }                                                   from '../lifecycle/GateRun.ts';
 
 export const MERGED_TREE_GATE_RUNS_FOLDER = 'merge-gates';
 export const MERGED_TREE_GATE_OUTCOME_FILE = 'outcome.json';
-export const MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION = 1;
 
 const RUN_FOLDER_NAME_CHARACTERS = 16;
 const SHORT_TREE_CHARACTERS = 12;
-
-const KEPT_GATE_OUTCOMES: ReadonlySet<unknown> = new Set<MergedTreeGate['outcome']>(['passed', 'failed', 'cannot-run', 'setup-failed', 'sandbox-unavailable']);
 
 export interface MergedTreeGateRunRequest {
   worktreePath:  string;
@@ -97,24 +93,8 @@ function runFolderNameOf(key: MergedTreeGateRunKey): string {
   return createHash('sha256').update(keyText).digest('hex').slice(0, RUN_FOLDER_NAME_CHARACTERS);
 }
 
-function gateIsReadable(gate: Record<string, unknown>): boolean {
-  return KEPT_GATE_OUTCOMES.has(gate['outcome'])
-    && (gate['step'] === null || typeof gate['step'] === 'string')
-    && typeof gate['output'] === 'string'
-    && (gate['stamp'] === null || JsonRecordUtil.valueIsAPlainObject(gate['stamp']))
-    && (gate['stepRuns'] === undefined || Array.isArray(JsonRecordUtil.recordOf(gate['stepRuns'])?.['steps']));
-}
-
-/** The outcome a run kept; `null` when there is none, it cannot be read, or it is of another format version. */
-function keptGateIn(runFolder: string): MergedTreeGate | null {
-  try {
-    const kept = JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), 'utf8')));
-    if (kept?.['formatVersion'] !== MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION) return null;
-    const gate = JsonRecordUtil.recordOf(kept['gate']);
-    return gate !== undefined && gateIsReadable(gate) ? gate as unknown as MergedTreeGate : null;
-  } catch {
-    return null;
-  }
+function keptOutcomeIn(runFolder: string): MergedTreeGateOutcomeReading {
+  return new MergedTreeGateOutcomeIngestion(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE)).read();
 }
 
 function runDescriptionOf(key: MergedTreeGateRunKey): string {
@@ -145,7 +125,7 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
     try {
       const gate = await runRequest.run(runFolder, stopSignal);
       if (stopSignal.aborted) throw new Error('the run was stopped while it ran');
-      writeFileAtomically(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), `${JSON.stringify({ formatVersion: MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION, gate })}\n`);
+      createMergedTreeGateOutcomeWriter(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE)).write(gate);
       ending = { verdict: 'kept', gate };
     } catch (failure) {
       ending = { verdict: 'not-kept', reason: failureMessageOf(failure), paused: failure instanceof LinePausedError };
@@ -163,14 +143,16 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
 
   function gateOf(runRequest: MergedTreeGateRunRequest): MergedTreeGate | 'running' {
     const runFolder = runFolderOf(runRequest);
-    const kept = keptGateIn(runFolder);
-    if (kept !== null) return kept;
+    const kept = keptOutcomeIn(runFolder);
+    if (kept.verdict === 'readable') return kept.gate;
     const runOfThisKey = runsInFlight.get(runFolder);
     if (runOfThisKey !== undefined && !runOfThisKey.stopController.signal.aborted) runOfThisKey.ownerJobId = runRequest.ownerJobId;
     if (stopping || runOfThisKey !== undefined) return 'running';
     // A run of another key on the same worktree, a pipeline changed under it, finishes before this one starts there.
     if ([...runsInFlight.values()].some((run) => run.worktreePath === runRequest.worktreePath)) return 'running';
     mkdirSync(runFolder, { recursive: true });
+    // A kept outcome that cannot be read is no outcome: the run starts again and its own outcome replaces it.
+    if (kept.verdict === 'unreadable') request.log(`The kept outcome of the merged-tree gate of ${runDescriptionOf(runRequest)} cannot be read (${kept.reason}).`);
     request.log(`The merged-tree gate of ${runDescriptionOf(runRequest)} started.`);
     const run: RunInFlight = {
       worktreePath: runRequest.worktreePath, ownerJobId: runRequest.ownerJobId, stopController: new AbortController(), removeFolderAtEnd: false, ended: Promise.resolve()
@@ -213,7 +195,10 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
     if (!existsSync(runsFolder)) return;
     for (const name of readdirSync(runsFolder)) {
       const runFolder = join(runsFolder, name);
-      if (runsInFlight.has(runFolder) || keptGateIn(runFolder) !== null) continue;
+      if (runsInFlight.has(runFolder)) continue;
+      const kept = keptOutcomeIn(runFolder);
+      if (kept.verdict === 'readable') continue;
+      if (kept.verdict === 'unreadable') request.log(`The merged-tree gate run folder ${name} is removed: its kept outcome cannot be read (${kept.reason}).`);
       rmSync(runFolder, { recursive: true, force: true });
     }
   }

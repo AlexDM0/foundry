@@ -56,7 +56,7 @@ describeWhenGitIsRecorded('a merge-in conflict', () => {
     expect(harness.mergeAgent()).toMatchObject({
       kind: 'merge-agent', role: 'reviewer', attempt: 1, ticketIds: ['001']
     });
-    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ conflictedFiles: 'shared.txt' });
+    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ conflictedFiles: ['shared.txt'], leavesTheMergeOpen: false, filesResolvedBefore: [] });
     expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
 
     recordedGit.answerFrom(AirlockAnswerSets.resolvedAndMerged());
@@ -83,6 +83,27 @@ describeWhenGitIsRecorded('a merge-in conflict', () => {
     await harness.slots.sweep();
 
     expect(harness.mergeAgent()).toMatchObject({ kind: 'merge-agent', role });
+  });
+
+  test('settles no resolution on kept facts that cannot be read: system-file-unreadable opens once on the merge job, which waits', async () => {
+    harness = createRecordedAirlocksHarness([{ id: '001' }]);
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+    await harness.slots.sweep();
+    const mergeJobId = harness.mergeJob()?.id ?? '';
+    harness.settings.airlockFactsUnreadable = true;
+
+    recordedGit.answerFrom(AirlockAnswerSets.resolvedAndMerged());
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: ['shared.txt'], notes: '', reportKind: null
+    });
+    await harness.slots.sweep();
+    await harness.slots.sweep();
+
+    expect(harness.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+      ['system-file-unreadable', mergeJobId, `jobs/${mergeJobId}/airlock-facts.json`],
+    ]);
+    expect(harness.board.tickets()[0]?.frontmatter.status).not.toBe('delivered');
+    expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
   });
 
   test('goes to the builder when no worker ended and the pipeline has no review phase', async () => {

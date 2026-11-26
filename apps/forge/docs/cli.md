@@ -2121,7 +2121,8 @@ sweep after the run ended settles the job from the outcome the run kept in `<dat
 (`{formatVersion: 1, gate}`), written once at its end. The folder's hash covers the worktree, the tree, the phase, the
 gated entities and the phase hashes of the pipeline the run read, so a changed pipeline is another run, and an ask while
 a run is in flight starts none. The folder goes once its outcome settled the job. A run that Hephaestus's stop ended
-keeps no outcome, and the next start removes its folder and runs it again.
+keeps no outcome, and the next start removes its folder and runs it again. A kept outcome that cannot be read is logged
+and is no outcome: the gate runs again, or the next start removes its folder.
 
 The ticket's last worker is its newest ended build or review job, read from the log whatever the pipeline says now, with
 that job's role: a review step removed since still gives the reviewer. With none ended, it is the reviewer, or the
@@ -2279,7 +2280,7 @@ threshold; from round 3 on, the findings must also converge.
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
 | reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
-| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with Hephaestus down too; Hephaestus's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` that cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
+| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with Hephaestus down too; Hephaestus's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` (`{ "version": 1, "proposals": [{ "item", "reason" }] }`) that are missing or cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target; with merge approval on, the job first moves to `merging-main` and ends there ([Merge approval](#merge-approval)) |
 
 Review done is `mergeQueued`. Hephaestus sets it only when the last job's report cleared Customs and the row's

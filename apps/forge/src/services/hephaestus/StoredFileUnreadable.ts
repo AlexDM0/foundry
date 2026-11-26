@@ -4,9 +4,9 @@
  */
 import { relative, sep } from 'node:path';
 
-import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                from '../../lib/tracker-model/Board.ts';
-import { UnreadableJobFileIncident } from './UnreadableJobFileIncident.ts';
+import type { LogRecord }                                    from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
 
 /** `file` is the file's path inside the board's data folder, with `/` separators, as the incident names it. */
 export interface StoredFileUnreadable {
@@ -25,9 +25,16 @@ function isUnreadableFile(value: unknown): value is StoredFileUnreadable {
   return typeof value === 'object' && value !== null && Object.hasOwn(value, 'verdict') && (value as { verdict: unknown }).verdict === 'unreadable-file';
 }
 
-/** In a hold: the incident on `readingJobId`, the job whose step needed the file, which may be another job's. */
-function openIncidentOn(board: Board, readingJobId: string, unreadable: StoredFileUnreadable, at: string): readonly LogRecord[] {
-  return UnreadableJobFileIncident.openOnce(board, { jobId: readingJobId, file: unreadable.file, reason: unreadable.reason }, at);
+/** The file as the incident on `readingJobId` names it: the job whose step needed the file, which may be another job's. */
+function unreadableJobFileOn(readingJobId: string, unreadable: StoredFileUnreadable): UnreadableJobFile {
+  return { jobId: readingJobId, file: unreadable.file, reason: unreadable.reason };
 }
 
-export const StoredFileUnreadable = Object.freeze({ unreadableFileOf, isUnreadableFile, openIncidentOn });
+/** In a hold: the incident on `readingJobId`. */
+function openIncidentOn(board: Board, readingJobId: string, unreadable: StoredFileUnreadable, at: string): readonly LogRecord[] {
+  return UnreadableJobFileIncident.openOnce(board, unreadableJobFileOn(readingJobId, unreadable), at);
+}
+
+export const StoredFileUnreadable = Object.freeze({
+  unreadableFileOf, isUnreadableFile, unreadableJobFileOn, openIncidentOn
+});

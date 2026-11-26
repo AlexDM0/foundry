@@ -34,7 +34,6 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { describeWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import { AIRLOCK_FACT_NAMES, KEPT_FACT_TRUE }                         from './AirlockFactsFile.ts';
 import { AirlockAnswerSets, MOVED_AIRLOCK_IDS, type MainLineLanding } from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
@@ -188,7 +187,7 @@ describeWhenGitIsRecorded('a crossing ticket\'s conflict, routed by owner', () =
     harness = await conflictingHarness([PACKAGE_FILE]);
 
     expect(agentScopeOf(harness)).toEqual({ role: 'builder', entity: 'tokens', stage: 2 });
-    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ [AIRLOCK_FACT_NAMES.conflictedFiles]: PACKAGE_FILE });
+    expect(harness.keptAirlockFacts.get(harness.mergeJob()?.id ?? '')).toEqual({ conflictedFiles: [PACKAGE_FILE], leavesTheMergeOpen: false, filesResolvedBefore: [] });
 
     recordedGit.answerFrom(AirlockAnswerSets.mergeCommittedOver([PACKAGE_FILE]));
     finishMergeAgent(harness, {
@@ -220,7 +219,7 @@ describeWhenGitIsRecorded('a crossing ticket\'s conflict, routed by owner', () =
     const mergeJobId = harness.mergeJob()?.id ?? '';
 
     expect(agentScopeOf(harness)).toEqual({ role: 'builder', entity: 'tokens', stage: 2 });
-    expect(harness.keptAirlockFacts.get(mergeJobId)).toEqual({ [AIRLOCK_FACT_NAMES.conflictedFiles]: PACKAGE_FILE, [AIRLOCK_FACT_NAMES.leavesTheMergeOpen]: KEPT_FACT_TRUE });
+    expect(harness.keptAirlockFacts.get(mergeJobId)).toEqual({ conflictedFiles: [PACKAGE_FILE], leavesTheMergeOpen: true, filesResolvedBefore: [] });
 
     recordedGit.answerFrom(AirlockAnswerSets.mergeLeftOpen([HOME_FILE]));
     finishMergeAgent(harness, {
@@ -230,7 +229,7 @@ describeWhenGitIsRecorded('a crossing ticket\'s conflict, routed by owner', () =
 
     expect(harness.mergeJob()?.airlock?.phase).toBe('resolving');
     expect(agentScopeOf(harness)).toEqual({ role: 'reviewer', entity: 'shop', stage: 5 });
-    expect(harness.keptAirlockFacts.get(mergeJobId)).toEqual({ [AIRLOCK_FACT_NAMES.conflictedFiles]: HOME_FILE, [AIRLOCK_FACT_NAMES.filesResolvedBefore]: PACKAGE_FILE });
+    expect(harness.keptAirlockFacts.get(mergeJobId)).toEqual({ conflictedFiles: [HOME_FILE], leavesTheMergeOpen: false, filesResolvedBefore: [PACKAGE_FILE] });
 
     recordedGit.answerFrom(AirlockAnswerSets.mergeCommittedOver([PACKAGE_FILE, HOME_FILE]));
     finishMergeAgent(harness, {
