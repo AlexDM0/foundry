@@ -62,29 +62,24 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }                           from '../../shared/constants/LifecycleLimits.ts';
-import { AgentProgramWordingUtil }                    from '../../shared/utils/AgentProgramWordingUtil.ts';
-import { type AgentProgramResolution, AgentPrograms } from '../control/AgentPrograms.ts';
-import { AgentTools }                                 from '../control/AgentTools.ts';
-import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun.ts';
-import { Landing }                                    from '../lifecycle/Landing.ts';
-import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
-import type { BoardStore }                            from '../store/BoardStore.ts';
-import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
-import { lockTakerOf }                                from '../tracker/LockHolders.ts';
-import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
-import { registeredRepositoryRootsIn }                from '../tracker/RegisteredRepositoryRoots.ts';
-import type { Workspace }                             from '../tracker/Workspace.ts';
-import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
-import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
-import { AgentSlots }                                 from './AgentSlots.ts';
-import {
-  AIRLOCK_FACT_NAMES,
-  AirlockFactsFile,
-  KEPT_FACT_TRUE,
-  type AirlockAgentPhase
-} from './AirlockFactsFile.ts';
+import { LIFECYCLE_LIMITS }                                    from '../../shared/constants/LifecycleLimits.ts';
+import { AgentProgramWordingUtil }                             from '../../shared/utils/AgentProgramWordingUtil.ts';
+import { type AgentProgramResolution, AgentPrograms }          from '../control/AgentPrograms.ts';
+import { AgentTools }                                          from '../control/AgentTools.ts';
+import type { GateConfinement, LineRunner }                    from '../lifecycle/GateRun.ts';
+import { Landing }                                             from '../lifecycle/Landing.ts';
+import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
+import type { BoardStore }                                     from '../store/BoardStore.ts';
+import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
+import { lockTakerOf }                                         from '../tracker/LockHolders.ts';
+import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
+import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
+import type { Workspace }                                      from '../tracker/Workspace.ts';
+import type { StartClassificationVerdict }                     from './@types/StartClassification.ts';
+import { AbandonedPassReason, type PassThrowReading }          from './AbandonedPassReason.ts';
+import { AgentSlots }                                          from './AgentSlots.ts';
+import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
@@ -869,8 +864,13 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
-/** `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict. */
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string): AirlockFacts | null | 'conflicts-unknown' {
+/**
+ * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; the merge
+ * job's facts file when it cannot be read.
+ */
+function airlockFactsOf(
+  board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string
+): AirlockFacts | null | 'conflicts-unknown' | UnreadableJobFileRefusal {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
@@ -889,9 +889,12 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   }
   const mergeJobFolder = jobFolderIn(trackerDirectory, job.parentJobId);
   const phase          = airlockAgentPhaseOf(board, job);
-  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
+  const kept           = AirlockFactsFile.keptFactsOf(mergeJobFolder, job.parentJobId);
+  if (kept.verdict === 'unreadable') return { unreadableJobFile: kept.unreadableFile };
+  const keptFacts      = kept.verdict === 'kept' ? kept.facts : null;
+  const conflicts      = AirlockFactsFile.conflictedFilesOf(keptFacts, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
-  const leavesTheMergeOpen = phase === 'resolving' && AirlockFactsFile.keptFactOf(mergeJobFolder, AIRLOCK_FACT_NAMES.leavesTheMergeOpen) === KEPT_FACT_TRUE;
+  const leavesTheMergeOpen = phase === 'resolving' && keptFacts?.leavesTheMergeOpen === true;
   return {
     mergePlacement:  'airlock',
     worktree:        checkout,
@@ -1103,6 +1106,7 @@ async function launchAgentChild(
     }
   }
   const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
+  if (airlock !== null && airlock !== 'conflicts-unknown' && 'unreadableJobFile' in airlock) return unreadableJobFileRefusalOf(request, job, airlock.unreadableJobFile);
   if (airlock === 'conflicts-unknown') {
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
@@ -1546,7 +1550,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     startHoldsOrphans:     startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
-    keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(request.boardChildren.jobFolderOf(mergeJob.id), name),
+    keptAirlockFactsOf:    (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
     jobFolderOf:           (job) => request.boardChildren.jobFolderOf(job.id),
     jobFolderOfId:         (jobId) => request.boardChildren.jobFolderOf(jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,

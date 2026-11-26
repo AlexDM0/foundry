@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
+import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                                 from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../lib/tracker-model/@types/Job.ts';
@@ -80,7 +81,7 @@ export interface AirlocksHarness {
   /** Every removal git declined after a refresh or a release, as Hephaestus was told. */
   declinedCleanups:     DeclinedCleanup[];
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
-  keptAirlockFacts:     Map<string, Readonly<Record<string, string>>>;
+  keptAirlockFacts:     Map<string, KeptAirlockFacts>;
   settings:    {
     gateOutcome:             MergedTreeGate['outcome'];
     /** The red gate or the failed step a gate that does not pass names: `tests` unless set. */
@@ -110,6 +111,8 @@ export interface AirlocksHarness {
     dispatchIsStopped:       boolean;
     /** The Airlocks serve after a start that leaves work waiting: the first sweep that reads it true holds the orphans; false unless set. */
     startHoldsOrphans:       boolean;
+    /** Each merge job's kept facts cannot be read, as a malformed file reads; false unless set. */
+    airlockFactsUnreadable:  boolean;
   };
   worktreeOf:   (ticketId: string) => string;
   tipOf:        (branch: string) => string;
@@ -208,20 +211,21 @@ export function createRecordedAirlocksHarness(
   const gateStopsInWorktrees: string[] = [];
   const stopped: string[] = [];
   const declinedCleanups: DeclinedCleanup[] = [];
-  const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
+  const keptAirlockFacts = new Map<string, KeptAirlockFacts>();
   const settings: AirlocksHarness['settings'] = {
-    gateOutcome:       'passed',
-    gateStep:          'tests',
-    reading:           { calls: 0, report: undefined },
-    resolutionLines:   0,
-    childIsLive:       false,
-    refDeniesHold:     true,
-    beforeGate:        () => undefined,
-    gateIsRunningIn:   () => false,
-    mainConstitution:  { verdict: 'absent' },
-    signsCommits:      false,
-    dispatchIsStopped: false,
-    startHoldsOrphans: false,
+    gateOutcome:            'passed',
+    gateStep:               'tests',
+    reading:                { calls: 0, report: undefined },
+    resolutionLines:        0,
+    childIsLive:            false,
+    refDeniesHold:          true,
+    beforeGate:             () => undefined,
+    gateIsRunningIn:        () => false,
+    mainConstitution:       { verdict: 'absent' },
+    signsCommits:           false,
+    dispatchIsStopped:      false,
+    startHoldsOrphans:      false,
+    airlockFactsUnreadable: false,
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
@@ -280,8 +284,14 @@ export function createRecordedAirlocksHarness(
       }],
       context: ''
     }),
-    keepAirlockFacts:       (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
-    keptAirlockFactOf:      (mergeJob, name) => keptAirlockFacts.get(mergeJob.id)?.[name] ?? null,
+    keepAirlockFacts:   (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
+    keptAirlockFactsOf: (mergeJob) => {
+      const facts = keptAirlockFacts.get(mergeJob.id);
+      if (settings.airlockFactsUnreadable) {
+        return { verdict: 'unreadable', unreadableFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/airlock-facts.json`, reason: 'its version is not 1' } };
+      }
+      return facts === undefined ? { verdict: 'absent' } : { verdict: 'kept', facts };
+    },
     jobFolderOf:            (job) => join(repository, '.example-tracker', 'jobs', job.id),
     jobFolderOfId:          (jobId) => join(repository, '.example-tracker', 'jobs', jobId),
     redHandoffResumes:      2,

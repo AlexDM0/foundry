@@ -22,9 +22,7 @@ const STORED_FILE_OFFENDER = 'A stored file, still parsed in the service until i
 
 /** `<path>: <trimmed line>`, sorted by path, with what each parse reads. */
 const ALLOWED_PARSES: Readonly<Record<string, string>> = {
-  'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);':                                                                              STORED_FILE_OFFENDER,
-  'src/services/hephaestus/AirlockFactsFile.ts: const parsed: unknown = JSON.parse(readFileSync(join(mergeJobFolder, AIRLOCK_FACTS_FILE), \'utf8\'));': STORED_FILE_OFFENDER,
-  'src/services/hephaestus/AirlockFactsFile.ts: const parsed: unknown = JSON.parse(readFileSync(factsPath, \'utf8\'));':                                STORED_FILE_OFFENDER,
+  'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);': STORED_FILE_OFFENDER,
   'src/services/hephaestus/AssistantSession.ts: const parsed: unknown = JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), CHATS_FILE), \'utf8\'));':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/CrashLog.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
