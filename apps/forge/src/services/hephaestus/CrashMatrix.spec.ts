@@ -1107,7 +1107,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
         for (const state of ['running', 'in-customs', 'gating', 'merging-main'] as const) change.board.moveJob(reviewJob.id, state, change.at);
         mkdirSync(sessionJobFolder(reviewJob.id), { recursive: true });
         const keptConflict = { targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), conflictedFiles: ['shared.txt'] };
-        writeFileSync(join(sessionJobFolder(reviewJob.id), 'main-conflict.json'), `${JSON.stringify(keptConflict)}\n`);
+        writeFileSync(join(sessionJobFolder(reviewJob.id), 'main-conflict.json'), `${JSON.stringify({ version: 1, ...keptConflict })}\n`);
         reReviewerJobId = change.board.launchJob({
           kind: 'merge-agent', role: 'conflict-re-reviewer', ticketIds: ['001'], parentJobId: reviewJob.id, attempt: 1, target: 'main',
         }, change.at).job.id;
