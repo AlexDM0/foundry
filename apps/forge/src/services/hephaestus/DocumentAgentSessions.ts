@@ -10,11 +10,12 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
-  writeFileSync
+  readFileSync
 } from 'node:fs';
 import { join } from 'node:path';
 
+import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
+import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
@@ -146,7 +147,7 @@ function noteLaunch(trackerDirectory: string, board: Board, job: Readonly<Job>):
   if (existsSync(join(jobFolder, LAUNCH_FILE))) return;
   mkdirSync(jobFolder, { recursive: true });
   const document = documentOf(board, job);
-  writeFileSync(join(jobFolder, LAUNCH_FILE), `${JSON.stringify({ deliveryBase: newestDeliveryNumberOf(document) })}\n`);
+  createDeliveryBaseWriter(join(jobFolder, LAUNCH_FILE)).write(newestDeliveryNumberOf(document));
   writeSeenHead(jobFolder, document);
 }
 
@@ -202,8 +203,10 @@ function readingsOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'events
   return jobs.filter((job) => isDocumentAgentJob(job) && job.state === 'running').map((job) => readingOf(children, adapter, job));
 }
 
+/** `null` before the launch was noted, and while its file cannot be read, for which `deliverWhenIdle` opens the incident in the hold. */
 function deliveryBaseOf(jobFolder: string): number | null {
-  return readJson<{ deliveryBase: number }>(join(jobFolder, LAUNCH_FILE))?.deliveryBase ?? null;
+  const reading = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
+  return reading.verdict === 'readable' ? reading.deliveryBase : null;
 }
 
 /** Each delivery number the job's instances took, with the instance that took it. */
@@ -290,9 +293,19 @@ function deliverNextMessage(trackerDirectory: string, board: Board, job: Readonl
   return true;
 }
 
+/** In the hold: a launch file that cannot be read opens its incident, and a job with such an incident open takes no message until a move. */
+function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Readonly<Job>, at: string): boolean {
+  const launch = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
+  if (launch.verdict === 'unreadable') {
+    UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
+  }
+  return launch.verdict === 'unreadable' || UnreadableJobFileIncident.standsOpenFor(board, job.id);
+}
+
 /**
  * Run in the hold after the lifecycle. An idle agent takes the oldest queued message; an idle agent with none has its input closed, and an
- * instance resumed from waiting opens with the next message. A waiting agent whose document is done ends `closed`.
+ * instance resumed from waiting opens with the next message. A waiting agent whose document is done ends `closed`. A running agent with an
+ * unreadable file of its own takes nothing.
  */
 function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[], trackerDirectory: string, resumedFromWaitingJobIds: readonly string[], at: string): void {
   for (const job of board.jobs().filter(isDocumentAgentJob)) {
@@ -301,6 +314,7 @@ function deliverWhenIdle(board: Board, readings: readonly DocumentAgentReading[]
       continue;
     }
     const jobFolder = jobFolderIn(trackerDirectory, job.id);
+    if (job.state !== 'running' || unreadableFileHoldsDeliveryOf(board, jobFolder, job, at)) continue;
     if (job.state === 'running' && resumedFromWaitingJobIds.includes(job.id) && linesTakenOf(jobFolder, job.childInstance) === 0) {
       deliverNextMessage(trackerDirectory, board, job);
       continue;
