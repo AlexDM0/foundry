@@ -17,6 +17,7 @@ import path, { join }                             from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
+import { JOB_START_FORMAT_VERSION }                          from '../../adapters/job-start/JobStartIngestion.ts';
 import { PipelineFile }                                      from '../../adapters/pipeline/PipelineFile.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
 import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
@@ -177,7 +178,7 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   const worktree = JobLaunch.worktreeOf(context.workspace, job);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === SHOP_TICKET.id);
   const jobStart = { startCommit: commits['<start>'], contentHashAtLaunch: ticket?.frontmatter.contentHash ?? '', launchSnapshot: launchSnapshotOf(worktree) };
-  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
+  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
   JobLaunch.applyBuildJobObservations({

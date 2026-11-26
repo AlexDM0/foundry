@@ -32,6 +32,7 @@ import {
   test
 } from 'bun:test';
 
+import { createJobStartWriter }                         from '../../adapters/job-start/JobStartWriter.ts';
 import type { ChildEnd }                                from '../../lib/talos/ChildRecord.ts';
 import type { InterruptionCause, Job }                  from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                               from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -102,7 +103,7 @@ function gatingScene(): GatingScene {
   const trackerDirectory = join(rootDirectory, '.example-tracker');
   const jobFolder = jobFolderIn(trackerDirectory, 'J2');
   mkdirSync(jobFolder, { recursive: true });
-  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ startCommit: START_COMMIT }));
+  createJobStartWriter(join(jobFolder, 'start.json')).write({ startCommit: START_COMMIT, contentHashAtLaunch: '', launchSnapshot: { refs: {}, hooksFolderDigest: null } });
   const platformPorts = nativePlatformPorts();
   const context = {
     platformPorts,
@@ -138,6 +139,13 @@ testWhenGitIsRecorded('a review that changed the tree waits on the first gate', 
   const headOnAChangedTree = treeOf('HEAD', GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE);
 
   expect(await gateOf(gatingScene(), 'review', [headOnAChangedTree, START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
+});
+
+testWhenGitIsRecorded('a review whose start cannot be read is judged by no gate: its gate reads as the unreadable start', async () => {
+  const scene = gatingScene();
+  writeFileSync(join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), 'start.json'), '{"startCommit": ');
+
+  expect(await gateOf(scene, 'review', [HEAD_ON_THE_START_TREE])).toEqual({ verdict: 'unreadable-file', file: 'jobs/J2/start.json', reason: expect.stringContaining('JSON') });
 });
 
 testWhenGitIsRecorded('a build always waits on the first gate, even on the tree it started from', async () => {

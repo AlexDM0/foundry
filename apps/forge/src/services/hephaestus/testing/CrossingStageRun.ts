@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
+import { JOB_START_FORMAT_VERSION }                                                        from '../../../adapters/job-start/JobStartIngestion.ts';
 import { GitProcess }                                                                      from '../../../lib/git/GitProcess.ts';
 import type { Job }                                                                        from '../../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                                      from '../../../lib/tracker-model/Board.ts';
@@ -156,7 +157,7 @@ function writeJobStart(place: CrossingStagePlace, job: Readonly<Job>, jobFolder:
     launchSnapshot:      launchSnapshotOf(JobLaunch.worktreeOf(place.context.workspace, job)),
     ...JobLaunch.packageBuildStartOf(place.board, job),
   };
-  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
+  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
 }
 
 /**

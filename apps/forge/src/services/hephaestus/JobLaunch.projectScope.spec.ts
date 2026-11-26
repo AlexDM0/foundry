@@ -22,6 +22,7 @@ import {
   test
 } from 'bun:test';
 
+import { JOB_START_FORMAT_VERSION }                          from '../../adapters/job-start/JobStartIngestion.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
 import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity }                     from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -123,7 +124,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   const jobFolder = jobFolderIn(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   const jobStart = { startCommit: SCENARIO_COMMITS['<start>'], contentHashAtLaunch: ticket.frontmatter.contentHash ?? '', launchSnapshot: launchSnapshotOf(worktree) };
-  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
+  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
   JobLaunch.applyBuildJobObservations({

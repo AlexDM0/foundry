@@ -13,23 +13,25 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { TicketHandoffUtil }            from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
-import type { AgentAdapter }            from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }               from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                   from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                 from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf }        from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }           from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }         from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts';
-import type { ChildInput }              from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
-import type { ReviewBarRequest }        from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Decision }                from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
+import { JobStartIngestion, type JobStart } from '../../adapters/job-start/JobStartIngestion.ts';
+import { createJobStartWriter }             from '../../adapters/job-start/JobStartWriter.ts';
+import { TicketHandoffUtil }                from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
+import type { AgentAdapter }                from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }              from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }                   from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                       from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                     from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf }            from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }            from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }               from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }             from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ShellExitReport }             from '../../lib/shell-line/ShellLine.ts';
+import type { ChildInput }                  from '../../lib/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                    from '../../lib/talos/ChildRecord.ts';
+import type { ReviewBarRequest }            from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { Decision }                    from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase, GateRunStamp }     from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateCacheReport,
   GateCacheReportOfGate,
@@ -79,7 +81,6 @@ import {
   type CrossingStageScope,
   type CustomsSubject,
   launchSnapshotOf,
-  type LaunchSnapshot,
   pathsTheBranchChangedPastTargetOf,
   type ProjectScope,
   reachPathsChangedSinceOf,
@@ -123,6 +124,7 @@ import { LineSandbox, type ProcessSandboxRequest }                     from './L
 import { NeedTickets }                                                 from './NeedTickets.ts';
 import { PipelineAgentSessions }                                       from './PipelineAgentSessions.ts';
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
+import { StoredFileUnreadable }                                        from './StoredFileUnreadable.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
@@ -192,7 +194,9 @@ export type GateProgress =
     manifest:     GateRunManifest | null;
     cacheReports: GateCacheReportOfGate[];
     stepRuns:     PipelineStepRun[];
-  };
+  }
+  /** A file the run reads could not be read: nothing of the run is judged or launched until a move on its incident. */
+  | StoredFileUnreadable;
 
 /** One line child of a job's gate run: one prepare step, or one gate. */
 interface GateStep {
@@ -255,7 +259,8 @@ export type TargetCatchUp =
   | { verdict: 'merge-failed'; reason: string }
   | { verdict: 'conflicted'; targetTip: string; conflictedFiles: string[] }
   | { verdict: 'gating'; stepIndex: number }
-  | { verdict: 'gated'; targetTip: string; gate: Extract<GateProgress, { verdict: 'judged' }> };
+  | { verdict: 'gated'; targetTip: string; gate: Extract<GateProgress, { verdict: 'judged' }> }
+  | StoredFileUnreadable;
 
 /** What a builder sent back by its review's target catch-up is told: the conflicted merge, or the red gate on the merged tree. */
 export type TargetCatchUpHandover =
@@ -281,7 +286,8 @@ export type MainMergeStep =
   | { verdict: 'conflicted'; targetTip: string; branchTip: string; conflictedFiles: string[] }
   | { verdict: 'merged'; treeId: string }
   | { verdict: 'gating'; stepIndex: number }
-  | { verdict: 'gated'; gate: Extract<GateProgress, { verdict: 'judged' }> };
+  | { verdict: 'gated'; gate: Extract<GateProgress, { verdict: 'judged' }> }
+  | StoredFileUnreadable;
 
 /** The newest conflict a job in `merging-main` sent its session, and the resolution its session committed for it, kept at the first look. */
 export interface MainMergeResolution {
@@ -449,21 +455,6 @@ const TARGET_CATCH_UP_CAUSES: readonly string[] = [BUILD_JOB_CAUSES.targetConfli
 
 /** What a package build's gate run reads of its job's start: the entities whose gates it leaves out. */
 type PackageBuildStart = Pick<JobStart, 'homeEntity' | 'dependentsFixedInGroup'>;
-
-interface JobStart {
-  startCommit:               string;
-  contentHashAtLaunch:       string;
-  /** The ticket's document heads at launch, which V18 compares with; absent for a ticket without documents. */
-  documentVersionsAtLaunch?: string;
-  launchSnapshot:            LaunchSnapshot;
-  /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
-  homeEntity?:               EntityKey;
-  /**
-   * A package build's dependents whose fix tickets are in its ticket's group, whose gates its run also leaves out: the group's release runs
-   * them (E26). Absent when there are none.
-   */
-  dependentsFixedInGroup?:   EntityKey[];
-}
 
 function ticketIdOf(job: Readonly<Job>): string {
   return job.ticketIds[0] ?? '';
@@ -816,13 +807,18 @@ function isGateRunManifestOf(value: unknown, phase: GatePhase): value is GateRun
  * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced; one that cannot be
  * written, since the pipeline no longer holds the job's entity, reads as unreadable.
  */
-function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>): GateRunManifest | 'unreadable' {
+function gateRunManifestOf(
+  context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>
+): GateRunManifest | 'unreadable' | StoredFileUnreadable {
   const manifestPath = join(jobFolderOf(context.workspace, job), gateRunManifestFileOf(place));
   if (existsSync(manifestPath)) {
     const stored = readJsonFile<unknown>(manifestPath);
     return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
   }
-  const manifest = manifestOf(pipeline, job, place.phase, readJobStart(jobFolderOf(context.workspace, job)) ?? {});
+  // A package build's start names the entities its run leaves out, so no run starts from a start that cannot be read.
+  const start = jobStartOf(context.workspace.trackerDirectory, job.id);
+  if (StoredFileUnreadable.isUnreadableFile(start)) return start;
+  const manifest = manifestOf(pipeline, job, place.phase, start ?? {});
   if (manifest === null) return 'unreadable';
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -951,16 +947,19 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
  * A reviewer that committed nothing, or only commits back to the tree it was given, leaves the tree the build's gates passed. The hold
  * writes the regate marker when the row's green is not current on that tree, since the pipeline changed, so the gates run after all.
  */
-function reviewLeftTheTreeAsItWas(context: JobLaunchContext, job: Readonly<Job>, treeId: string): boolean {
+function reviewLeftTheTreeAsItWas(context: JobLaunchContext, job: Readonly<Job>, treeId: string): boolean | StoredFileUnreadable {
   if (job.kind !== REVIEW_JOB_KIND || existsSync(join(jobFolderOf(context.workspace, job), REGATE_MARKER_FILE))) return false;
-  const start = readJobStart(jobFolderOf(context.workspace, job));
+  const start = jobStartOf(context.workspace.trackerDirectory, job.id);
+  if (StoredFileUnreadable.isUnreadableFile(start)) return start;
   return start !== null && treeOfCommit(worktreeOf(context.workspace, job), start.startCommit) === treeId;
 }
 
 function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>): GateProgress {
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'pending' };
-  if (reviewLeftTheTreeAsItWas(context, job, treeId)) return {
+  const leftAsItWas = reviewLeftTheTreeAsItWas(context, job, treeId);
+  if (StoredFileUnreadable.isUnreadableFile(leftAsItWas)) return leftAsItWas;
+  if (leftAsItWas) return {
     verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null, cacheReports: [], stepRuns: []
   };
   return gateRunProgressOf(context, job, treeId, ownGateRunOf(job), pipeline);
@@ -971,6 +970,7 @@ function gateRunProgressOf(
   context: JobLaunchContext, job: Readonly<Job>, treeId: string, place: GateRunPlace, pipeline: Readonly<Pipeline>
 ): Exclude<GateProgress, { verdict: 'pending' }> {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
+  if (StoredFileUnreadable.isUnreadableFile(manifest)) return manifest;
   if (manifest === 'unreadable') return {
     verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null, cacheReports: [], stepRuns: []
   };
@@ -996,7 +996,7 @@ function lineReadsLost(context: JobLaunchContext, job: Readonly<Job>, folderName
 
 function gateRunStepReadsLost(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>, stepIndex: number): boolean {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
-  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, place, job)[stepIndex];
+  const step = manifest === 'unreadable' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, place, job)[stepIndex];
   return step !== undefined && lineReadsLost(context, job, step.folder);
 }
 
@@ -1090,6 +1090,7 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   if (treeId === null) return { verdict: 'merge-failed', reason: `The tree of the merge commit ${settlement.mergeCommit} cannot be read.` };
   const progress = gateRunProgressOf(context, job, treeId, TARGET_GATE_RUN, pipeline);
   if (progress.verdict === 'running') return { verdict: 'gating', stepIndex: progress.stepIndex };
+  if (progress.verdict === 'unreadable-file') return progress;
   return { verdict: 'gated', targetTip: record.mergedTip, gate: progress };
 }
 
@@ -1149,6 +1150,7 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     const treeId = treeOf(worktree);
     if (treeId === null) return unreadableTree;
     const progress = gateRunProgressOf(context, job, treeId, mainMergeGateRunOf(job, round), pipeline);
+    if (progress.verdict === 'unreadable-file') return progress;
     return progress.verdict === 'running' ? { verdict: 'gating', stepIndex: progress.stepIndex } : { verdict: 'gated', gate: progress };
   }
   const record = readJsonFile<TargetMergeRecord>(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round));
@@ -1198,12 +1200,12 @@ function conflictReReviewReadingOf(
   };
 }
 
-function readJobStart(jobFolder: string): JobStart | null {
-  try {
-    return JSON.parse(readFileSync(join(jobFolder, JOB_FILES.start), 'utf8')) as JobStart;
-  } catch {
-    return null;
-  }
+/** The start the job's first launch kept; `null` before one was kept. */
+function jobStartOf(trackerDirectory: string, jobId: string): JobStart | null | StoredFileUnreadable {
+  const startFilePath = join(jobFolderIn(trackerDirectory, jobId), JOB_FILES.start);
+  const reading = new JobStartIngestion(startFilePath).read();
+  if (reading.verdict === 'readable') return reading.start;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, startFilePath, reading.reason);
 }
 
 function reportFieldOf(report: unknown, field: string): unknown {
@@ -1268,36 +1270,52 @@ function openIncidentFor(hold: HoldContext, job: Readonly<Job>, kind: BuildJobIn
   }, hold.change.at).logged);
 }
 
+/** On the job whose step needed the file, which takes no step on it until a move on the incident. */
+function openUnreadableFileIncident(hold: HoldContext, job: Readonly<Job>, unreadable: StoredFileUnreadable): void {
+  hold.logged.push(...StoredFileUnreadable.openIncidentOn(hold.change.board, job.id, unreadable, hold.change.at));
+}
+
 function endJob(hold: HoldContext, job: Readonly<Job>, ending: Parameters<Board['endJob']>[1]): void {
   hold.logged.push(...hold.change.board.endJob(job.id, ending, hold.change.at).logged);
 }
 
 /** Customs' view of a job of a crossing ticket, measured from the start of its stage's run; `null` for every other job. */
-function crossingStageScopeOfJob(hold: HoldContext, job: Readonly<Job>): CrossingStageScope | null {
+function crossingStageScopeOfJob(hold: HoldContext, job: Readonly<Job>): CrossingStageScope | null | StoredFileUnreadable {
   const { board } = hold.change;
   const { trackerDirectory } = hold.context.workspace;
   const crossingStage = CrossingStages.crossingStageScopeOf(board, trackerDirectory, job);
   if (crossingStage === null) return null;
   const runStartJobId = CrossingStages.stageRunStartJobIdOf(board.logRecordsSoFar(), job);
-  const runStart = runStartJobId === job.id ? null : readJobStart(jobFolderIn(trackerDirectory, runStartJobId));
+  const runStart = runStartJobId === job.id ? null : jobStartOf(trackerDirectory, runStartJobId);
+  if (StoredFileUnreadable.isUnreadableFile(runStart)) return runStart;
   return runStart === null ? crossingStage : { ...crossingStage, stageStartCommit: runStart.startCommit };
 }
 
+/**
+ * Customs judges the job from its start and the starts of the jobs it measures from, a failed build it retries and its stage run's first
+ * job: one that cannot be read opens its incident, and the job waits in Customs.
+ */
 function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
+  const { trackerDirectory } = hold.context.workspace;
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
-  const start = readJobStart(jobFolderOf(hold.context.workspace, job));
+  const start = jobStartOf(trackerDirectory, job.id);
+  const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
+  const retriedStart = retriedJobId === null ? null : jobStartOf(trackerDirectory, retriedJobId);
+  const crossingStage = crossingStageScopeOfJob(hold, job);
+  const unreadable = [start, retriedStart, crossingStage].find(StoredFileUnreadable.isUnreadableFile);
+  if (StoredFileUnreadable.isUnreadableFile(start) || StoredFileUnreadable.isUnreadableFile(retriedStart) || StoredFileUnreadable.isUnreadableFile(crossingStage)) {
+    if (unreadable !== undefined) openUnreadableFileIncident(hold, job, unreadable);
+    return;
+  }
   if (ticket === undefined || start === null) {
     endJob(hold, job, { outcome: 'failed', cause: 'git-failed' });
     return;
   }
-  const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
-  const retriedStart = retriedJobId === null ? null : readJobStart(jobFolderIn(hold.context.workspace.trackerDirectory, retriedJobId));
   const { projectPrefix } = projectLocationOfContext(hold.context);
   const pipeline = board.pipeline();
   const refusedPackages = pipeline?.entities === undefined ? [] : CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), ticketIdOf(job));
   const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity, refusedPackages);
-  const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
     role:                     job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
     worktreePath:             worktreeOf(hold.context.workspace, job),
@@ -1733,9 +1751,24 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
-/** The paths the job's branch changed past its target, as git spells them; `null` when git cannot tell. */
-function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>): string[] | null {
-  const start = readJobStart(jobFolderOf(hold.context.workspace, job));
+/** The starts a gated job's settlement measures from: its own, and a package review's the one of its package stages' first job. */
+interface SettlementStarts {
+  own:             JobStart | null;
+  packageRunStart: JobStart | null;
+}
+
+function settlementStartsOf(hold: HoldContext, job: Readonly<Job>): SettlementStarts | StoredFileUnreadable {
+  const { trackerDirectory } = hold.context.workspace;
+  const own = jobStartOf(trackerDirectory, job.id);
+  if (StoredFileUnreadable.isUnreadableFile(own) || TicketStageUtil.stageOfJob(job)?.name !== 'package-review') {
+    return StoredFileUnreadable.isUnreadableFile(own) ? own : { own, packageRunStart: null };
+  }
+  const packageRunStart = jobStartOf(trackerDirectory, CrossingStages.packageRunStartJobIdOf(hold.change.board.logRecordsSoFar(), job));
+  return StoredFileUnreadable.isUnreadableFile(packageRunStart) ? packageRunStart : { own, packageRunStart };
+}
+
+/** The paths the job's branch changed past its target, as git spells them; `null` when git cannot tell, or the job kept no start. */
+function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>, start: Readonly<JobStart> | null): string[] | null {
   if (start === null) return null;
   return pathsTheBranchChangedPastTargetOf(worktreeOf(hold.context.workspace, job), start.startCommit, job.target ?? hold.context.mainLine);
 }
@@ -1743,8 +1776,8 @@ function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>): string[] |
 /**
  * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into (E19, E22); `null` when git cannot tell.
  */
-function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey): EntityKey[] | null {
-  const changedPaths = branchChangedPathsOf(hold, job);
+function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, start: Readonly<JobStart> | null): EntityKey[] | null {
+  const changedPaths = branchChangedPathsOf(hold, job, start);
   const { board } = hold.change;
   if (changedPaths === null) return null;
   return CrossingStages.crossedPackagesOf(board.pipeline(), homeEntity, changedPaths, CrossingStages.ticketWhitelistOf(board, ticketIdOf(job), homeEntity));
@@ -1756,7 +1789,7 @@ function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, h
  * to its package review with the statement of what the package exposes; `adapt` hands over to the home review as any build hands over to
  * review. Returns whether the build was settled here; a build that stayed in its entity settles as it always has.
  */
-function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string): boolean {
+function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string, start: Readonly<JobStart> | null): boolean {
   const { board, at } = hold.change;
   const jobStage = TicketStageUtil.stageOfJob(job);
   const ticketId = ticketIdOf(job);
@@ -1778,7 +1811,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
   if (jobStage.name !== 'build') return false;
   const refusedPackages = CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), ticketId);
   if (CrossingStages.proposalHomesOf(board.pipeline(), job, refusedPackages).length === 0) return settledOutsideAnyCrossing(hold, ticketId);
-  const crossedPackages = crossedPackagesAfterStageOneOf(hold, job, jobStage.entity);
+  const crossedPackages = crossedPackagesAfterStageOneOf(hold, job, jobStage.entity, start);
   if (crossedPackages === null) {
     endJob(hold, job, { outcome: 'failed', cause: 'git-failed' });
     return true;
@@ -1822,10 +1855,9 @@ function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeE
  * The `reach` paths the package stages of the reviewed package changed since the first job of their run, with those an earlier review of
  * the package sealed, so a lockfile change joins the seal (E3). `null` when git cannot tell.
  */
-function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string): string[] | null {
+function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string, runStart: Readonly<JobStart> | null): string[] | null {
   const { board } = hold.change;
   const { trackerDirectory } = hold.context.workspace;
-  const runStart = readJobStart(jobFolderIn(trackerDirectory, CrossingStages.packageRunStartJobIdOf(board.logRecordsSoFar(), job)));
   if (runStart === null) return null;
   const changed = reachPathsChangedSinceOf(worktreeOf(hold.context.workspace, job), runStart.startCommit, target, CrossingStages.reachOf(board.pipeline(), packageKey));
   if (changed === null) return null;
@@ -1839,7 +1871,7 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
  * ticket's own change to the package and keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed
  * package's build runs, or the stage after the package stages. Its bar is closed here, since no status move closes it.
  */
-function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown): PackageReviewSettlement {
+function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown, starts: Readonly<SettlementStarts>): PackageReviewSettlement {
   const { board, at } = hold.change;
   const ticketId = ticketIdOf(job);
   const packageKey = job.entity ?? '';
@@ -1854,10 +1886,10 @@ function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report
     sealAndMoveOn: (headCommit) => {
       const logged: LogRecord[] = [...board.closeStageReviewBars(ticketId, at).logged];
       const target = job.target ?? hold.context.mainLine;
-      const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target);
+      const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target, starts.packageRunStart);
       const pathspecs = sealedReachPaths === null ? null : CrossingStages.sealPathspecsOf(board.pipeline(), packageKey, sealedReachPaths);
       const seal = pathspecs === null ? null : sealOf(worktreeOf(hold.context.workspace, job), target, pathspecs);
-      const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job);
+      const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job, starts.own);
       const crossedPackages = changedPaths === null ? null : CrossingStages.packagesCrossedAfterAPackageReviewOf(board, ticketId, homeEntity, changedPaths);
       if (sealedReachPaths === null || seal === null || crossedPackages === null) {
         logged.push(...board.endJob(job.id, { outcome: 'failed', cause: 'git-failed' }, at).logged);
@@ -1891,6 +1923,12 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
+  // Read before the run is recorded, so a start that cannot be read leaves the whole settlement for the move on its incident.
+  const starts = settlementStartsOf(hold, job);
+  if (StoredFileUnreadable.isUnreadableFile(starts)) {
+    openUnreadableFileIncident(hold, job, starts);
+    return;
+  }
   // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
   const pipeline = board.pipeline();
   const keptStamp = pipeline === null ? null : jobGateRunStampOf(pipeline, job, phase);
@@ -1903,16 +1941,15 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     }
     const crossingStage = board.ticketStageOf(ticketIdOf(job));
     const packageReview = crossingStage !== null && TicketStageUtil.stageOfJob(job)?.name === 'package-review'
-      ? packageReviewSettlementOf(hold, job, observation.report)
+      ? packageReviewSettlementOf(hold, job, observation.report, starts)
       : undefined;
-    const start = readJobStart(jobFolderOf(hold.context.workspace, job));
     const settled = ReviewOutcome.settleReviewPass({
       board,
       at,
       job,
       report:            observation.report,
       worktreePath:      worktreeOf(hold.context.workspace, job),
-      reviewStartCommit: start?.startCommit ?? headCommit,
+      reviewStartCommit: starts.own?.startCommit ?? headCommit,
       headTree:          gate.treeId,
       jobFolder:         jobFolderOf(hold.context.workspace, job),
       limits:            LIFECYCLE_LIMITS,
@@ -1925,7 +1962,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     if (crossingStage !== null && settled.move === 'fixer' && job.entity !== undefined) board.moveTicketStage(ticketIdOf(job), { name: 'adapt', entity: job.entity }, at);
     return;
   }
-  if (settledAsAStage(hold, job, observation.report, headCommit)) return;
+  if (settledAsAStage(hold, job, observation.report, headCommit, starts.own)) return;
   if (buildMergesMainFirst(board, ticketIdOf(job))) {
     hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
     return;
@@ -2290,11 +2327,22 @@ function recordLostLineOnce(hold: HoldContext, job: Readonly<Job>, lostLine: Los
   hold.logged.push(...board.recordLineLost(job.id, lostLine, cause, at).logged);
 }
 
+/** The first job file the observation could not read; the hold then takes none of the job's steps this pass. */
+function unreadableFileOfObservation(observation: BuildJobObservation): StoredFileUnreadable | null {
+  const readings: readonly unknown[] = [observation.gate, observation.targetCatchUp, observation.mainMerge?.step];
+  return readings.find(StoredFileUnreadable.isUnreadableFile) ?? null;
+}
+
 function applyObservation(hold: HoldContext, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
   recordLostLineOnce(hold, job, observation.lostLine);
+  const unreadable = unreadableFileOfObservation(observation);
+  if (unreadable !== null) {
+    openUnreadableFileIncident(hold, job, unreadable);
+    return;
+  }
   if (observation.sandboxRefusal !== null && STATES_A_SANDBOX_REFUSAL_ENDS.has(job.state)) {
     openIncidentFor(hold, job, 'sandbox-unavailable', { step: observation.sandboxRefusal.step, reason: observation.sandboxRefusal.reason });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.sandboxUnavailable });
@@ -2366,6 +2414,8 @@ function applyBuildJobObservations(change: BoardTransaction, context: JobLaunchC
 function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobObservation[]): boolean {
   return observations.some((observation) => {
     const state = board.jobById(observation.jobId)?.state;
+    // An unreadable file holds the job until a move on its incident, which brings its own pass.
+    if (unreadableFileOfObservation(observation) !== null) return false;
     if (state === 'launching') return true;
     if (state !== undefined && STATES_A_SANDBOX_REFUSAL_ENDS.has(state) && observation.sandboxRefusal !== null) return true;
     if (state === 'preparing') {
@@ -2897,7 +2947,7 @@ async function spawnGateRunStep(
   context: JobLaunchContext, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }
 ): Promise<void> {
   const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
-  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place, job)[run.stepIndex];
+  const step = manifest === 'unreadable' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, run.place, job)[run.stepIndex];
   if (step !== undefined) await spawnGateStep(context, job, run.pipeline, step);
 }
 
@@ -2987,7 +3037,7 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
     ...packageBuildStartOf(board, job),
   };
   mkdirSync(dirname(startPath), { recursive: true });
-  writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);
+  createJobStartWriter(startPath).write(start);
 }
 
 /** Each child instance's launch keeps the path and content hash of every instruction file its session was given. */

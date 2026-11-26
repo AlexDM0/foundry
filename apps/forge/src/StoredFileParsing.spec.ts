@@ -37,7 +37,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/HephaestusServer.ts: body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));':                                 'The body of an HTTP request.',
   'src/services/hephaestus/InstallChangeWatch.ts: const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;': 'The output of a process.',
   'src/services/hephaestus/JobLaunch.ts: recorded = JSON.parse(readFileSync(join(jobFolder, JOB_FILES.launchSettings), \'utf8\'));':              STORED_FILE_OFFENDER,
-  'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(join(jobFolder, JOB_FILES.start), \'utf8\')) as JobStart;':               STORED_FILE_OFFENDER,
   'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal), \'utf8\')) as SandboxRefusal;':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(path, \'utf8\')) as Content;':             STORED_FILE_OFFENDER,
