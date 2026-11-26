@@ -14,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import type { LaunchSnapshot }                            from '../../adapters/@types/LaunchSnapshot.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }            from '../../testing/RecordedGitScenarioCalls.ts';
@@ -24,8 +25,7 @@ import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
   clearCustoms,
-  type CustomsSubject,
-  type LaunchSnapshot
+  type CustomsSubject
 } from './Customs.ts';
 
 const JOB_ID = 'J7';

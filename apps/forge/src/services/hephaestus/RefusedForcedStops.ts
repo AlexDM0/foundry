@@ -3,7 +3,7 @@
  * may still run. Each sweep tries the stop once more; a settled stop gives the job its cause, and past the bound the job ends `blocked` with
  * one `forced-stop-refused` decision that names the job and the tree.
  */
-import { join, relative, sep } from 'node:path';
+import { join } from 'node:path';
 
 import type { ForcedStopRefusals }             from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
 import { RefusedForcedStopsIngestion }         from '../../adapters/refused-forced-stops/RefusedForcedStopsIngestion.ts';
@@ -13,6 +13,7 @@ import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@ty
 import type { Board }                          from '../../lib/tracker-model/Board.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }    from '../../lib/tracker-model/constants/JobStates.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }   from '../../shared/constants/HephaestusLimits.ts';
+import { dataFolderPathOf }                    from './HephaestusFiles.ts';
 import type { UnreadableBoardFiles }           from './UnreadableBoardFiles.ts';
 
 /** What a pass observed of one child: the cause its stop settled, `null` while refused or not lost, and the refusals stored beside it. */
@@ -24,8 +25,6 @@ export interface LostChildFacts {
 }
 
 const NO_REFUSALS: ForcedStopRefusals = Object.freeze({ refusals: 0, treeProcessIds: [] });
-
-const STORED_PATH_SEPARATOR = '/';
 
 /** Beside the child's record, in the child's folder, where the settling of a lost child keeps it. */
 function fileOf(childFolderPath: string, instance: number): string {
@@ -41,7 +40,7 @@ function storedOf(boardFolder: string, childFolderPath: string, instance: number
   const reading = new RefusedForcedStopsIngestion(filePath).read();
   if (reading.verdict === 'readable') return reading.forcedStopRefusals;
   if (reading.verdict === 'unreadable') {
-    unreadableBoardFiles.report({ file: relative(boardFolder, filePath).split(sep).join(STORED_PATH_SEPARATOR), reason: reading.reason });
+    unreadableBoardFiles.report({ file: dataFolderPathOf(boardFolder, filePath), reason: reading.reason });
   }
   return NO_REFUSALS;
 }

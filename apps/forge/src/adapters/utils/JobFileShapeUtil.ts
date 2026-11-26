@@ -1,5 +1,6 @@
 /** The shape checks of the files Hephaestus keeps in a job's folder, each worded as the reason an ingestion reports. */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
+import { JsonRecordUtil }  from '../../lib/json-record/JsonRecordUtil.ts';
+import { StoredValueUtil } from './StoredValueUtil.ts';
 
 /** A stored field's check and what the field must be, as its reason words it. */
 export type FieldCheck = readonly [check: (value: unknown) => boolean, expected: string];
@@ -14,10 +15,6 @@ function valueIsATextList(value: unknown): value is string[] {
 
 function valueIsATextRecord(value: unknown): value is Record<string, string> {
   return JsonRecordUtil.valueIsAPlainObject(value) && Object.values(value).every(valueIsText);
-}
-
-function valueIsTextOrNull(value: unknown): value is string | null {
-  return value === null || valueIsText(value);
 }
 
 function valueIsANumberOrNull(value: unknown): value is number | null {
@@ -45,13 +42,23 @@ function firstFieldProblemOf(document: Readonly<Record<string, unknown>>, checks
   return null;
 }
 
+/** A kept launch snapshot's first problem, its fields named from `launchSnapshot.`; `null` when it holds. */
+function launchSnapshotProblemOf(snapshot: unknown): string | null {
+  if (!JsonRecordUtil.valueIsAPlainObject(snapshot)) return 'its "launchSnapshot" is not an object';
+  return firstFieldProblemOf(snapshot, {
+    refs:              [valueIsATextRecord, 'a record of commits'],
+    hooksFolderDigest: [StoredValueUtil.valueIsTextOrNull, 'text or null'],
+  }, 'launchSnapshot.');
+}
+
 export const JobFileShapeUtil = {
   valueIsText,
   valueIsATextList,
   valueIsATextRecord,
-  valueIsTextOrNull,
+  valueIsTextOrNull: StoredValueUtil.valueIsTextOrNull,
   valueIsANumberOrNull,
   oneOf,
   optional,
   firstFieldProblemOf,
+  launchSnapshotProblemOf,
 } as const;

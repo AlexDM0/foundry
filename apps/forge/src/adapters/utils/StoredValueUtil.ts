@@ -41,8 +41,25 @@ function picturesAreWellFormed(value: unknown): boolean {
   return Array.isArray(value) && value.length > 0 && value.every(pictureReferenceIsWellFormed);
 }
 
+/** A parsed object's own field; `undefined` when it has none, never one it inherits. */
+function ownFieldOf(fields: Readonly<Record<string, unknown>>, key: string): unknown {
+  return Object.hasOwn(fields, key) ? fields[key] : undefined;
+}
+
+function valueIsTextOrNull(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+/** A stored word of a vocabulary. */
+function valueIsOneOf<Value extends string>(value: unknown, values: readonly Value[]): value is Value {
+  return typeof value === 'string' && (values as readonly string[]).includes(value);
+}
+
 export const StoredValueUtil = {
   parsedJsonOf,
+  ownFieldOf,
+  valueIsTextOrNull,
+  valueIsOneOf,
   valueIsAWholeNumber,
   wholeNumberIsAtLeast,
   picturesAreWellFormed,

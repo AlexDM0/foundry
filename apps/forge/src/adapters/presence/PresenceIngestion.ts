@@ -27,18 +27,6 @@ const PRESENCE_READINGS = ['absent', 'unreadable', 'read'] as const;
 
 const TALOS_EVIDENCE = ['none', 'quit', 'live', 'lost-this-boot', 'lost-other-boot'] as const;
 
-function ownFieldOf(fields: Fields, key: string): unknown {
-  return Object.hasOwn(fields, key) ? fields[key] : undefined;
-}
-
-function isOneOf<Value extends string>(value: unknown, values: readonly Value[]): value is Value {
-  return typeof value === 'string' && (values as readonly string[]).includes(value);
-}
-
-function isTextOrNull(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
-
 function isWholeNumberOrNull(value: unknown): value is number | null {
   return value === null || StoredValueUtil.wholeNumberIsAtLeast(value, 0);
 }
@@ -46,14 +34,14 @@ function isWholeNumberOrNull(value: unknown): value is number | null {
 function endingOf(value: unknown): PresenceEnding | null | undefined {
   if (value === null) return null;
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const kind = ownFieldOf(value, 'kind');
-  const at = ownFieldOf(value, 'at');
+  const kind = StoredValueUtil.ownFieldOf(value, 'kind');
+  const at = StoredValueUtil.ownFieldOf(value, 'at');
   if (typeof at !== 'string') return undefined;
   if (kind === 'stopped' || kind === 'handed-over') return { kind, at };
   if (kind !== 'crashed') return undefined;
-  const component = ownFieldOf(value, 'component');
-  const crashLogNumber = ownFieldOf(value, 'crashLogNumber');
-  if (!isOneOf(component, CRASHED_COMPONENTS) || !(crashLogNumber === null || StoredValueUtil.wholeNumberIsAtLeast(crashLogNumber, 1))) return undefined;
+  const component = StoredValueUtil.ownFieldOf(value, 'component');
+  const crashLogNumber = StoredValueUtil.ownFieldOf(value, 'crashLogNumber');
+  if (!StoredValueUtil.valueIsOneOf(component, CRASHED_COMPONENTS) || !(crashLogNumber === null || StoredValueUtil.wholeNumberIsAtLeast(crashLogNumber, 1))) return undefined;
   return {
     kind, component, crashLogNumber, at
   };
@@ -61,48 +49,48 @@ function endingOf(value: unknown): PresenceEnding | null | undefined {
 
 function evidenceIsWellFormed(value: unknown): boolean {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return false;
-  const field = (key: keyof StartClassificationVerdict['evidence']): unknown => ownFieldOf(value, key);
+  const field = (key: keyof StartClassificationVerdict['evidence']): unknown => StoredValueUtil.ownFieldOf(value, key);
   const previousEnding = field('previousEnding');
-  return isOneOf(field('presence'), PRESENCE_READINGS)
-    && (previousEnding === null || isOneOf(previousEnding, PREVIOUS_ENDINGS))
-    && isTextOrNull(field('previousBootIdentity'))
+  return StoredValueUtil.valueIsOneOf(field('presence'), PRESENCE_READINGS)
+    && (previousEnding === null || StoredValueUtil.valueIsOneOf(previousEnding, PREVIOUS_ENDINGS))
+    && StoredValueUtil.valueIsTextOrNull(field('previousBootIdentity'))
     && typeof field('currentBootIdentity') === 'string'
     && typeof field('newerHephaestusLockThanPresence') === 'boolean'
-    && isOneOf(field('talos'), TALOS_EVIDENCE)
-    && isTextOrNull(field('lastHeartbeatAt'))
-    && isTextOrNull(field('bootStartedAt'));
+    && StoredValueUtil.valueIsOneOf(field('talos'), TALOS_EVIDENCE)
+    && StoredValueUtil.valueIsTextOrNull(field('lastHeartbeatAt'))
+    && StoredValueUtil.valueIsTextOrNull(field('bootStartedAt'));
 }
 
 /** A crash log stores the same classification, so its ingestion validates it here too. */
 export function startClassificationOf(value: unknown): StartClassificationVerdict | null | undefined {
   if (value === null) return null;
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const field = (key: keyof StartClassificationVerdict): unknown => ownFieldOf(value, key);
+  const field = (key: keyof StartClassificationVerdict): unknown => StoredValueUtil.ownFieldOf(value, key);
   const crashedComponent = field('crashedComponent');
-  const wellFormed = isOneOf(field('kind'), START_KINDS)
+  const wellFormed = StoredValueUtil.valueIsOneOf(field('kind'), START_KINDS)
     && isWholeNumberOrNull(field('previousGeneration'))
     && typeof field('crashSuspected') === 'boolean'
-    && (crashedComponent === null || isOneOf(crashedComponent, CRASHED_COMPONENTS))
+    && (crashedComponent === null || StoredValueUtil.valueIsOneOf(crashedComponent, CRASHED_COMPONENTS))
     && evidenceIsWellFormed(field('evidence'));
   return wellFormed ? value as unknown as StartClassificationVerdict : undefined;
 }
 
 function abandonedPassesOf(value: unknown): PresenceRecord['abandonedPasses'] | undefined {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const inARow = ownFieldOf(value, 'inARow');
-  const last = ownFieldOf(value, 'last');
+  const inARow = StoredValueUtil.ownFieldOf(value, 'inARow');
+  const last = StoredValueUtil.ownFieldOf(value, 'last');
   if (!StoredValueUtil.wholeNumberIsAtLeast(inARow, 0)) return undefined;
   if (last === null) return { inARow, last: null };
   if (!JsonRecordUtil.valueIsAPlainObject(last)) return undefined;
-  const reason = ownFieldOf(last, 'reason');
-  const detail = ownFieldOf(last, 'detail');
-  const at = ownFieldOf(last, 'at');
-  if (!isOneOf(reason, ABANDONED_PASS_REASONS) || typeof detail !== 'string' || typeof at !== 'string') return undefined;
+  const reason = StoredValueUtil.ownFieldOf(last, 'reason');
+  const detail = StoredValueUtil.ownFieldOf(last, 'detail');
+  const at = StoredValueUtil.ownFieldOf(last, 'at');
+  if (!StoredValueUtil.valueIsOneOf(reason, ABANDONED_PASS_REASONS) || typeof detail !== 'string' || typeof at !== 'string') return undefined;
   return { inARow, last: { reason, detail, at } };
 }
 
 function presenceReadingOf(document: Fields): PresenceReading {
-  const field = (key: keyof PresenceRecord): unknown => ownFieldOf(document, key);
+  const field = (key: keyof PresenceRecord): unknown => StoredValueUtil.ownFieldOf(document, key);
   const unreadable = (reason: string): PresenceReading => ({ verdict: 'unreadable', reason });
   const generation = field('generation');
   const storedProcess = field('process');
@@ -116,7 +104,7 @@ function presenceReadingOf(document: Fields): PresenceReading {
   if (!StoredValueUtil.wholeNumberIsAtLeast(generation, 1)) return unreadable('generation is not a whole number from 1');
   if (processIdentity === null || !Object.hasOwn(storedProcess as object, 'startStamp')) return unreadable('process is not a process identity');
   if (typeof codeVersion !== 'string') return unreadable('codeVersion is not a string');
-  if (!isOneOf(startOrigin, START_ORIGINS)) return unreadable('startOrigin is not a start origin');
+  if (!StoredValueUtil.valueIsOneOf(startOrigin, START_ORIGINS)) return unreadable('startOrigin is not a start origin');
   if (typeof startedAt !== 'string') return unreadable('startedAt is not a string');
   if (startClassification === undefined) return unreadable('startClassification is neither null nor a start classification');
   if (abandonedPasses === undefined) return unreadable('abandonedPasses is not a count with its last abandoned pass');

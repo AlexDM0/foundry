@@ -15,6 +15,7 @@ import {
   test
 }                                                         from 'bun:test';
 
+import type { LaunchSnapshot }                            from '../../adapters/@types/LaunchSnapshot.ts';
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
@@ -25,7 +26,6 @@ import { describeWhenGitIsRecorded }                      from '../../testing/To
 import {
   CHECKS_OF_ROLE,
   launchSnapshotOf,
-  type LaunchSnapshot,
   CUSTOMS_CHECKS,
   clearCustoms,
   type CustomsSubject,

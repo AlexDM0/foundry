@@ -2,10 +2,9 @@
  * A job file its ingestion found unreadable, carried as a reading's verdict until a hold opens the `system-file-unreadable` incident on the
  * job that needed it, so no step is taken on what could not be read.
  */
-import { relative, sep } from 'node:path';
-
 import type { LogRecord }                                    from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { dataFolderPathOf }                                  from './HephaestusFiles.ts';
 import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
 
 /** `file` is the file's path inside the board's data folder, with `/` separators, as the incident names it. */
@@ -15,10 +14,8 @@ export interface StoredFileUnreadable {
   readonly reason:  string;
 }
 
-const STORED_PATH_SEPARATOR = '/';
-
 function unreadableFileOf(trackerDirectory: string, filePath: string, reason: string): StoredFileUnreadable {
-  return { verdict: 'unreadable-file', file: relative(trackerDirectory, filePath).split(sep).join(STORED_PATH_SEPARATOR), reason };
+  return { verdict: 'unreadable-file', file: dataFolderPathOf(trackerDirectory, filePath), reason };
 }
 
 function isUnreadableFile(value: unknown): value is StoredFileUnreadable {

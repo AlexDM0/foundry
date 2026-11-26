@@ -20,6 +20,7 @@ import {
   test
 } from 'bun:test';
 
+import type { LaunchSnapshot }                                 from '../../adapters/@types/LaunchSnapshot.ts';
 import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
 import { fakeAgentAdapter }                                    from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
@@ -32,7 +33,6 @@ import {
   refMovesAllowedOf,
   CUSTOMS_CHECKS,
   type CustomsSubject,
-  type LaunchSnapshot,
   type VerificationCheck
 } from './Customs.ts';
 

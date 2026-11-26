@@ -64,9 +64,9 @@ test.each([
   ['another version', `{"version":2,"startCommit":"${START.startCommit}","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its version is not 1'],
   ['no start commit', `{"version":1,"launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its startCommit is not a commit'],
   ['an empty start commit', `{"version":1,"startCommit":"","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its startCommit is not a commit'],
-  ['no launch snapshot', `{"version":1,"startCommit":"${START.startCommit}"}`, 'its launchSnapshot is not an object'],
-  ['refs that are no commits', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{"main":5},"hooksFolderDigest":null}}`, 'its launchSnapshot.refs is not'],
-  ['a hooks digest that is no text', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{},"hooksFolderDigest":5}}`, 'its launchSnapshot.hooksFolderDigest is neither'],
+  ['no launch snapshot', `{"version":1,"startCommit":"${START.startCommit}"}`, 'its "launchSnapshot" is not an object'],
+  ['refs that are no commits', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{"main":5},"hooksFolderDigest":null}}`, 'its "launchSnapshot.refs" is not'],
+  ['a hooks digest that is no text', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{},"hooksFolderDigest":5}}`, 'its "launchSnapshot.hooksFolderDigest" is not'],
 ])('%s is unreadable, never a throw', (_case, storedText, reason) => {
   writeFileSync(startFilePath(), storedText);
 

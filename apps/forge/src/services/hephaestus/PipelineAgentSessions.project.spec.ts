@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import type { LaunchSnapshot }                                                from '../../adapters/@types/LaunchSnapshot.ts';
 import { RepositoryLandings }                                                 from '../../lib/git/RepositoryLandings.ts';
 import type { Board }                                                         from '../../lib/tracker-model/Board.ts';
 import { type BranchNames, branchNamesOf }                                    from '../../shared/BranchNames.ts';
@@ -28,7 +29,7 @@ import { createScratchDirectory, removeScratchDirectory }                     fr
 import { describeWhenGitIsRecorded }                                          from '../../testing/ToolGuard.ts';
 import { TWO_TRACKER_MAIN_LINE, TWO_TRACKER_PROJECTS, TWO_TRACKER_TICKET_ID } from '../../testing/TwoTrackerFixture.ts';
 import { TWO_TRACKER_SCENARIOS, type TwoTrackerScenario }                     from '../../testing/TwoTrackerScenarios.ts';
-import { CUSTOMS_CHECKS, launchSnapshotOf, type LaunchSnapshot }              from '../lifecycle/Customs.ts';
+import { CUSTOMS_CHECKS, launchSnapshotOf }                                   from '../lifecycle/Customs.ts';
 import type { SharedRepositoryLanding }                                       from '../lifecycle/Landing.ts';
 import type { Workspace }                                                     from '../tracker/Workspace.ts';
 import { PipelineAgentSessions, type TurnEndContext }                         from './PipelineAgentSessions.ts';

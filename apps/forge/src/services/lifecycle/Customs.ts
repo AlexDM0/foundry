@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
 
+import type { LaunchSnapshot } from '../../adapters/@types/LaunchSnapshot.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -82,14 +83,6 @@ export interface MergeUnderVerification {
   branchTip:       string;
   targetTip:       string;
   conflictedFiles: readonly string[];
-}
-
-/** What V13 and V14 compare the job's end with, taken as its session is first launched. */
-export interface LaunchSnapshot {
-  /** Every ref's commit, and each detached worktree's HEAD keyed `HEAD:<path>`. */
-  refs:              Readonly<Record<string, string>>;
-  /** The hooks folder's names and contents as one digest; `null` when the folder is missing. */
-  hooksFolderDigest: string | null;
 }
 
 /** V14's exemptions: refs only Hephaestus or another job moves. */

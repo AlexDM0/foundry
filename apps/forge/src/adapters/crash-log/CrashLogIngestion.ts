@@ -28,47 +28,37 @@ const CRASH_ERROR_ORIGINS = Object.keys({
   'pass': true, 'uncaught-exception': true, 'unhandled-rejection': true, 'talos-lost': true
 } satisfies Record<CrashErrorOrigin, true>) as readonly CrashErrorOrigin[];
 
-function ownFieldOf(fields: Fields, key: string): unknown {
-  return Object.hasOwn(fields, key) ? fields[key] : undefined;
-}
-
-function isOneOf<Value extends string>(value: unknown, values: readonly Value[]): value is Value {
-  return typeof value === 'string' && (values as readonly string[]).includes(value);
-}
-
-function isTextOrNull(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
-
 function isGenerationOrNull(value: unknown): value is number | null {
   return value === null || StoredValueUtil.wholeNumberIsAtLeast(value, 1);
 }
 
 function recordedByOf(value: unknown): CrashLogRecord['recordedBy'] | undefined {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const generation = ownFieldOf(value, 'generation');
-  const startOrigin = ownFieldOf(value, 'startOrigin');
-  const crashPath = ownFieldOf(value, 'crashPath');
-  if (!isGenerationOrNull(generation) || !(startOrigin === null || isOneOf(startOrigin, START_ORIGINS)) || typeof crashPath !== 'boolean') return undefined;
+  const generation = StoredValueUtil.ownFieldOf(value, 'generation');
+  const startOrigin = StoredValueUtil.ownFieldOf(value, 'startOrigin');
+  const crashPath = StoredValueUtil.ownFieldOf(value, 'crashPath');
+  if (!isGenerationOrNull(generation) || !(startOrigin === null || StoredValueUtil.valueIsOneOf(startOrigin, START_ORIGINS)) || typeof crashPath !== 'boolean') return undefined;
   return { generation, startOrigin, crashPath };
 }
 
 function lastHeartbeatOf(value: unknown): CrashLogRecord['lastHeartbeat'] | undefined {
   if (value === null) return null;
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const sequence = ownFieldOf(value, 'sequence');
-  const at = ownFieldOf(value, 'at');
+  const sequence = StoredValueUtil.ownFieldOf(value, 'sequence');
+  const at = StoredValueUtil.ownFieldOf(value, 'at');
   return StoredValueUtil.wholeNumberIsAtLeast(sequence, 1) && typeof at === 'string' ? { sequence, at } : undefined;
 }
 
 function errorOf(value: unknown): CrashLogError | null | undefined {
   if (value === null) return null;
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const origin = ownFieldOf(value, 'origin');
-  const name = ownFieldOf(value, 'name');
-  const message = ownFieldOf(value, 'message');
-  const stack = ownFieldOf(value, 'stack');
-  if (!isOneOf(origin, CRASH_ERROR_ORIGINS) || typeof name !== 'string' || typeof message !== 'string' || !isTextOrNull(stack)) return undefined;
+  const origin = StoredValueUtil.ownFieldOf(value, 'origin');
+  const name = StoredValueUtil.ownFieldOf(value, 'name');
+  const message = StoredValueUtil.ownFieldOf(value, 'message');
+  const stack = StoredValueUtil.ownFieldOf(value, 'stack');
+  const wellFormed = StoredValueUtil.valueIsOneOf(origin, CRASH_ERROR_ORIGINS) && typeof name === 'string' && typeof message === 'string'
+    && StoredValueUtil.valueIsTextOrNull(stack);
+  if (!wellFormed) return undefined;
   return {
     origin, name, message, stack
   };
@@ -76,12 +66,12 @@ function errorOf(value: unknown): CrashLogError | null | undefined {
 
 function activeJobOf(value: unknown): CrashLogJob | undefined {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return undefined;
-  const field = (key: keyof CrashLogJob): unknown => ownFieldOf(value, key);
+  const field = (key: keyof CrashLogJob): unknown => StoredValueUtil.ownFieldOf(value, key);
   const ticketIds = field('ticketIds');
-  const wellFormed = typeof field('jobId') === 'string' && typeof field('kind') === 'string' && isTextOrNull(field('role'))
+  const wellFormed = typeof field('jobId') === 'string' && typeof field('kind') === 'string' && StoredValueUtil.valueIsTextOrNull(field('role'))
     && Array.isArray(ticketIds) && ticketIds.every((ticketId) => typeof ticketId === 'string') && typeof field('state') === 'string'
-    && isTextOrNull(field('interruption')) && StoredValueUtil.wholeNumberIsAtLeast(field('instance'), 0) && isTextOrNull(field('airlockPhase'))
-    && StoredValueUtil.wholeNumberIsAtLeast(field('eventSequence'), 0);
+    && StoredValueUtil.valueIsTextOrNull(field('interruption')) && StoredValueUtil.wholeNumberIsAtLeast(field('instance'), 0)
+    && StoredValueUtil.valueIsTextOrNull(field('airlockPhase')) && StoredValueUtil.wholeNumberIsAtLeast(field('eventSequence'), 0);
   return wellFormed ? value as unknown as CrashLogJob : undefined;
 }
 
@@ -103,7 +93,7 @@ function crashedProcessOf(value: unknown): CrashLogRecord['crashedProcess'] | un
 }
 
 function crashLogReadingOf(document: Fields): CrashLogReading {
-  const field = (key: keyof CrashLogRecord): unknown => ownFieldOf(document, key);
+  const field = (key: keyof CrashLogRecord): unknown => StoredValueUtil.ownFieldOf(document, key);
   const unreadable = (reason: string): CrashLogReading => ({ verdict: 'unreadable', reason });
   const crashedGeneration = field('crashedGeneration');
   const component = field('component');
@@ -120,13 +110,13 @@ function crashLogReadingOf(document: Fields): CrashLogReading {
   const talosChildren = field('talosChildren');
   const logTail = logTailOf(field('logTail'));
   if (!isGenerationOrNull(crashedGeneration)) return unreadable('crashedGeneration is not a generation or null');
-  if (!isOneOf(component, CRASH_LOG_COMPONENTS)) return unreadable('component is not a crashed component');
+  if (!StoredValueUtil.valueIsOneOf(component, CRASH_LOG_COMPONENTS)) return unreadable('component is not a crashed component');
   if (typeof suspected !== 'boolean') return unreadable('suspected is not a flag');
   if (classification === undefined) return unreadable('classification is neither null nor a start classification');
   if (typeof recordedAt !== 'string') return unreadable('recordedAt is not a string');
   if (recordedBy === undefined) return unreadable('recordedBy is not who recorded the crash');
   if (crashedProcess === undefined) return unreadable('crashedProcess is neither null nor a process identity');
-  if (!isTextOrNull(codeVersion) || !isTextOrNull(startedAt)) return unreadable('codeVersion and startedAt are each a string or null');
+  if (!StoredValueUtil.valueIsTextOrNull(codeVersion) || !StoredValueUtil.valueIsTextOrNull(startedAt)) return unreadable('codeVersion and startedAt are each a string or null');
   if (lastHeartbeat === undefined) return unreadable('lastHeartbeat is neither null nor a beat');
   if (error === undefined) return unreadable('error is neither null nor a crash error');
   if (activeJobs === undefined) return unreadable('activeJobs is neither null nor a list of jobs');

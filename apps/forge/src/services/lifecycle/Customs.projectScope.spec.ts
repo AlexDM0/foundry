@@ -22,6 +22,7 @@ import {
   test
 } from 'bun:test';
 
+import type { LaunchSnapshot }                                  from '../../adapters/@types/LaunchSnapshot.ts';
 import type { GitPathStyle }                                    from '../../lib/git/GitPaths.ts';
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil }                                  from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
@@ -64,7 +65,6 @@ import {
   foreignRefsMovedOf,
   launchSnapshotOf,
   pathsOutsideHomeAndReachOf,
-  type LaunchSnapshot,
   type ProjectScope,
   type RefMovesAllowed,
   refMovesAllowedOf,

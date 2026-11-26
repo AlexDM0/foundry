@@ -12,12 +12,7 @@ import {
   readdirSync,
   readFileSync
 } from 'node:fs';
-import {
-  dirname,
-  join,
-  relative,
-  sep
-} from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
 import { LaunchRegistryIngestion }                           from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
@@ -52,6 +47,7 @@ import {
   TALOS_TICK_GAP_MILLISECONDS,
   TALOS_TICK_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
+import { dataFolderPathOf }                                                     from './HephaestusFiles.ts';
 import { RefusedForcedStops }                                                   from './RefusedForcedStops.ts';
 import type { TalosConnection, TalosConnectionOutcome, TalosConnectionRequest } from './TalosConnection.ts';
 import type { UnreadableBoardFiles }                                            from './UnreadableBoardFiles.ts';
@@ -59,8 +55,6 @@ import type { UnreadableBoardFiles }                                            
 export const TALOS_ENTRY_PATH = join(import.meta.dir, '..', '..', '..', 'talos.ts');
 
 const TALOS_SECRET_BYTES = 24;
-
-const STORED_PATH_SEPARATOR = '/';
 
 export type TalosAvailability =
   | { verdict: 'attached'; connection: TalosConnection; startNumber: number }
@@ -219,7 +213,7 @@ function pause(milliseconds: number): Promise<void> {
 function registeredChildrenOf(boardFolder: string, startNumber: number, unreadableBoardFiles: UnreadableBoardFiles): LaunchRegistryEntry[] {
   const registryPath = launchRegistryPathOf(boardFolder, startNumber);
   const reading = new LaunchRegistryIngestion(registryPath).read();
-  const file = relative(boardFolder, registryPath).split(sep).join(STORED_PATH_SEPARATOR);
+  const file = dataFolderPathOf(boardFolder, registryPath);
   if (reading.verdict === 'absent') return [];
   if (reading.verdict === 'unreadable') {
     unreadableBoardFiles.report({ file, reason: reading.reason });
