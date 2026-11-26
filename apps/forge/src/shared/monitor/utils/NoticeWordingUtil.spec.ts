@@ -84,20 +84,33 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
 });
 
 describe('NoticeWordingUtil.warningsOf', () => {
-  test('names a failed restart and an Assistant that cannot come up, each by its own kind', () => {
+  test('names a failed restart, an Assistant that cannot come up and each unreadable file, each by its own kind', () => {
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I3', move: 'job-fresh', cause: 'no-assistant'
     }];
-    expect(NoticeWordingUtil.warningsOf(notices, { successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' })).toEqual([
+    const header = {
+      restartWarning:  { successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' },
+      unreadableFiles: [{ file: 'talos/launches-3.ndjson', reason: 'line 2: its version is not 1' }],
+    };
+    expect(NoticeWordingUtil.warningsOf(notices, header)).toEqual([
       { kind: 'restart-failed', text: 'the restart to code code-example failed at read-jobs: Example error' },
       { kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' },
+      { kind: 'system-file-unreadable', text: 'Hephaestus cannot read the board file talos/launches-3.ndjson: restart Hephaestus, and report a bug if this warning stays' },
     ]);
+  });
+
+  test('the header facts read what Hephaestus keeps, and an entry that names no file and reason is none', () => {
+    expect(NoticeWordingUtil.headerWarningFactsOf({
+      restartWarning:  null,
+      unreadableFiles: [{ file: 'crash-logs/crash-1.json', reason: 'it is not a JSON object' }, { file: 3 }, null],
+    })).toEqual({ restartWarning: null, unreadableFiles: [{ file: 'crash-logs/crash-1.json', reason: 'it is not a JSON object' }] });
+    expect(NoticeWordingUtil.headerWarningFactsOf({ restartWarning: null, unreadableFiles: 'none' })).toEqual({ restartWarning: null, unreadableFiles: [] });
   });
 
   test('a default for another cause and no failed pass warn of nothing', () => {
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I3', move: 'job-fresh', cause: 'turn-closed'
     }];
-    expect(NoticeWordingUtil.warningsOf(notices, null)).toEqual([]);
+    expect(NoticeWordingUtil.warningsOf(notices, { restartWarning: null, unreadableFiles: [] })).toEqual([]);
   });
 });

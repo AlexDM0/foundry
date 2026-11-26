@@ -105,7 +105,7 @@ function routesOf(effectReadings?: EffectReadingSource | null): { routes: Hephae
     onRuntimeCommand: () => Promise.resolve('done'),
     notices:          () => [],
     hephaestus:       () => ({
-      state: 'serving', url: null, generation: 3, codeVersion: 'code-example', installVersion: 1, restartWarning: null
+      state: 'serving', url: null, generation: 3, codeVersion: 'code-example', installVersion: 1, restartWarning: null, unreadableFiles: []
     }),
     ...(effectReadings === undefined ? {} : { effectReadings: () => effectReadings }),
   });

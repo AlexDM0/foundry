@@ -218,7 +218,7 @@ export function boardDocumentSourceFixture(): BoardDocumentSource {
     liveFactsOf:    () => LIVE_FACTS,
     notices:        [{ kind: 'attribution-found', ticketId: '002' }, 'not a notice'],
     hephaestus:     {
-      state: 'serving', paused: false, url: null, generation: 2, codeVersion: 'code-example', installVersion: 36, restartWarning: null
+      state: 'serving', paused: false, url: null, generation: 2, codeVersion: 'code-example', installVersion: 36, restartWarning: null, unreadableFiles: []
     },
     usage: {
       resetsAt: null,

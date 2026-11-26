@@ -17,4 +17,5 @@ export const ALLOWED_MOVES_BY_INCIDENT_KIND: Readonly<Record<IncidentKind, reado
   'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
   'setup-snapshot-touched':    ['job-message', 'incident-note'],
   'document-snapshot-touched': ['incident-note'],
+  'system-file-unreadable':    ['job-fresh', 'ticket-park', 'incident-note'],
 };

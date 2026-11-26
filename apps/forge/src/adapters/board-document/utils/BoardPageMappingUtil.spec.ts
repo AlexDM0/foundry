@@ -200,7 +200,7 @@ describe('BoardPageMappingUtil.pageOf', () => {
 
 describe('BoardPageMappingUtil.hephaestusOf', () => {
   const hephaestus = {
-    state: 'serving', paused: true, url: 'http://127.0.0.1:4100/', generation: 3, codeVersion: 'code-example', installVersion: 36
+    state: 'serving', paused: true, url: 'http://127.0.0.1:4100/', generation: 3, codeVersion: 'code-example', installVersion: 36, unreadableFiles: []
   } as const;
 
   test('names the state, the pause and the code version, and the Hephaestus lock warning that reads as one', () => {

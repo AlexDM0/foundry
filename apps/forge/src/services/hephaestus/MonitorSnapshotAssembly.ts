@@ -356,7 +356,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
       .filter((job) => !JOB_KINDS_THE_MONITOR_LEAVES_OUT.includes(job.kind))
       .map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:  notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
-    warnings: NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
+    warnings: NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.headerWarningFactsOf(state.hephaestus)),
     today:    todayFiguresOf(state, todayCalendarDate),
     usage:    { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity: activityOf(source.logRecords),

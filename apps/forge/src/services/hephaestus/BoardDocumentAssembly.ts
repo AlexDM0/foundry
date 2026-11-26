@@ -111,7 +111,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     agent:                 BoardAgentMappingUtil.agentOf(state.agent),
     limits:                BoardPageMappingUtil.limitsOf(state.page.payload.limits),
     notices:               BoardReadingMappingUtil.noticesOf(state.notices),
-    warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
+    warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.headerWarningFactsOf(state.hephaestus)),
     attention:             attentionEntriesOf(DraftProgressReading.attentionBoardOf(state, board)).map(BoardReadingMappingUtil.attentionEntryOf),
     today:                 BoardReadingMappingUtil.todayOf(
       todayCalendarDate,

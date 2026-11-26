@@ -41,7 +41,7 @@ import { DISPATCH_PROTOCOL }                                       from '../../.
 import { DEFAULT_AGENT_PAIR_OF_ROLE, WORKER_EFFORT, WORKER_MODEL } from '../../../shared/constants/HephaestusLimits.ts';
 import type { AttentionEntry }                                     from '../../../shared/monitor/AttentionEntries.ts';
 import type { TodayFigures }                                       from '../../../shared/monitor/TodayFigures.ts';
-import { NoticeWordingUtil, type RestartWarningFacts }             from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { type HeaderWarningFacts, NoticeWordingUtil }              from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { RefusalDocumentUtil }                                     from '../../utils/RefusalDocumentUtil.ts';
 import { BoardPipelineMappingUtil }                                from './BoardPipelineMappingUtil.ts';
 
@@ -96,8 +96,8 @@ function noticesOf(notices: readonly unknown[]): BoardNoticeDocument[] {
 }
 
 /** The header's warnings as the monitor serves them, with the facts each sentence names. */
-function warningsOf(notices: readonly unknown[], restartWarning: RestartWarningFacts | null): BoardNoticeDocument[] {
-  return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), restartWarning)
+function warningsOf(notices: readonly unknown[], header: HeaderWarningFacts): BoardNoticeDocument[] {
+  return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), header)
     .map((warning) => ({ kind: warning.kind, facts: { ...warning.facts }, sentence: warning.text }));
 }
 

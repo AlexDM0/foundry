@@ -35,11 +35,13 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * user, its agent and when that wait began. The relayed verb `document ask` adds the command ticket-document-agent-ask; an approval while
  * the question is open is refused document-has-open-questions, and a withdraw of an answer document-answer-not-withdrawn. What waits on
  * the user leaves out a draft whose spec or plan agent is still writing it.
+ * Forge 4.5 adds the header warning `system-file-unreadable`, a board-wide file of forge's own that Hephaestus cannot read, with its `file`
+ * and `reason`, and the incident kind `system-file-unreadable`, a job's own file that Hephaestus cannot read.
  * The minimum supported is the current major's first version: no client built for forge 3 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 4, minor: 4 },
+  current:          { major: 4, minor: 5 },
   minimumSupported: { major: 4, minor: 0 },
 };

@@ -115,8 +115,8 @@ export interface MonitorNotice extends MonitorNoticeDocument {
   readonly text: string;
 }
 
-/** Every warning the header can show: a failed restart, and an Assistant that cannot come up. */
-export type MonitorWarningKind = 'restart-failed' | 'assistant-down';
+/** Every warning the header can show: a failed restart, an Assistant that cannot come up, and a board file forge cannot read. */
+export type MonitorWarningKind = 'restart-failed' | 'assistant-down' | 'system-file-unreadable';
 
 export interface MonitorWarning extends MonitorNoticeDocument {
   readonly kind: MonitorWarningKind;

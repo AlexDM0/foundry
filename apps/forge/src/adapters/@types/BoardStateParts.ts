@@ -79,14 +79,16 @@ export interface JobLiveFacts {
 export type HephaestusRuntimeState = 'serving' | 'held-by-install-change' | 'restarting' | 'down';
 
 export interface HephaestusFacts {
-  state:          HephaestusRuntimeState;
-  paused:         boolean;
-  url:            string | null;
-  generation:     number | null;
-  codeVersion:    string;
-  installVersion: number;
+  state:           HephaestusRuntimeState;
+  paused:          boolean;
+  url:             string | null;
+  generation:      number | null;
+  codeVersion:     string;
+  installVersion:  number;
   /** The last restart that failed while this Hephaestus kept driving; `null` when none did. */
-  restartWarning: unknown;
+  restartWarning:  unknown;
+  /** The board-wide files of forge's own that Hephaestus could not read since it started. */
+  unreadableFiles: unknown;
 }
 
 /** The newest observation of one usage window of the agent's plan. */

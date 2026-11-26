@@ -77,7 +77,7 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
     notices:       () => [],
     hephaestus:    () => ({
-      state: 'down', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, restartWarning: null
+      state: 'down', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, restartWarning: null, unreadableFiles: []
     }),
   }).state;
   return new Set([...documents.flatMap(keysOf), ...Object.keys(hephaestusState)]);

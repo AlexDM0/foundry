@@ -63,6 +63,7 @@ import {
   TALOS_START_WAITS
 } from '../../src/services/hephaestus/TalosStart.ts';
 import { TicketDocumentsAssembly }    from '../../src/services/hephaestus/TicketDocumentsAssembly.ts';
+import { createUnreadableBoardFiles } from '../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { mainLineOf }                 from '../../src/services/lifecycle/MergeTargets.ts';
 import type { BoardStore }            from '../../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore } from '../../src/services/store/LocalFilesBoardStore.ts';
@@ -484,6 +485,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
   const log         = hephaestusLoggerOf(context, files);
+  const unreadableBoardFiles = createUnreadableBoardFiles(log);
   const origin: StartOriginReading = request.successorOf === undefined
     ? { startOrigin: request.startOrigin }
     : { startOrigin: 'successor', predecessorGeneration: request.successorOf };
@@ -654,12 +656,13 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     const hephaestusFactsNow = () => {
       const state = hephaestusState();
       return {
-        state:          state?.runtimeState ?? 'serving',
-        url:            servedUrl,
-        generation:     state?.generation ?? null,
+        state:           state?.runtimeState ?? 'serving',
+        url:             servedUrl,
+        generation:      state?.generation ?? null,
         codeVersion,
-        installVersion: INSTALL_VERSION,
-        restartWarning: state?.restartWarning ?? null,
+        installVersion:  INSTALL_VERSION,
+        restartWarning:  state?.restartWarning ?? null,
+        unreadableFiles: unreadableBoardFiles.files(),
       } as const;
     };
     const monitorFolderOfTheMachine = context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);

@@ -431,6 +431,7 @@ const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'quiet-job':                 ['job-message', 'job-fresh', 'incident-note'],
   'setup-snapshot-touched':    ['job-message', 'incident-note'],
   'document-snapshot-touched': ['incident-note'],
+  'system-file-unreadable':    ['job-fresh', 'ticket-park', 'incident-note'],
 };
 
 /** A command of each move kind the contract has so far; the repair and merge moves arrive with their commands. */

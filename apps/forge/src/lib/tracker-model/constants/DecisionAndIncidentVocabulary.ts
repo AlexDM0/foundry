@@ -44,6 +44,7 @@ export const INCIDENT_KINDS = [
   'quiet-job',
   'setup-snapshot-touched',
   'document-snapshot-touched',
+  'system-file-unreadable',
 ] as const satisfies readonly IncidentKind[];
 
 export const INCIDENT_MOVES = [

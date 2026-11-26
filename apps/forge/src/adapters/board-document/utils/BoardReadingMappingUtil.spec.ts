@@ -109,11 +109,17 @@ describe('BoardReadingMappingUtil.warningsOf', () => {
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I4', move: 'ticket-park', cause: 'no-assistant'
     }];
-    expect(BoardReadingMappingUtil.warningsOf(notices, restartWarning)).toEqual([
+    const unreadableFiles = [{ file: 'crash-logs/crash-2.json', reason: 'its crashLogVersion is not 2' }];
+    expect(BoardReadingMappingUtil.warningsOf(notices, { restartWarning, unreadableFiles })).toEqual([
       { kind: 'restart-failed', facts: restartWarning, sentence: 'the restart to code code-next failed at handover: Example failure.' },
       { kind: 'assistant-down', facts: {}, sentence: 'no Assistant can come up: open incidents take their defaults' },
+      {
+        kind:     'system-file-unreadable',
+        facts:    { file: 'crash-logs/crash-2.json', reason: 'its crashLogVersion is not 2' },
+        sentence: 'Hephaestus cannot read the board file crash-logs/crash-2.json: restart Hephaestus, and report a bug if this warning stays',
+      },
     ]);
-    expect(BoardReadingMappingUtil.warningsOf([], null)).toEqual([]);
+    expect(BoardReadingMappingUtil.warningsOf([], { restartWarning: null, unreadableFiles: [] })).toEqual([]);
   });
 });
 

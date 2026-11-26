@@ -57,7 +57,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
       boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       hephaestus:    () => ({
-        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, restartWarning: null
+        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, restartWarning: null, unreadableFiles: []
       }),
     });
 
@@ -83,7 +83,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
       boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       hephaestus:    () => ({
-        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, restartWarning: null
+        state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, restartWarning: null, unreadableFiles: []
       }),
     });
 

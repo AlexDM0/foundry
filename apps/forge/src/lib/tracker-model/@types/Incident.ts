@@ -15,7 +15,8 @@ export type IncidentKind =
   | 'sandbox-unavailable'
   | 'quiet-job'
   | 'setup-snapshot-touched'
-  | 'document-snapshot-touched';
+  | 'document-snapshot-touched'
+  | 'system-file-unreadable';
 
 /**
  * A move under an incident, named as its control command kind. `incident-note` records and never closes; `open-quiet-job-decision` is the

@@ -130,7 +130,7 @@ export interface MonitorSnapshotDocument {
   readonly attention:      readonly MonitorAttentionEntryDocument[];
   readonly jobs:           readonly MonitorJobDocument[];
   readonly notices:        readonly MonitorNoticeDocument[];
-  /** The header's warnings: `restart-failed` and `assistant-down`. */
+  /** The header's warnings: `restart-failed`, `assistant-down` and, from forge 4.5, `system-file-unreadable`. */
   readonly warnings:       readonly MonitorNoticeDocument[];
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
