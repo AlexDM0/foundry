@@ -27,16 +27,16 @@ import {
 } from 'bun:test';
 import { useMemo, type ReactElement } from 'react';
 
-import type { BoardCommandDocument }                            from '../../../@types/board/BoardCommandDocument.ts';
-import type { BoardDecisionDocument }                           from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardDocument }                                   from '../../../@types/board/BoardDocument.ts';
-import type { TranscriptFollower }                              from '../../@types/BoardServices.ts';
-import type { CommandOutcome }                                  from '../../api/BoardCommandClient.ts';
-import { boardPreferenceStoreOf }                               from '../../preferences/PreferenceStore.ts';
-import { ControlSurroundingsContext, type ControlAvailability } from '../../shared/commands/ControlAvailability.ts';
-import { boardRouteSurroundings, boardHrefOf }                  from '../../testing/BoardRouteSurroundings.tsx';
-import { FIXTURE_TRACKER_ID }                                   from '../../testing/BoardStateFixture.ts';
-import { clickSettled, fakeTranscripts }                        from '../../testing/FakeControls.ts';
+import type { BoardCommandDocument }                            from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardDecisionDocument }                           from '../../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardDocument }                                   from '../../../../@types/board/BoardDocument.ts';
+import type { TranscriptFollower }                              from '../../../@types/BoardServices.ts';
+import type { CommandOutcome }                                  from '../../../api/BoardCommandClient.ts';
+import { boardPreferenceStoreOf }                               from '../../../preferences/PreferenceStore.ts';
+import { ControlSurroundingsContext, type ControlAvailability } from '../../../shared/commands/ControlAvailability.ts';
+import { boardRouteSurroundings, boardHrefOf }                  from '../../../testing/BoardRouteSurroundings.tsx';
+import { FIXTURE_TRACKER_ID }                                   from '../../../testing/BoardStateFixture.ts';
+import { clickSettled, fakeTranscripts }                        from '../../../testing/FakeControls.ts';
 import {
   ASKING_TRANSCRIPT,
   DARK_MODE_QUESTION,
@@ -45,8 +45,8 @@ import {
   TWO_QUESTION_DECISION,
   exampleOption,
   exampleQuestionPanelBoard
-} from '../../testing/QuestionPanelFixture.ts';
-import { QuestionsModelUtil }                                from '../questions/QuestionsModel.ts';
+} from '../../../testing/QuestionPanelFixture.ts';
+import { QuestionsModelUtil }                                from '../QuestionsModel.ts';
 import { QuestionPanel }                                     from './QuestionPanel.tsx';
 import { QUESTION_PANEL_CHOICE_NAME, useQuestionPanelState } from './QuestionPanelState.ts';
 

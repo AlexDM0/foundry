@@ -8,8 +8,8 @@
 
 import { useState, type ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }     from '../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
+import { PAGE_CONTRACT_VERSIONS }     from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardDecisionDocument } from '../../../../@types/board/BoardDecisionDocuments.ts';
 import {
   Card,
   ChoiceInput,
@@ -17,13 +17,13 @@ import {
   ChoiceOption,
   Text,
   View
-} from '../../../lib/design-system/DesignSystemInterface.ts';
-import { DecisionAnswerUtil, type QuestionSelections } from '../../conversation/DecisionAnswerUtil.ts';
-import { OptionConsequenceFacts }                      from '../../conversation/OptionConsequenceFacts.tsx';
-import { FLINT_SLOT_CUES }                             from '../../flint/FlintSlotCues.ts';
-import { FlintSlotHabitat }                            from '../../flint/FlintSlotHabitat.tsx';
-import { FLINT_SLOT_HABITATS }                         from '../../flint/FlintSlotHabitats.ts';
-import { CommandButton }                               from '../../shared/commands/CommandButton.tsx';
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { DecisionAnswerUtil, type QuestionSelections } from '../../../conversation/DecisionAnswerUtil.ts';
+import { OptionConsequenceFacts }                      from '../../../conversation/OptionConsequenceFacts.tsx';
+import { FLINT_SLOT_CUES }                             from '../../../flint/FlintSlotCues.ts';
+import { FlintSlotHabitat }                            from '../../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                         from '../../../flint/FlintSlotHabitats.ts';
+import { CommandButton }                               from '../../../shared/commands/CommandButton.tsx';
 import type { QuestionModel, QuestionPanelViewModel }  from './QuestionPanelModel.ts';
 
 export interface QuestionAskColumnProps {

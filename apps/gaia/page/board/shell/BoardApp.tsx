@@ -43,10 +43,10 @@ import { DetailRoutingContext, detailRoutingOf, type DetailRouting }            
 import { QuestionPanelOpenerContext }                                                    from '../shared/routing/QuestionPanelOpener.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
 import { KanbanTabSurroundingsContext }                                                  from '../views/kanban/KanbanTabSurroundings.ts';
-import { QuestionPanel }                                                                 from '../views/question-panel/QuestionPanel.tsx';
-import { QuestionPanelModel }                                                            from '../views/question-panel/QuestionPanelModel.ts';
-import { ShownQuestionContext, useQuestionPanelState }                                   from '../views/question-panel/QuestionPanelState.ts';
 import { QuestionsModelUtil }                                                            from '../views/questions/QuestionsModel.ts';
+import { QuestionPanel }                                                                 from '../views/questions/panel/QuestionPanel.tsx';
+import { QuestionPanelModel }                                                            from '../views/questions/panel/QuestionPanelModel.ts';
+import { ShownQuestionContext, useQuestionPanelState }                                   from '../views/questions/panel/QuestionPanelState.ts';
 import { AgentNotice }                                                                   from './AgentNotice.tsx';
 import { AgentNoticeModel }                                                              from './AgentNoticeModel.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';

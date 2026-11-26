@@ -24,14 +24,14 @@ import {
   Stamp,
   StateDot,
   Tag
-} from '../../../lib/design-system/DesignSystemInterface.ts';
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import type { TranscriptFollower }                                              from '../../@types/BoardServices.ts';
-import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';
-import type { QuestionsFacts }                                                  from '../../flint/QuestionsSpriteModel.ts';
-import { useQuestionsHabitat }                                                  from '../../flint/UseQuestionsHabitat.ts';
-import { StateToneUtil }                                                        from '../../utils/StateToneUtil.ts';
-import type { OpenDecision }                                                    from '../questions/QuestionsModel.ts';
+import type { TranscriptFollower }                                              from '../../../@types/BoardServices.ts';
+import { TicketLinks }                                                          from '../../../conversation/ConversationParts.tsx';
+import type { QuestionsFacts }                                                  from '../../../flint/QuestionsSpriteModel.ts';
+import { useQuestionsHabitat }                                                  from '../../../flint/UseQuestionsHabitat.ts';
+import { StateToneUtil }                                                        from '../../../utils/StateToneUtil.ts';
+import type { OpenDecision }                                                    from '../QuestionsModel.ts';
 import { QuestionAskColumn }                                                    from './QuestionAskColumn.tsx';
 import { QuestionBackgroundColumn }                                             from './QuestionBackgroundColumn.tsx';
 import type { QuestionPanelBoard, QuestionPanelFormat, QuestionPanelViewModel } from './QuestionPanelModel.ts';

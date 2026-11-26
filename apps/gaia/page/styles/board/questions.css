@@ -1,4 +1,4 @@
-/* The Questions view and the question panel beside the board (views/questions/, views/question-panel/). */
+/* The Questions view and the question panel beside the board (views/questions/, views/questions/panel/). */
 
 /* Questions, Assistant and Intake: sections under micro-caps heads, each a list of cards; an empty section is an empty card. */
 .board-view { display: flex; flex-direction: column; gap: var(--sp-5); }

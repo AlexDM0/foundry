@@ -11,8 +11,8 @@ import {
   useState
 } from 'react';
 
-import type { PreferenceStore } from '../../preferences/PreferenceStore.ts';
-import type { OpenDecision }    from '../questions/QuestionsModel.ts';
+import type { PreferenceStore } from '../../../preferences/PreferenceStore.ts';
+import type { OpenDecision }    from '../QuestionsModel.ts';
 import { QuestionPanelModel }   from './QuestionPanelModel.ts';
 
 /** The board's preference holding the decisions open when User last folded the panel. */

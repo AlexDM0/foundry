@@ -12,8 +12,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
+import type { BoardDecisionDocument } from '../../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardDocument }         from '../../../../@types/board/BoardDocument.ts';
 import {
   ASKING_TRANSCRIPT,
   DARK_MODE_QUESTION,
@@ -24,8 +24,8 @@ import {
   exampleOption,
   examplePanelTicket,
   exampleQuestionPanelBoard
-} from '../../testing/QuestionPanelFixture.ts';
-import { QuestionsModelUtil, type OpenDecision }          from '../questions/QuestionsModel.ts';
+} from '../../../testing/QuestionPanelFixture.ts';
+import { QuestionsModelUtil, type OpenDecision }          from '../QuestionsModel.ts';
 import { QUESTION_PANEL_STEPS_SHOWN, QuestionPanelModel } from './QuestionPanelModel.ts';
 
 function queueOf(...decisions: readonly BoardDecisionDocument[]): OpenDecision[] {

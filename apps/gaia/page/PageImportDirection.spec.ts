@@ -217,12 +217,6 @@ const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {
     'page/board/views/assistant/AssistantView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
     'page/board/views/questions/QuestionsView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
   ],
-  'waits on merging views/question-panel/ into views/questions/panel/': [
-    'page/board/views/question-panel/QuestionPanel.tsx imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
-    'page/board/views/question-panel/QuestionPanelModel.ts imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
-    'page/board/views/question-panel/QuestionPanelState.ts imports page/board/views/questions/QuestionsModel.ts (a view imports another view)',
-    'page/board/views/questions/QuestionsView.tsx imports page/board/views/question-panel/QuestionPanelState.ts (a view imports another view)',
-  ],
   'waits on composing the Kanban with the merge queue in the shell': [
     'page/board/views/kanban/KanbanTabView.tsx imports page/board/shell/WaitingOnUserModel.ts (only Board.tsx and board/testing/ import the shell)',
     'page/board/views/kanban/KanbanTabView.tsx imports page/board/views/merge-queue/MergeQueueModel.ts (a view imports another view)',

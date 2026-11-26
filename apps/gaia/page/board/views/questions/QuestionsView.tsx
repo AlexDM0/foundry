@@ -30,7 +30,6 @@ import { presenceAttributeOf, useItemPresence } from '../../shell/ItemPresence.t
 import type { ItemPresence }                    from '../../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                        from '../../utils/StateToneUtil.ts';
 import { ViewTitle }                            from '../ViewTitle.tsx';
-import { ShownQuestionContext }                 from '../question-panel/QuestionPanelState.ts';
 import { NotificationAllowanceControl }         from './NotificationAllowanceControl.tsx';
 import {
   QuestionsModelUtil,
@@ -38,6 +37,7 @@ import {
   type NoticeEntry,
   type QuestionsBoard
 } from './QuestionsModel.ts';
+import { ShownQuestionContext } from './panel/QuestionPanelState.ts';
 
 export interface QuestionsViewProps {
   readonly board:               QuestionsBoard & Pick<BoardDocument, 'incidents'>;
