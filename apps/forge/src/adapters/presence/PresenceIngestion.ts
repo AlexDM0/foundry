@@ -15,7 +15,7 @@ export type PresenceReading =
 
 type Fields = Readonly<Record<string, unknown>>;
 
-export const PRESENCE_VERSION_KEY = 'presenceVersion';
+const PRESENCE_VERSION_KEY = 'presenceVersion';
 
 const ABANDONED_PASS_REASONS = Object.keys({ 'tracker-lock-held': true, 'lock-taken-over': true } satisfies Record<AbandonedPassReason, true>) as readonly AbandonedPassReason[];
 

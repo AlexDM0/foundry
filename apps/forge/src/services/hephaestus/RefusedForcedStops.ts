@@ -77,5 +77,5 @@ function settle(board: Board, lostChildren: readonly LostChildFacts[], decisionW
 }
 
 export const RefusedForcedStops = Object.freeze({
-  fileOf, storedOf, store, jobIdsToRetryOf, settle
+  storedOf, store, jobIdsToRetryOf, settle
 });

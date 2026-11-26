@@ -21,7 +21,7 @@ import type { HephaestusFiles }      from './HephaestusFiles.ts';
 import type { UnreadableBoardFiles } from './UnreadableBoardFiles.ts';
 
 /** The path of `presence.json` inside the board's data folder, as a header warning names it. */
-export const PRESENCE_BOARD_FILE = 'hephaestus/presence.json';
+const PRESENCE_BOARD_FILE = 'hephaestus/presence.json';
 
 function readPresence(files: HephaestusFiles): PresenceFileReading<PresenceRecord> {
   const reading = new PresenceIngestion(files.presenceFilePath).read();
