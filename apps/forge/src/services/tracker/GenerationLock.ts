@@ -5,48 +5,25 @@
  * a released record, so no step ever removes or replaces a record another process may have just written.
  * A record's age frees nothing: a live holder keeps the lock however long it holds.
  */
-import {
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  unlinkSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
+import { join }                               from 'node:path';
 
-import { createFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { FileReplace }     from '../../lib/atomic-file/FileReplace.ts';
-import { errorCodeOf }          from '../../lib/atomic-file/HeldFileFailure.ts';
-import { LocalTimeUtil }        from '../../lib/local-time/LocalTimeUtil.ts';
-import { OperationRefusal }     from '../../shared/OperationRefusal.ts';
-import { LIMITS }               from '../../shared/constants/Limits.ts';
+import { type GenerationRecord, GenerationRecordIngestion, type LockHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
+import { createGenerationRecordWriter }                                      from '../../adapters/generation-record/GenerationRecordWriter.ts';
+import type { FileReplace }                                                  from '../../lib/atomic-file/FileReplace.ts';
+import { LocalTimeUtil }                                                     from '../../lib/local-time/LocalTimeUtil.ts';
+import { OperationRefusal }                                                  from '../../shared/OperationRefusal.ts';
+import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
+
+/** Stored in the generation record; offered beside `LockHolderIsGone`, which names it. */
+export type { LockHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
 
 /** What a hold checks before each write: it throws once the hold's lock was taken over, so a holder misjudged as gone writes nothing further. */
 export interface HoldFence {
   requireStillHeld(): void;
 }
 
-/**
- * A lock record's holder by process identity: `null` where the platform cannot read the process's start or boot. Declared beside
- * `LockHolderIsGone`, which names it: in `LockHolders.ts`, which returns that judgement, the two files would import each other.
- */
-export interface LockHolder {
-  processId:    number;
-  startStamp:   string | null;
-  bootIdentity: string | null;
-}
-
-/** `acquiredAt` is a fact for a report, never judged. */
-interface LockPayload {
-  holder:     LockHolder;
-  acquiredAt: string;
-}
-
-const GENERATION_STATES = ['held', 'released'] as const;
-type GenerationState = typeof GENERATION_STATES[number];
-
-interface GenerationRecord extends LockPayload {
-  state: GenerationState;
-}
+type LockPayload = Omit<GenerationRecord, 'state'>;
 
 /** True only when the platform knows the recorded holder's process is gone; `false` whenever it cannot tell. */
 export type LockHolderIsGone = (holder: LockHolder) => boolean;
@@ -99,56 +76,22 @@ function generationsIn(lockDirectoryPath: string): number[] | null {
   }
 }
 
-function nullOrStringOf(value: unknown): string | null | undefined {
-  return value === null || typeof value === 'string' ? value : undefined;
-}
-
-function lockHolderOfStored(stored: unknown): LockHolder | null {
-  if (typeof stored !== 'object' || stored === null) return null;
-  const { processId, startStamp, bootIdentity } = stored as Record<string, unknown>;
-  const readStartStamp   = nullOrStringOf(startStamp);
-  const readBootIdentity = nullOrStringOf(bootIdentity);
-  if (typeof processId !== 'number' || readStartStamp === undefined || readBootIdentity === undefined) return null;
-  return { processId, startStamp: readStartStamp, bootIdentity: readBootIdentity };
-}
-
-/** A forge from before process identity named its holder by process id alone; that holder is judged by its process id. */
-function holderOfRecordBeforeProcessIdentity(processId: unknown): LockHolder | null {
-  return typeof processId === 'number' ? { processId, startStamp: null, bootIdentity: null } : null;
-}
-
 /**
- * What judging the newest record needs: a released record is free whatever else it holds, a held one names its holder. `removed` is a
+ * What judging the newest record needs: a released record is free without judging its holder, a held one names its holder. `removed` is a
  * record another holder removed after it moved past it, between the listing and this read.
  */
 type GenerationReading = { state: 'released' } | { state: 'held'; holder: LockHolder } | { state: 'removed' } | { state: 'unreadable' };
 
-function generationTextOf(generationPath: string): string | null {
-  try {
-    return readFileSync(generationPath, 'utf8');
-  } catch (error) {
-    if (errorCodeOf(error) === 'ENOENT') return null;
-    throw error;
-  }
-}
-
 function readGenerationRecord(generationPath: string): GenerationReading {
-  try {
-    const generationText = generationTextOf(generationPath);
-    if (generationText === null) return { state: 'removed' };
-    const parsed: unknown = JSON.parse(generationText);
-    if (typeof parsed !== 'object' || parsed === null) return { state: 'unreadable' };
-    const { holder, processId, state } = parsed as { holder?: unknown; processId?: unknown; state?: unknown };
-    if (state === 'released') return { state: 'released' };
-    const readHolder = holder === undefined ? holderOfRecordBeforeProcessIdentity(processId) : lockHolderOfStored(holder);
-    return state === 'held' && readHolder !== null ? { state: 'held', holder: readHolder } : { state: 'unreadable' };
-  } catch {
-    return { state: 'unreadable' };
-  }
+  const reading = new GenerationRecordIngestion(generationPath).read();
+  if (reading.verdict === 'absent') return { state: 'removed' };
+  if (reading.verdict === 'unreadable') return { state: 'unreadable' };
+  const { record } = reading;
+  return record.state === 'released' ? { state: 'released' } : { state: 'held', holder: record.holder };
 }
 
 function generationWasCreated(lockDirectoryPath: string, generation: number, record: GenerationRecord, fileReplace?: FileReplace): boolean {
-  return createFileAtomically(generationPathFor(lockDirectoryPath, generation), JSON.stringify(record), fileReplace) === 'created';
+  return createGenerationRecordWriter(generationPathFor(lockDirectoryPath, generation), fileReplace).create(record) === 'created';
 }
 
 function newerGenerationExists(lockDirectoryPath: string, generation: number): boolean {
@@ -190,7 +133,7 @@ function attemptedAcquire(
   if (newest !== undefined) {
     const newestPath = generationPathFor(lockDirectoryPath, newest);
     const reading    = readGenerationRecord(newestPath);
-    // The tool creates every record whole, so only damage outside it leaves one unreadable, and no process can be judged from it.
+    // The tool creates every record whole, so only damage outside it, or another format's record, leaves one unreadable: no process can be judged from it.
     if (reading.state === 'unreadable') return { verdict: 'unreadable', recordPath: newestPath };
     if (reading.state === 'removed') return { verdict: 'contended' };
     if (reading.state === 'held' && !holderIsGone(reading.holder)) return { verdict: 'held' };

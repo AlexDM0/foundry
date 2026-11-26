@@ -14,6 +14,7 @@ import {
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
+import { GENERATION_RECORD_FORMAT_VERSION }                            from '../../adapters/generation-record/GenerationRecordIngestion.ts';
 import { REAL_FILE_REPLACE_PRIMITIVES }                                from '../../lib/atomic-file/FileReplaceFor.ts';
 import { createPosixFileReplace }                                      from '../../lib/atomic-file/PosixFileReplace.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../../testing/ChildProcessCaseTimeout.ts';
@@ -74,16 +75,18 @@ function payloadOf(secondsPastTheHour: number): { holder: LockHolder; acquiredAt
 }
 
 function deadHolderRecord(deadProcessId: number): string {
-  return JSON.stringify({ acquiredAt: new Date().toISOString(), holder: { processId: deadProcessId, startStamp: null, bootIdentity: null }, state: 'held' });
+  return JSON.stringify({
+    version: GENERATION_RECORD_FORMAT_VERSION, acquiredAt: new Date().toISOString(), holder: { processId: deadProcessId, startStamp: null, bootIdentity: null }, state: 'held'
+  });
 }
 
 function liveHolderRecord(): string {
-  return JSON.stringify({ ...payloadOf(0), state: 'held' });
+  return JSON.stringify({ version: GENERATION_RECORD_FORMAT_VERSION, ...payloadOf(0), state: 'held' });
 }
 
 test('where hard links fail a release still lands, so no held generation is stranded', () => {
   const lockDirectoryPath = scratchLockDirectory('lock-without-links');
-  writeGeneration(lockDirectoryPath, 1, JSON.stringify({ ...payloadOf(1), state: 'held' }));
+  writeGeneration(lockDirectoryPath, 1, JSON.stringify({ version: GENERATION_RECORD_FORMAT_VERSION, ...payloadOf(1), state: 'held' }));
   const fileReplaceWithoutLinks = createPosixFileReplace({
     ...REAL_FILE_REPLACE_PRIMITIVES,
     link: () => {
@@ -93,7 +96,7 @@ test('where hard links fail a release still lands, so no held generation is stra
 
   release(lockDirectoryPath, 1, payloadOf(1), fileReplaceWithoutLinks);
 
-  expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...payloadOf(1), state: 'released' });
+  expect(newestRecordIn(lockDirectoryPath)).toEqual({ version: GENERATION_RECORD_FORMAT_VERSION, ...payloadOf(1), state: 'released' });
   expect(generationsIn(lockDirectoryPath)).toEqual([2]);
 });
 
@@ -114,7 +117,7 @@ test('a holder that releases after a taker misjudged it as gone, followed by a p
   expect(plainAcquirerVerdict).toBe('acquired');
   expect(takerAttempt.verdict, 'the taker finds the generation it judged already moved past').toBe('contended');
   expect(fourthAcquirerVerdict, 'the plain acquirer\'s fresh lock is waited for').toBe('held');
-  expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...plainAcquirer, state: 'held' });
+  expect(newestRecordIn(lockDirectoryPath)).toEqual({ version: GENERATION_RECORD_FORMAT_VERSION, ...plainAcquirer, state: 'held' });
 });
 
 // Every step boundary of one acquire, with a second acquirer running whole inside it: the claim is one holder whatever the interleaving.
@@ -152,7 +155,7 @@ test('an acquirer that recreates a generation removed while it was judging finds
 
   expect(secondHolderGeneration, 'the generation the slow acquirer judged was removed under it').toBe(3);
   expect(slowAttempt.verdict).toBe('contended');
-  expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...secondHolder, state: 'held' });
+  expect(newestRecordIn(lockDirectoryPath)).toEqual({ version: GENERATION_RECORD_FORMAT_VERSION, ...secondHolder, state: 'held' });
 });
 
 test('a holder taken over by a misjudging taker releases nothing, and its successor keeps the lock', () => {
@@ -163,7 +166,7 @@ test('a holder taken over by a misjudging taker releases nothing, and its succes
   expect(attemptedAcquire(lockDirectoryPath, successor, MISJUDGING_HOLDER_IS_GONE).verdict).toBe('acquired');
   release(lockDirectoryPath, 1, payloadOf(2));
 
-  expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...successor, state: 'held' });
+  expect(newestRecordIn(lockDirectoryPath)).toEqual({ version: GENERATION_RECORD_FORMAT_VERSION, ...successor, state: 'held' });
   expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), HOLDER_IS_GONE).verdict).toBe('held');
 });
 
@@ -182,7 +185,7 @@ test('a free record at the largest safe generation is never moved past, so at mo
 test('a holder at the largest safe generation releases nothing it could not list, and its record stays the newest', () => {
   const lockDirectoryPath = scratchLockDirectory('lock-largest-generation-release');
   const holder = payloadOf(1);
-  writeGeneration(lockDirectoryPath, Number.MAX_SAFE_INTEGER, JSON.stringify({ ...holder, state: 'held' }));
+  writeGeneration(lockDirectoryPath, Number.MAX_SAFE_INTEGER, JSON.stringify({ version: GENERATION_RECORD_FORMAT_VERSION, ...holder, state: 'held' }));
 
   release(lockDirectoryPath, Number.MAX_SAFE_INTEGER, payloadOf(2));
 
@@ -197,6 +200,6 @@ test('a released lock is taken by the next acquirer, whose record is complete th
   attemptedAcquire(lockDirectoryPath, holder, HOLDER_IS_GONE, (step) => {
     if (step === 'generation-created') recordAtCreation = newestRecordIn(lockDirectoryPath);
   });
-  expect(recordAtCreation).toEqual({ ...holder, state: 'held' });
+  expect(recordAtCreation).toEqual({ version: GENERATION_RECORD_FORMAT_VERSION, ...holder, state: 'held' });
   expect(existsSync(lockDirectoryPath)).toBe(true);
 });
