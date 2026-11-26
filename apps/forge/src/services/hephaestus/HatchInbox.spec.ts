@@ -40,8 +40,8 @@ function productOwnerBoard() {
 test('a product owner sets the entity of a committed ticket and of a ticket ready for review that another job filed', () => {
   const { board, change, records } = productOwnerBoard();
   const replies = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [
-    { jobId: 'J1', requestId: 'R1', text: assignmentRequestText('R1', '4') },
-    { jobId: 'J1', requestId: 'R2', text: assignmentRequestText('R2', '5') },
+    { jobId: 'J1', requestId: 'R1', reading: HatchFormatUtil.requestReadingOf(assignmentRequestText('R1', '4')) },
+    { jobId: 'J1', requestId: 'R2', reading: HatchFormatUtil.requestReadingOf(assignmentRequestText('R2', '5')) },
   ]);
 
   expect(replies.map(({ reply }) => reply.outcome)).toEqual(['done', 'done']);
@@ -55,7 +55,8 @@ test('a product owner sets the entity of a committed ticket and of a ticket read
 
 test('a ticket a builder has claimed is refused not-own-draft-or-unclaimed-ticket, and keeps no entity', () => {
   const { board, change } = productOwnerBoard();
-  const [refused] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', text: assignmentRequestText('R1', '6') }]);
+  const reading = HatchFormatUtil.requestReadingOf(assignmentRequestText('R1', '6'));
+  const [refused] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', reading }]);
 
   expect(refused?.reply).toMatchObject({ outcome: 'refused', detail: { kind: 'role-command-refused', reason: 'not-own-draft-or-unclaimed-ticket', commandKind: 'ticket-entity' } });
   expect(board.ticketByReference('006')?.frontmatter).not.toHaveProperty('entity');

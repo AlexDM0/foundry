@@ -296,7 +296,8 @@ describe('a turn end whose snapshot Customs finds untouched', () => {
     const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT.replace('1. The', 'A1. The')] }]), [job]);
     const repositoryDirectory = fixture.rootDirectory;
     untouchedSnapshotFor(fixture);
-    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
+    const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })));
+    const request = { jobId: 'J9', requestId: 'R1', reading };
 
     const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, repositoryDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
 
@@ -320,7 +321,7 @@ describe('a stopping agent whose session ended', () => {
       }],
       summary: 'Name the total'
     };
-    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', proposal as never)) };
+    const request = { jobId: 'J9', requestId: 'R1', reading: HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('R1', proposal as never))) };
 
     const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, fixture.rootDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
     DocumentAgentSessions.settleEndedSessions(fixture.board, ['J9'], AT);
@@ -337,7 +338,8 @@ describe('a turn end whose snapshot fails Customs', () => {
     const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [job]);
     const change = transactionOf(fixture);
     mkdirSync(jobFolderIn(fixture.trackerDirectory, 'J9'), { recursive: true });
-    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
+    const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })));
+    const request = { jobId: 'J9', requestId: 'R1', reading };
     const context = turnEndContextOf(fixture, join(fixture.rootDirectory, 'worktrees'));
 
     const replies = DocumentAgentSessions.verifyTurnEnds(change, context, ['J9', 'J9'], [request], ECHOED_CONTROL_CONTEXT);

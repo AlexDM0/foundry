@@ -39,7 +39,7 @@ function boardWithABuild(launch: JobLaunch) {
 
 test('the builder of an entity\'s stage has its need kept, stamped with its own job', () => {
   const { board, change } = boardWithABuild({ ...BUILD, entity: 'web', stage: 1 });
-  const [applied] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', text: needRequestText('R1') }]);
+  const [applied] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', reading: HatchFormatUtil.requestReadingOf(needRequestText('R1')) }]);
 
   expect(applied?.reply.outcome).toBe('done');
   expect(board.needs()).toEqual([{
@@ -49,7 +49,7 @@ test('the builder of an entity\'s stage has its need kept, stamped with its own 
 
 test('the builder of a job with no entity is refused need-outside-an-entity, and the board keeps no needs', () => {
   const { board, change, progress } = boardWithABuild(BUILD);
-  const [refused] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', text: needRequestText('R1') }]);
+  const [refused] = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [{ jobId: 'J1', requestId: 'R1', reading: HatchFormatUtil.requestReadingOf(needRequestText('R1')) }]);
 
   expect(refused?.reply).toMatchObject({ outcome: 'refused', detail: { kind: 'role-command-refused', reason: 'need-outside-an-entity', commandKind: 'need-declare' } });
   expect(board.needs()).toEqual([]);
