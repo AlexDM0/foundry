@@ -4,19 +4,21 @@
  * or spends its call budget; past a context-token count its input closes after the turn; and one that went down is ended, never resumed.
  * One asked to wind down, by the board's switch going off, has its input closed once idle and ends `closed`, also when it went down first.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync } from 'node:fs';
+import { join }       from 'node:path';
 
-import type { AgentAdapter }                                                 from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
-import type { Incident, IncidentDeliveryTurn }                               from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                                          from '../../lib/tracker-model/Playbook.ts';
-import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET } from '../../shared/constants/HephaestusLimits.ts';
-import { AssistantBoot, FIRST_CHAT_SEQUENCE }                                from './AssistantBoot.ts';
-import type { BoardChildren }                                                from './BoardChildren.ts';
-import { jobFolderIn }                                                       from './HephaestusFiles.ts';
+import { AssistantChatsIngestion, type AssistantChat, type AssistantChatsReading } from '../../adapters/assistant-chats/AssistantChatsIngestion.ts';
+import { createAssistantChatsWriter }                                              from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
+import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
+import type { Incident, IncidentDeliveryTurn }                                     from '../../lib/tracker-model/@types/Incident.ts';
+import type { Job }                                                                from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                                                              from '../../lib/tracker-model/Board.ts';
+import { Playbook }                                                                from '../../lib/tracker-model/Playbook.ts';
+import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET }       from '../../shared/constants/HephaestusLimits.ts';
+import { AssistantBoot, FIRST_CHAT_SEQUENCE }                                      from './AssistantBoot.ts';
+import type { BoardChildren }                                                      from './BoardChildren.ts';
+import { jobFileInDataFolderOf, jobFolderIn }                                      from './HephaestusFiles.ts';
+import { UnreadableJobFileIncident }                                               from './UnreadableJobFileIncident.ts';
 
 /** What the Assistant's current session printed so far, read from its event log. */
 export interface AssistantReading {
@@ -27,13 +29,6 @@ export interface AssistantReading {
   callsSinceLastResult: number;
   /** Of the newest `result`; `null` before one, or when the vendor reports none. */
   lastContextTokens:    number | null;
-}
-
-/** A chat past the first message, kept in the job folder: the incidents it delivered, or the number of User's `job message` it carries. */
-export interface AssistantChat {
-  sequence:      number;
-  incidentIds:   readonly string[];
-  messageNumber: number | null;
 }
 
 /** The incidents of one numbered chat, which the command line words. */
@@ -94,13 +89,22 @@ function readingsOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'events
   return liveAssistantsOf(board).map((job) => readingOf(children, adapter, job));
 }
 
-function chatsOf(trackerDirectory: string, jobId: string): AssistantChat[] {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), CHATS_FILE), 'utf8'));
-    return Array.isArray(parsed) ? parsed as AssistantChat[] : [];
-  } catch {
-    return [];
-  }
+/** The chats written down in the job folder; every caller answers a file that cannot be read itself, and none overwrites it. */
+function chatsOf(trackerDirectory: string, jobId: string): AssistantChatsReading {
+  return new AssistantChatsIngestion(join(jobFolderIn(trackerDirectory, jobId), CHATS_FILE)).read();
+}
+
+/** No file yet is no chat past the first message. */
+function chatsWrittenOf(reading: Exclude<AssistantChatsReading, { verdict: 'unreadable' }>): readonly AssistantChat[] {
+  return reading.verdict === 'readable' ? reading.chats : [];
+}
+
+/** In the hold: the chats, or `null` once a file that cannot be read opened its incident on the Assistant, which then takes no step on them. */
+function chatsInTheHoldOf(board: Board, trackerDirectory: string, job: Readonly<Job>, at: string): readonly AssistantChat[] | null {
+  const reading = chatsOf(trackerDirectory, job.id);
+  if (reading.verdict !== 'unreadable') return chatsWrittenOf(reading);
+  UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, CHATS_FILE), reason: reading.reason }, at);
+  return null;
 }
 
 function deliveryTurnsOf(board: Pick<Board, 'incidents'>, jobId: string): IncidentDeliveryTurn[] {
@@ -117,9 +121,13 @@ function isIdle(job: Readonly<Job>, reading: AssistantReading | undefined, newes
   return job.state === 'running' && reading !== undefined && reading.instance === job.childInstance && reading.results >= newestChat;
 }
 
-/** The rule every delivery to the Assistant waits on, so a reader that shows whether a chat goes out now never contradicts the queue. */
+/**
+ * The rule every delivery to the Assistant waits on, so a reader that shows whether a chat goes out now never contradicts the queue: one
+ * whose chats file cannot be read is never idle, since nothing goes out to it.
+ */
 function assistantIsIdle(trackerDirectory: string, board: Pick<Board, 'incidents'>, job: Readonly<Job>, reading: AssistantReading | undefined): boolean {
-  return isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id));
+  const chats = chatsOf(trackerDirectory, job.id);
+  return chats.verdict !== 'unreadable' && isIdle(job, reading, newestChatOf(board, chatsWrittenOf(chats), job.id));
 }
 
 function isWindingDown(job: Readonly<Job>): boolean {
@@ -177,21 +185,28 @@ function turnObservationsOf(board: Pick<Board, 'jobs' | 'incidents'>, readings: 
 
 /**
  * Run in the hold after the lifecycle, in every pass, a usage limit holding or not: an idle Assistant that was asked to wind down, or is
- * past the context-token count, has its input closed, and the next delivery goes to a fresh one if the board boots one.
+ * past the context-token count, has its input closed, and the next delivery goes to a fresh one if the board boots one. An Assistant whose
+ * chats file cannot be read has its incident opened here.
  */
 function closeInputWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string, at: string): void {
   for (const job of liveAssistantsOf(board)) {
     const reading = readings.find((candidate) => candidate.jobId === job.id);
-    if (!isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id))) continue;
+    const chats   = chatsInTheHoldOf(board, trackerDirectory, job, at);
+    if (chats === null || !isIdle(job, reading, newestChatOf(board, chats, job.id))) continue;
     if (isWindingDown(job) || (reading?.lastContextTokens ?? 0) >= ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH) board.moveJob(job.id, 'stopping', at);
   }
 }
 
-/** Run in the hold after `closeInputWhenIdle`: every undelivered incident goes out to an idle Assistant as its next numbered chat. */
+/**
+ * Run in the hold after `closeInputWhenIdle`, which opened the incident of a chats file that cannot be read: every undelivered incident goes
+ * out to an idle Assistant as its next numbered chat, never to one whose chats are unknown.
+ */
 function deliverIncidentsWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string): void {
   for (const job of liveAssistantsOf(board)) {
     const reading = readings.find((candidate) => candidate.jobId === job.id);
-    const newestChat = newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id);
+    const chats   = chatsOf(trackerDirectory, job.id);
+    if (chats.verdict === 'unreadable') continue;
+    const newestChat = newestChatOf(board, chatsWrittenOf(chats), job.id);
     if (!isIdle(job, reading, newestChat)) continue;
     for (const incident of board.incidents().filter((open) => open.deliveredInTurn === null)) {
       board.markIncidentDelivered(incident.id, { jobId: job.id, chatSequence: newestChat + 1 });
@@ -222,9 +237,14 @@ function chatsToWriteOf(board: Board, job: Readonly<Job>, reading: AssistantRead
   return [...all, { sequence: newestChat + 1, incidentIds: [], messageNumber: nextMessage.number }];
 }
 
-/** User's messages to the Assistant not yet sent: no chat carries one yet, or its chat's line was not taken, by the markers `deliverChats` writes. */
+/**
+ * User's messages to the Assistant not yet sent: no chat carries one yet, or its chat's line was not taken, by the markers `deliverChats`
+ * writes. While the chats file cannot be read no message is known to be carried, and none goes out, so each counts.
+ */
 function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
-  const sequenceByMessageNumber = new Map(chatsOf(trackerDirectory, job.id).flatMap((chat) => (chat.messageNumber === null ? [] : [[chat.messageNumber, chat.sequence] as const])));
+  const reading = chatsOf(trackerDirectory, job.id);
+  const chats   = reading.verdict === 'unreadable' ? [] : chatsWrittenOf(reading);
+  const sequenceByMessageNumber = new Map(chats.flatMap((chat) => (chat.messageNumber === null ? [] : [[chat.messageNumber, chat.sequence] as const])));
   const markersFolder = join(jobFolderIn(trackerDirectory, job.id), MARKERS_FOLDER);
   return userMessagesOf(board, job.id).filter((message) => {
     const sequence = sequenceByMessageNumber.get(message.number);
@@ -234,7 +254,8 @@ function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDire
 
 /**
  * After the hold: each numbered chat as one line, in order, a marker keeping a restart from sending one again (at least once: not when
- * Hephaestus died before the marker), and the interrupt line once the open turn spent its call budget.
+ * Hephaestus died before the marker), and the interrupt line once the open turn spent its call budget. An Assistant whose chats file cannot
+ * be read gets nothing, and the file is kept as it is for the move its incident asks.
  */
 async function deliverChats(request: AssistantChatDelivery): Promise<void> {
   const { board, adapter } = request;
@@ -242,8 +263,9 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
     const jobFolder = request.boardChildren.jobFolderOf(job.id);
     const reading   = request.readings.find((candidate) => candidate.jobId === job.id);
     const earlier   = chatsOf(request.trackerDirectory, job.id);
-    const chats     = chatsToWriteOf(board, job, reading, earlier);
-    if (chats.length !== earlier.length) writeFileAtomically(join(jobFolder, CHATS_FILE), `${JSON.stringify(chats)}\n`);
+    if (earlier.verdict === 'unreadable') continue;
+    const chats     = chatsToWriteOf(board, job, reading, chatsWrittenOf(earlier));
+    if (chats.length !== chatsWrittenOf(earlier).length) createAssistantChatsWriter(join(jobFolder, CHATS_FILE)).write(chats);
     const messages = userMessagesOf(board, job.id);
     for (const chat of chats) {
       const text = chat.messageNumber === null
@@ -259,11 +281,16 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
   }
 }
 
-/** The running Assistants with a chat their session has not answered yet. */
+/**
+ * The running Assistants with a chat their session has not answered yet. One whose chats file cannot be read is not counted, so the quiet
+ * watch never ends it as down while its incident waits for a move.
+ */
 function midTurnJobIdsOf(trackerDirectory: string, board: Board, readings: readonly AssistantReading[]): string[] {
   return liveAssistantsOf(board).filter((job) => {
     const reading = readings.find((candidate) => candidate.jobId === job.id);
-    return job.state === 'running' && reading !== undefined && reading.results < newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id);
+    const chats   = chatsOf(trackerDirectory, job.id);
+    if (chats.verdict === 'unreadable') return false;
+    return job.state === 'running' && reading !== undefined && reading.results < newestChatOf(board, chatsWrittenOf(chats), job.id);
   }).map((job) => job.id);
 }
 

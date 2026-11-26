@@ -18,6 +18,7 @@ import {
   test
 } from 'bun:test';
 
+import { createAssistantChatsWriter }                     from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { SubagentFacts }                             from '../../lib/agent-launch/AgentTranscripts.ts';
 import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
@@ -354,10 +355,10 @@ describe('the messages waiting', () => {
     });
     const trackerDirectory = scratchDirectoryFor('live-facts');
     const jobFolder = writeEventLogs(trackerDirectory, assistant.id, [[]]);
-    writeFileSync(join(jobFolder, 'assistant-chats.json'), JSON.stringify([
+    createAssistantChatsWriter(join(jobFolder, 'assistant-chats.json')).write([
       { sequence: 2, incidentIds: [], messageNumber: 1 },
       { sequence: 3, incidentIds: [], messageNumber: 2 },
-    ]));
+    ]);
     mkdirSync(join(jobFolder, 'assistant-frames'), { recursive: true });
     writeFileSync(join(jobFolder, 'assistant-frames', 'chat-2'), '');
     const logRecords = ['First example message.', 'Second example message.', 'Third example message.'].map((text) => messaged(assistant.id, text));
