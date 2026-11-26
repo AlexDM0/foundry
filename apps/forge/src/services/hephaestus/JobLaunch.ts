@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path';
 
 import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity } from '../../adapters/gate-manifest/GateRunManifestIngestion.ts';
 import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
+import { createInstructionsReadWriter }                                            from '../../adapters/instructions-read/InstructionsReadWriter.ts';
 import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
 import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
 import { LaunchSettingsIngestion }                                                 from '../../adapters/launch-settings/LaunchSettingsIngestion.ts';
@@ -2994,7 +2995,7 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
 /** Each child instance's launch keeps the path and content hash of every instruction file its session was given. */
 function recordInstructionsRead(jobFolder: string, childInstance: number, files: readonly InstructionFileRead[]): void {
   mkdirSync(jobFolder, { recursive: true });
-  writeFileAtomically(join(jobFolder, `${JOB_FILES.instructionsReadPrefix}${childInstance}.json`), `${JSON.stringify({ files }, null, 2)}\n`);
+  createInstructionsReadWriter(join(jobFolder, `${JOB_FILES.instructionsReadPrefix}${childInstance}.json`)).write(files);
 }
 
 /** Written once, at the job's first launch: every later instance resumes on it. */

@@ -254,7 +254,8 @@ describe('one pass', () => {
 
     expect(drivePass.state().notices).not.toContainEqual(expect.objectContaining({ kind: 'instructions-missing' }));
     const contentHash = createHash('sha256').update(RECORDED_FLOW_BUILDER_FILE.text).digest('hex').slice(0, 16);
-    expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual({ files: [{ path: RECORDED_FLOW_BUILDER_FILE.path, contentHash }] });
+    const instructionsRead = { version: 1, files: [{ path: RECORDED_FLOW_BUILDER_FILE.path, contentHash }] };
+    expect(JSON.parse(readFileSync(join(jobFolder(buildJobId()), 'instructions-1.json'), 'utf8'))).toEqual(instructionsRead);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

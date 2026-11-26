@@ -2753,7 +2753,7 @@ pipeline up again. A higher version, an unknown key at any level, a missing requ
 or `run`, a name given twice or shared by a prepare step and a gate, a phase naming an unknown gate, a gate in no
 phase, a model or effort outside the lists above, an instruction entry listed twice or a path outside the repository
 makes it malformed: the board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each
-launch writes `<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex
+launch writes `<data>/jobs/<J>/instructions-<instance>.json`, `{ "version": 1, files: [{ path, contentHash }] }`, the first 16 hex
 digits of each file's SHA-256 as it was read. A job's first launch writes `<data>/jobs/<J>/launch-settings.json`,
 `{ "version": 1, model, effort }`, the pair its session runs on, and never rewrites it: every resume of that session, a
 later instance's or another job's that carries it on, runs on the recorded pair, whatever the pipeline says by then. A
