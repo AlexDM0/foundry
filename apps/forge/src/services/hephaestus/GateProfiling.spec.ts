@@ -254,7 +254,7 @@ describe('a queued run', () => {
     expect(loggedStepRuns()).toEqual([{
       stepKind: 'gate', stepName: 'tests', phase: 'merge', runMilliseconds: PROFILED_MILLISECONDS, ending: 'passed'
     }]);
-    expect(readFileSync(join(workspace.trackerDirectory, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), 'utf8')).toBe('{"text":"example output\\n"}\n');
+    expect(readFileSync(join(workspace.trackerDirectory, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), 'utf8')).toBe('{"version":1,"text":"example output\\n"}\n');
     expect(existsSync(worktreeOf('P1'))).toBe(false);
     expect(heldSlots).toEqual([]);
   });

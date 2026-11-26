@@ -100,6 +100,7 @@ function routesOf(effectReadings?: EffectReadingSource | null): { routes: Hephae
     broker:           () => null,
     monitorStream:    () => null,
     monitorFacts:     () => null,
+    log:              () => undefined,
     wake:             () => undefined,
     launchesHeld:     () => false,
     onRuntimeCommand: () => Promise.resolve('done'),

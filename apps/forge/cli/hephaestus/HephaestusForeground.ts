@@ -703,6 +703,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         broker:           () => broker,
         monitorStream:    () => monitorStream,
         monitorFacts:     monitorFactsNow,
+        log,
         wake:             (forced) => drivePass?.wake(forced),
         launchesHeld:     () => hephaestusState()?.runtimeState === 'held-by-install-change',
         notices:          () => hephaestusState()?.notices ?? [],

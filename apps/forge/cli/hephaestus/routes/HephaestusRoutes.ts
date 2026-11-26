@@ -41,6 +41,8 @@ export interface HephaestusRouteRequest extends Omit<BoardStateSource, 'boardRea
   monitorStream: () => MonitorStream | null;
   /** `null` until Hephaestus took its generation. */
   monitorFacts:  () => MonitorHephaestusFacts | null;
+  /** Hephaestus's log, for what a route skips while it reads. */
+  log:           (line: string) => void;
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
@@ -195,7 +197,7 @@ export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusR
     profileOutputOf: (profileRunId, after) => {
       const afterLineNumber = profileOutputCursorOf(after);
       if (afterLineNumber === null || !boardHoldsProfileRun(boardReads, profileRunId)) return null;
-      return GateProfiling.outputFollowerOf(workspace.trackerDirectory, profileRunId, afterLineNumber);
+      return GateProfiling.outputFollowerOf(workspace.trackerDirectory, profileRunId, afterLineNumber, request.log);
     },
     jobFileText: (jobId, fileName) => {
       const jobFolder = jobFolderOf(jobId);
