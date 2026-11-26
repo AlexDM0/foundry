@@ -22,6 +22,7 @@ import type { TicketStage }                         from '../../src/lib/tracker-
 import type { Board }                               from '../../src/lib/tracker-model/Board.ts';
 import { CrossingStages }                           from '../../src/services/hephaestus/CrossingStages.ts';
 import { launchFactsOf, type DrivePassRequest }     from '../../src/services/hephaestus/DrivePass.ts';
+import { StoredFileUnreadable }                     from '../../src/services/hephaestus/StoredFileUnreadable.ts';
 import { branchNamesOf }                            from '../../src/shared/BranchNames.ts';
 import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
@@ -144,6 +145,7 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
     checkout: '', workingDirectory: '', holdsRepository: true, projectFolderFromStart: ''
   };
   const facts = launchFactsOf(crossing.board, request, job, { instructions: BUILD_PROMPT, airlock: null, place });
+  if (StoredFileUnreadable.isUnreadableFile(facts)) throw new Error(`The launch read ${facts.file}, which cannot be read: ${facts.reason}`);
   return HephaestusWording.launchTextOf(job, facts, PROMPT_FILLS).firstMessage;
 }
 

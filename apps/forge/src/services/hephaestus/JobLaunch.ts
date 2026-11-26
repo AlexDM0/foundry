@@ -27,6 +27,8 @@ import { MergeSidesIngestion, type MergeSides }                                 
 import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
 import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
 import { createStepVerdictWriter }                                                 from '../../adapters/step-verdict/StepVerdictWriter.ts';
+import { TargetConflictIngestion }                                                 from '../../adapters/target-conflict/TargetConflictIngestion.ts';
+import { createTargetConflictWriter }                                              from '../../adapters/target-conflict/TargetConflictWriter.ts';
 import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
 import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                                     from '../../lib/atomic-file/AtomicFile.ts';
@@ -977,14 +979,6 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
 function answeredWaiverTreesOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], decisions: readonly Readonly<Decision>[]): ReadonlyMap<string, string | null> {
   const answeredReviews = jobs.filter((job) => job.kind === REVIEW_JOB_KIND && job.state === 'awaiting-answer' && !decisions.some((decision) => decision.jobId === job.id));
   return new Map(answeredReviews.map((job) => [job.id, treeOf(worktreeOf(context.workspace, job))]));
-}
-
-function readJsonFile<Content>(path: string): Content | null {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Content;
-  } catch {
-    return null;
-  }
 }
 
 /** The tips a merge into the worktree was checked against; `null` before its first look found the branch behind. */
@@ -2175,7 +2169,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
     case 'conflicted': {
       const jobFolder = jobFolderOf(hold.context.workspace, job);
       mkdirSync(jobFolder, { recursive: true });
-      writeFileAtomically(join(jobFolder, JOB_FILES.targetConflict), `${JSON.stringify({ targetTip: catchUp.targetTip, conflictedFiles: catchUp.conflictedFiles })}\n`);
+      createTargetConflictWriter(join(jobFolder, JOB_FILES.targetConflict)).write({ targetTip: catchUp.targetTip, conflictedFiles: catchUp.conflictedFiles });
       returnToBuilder(hold, job, BUILD_JOB_CAUSES.targetConflict);
       routeCatchUpToItsOwner(hold, job, catchUp.conflictedFiles);
       return;
@@ -2203,8 +2197,11 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
   }
 }
 
-/** The handover of the ticket's newest ended review when it ended on its target catch-up; `null` for any other ending. */
-function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string): TargetCatchUpHandover | null {
+/**
+ * The handover of the ticket's newest ended review when it ended on its target catch-up; `null` for any other ending. The review's file it
+ * is read from that cannot be read stops the launch of the builder it would be told to.
+ */
+function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string): TargetCatchUpHandover | null | StoredFileUnreadable {
   const reviewJobIds = new Set<string>();
   let newestEnded: { jobId: string; cause: string } | null = null;
   for (const record of logRecords) {
@@ -2217,8 +2214,10 @@ function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly 
     const redHandoff = RedHandoff.redHandoffFactsOf(jobFolder);
     return redHandoff === null ? null : { kind: 'gate-red', redHandoff };
   }
-  const conflict = readJsonFile<{ targetTip: string; conflictedFiles: string[] }>(join(jobFolder, JOB_FILES.targetConflict));
-  return conflict === null ? null : { kind: 'conflict', ...conflict };
+  const conflictFilePath = join(jobFolder, JOB_FILES.targetConflict);
+  const conflict = new TargetConflictIngestion(conflictFilePath).read();
+  if (conflict.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, conflict.reason);
+  return conflict.verdict === 'absent' ? null : { kind: 'conflict', ...conflict.conflict };
 }
 
 /** A job User stopped ends `stopped`; one User freshened ends `replaced`, so the next attempt starts on the same worktree. */

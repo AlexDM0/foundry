@@ -9,9 +9,9 @@
  * review's catch-up that conflicts in the package's files goes back to its package's build, the ticket left in progress; a red catch-up
  * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
  * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
- * ticket for User. A merge record that cannot be read is never settled or merged again: the review waits on its incident. The folders
- * are real; git answers from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends each line
- * itself.
+ * ticket for User. A merge record that cannot be read is never settled or merged again: the review waits on its incident; a conflict kept
+ * for the builder that cannot be read is no handover but the unreadable file. The folders are real; git answers from recorded answer sets,
+ * one for each state of the worktree, the launcher is fake, and the spec ends each line itself.
  */
 import {
   existsSync,
@@ -328,6 +328,10 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   expect(handoffCycleResumes(scene)).toBe(1);
   const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
   expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
+
+  writeFileSync(join(scene.jobFolder(), 'target-conflict.json'), `${JSON.stringify({ targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] })}\n`);
+  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/target-conflict.json`, reason: 'its version is not 1' } as const;
+  expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toEqual(unreadable);
 });
 
 testWhenGitIsRecorded('a merge record that cannot be read is never settled or merged again: the review waits on the record\'s incident', async () => {

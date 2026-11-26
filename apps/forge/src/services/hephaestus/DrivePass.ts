@@ -911,17 +911,21 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
  * Review its package review kept in its job folder (E34). `null` for a fresh session, and for `adapt` taking up the home builder's session
  * after the package stages, which gets the adapt message (E43); after a home review that did not hold, `adapt` gets its findings (E51).
  */
-function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null): ReviewFindingsFacts | null {
+function reviewFindingsOf(
+  board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null
+): ReviewFindingsFacts | null | StoredFileUnreadable {
   if (job.kind !== 'build' || JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
   const [ticketId] = job.ticketIds;
   if (crossingStage?.stage === 'adapt' && ticketId !== undefined && CrossingStages.followsThePackageStages(board.logRecordsSoFar(), ticketId)) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
   const reviewSection = crossingStage?.stage === 'package-build' ? crossingStage.packageReviewFindings ?? '' : JobResumption.newestReviewSectionOf(ticketBody);
+  const targetCatchUp = JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? '');
+  if (StoredFileUnreadable.isUnreadableFile(targetCatchUp)) return targetCatchUp;
   return {
     reviewSection,
     resume:         Playbook.handoffCycleResumesOf(job, board.logRecordsSoFar()),
     resumesAllowed: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
-    targetCatchUp:  JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? ''),
+    targetCatchUp,
   };
 }
 
@@ -932,10 +936,10 @@ function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine
 
 type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine' | 'agentAdapter'>;
 
-/** What a job's launch text is filled from, read off the board and the tracker's job folders. */
+/** What a job's launch text is filled from, read off the board and the tracker's job folders; a job file it reads that cannot be read stops the launch. */
 export function launchFactsOf(
   board: Board, request: LaunchFactsSource, job: Readonly<Job>, launch: { instructions: string; airlock: AirlockFacts | null; place: SessionPlace }
-): JobLaunchFacts {
+): JobLaunchFacts | StoredFileUnreadable {
   const { trackerDirectory } = request.workspace;
   const { instructions, airlock, place } = launch;
   const pipeline = board.pipeline();
@@ -946,6 +950,8 @@ export function launchFactsOf(
   const crossingStage = CrossingStages.crossingStageFactsOf(board, trackerDirectory, job, resumesSession);
   const rootEntityKey = pipeline?.entities === undefined ? ROOT_ENTITY_KEY : EntityOwnershipUtil.rootEntityKeyOf(pipeline.entities);
   const pipelineAgentLaunch = { lineGrammar: request.platformPorts.shellLine.lineGrammar, rootDirectory: request.workspace.rootDirectory, agentAdapter: request.agentAdapter };
+  const reviewFindings = needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job, crossingStage) : null;
+  if (StoredFileUnreadable.isUnreadableFile(reviewFindings)) return reviewFindings;
   return {
     instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
     confinement:  SessionConfinement.launchConfinementOf(request.agentAdapter.capabilities, request.platformPorts.gateConfinement),
@@ -968,7 +974,7 @@ export function launchFactsOf(
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
-    reviewFindings:         needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job, crossingStage) : null,
+    reviewFindings,
     needsSettled,
     ...(crossingStage === null ? {} : { crossingStage }),
     ...(rootEntityKey === ROOT_ENTITY_KEY ? {} : { rootEntityKey }),
@@ -1110,7 +1116,9 @@ async function launchAgentChild(
   }
   if (StoredFileUnreadable.isUnreadableFile(airlock)) return unreadableLaunchFileOf(request, job, airlock);
   const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
-  const launchFacts      = { ...launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place }), effectReading };
+  const factsRead = launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
+  if (StoredFileUnreadable.isUnreadableFile(factsRead)) return unreadableLaunchFileOf(request, job, factsRead);
+  const launchFacts      = { ...factsRead, effectReading };
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
