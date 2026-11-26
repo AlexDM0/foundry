@@ -37,9 +37,7 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/HephaestusServer.ts: body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));':                                 'The body of an HTTP request.',
   'src/services/hephaestus/InstallChangeWatch.ts: const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;': 'The output of a process.',
   'src/services/hephaestus/JobLaunch.ts: recorded = JSON.parse(readFileSync(join(jobFolder, JOB_FILES.launchSettings), \'utf8\'));':              STORED_FILE_OFFENDER,
-  'src/services/hephaestus/JobLaunch.ts: return JSON.parse(readFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal), \'utf8\')) as SandboxRefusal;':
-    STORED_FILE_OFFENDER,
-  'src/services/hephaestus/JobResumption.ts: const recorded: unknown = JSON.parse(readFileSync(path, \'utf8\'));': STORED_FILE_OFFENDER,
+  'src/services/hephaestus/JobResumption.ts: const recorded: unknown = JSON.parse(readFileSync(path, \'utf8\'));':                                STORED_FILE_OFFENDER,
   'src/services/hephaestus/MergedTreeGateRuns.ts: const kept = JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), \'utf8\')));':
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/PipelineAgentSessions.ts: return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), \'utf8\')) as SnapshotStart;':

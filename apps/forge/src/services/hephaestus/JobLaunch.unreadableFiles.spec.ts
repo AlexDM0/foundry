@@ -155,3 +155,14 @@ test('a reading of the observation that met an unreadable file opens its inciden
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
   expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observationOf(scene, { gate })])).toBe(false);
 });
+
+test('a sandbox refusal kept that cannot be read is still a refused line: the incident opens and the job neither ends nor moves', () => {
+  const scene = sceneIn('gating');
+  const sandboxRefusal = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/sandbox-refusal.json`, reason: 'its "reason" is not text' } as const;
+
+  applyPass(scene, observationOf(scene, { sandboxRefusal }));
+
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: sandboxRefusal.file, reason: sandboxRefusal.reason }]]);
+  expect(scene.board.incidents().map((incident) => incident.kind)).not.toContain('sandbox-unavailable');
+  expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
+});

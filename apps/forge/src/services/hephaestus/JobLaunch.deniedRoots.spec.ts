@@ -4,13 +4,8 @@
  * does not start; and the hold turns that refusal into `sandbox-unavailable` also for a worker launch, which stands in `running`. On a
  * forge with entities a prepare step's sandbox, like a session's, makes and denies the `.claude` folder of every entity home (E7).
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, symlinkSync } from 'node:fs';
+import { join }                               from 'node:path';
 import {
   afterEach,
   describe,
@@ -18,6 +13,7 @@ import {
   test
 } from 'bun:test';
 
+import { SandboxRefusalIngestion }                                    from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
 import type { SandboxDenyShape }                                      from '../../lib/agent-launch/WorkerProfile.ts';
 import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -72,7 +68,8 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
 
 function observationOf(context: JobLaunchContext, job: Readonly<Job>): BuildJobObservation {
   const refusalPath = join(jobFolderIn(context.workspace.trackerDirectory, job.id), 'sandbox-refusal.json');
-  const sandboxRefusal = existsSync(refusalPath) ? JSON.parse(readFileSync(refusalPath, 'utf8')) as BuildJobObservation['sandboxRefusal'] : null;
+  const stored = new SandboxRefusalIngestion(refusalPath).read();
+  const sandboxRefusal = stored.verdict === 'readable' ? stored.refusal : null;
   return {
     jobId:            job.id,
     setup:            'installed',

@@ -25,6 +25,8 @@ import { MergeSettlementIngestion, type TargetMergeSettlement }                 
 import { createMergeSettlementWriter }                                             from '../../adapters/merge-settlement/MergeSettlementWriter.ts';
 import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
+import { SandboxRefusalIngestion, type SandboxRefusal }                            from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
+import { createSandboxRefusalWriter }                                              from '../../adapters/sandbox-refusal/SandboxRefusalWriter.ts';
 import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
 import { createStepVerdictWriter }                                                 from '../../adapters/step-verdict/StepVerdictWriter.ts';
 import { TargetConflictIngestion }                                                 from '../../adapters/target-conflict/TargetConflictIngestion.ts';
@@ -212,8 +214,8 @@ export interface BuildJobObservation {
   report:           unknown;
   agentEnd:         ChildEnd | 'lost' | null;
   gate:             GateProgress;
-  /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was. */
-  sandboxRefusal:   SandboxRefusal | null;
+  /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was, or its unreadable record. */
+  sandboxRefusal:   SandboxRefusal | StoredFileUnreadable | null;
   /** Where a prepared review job stands in bringing its branch up to the target's tip; `not-checked` for every other job. */
   targetCatchUp:    TargetCatchUp;
   /** Where a job in `merging-main` stands; `null` for a job in any other state. */
@@ -294,11 +296,6 @@ const MAIN_MERGE_WAITS: readonly MainMergeStep['verdict'][] = ['merging', 'gatin
 
 /** The catch-up verdicts only a child's end moves on, so a pass that reads one waits for that end instead of asking for the next pass. */
 const TARGET_CATCH_UP_WAITS: readonly TargetCatchUp['verdict'][] = ['merging', 'gating'];
-
-interface SandboxRefusal {
-  step:   string;
-  reason: string;
-}
 
 /** Where a refused line or worker launch can stand: prepare and install lines while preparing, the worker while running, gates while gating. */
 const STATES_A_SANDBOX_REFUSAL_ENDS: ReadonlySet<JobState> = new Set<JobState>(['preparing', 'running', 'gating', 'merging-main']);
@@ -2277,6 +2274,7 @@ function unreadableFileOfObservation(observation: BuildJobObservation, state: Jo
     observation.targetCatchUp,
     observation.mainMerge?.step,
     state === 'merging-main' ? observation.conflictReReview?.verdict : null,
+    state !== undefined && STATES_A_SANDBOX_REFUSAL_ENDS.has(state) ? observation.sandboxRefusal : null,
   ];
   return readings.find(StoredFileUnreadable.isUnreadableFile) ?? null;
 }
@@ -2291,7 +2289,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
     openUnreadableFileIncident(hold, job, unreadable);
     return;
   }
-  if (observation.sandboxRefusal !== null && STATES_A_SANDBOX_REFUSAL_ENDS.has(job.state)) {
+  if (observation.sandboxRefusal !== null && !StoredFileUnreadable.isUnreadableFile(observation.sandboxRefusal) && STATES_A_SANDBOX_REFUSAL_ENDS.has(job.state)) {
     openIncidentFor(hold, job, 'sandbox-unavailable', { step: observation.sandboxRefusal.step, reason: observation.sandboxRefusal.reason });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.sandboxUnavailable });
     return;
@@ -2519,7 +2517,7 @@ type LineChildSpawn =
 function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refusal: SandboxRefusal): void {
   const jobFolder = jobFolderOf(context.workspace, job);
   mkdirSync(jobFolder, { recursive: true });
-  writeFileAtomically(join(jobFolder, JOB_FILES.sandboxRefusal), `${JSON.stringify(refusal)}\n`);
+  createSandboxRefusalWriter(join(jobFolder, JOB_FILES.sandboxRefusal)).write(refusal);
   context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
 }
 
@@ -2541,12 +2539,12 @@ function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>
   return true;
 }
 
-function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): SandboxRefusal | null {
-  try {
-    return JSON.parse(readFileSync(join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal), 'utf8')) as SandboxRefusal;
-  } catch {
-    return null;
-  }
+/** A refusal kept that cannot be read is still a refused line: the job takes no step until a move on the file's incident. */
+function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): SandboxRefusal | StoredFileUnreadable | null {
+  const refusalFilePath = join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal);
+  const reading = new SandboxRefusalIngestion(refusalFilePath).read();
+  if (reading.verdict === 'readable') return reading.refusal;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(context.workspace.trackerDirectory, refusalFilePath, reading.reason);
 }
 
 /** `pipeline` names the entity homes whose configuration folder the step's sandbox denies, as a session's does. */
