@@ -10,8 +10,13 @@
  * entity's gate runs its lines in the folders the press took from the entity's first home. Two entities that share a gate name each get
  * their own note, in their own part of the record, never one in the forge's part.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join }                                from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -462,6 +467,25 @@ testWhenGitIsRecorded('a run of the open setup turns a slow gate with no caching
 
   expect((await storedBoard()).pipelineSetup()?.findings).toEqual([{
     findingId: 'F1', topic: 'note', label: 'no-caching-tool', value: 'tests', sourcePaths: [], script: null, needsRecheck: false
+  }]);
+});
+
+testWhenGitIsRecorded('a run of the open setup flags a turbo.json it cannot read as a note finding naming that file', async () => {
+  await storeAPipeline();
+  await applied({ kind: 'pipeline-update-start' });
+  await applied({
+    kind: 'gate-profile-start', setupId: 'S1', gateName: 'tests', phase: 'build'
+  });
+  writeFileSync(join(repository, 'turbo.json'), '{ "tasks": ');
+  const profiling = profilingWith(() => Promise.resolve(passedRun(SLOW_GATE_MILLISECONDS)));
+
+  await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {
+    profiling.followRuns(await storedBoard());
+    await profiling.idle();
+  });
+
+  expect((await storedBoard()).pipelineSetup()?.findings).toMatchObject([{
+    findingId: 'F1', topic: 'note', label: 'turbo-configuration-unreadable', sourcePaths: ['turbo.json'], script: null
   }]);
 });
 

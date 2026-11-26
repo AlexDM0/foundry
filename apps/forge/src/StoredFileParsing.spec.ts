@@ -51,7 +51,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/TalosStart.ts: const entry = JSON.parse(line) as Partial<RegisteredChild>;':                             STORED_FILE_OFFENDER,
   'src/services/hephaestus/TalosStart.ts: const stored = JSON.parse(readFileSync(path, \'utf8\')) as Partial<ForcedStopRefusals>;': STORED_FILE_OFFENDER,
   'src/services/hephaestus/TalosStart.ts: return [JSON.parse(text) as unknown];':                                                   STORED_FILE_OFFENDER,
-  'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));':                     STORED_FILE_OFFENDER,
   'src/services/lifecycle/ReviewOutcome.ts: parsed = JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), \'utf8\'));':        STORED_FILE_OFFENDER,
 };
 

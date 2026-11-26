@@ -104,6 +104,8 @@ function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecordi
       return { ...note, value: suggestion.task, sourcePaths: [...suggestion.folders] };
     case 'gate-not-through-turbo':
       return { ...note, value: suggestion.gate, sourcePaths: [] };
+    case 'turbo-configuration-unreadable':
+      return { ...note, value: suggestion.reason, sourcePaths: [suggestion.file] };
   }
 }
 
