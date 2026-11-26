@@ -43,9 +43,15 @@ function monitorFolder(): string {
   return folder;
 }
 
-function slotsOf(folder: string, limit: number, ownProcess: ProcessIdentity, liveProcessIds: Set<number>): ReturnType<typeof AgentSlots.createAgentSlots> {
+function slotsOf(
+  folder: string, limit: number, ownProcess: ProcessIdentity, liveProcessIds: Set<number>, loggedLines: string[] = [],
+): ReturnType<typeof AgentSlots.createAgentSlots> {
   return AgentSlots.createAgentSlots({
-    monitorFolder: folder, limit, ownProcess, hephaestusIsLive: (hephaestus) => hephaestus !== null && liveProcessIds.has(hephaestus.processId),
+    monitorFolder:    folder,
+    limit,
+    ownProcess,
+    hephaestusIsLive: (hephaestus) => hephaestus !== null && liveProcessIds.has(hephaestus.processId),
+    log:              (line) => loggedLines.push(line),
   });
 }
 
@@ -103,16 +109,28 @@ describe('agent slots', () => {
     expect(slots.liveHoldings().map((holding) => holding.jobId)).toEqual(['J9']);
   });
 
-  test('a slot file is versioned and an unreadable one is taken over', () => {
+  test('a slot file is versioned, and an unreadable one is taken over and logged', () => {
     const folder = monitorFolder();
     const live = new Set([FIRST_HEPHAESTUS.processId]);
-    const slots = slotsOf(folder, 1, FIRST_HEPHAESTUS, live);
+    const loggedLines: string[] = [];
+    const slots = slotsOf(folder, 1, FIRST_HEPHAESTUS, live, loggedLines);
     expect(slots.tryAcquire('tracker-a', 'J1')).toBe(true);
     const slotPath = join(folder, AGENT_SLOTS_FOLDER, 'slot-1');
     expect(JSON.parse(readFileSync(slotPath, 'utf8'))).toMatchObject({ version: 2, trackerId: 'tracker-a', jobId: 'J1' });
+    expect(loggedLines).toEqual([]);
     writeFileSync(slotPath, 'not json');
     expect(slots.tryAcquire('tracker-b', 'J2')).toBe(true);
     expect(readdirSync(join(folder, AGENT_SLOTS_FOLDER))).toEqual(['slot-1']);
+    expect(loggedLines).toEqual([expect.stringContaining(`The agent slot ${slotPath} could not be read`) as unknown as string]);
+  });
+
+  test('a slot whose Hephaestus is gone is taken over without a line logged', () => {
+    const folder = monitorFolder();
+    const live = new Set([FIRST_HEPHAESTUS.processId]);
+    const loggedLines: string[] = [];
+    expect(slotsOf(folder, 1, FIRST_HEPHAESTUS, live).tryAcquire('tracker-a', 'J1')).toBe(true);
+    expect(slotsOf(folder, 1, SECOND_HEPHAESTUS, new Set([SECOND_HEPHAESTUS.processId]), loggedLines).tryAcquire('tracker-b', 'J2')).toBe(true);
+    expect(loggedLines).toEqual([]);
   });
 });
 

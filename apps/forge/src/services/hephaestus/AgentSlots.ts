@@ -3,30 +3,25 @@
  * exclusively and naming the board, the job and the Hephaestus process answering for it. A slot whose Hephaestus is gone is taken over, so a
  * crashed Hephaestus frees its slots at the next claim of any Hephaestus, without a release.
  */
-import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
-import { join }                                 from 'node:path';
+import { mkdirSync, readdirSync } from 'node:fs';
+import { join }                   from 'node:path';
 
-import { createFileAtomically, removeHeldFile, writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { FileReplace }                                          from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, storedIdentityOf }                    from '../../lib/process-identity/ProcessIdentity.ts';
+import { AgentSlotIngestion, type AgentSlotHolding, type AgentSlotReading } from '../../adapters/agent-slot/AgentSlotIngestion.ts';
+import { createAgentSlotWriter }                                            from '../../adapters/agent-slot/AgentSlotWriter.ts';
+import { createFileAtomically, removeHeldFile }                             from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                                                 from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                         from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                                               from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                             from '../../lib/process-identity/ProcessIdentity.ts';
+
+export type { AgentSlotHolding } from '../../adapters/agent-slot/AgentSlotIngestion.ts';
 
 export const AGENT_SLOTS_FOLDER = 'agent-slots';
-
-const AGENT_SLOT_VERSION = 2;
 
 const SLOT_FILE_PATTERN = /^slot-\d+$/;
 
 /** A reservation is held during one pass for a launch the Playbook may make, and becomes the launched job's slot or is released. */
 const RESERVATION_PREFIX = 'reserved-';
-
-export interface AgentSlotHolding {
-  trackerId:  string;
-  /** The job the slot is for, or a reservation's `reserved-<n>`. */
-  jobId:      string;
-  hephaestus: ProcessIdentity | null;
-}
 
 export interface AgentSlotsOptions {
   monitorFolder:    string;
@@ -36,6 +31,8 @@ export interface AgentSlotsOptions {
   /** Whether a recorded Hephaestus still runs; `null`, an unreadable record, is never live. */
   hephaestusIsLive: (hephaestus: ProcessIdentity | null) => boolean;
   fileReplace?:     FileReplace;
+  /** Where a slot that could not be read and is taken over is logged. */
+  log:              (line: string) => void;
 }
 
 export interface AgentSlots {
@@ -51,34 +48,15 @@ export interface AgentSlots {
   assignReservations: (trackerId: string, launchedJobIds: readonly string[]) => void;
 }
 
-function slotTextOf(holding: AgentSlotHolding): string {
-  return `${JSON.stringify({
-    version: AGENT_SLOT_VERSION, trackerId: holding.trackerId, jobId: holding.jobId, hephaestus: holding.hephaestus
-  })}\n`;
+/** A slot as it was judged, with the text it was judged by. */
+type JudgedSlot = Exclude<AgentSlotReading, { verdict: 'absent' }> & { storedText: string };
+
+function holdingOf(reading: AgentSlotReading): AgentSlotHolding | null {
+  return reading.verdict === 'readable' ? reading.holding : null;
 }
 
-/** An unreadable or other-version slot reads as no holding, which no Hephaestus answers for, so it is taken over. */
-function holdingOf(slotText: string): AgentSlotHolding | null {
-  let stored: unknown;
-  try {
-    stored = JSON.parse(slotText);
-  } catch {
-    return null;
-  }
-  if (typeof stored !== 'object' || stored === null) return null;
-  const {
-    version, trackerId, jobId, hephaestus
-  } = stored as Record<string, unknown>;
-  if (version !== AGENT_SLOT_VERSION || typeof trackerId !== 'string' || typeof jobId !== 'string') return null;
-  return { trackerId, jobId, hephaestus: storedIdentityOf(hephaestus) };
-}
-
-function slotTextIn(slotPath: string): string | null {
-  try {
-    return readFileSync(slotPath, 'utf8');
-  } catch {
-    return null;
-  }
+function storedTextOf(reading: AgentSlotReading): string | null {
+  return reading.verdict === 'absent' ? null : reading.storedText;
 }
 
 function reservationIdOf(index: number): string {
@@ -98,9 +76,12 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     }
   }
 
+  function readingOf(slotPath: string): AgentSlotReading {
+    return new AgentSlotIngestion(slotPath).read();
+  }
+
   function liveHoldingOf(slotPath: string): AgentSlotHolding | null {
-    const slotText = slotTextIn(slotPath);
-    const holding = slotText === null ? null : holdingOf(slotText);
+    const holding = holdingOf(readingOf(slotPath));
     return holding !== null && options.hephaestusIsLive(holding.hephaestus) ? holding : null;
   }
 
@@ -110,15 +91,17 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
 
   function slotPathHeldBy(trackerId: string, jobId: string): string | null {
     return existingSlotPaths().find((slotPath) => {
-      const slotText = slotTextIn(slotPath);
-      const holding = slotText === null ? null : holdingOf(slotText);
+      const holding = holdingOf(readingOf(slotPath));
       return holding?.trackerId === trackerId && holding.jobId === jobId;
     }) ?? null;
   }
 
-  /** Moved aside before it is removed, so of two Hephaestus processes taking over one stale slot only the first removes it. */
-  function freedIfStale(slotPath: string, slotText: string): void {
-    const holding = holdingOf(slotText);
+  /**
+   * Moved aside before it is removed, so of two Hephaestus processes taking over one stale slot only the first removes it; a slot changed
+   * since it was judged goes back as it was.
+   */
+  function freedIfStale(slotPath: string, judged: JudgedSlot): void {
+    const holding = holdingOf(judged);
     if (holding !== null && options.hephaestusIsLive(holding.hephaestus)) return;
     const asidePath = `${slotPath}.${process.pid}.stale`;
     try {
@@ -126,9 +109,18 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     } catch {
       return;
     }
-    const movedText = slotTextIn(asidePath);
-    if (movedText !== slotText && movedText !== null && createFileAtomically(slotPath, movedText, fileReplace) !== 'created') return;
+    const movedText = storedTextOf(readingOf(asidePath));
+    if (movedText !== judged.storedText && movedText !== null && createFileAtomically(slotPath, movedText, fileReplace) !== 'created') return;
     removeHeldFile(asidePath, fileReplace);
+    if (judged.verdict === 'unreadable') options.log(`The agent slot ${slotPath} could not be read (${judged.reason}); it was taken over.`);
+  }
+
+  /** A slot whose bytes could not be read at all is left for a later claim. */
+  function judgedSlotOf(slotPath: string): JudgedSlot | null {
+    const reading = readingOf(slotPath);
+    if (reading.verdict === 'absent') return null;
+    const { storedText } = reading;
+    return storedText === null ? null : { ...reading, storedText };
   }
 
   /**
@@ -136,12 +128,12 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
    * while the job ran on, is taken over for this Hephaestus, so other Hephaestus processes count it again.
    */
   function jobKeepsItsSlot(slotPath: string, trackerId: string, jobId: string): boolean {
-    const slotText = slotTextIn(slotPath);
-    if (slotText === null) return false;
-    const holding = holdingOf(slotText);
+    const judged = judgedSlotOf(slotPath);
+    if (judged === null) return false;
+    const holding = holdingOf(judged);
     if (holding !== null && options.hephaestusIsLive(holding.hephaestus)) return true;
-    freedIfStale(slotPath, slotText);
-    return createFileAtomically(slotPath, slotTextOf({ trackerId, jobId, hephaestus: options.ownProcess }), fileReplace) === 'created';
+    freedIfStale(slotPath, judged);
+    return createAgentSlotWriter(slotPath, fileReplace).create({ trackerId, jobId, hephaestus: options.ownProcess }) === 'created';
   }
 
   function tryAcquire(trackerId: string, jobId: string): boolean {
@@ -150,13 +142,14 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     if (heldSlotPath !== null && jobKeepsItsSlot(heldSlotPath, trackerId, jobId)) return true;
     // A limit lowered under the live holdings leaves no slot free until they end, whichever slot files they hold.
     if (liveHoldings().length >= options.limit) return false;
-    const ownText = slotTextOf({ trackerId, jobId, hephaestus: options.ownProcess });
+    const ownHolding = { trackerId, jobId, hephaestus: options.ownProcess };
     for (const slotPath of slotPathsUnderTheLimit) {
-      if (createFileAtomically(slotPath, ownText, fileReplace) === 'created') return true;
-      const current = slotTextIn(slotPath);
-      if (current === null) continue;
-      freedIfStale(slotPath, current);
-      if (createFileAtomically(slotPath, ownText, fileReplace) === 'created') return true;
+      const writer = createAgentSlotWriter(slotPath, fileReplace);
+      if (writer.create(ownHolding) === 'created') return true;
+      const judged = judgedSlotOf(slotPath);
+      if (judged === null) continue;
+      freedIfStale(slotPath, judged);
+      if (writer.create(ownHolding) === 'created') return true;
     }
     return false;
   }
@@ -164,8 +157,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
   function keepOnly(trackerId: string, jobIds: readonly string[]): void {
     const kept = new Set(jobIds);
     for (const slotPath of existingSlotPaths()) {
-      const slotText = slotTextIn(slotPath);
-      const holding = slotText === null ? null : holdingOf(slotText);
+      const holding = holdingOf(readingOf(slotPath));
       if (holding?.trackerId === trackerId && !kept.has(holding.jobId)) removeHeldFile(slotPath, fileReplace);
     }
   }
@@ -181,7 +173,7 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     for (const jobId of launchedJobIds) {
       const reservedPath = slotPathHeldBy(trackerId, reservationIdOf(reservationIndex));
       if (reservedPath === null) return;
-      writeFileAtomically(reservedPath, slotTextOf({ trackerId, jobId, hephaestus: options.ownProcess }), fileReplace);
+      createAgentSlotWriter(reservedPath, fileReplace).write({ trackerId, jobId, hephaestus: options.ownProcess });
       reservationIndex += 1;
     }
   }
@@ -203,7 +195,8 @@ function hephaestusIsLiveWith({ processSupervision }: PlatformPorts): (hephaestu
 /** The agent jobs in flight on this machine, every board's: a read alone, which takes over no slot. */
 function liveHoldingCountIn(ports: PlatformPorts, monitorFolder: string): number {
   return createAgentSlots({
-    monitorFolder, limit: 0, ownProcess: null, hephaestusIsLive: hephaestusIsLiveWith(ports)
+    // A read alone takes no slot over, so it has nothing to log.
+    monitorFolder, limit: 0, ownProcess: null, hephaestusIsLive: hephaestusIsLiveWith(ports), log: () => {}
   }).liveHoldings().length;
 }
 

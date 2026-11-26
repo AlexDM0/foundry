@@ -1310,6 +1310,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       limit:            MachineAgentLimit.readingIn(request.monitorFolder, ceiling).limit,
       ownProcess:       platformPorts.processSupervision.identityOf(process.pid),
       hephaestusIsLive: AgentSlots.hephaestusIsLiveWith(platformPorts),
+      log:              request.log,
     });
   }
   const jobLaunchContext: JobLaunchContext = {
