@@ -7,8 +7,9 @@ import type { BoardDecisionDocument }                       from '../../../@type
 import type { BoardDocument }                               from '../../../@types/board/BoardDocument.ts';
 import type { BoardTicketDocument }                         from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState }                           from '../../../@types/board/BoardVocabulary.ts';
+import { TicketRowFactsUtil, type RowEpic, type RowMoment } from '../../shared/tickets/TicketRowFactsUtil.ts';
+import { TicketSegmentUtil }                                from '../../shared/tickets/TicketSegmentUtil.ts';
 import { DisplayStateWordingUtil }                          from '../../utils/DisplayStateWordingUtil.ts';
-import { TicketRowFactsUtil, type RowEpic, type RowMoment } from './TicketRowFactsUtil.ts';
 import { TicketsModel }                                     from './TicketsModel.ts';
 
 export interface ActiveStageModel {
@@ -94,7 +95,7 @@ function underWayFirst(a: ActiveTicketRowModel, b: ActiveTicketRowModel): number
 }
 
 function activeTicketsModelOf(board: BoardDocument, moment: RowMoment, searchText: string): ActiveTicketsModel {
-  const tickets = TicketsModel.ticketsInSegment(board, 'active');
+  const tickets = TicketSegmentUtil.ticketsInSegment(board, 'active');
   const rows = tickets.map((ticket) => rowOf(ticket, board, moment)).toSorted(underWayFirst);
   return {
     rows:  rows.filter((row) => TicketsModel.rowMatches({ idText: row.idText, words: [row.title, row.epic?.title ?? '', row.stage.label, row.agent.text] }, searchText)),

@@ -217,11 +217,6 @@ const ALLOWED_BOARD_BREAKS: Readonly<Record<string, readonly string[]>> = {
     'page/board/views/assistant/AssistantView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
     'page/board/views/questions/QuestionsView.tsx imports page/board/shell/ItemPresence.ts (only Board.tsx and board/testing/ import the shell)',
   ],
-  'waits on hoisting the ticket helpers to board/shared/tickets/': [
-    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/views/tickets/InDraftModel.ts (a view imports another view)',
-    'page/board/views/documents/TicketDocumentsView.tsx imports page/board/views/tickets/TicketsModel.ts (a view imports another view)',
-    'page/board/views/tickets/InDraftModel.ts imports page/board/views/intake/IntakeModel.ts (a view imports another view)',
-  ],
 };
 
 const ALLOWED_BOARD_BREAK_LINES = Object.values(ALLOWED_BOARD_BREAKS).flat();

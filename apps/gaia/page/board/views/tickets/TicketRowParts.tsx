@@ -4,9 +4,9 @@ import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts';
 import { StateDot }               from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useDetailRouting }       from '../../shared/routing/DetailRouting.ts';
+import type { DraftStep }         from '../../shared/tickets/DraftRowsModel.ts';
+import type { RowEpic }           from '../../shared/tickets/TicketRowFactsUtil.ts';
 import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
-import type { DraftStep }         from './InDraftModel.ts';
-import type { RowEpic }           from './TicketRowFactsUtil.ts';
 
 export function RowEpicMark({ epic, originText = null }: { readonly epic: RowEpic | null; readonly originText?: string | null }) {
   const words = [epic?.title ?? null, originText].filter((word) => word !== null).join(' · ');

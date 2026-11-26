@@ -39,9 +39,9 @@ import { useTranscript }                                      from '../../conver
 import { useControlCommand }                                  from '../../shared/commands/ControlCommandSender.ts';
 import { useBoardHomeHref, useBoardHrefOf }                   from '../../shared/routing/BoardRouteLinks.ts';
 import { DetailRoute }                                        from '../../shared/routing/DetailRoute.ts';
+import { DraftRowsModel }                                     from '../../shared/tickets/DraftRowsModel.ts';
+import { TICKET_SEGMENT_LABELS, TicketSegmentUtil }           from '../../shared/tickets/TicketSegmentUtil.ts';
 import { TimeUtil }                                           from '../../utils/TimeUtil.ts';
-import { InDraftModelUtil }                                   from '../tickets/InDraftModel.ts';
-import { TICKET_SEGMENT_LABELS, TicketsModel }                from '../tickets/TicketsModel.ts';
 import type { CommentDraft }                                  from './CommentPopover.tsx';
 import { DocumentAgentStripModelUtil, type DocumentViewMode } from './DocumentAgentStripModel.ts';
 import { DocumentChat }                                       from './DocumentChat.tsx';
@@ -151,7 +151,7 @@ function PrimaryAction({ action }: { readonly action: PrimaryActionModel }) {
 function Breadcrumb({ project, ticket }: { readonly project: string; readonly ticket: BoardTicketDocument }) {
   const hrefOf = useBoardHrefOf();
   const boardHref = useBoardHomeHref();
-  const segment = TicketsModel.segmentOfStatus(ticket.status);
+  const segment = TicketSegmentUtil.segmentOfStatus(ticket.status);
   return (
     <nav className="board-document-breadcrumb" aria-label="Breadcrumb">
       <a className="board-document-link" href={boardHref}>{project}</a>
@@ -469,7 +469,7 @@ function useTicketDocuments(services: BoardServices, ticketId: string): Omit<Doc
 
 /** The route of the draft after this ticket among those that wait on User, oldest wait first, round to the first; `null` with no other. */
 function nextWaitingRouteOf(board: BoardDocument, ticketId: string): BoardRoute | null {
-  const waiting = InDraftModelUtil.waitingRowsOf(board);
+  const waiting = DraftRowsModel.waitingRowsOf(board);
   const position = waiting.findIndex((row) => row.ticketId === ticketId);
   const next = waiting[(position + 1) % Math.max(waiting.length, 1)];
   return next === undefined || next.ticketId === ticketId ? null : next.actionRoute;

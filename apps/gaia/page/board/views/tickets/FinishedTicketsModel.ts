@@ -5,9 +5,9 @@
  */
 import type { BoardDocument }                               from '../../../@types/board/BoardDocument.ts';
 import type { BoardTicketDocument }                         from '../../../@types/board/BoardTicketDocuments.ts';
+import { TicketRowFactsUtil, type RowEpic, type RowMoment } from '../../shared/tickets/TicketRowFactsUtil.ts';
 import { FinishedWorkUtil }                                 from '../../utils/FinishedWorkUtil.ts';
 import { SearchMatchUtil }                                  from '../../utils/SearchMatchUtil.ts';
-import { TicketRowFactsUtil, type RowEpic, type RowMoment } from './TicketRowFactsUtil.ts';
 import { TicketsModel }                                     from './TicketsModel.ts';
 
 export interface FinishedTicketRowModel {

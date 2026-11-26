@@ -6,25 +6,26 @@
  * chat cues the chat habitat of Flint when a filing draft is researched.
  */
 
-import { PAGE_CONTRACT_VERSIONS }                                   from '../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument }                               from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardPictureLimitsDocument }                          from '../../../@types/board/BoardFactDocuments.ts';
-import { Row, StateBadge, Tag }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
-import type { TranscriptFollower }                                  from '../../@types/BoardServices.ts';
-import { ChatCard, ChatThread, type ChatTurn }                      from '../../conversation/ChatThread.tsx';
-import { ChatThreadModelUtil }                                      from '../../conversation/ChatThreadModel.ts';
-import { JobLink }                                                  from '../../conversation/ConversationParts.tsx';
-import { DecisionCard }                                             from '../../conversation/DecisionCard.tsx';
-import { useTranscript }                                            from '../../conversation/TranscriptLog.tsx';
-import { StateToneUtil }                                            from '../../utils/StateToneUtil.ts';
-import { DraftResearchCue }                                         from './DraftResearchCue.tsx';
-import { IntakeAside }                                              from './IntakeAside.tsx';
-import { IntakeChat }                                               from './IntakeChat.tsx';
-import { IntakeModelUtil, type IntakeChatTurn, type IntakeSession } from './IntakeModel.ts';
-import { IntakePane }                                               from './IntakePane.tsx';
-import type { CuedDraft }                                           from './IntakeSpriteModel.ts';
-import { ProductOwnerAtWork }                                       from './ProductOwnerAtWork.tsx';
-import { SentPicture }                                              from './SentPicture.tsx';
+import { PAGE_CONTRACT_VERSIONS }               from '../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardDecisionDocument }           from '../../../@types/board/BoardDecisionDocuments.ts';
+import type { BoardPictureLimitsDocument }      from '../../../@types/board/BoardFactDocuments.ts';
+import { Row, StateBadge, Tag }                 from '../../../lib/design-system/DesignSystemInterface.ts';
+import type { TranscriptFollower }              from '../../@types/BoardServices.ts';
+import { ChatCard, ChatThread, type ChatTurn }  from '../../conversation/ChatThread.tsx';
+import { ChatThreadModelUtil }                  from '../../conversation/ChatThreadModel.ts';
+import { JobLink }                              from '../../conversation/ConversationParts.tsx';
+import { DecisionCard }                         from '../../conversation/DecisionCard.tsx';
+import { useTranscript }                        from '../../conversation/TranscriptLog.tsx';
+import type { IntakeSession }                   from '../../shared/tickets/IntakeSessionsModel.ts';
+import { StateToneUtil }                        from '../../utils/StateToneUtil.ts';
+import { DraftResearchCue }                     from './DraftResearchCue.tsx';
+import { IntakeAside }                          from './IntakeAside.tsx';
+import { IntakeChat }                           from './IntakeChat.tsx';
+import { IntakeModelUtil, type IntakeChatTurn } from './IntakeModel.ts';
+import { IntakePane }                           from './IntakePane.tsx';
+import type { CuedDraft }                       from './IntakeSpriteModel.ts';
+import { ProductOwnerAtWork }                   from './ProductOwnerAtWork.tsx';
+import { SentPicture }                          from './SentPicture.tsx';
 
 export interface IntakeChatPaneProps {
   readonly session:           IntakeSession;

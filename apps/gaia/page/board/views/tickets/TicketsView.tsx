@@ -7,30 +7,24 @@
  */
 import { useMemo, useRef, useState } from 'react';
 
-import type { BoardDocument }                   from '../../../@types/board/BoardDocument.ts';
-import { SegmentedControl, type SegmentOption } from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useTicketsHabitat }                    from '../../flint/UseTicketsHabitat.ts';
-import type { PreferenceStore }                 from '../../preferences/PreferenceStore.ts';
-import { useFinishedWorkWindow }                from '../../shared/FinishedWorkWindow.ts';
-import { useBoardNavigation }                   from '../../shared/routing/BoardRouteLinks.ts';
-import { FinishedWorkUtil }                     from '../../utils/FinishedWorkUtil.ts';
-import { SearchMatchUtil }                      from '../../utils/SearchMatchUtil.ts';
-import { ViewTitle }                            from '../ViewTitle.tsx';
-import { ActiveSegment }                        from './ActiveSegment.tsx';
-import { ActiveTicketsModelUtil }               from './ActiveTicketsModel.ts';
-import { FinishedSegment }                      from './FinishedSegment.tsx';
-import { FinishedTicketsModelUtil }             from './FinishedTicketsModel.ts';
-import { InDraftModelUtil }                     from './InDraftModel.ts';
-import { InDraftSegment }                       from './InDraftSegment.tsx';
-import type { RowMoment }                       from './TicketRowFactsUtil.ts';
-import {
-  DEFAULT_TICKET_SEGMENT,
-  TICKET_SEGMENT_CHOICE_NAME,
-  TICKET_SEGMENT_LABELS,
-  TICKET_SEGMENTS,
-  TicketsModel,
-  type TicketSegment
-} from './TicketsModel.ts';
+import type { BoardDocument }                                               from '../../../@types/board/BoardDocument.ts';
+import { SegmentedControl, type SegmentOption }                             from '../../../lib/design-system/DesignSystemInterface.ts';
+import { useTicketsHabitat }                                                from '../../flint/UseTicketsHabitat.ts';
+import type { PreferenceStore }                                             from '../../preferences/PreferenceStore.ts';
+import { useFinishedWorkWindow }                                            from '../../shared/FinishedWorkWindow.ts';
+import { useBoardNavigation }                                               from '../../shared/routing/BoardRouteLinks.ts';
+import type { RowMoment }                                                   from '../../shared/tickets/TicketRowFactsUtil.ts';
+import { TICKET_SEGMENT_LABELS, TICKET_SEGMENTS, type TicketSegment }       from '../../shared/tickets/TicketSegmentUtil.ts';
+import { FinishedWorkUtil }                                                 from '../../utils/FinishedWorkUtil.ts';
+import { SearchMatchUtil }                                                  from '../../utils/SearchMatchUtil.ts';
+import { ViewTitle }                                                        from '../ViewTitle.tsx';
+import { ActiveSegment }                                                    from './ActiveSegment.tsx';
+import { ActiveTicketsModelUtil }                                           from './ActiveTicketsModel.ts';
+import { FinishedSegment }                                                  from './FinishedSegment.tsx';
+import { FinishedTicketsModelUtil }                                         from './FinishedTicketsModel.ts';
+import { InDraftModelUtil }                                                 from './InDraftModel.ts';
+import { InDraftSegment }                                                   from './InDraftSegment.tsx';
+import { DEFAULT_TICKET_SEGMENT, TICKET_SEGMENT_CHOICE_NAME, TicketsModel } from './TicketsModel.ts';
 
 export interface TicketsViewProps {
   readonly board:      BoardDocument;

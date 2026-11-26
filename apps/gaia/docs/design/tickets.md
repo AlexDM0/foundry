@@ -5,7 +5,8 @@ artboard 0 of the spec and plan design ("Tickets, one segment at a time", `Ticke
 Gaia v2 board frame); its dark theme is Gaia's tokens' dark values. The behaviour is the owner's.
 
 Built in: `page/board/views/tickets/` (`TicketsView.tsx`, `TicketsModel.ts`, `InDraftModel.ts`, `ActiveTicketsModel.ts`,
-`FinishedTicketsModel.ts`, `TicketRowFactsUtil.ts` and the segment parts), styled by `page/styles/board/tickets.css`, and the design
+`FinishedTicketsModel.ts` and the segment parts) and `page/board/shared/tickets/` (`TicketSegmentUtil.ts`, `TicketRowFactsUtil.ts`,
+`DraftRowsModel.ts`, `IntakeSessionsModel.ts`, which the documents and intake views read too), styled by `page/styles/board/tickets.css`, and the design
 system's `SegmentedControl` (its `accentedCount`). Held by: their specs beside them, and `page/Screens.visual.spec.ts`, which paints
 artboard 0 from `page/testing/fixtures/storefront-tickets-board.ts` (`page/testing/ArtboardScreens.tsx`, `TICKETS_SCREENS`).
 
