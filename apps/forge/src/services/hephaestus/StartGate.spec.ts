@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import { HEPHAESTUS_LOCK_FORMAT_VERSION }                 from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
 import { LocalTimeUtil }                                  from '../../lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
@@ -84,6 +85,7 @@ function crashedProcessIn(bootIdentity: string): ProcessIdentity {
 function plantHephaestusLock(generation: number, { processId, startStamp, bootIdentity }: ProcessIdentity): void {
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   writeFileSync(HephaestusLock.filePathFor(files.hephaestusDirectory, generation), `${JSON.stringify({
+    version:              HEPHAESTUS_LOCK_FORMAT_VERSION,
     processId,
     processStartStamp:    startStamp,
     bootIdentity,

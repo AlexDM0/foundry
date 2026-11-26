@@ -1127,12 +1127,13 @@ Hephaestus's own gate runs. A profile may write only inside its worktree and the
 folders are not granted, so a gate that needs one ends `red` or `cannot-run`. The process runs outside the hold;
 Hephaestus takes the hold only to record `running` and the end (`passed`, `red`, `cannot-run`), with the duration, which
 is only recorded and shown. Its output is appended, as it arrives, to `<data>/gate-profile-runs/<P>.ndjson`, one
-`{"version": 1, "text": …}` line per piece, and the Hephaestus API streams it at `GET /api/profiles/<P>/stream`; the board's event
-stream carries no output line. A profile never records a green or a `gate-ran` record, and Apply never waits on one.
-When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and each new
-suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). A `turbo.json` the checks cannot read is
-one such finding, `turbo-configuration-unreadable`, naming the file and why, and nothing else is suggested from it. The pipeline agent's first proposal
-records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
+`{"version": 1, "text": …}` line per piece, and the Hephaestus API streams it at `GET /api/profiles/<P>/stream`; the
+board's event stream carries no output line. A profile never records a green or a `gate-ran` record, and Apply never
+waits on one. When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and
+each new suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). A `turbo.json` the checks
+cannot read is one such finding, `turbo-configuration-unreadable`, naming the file and why, and nothing else is
+suggested from it. The pipeline agent's first proposal records, the same way, what the snapshot's tree cannot hold on
+every OS, read from git's index.
 
 On a forge over entities, a start names the entity whose gate it profiles. The gate and the prepare steps come from that
 entity's pipeline, and each folder is taken from the repository's root through the entity's first home. A run is kept
@@ -2945,8 +2946,8 @@ version 1.
 ```
 
 - `<data>/gate-profile-runs/<P>.ndjson` holds a run's output, appended in place outside the hold, one JSON line per
-  piece, `{ version: 1, text }`, as a child's event log is; a reader ignores an unterminated last line, and logs and skips a line it
-  cannot read.
+  piece, `{ version: 1, text }`, as a child's event log is; a reader ignores an unterminated last line, and logs and
+  skips a line it cannot read.
 - `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Hephaestus start.
 - No state is written as `timed-out` yet; the read accepts it.
 - A run without `entity` is written without the key, so a file of a forge without entities stays byte for byte. A

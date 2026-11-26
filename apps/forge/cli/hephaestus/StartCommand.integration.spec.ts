@@ -245,7 +245,7 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     const hephaestusLock = hephaestusLockOf('lock-1.json');
     expect(hephaestusLock).toMatchObject({ processId: starters[servingIndex]?.processId, url, codeVersion: CodeVersion.onDisk() });
     expect(Object.keys(hephaestusLock)).toEqual([
-      'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'talosProtocolVersion',
+      'version', 'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'talosProtocolVersion',
     ]);
     expect(existsSync(join(hephaestusDirectory(), 'token'))).toBe(false);
     expect(statSync(hephaestusLock['tokenFile'] as string).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
