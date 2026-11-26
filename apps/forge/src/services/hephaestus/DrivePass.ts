@@ -8,7 +8,8 @@ import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-import { MachineConfigFile } from '../../adapters/machine-config/MachineConfigFile.ts';
+import { MachineConfigFile }    from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { RedHandoffFacts } from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -134,7 +135,7 @@ import { Presence }                                                   from './Pr
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
 import { ReconcileCauses }                                            from './ReconcileCauses.ts';
-import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
+import { RedHandoff }                                                 from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
 import { SessionConfinement }                                         from './SessionConfinement.ts';
@@ -893,6 +894,8 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   const leavesTheMergeOpen = phase === 'resolving' && AirlockFactsFile.keptFactOf(mergeJobFolder, AIRLOCK_FACT_NAMES.leavesTheMergeOpen) === KEPT_FACT_TRUE;
+  const redHandoff = RedHandoff.redHandoffFactsOf(trackerDirectory, mergeJobFolder);
+  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return redHandoff;
   return {
     mergePlacement:  'airlock',
     worktree:        checkout,
@@ -900,7 +903,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
     targetTip:       mergeJob?.airlock?.targetTip ?? '',
     phase,
     conflictedFiles: conflicts.conflictedFiles,
-    redHandoff:      RedHandoff.redHandoffFactsOf(mergeJobFolder),
+    redHandoff,
     resumesSession,
     ...(leavesTheMergeOpen ? { leavesTheMergeOpen } : {}),
   };
@@ -953,6 +956,8 @@ export function launchFactsOf(
   const pipelineAgentLaunch = { lineGrammar: request.platformPorts.shellLine.lineGrammar, rootDirectory: request.workspace.rootDirectory, agentAdapter: request.agentAdapter };
   const reviewFindings = needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job, crossingStage) : null;
   if (StoredFileUnreadable.isUnreadableFile(reviewFindings)) return reviewFindings;
+  const redHandoff = JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job);
+  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return redHandoff;
   return {
     instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
     confinement:  SessionConfinement.launchConfinementOf(request.agentAdapter.capabilities, request.platformPorts.gateConfinement),
@@ -974,7 +979,7 @@ export function launchFactsOf(
     ...place.projectFolderFromStart === '' ? {} : { projectFolder: place.projectFolderFromStart },
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
-    redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
+    redHandoff,
     reviewFindings,
     needsSettled,
     ...(crossingStage === null ? {} : { crossingStage }),
@@ -1122,6 +1127,7 @@ async function launchAgentChild(
   const launchFacts      = { ...factsRead, effectReading };
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
+  if (StoredFileUnreadable.isUnreadableFile(resumeLine)) return unreadableLaunchFileOf(request, job, resumeLine);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
   // A resumed instance reads the owner its first instance recorded, though the handoff it took over may read otherwise by now.
   const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)

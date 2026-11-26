@@ -5,8 +5,8 @@
  * stale-green handoff resumes nothing; and only a job replaced after a failed stale-green resume hands on the facts it adopted, since another
  * replaced job can hold the facts of a red handoff it already fixed.
  */
-import { mkdirSync } from 'node:fs';
-import { join }      from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -26,6 +26,7 @@ import type { BoardChildren }                             from './BoardChildren.
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
 import { JobResumption, RESUME_FAILED_CAUSE }             from './JobResumption.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                  from './RedHandoff.ts';
+import { keptRedHandoffOf }                               from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-04T19:30:00+01:00';
 
@@ -83,7 +84,7 @@ function replaced(jobId: string, cause: string): LogRecord {
 /** J1 left the stale green, J2 resumed its session and was replaced, J3 is the fresh job; J2 adopted the facts into its own folder. */
 function replacedAfterStaleGreen(cause: string): LogRecord[] {
   writeStaleGreenFacts('J1');
-  const adoptedFacts = RedHandoff.redHandoffFactsOf(join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder));
+  const adoptedFacts = keptRedHandoffOf(join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder));
   if (adoptedFacts !== null) RedHandoff.adoptRedHandoff(jobFolderIn(trackerDirectory, 'J2'), adoptedFacts);
   return [launched('J1'), ended('J1'), launched('J2'), replaced('J2', cause), launched('J3')];
 }
@@ -128,6 +129,13 @@ describe('a stale green that turned red', () => {
     writeStaleGreenFacts('J1');
 
     expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, RECORDS, reviewJob())).toMatchObject({ name: 'tests', resume: 1, resumesAllowed: 2 });
+  });
+
+  test('hands the next job the unreadable file in place of stale-green facts that cannot be read, never a plain task', () => {
+    writeStaleGreenFacts('J1');
+    writeFileSync(join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder, 'red-handoff.json'), '{"kind": ');
+
+    expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, RECORDS, reviewJob())).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J1/stale-green/red-handoff.json' });
   });
 
   test('resumes the ended session when its job folder shows that session started', () => {

@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import type { RedHandoffFacts }                                            from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import type { Job }                                                        from '../../lib/tracker-model/@types/Job.ts';
 import { DISPATCH_PROTOCOL }                                               from '../../shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
@@ -25,7 +26,7 @@ import { createScratchDirectory, removeScratchDirectory }                  from 
 import { sentActLinesOf }                                                  from '../../testing/SentActLines.ts';
 import { jobFolderIn }                                                     from './HephaestusFiles.ts';
 import { type BuildJobFrameRequest, JobLaunch }                            from './JobLaunch.ts';
-import { RedHandoff, type RedHandoffFacts }                                from './RedHandoff.ts';
+import { RedHandoff }                                                      from './RedHandoff.ts';
 
 function buildJob(overrides: Partial<Job> = {}): Job {
   return {

@@ -3,6 +3,7 @@
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
 import { readFileSync }                from 'node:fs';
+import type { RedHandoffFacts }        from '../../src/adapters/red-handoff/RedHandoffIngestion.ts';
 import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { AgentAdapter }           from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { AgentBillingUtil }            from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
@@ -45,7 +46,6 @@ import type {
 } from '../../src/services/hephaestus/DrivePass.ts';
 import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/hephaestus/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/hephaestus/NeedTickets.ts';
-import type { RedHandoffFacts }                                       from '../../src/services/hephaestus/RedHandoff.ts';
 import type { RestartFailure }                                        from '../../src/services/hephaestus/Restart.ts';
 import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';

@@ -35,7 +35,6 @@ import {
 } from '../../testing/RecordedGit.ts';
 import { describeWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
 import { AIRLOCK_FACT_NAMES, KEPT_FACT_TRUE }                         from './AirlockFactsFile.ts';
-import { RedHandoff }                                                 from './RedHandoff.ts';
 import { AirlockAnswerSets, MOVED_AIRLOCK_IDS, type MainLineLanding } from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
@@ -52,6 +51,7 @@ import {
   groupWorktreeOf,
   releaseAnswersOf
 } from './testing/GroupAirlockAnswers.ts';
+import { keptRedHandoffOf } from './testing/KeptRedHandoff.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -303,7 +303,7 @@ describeWhenGitIsRecorded('a crossing ticket\'s red merged tree, routed to the o
     expect(harness.board.ticketSealsOf('001')).toEqual({});
     expect(harness.board.ticketPackageReturnsOf('001')).toBe(1);
     const staleGreenFolder = join(harness.repository, '.example-tracker', 'jobs', crossed.packageBuildJobId, 'stale-green');
-    expect(RedHandoff.redHandoffFactsOf(staleGreenFolder)).toMatchObject({ kind: 'gate', name: 'verify', command: 'bun run verify:tokens' });
+    expect(keptRedHandoffOf(staleGreenFolder)).toMatchObject({ kind: 'gate', name: 'verify', command: 'bun run verify:tokens' });
   });
 
   test('a gate of an entity that consumes the package is the package\'s too: its change must not break its dependents', async () => {
@@ -373,7 +373,7 @@ describe('a crossing ticket\'s stale green that turned red, routed to the owner 
     expect(harness.board.ticketSealsOf('001')).toEqual({});
     expect(harness.board.ticketPackageReturnsOf('001')).toBe(1);
     const staleGreenFolder = join(harness.repository, '.example-tracker', 'jobs', crossed.packageBuildJobId, 'stale-green');
-    expect(RedHandoff.redHandoffFactsOf(staleGreenFolder)).toMatchObject({ kind: 'gate', name: 'verify', command: 'bun run verify:tokens' });
+    expect(keptRedHandoffOf(staleGreenFolder)).toMatchObject({ kind: 'gate', name: 'verify', command: 'bun run verify:tokens' });
   });
 
   test('a home gate returns the ticket to adapt, the seal kept', async () => {

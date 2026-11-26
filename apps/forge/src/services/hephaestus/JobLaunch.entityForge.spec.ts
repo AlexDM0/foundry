@@ -19,6 +19,7 @@ import { afterEach, expect, test } from 'bun:test';
 
 import { JOB_START_FORMAT_VERSION }                          from '../../adapters/job-start/JobStartIngestion.ts';
 import { PipelineFile }                                      from '../../adapters/pipeline/PipelineFile.ts';
+import type { RedHandoffFacts }                              from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
 import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -50,7 +51,8 @@ import type { BoardTransaction }                                                
 import { createLocalRecordAllocation }                                                     from '../tracker/LocalRecordAllocation.ts';
 import { jobFolderIn }                                                                     from './HephaestusFiles.ts';
 import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
-import { RedHandoff, type RedHandoffFacts }                                                from './RedHandoff.ts';
+import { RedHandoff }                                                                      from './RedHandoff.ts';
+import { keptRedHandoffOf }                                                                from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
 const OBJECT_ID_LENGTH = 40;
@@ -209,7 +211,7 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   const ended = board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === job.id);
   if (ended?.kind === 'job-ended') return `${ended.fields.outcome}: ${ended.fields.cause ?? ''}`;
   const state = board.jobs().find((candidate) => candidate.id === job.id)?.state ?? 'gone';
-  return state === 'interrupted' ? `${state}: ${RedHandoff.redHandoffFactsOf(jobFolder)?.name ?? ''}` : state;
+  return state === 'interrupted' ? `${state}: ${keptRedHandoffOf(jobFolder)?.name ?? ''}` : state;
 }
 
 function followThePlaybook(board: Board): readonly PlaybookStep[] {
@@ -242,7 +244,7 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
     const build = launchedBuildOf(SHOP);
     expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN)).toBe('interrupted: V17');
     expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
-    expect(RedHandoff.redHandoffFactsOf(build.jobFolder)?.scopeResumed).toBe(true);
+    expect(keptRedHandoffOf(build.jobFolder)?.scopeResumed).toBe(true);
   });
 
   test('sent back once for V17 whose branch still changes the admin app\'s files fails, with no decision (E11)', () => {

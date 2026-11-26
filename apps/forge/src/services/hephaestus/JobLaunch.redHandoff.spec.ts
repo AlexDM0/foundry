@@ -19,6 +19,7 @@ import type { BoardTransaction }                                      from '../t
 import { jobFolderIn }                                                from './HephaestusFiles.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 import { RedHandoff }                                                 from './RedHandoff.ts';
+import { keptRedHandoffOf }                                           from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 
@@ -108,6 +109,6 @@ describe('a session resumed after a red handoff', () => {
 
     expect(scene.board.jobs().find((job) => job.kind === 'build')).toMatchObject({ state: 'interrupted', interruption: 'handoff-red' });
     const jobFolder = jobFolderIn(scene.context.workspace.trackerDirectory, scene.board.jobs().find((job) => job.kind === 'build')?.id ?? '');
-    expect(RedHandoff.redHandoffFactsOf(jobFolder)).toMatchObject({ name: 'tests', resume: 2, interruptedInstance: 2 });
+    expect(keptRedHandoffOf(jobFolder)).toMatchObject({ name: 'tests', resume: 2, interruptedInstance: 2 });
   });
 });

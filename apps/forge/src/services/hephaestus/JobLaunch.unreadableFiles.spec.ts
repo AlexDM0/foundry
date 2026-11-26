@@ -40,7 +40,8 @@ interface UnreadableFileScene {
   trackerDirectory: string;
 }
 
-const STATES_TO: Readonly<Record<'in-customs' | 'gating', readonly Parameters<Board['moveJob']>[1][]>> = {
+const STATES_TO: Readonly<Record<'running' | 'in-customs' | 'gating', readonly Parameters<Board['moveJob']>[1][]>> = {
+  'running':    ['preparing', 'running'],
   'in-customs': ['preparing', 'running', 'in-customs'],
   'gating':     ['preparing', 'running', 'in-customs', 'gating'],
 };
@@ -154,6 +155,17 @@ test('a reading of the observation that met an unreadable file opens its inciden
   expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: gate.file, reason: gate.reason }]]);
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
   expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observationOf(scene, { gate })])).toBe(false);
+});
+
+test('a job whose own red handoff facts cannot be read takes no step on its calls: it is neither stopped nor wound down past any budget', () => {
+  const scene = sceneIn('running');
+  const unreadableRedHandoff = { verdict: 'unreadable-file', file: `jobs/${scene.job.id}/red-handoff.json`, reason: 'its "resume" is not a count' } as const;
+
+  applyPass(scene, observationOf(scene, { calls: 10_000, unreadableRedHandoff }));
+
+  expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: unreadableRedHandoff.file, reason: unreadableRedHandoff.reason }]]);
+  expect(scene.board.incidents().map((incident) => incident.kind)).not.toContain('out-of-calls');
+  expect(scene.board.jobById(scene.job.id)?.state).toBe('running');
 });
 
 test('a sandbox refusal kept that cannot be read is still a refused line: the incident opens and the job neither ends nor moves', () => {

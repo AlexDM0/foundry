@@ -12,9 +12,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentAdapter }   from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { EventLogEntry }  from '../../lib/talos/EventLog.ts';
+import type { RedHandoffFacts } from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import type { AgentAdapter }    from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }  from '../../lib/atomic-file/AtomicFile.ts';
+import type { EventLogEntry }   from '../../lib/talos/EventLog.ts';
 import type {
   InterruptionCause,
   Job,
@@ -22,14 +23,15 @@ import type {
   JobRole,
   PictureReference
 }                                                              from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                          from '../../lib/tracker-model/Board.ts';
-import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
-import { PictureStore }                                        from '../tracker/PictureStore.ts';
-import type { BoardChildren }                                  from './BoardChildren.ts';
-import { jobFolderIn }                                         from './HephaestusFiles.ts';
-import { IntakeSessions }                                      from './IntakeSessions.ts';
-import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import type { LogRecord, LogRecordFieldsOf } from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                        from '../../lib/tracker-model/Board.ts';
+import { HANDOFF_RED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
+import { PictureStore }                      from '../tracker/PictureStore.ts';
+import type { BoardChildren }                from './BoardChildren.ts';
+import { jobFolderIn }                       from './HephaestusFiles.ts';
+import { IntakeSessions }                    from './IntakeSessions.ts';
+import { RED_HANDOFF_FILES, RedHandoff }     from './RedHandoff.ts';
+import { StoredFileUnreadable }              from './StoredFileUnreadable.ts';
 
 const FIRST_CHILD_INSTANCE = 1;
 
@@ -158,9 +160,9 @@ function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<
 }
 
 /** The stale-green handoff an ended session left for the next one; `null` when it ended otherwise or left none. */
-function staleGreenHandoffOf(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): RedHandoffFacts | null {
+function staleGreenHandoffOf(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): RedHandoffFacts | null | StoredFileUnreadable {
   if (!STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return null;
-  return RedHandoff.redHandoffFactsOf(join(jobFolderIn(trackerDirectory, predecessor.jobId), RED_HANDOFF_FILES.staleGreenFolder));
+  return RedHandoff.redHandoffFactsOf(trackerDirectory, join(jobFolderIn(trackerDirectory, predecessor.jobId), RED_HANDOFF_FILES.staleGreenFolder));
 }
 
 /**
@@ -169,6 +171,7 @@ function staleGreenHandoffOf(trackerDirectory: string, predecessor: Readonly<End
  */
 function failedStaleGreenResume(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): boolean {
   if (predecessor.outcome !== 'replaced' || predecessor.cause !== RESUME_FAILED_CAUSE || predecessor.previous === null) return false;
+  // A stale-green handoff that cannot be read was still left: it is the predecessor's own adopted facts that are handed on.
   return staleGreenHandoffOf(trackerDirectory, predecessor.previous) !== null;
 }
 
@@ -316,14 +319,14 @@ function earlierSessionWasReplaced(logRecords: readonly LogRecord[], job: Readon
  * The red handoff a fresh session takes over when the session it replaces, interrupted on a red handoff or resumed for a stale green, could
  * not be resumed: the same facts, its calls counted from its own first instance. `null` for every other job.
  */
-function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly LogRecord[], job: Readonly<Job>): RedHandoffFacts | null {
+function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly LogRecord[], job: Readonly<Job>): RedHandoffFacts | null | StoredFileUnreadable {
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null) return null;
   if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return staleGreenHandoffOf(trackerDirectory, predecessor);
   const takesTheFolderOver = predecessor.outcome === 'replaced' && predecessor.interruption === HANDOFF_RED_INTERRUPTION;
   if (!takesTheFolderOver && !failedStaleGreenResume(trackerDirectory, predecessor)) return null;
-  const facts = RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, predecessor.jobId));
-  return facts === null ? null : { ...facts, interruptedInstance: 0 };
+  const facts = RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolderIn(trackerDirectory, predecessor.jobId));
+  return facts === null || StoredFileUnreadable.isUnreadableFile(facts) ? facts : { ...facts, interruptedInstance: 0 };
 }
 
 function staleGreenSessionOwnerPathOf(trackerDirectory: string, jobId: string): string {
@@ -369,6 +372,7 @@ function staleGreenSessionOwnerOf(
   const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
   if (recorded !== undefined) return recorded;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
+  // One that cannot be read was still left; the launch that reads it for the handoff refuses before this owner is used.
   if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
   if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_CHILD_INSTANCE, adapter)) return null;
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
@@ -386,10 +390,11 @@ function launchSessionOwnerJobIdOf(
 }
 
 /** The message a resumed instance opens with: User's reopening text, the red handoff it resumes to fix, or the plain resume message. */
-function resumeLineOf(trackerDirectory: string, board: Pick<Board, 'logRecordsSoFar'>, job: Readonly<Job>, messages: ResumeMessages): string {
+function resumeLineOf(trackerDirectory: string, board: Pick<Board, 'logRecordsSoFar'>, job: Readonly<Job>, messages: ResumeMessages): string | StoredFileUnreadable {
   const reopenText = reopenTextOf(board.logRecordsSoFar(), job);
   if (reopenText !== null) return reopenText;
-  const redHandoff = job.interruption === HANDOFF_RED_INTERRUPTION ? RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, job.id)) : null;
+  const redHandoff = job.interruption === HANDOFF_RED_INTERRUPTION ? RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolderIn(trackerDirectory, job.id)) : null;
+  if (StoredFileUnreadable.isUnreadableFile(redHandoff)) return redHandoff;
   return redHandoff === null ? messages.resumeMessage : messages.redHandoffMessageOf(redHandoff);
 }
 
@@ -454,7 +459,10 @@ async function deliverResumeMessages(
     const marker    = resumeMessageMarkerOf(jobFolder, job.childInstance);
     if (existsSync(marker) || children.livenessOf(jobFolder, job.childInstance).verdict !== 'live') continue;
     const pictures = PictureStore.attachmentsOf(trackerDirectory, reopenPicturesOf(board.logRecordsSoFar(), job));
-    const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages), pictures);
+    const resumeLine = resumeLineOf(trackerDirectory, board, job, messages);
+    // Its launch refused on red handoff facts that cannot be read, so no session waits for this line.
+    if (StoredFileUnreadable.isUnreadableFile(resumeLine)) continue;
+    const line = adapter.chatLineOf(resumeLine, pictures);
     if (await children.sendInput(jobFolder, job.childInstance, { act: 'write-line', line })) writeFileSync(marker, '');
   }
 }

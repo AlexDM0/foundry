@@ -51,7 +51,7 @@ import type { BoardTransaction }                                 from '../tracke
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { jobFolderIn }                                           from './HephaestusFiles.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
-import { RedHandoff }                                            from './RedHandoff.ts';
+import { keptRedHandoffOf }                                      from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = {
@@ -301,10 +301,14 @@ testWhenGitIsRecorded('a red gate on the merged tree sends the builder the red h
   expect(scene.reviewJob()).toBeUndefined();
   expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
   expect(handoffCycleResumes(scene)).toBe(1);
-  expect(RedHandoff.redHandoffFactsOf(scene.jobFolder())).toMatchObject({
+  expect(keptRedHandoffOf(scene.jobFolder())).toMatchObject({
     kind: 'gate', name: 'tests', command: 'bun test', exitCode: 1
   });
   expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
+
+  writeFileSync(join(scene.jobFolder(), 'red-handoff.json'), '{"kind": ');
+  const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
+  expect(handover).toMatchObject({ verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/red-handoff.json` });
 });
 
 testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the branch tip and sends the builder the conflicted files', async () => {
@@ -366,7 +370,7 @@ testWhenGitIsRecorded('the merged tree is gated with the build phase\'s gates, w
   await scene.pass();
 
   expect(scene.reviewJob()).toBeUndefined();
-  expect(RedHandoff.redHandoffFactsOf(scene.jobFolder())).toMatchObject({ kind: 'gate', name: 'tests', command: 'bun test' });
+  expect(keptRedHandoffOf(scene.jobFolder())).toMatchObject({ kind: 'gate', name: 'tests', command: 'bun test' });
 });
 
 testWhenGitIsRecorded('with no build gates the reviewer starts once the merge is clean, with no gate run', async () => {

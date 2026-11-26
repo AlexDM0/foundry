@@ -2,10 +2,12 @@
  * A red handoff's gate failure note, written in the job's folder as the same session is resumed to fix it: `gate-failure.md` for the agent to read
  * instead of rerunning the gate, and the facts its resume message is worded from, which a fresh session taking over reads again.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { join } from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
+import { RedHandoffIngestion, type RedHandoffFacts, type RedHandoffReading } from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import { createRedHandoffWriter }                                            from '../../adapters/red-handoff/RedHandoffWriter.ts';
+import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
+import { StoredFileUnreadable }                                              from './StoredFileUnreadable.ts';
 
 export const RED_HANDOFF_FILES = {
   gateFailureNote:  'gate-failure.md',
@@ -22,34 +24,6 @@ export const GATE_FAILURE_NOTE_OUTPUT_LIMITS = {
   TAIL_LINES: 40,
   BYTES:      8192,
 } as const;
-
-/** What went red, and which resume of how many fixes it: the resume message and a fresh session's first message are worded from it. */
-export interface RedHandoffFacts {
-  /**
-   * `gate` for a red gate, `customs` for a refused Customs check (a dirty worktree, no commit, missing or stale gate claims),
-   * `merge-conflict` for a merge of the target into the worktree that conflicted before User's Merge.
-   */
-  kind:                'gate' | 'customs' | 'merge-conflict';
-  /** The gate's name, the Customs check's id, or the target the merge took its tip from. */
-  name:                string;
-  /** The gate's shell line; `null` for a Customs check. */
-  command:             string | null;
-  fixCommand:          string | null;
-  commit:              string;
-  exitCode:            number | null;
-  gateFailureNotePath: string;
-  /** The gate's whole output; `null` for a Customs check. */
-  fullLogPath:         string | null;
-  resume:              number;
-  resumesAllowed:      number;
-  /** The child instance that went red: the resume's calls are counted from the next one. A fresh session taking over stores 0. */
-  interruptedInstance: number;
-  callBudget:          number;
-  /** On a `merge-conflict` only: the target tip the session merges in again. */
-  mergedTip?:          string;
-  /** Once a job of an entity was sent back for Customs V17, kept on every later red handoff of the job: V17 resumes it only once (E11). */
-  scopeResumed?:       true;
-}
 
 const OMISSION_MARK = (omittedLines: number): string => `[… ${omittedLines} lines omitted …]`;
 /** Room kept for the omission mark and a character a byte cut splits, so the excerpt stays inside its bytes. */
@@ -133,22 +107,28 @@ function gateFailureNotePathOf(jobFolder: string): string {
 /** Written before the job is interrupted, so the resume that reads the facts always finds the note beside them. */
 function writeRedHandoff(jobFolder: string, facts: Readonly<RedHandoffFacts>, output: string): void {
   writeFileAtomically(facts.gateFailureNotePath, gateFailureNoteTextOf(facts, output));
-  writeFileAtomically(join(jobFolder, RED_HANDOFF_FILES.facts), `${JSON.stringify(facts, null, 2)}\n`);
+  createRedHandoffWriter(join(jobFolder, RED_HANDOFF_FILES.facts)).write(facts);
 }
 
-/** A fresh session taking over a red handoff keeps the facts in its own folder, so its calls count against the resume budget. */
+/**
+ * A fresh session taking over a red handoff keeps the facts in its own folder, so its calls count against the resume budget. Facts of its
+ * own that cannot be read are never written over: its next pass opens their incident.
+ */
 function adoptRedHandoff(jobFolder: string, facts: Readonly<RedHandoffFacts>): void {
-  if (redHandoffFactsOf(jobFolder) === null) writeFileAtomically(join(jobFolder, RED_HANDOFF_FILES.facts), `${JSON.stringify(facts, null, 2)}\n`);
+  if (redHandoffReadingOf(jobFolder).verdict === 'absent') createRedHandoffWriter(join(jobFolder, RED_HANDOFF_FILES.facts)).write(facts);
 }
 
-/** `null` for a job that never went red, or whose facts file cannot be read. */
-function redHandoffFactsOf(jobFolder: string): RedHandoffFacts | null {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(join(jobFolder, RED_HANDOFF_FILES.facts), 'utf8'));
-    return typeof parsed === 'object' && parsed !== null && Object.hasOwn(parsed, 'gateFailureNotePath') ? parsed as RedHandoffFacts : null;
-  } catch {
-    return null;
-  }
+/** The facts kept in `jobFolder`, as their ingestion reads them. */
+function redHandoffReadingOf(jobFolder: string): RedHandoffReading {
+  return new RedHandoffIngestion(join(jobFolder, RED_HANDOFF_FILES.facts)).read();
+}
+
+/** `null` for a job that never went red; facts that cannot be read are the unreadable file, named inside the board's data folder. */
+function redHandoffFactsOf(trackerDirectory: string, jobFolder: string): RedHandoffFacts | null | StoredFileUnreadable {
+  const reading = redHandoffReadingOf(jobFolder);
+  if (reading.verdict === 'readable') return reading.facts;
+  if (reading.verdict === 'absent') return null;
+  return StoredFileUnreadable.unreadableFileOf(trackerDirectory, join(jobFolder, RED_HANDOFF_FILES.facts), reading.reason);
 }
 
 export const RedHandoff = Object.freeze({
@@ -157,5 +137,6 @@ export const RedHandoff = Object.freeze({
   gateFailureNotePathOf,
   writeRedHandoff,
   adoptRedHandoff,
+  redHandoffReadingOf,
   redHandoffFactsOf,
 });

@@ -2,10 +2,11 @@
  * The gate failure note a red handoff leaves in its job's folder. What matters: it names every field the resumed session needs instead of
  * rerunning the gate (gate, command, fix command, commit, exit code, the full log's path); a long output shows only its first and last
  * 40 lines and never more than 8 KB; a gate that changed a file shows the diff in the output's place; a conflicted merge of the target
- * names the tip it merged and lists the conflicted files; and the facts read back as written.
+ * names the tip it merged and lists the conflicted files; and the facts read back as written, while facts that cannot be read are the
+ * unreadable file, never none, and never adopted over.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                   from 'node:path';
 import {
   afterEach,
   describe,
@@ -13,8 +14,10 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
-import { GATE_FAILURE_NOTE_OUTPUT_LIMITS, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import type { RedHandoffFacts }                           from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { GATE_FAILURE_NOTE_OUTPUT_LIMITS, RedHandoff }    from './RedHandoff.ts';
+import { keptRedHandoffOf }                               from './testing/KeptRedHandoff.ts';
 
 const folders: string[] = [];
 
@@ -61,7 +64,7 @@ describe('the gate failure note of a red handoff', () => {
       'expected 2, received 3',
     ];
     for (const field of fields) expect(gateFailureNote).toContain(field);
-    expect(RedHandoff.redHandoffFactsOf(jobFolder)).toEqual(facts);
+    expect(keptRedHandoffOf(jobFolder)).toEqual(facts);
   });
 
   test('shows a long output\'s first and last 40 lines only, marking what lies between', () => {
@@ -111,5 +114,30 @@ describe('the gate failure note of a red handoff', () => {
     expect(gateFailureNote).toContain(`- Merged tip: ${'f'.repeat(40)}`);
     expect(gateFailureNote).toContain(`- Branch tip: ${facts.commit}`);
     expect(gateFailureNote).toContain('- basket.ts\n- checkout.ts\n');
+  });
+});
+
+describe('the facts of a red handoff', () => {
+  test('that cannot be read are the unreadable file, named inside the board\'s data folder, and a fresh session never adopts over them', () => {
+    const trackerDirectory = createScratchDirectory('red-handoff-facts');
+    folders.push(trackerDirectory);
+    const jobFolder = join(trackerDirectory, 'jobs', 'J4');
+    mkdirSync(jobFolder, { recursive: true });
+    writeFileSync(join(jobFolder, 'red-handoff.json'), '{"kind": ');
+
+    expect(RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolder)).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J4/red-handoff.json' });
+    RedHandoff.adoptRedHandoff(jobFolder, factsIn(jobFolder));
+    expect(readFileSync(join(jobFolder, 'red-handoff.json'), 'utf8')).toBe('{"kind": ');
+  });
+
+  test('of a job that never went red are none, and a fresh session adopts the facts it takes over', () => {
+    const trackerDirectory = createScratchDirectory('red-handoff-facts');
+    folders.push(trackerDirectory);
+    const jobFolder = join(trackerDirectory, 'jobs', 'J5');
+    mkdirSync(jobFolder, { recursive: true });
+
+    expect(RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolder)).toBeNull();
+    RedHandoff.adoptRedHandoff(jobFolder, factsIn(jobFolder));
+    expect(RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolder)).toEqual(factsIn(jobFolder));
   });
 });

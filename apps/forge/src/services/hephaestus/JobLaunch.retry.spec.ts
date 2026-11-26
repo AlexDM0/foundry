@@ -23,7 +23,7 @@ import { describeWhenGitIsRecorded }                      from '../../testing/To
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
-import { RedHandoff }                                     from './RedHandoff.ts';
+import { keptRedHandoffOf }                               from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 
@@ -110,7 +110,7 @@ function jobById(board: Board, jobId: string): Readonly<Job> | undefined {
 
 /** A refused V3 sends the session back with a red handoff naming the check, its reason in the restart; `null` when nothing went red. */
 function customsRefusalOf(scene: RetryScene, job: Readonly<Job>): string | null {
-  const facts = RedHandoff.redHandoffFactsOf(jobFolderIn(scene.context.workspace.trackerDirectory, job.id));
+  const facts = keptRedHandoffOf(jobFolderIn(scene.context.workspace.trackerDirectory, job.id));
   if (facts === null) return null;
   const restart = readFileSync(facts.gateFailureNotePath, 'utf8');
   return `${facts.name}: ${restart.includes('no-commit-since-start') ? 'no-commit-since-start' : 'another reason'}`;

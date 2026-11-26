@@ -27,6 +27,7 @@ import { MergeSettlementIngestion, type TargetMergeSettlement }                 
 import { createMergeSettlementWriter }                                             from '../../adapters/merge-settlement/MergeSettlementWriter.ts';
 import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
+import type { RedHandoffFacts }                                                    from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import { SandboxRefusalIngestion, type SandboxRefusal }                            from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
 import { createSandboxRefusalWriter }                                              from '../../adapters/sandbox-refusal/SandboxRefusalWriter.ts';
 import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
@@ -133,7 +134,7 @@ import type { SessionLaunchSettings }                                           
 import { LineSandbox, type ProcessSandboxRequest }                               from './LineSandbox.ts';
 import { NeedTickets }                                                           from './NeedTickets.ts';
 import { PipelineAgentSessions }                                                 from './PipelineAgentSessions.ts';
-import { RedHandoff, type RedHandoffFacts }                                      from './RedHandoff.ts';
+import { RedHandoff }                                                            from './RedHandoff.ts';
 import { StoredFileUnreadable }                                                  from './StoredFileUnreadable.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest }           from './WorkerProfiles.ts';
 
@@ -206,26 +207,28 @@ interface GateStep {
 }
 
 export interface BuildJobObservation {
-  jobId:            string;
-  setup:            SetupProgress;
+  jobId:                 string;
+  setup:                 SetupProgress;
   /** Each install step's line that ended, with its run time, while the job is `preparing`; the first that did not pass is the last. */
-  installStepRuns:  PipelineStepRun[];
+  installStepRuns:       PipelineStepRun[];
   /** Top-level assistant turns across every child instance of the job. */
-  calls:            number;
+  calls:                 number;
   /** The structured report of the newest `result`, `undefined` before one. */
-  report:           unknown;
-  agentEnd:         ChildEnd | 'lost' | null;
-  gate:             GateProgress;
+  report:                unknown;
+  agentEnd:              ChildEnd | 'lost' | null;
+  gate:                  GateProgress;
   /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was, or its unreadable record. */
-  sandboxRefusal:   SandboxRefusal | StoredFileUnreadable | null;
+  sandboxRefusal:        SandboxRefusal | StoredFileUnreadable | null;
   /** Where a prepared review job stands in bringing its branch up to the target's tip; `not-checked` for every other job. */
-  targetCatchUp:    TargetCatchUp;
+  targetCatchUp:         TargetCatchUp;
   /** Where a job in `merging-main` stands; `null` for a job in any other state. */
-  mainMerge:        MainMergeReading | null;
+  mainMerge:             MainMergeReading | null;
   /** The conflict re-reviewer working under the job; `null` while none is. */
-  conflictReReview: ConflictReReviewReading | null;
+  conflictReReview:      ConflictReReviewReading | null;
   /** The install or gate line the job waits on whose newest instance reads `lost`; absent while none does. */
-  lostLine?:        LostLineKind;
+  lostLine?:             LostLineKind;
+  /** The job's own red handoff facts, which its hold's steps read, when they cannot be read; absent otherwise. */
+  unreadableRedHandoff?: StoredFileUnreadable;
 }
 
 /**
@@ -626,7 +629,7 @@ function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
 /** `calls` counts the current attempt's turns: since the last red handoff's resume, or every instance's when none went red. */
 function sessionReadingOf(context: JobLaunchContext, job: Readonly<Job>): { calls: number; report: unknown } {
   const jobFolder = jobFolderOf(context.workspace, job);
-  const attemptStartInstance = attemptStartInstanceOf(jobFolder);
+  const attemptStartInstance = attemptStartInstanceOf(context.workspace.trackerDirectory, jobFolder);
   const topLevelMessageIds = new Set<string>();
   let report: unknown = undefined;
   for (let instance = 1; instance <= job.childInstance; instance += 1) {
@@ -791,15 +794,29 @@ function instanceMarkerOf(marker: string, childInstance: number): string {
   return childInstance === FIRST_CHILD_INSTANCE ? marker : `${marker}-${childInstance}`;
 }
 
-/** The child instance the job's current attempt began in: the one after its last red handoff, the first otherwise. */
-function attemptStartInstanceOf(jobFolder: string): number {
-  const facts = RedHandoff.redHandoffFactsOf(jobFolder);
-  return facts === null ? FIRST_CHILD_INSTANCE : facts.interruptedInstance + 1;
+/**
+ * The child instance the job's current attempt began in: the one after its last red handoff, the first otherwise. Calls counted over facts
+ * that cannot be read are never acted on: the hold opens their incident first.
+ */
+function attemptStartInstanceOf(trackerDirectory: string, jobFolder: string): number {
+  const facts = RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolder);
+  return facts === null || StoredFileUnreadable.isUnreadableFile(facts) ? FIRST_CHILD_INSTANCE : facts.interruptedInstance + 1;
 }
 
 /** A session working off a red handoff has the short resume budget; the first attempt its role's. */
-function attemptCallBudgetOf(trackerDirectory: string, job: Readonly<Job>): number {
-  return RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, job.id)) === null ? callBudgetOf(job) : RED_HANDOFF_RESUME_CALL_BUDGET;
+function attemptCallBudgetOf(trackerDirectory: string, job: Readonly<Job>): number | StoredFileUnreadable {
+  const facts = RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolderIn(trackerDirectory, job.id));
+  if (StoredFileUnreadable.isUnreadableFile(facts)) return facts;
+  return facts === null ? callBudgetOf(job) : RED_HANDOFF_RESUME_CALL_BUDGET;
+}
+
+/**
+ * The job's own red handoff in its hold; `null` while it never went red. The hold takes none of the job's steps over facts its observation
+ * found unreadable, so a step that reads them here finds them readable.
+ */
+function ownRedHandoffInTheHoldOf(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): RedHandoffFacts | null {
+  const facts = RedHandoff.redHandoffFactsOf(context.workspace.trackerDirectory, jobFolderOf(context.workspace, job));
+  return StoredFileUnreadable.isUnreadableFile(facts) ? null : facts;
 }
 
 /** What the newest instance of the line printed; a line stopped at its time bound gets one more line naming the bound. */
@@ -955,6 +972,7 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
     const gate: GateProgress = job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' };
     const targetCatchUp: TargetCatchUp = setup === 'installed' ? targetCatchUpOf(context, job, pipeline) : { verdict: 'not-checked' };
     const lostLine = lostLineOf(context, job, pipeline, { setup, gate, targetCatchUp });
+    const redHandoff = RedHandoff.redHandoffFactsOf(context.workspace.trackerDirectory, jobFolderOf(context.workspace, job));
     return {
       jobId:            job.id,
       setup,
@@ -967,6 +985,7 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
       mainMerge:        mainMergeReadingOf(context, jobs, job, pipeline),
       conflictReReview: conflictReReviewReadingOf(context, jobs, job, pipeline),
       ...(lostLine === null ? {} : { lostLine }),
+      ...(StoredFileUnreadable.isUnreadableFile(redHandoff) ? { unreadableRedHandoff: redHandoff } : {}),
     };
   });
 }
@@ -1412,7 +1431,7 @@ function dependentGateIsRedPastItsResumes(hold: HoldContext, job: Readonly<Job>,
   const entities = hold.change.board.pipeline()?.entities;
   if (entities === undefined || job.entity === undefined || TicketStageUtil.stageOfJob(job)?.name !== 'package-build') return false;
   const gateIsADependents = EntityOwnershipUtil.dependentsOf(entities, [job.entity]).some((entityKey) => gateName.startsWith(`${entityKey}: `));
-  const resumes = RedHandoff.redHandoffFactsOf(jobFolderOf(hold.context.workspace, job))?.resume ?? 0;
+  const resumes = ownRedHandoffInTheHoldOf(hold.context, job)?.resume ?? 0;
   return gateIsADependents && resumes >= LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING;
 }
 
@@ -1541,7 +1560,7 @@ interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'comma
  */
 function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: RedHandoffCause): void {
   const jobFolder = jobFolderOf(hold.context.workspace, job);
-  const earlier = RedHandoff.redHandoffFactsOf(jobFolder);
+  const earlier = ownRedHandoffInTheHoldOf(hold.context, job);
   const { output, scopeResumed: sentBackForScope, ...named } = cause;
   mkdirSync(jobFolder, { recursive: true });
   const scopeResumed = sentBackForScope === true || scopeResumeSpent(hold.context, job);
@@ -1559,12 +1578,12 @@ function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: Red
 }
 
 function workingOffARedHandoff(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
-  return RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job)) !== null;
+  return ownRedHandoffInTheHoldOf(context, job) !== null;
 }
 
 /** What the last red handoff named, carried into the next one when a resumed session runs past its grace. */
 function redHandoffCauseOf(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): Omit<RedHandoffCause, 'output'> {
-  const facts = RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job));
+  const facts = ownRedHandoffInTheHoldOf(context, job);
   return {
     kind:        facts?.kind ?? 'gate',
     name:        facts?.name ?? '',
@@ -1586,7 +1605,7 @@ const SCOPE_CHECK: VerificationCheck = 'V17';
  * after. A `git-failed` V17 spends nothing.
  */
 function scopeResumeSpent(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
-  return RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job))?.scopeResumed === true;
+  return ownRedHandoffInTheHoldOf(context, job)?.scopeResumed === true;
 }
 
 /** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */
@@ -2219,8 +2238,8 @@ function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly 
   if (newestEnded === null || !TARGET_CATCH_UP_CAUSES.includes(newestEnded.cause)) return null;
   const jobFolder = jobFolderIn(trackerDirectory, newestEnded.jobId);
   if (newestEnded.cause === BUILD_JOB_CAUSES.targetGateRed) {
-    const redHandoff = RedHandoff.redHandoffFactsOf(jobFolder);
-    return redHandoff === null ? null : { kind: 'gate-red', redHandoff };
+    const redHandoff = RedHandoff.redHandoffFactsOf(trackerDirectory, jobFolder);
+    return redHandoff === null || StoredFileUnreadable.isUnreadableFile(redHandoff) ? redHandoff : { kind: 'gate-red', redHandoff };
   }
   const conflictFilePath = join(jobFolder, JOB_FILES.targetConflict);
   const conflict = new TargetConflictIngestion(conflictFilePath).read();
@@ -2281,6 +2300,7 @@ function recordLostLineOnce(hold: HoldContext, job: Readonly<Job>, lostLine: Los
  */
 function unreadableFileOfObservation(observation: BuildJobObservation, state: JobState | undefined): StoredFileUnreadable | null {
   const readings: readonly unknown[] = [
+    observation.unreadableRedHandoff,
     observation.gate,
     observation.targetCatchUp,
     observation.mainMerge?.step,
@@ -2320,13 +2340,15 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
     case 'preparing':
       settleInstall(hold, job, observation);
       return;
-    case 'running':
-      if (observation.calls >= attemptCallBudgetOf(hold.context.workspace.trackerDirectory, job) + WIND_DOWN_GRACE_CALLS) {
+    case 'running': {
+      const callBudget = attemptCallBudgetOf(hold.context.workspace.trackerDirectory, job);
+      if (!StoredFileUnreadable.isUnreadableFile(callBudget) && observation.calls >= callBudget + WIND_DOWN_GRACE_CALLS) {
         // A resumed session past its grace counts as red again; only a first attempt opens `out-of-calls`.
         if (!workingOffARedHandoff(hold.context, job)) openIncidentFor(hold, job, 'out-of-calls', { calls: String(observation.calls) });
         hold.logged.push(...board.moveJob(job.id, 'stopping', at).logged);
       }
       return;
+    }
     case 'stopping': {
       const reReviewer = conflictReReviewerOf(board.jobs(), job);
       if (reReviewer !== undefined) {
@@ -2845,7 +2867,9 @@ async function stopOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marke
 /** What a build job's state asks of its live child, each frame once: the wind-down turn over its call budget, its quit at its turn end, a stop. */
 async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonly<Job>, calls: number): Promise<void> {
   const markerOf = (marker: string): string => instanceMarkerOf(marker, job.childInstance);
-  if (job.state === 'running' && calls >= attemptCallBudgetOf(request.trackerDirectory, job)) {
+  // Red handoff facts that cannot be read give no budget, so no wind-down goes out while the job waits on their incident.
+  const callBudget = attemptCallBudgetOf(request.trackerDirectory, job);
+  if (job.state === 'running' && !StoredFileUnreadable.isUnreadableFile(callBudget) && calls >= callBudget) {
     await sendOnce(request, job, markerOf(JOB_FILES.windDownSent), [{ act: 'write-line', line: request.agentAdapter.chatLineOf(request.windDownMessage) }]);
   }
   if (job.state === 'in-customs' || job.state === 'gating') await sendOnce(request, job, markerOf(JOB_FILES.inputClosed), [{ act: 'quit-at-turn-end' }]);

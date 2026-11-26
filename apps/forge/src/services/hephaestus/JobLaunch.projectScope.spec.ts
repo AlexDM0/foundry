@@ -23,6 +23,7 @@ import {
 } from 'bun:test';
 
 import { JOB_START_FORMAT_VERSION }                          from '../../adapters/job-start/JobStartIngestion.ts';
+import type { RedHandoffFacts }                              from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
 import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity }                     from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -43,7 +44,8 @@ import type { BoardTransaction }                             from '../tracker/Bo
 import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
 import { jobFolderIn }                                       from './HephaestusFiles.ts';
 import { JobLaunch, type JobLaunchContext }                  from './JobLaunch.ts';
-import { RedHandoff, type RedHandoffFacts }                  from './RedHandoff.ts';
+import { RedHandoff }                                        from './RedHandoff.ts';
+import { keptRedHandoffOf }                                  from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-16T10:00:00+01:00';
 const MAIN_LINE = 'main';
@@ -164,7 +166,7 @@ function whereTheJobWent(board: Board, jobId: string, jobFolder: string): string
   const ended = board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === jobId);
   if (ended?.kind === 'job-ended') return `${ended.fields.outcome}: ${ended.fields.cause ?? ''}`;
   const state = board.jobs().find((candidate) => candidate.id === jobId)?.state ?? 'gone';
-  return state === 'interrupted' ? `${state}: ${RedHandoff.redHandoffFactsOf(jobFolder)?.name ?? ''}` : state;
+  return state === 'interrupted' ? `${state}: ${keptRedHandoffOf(jobFolder)?.name ?? ''}` : state;
 }
 
 testWhenGitIsRecorded('a folder tracker\'s build that changed a file outside its folder and its reach fails Customs V17', () => {

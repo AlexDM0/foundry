@@ -622,7 +622,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   function writeStaleGreenHandoff(board: Board, ticketId: string, red: StaleGreenRed, takenOverByABuild = false): boolean {
     const jobId = takenOverByABuild ? newestAgentJobIdOf(board, ticketId, 'build') : newestAgentJobIdOf(board, ticketId);
     if (jobId === null) return true;
-    const resume = (RedHandoff.redHandoffFactsOf(context.jobFolderOfId(jobId))?.resume ?? 0) + 1;
+    const ended = RedHandoff.redHandoffReadingOf(context.jobFolderOfId(jobId));
+    // The facts' job has ended and no job reads them here, so no incident has a job to hold: facts that cannot be read count as none.
+    const resume = (ended.verdict === 'readable' ? ended.facts.resume : 0) + 1;
     if (resume > context.redHandoffResumes) return false;
     const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
     const pipelineGate = redGateOf(board.pipeline(), red.entity, red.step);

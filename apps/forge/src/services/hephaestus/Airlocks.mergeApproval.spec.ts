@@ -27,7 +27,6 @@ import type { RecordedGitStage, RecordedGitStep }           from '../../testing/
 import { useRecordedGit }                                   from '../../testing/RecordedGit.ts';
 import { describeWhenGitIsRecorded, testWhenGitIsRecorded } from '../../testing/ToolGuard.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
-import { RedHandoff }                                       from './RedHandoff.ts';
 import { AirlockAnswerSets }                                from './testing/AirlockAnswerSets.ts';
 import type { AirlocksHarness, HarnessTicket }              from './testing/AirlocksHarness.ts';
 import {
@@ -36,6 +35,7 @@ import {
   HARNESS_AT,
   RECORDED_AIRLOCK_IDS
 } from './testing/AirlocksHarness.ts';
+import { keptRedHandoffOf } from './testing/KeptRedHandoff.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -181,7 +181,7 @@ describeWhenGitIsRecorded('an accepted ticket in the merge train', () => {
 
     expect(harness.mergeAgent()).toMatchObject({ kind: 'merge-agent', role: 'reviewer' });
     expect(harness.mergeJob()?.airlock?.phase).toBe('fixing');
-    expect(RedHandoff.redHandoffFactsOf(join(harness.repository, '.example-tracker', 'jobs', harness.mergeJob()?.id ?? ''))).toMatchObject({ name: 'tests', resume: 1 });
+    expect(keptRedHandoffOf(join(harness.repository, '.example-tracker', 'jobs', harness.mergeJob()?.id ?? ''))).toMatchObject({ name: 'tests', resume: 1 });
     expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', reviewJobId, 'stale-green', 'red-handoff.json'))).toBe(false);
     expect(harness.board.ticketIsMergeAccepted('001')).toBe(true);
     expect(harness.board.ticketIsMergeQueued('001')).toBe(true);

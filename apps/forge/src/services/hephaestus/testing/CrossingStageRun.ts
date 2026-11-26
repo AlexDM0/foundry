@@ -195,7 +195,8 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   const ended = board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === job.id);
   if (ended?.kind === 'job-ended') return { job, whereTheJobWent: `${ended.fields.outcome}: ${ended.fields.cause ?? ''}` };
   const state = board.jobById(job.id)?.state ?? 'gone';
-  return { job, whereTheJobWent: state === 'interrupted' ? `${state}: ${RedHandoff.redHandoffFactsOf(jobFolder)?.name ?? ''}` : state };
+  const redHandoff = RedHandoff.redHandoffReadingOf(jobFolder);
+  return { job, whereTheJobWent: state === 'interrupted' ? `${state}: ${redHandoff.verdict === 'readable' ? redHandoff.facts.name : ''}` : state };
 }
 
 /** Launches the stage job straight on the board, by the stage the spec names, and runs it. */

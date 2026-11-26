@@ -53,7 +53,7 @@ import {
   type BuildJobObservation,
   type JobLaunchContext
 } from './JobLaunch.ts';
-import { RedHandoff } from './RedHandoff.ts';
+import { keptRedHandoffOf } from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-12T10:00:00+01:00';
 const TARGET = 'master';
@@ -322,7 +322,7 @@ testWhenGitIsRecorded('a red gate on the merged tree resumes the job\'s own sess
   await scene.pass();
 
   expect(scene.job()).toMatchObject({ state: 'interrupted', interruption: 'handoff-red', role: 'reviewer' });
-  expect(RedHandoff.redHandoffFactsOf(scene.jobFolder())).toMatchObject({
+  expect(keptRedHandoffOf(scene.jobFolder())).toMatchObject({
     kind: 'gate', name: 'lint', command: 'bun run lint', exitCode: RED_EXIT_CODE
   });
   expect(scene.board.ticketIsMergeQueued('001')).toBe(false);
@@ -334,7 +334,7 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree and resu
   const asked = recordedGit.flowCalls().map((gitArguments) => gitArguments.join(' '));
   expect(asked.indexOf(`reset --hard --quiet ${BRANCH_TIP}`)).toBeGreaterThan(asked.indexOf('merge --abort'));
   expect(scene.job()).toMatchObject({ state: 'interrupted', interruption: 'handoff-red', role: 'reviewer' });
-  expect(RedHandoff.redHandoffFactsOf(scene.jobFolder())).toMatchObject({
+  expect(keptRedHandoffOf(scene.jobFolder())).toMatchObject({
     kind: 'merge-conflict', name: TARGET, mergedTip: TARGET_TIP, commit: BRANCH_TIP, resume: 1
   });
   expect(readFileSync(join(scene.jobFolder(), 'gate-failure.md'), 'utf8')).toContain(`- ${CONFLICTED_FILE}`);
@@ -427,7 +427,7 @@ testWhenGitIsRecorded('with no review step the builder\'s own session takes the 
   expect(conflicted.job()).toMatchObject({
     kind: 'build', role: 'builder', state: 'interrupted', interruption: 'handoff-red'
   });
-  expect(RedHandoff.redHandoffFactsOf(conflicted.jobFolder())).toMatchObject({ kind: 'merge-conflict', mergedTip: TARGET_TIP });
+  expect(keptRedHandoffOf(conflicted.jobFolder())).toMatchObject({ kind: 'merge-conflict', mergedTip: TARGET_TIP });
 
   const merged = await cleanlyMergedScene('build', NO_REVIEW_PIPELINE);
   expect(JSON.parse(readFileSync(join(merged.jobFolder(), 'main-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'build', gates: [{ name: 'tests' }] });

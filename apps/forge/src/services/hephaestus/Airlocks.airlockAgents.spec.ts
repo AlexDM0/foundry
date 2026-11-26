@@ -12,7 +12,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { useRecordedGit }            from '../../testing/RecordedGit.ts';
 import { describeWhenGitIsRecorded } from '../../testing/ToolGuard.ts';
 
-import { RedHandoff }        from './RedHandoff.ts';
 import { AirlockAnswerSets } from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
@@ -20,6 +19,7 @@ import {
   HARNESS_AT,
   type AirlocksHarness
 } from './testing/AirlocksHarness.ts';
+import { keptRedHandoffOf } from './testing/KeptRedHandoff.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -103,7 +103,7 @@ describeWhenGitIsRecorded('a red merged tree', () => {
     expect(agent).toMatchObject({ role: 'reviewer' });
     expect(harness.mergeJob()?.airlock?.phase).toBe('fixing');
     const mergeJobFolder = `${harness.repository}/.example-tracker/jobs/${harness.mergeJob()?.id ?? ''}`;
-    expect(RedHandoff.redHandoffFactsOf(mergeJobFolder)).toMatchObject({ name: 'tests', resume: 1, resumesAllowed: 2 });
+    expect(keptRedHandoffOf(mergeJobFolder)).toMatchObject({ name: 'tests', resume: 1, resumesAllowed: 2 });
 
     finishMergeAgent(harness, {
       outcome: 'resolved', resolvedFiles: [], notes: '', reportKind: null

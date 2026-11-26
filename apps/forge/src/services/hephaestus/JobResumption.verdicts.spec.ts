@@ -16,6 +16,7 @@ import {
   test
 } from 'bun:test';
 
+import type { RedHandoffFacts }                           from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
@@ -24,7 +25,7 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { sentActLinesOf }                                 from '../../testing/SentActLines.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
 import { JobResumption }                                  from './JobResumption.ts';
-import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
+import { RedHandoff }                                     from './RedHandoff.ts';
 
 const AT = '2026-09-18T22:11:03+02:00';
 
