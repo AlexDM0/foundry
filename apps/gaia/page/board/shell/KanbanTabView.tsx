@@ -2,13 +2,13 @@
  * The Kanban tab as the board shell draws it: the Kanban, with how many drafts wait on User in Tickets, or at its item `merge-queue` the
  * Merge queue lane's own detail, both from the forge's served facts.
  */
-import type { BoardTabViewProps }   from '../../@types/BoardTabViewProps.ts';
-import { useBoardHrefOf }           from '../../shared/routing/BoardRouteLinks.ts';
-import { WaitingOnUserModel }       from '../../shell/WaitingOnUserModel.ts';
-import { MergeQueueModel }          from '../merge-queue/MergeQueueModel.ts';
-import { MergeQueueView }           from '../merge-queue/MergeQueueView.tsx';
-import { useKanbanTabSurroundings } from './KanbanTabSurroundings.ts';
-import { KanbanView }               from './KanbanView.tsx';
+import type { BoardTabViewProps }   from '../@types/BoardTabViewProps.ts';
+import { useBoardHrefOf }           from '../shared/routing/BoardRouteLinks.ts';
+import { useKanbanTabSurroundings } from '../views/kanban/KanbanTabSurroundings.ts';
+import { KanbanView }               from '../views/kanban/KanbanView.tsx';
+import { MergeQueueModel }          from '../views/merge-queue/MergeQueueModel.ts';
+import { MergeQueueView }           from '../views/merge-queue/MergeQueueView.tsx';
+import { WaitingOnUserModel }       from './WaitingOnUserModel.ts';
 
 /** The Kanban's Merge queue lane opens its detail at `progress/kanban/merge-queue`. */
 export const MERGE_QUEUE_ITEM = 'merge-queue';
