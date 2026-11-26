@@ -4,8 +4,8 @@ import type {
   StatusCrashLog,
   StatusPresence,
   Supervision
-} from '../src/services/hephaestus/PresenceStatus.ts';
-import { PRODUCT_NAMES } from '../src/shared/constants/ProductNames.ts';
+} from '../../../src/services/hephaestus/PresenceStatus.ts';
+import { PRODUCT_NAMES } from '../../../src/shared/constants/ProductNames.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 

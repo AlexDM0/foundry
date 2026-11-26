@@ -7,8 +7,9 @@
  * outside `page/` but those shared files; read through the compiler, the page program compiles no Gaia file the tsconfig leaves out,
  * nothing under `apps/forge/` and no `forge-contracts` file. Gaia's own components under
  * `page/components/` import no shell, view or board. The Flint library is imported only from `page/board/`; that every import of a library
- * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. What matters: the rules read every shipping module, specs aside,
- * since a spec may render the whole shell; and each guard is first proved on a planted case, in memory.
+ * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. No page module imports Gaia by its package name, which would slip
+ * past every rule that reads relative paths. What matters: the rules read every shipping module, specs aside, since a spec may render the
+ * whole shell; and each guard is first proved on a planted case, in memory.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative }               from 'node:path';
@@ -24,6 +25,7 @@ const FORGE_APP_PATH_PREFIX = 'apps/forge/';
 const FORGE_CONTRACTS_PACKAGE = 'forge-contracts';
 const FLINT_LIBRARY_FOLDER_PREFIX = 'page/lib/flint/';
 const BOARD_FOLDER_PREFIX = 'page/board/';
+const GAIA_PACKAGE_NAME = (JSON.parse(readFileSync(join(GAIA_FOLDER, 'package.json'), 'utf8')) as { name: string }).name;
 
 /** Each folder that must not reach another, with the folders it must not import. */
 const FORBIDDEN_IMPORTS: Readonly<Record<string, readonly string[]>> = {
@@ -131,6 +133,14 @@ function flintReachesOf(modulePath: string, source: string): string[] {
     .map((specifier) => relative(GAIA_FOLDER, join(dirname(modulePath), specifier)))
     .filter((importedName) => importedName.startsWith(FLINT_LIBRARY_FOLDER_PREFIX))
     .map((importedName) => `${moduleName} imports ${importedName} outside ${BOARD_FOLDER_PREFIX}`);
+}
+
+/** A module's imports of Gaia by its own package name, which resolve past every rule here that reads relative paths only. */
+function selfReferencesOf(modulePath: string, source: string): string[] {
+  const moduleName = relative(GAIA_FOLDER, modulePath);
+  return importSpecifiersOf(source)
+    .filter((specifier) => specifier === GAIA_PACKAGE_NAME || specifier.startsWith(`${GAIA_PACKAGE_NAME}/`))
+    .map((specifier) => `${moduleName} imports ${specifier}, Gaia by its package name; use a relative path`);
 }
 
 const BOARD_SHELL_FOLDER_PREFIX = 'page/board/shell/';
@@ -398,6 +408,25 @@ describe('the page\'s reach past its boundary', () => {
     const compiledFiles = pageProgramFiles();
     expect(compiledFiles.map((path) => relative(GAIA_FOLDER, path))).toContain('page/lib/design-system/atoms/Button.tsx');
     expect(compiledFileSentencesOf(compiledFiles, pageProjectModules())).toEqual([]);
+  });
+});
+
+describe('Gaia by its package name', () => {
+  test('the guard names a page module that imports Gaia by its package name, and passes a relative import and a package of another name', () => {
+    const plantedViewModule = join(PAGE_FOLDER, 'board', 'views', 'agents', 'Planted.tsx');
+    expect(selfReferencesOf(plantedViewModule, `import { presenceAttributeOf } from '${GAIA_PACKAGE_NAME}/page/board/shell/ItemPresence.ts';`))
+      .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}/page/board/shell/ItemPresence.ts, Gaia by its package name; use a relative path`]);
+    expect(selfReferencesOf(plantedViewModule, `export * from '${GAIA_PACKAGE_NAME}';`))
+      .toEqual([`page/board/views/agents/Planted.tsx imports ${GAIA_PACKAGE_NAME}, Gaia by its package name; use a relative path`]);
+    expect(selfReferencesOf(plantedViewModule, 'import { AgentsModel } from \'./AgentsModel.ts\';')).toEqual([]);
+    expect(selfReferencesOf(plantedViewModule, `import { something } from '${GAIA_PACKAGE_NAME}-planted/Planted.ts';`)).toEqual([]);
+  });
+
+  test('no module the page project compiles imports Gaia by its package name', () => {
+    expect(GAIA_PACKAGE_NAME).toBe('gaia');
+    const projectModules = pageProjectModules();
+    expect(projectModules.length).toBeGreaterThan(0);
+    expect(projectModules.flatMap((modulePath) => selfReferencesOf(modulePath, readFileSync(modulePath, 'utf8')))).toEqual([]);
   });
 });
 

@@ -114,7 +114,7 @@ Gaia's folders under `apps/gaia/`. Beside them Gaia depends on two workspace pac
 documents, system versions and compatibility registry, which only the server imports, and `system-versions` for the version model both
 systems share (rule 3). The page
 imports no `forge-contracts` and reads its own contract versions from `src/shared/constants/PageContractVersions.ts`
-(`page/PageImportDirection.spec.ts`, with no exception).
+(`page/PageImportDirection.spec.ts`, with no exception); it reaches its own modules by relative path, never by Gaia's package name `gaia`.
 
 ```
 docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS and PAGE_CONTRACT_VERSIONS by a spec), what Gaia asks of forge, the backlog,

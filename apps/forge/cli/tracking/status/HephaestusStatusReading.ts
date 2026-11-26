@@ -2,19 +2,19 @@
  * The process facts `status` prints above the board: the Hephaestus lock, the stored pause, the code on disk against the live one's, the notices and
  * presence, with the lines that word them. Read-only and lockless; the live Hephaestus's Hephaestus lock says which code it runs.
  */
-import type { TrackerProgress }                                   from '../src/lib/tracker-model/@types/TrackerProgress.ts';
-import { readingBoardOf }                                         from '../src/lib/tracker-model/ReadingBoard.ts';
-import { CodeVersion }                                            from '../src/services/hephaestus/CodeVersion.ts';
-import type { HephaestusNotice }                                  from '../src/services/hephaestus/DrivePass.ts';
-import { hephaestusFilesIn }                                      from '../src/services/hephaestus/HephaestusFiles.ts';
-import { HephaestusLock, type HephaestusLockRecord }              from '../src/services/hephaestus/HephaestusLock.ts';
-import { PresenceStatus, type CrashReading, type StatusPresence } from '../src/services/hephaestus/PresenceStatus.ts';
-import type { RestartFailure }                                    from '../src/services/hephaestus/Restart.ts';
-import type { Workspace }                                         from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                                          from '../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                                    from './CommandContext.ts';
-import { HephaestusNoticeWording }                                from './HephaestusNoticeWording.ts';
-import { HephaestusRemote }                                       from './HephaestusRemote.ts';
+import type { TrackerProgress }                                   from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import { readingBoardOf }                                         from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { CodeVersion }                                            from '../../../src/services/hephaestus/CodeVersion.ts';
+import type { HephaestusNotice }                                  from '../../../src/services/hephaestus/DrivePass.ts';
+import { hephaestusFilesIn }                                      from '../../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock, type HephaestusLockRecord }              from '../../../src/services/hephaestus/HephaestusLock.ts';
+import { PresenceStatus, type CrashReading, type StatusPresence } from '../../../src/services/hephaestus/PresenceStatus.ts';
+import type { RestartFailure }                                    from '../../../src/services/hephaestus/Restart.ts';
+import type { Workspace }                                         from '../../../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                                          from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                                    from '../../CommandContext.ts';
+import { HephaestusNoticeWording }                                from '../../HephaestusNoticeWording.ts';
+import { HephaestusRemote }                                       from '../../HephaestusRemote.ts';
 import { PresenceWording }                                        from './PresenceWording.ts';
 
 /** The `hephaestus` block of `status --json`. `state` is the live Hephaestus's runtime state, `serving` or `starting` when it names none, or `down`. */
