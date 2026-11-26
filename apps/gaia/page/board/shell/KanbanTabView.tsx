@@ -11,7 +11,7 @@ import { MergeQueueView }           from '../views/merge-queue/MergeQueueView.ts
 import { WaitingOnUserModel }       from './WaitingOnUserModel.ts';
 
 /** The Kanban's Merge queue lane opens its detail at `progress/kanban/merge-queue`. */
-export const MERGE_QUEUE_ITEM = 'merge-queue';
+const MERGE_QUEUE_ITEM = 'merge-queue';
 
 export function KanbanTabView({
   board, route, connection, boardStore

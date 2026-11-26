@@ -306,6 +306,25 @@ describe('the board\'s isolation', () => {
     expect(boardImportBreaksOf(plantedPageSharedModule, 'import type { BoardTab } from \'../@types/board/BoardVocabulary.ts\';')).toEqual([]);
   });
 
+  test('the guard reads a re-export, a type re-export, a dynamic import and an import type query alike', () => {
+    const importFormsOf = (path: string): string[] => [
+      `export { HeaderModel } from '${path}';`,
+      `export type { HeaderContent } from '${path}';`,
+      `const headerModule = await import('${path}');`,
+      `type HeaderModule = typeof import('${path}');`,
+      `let headerContent: import('${path}').HeaderContent;`,
+    ];
+    const plantedConversationModule = join(PAGE_FOLDER, 'board', 'conversation', 'Planted.tsx');
+    for (const source of importFormsOf('../shell/HeaderModel.ts')) {
+      expect(boardImportBreaksOf(plantedConversationModule, source))
+        .toEqual(['page/board/conversation/Planted.tsx imports page/board/shell/HeaderModel.ts (only Board.tsx and board/testing/ import the shell)']);
+    }
+    for (const source of importFormsOf('../../merge-queue/MergeQueueView.tsx')) {
+      expect(boardImportBreaksOf(plantedKanbanModule, source))
+        .toEqual(['page/board/views/kanban/cards/Planted.tsx imports page/board/views/merge-queue/MergeQueueView.tsx (a view imports another view)']);
+    }
+  });
+
   const scannedModules: readonly ScannedModule[] = shippingModulesUnder(PAGE_FOLDER).map((path) => ({ path, source: readFileSync(path, 'utf8') }));
 
   test('the scan reads the board\'s shell, its views and the page around it, and no spec', () => {

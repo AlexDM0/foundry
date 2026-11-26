@@ -137,11 +137,13 @@ page/shared/       what several parts of the page word, show or offer alike, hoi
                    routes (`BoardRouter`) among them; it imports nothing of the board
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
-page/board/        the board's views, Gaia's own; a view may draw the board, the board imports no view and no shell (rule 10)
-page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it
+page/board/        the board's views, Gaia's own; a page view may draw the board, the board imports no page view (`page/views/`) and
+                   not the page shell (`page/shell/`) (rule 10)
+page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it,
+                   but `ItemPresence`, which others import until the design-system package replaces it (`page/PageImportDirection.spec.ts`)
 page/board/views/  one folder per tab or panel; no view imports another (`page/PageImportDirection.spec.ts`)
-page/board/shared/ what the board's views and the shell read alike: routing, commands, the clock, the covering panel, and in tickets/ the
-                   ticket segments, rows and intake sessions several views list; imports no view, no shell
+page/board/shared/ what the board's views and its shell read alike, hoisted once a second of them needs it; imports no view and no
+                   shell
 ```
 
 ## Boundaries
