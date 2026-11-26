@@ -12,12 +12,19 @@ import {
   readdirSync,
   readFileSync
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import {
+  dirname,
+  join,
+  relative,
+  sep
+} from 'node:path';
 
 import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
+import { LaunchRegistryIngestion }                           from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
 import { writeFileAtomically, writeOwnerOnlyFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                    from '../../lib/process-identity/ProcessIdentity.ts';
+import type { LaunchRegistryEntry }                          from '../../lib/talos/ChildLaunch.ts';
 import { type ChildRecord, childRecordOf }                   from '../../lib/talos/ChildRecord.ts';
 import {
   childFilesOf,
@@ -52,6 +59,8 @@ import type { UnreadableBoardFiles }                                            
 export const TALOS_ENTRY_PATH = join(import.meta.dir, '..', '..', '..', 'talos.ts');
 
 const TALOS_SECRET_BYTES = 24;
+
+const STORED_PATH_SEPARATOR = '/';
 
 export type TalosAvailability =
   | { verdict: 'attached'; connection: TalosConnection; startNumber: number }
@@ -203,27 +212,27 @@ function pause(milliseconds: number): Promise<void> {
   return Bun.sleep(milliseconds);
 }
 
-interface RegisteredChild {
-  childFolder: string;
-  instance:    number;
-}
-
-/** The registry's well-formed lines; Talos appends a line before it spawns, so a cut-short last line names no child that ran. */
-function registeredChildrenOf(boardFolder: string, startNumber: number): RegisteredChild[] {
-  const text = textOf(launchRegistryPathOf(boardFolder, startNumber)) ?? '';
-  return text.split('\n').flatMap((line) => {
-    try {
-      const entry = JSON.parse(line) as Partial<RegisteredChild>;
-      return typeof entry.childFolder === 'string' && Number.isSafeInteger(entry.instance) ? [{ childFolder: entry.childFolder, instance: entry.instance as number }] : [];
-    } catch {
-      return [];
-    }
-  });
+/**
+ * The registry's well-formed lines. The registry is board-wide and never heals, so a line that does not fit, or a registry that cannot be read
+ * at all, is reported to the board header; the readable lines still count, so a sweep stops every child it can name.
+ */
+function registeredChildrenOf(boardFolder: string, startNumber: number, unreadableBoardFiles: UnreadableBoardFiles): LaunchRegistryEntry[] {
+  const registryPath = launchRegistryPathOf(boardFolder, startNumber);
+  const reading = new LaunchRegistryIngestion(registryPath).read();
+  const file = relative(boardFolder, registryPath).split(sep).join(STORED_PATH_SEPARATOR);
+  if (reading.verdict === 'absent') return [];
+  if (reading.verdict === 'unreadable') {
+    unreadableBoardFiles.report({ file, reason: reading.reason });
+    return [];
+  }
+  const [firstUnreadableLine] = reading.unreadableLines;
+  if (firstUnreadableLine !== undefined) unreadableBoardFiles.report({ file, reason: `line ${firstUnreadableLine.lineNumber}: ${firstUnreadableLine.reason}` });
+  return reading.entries;
 }
 
 /** Each child record a Talos registered, copied as stored for a crash log; one never written is left out. */
-export function persistedChildRecordsOf(boardFolder: string, startNumber: number): unknown[] {
-  return registeredChildrenOf(boardFolder, startNumber).flatMap(({ childFolder, instance }) => {
+export function persistedChildRecordsOf(boardFolder: string, startNumber: number, unreadableBoardFiles: UnreadableBoardFiles): unknown[] {
+  return registeredChildrenOf(boardFolder, startNumber, unreadableBoardFiles).flatMap(({ childFolder, instance }) => {
     const copied = new TalosChildRecordCopy(childFilesOf(boardFolder, childFolder, instance).recordPath).read();
     return copied.verdict === 'readable' ? [copied.copy] : [];
   });
@@ -278,7 +287,7 @@ export function settleLostChild({ processSupervision }: PlatformPorts, request: 
 /** Settles every child of the Talos's registry whose record is not `ended`; answers how many it settled. */
 function sweepOrphansOf(context: TalosStartContext, startNumber: number, talos: ProcessIdentity | null): number {
   let swept = 0;
-  for (const { childFolder, instance } of registeredChildrenOf(context.boardFolder, startNumber)) {
+  for (const { childFolder, instance } of registeredChildrenOf(context.boardFolder, startNumber, context.unreadableBoardFiles)) {
     if (childRecordAt(context.boardFolder, childFolder, instance)?.state === 'ended') continue;
     const cause = settleLostChild(context.ports, {
       boardFolder:          context.boardFolder,

@@ -1478,7 +1478,9 @@ Hephaestus starts once per board and which outlives Hephaestus. It runs every ag
 gate and merge line, the gates Hephaestus runs itself included. Its files are in `<data>/talos/`: the start file
 `start-<n>.json` Hephaestus writes, with the lease and the bounds; its record `talos-<n>.json`, with its start number,
 protocol version and state; its log `talos-<n>.log`, which names a child by its label and id only; and
-`launches-<n>.ndjson`. The identity document names its protocol (`talosProtocolVersion`). A Talos of another protocol
+`launches-<n>.ndjson`, one line per accepted launch, appended before the child spawns. Its lines carry no version, so a
+Hephaestus still reads the registry of a Talos of older code; a cut-short last line names no child that ran, and any other
+line Hephaestus cannot read is a board header warning until it restarts. The identity document names its protocol (`talosProtocolVersion`). A Talos of another protocol
 answers Hephaestus's first frame with `version-mismatch` and quits cleanly; one Hephaestus has just started that
 still does not fit refuses Hephaestus's start.
 

@@ -82,9 +82,9 @@ function activeJobsOf(boardReads: StoreReadFace): CrashLogJob[] | null {
   return readingOrNull(() => (boardReads.requireProgress().jobs ?? []).map(CrashLog.activeJobOf));
 }
 
-function talosChildrenOf(boardFolder: string): unknown[] | null {
+function talosChildrenOf(boardFolder: string, unreadableBoardFiles: UnreadableBoardFiles): unknown[] | null {
   const newestStartNumber = newestTalosStartNumberIn(boardFolder);
-  return newestStartNumber === null ? null : readingOrNull(() => persistedChildRecordsOf(boardFolder, newestStartNumber));
+  return newestStartNumber === null ? null : readingOrNull(() => persistedChildRecordsOf(boardFolder, newestStartNumber, unreadableBoardFiles));
 }
 
 /** The holder of the crashed generation's dead Hephaestus lock, which names the crashed process when no presence record does. */
@@ -148,7 +148,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
     hephaestusLockHolder: hephaestusLockHolderOf(evidence, crashedGeneration),
     heartbeat:            heartbeatOfTheCrash,
     activeJobs:           activeJobsOf(boardReads),
-    talosChildren:        talosChildrenOf(workspace.trackerDirectory),
+    talosChildren:        talosChildrenOf(workspace.trackerDirectory, request.unreadableBoardFiles),
     logTail:              CrashLog.logTailOf(files.logFilePath),
   }), request.unreadableBoardFiles).crashLogNumber;
 }

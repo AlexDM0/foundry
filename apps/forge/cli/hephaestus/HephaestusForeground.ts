@@ -571,7 +571,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     files,
     generation,
     activeJobs:         () => (boardStore.reads.requireProgress().jobs ?? []).map(CrashLog.activeJobOf),
-    talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber)),
+    talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber, unreadableBoardFiles)),
     stopLeaseRenewal:   () => leaseRenewal?.stop(),
     writeRegistryCrash: (report) => registerHephaestus(request, { presence: report }),
     stampNow:           () => LocalTimeUtil.formatLocalIso(context.now()),

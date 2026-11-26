@@ -373,6 +373,18 @@ test('a serving record whose process is gone is lost without a connect; a child 
   expect(childFileText('jobs/J-3', 'lost-cause')).toBe('reboot\n');
 });
 
+test('a registry line that does not fit is reported to the board header, its other lines are swept, and a cut-short last line is passed over', async () => {
+  plantTalos(1, { talos: { processId: 4242, startStamp: '9', bootIdentity: THIS_BOOT } });
+  plantChild(1, 'jobs/J-1', { childProcess: { processId: 4243, startStamp: '9', bootIdentity: THIS_BOOT } });
+  const registryPath = launchRegistryPathOf(boardFolder, 1);
+  writeFileSync(registryPath, `not a launch\n${readFileSync(registryPath, 'utf8')}{"childId":"jobs/J-2#1","childFol`);
+  const { context } = contextWith(() => WELCOMED);
+
+  expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 1 });
+  expect(childFileText('jobs/J-1', 'lost-cause')).toBe('agent-crashed\n');
+  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'talos/launches-1.ndjson', reason: expect.stringMatching(/^line 1: it is not valid JSON/) }]);
+});
+
 test('a refused forced stop of an orphan stores the refusal, no cause, and is not counted as swept', async () => {
   plantTalos(1, { talos: { processId: 4242, startStamp: '9', bootIdentity: THIS_BOOT } });
   const stubbornChild = processTable.born();

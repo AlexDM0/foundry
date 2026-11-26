@@ -50,7 +50,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
     STORED_FILE_OFFENDER,
   'src/services/hephaestus/Restart.ts: const parsed = JSON.parse(lastLine) as Record<string, unknown> | null;':              'The output of a process.',
   'src/services/hephaestus/TalosConnection.ts: const parsed: unknown = JSON.parse(line);':                                   'A line Talos sends on the socket.',
-  'src/services/hephaestus/TalosStart.ts: const entry = JSON.parse(line) as Partial<RegisteredChild>;':                      STORED_FILE_OFFENDER,
   'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));':              STORED_FILE_OFFENDER,
   'src/services/lifecycle/ReviewOutcome.ts: parsed = JSON.parse(readFileSync(waiverProposalsPathOf(jobFolder), \'utf8\'));': STORED_FILE_OFFENDER,
   'src/services/tracker/GenerationLock.ts: const parsed: unknown = JSON.parse(generationText);':                             STORED_FILE_OFFENDER,
