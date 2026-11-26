@@ -1300,6 +1300,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     limit:             GATE_RUNS_AT_ONCE,
     holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(request.boardChildren, platformPorts, holding),
     retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
+    log:               request.log,
   });
 
   /** Read afresh each pass, so a machine limit another Hephaestus or the `machine limit` verb set holds from the next launch. */

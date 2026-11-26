@@ -3,7 +3,8 @@
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. Every holder is a child
  * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
  * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
- * fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real gate: it takes no slot while a
+ * fault elsewhere, and a held move aside leaves a stale slot in place. A slot that cannot be read names no holder, so it is taken over and
+ * logged. A gate profile comes after every real gate: it takes no slot while a
  * real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once, holding no
  * slot and holding no profile back.
  */
@@ -17,6 +18,8 @@ import {
   test
 } from 'bun:test';
 
+import { GateRunSlotIngestion }                            from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
+import { createGateRunSlotWriter }                         from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
 import type { FileReplace }                                from '../../lib/atomic-file/FileReplace.ts';
 import { fileReplaceFor }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
 import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -45,7 +48,7 @@ afterEach(() => {
 
 function slotsOver(ports: PlatformPorts, folder: string): ReturnType<typeof GateRunSlots.createGateRunSlots> {
   return GateRunSlots.createGateRunSlots({
-    ports, folder, limit: 1, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: 1,
+    ports, folder, limit: 1, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: 1, log: () => {},
   });
 }
 
@@ -128,6 +131,11 @@ describe('a gate slot held by a child folder', () => {
   });
 });
 
+function plantDeadHolder(slotPath: string): void {
+  mkdirSync(dirname(slotPath), { recursive: true });
+  createGateRunSlotWriter(slotPath).create({ holder: 'example-dead-holder', process: null });
+}
+
 describe('a slot file that the platform refuses to create or move', () => {
   const POSIX_MOVES = fileReplaceFor('darwin');
 
@@ -140,7 +148,14 @@ describe('a slot file that the platform refuses to create or move', () => {
     scratchDirectories.push(scratch);
     const folder = join(scratch, 'slots');
     const slots = GateRunSlots.createGateRunSlots({
-      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive, retryMilliseconds: 1, fileReplace, heldCreateMeansTaken: heldSlotCreateMeansTakenFor(platform),
+      ports:                defaultSpecPlatformPorts(),
+      folder,
+      limit:                1,
+      holderIsLive,
+      retryMilliseconds:    1,
+      fileReplace,
+      heldCreateMeansTaken: heldSlotCreateMeansTakenFor(platform),
+      log:                  () => {},
     });
     return { slots, slotPath: join(folder, 'slot-1') };
   }
@@ -167,22 +182,40 @@ describe('a slot file that the platform refuses to create or move', () => {
       },
     };
     const { slots, slotPath } = slotsWithMoves(heldMove, 'win32', () => false);
-    mkdirSync(dirname(slotPath), { recursive: true });
-    writeFileSync(slotPath, 'example-dead-holder');
+    plantDeadHolder(slotPath);
+    const plantedText = readFileSync(slotPath, 'utf8');
 
     expect(slots.tryAcquire('example-holder')).toBe(false);
 
     expect(movedAside).toEqual([slotPath]);
-    expect(readFileSync(slotPath, 'utf8')).toBe('example-dead-holder');
+    expect(readFileSync(slotPath, 'utf8')).toBe(plantedText);
   });
 
   test('a stale slot whose move aside succeeds is taken over through the same moves', () => {
     const { slots, slotPath } = slotsWithMoves(POSIX_MOVES, 'win32', () => false);
-    mkdirSync(dirname(slotPath), { recursive: true });
-    writeFileSync(slotPath, 'example-dead-holder');
+    plantDeadHolder(slotPath);
 
     expect(slots.tryAcquire('example-holder')).toBe(true);
-    expect(readFileSync(slotPath, 'utf8').split('\n')[0]).toBe('example-holder');
+    expect(new GateRunSlotIngestion(slotPath).read()).toMatchObject({ verdict: 'readable', holding: { holder: 'example-holder' } });
+  });
+
+  test.each([
+    ['a holder line alone', 'example-live-holder'],
+    ['a process document of no version', `example-live-holder\n${JSON.stringify({ process: null })}`],
+  ])('a slot holding %s cannot be read, so it is taken over and logged, whatever its holder', (_case, slotText) => {
+    const loggedLines: string[] = [];
+    const scratch = createScratchDirectory('unreadable-gate-slots');
+    scratchDirectories.push(scratch);
+    const folder = join(scratch, 'slots');
+    const slots = GateRunSlots.createGateRunSlots({
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => true, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
+    });
+    const slotPath = join(folder, 'slot-1');
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(slotPath, slotText);
+
+    expect(slots.tryAcquire('example-holder')).toBe(true);
+    expect(loggedLines).toEqual([expect.stringContaining(`The gate run slot ${slotPath} could not be read`) as unknown as string]);
   });
 });
 
@@ -192,7 +225,7 @@ describe('a gate profile after the real gates', () => {
     const scratch = createScratchDirectory('profile-gate-slots');
     scratchDirectories.push(scratch);
     return GateRunSlots.createGateRunSlots({
-      ports, folder: join(scratch, 'slots'), limit, holderIsLive: () => true, retryMilliseconds: 1,
+      ports, folder: join(scratch, 'slots'), limit, holderIsLive: () => true, retryMilliseconds: 1, log: () => {},
     });
   }
 
@@ -235,7 +268,7 @@ describe('a gate profile after the real gates', () => {
     scratchDirectories.push(scratch);
     const slowRetryMilliseconds = 60_000;
     const slots = GateRunSlots.createGateRunSlots({
-      ports, folder: join(scratch, 'slots'), limit: 1, holderIsLive: () => true, retryMilliseconds: slowRetryMilliseconds,
+      ports, folder: join(scratch, 'slots'), limit: 1, holderIsLive: () => true, retryMilliseconds: slowRetryMilliseconds, log: () => {},
     });
     slots.tryAcquire('other-forge-gate');
     const stopController = new AbortController();
