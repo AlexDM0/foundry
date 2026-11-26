@@ -45,7 +45,9 @@ import {
   TALOS_TICK_GAP_MILLISECONDS,
   TALOS_TICK_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
+import { RefusedForcedStops }                                                   from './RefusedForcedStops.ts';
 import type { TalosConnection, TalosConnectionOutcome, TalosConnectionRequest } from './TalosConnection.ts';
+import type { UnreadableBoardFiles }                                            from './UnreadableBoardFiles.ts';
 
 export const TALOS_ENTRY_PATH = join(import.meta.dir, '..', '..', '..', 'talos.ts');
 
@@ -100,18 +102,20 @@ export interface TalosStartHold {
 }
 
 export interface TalosStartContext {
-  boardFolder:    string;
-  monitorFolder:  string;
-  trackerId:      string;
-  codeVersion:    string;
-  repositoryRoot: string;
-  ports:          PlatformPorts;
-  bounds:         TalosStartBounds;
-  waits:          TalosStartWaits;
-  connect:        (request: TalosConnectionRequest) => Promise<TalosConnectionOutcome>;
-  startTalos:     TalosSpawn;
-  hold:           TalosStartHold;
-  log:            (sentence: string) => void;
+  boardFolder:          string;
+  monitorFolder:        string;
+  trackerId:            string;
+  codeVersion:          string;
+  repositoryRoot:       string;
+  ports:                PlatformPorts;
+  bounds:               TalosStartBounds;
+  waits:                TalosStartWaits;
+  connect:              (request: TalosConnectionRequest) => Promise<TalosConnectionOutcome>;
+  startTalos:           TalosSpawn;
+  hold:                 TalosStartHold;
+  log:                  (sentence: string) => void;
+  /** The board files Hephaestus could not read, which the board header warns of until it restarts. */
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 export function createTalosStartHold(): TalosStartHold {
@@ -225,33 +229,19 @@ export function persistedChildRecordsOf(boardFolder: string, startNumber: number
   });
 }
 
-function childFileOf(boardFolder: string, childFolder: string, instance: number, suffix: 'lost-cause' | 'refused-forced-stops'): string {
-  return join(dirname(childFilesOf(boardFolder, childFolder, instance).recordPath), `child-${instance}.${suffix}`);
-}
-
-/** The forced stops of a lost child's tree that were refused, and the tree's process ids at the last one, its root first. */
-interface ForcedStopRefusals {
-  refusals:       number;
-  treeProcessIds: number[];
-}
-
-function refusedForcedStopsOf(path: string): ForcedStopRefusals {
-  try {
-    const stored = JSON.parse(readFileSync(path, 'utf8')) as Partial<ForcedStopRefusals>;
-    return { refusals: typeof stored.refusals === 'number' ? stored.refusals : 0, treeProcessIds: Array.isArray(stored.treeProcessIds) ? stored.treeProcessIds : [] };
-  } catch {
-    return { refusals: 0, treeProcessIds: [] };
-  }
+function childFolderPathOf(boardFolder: string, childFolder: string, instance: number): string {
+  return dirname(childFilesOf(boardFolder, childFolder, instance).recordPath);
 }
 
 export interface LostChildRequest {
-  boardFolder:       string;
-  childFolder:       string;
-  instance:          number;
+  boardFolder:          string;
+  childFolder:          string;
+  instance:             number;
   /** The lost Talos's boot, where its record names one: a child is never older than its Talos. */
-  talosBootIdentity: string | null;
+  talosBootIdentity:    string | null;
   /** A refused forced stop is tried again only when this says so. */
-  retryRefusedStop:  boolean;
+  retryRefusedStop:     boolean;
+  unreadableBoardFiles: UnreadableBoardFiles;
 }
 
 /**
@@ -260,11 +250,11 @@ export interface LostChildRequest {
  * commander (still stored as `talos-lost`); otherwise the child ended with it. A refused forced stop stores no cause and answers `null`.
  */
 export function settleLostChild({ processSupervision }: PlatformPorts, request: LostChildRequest): InterruptionCause | null {
-  const lostCausePath = childFileOf(request.boardFolder, request.childFolder, request.instance, 'lost-cause');
+  const childFolderPath = childFolderPathOf(request.boardFolder, request.childFolder, request.instance);
+  const lostCausePath = join(childFolderPath, `child-${request.instance}.lost-cause`);
   const storedCause = textOf(lostCausePath)?.trim();
   if (storedCause !== undefined && storedCause !== '') return storedCause as InterruptionCause;
-  const refusedStopsPath = childFileOf(request.boardFolder, request.childFolder, request.instance, 'refused-forced-stops');
-  const refusedStops = refusedForcedStopsOf(refusedStopsPath);
+  const refusedStops = RefusedForcedStops.storedOf(request.boardFolder, childFolderPath, request.instance, request.unreadableBoardFiles);
   if (refusedStops.refusals > 0 && !request.retryRefusedStop) return null;
   const record = childRecordAt(request.boardFolder, request.childFolder, request.instance);
   const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
@@ -276,7 +266,7 @@ export function settleLostChild({ processSupervision }: PlatformPorts, request: 
     const { verdict } = processSupervision.stopTree(record.childProcess, 'force', treeMembers);
     if (verdict === 'refused') {
       const treeProcessIds = [...new Set([record.childProcess.processId, ...treeMembers.map((member) => member.processId)])];
-      writeFileAtomically(refusedStopsPath, `${JSON.stringify({ refusals: refusedStops.refusals + 1, treeProcessIds })}\n`);
+      RefusedForcedStops.store(childFolderPath, request.instance, { refusals: refusedStops.refusals + 1, treeProcessIds });
       return null;
     }
     if (verdict === 'signalled') cause = 'talos-lost';
@@ -291,7 +281,12 @@ function sweepOrphansOf(context: TalosStartContext, startNumber: number, talos: 
   for (const { childFolder, instance } of registeredChildrenOf(context.boardFolder, startNumber)) {
     if (childRecordAt(context.boardFolder, childFolder, instance)?.state === 'ended') continue;
     const cause = settleLostChild(context.ports, {
-      boardFolder: context.boardFolder, childFolder, instance, talosBootIdentity: talos?.bootIdentity ?? null, retryRefusedStop: true,
+      boardFolder:          context.boardFolder,
+      childFolder,
+      instance,
+      talosBootIdentity:    talos?.bootIdentity ?? null,
+      retryRefusedStop:     true,
+      unreadableBoardFiles: context.unreadableBoardFiles,
     });
     if (cause === null) context.log(`The forced stop of ${childFolder}#${instance}, a child of the lost Talos ${startNumber}, was refused.`);
     else swept += 1;

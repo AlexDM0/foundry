@@ -18,6 +18,7 @@ import { parentOfDetachedChild }                          from '../../testing/Pr
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }         from '../../testing/WaitUntil.ts';
 import { Regrouping }                                     from './Regrouping.ts';
+import { createUnreadableBoardFiles }                     from './UnreadableBoardFiles.ts';
 
 const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
@@ -67,7 +68,7 @@ function lostChildRecording(childProcess: ProcessIdentity): LostChild {
 }
 
 function settled(lost: LostChild): ReturnType<typeof Regrouping.settleLostChildIn> {
-  return Regrouping.settleLostChildIn(lost.boardFolder, ports, lost.jobFolder, CHILD_INSTANCE);
+  return Regrouping.settleLostChildIn(lost.boardFolder, ports, createUnreadableBoardFiles(() => undefined), lost.jobFolder, CHILD_INSTANCE);
 }
 
 describe('settling a lost child', () => {

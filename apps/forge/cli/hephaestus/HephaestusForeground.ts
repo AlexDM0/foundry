@@ -544,6 +544,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     startTalos:     spawnTalos,
     hold:           talosStartHold,
     log,
+    unreadableBoardFiles,
   });
 
   /** A connection that closes, by Talos's quit or its loss, has the next pass ensure a Talos before it launches anything. */

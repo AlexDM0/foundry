@@ -3,12 +3,17 @@
  * may still run. Each sweep tries the stop once more; a settled stop gives the job its cause, and past the bound the job ends `blocked` with
  * one `forced-stop-refused` decision that names the job and the tree.
  */
+import { join, relative, sep } from 'node:path';
+
+import type { ForcedStopRefusals }             from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
+import { RefusedForcedStopsIngestion }         from '../../adapters/refused-forced-stops/RefusedForcedStopsIngestion.ts';
+import { createRefusedForcedStopsWriter }      from '../../adapters/refused-forced-stops/RefusedForcedStopsWriter.ts';
 import type { InterruptionCause, Job }         from '../../lib/tracker-model/@types/Job.ts';
 import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                          from '../../lib/tracker-model/Board.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }    from '../../lib/tracker-model/constants/JobStates.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }   from '../../shared/constants/HephaestusLimits.ts';
-import type { ForcedStopRefusals }             from './Regrouping.ts';
+import type { UnreadableBoardFiles }           from './UnreadableBoardFiles.ts';
 
 /** What a pass observed of one child: the cause its stop settled, `null` while refused or not lost, and the refusals stored beside it. */
 export interface LostChildFacts {
@@ -16,6 +21,33 @@ export interface LostChildFacts {
   instance:           number;
   lostCause:          InterruptionCause | null;
   forcedStopRefusals: ForcedStopRefusals;
+}
+
+const NO_REFUSALS: ForcedStopRefusals = Object.freeze({ refusals: 0, treeProcessIds: [] });
+
+const STORED_PATH_SEPARATOR = '/';
+
+/** Beside the child's record, in the child's folder, where the settling of a lost child keeps it. */
+function fileOf(childFolderPath: string, instance: number): string {
+  return join(childFolderPath, `child-${instance}.refused-forced-stops`);
+}
+
+/**
+ * The refusals stored for a child; none when it has no file. One that cannot be read is reported to the board header and counts none, as
+ * before it had a version: the stop is tried again, and the next refusal writes the file anew.
+ */
+function storedOf(boardFolder: string, childFolderPath: string, instance: number, unreadableBoardFiles: UnreadableBoardFiles): ForcedStopRefusals {
+  const filePath = fileOf(childFolderPath, instance);
+  const reading = new RefusedForcedStopsIngestion(filePath).read();
+  if (reading.verdict === 'readable') return reading.forcedStopRefusals;
+  if (reading.verdict === 'unreadable') {
+    unreadableBoardFiles.report({ file: relative(boardFolder, filePath).split(sep).join(STORED_PATH_SEPARATOR), reason: reading.reason });
+  }
+  return NO_REFUSALS;
+}
+
+function store(childFolderPath: string, instance: number, forcedStopRefusals: ForcedStopRefusals): void {
+  createRefusedForcedStopsWriter(fileOf(childFolderPath, instance)).write(forcedStopRefusals);
 }
 
 function waitsOnARefusedStop(job: Readonly<Job>): boolean {
@@ -44,4 +76,6 @@ function settle(board: Board, lostChildren: readonly LostChildFacts[], decisionW
   }
 }
 
-export const RefusedForcedStops = Object.freeze({ jobIdsToRetryOf, settle });
+export const RefusedForcedStops = Object.freeze({
+  fileOf, storedOf, store, jobIdsToRetryOf, settle
+});

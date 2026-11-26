@@ -22,6 +22,7 @@ import { createUnsupportedProcessSupervision }                                  
 import { HephaestusLock, type HephaestusLockRecord }                               from '../../src/services/hephaestus/HephaestusLock.ts';
 import type { HephaestusPortChoice }                                               from '../../src/services/hephaestus/HephaestusPort.ts';
 import { Regrouping }                                                              from '../../src/services/hephaestus/Regrouping.ts';
+import { createUnreadableBoardFiles }                                              from '../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { type Workspace, workspacePathsFor }                                       from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                        from '../../src/shared/OperationRefusal.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision, type FakeWindowsKernel } from '../../src/testing/FakeWindowsKernel.ts';
@@ -185,19 +186,21 @@ describe('a child of Talos read by a Hephaestus on Windows', () => {
   });
 
   describe('a lost child\'s cause', () => {
+    const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+
     test('with the boot unreadable now, it is no reboot', () => {
       const recorded = { ...identityOf(windowsPorts(), OTHER_PROCESS_ID), startStamp: '1' };
-      expect(Regrouping.settleLostChildIn(scratchDirectory, portsWithoutBoot(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
+      expect(Regrouping.settleLostChildIn(scratchDirectory, portsWithoutBoot(), unreadableBoardFiles, jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
     });
 
     test('with the boot unreadable when it was recorded, it is no reboot', () => {
       const recorded = { ...identityOf(portsWithoutBoot(), OTHER_PROCESS_ID), startStamp: '1' };
-      expect(Regrouping.settleLostChildIn(scratchDirectory, windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
+      expect(Regrouping.settleLostChildIn(scratchDirectory, windowsPorts(), unreadableBoardFiles, jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
     });
 
     test('with two readable boots that differ, it still is a reboot', () => {
       const recorded = { ...identityOf(windowsPorts(), OTHER_PROCESS_ID), bootIdentity: '0x2b' };
-      expect(Regrouping.settleLostChildIn(scratchDirectory, windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('reboot');
+      expect(Regrouping.settleLostChildIn(scratchDirectory, windowsPorts(), unreadableBoardFiles, jobFolderClaimedBy(recorded, recorded), 1)).toBe('reboot');
     });
   });
 });

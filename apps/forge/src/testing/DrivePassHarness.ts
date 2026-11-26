@@ -139,17 +139,18 @@ export async function startScratchBoardTalos(request: ScratchBoardTalosRequest):
   const boardFolder = request.workspace.trackerDirectory;
   const context: TalosStartContext = {
     boardFolder,
-    monitorFolder:  request.monitorFolder,
-    trackerId:      requireProgressFile(request.workspace).trackerId,
-    codeVersion:    'code-example',
-    repositoryRoot: request.workspace.rootDirectory,
-    ports:          request.platformPorts,
-    bounds:         request.bounds ?? TALOS_START_BOUNDS,
-    waits:          TALOS_START_WAITS,
-    connect:        connectToTalos,
-    startTalos:     spawnTalos,
-    hold:           createTalosStartHold(),
-    log:            request.log,
+    monitorFolder:        request.monitorFolder,
+    trackerId:            requireProgressFile(request.workspace).trackerId,
+    codeVersion:          'code-example',
+    repositoryRoot:       request.workspace.rootDirectory,
+    ports:                request.platformPorts,
+    bounds:               request.bounds ?? TALOS_START_BOUNDS,
+    waits:                TALOS_START_WAITS,
+    connect:              connectToTalos,
+    startTalos:           spawnTalos,
+    hold:                 createTalosStartHold(),
+    log:                  request.log,
+    unreadableBoardFiles: createUnreadableBoardFiles(request.log),
   };
   const launches: ChildLaunch[] = [];
   let current: { connection: TalosConnection; startNumber: number } | null = null;

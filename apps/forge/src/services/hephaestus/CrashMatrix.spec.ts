@@ -89,7 +89,8 @@ import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }              from
 import { IntakeSessions }                                                   from './IntakeSessions.ts';
 import { JobResumption }                                                    from './JobResumption.ts';
 import { RedHandoff }                                                       from './RedHandoff.ts';
-import { Regrouping }                                                       from './Regrouping.ts';
+import { RefusedForcedStops }                                               from './RefusedForcedStops.ts';
+import { createUnreadableBoardFiles }                                       from './UnreadableBoardFiles.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -980,7 +981,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const childProcessId = childRecordOf(job.id, 1)?.childProcess?.processId;
     world.refuseForcedStopsOfChild(sessionJobFolder(job.id), 1);
     world.crashTalosLeavingItsAgents(sessionWorkspace.trackerDirectory);
-    const refusals = (): number => Regrouping.refusedForcedStopsOf(sessionJobFolder(job.id), 1).refusals;
+    const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+    const refusals = (): number => RefusedForcedStops.storedOf(sessionWorkspace.trackerDirectory, sessionJobFolder(job.id), 1, unreadableBoardFiles).refusals;
     await passUntil(drivePass, () => requireBuildJob().state === 'interrupted', 'the job was never interrupted');
 
     expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', childInstance: 1 });

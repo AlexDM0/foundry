@@ -3,12 +3,7 @@
  * surviving tree stopped, identity-checked, so no orphan outlives it), a job whose current instance was never launched is named for its
  * launch under the same instance, and a worktree folder no job or branch owns is named for User.
  */
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  realpathSync
-}                                 from 'node:fs';
+import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import {
   basename,
   join,
@@ -30,6 +25,7 @@ import { JobLaunch }                                                      from '
 import { DOCUMENT_AGENT_SNAPSHOT_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER } from './PipelineAgentSessions.ts';
 import { PIPELINE_CHECK_WORKTREES_FOLDER }                                from './PipelineChecking.ts';
 import { settleLostChild }                                                from './TalosStart.ts';
+import type { UnreadableBoardFiles }                                      from './UnreadableBoardFiles.ts';
 
 export interface RegroupingReport {
   /** `cause` is `null` while the forced stop of the child's tree is refused. */
@@ -51,33 +47,13 @@ const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';
 const CHILD_FOLDER_SEPARATOR = '/';
 
-/** The forced stops of a lost child's tree that were refused, and the tree's process ids at the last one, its root first. */
-export interface ForcedStopRefusals {
-  refusals:       number;
-  treeProcessIds: number[];
-}
-
-/** Beside the child's record, where the settling of a lost child keeps it. */
-function refusedForcedStopsFileOf(childFolder: string, instance: number): string {
-  return join(childFolder, `child-${instance}.refused-forced-stops`);
-}
-
-function refusedForcedStopsOf(childFolder: string, instance: number): ForcedStopRefusals {
-  try {
-    const stored = JSON.parse(readFileSync(refusedForcedStopsFileOf(childFolder, instance), 'utf8')) as Partial<ForcedStopRefusals>;
-    return { refusals: typeof stored.refusals === 'number' ? stored.refusals : 0, treeProcessIds: Array.isArray(stored.treeProcessIds) ? stored.treeProcessIds : [] };
-  } catch {
-    return { refusals: 0, treeProcessIds: [] };
-  }
-}
-
 /**
  * A lost child's cause, settled once and stored beside its record as the sweep after a lost Talos stores it: a foreign boot is a reboot, a
  * surviving tree is stopped and the cause is the lost commander (`talos-lost`), otherwise the agent crashed with it. A
  * refused forced stop stores no cause and answers `null`, counted and tried again only when `retryRefusedStop` says so.
  */
 function settleLostChildIn(
-  boardFolder: string, ports: PlatformPorts, childFolder: string, instance: number, retryRefusedStop = true
+  boardFolder: string, ports: PlatformPorts, unreadableBoardFiles: UnreadableBoardFiles, childFolder: string, instance: number, retryRefusedStop = true
 ): InterruptionCause | null {
   return settleLostChild(ports, {
     boardFolder,
@@ -85,6 +61,7 @@ function settleLostChildIn(
     instance,
     talosBootIdentity: null,
     retryRefusedStop,
+    unreadableBoardFiles,
   });
 }
 
@@ -138,7 +115,9 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 }
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */
-function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace): RegroupingReport {
+function regroup(
+  children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace, unreadableBoardFiles: UnreadableBoardFiles
+): RegroupingReport {
   const jobs   = boardReads.requireProgress().jobs ?? [];
   const report: RegroupingReport = { lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs) };
   children.beginPass();
@@ -146,7 +125,8 @@ function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Works
     const jobFolder = children.jobFolderOf(job.id);
     const liveness  = children.livenessOf(jobFolder, job.childInstance);
     if (liveness.verdict === 'lost') {
-      report.lost.push({ jobId: job.id, instance: job.childInstance, cause: settleLostChildIn(workspace.trackerDirectory, ports, jobFolder, job.childInstance) });
+      const cause = settleLostChildIn(workspace.trackerDirectory, ports, unreadableBoardFiles, jobFolder, job.childInstance);
+      report.lost.push({ jobId: job.id, instance: job.childInstance, cause });
     } else if (liveness.verdict === 'unlaunched' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);
     }
@@ -154,6 +134,4 @@ function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Works
   return report;
 }
 
-export const Regrouping = Object.freeze({
-  regroup, settleLostChildIn, refusedForcedStopsOf, leftoverWorktreesOf
-});
+export const Regrouping = Object.freeze({ regroup, settleLostChildIn, leftoverWorktreesOf });
