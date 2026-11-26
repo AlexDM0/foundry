@@ -1685,20 +1685,30 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
-/** The starts a gated job's settlement measures from: its own, and a package review's the one of its package stages' first job. */
-interface SettlementStarts {
-  own:             JobStart | null;
-  packageRunStart: JobStart | null;
+/**
+ * What a gated job's settlement reads of the job files, all read before its run is recorded: its own start, and for a package review the
+ * start of its package stages' first job and the `reach` paths its package's earlier review sealed.
+ */
+interface SettlementReadings {
+  own:                    JobStart | null;
+  packageRunStart:        JobStart | null;
+  sealedReachPathsBefore: readonly string[];
 }
 
-function settlementStartsOf(hold: HoldContext, job: Readonly<Job>): SettlementStarts | StoredFileUnreadable {
+function settlementReadingsOf(hold: HoldContext, job: Readonly<Job>): SettlementReadings | StoredFileUnreadable {
   const { trackerDirectory } = hold.context.workspace;
+  const { board } = hold.change;
   const own = jobStartOf(trackerDirectory, job.id);
-  if (StoredFileUnreadable.isUnreadableFile(own) || TicketStageUtil.stageOfJob(job)?.name !== 'package-review') {
-    return StoredFileUnreadable.isUnreadableFile(own) ? own : { own, packageRunStart: null };
-  }
-  const packageRunStart = jobStartOf(trackerDirectory, CrossingStages.packageRunStartJobIdOf(hold.change.board.logRecordsSoFar(), job));
-  return StoredFileUnreadable.isUnreadableFile(packageRunStart) ? packageRunStart : { own, packageRunStart };
+  if (StoredFileUnreadable.isUnreadableFile(own)) return own;
+  if (TicketStageUtil.stageOfJob(job)?.name !== 'package-review') return { own, packageRunStart: null, sealedReachPathsBefore: [] };
+  const packageRunStart = jobStartOf(trackerDirectory, CrossingStages.packageRunStartJobIdOf(board.logRecordsSoFar(), job));
+  if (StoredFileUnreadable.isUnreadableFile(packageRunStart)) return packageRunStart;
+  const reviewed = CrossingStages.packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), ticketIdOf(job), job.entity ?? '');
+  if (StoredFileUnreadable.isUnreadableFile(reviewed)) return reviewed;
+  // The stage after the last package review reads every sealed package's statements.
+  const sealedStatements = CrossingStages.sealedPackageStatementsOf(board, trackerDirectory, ticketIdOf(job));
+  if (StoredFileUnreadable.isUnreadableFile(sealedStatements)) return sealedStatements;
+  return { own, packageRunStart, sealedReachPathsBefore: reviewed.sealedReachPaths };
 }
 
 /** The paths the job's branch changed past its target, as git spells them; `null` when git cannot tell, or the job kept no start. */
@@ -1775,9 +1785,9 @@ function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
 function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, headCommit: string): readonly LogRecord[] {
   const { board, at } = hold.change;
   const ticketId = ticketIdOf(job);
-  const statements = CrossingStages.sealedPackagesOf(board, ticketId)
-    .map((packageKey) => CrossingStages.packageStageStatementsOf(hold.context.workspace.trackerDirectory, board.logRecordsSoFar(), ticketId, packageKey));
-  if (!CrossingStages.adaptIsSkipped(statements)) {
+  const statements = CrossingStages.sealedPackageStatementsOf(board, hold.context.workspace.trackerDirectory, ticketId);
+  // The settlement read each of them before the review was recorded; one unreadable since then counts as a change, so `adapt` runs.
+  if (StoredFileUnreadable.isUnreadableFile(statements) || !CrossingStages.adaptIsSkipped(statements)) {
     board.moveTicketStage(ticketId, { name: 'adapt', entity: homeEntity }, at);
     return [];
   }
@@ -1789,14 +1799,13 @@ function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeE
  * The `reach` paths the package stages of the reviewed package changed since the first job of their run, with those an earlier review of
  * the package sealed, so a lockfile change joins the seal (E3). `null` when git cannot tell.
  */
-function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string, runStart: Readonly<JobStart> | null): string[] | null {
-  const { board } = hold.change;
-  const { trackerDirectory } = hold.context.workspace;
-  if (runStart === null) return null;
-  const changed = reachPathsChangedSinceOf(worktreeOf(hold.context.workspace, job), runStart.startCommit, target, CrossingStages.reachOf(board.pipeline(), packageKey));
+function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string, readings: Readonly<SettlementReadings>): string[] | null {
+  const { packageRunStart } = readings;
+  if (packageRunStart === null) return null;
+  const reach = CrossingStages.reachOf(hold.change.board.pipeline(), packageKey);
+  const changed = reachPathsChangedSinceOf(worktreeOf(hold.context.workspace, job), packageRunStart.startCommit, target, reach);
   if (changed === null) return null;
-  const sealedBefore = CrossingStages.packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), ticketIdOf(job), packageKey).sealedReachPaths;
-  return [...new Set([...sealedBefore, ...changed])];
+  return [...new Set([...readings.sealedReachPathsBefore, ...changed])];
 }
 
 /**
@@ -1805,7 +1814,7 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
  * ticket's own change to the package and keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed
  * package's build runs, or the stage after the package stages. Its bar is closed here, since no status move closes it.
  */
-function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown, starts: Readonly<SettlementStarts>): PackageReviewSettlement {
+function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown, readings: Readonly<SettlementReadings>): PackageReviewSettlement {
   const { board, at } = hold.change;
   const ticketId = ticketIdOf(job);
   const packageKey = job.entity ?? '';
@@ -1820,10 +1829,10 @@ function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report
     sealAndMoveOn: (headCommit) => {
       const logged: LogRecord[] = [...board.closeStageReviewBars(ticketId, at).logged];
       const target = job.target ?? hold.context.mainLine;
-      const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target, starts.packageRunStart);
+      const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target, readings);
       const pathspecs = sealedReachPaths === null ? null : CrossingStages.sealPathspecsOf(board.pipeline(), packageKey, sealedReachPaths);
       const seal = pathspecs === null ? null : sealOf(worktreeOf(hold.context.workspace, job), target, pathspecs);
-      const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job, starts.own);
+      const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job, readings.own);
       const crossedPackages = changedPaths === null ? null : CrossingStages.packagesCrossedAfterAPackageReviewOf(board, ticketId, homeEntity, changedPaths);
       if (sealedReachPaths === null || seal === null || crossedPackages === null) {
         logged.push(...board.endJob(job.id, { outcome: 'failed', cause: 'git-failed' }, at).logged);
@@ -1857,10 +1866,10 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
-  // Read before the run is recorded, so a start that cannot be read leaves the whole settlement for the move on its incident.
-  const starts = settlementStartsOf(hold, job);
-  if (StoredFileUnreadable.isUnreadableFile(starts)) {
-    openUnreadableFileIncident(hold, job, starts);
+  // Read before the run is recorded, so a file that cannot be read leaves the whole settlement for the move on its incident.
+  const readings = settlementReadingsOf(hold, job);
+  if (StoredFileUnreadable.isUnreadableFile(readings)) {
+    openUnreadableFileIncident(hold, job, readings);
     return;
   }
   // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
@@ -1875,7 +1884,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     }
     const crossingStage = board.ticketStageOf(ticketIdOf(job));
     const packageReview = crossingStage !== null && TicketStageUtil.stageOfJob(job)?.name === 'package-review'
-      ? packageReviewSettlementOf(hold, job, observation.report, starts)
+      ? packageReviewSettlementOf(hold, job, observation.report, readings)
       : undefined;
     const settled = ReviewOutcome.settleReviewPass({
       board,
@@ -1883,7 +1892,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
       job,
       report:            observation.report,
       worktreePath:      worktreeOf(hold.context.workspace, job),
-      reviewStartCommit: starts.own?.startCommit ?? headCommit,
+      reviewStartCommit: readings.own?.startCommit ?? headCommit,
       headTree:          gate.treeId,
       jobFolder:         jobFolderOf(hold.context.workspace, job),
       limits:            LIFECYCLE_LIMITS,
@@ -1896,7 +1905,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     if (crossingStage !== null && settled.move === 'fixer' && job.entity !== undefined) board.moveTicketStage(ticketIdOf(job), { name: 'adapt', entity: job.entity }, at);
     return;
   }
-  if (settledAsAStage(hold, job, observation.report, headCommit, starts.own)) return;
+  if (settledAsAStage(hold, job, observation.report, headCommit, readings.own)) return;
   if (buildMergesMainFirst(board, ticketIdOf(job))) {
     hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
     return;

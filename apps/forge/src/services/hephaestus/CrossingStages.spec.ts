@@ -8,7 +8,7 @@
  * every crossed package's build stated no change of what it exposes and its review confirmed it, a missing statement counting as a change
  * (E40); each stage's session is told its stage, the package review the build's statement, `adapt` each package's confirmed statement
  * and review, the home review each package's review (E32); a stage's run starts at its first job, a retry after a failed one included, and
- * a package review's run at its package's first build; and a stage statement that cannot be read counts as none.
+ * a package review's run at its package's first build; and a stage statement that cannot be read is the unreadable file, never none.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -248,28 +248,44 @@ describe('the run of a stage', () => {
 });
 
 describe('a stage statement', () => {
-  test('that cannot be read, or is not one, counts as none', () => {
+  test('a stage that left none stated nothing; one that cannot be read, or is not one, is the unreadable file, never none', () => {
     const trackerDirectory = createScratchDirectory('crossing-statements');
     folders.push(trackerDirectory);
     const jobFolder = jobFolderIn(trackerDirectory, 'J7');
     mkdirSync(jobFolder, { recursive: true });
 
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toBeNull();
-    writeFileSync(join(jobFolder, 'stage-statement.json'), '{"stage":"package-build","exposedSurfaceChanged":"no"}\n');
-    expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toBeNull();
+    writeFileSync(join(jobFolder, 'stage-statement.json'), '{"version":1,"stage":"package-build","exposedSurfaceChanged":"no"}\n');
+    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J7/stage-statement.json', reason: 'its "exposedSurfaceChanged" is not true or false' } as const;
+    expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toEqual(unreadable);
     writeFileSync(join(jobFolder, 'stage-statement.json'), '{ not json');
-    expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toBeNull();
+    expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J7/stage-statement.json' });
   });
 
-  test('of a package review that names no `reach` path seals none', () => {
+  test('of a package review whose package stages changed no `reach` path seals none', () => {
     const trackerDirectory = createScratchDirectory('crossing-statements');
     folders.push(trackerDirectory);
-    const jobFolder = jobFolderIn(trackerDirectory, 'J8');
-    mkdirSync(jobFolder, { recursive: true });
-    writeFileSync(join(jobFolder, 'stage-statement.json'), '{"stage":"package-review","exposedSurfaceConfirmed":true,"reviewText":""}\n');
+    CrossingStages.writeStageStatement(trackerDirectory, 'J8', {
+      stage: 'package-review', exposedSurfaceConfirmed: true, reviewText: '', sealedReachPaths: []
+    });
 
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J8')).toEqual({
       stage: 'package-review', exposedSurfaceConfirmed: true, reviewText: '', sealedReachPaths: []
     });
+  });
+
+  test('of a package build that cannot be read gives its package review, and Customs\' view of a later job, the unreadable file', () => {
+    const trackerDirectory = createScratchDirectory('crossing-statements');
+    folders.push(trackerDirectory);
+    const { board } = crossingBoardOf({ name: 'package-review', entity: UI_KIT.key });
+    const packageBuild = launchedJobOf(board, 'build', UI_KIT.key, 2);
+    board.endJob(packageBuild.id, { outcome: 'built' }, AT);
+    const packageReview = launchedJobOf(board, 'review', UI_KIT.key, 3);
+    mkdirSync(jobFolderIn(trackerDirectory, packageBuild.id), { recursive: true });
+    writeFileSync(join(jobFolderIn(trackerDirectory, packageBuild.id), 'stage-statement.json'), '{"stage":"package-build","exposedSurfaceChanged":true}\n');
+    const unreadable = { verdict: 'unreadable-file', file: `jobs/${packageBuild.id}/stage-statement.json`, reason: 'its version is not 1' } as const;
+
+    expect(CrossingStages.crossingStageFactsOf(board, trackerDirectory, packageReview, false)).toEqual(unreadable);
+    expect(CrossingStages.packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), '001', UI_KIT.key)).toEqual(unreadable);
   });
 });

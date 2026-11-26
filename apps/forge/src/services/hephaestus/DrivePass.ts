@@ -948,6 +948,7 @@ export function launchFactsOf(
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
   const crossingStage = CrossingStages.crossingStageFactsOf(board, trackerDirectory, job, resumesSession);
+  if (StoredFileUnreadable.isUnreadableFile(crossingStage)) return crossingStage;
   const rootEntityKey = pipeline?.entities === undefined ? ROOT_ENTITY_KEY : EntityOwnershipUtil.rootEntityKeyOf(pipeline.entities);
   const pipelineAgentLaunch = { lineGrammar: request.platformPorts.shellLine.lineGrammar, rootDirectory: request.workspace.rootDirectory, agentAdapter: request.agentAdapter };
   const reviewFindings = needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job, crossingStage) : null;

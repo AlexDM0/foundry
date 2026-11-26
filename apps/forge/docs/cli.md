@@ -2007,7 +2007,8 @@ ticket starts a stage again; review rounds are kept when the ticket returns to a
   and takes the mark from a crossing ticket that carries it; any other release ticket waits on it. A consumer with a
   ticket in the group already gets no second one. The ticket's next package build leaves the consumer's gates out.
   Gated green, it ends `built`, keeps the statement in its job folder as
-  `stage-statement.json`, and the row moves to the `package-review`. A package builder whose constitution forbids the
+  `stage-statement.json` (`{ "version": 1, stage, ... }`; one that cannot be read opens `system-file-unreadable` on the
+  job that reads it, which takes no step on it), and the row moves to the `package-review`. A package builder whose constitution forbids the
   change reports `refused` with its `refusedReason` (E22): the job ends `refused`, its branch and commits kept, and the
   `package-refused` decision opens with the reason as its context and holds the ticket. The reason also waits in its
   job folder's `stage-statement.json`. Only a package build may report `refused`. The decision offers

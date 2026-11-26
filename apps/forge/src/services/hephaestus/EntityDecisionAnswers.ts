@@ -22,6 +22,7 @@ import type { BoardTransaction }                                                
 import { CrossingStages }                                                             from './CrossingStages.ts';
 import { type DependentFixContext, DependentFixTickets }                              from './DependentFixTickets.ts';
 import { NeedTickets }                                                                from './NeedTickets.ts';
+import { StoredFileUnreadable }                                                       from './StoredFileUnreadable.ts';
 
 /** Why a crossing ticket's change of a package becomes a need. */
 export type PackageNeedCause = 'package-refused' | 'whitelist-removed';
@@ -192,8 +193,9 @@ function actOnPackageRefused(change: BoardTransaction, context: EntityDecisionAn
   if (stage?.name !== 'package-build' || homeEntity === undefined || refusedJob === undefined || refusedJob.entity !== stage.entity) return;
   board.moveTicketBackToBuild(answer.ticketId, homeEntity, stage.entity, at);
   if (!turnsIntoANeed) return;
-  const [refused] = CrossingStages.refusedPackageChangesOf(change.workspace.trackerDirectory, board.logRecordsSoFar(), answer.ticketId)
-    .filter(({ entity }) => entity === stage.entity);
+  const refusedChanges = CrossingStages.refusedPackageChangesOf(change.workspace.trackerDirectory, board.logRecordsSoFar(), answer.ticketId);
+  // No job of the ticket takes a step on it here: a statement that cannot be read files the need with no reason, as it always did.
+  const [refused] = StoredFileUnreadable.isUnreadableFile(refusedChanges) ? [] : refusedChanges.filter(({ entity }) => entity === stage.entity);
   fileThePackageChangeAsANeed(change, context, {
     ticketId: answer.ticketId, homeEntity, packageEntity: stage.entity, declaringJobId: refusedJob.jobId, refusedReason: refused?.refusedReason ?? ''
   });

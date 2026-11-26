@@ -3,20 +3,22 @@
  * into after stage 1, what Customs holds each stage to, the statement each package stage leaves in its job folder, whether `adapt` is
  * skipped (E40), and what each stage's session is told.
  */
-import { mkdirSync, readFileSync } from 'node:fs';
-import { join }                    from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
 
-import { writeFileAtomically }                        from '../../lib/atomic-file/AtomicFile.ts';
-import type { Job }                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey, Pipeline }                   from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage, TicketStageName }          from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                                 from '../../lib/tracker-model/Board.ts';
-import { ENTITY_DECISION_ANSWERS }                    from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketStageUtil }                            from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { CrossingStageScope, SealedChange }      from '../lifecycle/Customs.ts';
-import { jobFolderIn }                                from './HephaestusFiles.ts';
+import { StageStatementIngestion, type StageStatement } from '../../adapters/stage-statement/StageStatementIngestion.ts';
+import { createStageStatementWriter }                   from '../../adapters/stage-statement/StageStatementWriter.ts';
+import type { Job }                                     from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                               from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline }                     from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { TicketStage, TicketStageName }            from '../../lib/tracker-model/@types/Task.ts';
+import type { Board }                                   from '../../lib/tracker-model/Board.ts';
+import { ENTITY_DECISION_ANSWERS }                      from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
+import { EntityOwnershipUtil, type PipelineEntities }   from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketStageUtil }                              from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { CrossingStageScope, SealedChange }        from '../lifecycle/Customs.ts';
+import { jobFolderIn }                                  from './HephaestusFiles.ts';
+import { StoredFileUnreadable }                         from './StoredFileUnreadable.ts';
 
 /** What the package stages ended with for one crossed package, as the adapt stage reads it. */
 export interface CrossedPackageResult {
@@ -49,19 +51,6 @@ export type CrossingStageFacts =
   | { stage: 'package-review'; homeEntity: string; exposedSurfaceChanged: boolean }
   | { stage: 'adapt'; crossedPackages: readonly CrossedPackageResult[]; resumesSession: boolean }
   | { stage: 'review'; crossedPackages: readonly SealedPackageReview[] };
-
-/**
- * What a package stage's verified report stated, kept in its job folder, since the stages after it read it once the job ended. A package
- * review also keeps the `reach` paths its package's stages changed, which its seal covers (E3). An adapt build that sent the ticket back
- * keeps the package and what the package must give, which the returned package build is told (E41, E42). A package review that does not
- * hold keeps its Review, since it writes none in the ticket, which the package build it sends back is told (E34).
- */
-export type StageStatement =
-  | { stage: 'package-build'; exposedSurfaceChanged: boolean }
-  | { stage: 'package-review'; exposedSurfaceConfirmed: boolean; reviewText: string; sealedReachPaths: readonly string[] }
-  | { stage: 'package-review-findings'; reviewSection: string }
-  | { stage: 'adapt'; returnedPackage: string; packageReturnReason: string }
-  | { stage: 'package-refused'; refusedReason: string };
 
 /** What the package stages of one crossed package stated: `null` where a stage left no statement. */
 export interface PackageStageStatements {
@@ -139,18 +128,20 @@ function sealPathspecsOf(pipeline: Readonly<Pipeline> | null, packageKey: Entity
 
 /**
  * Customs' view of a job of a crossing ticket: its stage and the seals so far, each on the pathspecs its package review sealed. `null` for
- * every job whose ticket's row stores no stage.
+ * every job whose ticket's row stores no stage; a package review's statement that cannot be read gives no view at all.
  */
-function crossingStageScopeOf(board: Board, trackerDirectory: string, job: Readonly<Job>): CrossingStageScope | null {
+function crossingStageScopeOf(board: Board, trackerDirectory: string, job: Readonly<Job>): CrossingStageScope | null | StoredFileUnreadable {
   const [ticketId] = job.ticketIds;
   const jobStage = TicketStageUtil.stageOfJob(job);
   if (ticketId === undefined || jobStage === null || board.ticketStageOf(ticketId) === null) return null;
   const pipeline = board.pipeline();
   const logRecords = board.logRecordsSoFar();
-  const seals: SealedChange[] = Object.entries(board.ticketSealsOf(ticketId)).map(([entity, seal]) => {
-    const { sealedReachPaths } = packageStageStatementsOf(trackerDirectory, logRecords, ticketId, entity);
-    return { entity, pathspecs: sealPathspecsOf(pipeline, entity, sealedReachPaths), seal };
-  });
+  const seals: SealedChange[] = [];
+  for (const [entity, seal] of Object.entries(board.ticketSealsOf(ticketId))) {
+    const statements = packageStageStatementsOf(trackerDirectory, logRecords, ticketId, entity);
+    if (StoredFileUnreadable.isUnreadableFile(statements)) return statements;
+    seals.push({ entity, pathspecs: sealPathspecsOf(pipeline, entity, statements.sealedReachPaths), seal });
+  }
   return { stageName: jobStage.name, seals };
 }
 
@@ -193,42 +184,15 @@ function stageStatementPathOf(trackerDirectory: string, jobId: string): string {
 
 function writeStageStatement(trackerDirectory: string, jobId: string, statement: StageStatement): void {
   mkdirSync(jobFolderIn(trackerDirectory, jobId), { recursive: true });
-  writeFileAtomically(stageStatementPathOf(trackerDirectory, jobId), `${JSON.stringify(statement)}\n`);
+  createStageStatementWriter(stageStatementPathOf(trackerDirectory, jobId)).write(statement);
 }
 
-function fieldOf(value: unknown, field: string): unknown {
-  return typeof value === 'object' && value !== null && Object.hasOwn(value, field) ? (value as Record<string, unknown>)[field] : undefined;
-}
-
-/** `null` for a job that left none, or one that cannot be read: the stage then counts as having stated nothing, so `adapt` runs. */
-function stageStatementOf(trackerDirectory: string, jobId: string): StageStatement | null {
-  let stored: unknown;
-  try {
-    stored = JSON.parse(readFileSync(stageStatementPathOf(trackerDirectory, jobId), 'utf8'));
-  } catch {
-    return null;
-  }
-  const exposedSurfaceChanged = fieldOf(stored, 'exposedSurfaceChanged');
-  const refusedReason = fieldOf(stored, 'refusedReason');
-  if (fieldOf(stored, 'stage') === 'package-refused' && typeof refusedReason === 'string') return { stage: 'package-refused', refusedReason };
-  const returnedPackage = fieldOf(stored, 'returnedPackage');
-  const packageReturnReason = fieldOf(stored, 'packageReturnReason');
-  if (fieldOf(stored, 'stage') === 'adapt' && typeof returnedPackage === 'string' && typeof packageReturnReason === 'string') {
-    return { stage: 'adapt', returnedPackage, packageReturnReason };
-  }
-  if (fieldOf(stored, 'stage') === 'package-build' && typeof exposedSurfaceChanged === 'boolean') return { stage: 'package-build', exposedSurfaceChanged };
-  const reviewSection = fieldOf(stored, 'reviewSection');
-  if (fieldOf(stored, 'stage') === 'package-review-findings' && typeof reviewSection === 'string') return { stage: 'package-review-findings', reviewSection };
-  const exposedSurfaceConfirmed = fieldOf(stored, 'exposedSurfaceConfirmed');
-  const reviewText = fieldOf(stored, 'reviewText');
-  const sealedReachPaths = fieldOf(stored, 'sealedReachPaths');
-  const readReachPaths = Array.isArray(sealedReachPaths) && sealedReachPaths.every((reachPath) => typeof reachPath === 'string') ? sealedReachPaths as string[] : [];
-  if (fieldOf(stored, 'stage') === 'package-review' && typeof exposedSurfaceConfirmed === 'boolean' && typeof reviewText === 'string') {
-    return {
-      stage: 'package-review', exposedSurfaceConfirmed, reviewText, sealedReachPaths: readReachPaths
-    };
-  }
-  return null;
+/** `null` for a job that left none; one that cannot be read is never a stage that stated nothing, so no crossing step is taken on it. */
+function stageStatementOf(trackerDirectory: string, jobId: string): StageStatement | null | StoredFileUnreadable {
+  const statementFilePath = stageStatementPathOf(trackerDirectory, jobId);
+  const reading = new StageStatementIngestion(statementFilePath).read();
+  if (reading.verdict === 'readable') return reading.statement;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, statementFilePath, reading.reason);
 }
 
 /** The newest job of the ticket that ran `stage` and ended with `outcome`; `null` when none did. */
@@ -268,10 +232,13 @@ function newestEndedStageJobOf(logRecords: readonly LogRecord[], ticketId: strin
  * The Review of the newest package review of `packageKey`, when it did not hold: the package build it sent back fixes what it found (E34).
  * `null` when the newest package review held, or none ended.
  */
-function packageReviewFindingsOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, packageKey: EntityKey): string | null {
+function packageReviewFindingsOf(
+  trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, packageKey: EntityKey
+): string | null | StoredFileUnreadable {
   const newestReview = newestEndedStageJobOf(logRecords, ticketId, { name: 'package-review', entity: packageKey });
   if (newestReview?.outcome !== 'does-not-hold') return null;
   const statement = stageStatementOf(trackerDirectory, newestReview.jobId);
+  if (StoredFileUnreadable.isUnreadableFile(statement)) return statement;
   return statement?.stage === 'package-review-findings' ? statement.reviewSection : null;
 }
 
@@ -295,11 +262,15 @@ function followsThePackageStages(logRecords: readonly LogRecord[], ticketId: str
 }
 
 /** What the package build and the package review of `packageKey` stated, from their newest jobs that ended `built` and `reviewed`. */
-function packageStageStatementsOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, packageKey: EntityKey): PackageStageStatements {
+function packageStageStatementsOf(
+  trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, packageKey: EntityKey
+): PackageStageStatements | StoredFileUnreadable {
   const buildJobId = newestStageJobIdOf(logRecords, ticketId, { name: 'package-build', entity: packageKey }, 'built');
   const reviewJobId = newestStageJobIdOf(logRecords, ticketId, { name: 'package-review', entity: packageKey }, 'reviewed');
   const built = buildJobId === null ? null : stageStatementOf(trackerDirectory, buildJobId);
   const reviewed = reviewJobId === null ? null : stageStatementOf(trackerDirectory, reviewJobId);
+  if (StoredFileUnreadable.isUnreadableFile(built)) return built;
+  if (StoredFileUnreadable.isUnreadableFile(reviewed)) return reviewed;
   return {
     entity:                  packageKey,
     exposedSurfaceChanged:   built?.stage === 'package-build' ? built.exposedSurfaceChanged : null,
@@ -313,10 +284,24 @@ function packageStageStatementsOf(trackerDirectory: string, logRecords: readonly
  * What the newest adapt build of the ticket that sent it back to `packageKey` wrote the package must give (E41, E42); `null` when no adapt
  * build sent it back there.
  */
-function packageReturnReasonOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, homeEntity: EntityKey, packageKey: EntityKey): string | null {
+function packageReturnReasonOf(
+  trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, homeEntity: EntityKey, packageKey: EntityKey
+): string | null | StoredFileUnreadable {
   const adaptJobId = newestStageJobIdOf(logRecords, ticketId, { name: 'adapt', entity: homeEntity }, 'package-return');
   const statement = adaptJobId === null ? null : stageStatementOf(trackerDirectory, adaptJobId);
+  if (StoredFileUnreadable.isUnreadableFile(statement)) return statement;
   return statement?.stage === 'adapt' && statement.returnedPackage === packageKey ? statement.packageReturnReason : null;
+}
+
+/** The statements of each package a package review sealed, in the order they were sealed; the first that cannot be read in their place. */
+function sealedPackageStatementsOf(board: Board, trackerDirectory: string, ticketId: string): PackageStageStatements[] | StoredFileUnreadable {
+  const statements: PackageStageStatements[] = [];
+  for (const packageKey of sealedPackagesOf(board, ticketId)) {
+    const read = packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), ticketId, packageKey);
+    if (StoredFileUnreadable.isUnreadableFile(read)) return read;
+    statements.push(read);
+  }
+  return statements;
 }
 
 /**
@@ -371,12 +356,18 @@ function refusedPackagesOf(logRecords: readonly LogRecord[], ticketId: string): 
   return refusedPackageJobsOf(logRecords, ticketId).map(({ entity }) => entity);
 }
 
-/** Each refused package with the reason its build kept in its job folder; an unread statement gives an empty reason. */
-function refusedPackageChangesOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string): RefusedPackageChange[] {
-  return refusedPackageJobsOf(logRecords, ticketId).map(({ entity, jobId }) => {
+/**
+ * Each refused package with the reason its build kept in its job folder; a build that kept no statement gives an empty reason, and one
+ * that cannot be read is the unreadable file in place of the list.
+ */
+function refusedPackageChangesOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string): RefusedPackageChange[] | StoredFileUnreadable {
+  const changes: RefusedPackageChange[] = [];
+  for (const { entity, jobId } of refusedPackageJobsOf(logRecords, ticketId)) {
     const statement = stageStatementOf(trackerDirectory, jobId);
-    return { entity, refusedReason: statement?.stage === 'package-refused' ? statement.refusedReason : '' };
-  });
+    if (StoredFileUnreadable.isUnreadableFile(statement)) return statement;
+    changes.push({ entity, refusedReason: statement?.stage === 'package-refused' ? statement.refusedReason : '' });
+  }
+  return changes;
 }
 
 /**
@@ -436,18 +427,20 @@ function packagesCrossedAfterAPackageReviewOf(board: Board, ticketId: string, ho
 
 /**
  * What a build or review job of an entity is told of its stage; `null` for a job without an entity or stage, and for a stage 1 build of
- * an entity that whitelists nothing, which is told what any build of an entity is told.
+ * an entity that whitelists nothing, which is told what any build of an entity is told. A statement it is told of that cannot be read
+ * stops the launch that tells it.
  */
-function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, resumesSession: boolean): CrossingStageFacts | null {
+function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, resumesSession: boolean): CrossingStageFacts | null | StoredFileUnreadable {
   const [ticketId] = job.ticketIds;
   const jobStage = TicketStageUtil.stageOfJob(job);
   if (ticketId === undefined || jobStage === null) return null;
   const pipeline = board.pipeline();
   const homeEntity = board.tickets().find((ticket) => ticket.frontmatter.id === ticketId)?.frontmatter.entity ?? jobStage.entity;
   const logRecords = board.logRecordsSoFar();
-  const stageFactsOf: Readonly<Record<TicketStageName, () => CrossingStageFacts | null>> = {
+  const stageFactsOf: Readonly<Record<TicketStageName, () => CrossingStageFacts | null | StoredFileUnreadable>> = {
     'build': () => {
       const refusedPackageChanges = refusedPackageChangesOf(trackerDirectory, logRecords, ticketId);
+      if (StoredFileUnreadable.isUnreadableFile(refusedPackageChanges)) return refusedPackageChanges;
       const refusedPackages = refusedPackageChanges.map(({ entity }) => entity);
       const whitelistedPackages = whitelistOf(entitiesOf(pipeline), jobStage.entity).filter((packageKey) => !refusedPackages.includes(packageKey));
       if (whitelistedPackages.length === 0 && refusedPackageChanges.length === 0) return null;
@@ -456,6 +449,8 @@ function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Reado
     'package-build': () => {
       const packageReturnReason = packageReturnReasonOf(trackerDirectory, logRecords, ticketId, homeEntity, jobStage.entity);
       const packageReviewFindings = packageReviewFindingsOf(trackerDirectory, logRecords, ticketId, jobStage.entity);
+      if (StoredFileUnreadable.isUnreadableFile(packageReturnReason)) return packageReturnReason;
+      if (StoredFileUnreadable.isUnreadableFile(packageReviewFindings)) return packageReviewFindings;
       return {
         stage: 'package-build',
         homeEntity,
@@ -463,26 +458,26 @@ function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Reado
         ...(packageReviewFindings === null ? {} : { packageReviewFindings }),
       };
     },
-    'package-review': () => ({
-      stage:                 'package-review',
-      homeEntity,
-      exposedSurfaceChanged: packageStageStatementsOf(trackerDirectory, logRecords, ticketId, jobStage.entity).exposedSurfaceChanged ?? true,
-    }),
-    'adapt': () => ({
-      stage:           'adapt',
-      crossedPackages: sealedPackagesOf(board, ticketId).map((packageKey) => {
-        const statements = packageStageStatementsOf(trackerDirectory, logRecords, ticketId, packageKey);
-        return { entity: packageKey, exposedSurfaceChanged: confirmedExposedSurfaceChangedOf(statements), reviewText: statements.reviewText };
-      }),
-      resumesSession,
-    }),
-    'review': () => (board.ticketStageOf(ticketId) === null ? null : {
-      stage:           'review',
-      crossedPackages: sealedPackagesOf(board, ticketId).map((packageKey) => {
-        const { reviewText } = packageStageStatementsOf(trackerDirectory, logRecords, ticketId, packageKey);
-        return { entity: packageKey, reviewText };
-      }),
-    }),
+    'package-review': () => {
+      const statements = packageStageStatementsOf(trackerDirectory, logRecords, ticketId, jobStage.entity);
+      if (StoredFileUnreadable.isUnreadableFile(statements)) return statements;
+      return { stage: 'package-review', homeEntity, exposedSurfaceChanged: statements.exposedSurfaceChanged ?? true };
+    },
+    'adapt': () => {
+      const sealedStatements = sealedPackageStatementsOf(board, trackerDirectory, ticketId);
+      if (StoredFileUnreadable.isUnreadableFile(sealedStatements)) return sealedStatements;
+      const crossedPackages = sealedStatements.map((statements): CrossedPackageResult => {
+        const { entity, reviewText } = statements;
+        return { entity, exposedSurfaceChanged: confirmedExposedSurfaceChangedOf(statements), reviewText };
+      });
+      return { stage: 'adapt', crossedPackages, resumesSession };
+    },
+    'review': () => {
+      if (board.ticketStageOf(ticketId) === null) return null;
+      const sealedStatements = sealedPackageStatementsOf(board, trackerDirectory, ticketId);
+      if (StoredFileUnreadable.isUnreadableFile(sealedStatements)) return sealedStatements;
+      return { stage: 'review', crossedPackages: sealedStatements.map(({ entity, reviewText }) => ({ entity, reviewText })) };
+    },
   };
   return stageFactsOf[jobStage.name]();
 }
@@ -498,6 +493,7 @@ export const CrossingStages = Object.freeze({
   writeStageStatement,
   stageStatementOf,
   packageStageStatementsOf,
+  sealedPackageStatementsOf,
   packageReturnReasonOf,
   packageReviewFindingsOf,
   followsThePackageStages,
