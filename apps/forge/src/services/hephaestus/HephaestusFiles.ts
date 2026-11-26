@@ -31,6 +31,11 @@ export function jobFolderIn(trackerDirectory: string, jobId: string): string {
   return join(trackerDirectory, 'jobs', jobId);
 }
 
+/** A file of a job's folder by its path inside the board's data folder, `/`-separated on every platform, as an unreadable file is named. */
+export function jobFileInDataFolder(jobId: string, fileName: string): string {
+  return ['jobs', jobId, fileName].join('/');
+}
+
 /** The API token, in the board's owner-only folder; every reader takes the path from the Hephaestus lock's `tokenFile`. */
 export function hephaestusTokenPathOf(monitorFolder: string, trackerId: string): string {
   return join(privateFolderOf(monitorFolder, trackerId), 'token');

@@ -12,9 +12,11 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentAdapter }   from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { EventLogEntry }  from '../../lib/talos/EventLog.ts';
+import { StaleGreenSessionOwnerIngestion, type StaleGreenSessionOwnerReading } from '../../adapters/session-owner/StaleGreenSessionOwnerIngestion.ts';
+import { createStaleGreenSessionOwnerWriter }                                  from '../../adapters/session-owner/StaleGreenSessionOwnerWriter.ts';
+import type { AgentAdapter }                                                   from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                                                 from '../../lib/atomic-file/AtomicFile.ts';
+import type { EventLogEntry }                                                  from '../../lib/talos/EventLog.ts';
 import type {
   InterruptionCause,
   Job,
@@ -27,9 +29,10 @@ import type { Board }                                          from '../../lib/t
 import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import { PictureStore }                                        from '../tracker/PictureStore.ts';
 import type { BoardChildren }                                  from './BoardChildren.ts';
-import { jobFolderIn }                                         from './HephaestusFiles.ts';
+import { jobFileInDataFolder, jobFolderIn }                    from './HephaestusFiles.ts';
 import { IntakeSessions }                                      from './IntakeSessions.ts';
 import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
+import type { UnreadableJobFile }                              from './UnreadableJobFileIncident.ts';
 
 const FIRST_CHILD_INSTANCE = 1;
 
@@ -56,6 +59,11 @@ const STALE_GREEN_TAKING_OUTCOMES: readonly string[] = ['reviewed', 'built'];
 export const RESUME_FAILED_CAUSE = 'resume-failed';
 
 const STALE_GREEN_SESSION_OWNER_FILE = 'stale-green-session-owner.json';
+
+/** The session a launch runs; or the job's recorded stale-green answer, unreadable, which the step that needs it waits on. */
+export type SessionOwnerAnswer<SessionOwner> =
+  | { verdict: 'answered'; sessionOwnerJobId: SessionOwner }
+  | { verdict: 'unreadable'; unreadableFile: UnreadableJobFile };
 
 /** What a resumed session is told, worded by the command line: the plain resume line, or the red handoff it was resumed to fix. */
 export interface ResumeMessages {
@@ -330,18 +338,9 @@ function staleGreenSessionOwnerPathOf(trackerDirectory: string, jobId: string): 
   return join(jobFolderIn(trackerDirectory, jobId), STALE_GREEN_SESSION_OWNER_FILE);
 }
 
-/** The answer the launch of the job's first instance recorded; `undefined` before that launch, or when the record cannot be read. */
-function recordedStaleGreenSessionOwnerOf(trackerDirectory: string, jobId: string): string | null | undefined {
-  const path = staleGreenSessionOwnerPathOf(trackerDirectory, jobId);
-  if (!existsSync(path)) return undefined;
-  try {
-    const recorded: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    if (typeof recorded !== 'object' || recorded === null || !Object.hasOwn(recorded, 'sessionOwnerJobId')) return undefined;
-    const { sessionOwnerJobId } = recorded as { sessionOwnerJobId: unknown };
-    return typeof sessionOwnerJobId === 'string' || sessionOwnerJobId === null ? sessionOwnerJobId : undefined;
-  } catch {
-    return undefined;
-  }
+/** The answer the launch of the job's first instance recorded; `absent` before that launch. */
+function recordedStaleGreenSessionOwnerOf(trackerDirectory: string, jobId: string): StaleGreenSessionOwnerReading {
+  return new StaleGreenSessionOwnerIngestion(staleGreenSessionOwnerPathOf(trackerDirectory, jobId)).read();
 }
 
 /** Written at the launch of the job's first instance, so a same-work job that ends later never changes the session every instance resumes. */
@@ -349,14 +348,15 @@ function recordStaleGreenSessionOwner(trackerDirectory: string, job: Readonly<Jo
   if (isResumedInstance(job) || (job.kind !== 'build' && job.kind !== 'review')) return;
   const path = staleGreenSessionOwnerPathOf(trackerDirectory, job.id);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileAtomically(path, `${JSON.stringify({ sessionOwnerJobId })}\n`);
+  createStaleGreenSessionOwnerWriter(path).write(sessionOwnerJobId);
 }
 
 /**
  * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
  * handoff, when its job folder shows that session started and it ran the job's entity and stage. `null` for every other job, and a fresh
  * session takes the handoff over. Once the first instance recorded its answer, every instance answers the same, so an interrupted
- * stale-green resume resumes that session again, never one of its own, though another same-work job ended in between.
+ * stale-green resume resumes that session again, never one of its own, though another same-work job ended in between. A recorded answer
+ * that cannot be read is `unreadable`: nothing that needs it guesses another session.
  */
 function staleGreenSessionOwnerOf(
   children: BoardChildren,
@@ -364,14 +364,18 @@ function staleGreenSessionOwnerOf(
   logRecords: readonly LogRecord[],
   job: Readonly<Job>,
   adapter: AgentAdapter,
-): string | null {
-  if (job.kind !== 'build' && job.kind !== 'review') return null;
+): SessionOwnerAnswer<string | null> {
+  const resumesNoEndedSession = { verdict: 'answered', sessionOwnerJobId: null } as const;
+  if (job.kind !== 'build' && job.kind !== 'review') return resumesNoEndedSession;
   const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
-  if (recorded !== undefined) return recorded;
+  if (recorded.verdict === 'readable') return { verdict: 'answered', sessionOwnerJobId: recorded.sessionOwnerJobId };
+  if (recorded.verdict === 'unreadable') {
+    return { verdict: 'unreadable', unreadableFile: { jobId: job.id, file: jobFileInDataFolder(job.id, STALE_GREEN_SESSION_OWNER_FILE), reason: recorded.reason } };
+  }
   const predecessor = lastEndedPredecessorOf(logRecords, job);
-  if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
-  if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_CHILD_INSTANCE, adapter)) return null;
-  return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
+  if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return resumesNoEndedSession;
+  if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_CHILD_INSTANCE, adapter)) return resumesNoEndedSession;
+  return { verdict: 'answered', sessionOwnerJobId: sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null }) };
 }
 
 /** The job whose session the launch of the job's current instance runs: the stale-green session it resumes, or the session it carries on. */
@@ -381,8 +385,10 @@ function launchSessionOwnerJobIdOf(
   logRecords: readonly LogRecord[],
   job: Readonly<Job>,
   adapter: AgentAdapter,
-): string {
-  return staleGreenSessionOwnerOf(children, trackerDirectory, logRecords, job, adapter) ?? sessionOwnerJobIdOf(logRecords, job);
+): SessionOwnerAnswer<string> {
+  const staleGreenSessionOwner = staleGreenSessionOwnerOf(children, trackerDirectory, logRecords, job, adapter);
+  if (staleGreenSessionOwner.verdict === 'unreadable') return staleGreenSessionOwner;
+  return { verdict: 'answered', sessionOwnerJobId: staleGreenSessionOwner.sessionOwnerJobId ?? sessionOwnerJobIdOf(logRecords, job) };
 }
 
 /** The message a resumed instance opens with: User's reopening text, the red handoff it resumes to fix, or the plain resume message. */

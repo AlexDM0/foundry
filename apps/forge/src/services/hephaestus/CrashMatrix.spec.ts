@@ -1288,6 +1288,18 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
   });
 
+  test('a stale-green resume whose recorded session owner cannot be read opens system-file-unreadable on its job and launches nothing', async () => {
+    const { nextBuildJobId } = await plantStartedStaleGreen();
+    mkdirSync(sessionJobFolder(nextBuildJobId), { recursive: true });
+    writeFileSync(join(sessionJobFolder(nextBuildJobId), 'stale-green-session-owner.json'), '{"sessionOwnerJobId":');
+
+    await passOnce(await startedHephaestus(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
+
+    const incidents = (requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'system-file-unreadable');
+    expect(incidents).toMatchObject([{ jobId: nextBuildJobId, facts: { file: `jobs/${nextBuildJobId}/stale-green-session-owner.json` } }]);
+    expect(launches.filter((launch) => launch.jobId === nextBuildJobId)).toEqual([]);
+  });
+
   test('a stale-green resume interrupted after its session started resumes the ended builder\'s session again at its next instance, once User resumes it', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const first   = await startedHephaestus(adapter);

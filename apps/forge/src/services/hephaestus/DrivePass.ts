@@ -140,6 +140,7 @@ import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Re
 import { SessionConfinement }                                         from './SessionConfinement.ts';
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile }          from './UnreadableJobFileIncident.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
@@ -219,6 +220,11 @@ interface SetupBillingNotChosen {
 /** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
 interface AirlockConflictsUnknown {
   readonly airlockConflictsUnknownFor: string;
+}
+
+/** A file the launch needs that its ingestion could not read: the job it belongs to waits on its incident, and nothing launches. */
+interface UnreadableJobFileRefusal {
+  readonly unreadableJobFile: UnreadableJobFile;
 }
 
 /** A session forge's confinement cannot hold, of a job with no incident of its own for it: the next pass tries it again. */
@@ -700,9 +706,13 @@ function applyChildEvents(
     const childIsGone = childObservation.liveness.verdict === 'ended' || childObservation.liveness.verdict === 'lost';
     const sessionExitedByItself = childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.reason === 'exited';
     const sessionEndedCleanly   = sessionExitedByItself && childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.exitCode === 0;
-    if (job !== undefined && state === 'running' && JobResumption.resumeFailed(
+    const sessionOwner = job !== undefined && state === 'running'
+      ? JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter)
+      : null;
+    if (sessionOwner?.verdict === 'unreadable') UnreadableJobFileIncident.openOnce(board, sessionOwner.unreadableFile, at);
+    if (job !== undefined && sessionOwner?.verdict === 'answered' && JobResumption.resumeFailed(
       job,
-      JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter),
+      sessionOwner.sessionOwnerJobId,
       sessionExitedByItself,
       childObservation.sessionStarted,
     )) {
@@ -1032,10 +1042,15 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Read
   return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
 
+function unreadableJobFileRefusalOf(request: DrivePassRequest, job: Readonly<Job>, unreadableJobFile: UnreadableJobFile): UnreadableJobFileRefusal {
+  request.log(`Job ${job.id} did not launch: ${unreadableJobFile.file} cannot be read (${unreadableJobFile.reason}).`);
+  return { unreadableJobFile };
+}
+
 /**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
- * marks its instance spawned, so the next pass tries it again.
+ * marks its instance spawned, so the next pass tries it again. A job file the launch needs that cannot be read answers that file.
  */
 async function launchAgentChild(
   request: DrivePassRequest,
@@ -1046,7 +1061,7 @@ async function launchAgentChild(
   effectReadings: EffectReadings,
 ): Promise<
   LaunchRefusal | AgentProgramRefused | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | SetupBillingNotChosen | AirlockConflictsUnknown | TalosDidNotLaunch
-  | SessionConfinementRefused | null
+  | SessionConfinementRefused | UnreadableJobFileRefusal | null
   > {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
@@ -1098,9 +1113,11 @@ async function launchAgentChild(
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
   // A resumed instance reads the owner its first instance recorded, though the handoff it took over may read otherwise by now.
-  const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
+  const staleGreenSessionOwnerAnswer = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
     ? null
     : JobResumption.staleGreenSessionOwnerOf(children, workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+  if (staleGreenSessionOwnerAnswer?.verdict === 'unreadable') return unreadableJobFileRefusalOf(request, job, staleGreenSessionOwnerAnswer.unreadableFile);
+  const staleGreenSessionOwner = staleGreenSessionOwnerAnswer?.sessionOwnerJobId ?? null;
   JobResumption.recordStaleGreenSessionOwner(workspace.trackerDirectory, job, staleGreenSessionOwner);
   // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
@@ -1765,6 +1782,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const launchRefusals: LaunchRefusal[] = [];
     const agentProgramRefusals: AgentProgramRefused[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
+    const unreadableJobFiles: UnreadableJobFile[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
@@ -1778,6 +1796,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
       else if ('setupBillingNotChosenFor' in refusal) continue;
       else if ('notLaunchedJobId' in refusal) agentProgramRefusals.push(refusal);
+      else if ('unreadableJobFile' in refusal) unreadableJobFiles.push(refusal.unreadableJobFile);
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
@@ -1787,7 +1806,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       && openApiKeyDecisionIdsOf(written.board).length > 0;
     const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
-      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0;
+      || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0 || unreadableJobFiles.length > 0;
     let refusalResolvedSinceItsLaunch = false;
     if (holdIsDue) await holdTracker((hold) => {
       for (const refused of agentProgramRefusals) {
@@ -1800,6 +1819,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       }
       hold.board.retryNotLaunched(hold.at, (job) => notLaunchedJobIdsToRetry.includes(job.id));
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
+      for (const unreadableJobFile of unreadableJobFiles) UnreadableJobFileIncident.openOnce(hold.board, unreadableJobFile, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
       if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
