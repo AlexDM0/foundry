@@ -28,7 +28,6 @@ const ALLOWED_PARSES: Readonly<Record<string, string>> = {
   'src/services/hephaestus/AirlockFactsFile.ts: const parsed: unknown = JSON.parse(readFileSync(factsPath, \'utf8\'));':                          STORED_FILE_OFFENDER,
   'src/services/hephaestus/CrashLog.ts: parsed = JSON.parse(text);':                                                                              STORED_FILE_OFFENDER,
   'src/services/hephaestus/CrossingStages.ts: stored = JSON.parse(readFileSync(stageStatementPathOf(trackerDirectory, jobId), \'utf8\'));':       STORED_FILE_OFFENDER,
-  'src/services/hephaestus/DocumentAgentSessions.ts: return JSON.parse(readFileSync(path, \'utf8\')) as Value;':                                  STORED_FILE_OFFENDER,
   'src/services/hephaestus/GateProfiling.ts: const parsed: unknown = JSON.parse(lineText);':                                                      STORED_FILE_OFFENDER,
   'src/services/hephaestus/GateRunSlots.ts: recordedProcess = JSON.parse(slotText.slice(separatorIndex + HOLDING_SEPARATOR.length));':            STORED_FILE_OFFENDER,
   'src/services/hephaestus/HatchInbox.ts: const parsed: unknown = JSON.parse(text);':                                                             STORED_FILE_OFFENDER,

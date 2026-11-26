@@ -6,21 +6,17 @@
  * and waits with no session, and the next message resumes it; an agent whose document is done ends `closed`. A document's snapshot is
  * removed once no agent of that document holds it.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { join }                               from 'node:path';
 
 import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
 import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
+import { SeenHeadIngestion }                                                              from '../../adapters/seen-head/SeenHeadIngestion.ts';
+import { createSeenHeadWriter }                                                           from '../../adapters/seen-head/SeenHeadWriter.ts';
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
-import { writeFileAtomically }                                                            from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
@@ -97,14 +93,6 @@ function snapshotIsDirty(snapshot: string): boolean {
   return status === null || !GitProcess.succeeded(status) || status.standardOutput.trim() !== '';
 }
 
-function readJson<Value>(path: string): Value | null {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Value;
-  } catch {
-    return null;
-  }
-}
-
 function documentOf(board: Board, job: Readonly<Job>): Readonly<TicketDocument> | null {
   return board.ticketDocuments().documentOf(job.ticketIds[0] ?? '', documentOfJob(job));
 }
@@ -152,8 +140,7 @@ function noteLaunch(trackerDirectory: string, board: Board, job: Readonly<Job>):
 }
 
 function writeSeenHead(jobFolder: string, document: Readonly<TicketDocument> | null): void {
-  const contentHash = document === null ? null : TicketDocumentVersionUtil.headOf(document)?.contentHash ?? null;
-  writeFileAtomically(join(jobFolder, SEEN_HEAD_FILE), `${JSON.stringify({ contentHash })}\n`);
+  createSeenHeadWriter(join(jobFolder, SEEN_HEAD_FILE)).write(document === null ? null : TicketDocumentVersionUtil.headOf(document)?.contentHash ?? null);
 }
 
 /** It reads the snapshot and writes only its Hatch folder: no network, no question, no skill. */
@@ -342,9 +329,20 @@ function settleEndedSessions(board: Board, jobIds: readonly string[], at: string
   }
 }
 
-/** After the hold: each delivered message's line, in order, to the live instance; a marker per line keeps a restart from sending it twice. */
+/** The head's content hash the agent saw last; one that cannot be read is logged and taken as none, so the line carries the head again. */
+function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string | null {
+  const seenHeadFilePath = join(jobFolder, SEEN_HEAD_FILE);
+  const seenHead = new SeenHeadIngestion(seenHeadFilePath).read();
+  if (seenHead.verdict === 'unreadable') log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${seenHead.reason}`);
+  return seenHead.verdict === 'readable' ? seenHead.contentHash : null;
+}
+
+/**
+ * After the hold: each delivered message's line, in order, to the live instance; a marker per line keeps a restart from sending it twice.
+ * Each line rewrites the seen head, which heals one that could not be read.
+ */
 async function sendDeliveries(
-  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>,
+  children: BoardChildren, trackerDirectory: string, board: Board, adapter: Pick<AgentAdapter, 'chatLineOf'>, log: (line: string) => void,
 ): Promise<void> {
   for (const job of board.jobs().filter((candidate) => isDocumentAgentJob(candidate) && candidate.state === 'running')) {
     const jobFolder = children.jobFolderOf(job.id);
@@ -353,7 +351,7 @@ async function sendDeliveries(
     for (const message of pendingMessagesOf(trackerDirectory, board, job)) {
       const held       = documentOf(board, job);
       const head       = held === null ? null : TicketDocumentVersionUtil.headOf(held);
-      const seenHash   = readJson<{ contentHash: string | null }>(join(jobFolder, SEEN_HEAD_FILE))?.contentHash ?? null;
+      const seenHash   = seenHeadHashOf(jobFolder, log);
       const changedText = head === null || head.contentHash === seenHash ? null : board.ticketDocuments().versionTextOf(job.ticketIds[0] ?? '', document, head.number);
       const line = DocumentAgentWording.messageLineOf(message, document, { versionNumber: head?.number ?? null, changedText });
       const marker = join(jobFolder, DELIVERY_MARKERS_FOLDER, `${message.deliveryNumber ?? 0}.${job.childInstance}`);
