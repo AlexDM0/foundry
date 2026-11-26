@@ -37,6 +37,8 @@ export interface StartGateRequest {
   stampNow:             () => string;
   /** Where the gate reports a board-wide file it could not read; the start goes on as an unreadable reading lets it. */
   unreadableBoardFiles: UnreadableBoardFiles;
+  /** Where the gate logs a file it could not read that the next write heals. */
+  log:                  (line: string) => void;
 }
 
 /** A Talos record that cannot be read, or names no process, keeps no boot of its own, so it reads as lost in this boot, as the crash path reads it. */
@@ -151,6 +153,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
 function admit(request: StartGateRequest): StartGateVerdict {
   const evidence = evidenceOf(request);
   Presence.reportUnreadablePresence(evidence.presence, request.unreadableBoardFiles);
+  if (evidence.heartbeat.verdict === 'unreadable') request.log(`heartbeat.json could not be read (${evidence.heartbeat.reason}); the start classifies without a last beat.`);
   const classification = StartClassification.classify(evidence);
   if (!crashToLogOf(classification)) return { verdict: 'serve', classification, crashLogNumber: null };
   const crashLogNumber = writeTheCrashLog(request, evidence, classification);

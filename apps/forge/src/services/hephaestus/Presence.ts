@@ -2,17 +2,15 @@
  * `presence.json` and `heartbeat.json` under the board's `hephaestus` folder: a generation's start, its abandoned passes and how it ended, and
  * its beats at each renewal Talos confirmed. Every write is synchronous and atomic, so a dying process can still make it; a read is a verdict.
  */
-import { readFileSync } from 'node:fs';
-
+import type { HeartbeatRecord }                     from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import { HeartbeatIngestion }                       from '../../adapters/heartbeat/HeartbeatIngestion.ts';
+import { createHeartbeatWriter }                    from '../../adapters/heartbeat/HeartbeatWriter.ts';
+import { HEARTBEAT_FORMAT_VERSION }                 from '../../adapters/heartbeat/constants/HeartbeatFileVersions.ts';
 import type { AbandonedPassReason, PresenceRecord } from '../../adapters/presence/@types/PresenceRecord.ts';
 import { PresenceIngestion }                        from '../../adapters/presence/PresenceIngestion.ts';
 import { createPresenceWriter }                     from '../../adapters/presence/PresenceWriter.ts';
 import { PRESENCE_FORMAT_VERSION }                  from '../../adapters/presence/constants/PresenceFileVersions.ts';
-import { writeFileAtomically }                      from '../../lib/atomic-file/AtomicFile.ts';
-import { errorCodeOf }                              from '../../lib/atomic-file/HeldFileFailure.ts';
-import { JsonRecordUtil }                           from '../../lib/json-record/JsonRecordUtil.ts';
 import type {
-  HeartbeatRecord,
   HeartbeatWrite,
   PresenceEndingToWrite,
   PresenceFileReading,
@@ -21,43 +19,9 @@ import type {
 } from './@types/PresenceRecord.ts';
 import type { HephaestusFiles }      from './HephaestusFiles.ts';
 import type { UnreadableBoardFiles } from './UnreadableBoardFiles.ts';
-import { HEARTBEAT_FORMAT_VERSION }  from './constants/PresenceLimits.ts';
-
-type Fields = Readonly<Record<string, unknown>>;
-
-const MISSING_FILE_CODE = 'ENOENT';
 
 /** The path of `presence.json` inside the board's data folder, as a header warning names it. */
 export const PRESENCE_BOARD_FILE = 'hephaestus/presence.json';
-
-function ownFieldOf(fields: Fields, key: string): unknown {
-  return Object.hasOwn(fields, key) ? fields[key] : undefined;
-}
-
-function isWholeNumberAtLeast(value: unknown, least: number): value is number {
-  return Number.isSafeInteger(value) && (value as number) >= least;
-}
-
-/** The parsed object of a stored file of `currentVersion` under `versionKey`; another version is unreadable, as nothing older is read. */
-function storedFieldsIn(filePath: string, versionKey: string, currentVersion: number): PresenceFileReading<Fields> {
-  let text: string;
-  try {
-    text = readFileSync(filePath, 'utf8');
-  } catch (failure) {
-    if (errorCodeOf(failure) === MISSING_FILE_CODE) return { verdict: 'absent' };
-    return { verdict: 'unreadable', reason: `not readable: ${String(failure)}` };
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (failure) {
-    return { verdict: 'unreadable', reason: `not JSON: ${String(failure)}` };
-  }
-  if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', reason: 'not a JSON object' };
-  const storedVersion = ownFieldOf(parsed, versionKey);
-  if (storedVersion !== currentVersion) return { verdict: 'unreadable', reason: `${versionKey} ${String(storedVersion)} is not ${currentVersion}` };
-  return { verdict: 'read', record: parsed };
-}
 
 function readPresence(files: HephaestusFiles): PresenceFileReading<PresenceRecord> {
   const reading = new PresenceIngestion(files.presenceFilePath).read();
@@ -112,20 +76,8 @@ function recordCompletedPass(files: HephaestusFiles, generation: number): Presen
 }
 
 function readHeartbeat(files: HephaestusFiles): PresenceFileReading<HeartbeatRecord> {
-  const stored = storedFieldsIn(files.heartbeatFilePath, 'heartbeatVersion', HEARTBEAT_FORMAT_VERSION);
-  if (stored.verdict !== 'read') return stored;
-  const generation = ownFieldOf(stored.record, 'generation');
-  const sequence = ownFieldOf(stored.record, 'sequence');
-  const at = ownFieldOf(stored.record, 'at');
-  if (!isWholeNumberAtLeast(generation, 1)) return { verdict: 'unreadable', reason: 'generation is not a whole number from 1' };
-  if (!isWholeNumberAtLeast(sequence, 1)) return { verdict: 'unreadable', reason: 'sequence is not a whole number from 1' };
-  if (typeof at !== 'string') return { verdict: 'unreadable', reason: 'at is not a string' };
-  return {
-    verdict: 'read',
-    record:  {
-      heartbeatVersion: HEARTBEAT_FORMAT_VERSION, generation, sequence, at
-    },
-  };
+  const reading = new HeartbeatIngestion(files.heartbeatFilePath).read();
+  return reading.verdict === 'readable' ? { verdict: 'read', record: reading.record } : reading;
 }
 
 /**
@@ -142,15 +94,17 @@ function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation
  * During a restart the predecessor and the successor both beat: a process beats only while the stored beat is not of a newer generation
  * whose record is current, so the old generation's last beat never hides the new one's, and an ended run's beat never silences a new run.
  */
-function writeHeartbeat(files: HephaestusFiles, generation: number, at: string): HeartbeatWrite {
+function writeHeartbeat(files: HephaestusFiles, generation: number, at: string, log: (line: string) => void): HeartbeatWrite {
   const stored = readHeartbeat(files);
+  // The beat below rewrites the file whole, so an unreadable one heals at once and is only logged.
+  if (stored.verdict === 'unreadable') log(`heartbeat.json could not be read (${stored.reason}); this beat rewrites it.`);
   const storedGeneration = stored.verdict === 'read' ? stored.record.generation : null;
   if (beatOfTheCurrentRecordAbove(storedGeneration, generation, files)) return { verdict: 'newer-generation-beats', storedGeneration };
   const sequence = stored.verdict === 'read' && storedGeneration === generation ? stored.record.sequence + 1 : 1;
   const record: HeartbeatRecord = {
     heartbeatVersion: HEARTBEAT_FORMAT_VERSION, generation, sequence, at
   };
-  writeFileAtomically(files.heartbeatFilePath, `${JSON.stringify(record, null, 2)}\n`);
+  createHeartbeatWriter(files.heartbeatFilePath).write(record);
   return { verdict: 'written', record };
 }
 

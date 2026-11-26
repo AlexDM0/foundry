@@ -1,0 +1,1 @@
+export const HEARTBEAT_FORMAT_VERSION = 1;

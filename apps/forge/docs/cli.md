@@ -1447,7 +1447,8 @@ the board log (`start-classified`, right after `hephaestus-started`).
 `presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
 written whole by Hephaestus under `presenceVersion` 2; one Hephaestus cannot read is a board header warning until it
 restarts, and the start that reads it unreadable classifies a crash and writes a new one. `heartbeat.json` is its newest
-beat, rewritten at each lease renewal Talos confirmed.
+beat under `heartbeatVersion` 1, rewritten at each lease renewal Talos confirmed; one that cannot be read is logged, and
+the next beat rewrites it.
 
 #### After a crash
 

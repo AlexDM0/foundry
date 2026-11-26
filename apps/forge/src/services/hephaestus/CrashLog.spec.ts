@@ -19,11 +19,11 @@ import {
   test
 } from 'bun:test';
 
+import type { HeartbeatRecord }                                      from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                                       from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { Job }                                                  from '../../lib/tracker-model/@types/Job.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../../testing/ScratchWorkspace.ts';
 import type { CrashLogInputs }                                       from './@types/CrashLogRecord.ts';
-import type { HeartbeatRecord }                                      from './@types/PresenceRecord.ts';
 import { CrashLog }                                                  from './CrashLog.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                   from './HephaestusFiles.ts';
 import { CRASH_LOG_FORMAT_VERSION, CRASH_LOG_TAIL_READ_BOUND_BYTES } from './constants/PresenceLimits.ts';

@@ -70,7 +70,7 @@ export async function admitTheStart({
 }: StartAdmissionRequest): Promise<ServingAdmission> {
   const stampNow = (): string => LocalTimeUtil.formatLocalIso(context.now());
   const verdict = StartGate.admit({
-    ports: context.platformPorts, files, workspace, boardReads: boardStore.reads, origin, stampNow, unreadableBoardFiles
+    ports: context.platformPorts, files, workspace, boardReads: boardStore.reads, origin, stampNow, unreadableBoardFiles, log
   });
   if (verdict.verdict === 'serve') return verdict;
   const crash = registeredCrashOf(files, verdict);

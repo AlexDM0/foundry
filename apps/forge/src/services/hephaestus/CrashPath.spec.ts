@@ -48,7 +48,7 @@ beforeEach(() => {
     startedAt:           '2026-11-19T09:00:00.000+01:00',
     startClassification: null,
   });
-  Presence.writeHeartbeat(files, 4, '2026-11-19T09:03:00.000+01:00');
+  Presence.writeHeartbeat(files, 4, '2026-11-19T09:03:00.000+01:00', () => undefined);
 });
 
 afterEach(() => {

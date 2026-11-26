@@ -54,6 +54,7 @@ let scratchDirectory = '';
 let workspace: Workspace;
 let files: HephaestusFiles;
 let unreadableBoardFiles: UnreadableBoardFiles;
+let loggedLines: string[] = [];
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('start-gate');
@@ -61,6 +62,7 @@ beforeEach(() => {
   writeReadableTracker(workspace);
   files = hephaestusFilesIn(workspace.trackerDirectory);
   unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
+  loggedLines = [];
 });
 
 afterEach(() => {
@@ -114,7 +116,7 @@ function plantPreviousGeneration(bootIdentity: string, ending: PresenceEndingToW
 }
 
 function beatBeforeBoot(millisecondsBeforeBoot: number): void {
-  Presence.writeHeartbeat(files, CRASHED_GENERATION, LocalTimeUtil.formatLocalIso(new Date(BOOT_STARTED_AT_MILLISECONDS - millisecondsBeforeBoot)));
+  Presence.writeHeartbeat(files, CRASHED_GENERATION, LocalTimeUtil.formatLocalIso(new Date(BOOT_STARTED_AT_MILLISECONDS - millisecondsBeforeBoot)), () => undefined);
 }
 
 function boardReads() {
@@ -123,7 +125,7 @@ function boardReads() {
 
 function admit(origin: StartOriginReading, ports = portsInBoot()) {
   return StartGate.admit({
-    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT, unreadableBoardFiles
+    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT, unreadableBoardFiles, log: (line) => loggedLines.push(line)
   });
 }
 
@@ -180,7 +182,14 @@ describe('after a crash in this boot', () => {
     const firstLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const again = StartGate.admit({
-      ports: portsInBoot(), files, workspace, boardReads: boardReads(), origin: SUCCESSOR, stampNow: () => '2026-11-19T10:00:00+01:00', unreadableBoardFiles
+      ports:      portsInBoot(),
+      files,
+      workspace,
+      boardReads: boardReads(),
+      origin:     SUCCESSOR,
+      stampNow:   () => '2026-11-19T10:00:00+01:00',
+      unreadableBoardFiles,
+      log:        (line) => loggedLines.push(line),
     });
 
     expect(again).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER });
@@ -307,4 +316,13 @@ test('an unreadable presence record is reported as a board file Hephaestus canno
 
   expect(verdict.classification.evidence.presence).toBe('unreadable');
   expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: expect.stringContaining('not valid JSON') }]);
+});
+
+test('an unreadable heartbeat is logged, never reported, since the next beat rewrites it', () => {
+  plantPreviousGeneration(CURRENT_BOOT, { kind: 'stopped' }, false);
+  writeFileSync(files.heartbeatFilePath, '{ "heartbeatVersion": 1, ');
+
+  expect(admit(USER).classification.evidence.lastHeartbeatAt).toBeNull();
+  expect(loggedLines.some((line) => line.startsWith('heartbeat.json could not be read'))).toBe(true);
+  expect(unreadableBoardFiles.files()).toEqual([]);
 });

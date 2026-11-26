@@ -10,6 +10,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { HeartbeatRecord }            from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { TalosRecord }                from '../../lib/talos/TalosRecord.ts';
 import type { InterruptionCause }          from '../../lib/tracker-model/@types/Job.ts';
@@ -19,7 +20,6 @@ import { INTERRUPTED_MERGE_HOLD }          from '../../lib/tracker-model/constan
 import { LIFECYCLE_LIMITS }                from '../../shared/constants/LifecycleLimits.ts';
 import { boardFixture, ticketFixture }     from '../../testing/BoardFixtures.ts';
 import type { CrashLogRecord }             from './@types/CrashLogRecord.ts';
-import type { HeartbeatRecord }            from './@types/PresenceRecord.ts';
 import { CrashLog }                        from './CrashLog.ts';
 import {
   PresenceDocumentAssembly,

@@ -62,9 +62,9 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   const { files, generation } = context;
   const presenceReading = readingOrNull(() => Presence.readPresence(files));
   const heartbeatReading = readingOrNull(() => Presence.readHeartbeat(files));
-  // The dying process has no board header left to warn in, so an unreadable presence record is logged and left out of the crash log.
-  if (presenceReading?.verdict === 'unreadable') {
-    context.log(`The crash log of Hephaestus lock ${generation} leaves out presence.json, which cannot be read: ${presenceReading.reason}`);
+  // The dying process has no board header left to warn in, so an unreadable file is logged and left out of the crash log.
+  for (const [fileName, reading] of [['presence.json', presenceReading], ['heartbeat.json', heartbeatReading]] as const) {
+    if (reading?.verdict === 'unreadable') context.log(`The crash log of Hephaestus lock ${generation} leaves out ${fileName}, which cannot be read: ${reading.reason}`);
   }
   const presence = presenceReading?.verdict === 'read' && presenceReading.record.generation === generation ? presenceReading.record : null;
   const heartbeat = heartbeatReading?.verdict === 'read' && heartbeatReading.record.generation === generation ? heartbeatReading.record : null;

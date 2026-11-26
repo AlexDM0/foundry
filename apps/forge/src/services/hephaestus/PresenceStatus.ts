@@ -2,13 +2,13 @@
  * The `presence` block of `status`, read from the board's files alone: with the forge down
  * it classifies the evidence as a start by the user would, and writes nothing, not even a crash log.
  */
+import type { HeartbeatRecord }                                       from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                            from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { LeaseStanding }                                         from '../../lib/talos/SupervisionLease.ts';
 import type { TalosRecord }                                           from '../../lib/talos/TalosRecord.ts';
 import type { Workspace }                                             from '../tracker/Workspace.ts';
-import type { HeartbeatRecord }                                       from './@types/PresenceRecord.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import type { HephaestusFiles }                                       from './HephaestusFiles.ts';
 import { HephaestusLock }                                             from './HephaestusLock.ts';

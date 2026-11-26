@@ -496,7 +496,7 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
     wallNowMilliseconds:  () => Date.now(),
     log:                  (line) => hephaestusLog.push(line),
     onRenewed:            () => {
-      Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()));
+      Presence.writeHeartbeat(forgeFiles(), serving.generation, LocalTimeUtil.formatLocalIso(new Date()), () => undefined);
     },
   });
   leaseRenewals.push(renewal);
@@ -540,6 +540,7 @@ async function forgeStart(origin: StartOriginReading, adapter: AgentAdapter, opt
     origin,
     stampNow:             () => SESSION_STAMP,
     unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
+    log:                  () => undefined,
   });
   if (verdict.verdict === 'stay-off') return { verdict, serving: null };
   forgeStartsSoFar += 1;
@@ -601,7 +602,7 @@ async function rebootTheForge(serving: ForgeServing, job: Readonly<Job>, lastBea
   const hephaestusLockPath = HephaestusLock.filePathFor(files.hephaestusDirectory, serving.generation);
   writeFileSync(hephaestusLockPath, JSON.stringify({ ...JSON.parse(readFileSync(hephaestusLockPath, 'utf8')) as object, bootIdentity: FOREIGN_BOOT }));
   const lastBeatAt = new Date(bootStartedAtEpochSeconds * MILLISECONDS_PER_SECOND - lastBeatBeforeBootMilliseconds);
-  Presence.writeHeartbeat(files, serving.generation, LocalTimeUtil.formatLocalIso(lastBeatAt));
+  Presence.writeHeartbeat(files, serving.generation, LocalTimeUtil.formatLocalIso(lastBeatAt), () => undefined);
 }
 
 function childEndReasonOf(jobId: string, instance: number): string | null {

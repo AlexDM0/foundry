@@ -210,7 +210,7 @@ describe('the heartbeat written at a lease renewal', () => {
       passProgress:         { passInFlight },
       wallNowMilliseconds:  () => wallNowMilliseconds,
       log:                  () => undefined,
-      onRenewed:            heartbeatOnRenewalOf(files, GENERATION),
+      onRenewed:            heartbeatOnRenewalOf(files, GENERATION, () => undefined),
     });
     stopRenewal = renewal.stop;
     const sequenceNow = () => {

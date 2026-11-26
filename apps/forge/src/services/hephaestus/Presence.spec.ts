@@ -177,13 +177,13 @@ describe('the heartbeat', () => {
   });
 
   test('the sequence starts at 1 and rises by one at each beat of a generation', () => {
-    expect(Presence.writeHeartbeat(files, 1, STARTED_AT)).toEqual({
+    expect(Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined)).toEqual({
       verdict: 'written',
       record:  {
         heartbeatVersion: 1, generation: 1, sequence: 1, at: STARTED_AT
       },
     });
-    Presence.writeHeartbeat(files, 1, ENDED_AT);
+    Presence.writeHeartbeat(files, 1, ENDED_AT, () => undefined);
 
     expect(Presence.readHeartbeat(files)).toEqual({
       verdict: 'read',
@@ -194,44 +194,44 @@ describe('the heartbeat', () => {
   });
 
   test('a newer generation\'s first beat starts its own sequence at 1', () => {
-    Presence.writeHeartbeat(files, 1, STARTED_AT);
-    Presence.writeHeartbeat(files, 1, STARTED_AT);
+    Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined);
+    Presence.writeHeartbeat(files, 1, STARTED_AT, () => undefined);
 
-    const written = Presence.writeHeartbeat(files, 2, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 2, ENDED_AT, () => undefined);
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
   });
 
   test('a beat of an older generation never replaces a newer one whose record is current', () => {
     Presence.writeStartedPresence(files, startOf(3));
-    Presence.writeHeartbeat(files, 3, STARTED_AT);
+    Presence.writeHeartbeat(files, 3, STARTED_AT, () => undefined);
     const before = readFileSync(files.heartbeatFilePath, 'utf8');
 
-    expect(Presence.writeHeartbeat(files, 2, ENDED_AT)).toEqual({ verdict: 'newer-generation-beats', storedGeneration: 3 });
+    expect(Presence.writeHeartbeat(files, 2, ENDED_AT, () => undefined)).toEqual({ verdict: 'newer-generation-beats', storedGeneration: 3 });
     expect(readFileSync(files.heartbeatFilePath, 'utf8')).toBe(before);
   });
 
   test('a run whose generations started again at 1 beats over the last beat of an ended run of a higher generation', () => {
     Presence.writeStartedPresence(files, startOf(5));
-    Presence.writeHeartbeat(files, 5, STARTED_AT);
+    Presence.writeHeartbeat(files, 5, STARTED_AT, () => undefined);
     Presence.writeEnding(files, 5, { kind: 'stopped' }, STARTED_AT);
     Presence.writeStartedPresence(files, startOf(1));
 
-    const written = Presence.writeHeartbeat(files, 1, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, () => undefined);
     expect(written.verdict === 'written' && written.record).toEqual({
       heartbeatVersion: 1, generation: 1, sequence: 1, at: ENDED_AT
     });
   });
 
-  test('a malformed beat, or one of another version, reads as unreadable and the next beat starts again at 1', () => {
-    writeFileSync(files.heartbeatFilePath, 'not json');
-    expect(Presence.readHeartbeat(files).verdict).toBe('unreadable');
-
+  test('an unreadable beat is logged, and the next beat rewrites it starting again at 1', () => {
     writeFileSync(files.heartbeatFilePath, JSON.stringify({
       heartbeatVersion: 2, generation: 1, sequence: 7, at: STARTED_AT
     }));
-    expect(Presence.readHeartbeat(files)).toEqual({ verdict: 'unreadable', reason: 'heartbeatVersion 2 is not 1' });
+    const loggedLines: string[] = [];
 
-    const written = Presence.writeHeartbeat(files, 1, ENDED_AT);
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT, (line) => loggedLines.push(line));
+
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
+    expect(loggedLines).toEqual(['heartbeat.json could not be read (its heartbeatVersion is not 1); this beat rewrites it.']);
+    expect(Presence.readHeartbeat(files).verdict).toBe('read');
   });
 });

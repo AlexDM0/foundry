@@ -216,9 +216,9 @@ export async function recordTheHandover(
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
-export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number): (renewedAtWallMilliseconds: number) => void {
+export function heartbeatOnRenewalOf(files: HephaestusFiles, generation: number, log: (line: string) => void): (renewedAtWallMilliseconds: number) => void {
   return (renewedAtWallMilliseconds) => {
-    Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)));
+    Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)), log);
   };
 }
 
@@ -898,7 +898,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         passProgress:         { passInFlight: () => drivePass?.passInFlight() ?? null },
         wallNowMilliseconds:  () => context.now().getTime(),
         log,
-        onRenewed:            heartbeatOnRenewalOf(files, generation),
+        onRenewed:            heartbeatOnRenewalOf(files, generation, log),
       });
       const serving: Serving = {
         generation, server, drivePass, dataFolderWatch, lifetime, boardChildren
