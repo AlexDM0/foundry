@@ -1,3 +1,9 @@
+---
+paths:
+  - "apps/forge/**"
+  - "packages/forge-contracts/**"
+---
+
 # forge
 
 A Bun + TypeScript CLI that tracks an AI orchestrator's work per repository (Gantt rows, stateful markdown tickets,
@@ -20,29 +26,20 @@ the system version and the OS. Commit the recording.
 `bun run verify:integration` runs every `*.integration.spec.ts` file. Run it only when a person asks for it. To run
 one spec, use `bun test --path-ignore-patterns='.claude/**' ./<path>`: a plain `bun test` finds no
 `*.integration.spec.ts` file, also when its path is given.
-Never ad-hoc `tsc` flags; never edit `package.json` to make a check pass.
 At the repository root, `bun run verify` runs these tasks for every workspace through Turborepo.
 `.githooks/pre-commit` (wired by `setup.ts`) refuses a commit failing the root's lint or typecheck; never bypass it
 with `--no-verify`.
 
 ## Rules
 
-The owner's coding conventions; where this repository deliberately differs, Deviations says so and why. A rule a
-guard spec holds is one line naming the guard: the spec is the full statement.
+The owner's coding conventions (`~/coding-conventions-new.md`) hold for forge. This file holds only forge's own rules,
+the guards that hold a convention, and the Deviations from it, each with why. A rule a guard spec holds is one line
+naming the guard: the spec is the full statement.
 
 ### Files and naming
 
-- One purpose per file, explainable from its path and exports. A file is `PascalCase.ts`, named after its main
-  export; folders are lower case. No barrel files.
-- A util is one pure, frozen object grouping a domain (`LocalTimeUtil.formatLocalIso(…)`), tested against its own
-  contract. A one-line type or constant lives in its consumer's folder file. An app-wide list is one global object,
-  such as `LIMITS`.
+- A file is `PascalCase.ts`, named after its main export. An app-wide list is one global object, such as `LIMITS`.
 - `src/UtilShape.spec.ts` holds that no exported `*Util` has fewer than two members.
-- Code starts beside its only consumer and moves, generalised, on a second one; never in anticipation.
-- Full, descriptive names, no abbreviations. Name a thing for what it is or does, never its layer or history, never
-  shadowing a global (`CorpusMap.ts`, not `Map.ts`): a question as the question (`sourceIsReachable`), a producer
-  for its product (`fullTextOf`), a boolean as a predicate phrase.
-- Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
 - The lifecycle components carry the names the owner decided: Hephaestus, Talos, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Hephaestus lock, Regrouping and Bouncer, in code, stored values, wording and docs alike;
   `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
@@ -51,7 +48,6 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 - `eslint.config.js` holds one-letter names (`id-length`: only `i`, `a`, `b`) and inline magic numbers
   (`@typescript-eslint/no-magic-numbers`, its ignore list the arithmetic identities, off in specs, `testing/` and
   `constants/` folders); `src/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
-- Everything is English. Example data is obviously synthetic: `Alex Example`, `Example Agency`.
 
 ### Imports
 
@@ -74,8 +70,6 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Values and wording
 
-- Internal values are string-literal unions, never display text. A display map exists only where the word differs
-  from the value.
 - All command-line text (confirmations, usage, argument errors, help prose) lives in `cli/`, beside the command that
   prints it; command verbs are literals, so they grep.
 - `src/adapters/` holds only translations: a refusal's detail and exit code to output, the domain model to an output
@@ -96,9 +90,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Stored files
 
-- Only the current stored format and command surface are read or answered. An older file is refused with
-  `OLDER_FORMAT_ADVICE` (`src/adapters/constants/OlderFormatAdvice.ts`), held by `cli/OlderTrackerRefusal.spec.ts`.
-  Nothing migrates; a retired verb, word or flag is unknown.
+- Before 1.0 (the root's `CLAUDE.md`), only the current stored format and command surface are read or answered. An
+  older file is refused with `OLDER_FORMAT_ADVICE` (`src/adapters/constants/OlderFormatAdvice.ts`), held by
+  `cli/OlderTrackerRefusal.spec.ts`. Nothing migrates yet; a retired verb, word or flag is unknown.
 - A malformed stored file is a verdict and a report, never a throw that takes down `status`.
 - `progress.json` keeps unknown keys, top level and on rows, in order; a write moves an integer-named key to the front
   (`docs/cli.md`). An optional key is written only once set, and a read never adds or rewrites one, so a file stays
@@ -120,14 +114,13 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Errors and exit codes
 
-- A decider returns a verdict and fails closed.
 - Library code throws `OperationRefusal` (`refused` or `unrepaired`), never writes to the terminal, never exits. A
   Board rule throws `BoardRefusal` (a reason code and facts), which the tracker pipeline wraps as `refused`.
 - A refusal thrown from `src/` carries a wordless `detail`; only `cli/` builds one from words (the install-version
   mismatch is its one detail). Every printed refusal is worded by the one refusal-wording util in `src/adapters/`,
   which no service imports.
 - Exit codes: 0 done or nothing to do; 1 an actionable refusal or unknown command; 2 `unrepaired` or any other
-  throw. An adapter maps them, `cli/Main.ts` applies the mapping, `agent-progress.ts` exits. Five deliberate exit-0
+  throw. `cli/Main.ts` maps them, in that one place, and `agent-progress.ts` exits. Five deliberate exit-0
   failures are under Deviations.
 
 ### Runtime
@@ -171,20 +164,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
   through documented getters; specs set it in a child process (one exception, Deviations). The product's own
   variables are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
-- No work at module load (entry points excepted, Deviations).
-- Factories of closures over classes, except for state carried across calls, domain and ingestion classes. A
-  constructor does no work.
-- A record keyed by outside text is indexed through `Object.hasOwn`.
 - A command takes everything (directory, now, streams, stdin, prompt, platform, home) from its `CommandContext`.
 - Every write of a file a reader may hold open goes through the atomic-file package.
-- A clock gives no fact. Identity is a content hash. Staleness of data is a set difference or a version. The order of
-  work is a sequence number. A timestamp is recorded and shown, and it can order or select only what is shown.
-- A clock measures real time: a connection, a heartbeat, a timeout, a grace time, a lifetime, a poll interval, a sync
-  interval, an animation, and an instant that an outside system names. Use a clock where a thing that runs now must
-  answer, report or end in an actual time.
-- A limit that looks back on work is a count of calls, sessions, rounds, resumes, tries or failed passes, never an
-  elapsed time. A project with no work for a week did nothing wrong: after that week each count reads the same.
-- Where code does not obey these three clock rules, a comment at its site says so.
 
 ### Generated and installed files
 
@@ -209,10 +190,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Comments
 
-- The code explains itself. A file header (one to three sentences) only when path and export do not; a docblock only
-  for a non-obvious contract edge; an inline comment only for a why.
-- `src/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines.
-- Never restate code, narrate history or carry a measurement: those go in the commit message. Name files in
+- `src/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines. Name files in
   backticks, by the path the head of this file sets. Agreed-and-not-done work lives in `docs/backlog.md`;
   `no-warning-comments` in `eslint.config.js` holds that no TODO does.
 
@@ -247,9 +225,6 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   confinement give the recorded answers, not the answers of the real system. The preload
   `src/testing/RecordedBoundariesGuard.ts` fails a case of a default spec that starts git or a program of
   `src/testing/RecordedBoundaryPrograms.ts`, or that makes a call that has no recorded answer.
-- A spec sits beside its module as `<Module>.spec.ts` (a second suite `<Module>.<aspect>.spec.ts`), opening with a
-  docblock of which cases matter and why; test names are claims. A frozen expected-output table comes from the
-  previous implementation (one exception, Deviations) and says how to retake it.
 - A wait in a spec is on the state itself, through `src/testing/WaitUntil.ts` or an injected clock or event, never a
   fixed sleep before an assertion; `src/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
   one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`.
@@ -260,8 +235,6 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   End-to-end suites spawning the binary sit at the layer root.
 - `src/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and holds the
   exact list of the specs that skip when the run is root.
-- A guard proves its scan found something and is watched failing on each form it claims; an allowlist is exact both
-  ways.
 - Tests never touch live data: every spec works under the scratch root, checked by `src/testing/TrackerIsolation.ts`;
   the binary is spawned only through `cli/testing/CliProcess.ts`.
 - No spec starts a real agent session or reaches the host GnuPG: the preload `src/testing/ProgramTrapGuard.ts` puts a
@@ -278,10 +251,10 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Documentation and commits
 
-- `CLAUDE.md` holds the rules that apply to all work on forge. A file in the root's `.claude/rules/` holds the rules
-  of one area, and its `paths` list names the folders where it applies, from the repository root. A rule is in one
-  file only. These files hold only rules, boundaries and decisions; a change that invalidates a rule updates it in the
-  same change.
+- The root's `CLAUDE.md` holds the rules of the whole repository, and this file holds forge's. Another file in the
+  root's `.claude/rules/` holds the rules of one area, and its `paths` list names the folders where it applies, from
+  the repository root. A rule is in one file only. These files hold only rules, boundaries and decisions; a change
+  that invalidates a rule updates it in the same change.
 - forge's instructions are not in these files: they are `.forge/session-instructions.md`, installed from
   `resources/templates/SessionInstructions.md` and printed by the agent's session-start entry.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
@@ -292,7 +265,6 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   `resources/prompts/`.
 - Write new tickets, new agent prompts and new system md text (`CLAUDE.md`, skills, briefs, templates) in ASD-STE100.
   Do not use this rule for human-facing documentation. Do not rewrite existing text: the rule applies only to new text.
-- A commit is one plain, human-written subject line, with no AI attribution.
 
 ### Trackers in a repository
 
@@ -393,8 +365,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A ticket is its frontmatter `id`, never its file name. Ticket and task ids are never reused or gap-filled.
 - Only a transition stamps `updated`. The named verbs enforce the legality matrix; `ticket status` skips it on purpose.
 - `ticket add` files a draft ticket, `draft`, with no row at any priority; only `ticket ready`, after the readiness
-  reading the landing shares (`TicketAcceptanceUtil`), moves it to `committed` and files its row, and no move returns a
-  ticket to `draft`, not even `ticket status`. The filing cabinet's drafts are "filing drafts" in help and wording.
+  reading the landing shares (`TicketAcceptanceUtil`), moves it to `committed` and files its row. Only `ticket unready`
+  returns a committed ticket that no job has taken to `draft`; no other move does, not even `ticket status`. The filing
+  cabinet's drafts are "filing drafts" in help and wording.
 - A ticket's `epics` is an ordered list, the first its primary epic, written only when non-empty. An epic has no
   lifecycle: its progress is a Board roll-up over its tickets, and it never touches dispatch, claiming, concurrency or
   release, which stay `group`'s.

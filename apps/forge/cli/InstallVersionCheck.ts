@@ -1,5 +1,5 @@
 /**
- * The install version check: every command but `init`, `update`, `help`, `status`, `version`, `stop` and `talos-restart` refuses while
+ * The install version check: every command but `init`, `update`, `help`, `status`, `version`, `stop`, `talos-restart` and `machine` refuses while
  * the installed files are of another version; the hooks skip it.
  */
 import { lstatSync } from 'node:fs';

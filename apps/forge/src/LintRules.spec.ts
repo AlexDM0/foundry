@@ -110,7 +110,7 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['a number in a spec', 'cli/Planted.spec.ts', 'export const scaled = (side: number): number => side * 7;\n'],
 ];
 
-describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {
+describe('the mechanised rules in eslint.config.js', () => {
   test.each(PLANTED_VIOLATIONS.map((planted) => [`${planted.ruleId} in ${planted.path}: ${planted.text.trim()}`, planted] as const))(
     'reports %s',
     async (_title, planted) => {

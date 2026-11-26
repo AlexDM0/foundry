@@ -72,9 +72,9 @@ reasons a released spelling still appears.
 
 ## What is not here
 
-- **Rules** are in [CLAUDE.md](../CLAUDE.md), the rule book these pages link and never restate.
+- **Rules** are in [the rule file](../../../.claude/rules/forge.md), the rule book these pages link and never restate.
 - **Plans** are in [the backlog](backlog.md).
-- **How a mechanism works in detail** is in the code; [CLAUDE.md](../CLAUDE.md) names where each rule is held.
+- **How a mechanism works in detail** is in the code; [the rule file](../../../.claude/rules/forge.md) names where each rule is held.
 
 ## In the code
 

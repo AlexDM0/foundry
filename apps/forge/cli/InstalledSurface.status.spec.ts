@@ -124,6 +124,6 @@ describeWhenGitIsRecorded('the status fields', () => {
     const withoutJobs = { ...cliSurface, statusJsonFields: new Set([...cliSurface.statusJsonFields].filter((field) => field !== 'jobs')) };
     expect(sentencesWith(withoutJobs)).toEqual([`the files installed at INSTALL_VERSION ${INSTALL_VERSION} name the \`status --json\` field `
       + 'jobs, which the CLI no longer has: an installed file became wrong, so bump INSTALL_VERSION in cli/constants/InstallVersion.ts '
-      + '(CLAUDE.md, Generated and installed files) and freeze the new version\'s surface']);
+      + '(.claude/rules/forge.md, Generated and installed files) and freeze the new version\'s surface']);
   });
 });

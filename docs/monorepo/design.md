@@ -37,8 +37,8 @@ Decisions taken on 2026-11-14 and 2026-11-15:
   CLAUDE.md  README.md    which rules govern what; how to set up and verify
   docs/monorepo/          this design and the migration checklist
   apps/forge/             forge's former root, moved as is (cli, src, bridge, skills, resources, setup.*, launcher.ts,
-                          bunfig.toml, tsconfig.json, eslint.config.js, turbo.json, CLAUDE.md, README.md, docs/)
-  apps/gaia/              Gaia (src, page, resources, docs, bunfig.toml, tsconfigs, eslint.config.js, CLAUDE.md)
+                          bunfig.toml, tsconfig.json, eslint.config.js, turbo.json, README.md, docs/)
+  apps/gaia/              Gaia (src, page, resources, docs, bunfig.toml, tsconfigs, eslint.config.js)
   apps/gaia/page/lib/     the libraries of Gaia's page, each behind its interface file: design-system (under its
                           CONSTITUTION.md), flint and brand
   packages/forge-contracts/  forge's contract with any client: documents, the board document, the board commands, the

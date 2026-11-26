@@ -63,7 +63,7 @@ names and the theme button shows, for the by-eye pass against the artboards.
 - **No shadow at rest.**
 - **"You" only for what waits on User:** "Waiting on you", "2 wait on you". Attention's lead reads "What waits on you across every forge,
   and the forges that need a look.", and the list of what waits is labelled "Waiting on you".
-- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`CLAUDE.md` rule 12;
+- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`.claude/rules/gaia.md` rule 12;
   `page/PageImportDirection.spec.ts` holds that only `page/board/` imports Flint).
 
 ## The shell

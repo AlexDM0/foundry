@@ -135,7 +135,7 @@ Gaia shows it and makes no model call.
 | [`packages/system-versions/`](packages/system-versions/) | the version model a server and its clients share, and its compatibility logic |
 | [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and its migration checklist, and the designs of Hephaestus and Talos, the context pipeline and the move to one forge with entities |
 
-Each app's `CLAUDE.md` holds its rules, and the root [`CLAUDE.md`](CLAUDE.md) names whose rules each package follows. No forge tracks
+The root [`CLAUDE.md`](CLAUDE.md) is the one `CLAUDE.md`: it names the rule file under `.claude/rules/` of each app and whose rules each package follows. No forge tracks
 this repository.
 
 ## Get started

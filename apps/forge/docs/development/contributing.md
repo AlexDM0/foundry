@@ -3,7 +3,7 @@
 > **Question:** How do I get this running, try a change safely and get it past every check?
 > **Time:** 15 minutes.
 > **Read first:** [README](../../README.md).
-> **Next:** [Guards and testing](guards-and-testing.md), [CLI reference](../cli.md), [Rule book](../../CLAUDE.md).
+> **Next:** [Guards and testing](guards-and-testing.md), [CLI reference](../cli.md), [Rule book](../../../../.claude/rules/forge.md).
 
 ## In one screen
 
@@ -76,7 +76,7 @@ bun /path/to/agent-progress/agent-progress.ts version
 
 **Run your change against a throwaway repository, with `FORGE_ROOT` pointing at it.** This override replaces
 the walk up from the current directory, so no command reaches a tracker by accident. The rule is under Command surface
-in the [rule book](../../CLAUDE.md).
+in the [rule book](../../../../.claude/rules/forge.md).
 
 ![The program runs from this checkout. HOME sends the monitor folder, with the Talos socket and secret, and the transcripts to a scratch home. FORGE_ROOT sends tracker writes to the scratch repository. FORGE_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
 
@@ -233,7 +233,7 @@ When a guard fails and you do not know why, open the spec: its header says what 
 ## Where does my change go
 
 **Find your change below. A green run proves only the part in Held by; Also touch is yours to do.** The rules behind
-each row are in the [rule book](../../CLAUDE.md).
+each row are in the [rule book](../../../../.claude/rules/forge.md).
 
 Most kinds of change stay in one code layer and touch at most one document. Wording a refusal, changing what an
 installed file names and adding a board change reach two or three parts of the repository, and a rename reaches every
@@ -298,7 +298,7 @@ The README's diagrams are the exception: they stay in `docs/images/` and render 
 documents link that anchor. An entry defines the word and links its home. It never states a bound.
 
 **Check the wrap.** Paragraph lines stop at 120 columns; table rows, fences and a line holding one code span are exempt.
-`src/ProseWrap.spec.ts` holds this for the files it lists, which are `CLAUDE.md`, the rule files under
+`src/ProseWrap.spec.ts` holds this for the files it lists, which are the rule files under
 `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, the skills, and the templates and prompts under `resources/`. For any other document, this prints what is too long, and a
 printed line that holds one code span is fine. It skips image lines, whose alt text stays on one line:
 
@@ -316,8 +316,8 @@ bun test src/ComponentNames.spec.ts
 
 ## Committing
 
-**A commit is one plain subject line, with no AI attribution of any kind.** The [rule book](../../CLAUDE.md)'s sections
-"Verify" and "Documentation and commits" hold the rest.
+**A commit is one plain subject line, with no AI attribution of any kind.** The root [`CLAUDE.md`](../../../../CLAUDE.md) holds the
+commit rule; the [rule book](../../../../.claude/rules/forge.md)'s sections "Verify" and "Documentation and commits" hold the rest.
 
 ## In the code
 

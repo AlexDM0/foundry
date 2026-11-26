@@ -1,6 +1,6 @@
 # Architecture
 
-How Gaia's parts fit together at run time. The rules and the folder map are in `CLAUDE.md`; every versioned document named here is in
+How Gaia's parts fit together at run time. The rules and the folder map are in the repository root's `.claude/rules/gaia.md`; every versioned document named here is in
 `docs/contracts.md`.
 
 ```
@@ -136,4 +136,4 @@ and `src/Main.ts` alone maps a `GaiaError` to an exit code and exits.
 ## Tests and recordings
 
 Every outside system is reached through one boundary util, and every spec but the boundary's own recording spec answers it from recorded
-answers. `CLAUDE.md` ("Boundaries") lists the boundaries and how a recording is taken and checked.
+answers. `.claude/rules/gaia.md` ("Boundaries") lists the boundaries and how a recording is taken and checked.

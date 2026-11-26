@@ -41,7 +41,7 @@ its pixel size: `icon_16x16.png`, `icon_16x16@2x.png` and `icon_32x32.png` (16 a
 
 ## Read further
 
-- `CLAUDE.md`: the rules for working on Gaia, its map and its boundaries.
+- `.claude/rules/gaia.md` at the repository root: the rules for working on Gaia, its map and its boundaries.
 - `docs/architecture.md`: how the launcher, the server, the page and the forges fit together at run time.
 - `docs/contracts.md`: every versioned contract Gaia reads, writes, sends or serves, with its version.
 - `docs/forge-requirements.md`: what Gaia needs from forge, written as requirements for forge.

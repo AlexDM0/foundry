@@ -130,7 +130,7 @@ export function surfaceSentencesOf(
   return comparedKinds.flatMap((kind) => [
     ...frozenSurface[kind].filter((name) => !cliSurface[kind].has(name)).map((name) => `the files installed at INSTALL_VERSION ${versionKey} name the `
       + `${SURFACE_KIND_WORDS[kind]} ${name}, which the CLI no longer has: an installed file became wrong, so bump INSTALL_VERSION in `
-      + 'cli/constants/InstallVersion.ts (CLAUDE.md, Generated and installed files) and freeze the new version\'s surface'),
+      + 'cli/constants/InstallVersion.ts (.claude/rules/forge.md, Generated and installed files) and freeze the new version\'s surface'),
     ...namedSurface[kind].filter((name) => !frozenSurface[kind].includes(name)).map((name) => 'the installed files now name the '
       + `${SURFACE_KIND_WORDS[kind]} ${name}, which INSTALL_VERSION ${versionKey}'s frozen surface lacks: add it under "${versionKey}" in ${FROZEN_TABLE_PATH}`),
   ]);

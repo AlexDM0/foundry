@@ -2,13 +2,13 @@
 
 > **Question:** Which spec holds which rule, and how is this codebase tested without ever touching live data?
 > **Time:** 20 minutes; the catalogue is lookup.
-> **Read first:** [CLAUDE.md](../../CLAUDE.md) for the rules themselves.
+> **Read first:** [forge's rules](../../../../.claude/rules/forge.md) for the rules themselves.
 > **Next:** [Changing the code](contributing.md),
 > [Hephaestus and Claude probe](hephaestus-claude-probe.md).
 
 ## In one screen
 
-Rules here are code. Many rules in [CLAUDE.md](../../CLAUDE.md) name a spec or a lint rule that fails the build, and
+Rules here are code. Many rules in [forge's rules](../../../../.claude/rules/forge.md) name a spec or a lint rule that fails the build, and
 that guard states the rule in full. If a spec failed, find it in the [guard catalogue](#guard-catalogue): the
 last column says what to change.
 
@@ -57,7 +57,7 @@ src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: 
 The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.
 `LAYER_REACH` holds the layer table as data.
 
-When any spec fails, read its opening docblock first: [CLAUDE.md](../../CLAUDE.md) requires one.
+When any spec fails, read its opening docblock first: [forge's rules](../../../../.claude/rules/forge.md) requires one.
 
 > **Careful.** A file counts as inside a command folder only at `cli/<set>/<command>/<file>`, and the
 > `CLI_SET_SHARED_FOLDERS` never count. A file directly in a flat set such as `cli/tickets/` may import its neighbours.
@@ -84,7 +84,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
 | `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
-| `src/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, `CLAUDE.md`, a rule file under `.claude/rules/` or a file under `docs/` (except the untracked `docs/design/`) cites exists, except an exact list of citations that are absent on purpose. | Write the path of the file that holds the case now, in the same change as the rename or split. |
+| `src/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, a rule file under `.claude/rules/` or a file under `docs/` (except the untracked `docs/design/`) cites exists, except an exact list of citations that are absent on purpose. | Write the path of the file that holds the case now, in the same change as the rename or split. |
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
 | `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
@@ -202,7 +202,7 @@ Four specs read documentation, so a docs change can fail `bun test`, or `bun run
 | spec | what it requires |
 | --- | --- |
 | `src/ComponentNames.spec.ts` | No file of the folder walk in `src/testing/RepositorySources.ts` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
-| `src/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in `CLAUDE.md`, the rule files under `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
+| `src/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in the rule files under `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
 | `cli/HelpText.flags.spec.ts` | Every option a handler accepts is in its help entry and its `docs/cli.md` row, and neither names one it refuses. `ENTRIES_DOCUMENTED_AS_ANOTHER` lists the one entry documented by reference. |
 | `cli/ReferenceCopies.spec.ts` | Each copy in `resources/templates/Reference.md` holds its `docs/cli.md` section byte for byte, and may add lines around it, never inside it. The sections are the ticket file, the ticket moves and the exit codes. Moving a heading breaks the match. |
 
@@ -475,7 +475,7 @@ its own; the figure shows `claude`, and `gpgconf` takes the same routes.
 *The green box is the normal path; the coral box exists so that a mistake fails loudly instead of spending a session.*
 
 `bunfig.toml` preloads `src/testing/ProgramTrapGuard.ts`, whose `prependToExecutableSearchPath` call is the one write
-to the process environment outside a spec (a Deviation in [CLAUDE.md](../../CLAUDE.md)). The spawn wrap exists because
+to the process environment outside a spec (a Deviation in [forge's rules](../../../../.claude/rules/forge.md)). The spawn wrap exists because
 `Bun.spawn` without `env` uses the environment from process start, before the trap. The `Bun.which` wrap exists for the
 same reason: without a `PATH` option it searches the start's `PATH`, so the executable resolver, which `GpgDirectories`
 and the Claude Code adapter use in the spec's own process, would find the real program. `childEnvironmentOf` in

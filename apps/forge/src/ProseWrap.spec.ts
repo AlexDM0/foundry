@@ -31,7 +31,6 @@ function wrappedProseFilesOf(programRoot: string): ProgramFile[] {
     ...filesGlobbedIn(programRoot, ['skills/**/*.md', 'resources/templates/*.md', 'resources/prompts/*.md']),
   ].sort((a, b) => a.path.localeCompare(b.path));
   return [
-    { path: 'CLAUDE.md', location: join(programRoot, 'CLAUDE.md') },
     ...filesGlobbedIn(programRoot, ['docs/cli.md', 'docs/backlog.md']),
     ...globbed,
   ];
@@ -67,7 +66,7 @@ const PROSE_FILES = wrappedProseFilesOf(repositoryRootOfThisCheckout()).map(({ p
 
 describe('prose wraps at 120 columns', () => {
   test('the scan reads paragraph lines of the rules, both skills, the templates, the reference and the prompts of Hephaestus', () => {
-    for (const expectedPath of ['CLAUDE.md',
+    for (const expectedPath of ['.claude/rules/forge.md',
       '.claude/rules/design-system.md',
       '.claude/rules/flint.md',
       '.claude/rules/skills.md',

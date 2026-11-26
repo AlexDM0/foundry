@@ -1,6 +1,6 @@
 /**
  * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
- * in `README.md`, `CLAUDE.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
+ * in `README.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
  * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`forge-contracts/…`): a spec
  * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
  * citation. The scan first proves it read citations, and each form is planted to prove the guard names it and passes what it skips.
@@ -50,7 +50,7 @@ function documentsInScope(programRoot: string, workspaceRoot: string): CitingDoc
     .sort();
   const pathScopedRules = [...new Bun.Glob('.claude/rules/*.md').scanSync({ cwd: workspaceRoot, dot: true })].sort();
   const readIn = (root: string) => (path: string): CitingDocument => ({ path, text: readFileSync(join(root, path), 'utf8') });
-  return [...['README.md', 'CLAUDE.md'].map(readIn(programRoot)), ...pathScopedRules.map(readIn(workspaceRoot)), ...underDocs.map(readIn(programRoot))];
+  return [...['README.md'].map(readIn(programRoot)), ...pathScopedRules.map(readIn(workspaceRoot)), ...underDocs.map(readIn(programRoot))];
 }
 
 const PROGRAM_ROOT = repositoryRootOfThisCheckout();
@@ -69,9 +69,9 @@ function existsInCheckout(path: string): boolean {
 }
 
 describe('the spec citations of the documentation resolve', () => {
-  test('the scan reads spec citations in the docs, in CLAUDE.md and in a path-scoped rule file', () => {
+  test('the scan reads spec citations in the docs and in the path-scoped rule files', () => {
     expect(DOCUMENTS.flatMap((document) => citedSpecPathsOf(document.text)).length).toBeGreaterThan(0);
-    for (const rulePath of ['CLAUDE.md', '.claude/rules/skills.md']) {
+    for (const rulePath of ['.claude/rules/forge.md', '.claude/rules/skills.md']) {
       expect(citedSpecPathsOf(DOCUMENTS.find((document) => document.path === rulePath)?.text ?? '').length, rulePath).toBeGreaterThan(0);
     }
   });
@@ -100,13 +100,12 @@ describe('the spec citations of the documentation resolve', () => {
     const plantedRoot = createScratchDirectory('document-spec-citations');
     mkdirSync(join(plantedRoot, 'docs/design'), { recursive: true });
     mkdirSync(join(plantedRoot, '.claude/rules'), { recursive: true });
-    for (const path of ['README.md', 'CLAUDE.md', '.claude/rules/Planted.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
+    for (const path of ['README.md', '.claude/rules/Planted.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
       writeFileSync(join(plantedRoot, path), 'See `src/Gone.spec.ts`.\n');
     }
     const missing = documentsInScope(plantedRoot, plantedRoot).flatMap((document) => missingCitationsOf(document, () => false));
     expect(missing).toEqual([
       'README.md cites src/Gone.spec.ts',
-      'CLAUDE.md cites src/Gone.spec.ts',
       '.claude/rules/Planted.md cites src/Gone.spec.ts',
       'docs/Kept.md cites src/Gone.spec.ts',
     ]);
