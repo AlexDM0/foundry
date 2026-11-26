@@ -392,10 +392,11 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
   });
 
   for (const [form, storedProposals] of [
-    ['cut short', '[{"item": "A2", "rea'],
-    ['valid JSON but no list', '{"item": "A2", "reason": "The export was retired"}'],
-    ['a list of the wrong shape', '[{"item": 2}]'],
-    ['an empty list', '[]'],
+    ['cut short', '{"version": 1, "proposals": [{"item": "A2", "rea'],
+    ['valid JSON but no list', '{"version": 1, "proposals": {"item": "A2", "reason": "The export was retired"}}'],
+    ['a list of the wrong shape', '{"version": 1, "proposals": [{"item": 2}]}'],
+    ['an empty list', '{"version": 1, "proposals": []}'],
+    ['a bare list with no version', '[{"item": "A2", "reason": "The export was retired"}]'],
   ] as const) {
     test(`granting the waiver when its stored proposals are ${form} waives nothing and fails closed back to a fixer`, () => {
       const jobId = reviewJobAtRound(1);
