@@ -167,3 +167,17 @@ describe('the landing\'s start', () => {
     expect(AgentChoiceModel.startCommandsOf(noVendorRuns, { chosenPath, forEveryForge: false }, false)).toBeNull();
   });
 });
+
+describe('the waits while forge runs the program', () => {
+  test('a program check names the agent and says what forge does once the program ran', () => {
+    expect(AgentChoiceModel.programCheckWaitOf('Example Agent', 'opens the setup at billing')).toEqual({
+      title:       'Checking Example Agent',
+      explanation: 'Forge starts the Example Agent program once to check that it runs on this machine, then opens the setup at billing.',
+    });
+  });
+
+  test('Look again names no agent, since the notice that offers it may not know which, and promises the launches only once it runs', () => {
+    expect(AgentChoiceModel.lookAgainWait.title).toBe('Looking again');
+    expect(AgentChoiceModel.lookAgainWait.explanation).toContain('Once it runs, forge launches every job that stood not launched.');
+  });
+});

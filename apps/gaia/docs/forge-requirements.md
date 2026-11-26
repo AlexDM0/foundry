@@ -201,6 +201,18 @@ the monitor's attention, and where a setup stands only for the one forge whose b
 **Acceptance.** The `hephaestus-fetch-supported-forge` recording holds a forge with no pipeline and no record, and one with a setup record
 at its research step; Gaia then words every forge's row from the monitor alone and drops its use of `checks-not-set` for this.
 
+### V17. Run a chosen agent program once per choice, not once per command (Should)
+
+**Requirement.** A choice that keeps a program for every forge and has this forge follow it sends `machine-agent-program-set` and then
+`pipeline-setup-start`, `pipeline-setup-agent` or `pipeline-agent-set` with `{follows: "machine"}`. Forge runs the program with its
+version arguments for each, so the choice runs it twice. Forge runs it once: a follow command whose machine program was checked moments
+before, at the same path, takes that check, or one command both keeps the machine's program and follows it. Forge adds it in a minor.
+
+**Reason.** Each run of a vendor's program can take seconds, and User waits on both before the answer comes; Gaia shows the wait in a
+panel past a second, but cannot shorten it.
+
+**Acceptance.** A start with a program chosen for every forge runs the program once, held by a spec of forge's command route.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.4) and keeps nothing for an older forge: forge 1, 2 or 3,
@@ -221,6 +233,7 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V14 | A forge before 4.3 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V15 | A forge before 4.4 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V16 | A forge with no pipeline reads "Not set up yet" in the rail, known by its open `checks-not-set` decision; only the forge shown in place says its step. |
+| V17 | A program chosen for every forge runs twice before the answer comes; Gaia's wait panel says what forge checks meanwhile. |
 
 ## 4. Order for forge
 

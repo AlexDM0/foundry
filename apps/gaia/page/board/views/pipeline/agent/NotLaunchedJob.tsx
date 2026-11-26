@@ -36,7 +36,7 @@ export function NotLaunchedJob({ jobId, notLaunched, fix }: NotLaunchedJobProps)
       <Text>{notLaunched.text}</Text>
       <Row centerY gap="eight" wrap>
         <Button label={fix.label} href={hrefOf(fix.route)} />
-        <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} />
+        <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} wait={AgentChoiceModel.lookAgainWait} />
       </Row>
     </section>
   );

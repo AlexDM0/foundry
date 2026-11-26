@@ -7,6 +7,7 @@
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';
+import type { CommandWaitExplanation }                                                          from '../../../shell/CommandWait.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 
@@ -190,6 +191,20 @@ function continueCommandOf(setupId: string, recordAgent: BoardPipelineAgentDocum
   };
 }
 
+/** What the panel over the page says while forge runs the agent's program once before it answers, and what it does once the program ran. */
+function programCheckWaitOf(displayName: string, afterwards: string): CommandWaitExplanation {
+  return {
+    title:       `Checking ${displayName}`,
+    explanation: `Forge starts the ${displayName} program once to check that it runs on this machine, then ${afterwards}.`,
+  };
+}
+
+/** What the panel over the page says while Look again runs the agent's program. */
+const LOOK_AGAIN_WAIT: CommandWaitExplanation = Object.freeze({
+  title:       'Looking again',
+  explanation: 'Forge starts the agent\'s program once to check that it runs on this machine. Once it runs, forge launches every job that stood not launched.',
+});
+
 function lookAgainCommand(): BoardCommandDocument {
   return { ...COMMAND_VERSION, kind: 'agent-look-again' };
 }
@@ -215,4 +230,6 @@ export const AgentChoiceModel = Object.freeze({
   startCommandsOf,
   continueCommandOf,
   lookAgainCommand,
+  programCheckWaitOf,
+  lookAgainWait: LOOK_AGAIN_WAIT,
 });

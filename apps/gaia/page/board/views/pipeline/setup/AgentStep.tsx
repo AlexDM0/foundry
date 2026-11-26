@@ -20,6 +20,7 @@ import {
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf, useBoardNavigation }                           from '../../../shell/BoardRouteLinks.ts';
 import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
+import type { CommandWaitExplanation }                                  from '../../../shell/CommandWait.ts';
 import { ViewTitle }                                                    from '../../ViewTitle.tsx';
 import { PipelinePage }                                                 from '../PipelinePage.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';
@@ -39,6 +40,14 @@ const CONTINUE_LABEL = `Continue to ${SETUP_STEP_LABELS.billing.toLowerCase()}`;
 const SAVED_AS_YOU_GO = 'Saved as you go';
 
 const STEP_LEAD = 'The coding agent every job runs, and the program forge starts for it. Its vendor decides how it can be billed, the next step.';
+
+/** What the panel over the page says while the forge saves the agent and moves the setup on. */
+function continueWaitOf(displayName: string): CommandWaitExplanation {
+  return {
+    title:       'Moving on to billing',
+    explanation: `Forge saves ${displayName} as this forge's agent and moves the setup on to billing.`,
+  };
+}
 
 /** The vendors forge runs as cards, the chosen one checked with whether its program is found, and the ones it runs later in one line. */
 function VendorChoice({ agent, chosenVendor }: { readonly agent: BoardAgentDocument; readonly chosenVendor: string | null }) {
@@ -97,6 +106,7 @@ function StartFooter({
   const navigateTo = useBoardNavigation();
   const startCommands = AgentChoiceModel.startCommandsOf(agent, programChoice, replacesUnreadablePipeline);
   const openBilling = (): void => navigateTo(PipelineViewModel.setupStepRouteOf('billing'));
+  const startWait = AgentChoiceModel.programCheckWaitOf(displayName, 'opens the setup at billing');
   const asksFirst = programChoice.chosenPath !== null && AgentChoiceModel.machineChangeAsksFirst(agent, programChoice.forEveryForge);
   if (isAsking && startCommands !== null) {
     return (
@@ -107,7 +117,7 @@ function StartFooter({
             label="Change this machine's program"
             question={AgentChoiceModel.machineChangeQuestionOf(agent, displayName)}
             tone="neutral"
-            confirm={<CommandButton label="Change it for every forge" command={startCommands} primary onApplied={openBilling} />}
+            confirm={<CommandButton label="Change it for every forge" command={startCommands} primary onApplied={openBilling} wait={startWait} />}
             cancelLabel="Keep the current one"
             onCancel={() => setIsAsking(false)}
           />
@@ -125,7 +135,9 @@ function StartFooter({
           <Button label="Back" href={hrefOf(PipelineViewModel.setupLandingRoute)} />
           {startCommands === null ? <ChooseProgramButton displayName={displayName} programChoice={programChoice} /> : null}
           {startCommands !== null && asksFirst ? <Button label={CONTINUE_LABEL} emphasis="primary" attention onPress={() => setIsAsking(true)} /> : null}
-          {startCommands !== null && !asksFirst ? <CommandButton label={CONTINUE_LABEL} command={startCommands} primary attention onApplied={openBilling} /> : null}
+          {startCommands !== null && !asksFirst
+            ? <CommandButton label={CONTINUE_LABEL} command={startCommands} primary attention onApplied={openBilling} wait={startWait} />
+            : null}
         </>
       )}
     />
@@ -160,6 +172,7 @@ function RecordFooter({
         primary
         attention={continueCommand !== null}
         onApplied={() => navigateTo(PipelineViewModel.setupStepRouteOf('billing'))}
+        wait={continueWaitOf(displayName)}
       />
     );
   };

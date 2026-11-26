@@ -1,9 +1,9 @@
 /**
  * The habitats of the Flint slots. What matters: every answer is an intent of Flint's fixed list, so Flint refuses none; each screen
  * answers every cue it sends, with the same intent on every screen; every cue a screen lists can reach Flint, since a cue goes only on a
- * change: a screen lists none or at least two, or its one cue is lasting and kept up; Flint waves on arriving in a slot, and thinks in the
- * Constitution step's; each screen's kind is its own; only a lasting cue, whose answer is a loop, is kept up in the slot; and every slot
- * keeps Flint inside, since content stands around it.
+ * change: a screen lists none or at least two, or its one cue is lasting and kept up; Flint waves on arriving in a slot, thinks in the
+ * Constitution step's and runs the gate lamps in a command wait's; each screen's kind is its own; only a lasting cue, whose answer is a
+ * loop, is kept up in the slot; and every slot keeps Flint inside, since content stands around it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,6 +33,7 @@ describe('the habitats of the Flint slots', () => {
       ['agent-waits-on-user', ['ask']],
       ['agent-is-done', ['happy']],
       ['agent-is-idle', ['wander']],
+      ['forge-checks', ['gate-run']],
     ]);
   });
 
@@ -52,6 +53,7 @@ describe('the habitats of the Flint slots', () => {
       ['intake', ['agent-writes']],
       ['specAgent', ['agent-reads', 'agent-writes', 'agent-waits-on-user', 'agent-is-done', 'agent-is-idle']],
       ['planAgent', ['agent-reads', 'agent-writes', 'agent-waits-on-user', 'agent-is-done', 'agent-is-idle']],
+      ['commandWait', ['forge-checks']],
     ]);
   });
 
@@ -65,11 +67,11 @@ describe('the habitats of the Flint slots', () => {
     expect(unreachable).toEqual([]);
   });
 
-  test('Flint waves on arriving in a slot, and thinks on arriving in the Constitution step\'s', () => {
+  test('Flint waves on arriving in a slot, thinks on arriving in the Constitution step\'s and runs the gate lamps in a command wait\'s', () => {
     const arrivals = Object.entries(FLINT_SLOT_HABITATS).map(([screen, habitat]) => [screen, habitat.suggestions[0]]);
     expect(arrivals.filter(([, suggestion]) => typeof suggestion === 'object' && suggestion.when !== ARRIVED_CUE)).toEqual([]);
     expect(arrivals.filter(([, suggestion]) => typeof suggestion === 'object' && suggestion.respond !== 'wave'))
-      .toEqual([['constitution', { when: ARRIVED_CUE, respond: 'thinking' }]]);
+      .toEqual([['constitution', { when: ARRIVED_CUE, respond: 'thinking' }], ['commandWait', { when: ARRIVED_CUE, respond: 'gate-run' }]]);
   });
 
   test('each screen\'s kind is its own', () => {
@@ -86,7 +88,8 @@ describe('the habitats of the Flint slots', () => {
 describe('lastingIntentOf', () => {
   test('a lasting cue is kept up with the slot\'s answer to it', () => {
     expect([...LASTING_FLINT_SLOT_CUES].map((cue) => lastingIntentOf(FLINT_SLOT_HABITATS.agents, cue)))
-      .toEqual([null, 'type', 'review', null]);
+      .toEqual([null, 'type', 'review', null, null]);
+    expect(lastingIntentOf(FLINT_SLOT_HABITATS.commandWait, FLINT_SLOT_CUES.FORGE_CHECKS)).toBe('gate-run');
     expect(lastingIntentOf(FLINT_SLOT_HABITATS.research, FLINT_SLOT_CUES.AGENT_READS)).toBe('research');
     expect(lastingIntentOf(FLINT_SLOT_HABITATS.questions, FLINT_SLOT_CUES.AGENT_WAITS_ON_USER)).toBe('ask');
   });

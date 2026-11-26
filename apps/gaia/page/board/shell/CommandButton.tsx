@@ -1,10 +1,13 @@
 /**
  * The one control that posts a board command: disabled whenever the board says controls may not act, and showing the forge's refusal
- * verbatim beside itself, or that the forge could not be reached.
+ * verbatim beside itself, or that the forge could not be reached. While its command waits on the forge a busy ring shows beside it, and a
+ * control that names its wait opens a panel over the page that says what the forge does once the wait passes a second.
  */
 import { Button, type ButtonEmphasis } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import type { BoardCommandResult }              from '../api/BoardCommandClient.ts';
+import type { CommandWaitExplanation }          from './CommandWait.ts';
+import { CommandWaitShown }                     from './CommandWaitPanel.tsx';
 import { useControlCommand, type SentCommands } from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {
@@ -29,6 +32,8 @@ export interface CommandButtonProps {
   readonly compact?:                  boolean;
   /** A quiet action beside a link, drawn as text with no edge, such as a change's Undo. */
   readonly ghost?:                    boolean;
+  /** What the panel over the page says when the forge takes more than a second to answer; absent, only the busy ring shows. */
+  readonly wait?:                     CommandWaitExplanation;
 }
 
 function emphasisOf(danger: boolean, primary: boolean, ghost: boolean): ButtonEmphasis {
@@ -39,7 +44,7 @@ function emphasisOf(danger: boolean, primary: boolean, ghost: boolean): ButtonEm
 
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, attention = false, danger = false,
-  accessibleName, compact = false, ghost = false
+  accessibleName, compact = false, ghost = false, wait
 }: CommandButtonProps) {
   const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
@@ -53,6 +58,7 @@ export function CommandButton({
         onPress={() => void sender.send()}
         {...(accessibleName === undefined ? {} : { accessibleName })}
       />
+      <CommandWaitShown isSending={sender.isSending} controlName={accessibleName ?? label} {...(wait === undefined ? {} : { wait })} />
       {sender.refusal === null ? null : <span className="board-refusal" role="status">{sender.refusal}</span>}
     </span>
   );

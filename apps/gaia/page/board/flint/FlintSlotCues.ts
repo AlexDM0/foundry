@@ -13,6 +13,7 @@ export const FLINT_SLOT_CUES = Object.freeze({
   AGENT_WAITS_ON_USER: 'agent-waits-on-user',
   AGENT_IS_DONE:       'agent-is-done',
   AGENT_IS_IDLE:       'agent-is-idle',
+  FORGE_CHECKS:        'forge-checks',
 } as const satisfies Readonly<Record<string, SpriteCue>>);
 
 export type FlintSlotCue = typeof FLINT_SLOT_CUES[keyof typeof FLINT_SLOT_CUES];
@@ -22,4 +23,5 @@ export const LASTING_FLINT_SLOT_CUES: ReadonlySet<FlintSlotCue> = new Set<FlintS
   FLINT_SLOT_CUES.AGENT_WRITES,
   FLINT_SLOT_CUES.AGENT_REVIEWS,
   FLINT_SLOT_CUES.AGENT_WAITS_ON_USER,
+  FLINT_SLOT_CUES.FORGE_CHECKS,
 ]);

@@ -1,11 +1,12 @@
 /**
  * The Flint slot of each screen as a habitat of Flint (`flint/`): there Flint stands for the agent the screen shows. Every slot answers a
  * cue of `FlintSlotCues.ts` with the same intent: an agent that reads the repository researches, one that writes types, one that reviews
- * reviews with the looking glass, one that drafts thinks, one that waits on User holds up the "?" card, a finished proposal is happy, and
- * an idle agent lets Flint rest. Flint waves when it arrives in a slot, except in the slot of the Constitution step, where the agent drafts:
- * there it thinks. A screen whose agent does one thing the whole time, the Setup step's, sends no cue, since a cue reaches Flint only when
- * it changes: its arrival says it. Each setup step's slot also answers a question that waits on User and a stopped agent. A slot has
- * content around it, so it keeps Flint inside: Flint pops in through its edge and never shows over that content.
+ * reviews with the looking glass, one that drafts thinks, one that waits on User holds up the "?" card, a finished proposal is happy, an
+ * idle agent lets Flint rest, and a forge that checks before it answers runs the gate lamps. Flint waves when it arrives in a slot, except
+ * in the slot of the Constitution step, where the agent drafts: there it thinks, and in a command wait's, where it runs the gate lamps. A
+ * screen whose agent does one thing the whole time, the Setup step's, sends no cue, since a cue reaches Flint only when it changes: its
+ * arrival says it. Each setup step's slot also answers a question that waits on User and a stopped agent. A slot has content around it,
+ * so it keeps Flint inside: Flint pops in through its edge and never shows over that content.
  */
 import {
   ARRIVED_CUE,
@@ -23,6 +24,7 @@ const SLOT_CUE_ANSWERS: Readonly<Record<FlintSlotCue, SpriteIntent>> = Object.fr
   [FLINT_SLOT_CUES.AGENT_WAITS_ON_USER]: 'ask',
   [FLINT_SLOT_CUES.AGENT_IS_DONE]:       'happy',
   [FLINT_SLOT_CUES.AGENT_IS_IDLE]:       'wander',
+  [FLINT_SLOT_CUES.FORGE_CHECKS]:        'gate-run',
 });
 
 const JOB_CUES: readonly FlintSlotCue[] = [FLINT_SLOT_CUES.AGENT_WRITES, FLINT_SLOT_CUES.AGENT_REVIEWS, FLINT_SLOT_CUES.AGENT_IS_IDLE];
@@ -122,6 +124,12 @@ export const FLINT_SLOT_HABITATS = Object.freeze({
     kind:        'plan-agent-slot',
     description: 'The plan agent\'s strip on a ticket\'s plan: it reads the repository, writes the plan, waits on User\'s review, is done, or idles.',
     cues:        DOCUMENT_AGENT_CUES,
+  }),
+  commandWait: slotHabitatOf({
+    kind:        'command-wait-slot',
+    description: 'The panel over the page while a command waits more than a moment on the forge, which checks before it answers.',
+    cues:        [FLINT_SLOT_CUES.FORGE_CHECKS],
+    onArrival:   'gate-run',
   }),
 });
 

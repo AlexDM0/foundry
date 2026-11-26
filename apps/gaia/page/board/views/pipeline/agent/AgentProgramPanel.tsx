@@ -18,6 +18,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CommandWaitShown }                                             from '../../../shell/CommandWaitPanel.tsx';
 import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shell/ControlCommandSender.ts';
 import { ProgramFileChooserContext }                                    from '../../../shell/ProgramFileChooser.ts';
 import {
@@ -74,6 +75,11 @@ export function useProgramChoice(agent: BoardAgentDocument): ProgramChoiceState 
   };
 }
 
+/** What forge does with a program once it ran: keep it as the setup's agent, or as this forge's. */
+function keptAfterwardsOf(target: AgentChoiceTarget, displayName: string): string {
+  return target.kind === 'setup' ? `saves it as the setup's ${displayName}` : `keeps it as this forge's ${displayName}`;
+}
+
 /** The forge's refusal verbatim, and what forge stored before it refused, if anything. */
 function SequenceRefusal({ sender, displayName }: { readonly sender: ControlCommandSequenceSender; readonly displayName: string }) {
   if (sender.refusal === null) return null;
@@ -113,6 +119,7 @@ interface ChosenProgramProps {
   readonly project:       string;
   readonly programChoice: ProgramChoiceState;
   readonly commands:      readonly BoardCommandDocument[];
+  readonly target:        AgentChoiceTarget;
 }
 
 /** The program chosen in the dialog and whether it is for every forge, before the landing's start sends it. */
@@ -133,7 +140,7 @@ function HeldProgram({ displayName, project, programChoice }: Pick<ChosenProgram
 
 /** The program chosen in the dialog, before it is kept: whether it is for every forge, and the press that has forge run and keep it. */
 function ChosenProgram({
-  agent, displayName, project, programChoice, commands
+  agent, displayName, project, programChoice, commands, target
 }: ChosenProgramProps) {
   const [isAsking, setIsAsking] = useState(false);
   const sender = useControlCommandSequence();
@@ -170,6 +177,11 @@ function ChosenProgram({
               emphasis="primary"
               disabled={!sender.canSend}
               onPress={() => (asksFirst ? setIsAsking(true) : void keep())}
+            />
+            <CommandWaitShown
+              isSending={sender.isSending}
+              controlName="Use this program"
+              wait={AgentChoiceModel.programCheckWaitOf(displayName, keptAfterwardsOf(target, displayName))}
             />
             <SequenceRefusal sender={sender} displayName={displayName} />
           </span>
@@ -266,10 +278,15 @@ export function AgentProgramPanel({
             <span className="board-agent-program-choose">{chooseButton}</span>
           </div>
         )}
+      <CommandWaitShown
+        isSending={sender.isSending}
+        controlName={`This machine's ${displayName}`}
+        wait={AgentChoiceModel.programCheckWaitOf(displayName, keptAfterwardsOf(target, displayName))}
+      />
       <SequenceRefusal sender={sender} displayName={displayName} />
       {programChoice.chosenPath !== null && choiceIsHeld ? <HeldProgram displayName={displayName} project={project} programChoice={programChoice} /> : null}
       {programChoice.chosenPath !== null && !choiceIsHeld
-        ? <ChosenProgram agent={agent} displayName={displayName} project={project} programChoice={programChoice} commands={chosenCommands} />
+        ? <ChosenProgram agent={agent} displayName={displayName} project={project} programChoice={programChoice} commands={chosenCommands} target={target} />
         : null}
     </section>
   );
