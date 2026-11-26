@@ -3,7 +3,7 @@ import { storedFileTextOf }       from '../StoredFileText.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 
 /** A lock record's holder by process identity: `null` where the platform cannot read the process's start or boot. */
-export interface LockHolder {
+export interface GenerationRecordHolder {
   processId:    number;
   startStamp:   string | null;
   bootIdentity: string | null;
@@ -14,7 +14,7 @@ export type GenerationState = typeof GENERATION_STATES[number];
 
 /** `acquiredAt` is a fact for a report, never judged. */
 export interface GenerationRecord {
-  holder:     LockHolder;
+  holder:     GenerationRecordHolder;
   acquiredAt: string;
   state:      GenerationState;
 }
@@ -30,7 +30,7 @@ function nullOrStringOf(value: unknown): string | null | undefined {
   return value === null || typeof value === 'string' ? value : undefined;
 }
 
-function lockHolderOfStored(stored: unknown): LockHolder | null {
+function lockHolderOfStored(stored: unknown): GenerationRecordHolder | null {
   if (typeof stored !== 'object' || stored === null) return null;
   const { processId, startStamp, bootIdentity } = stored as Record<string, unknown>;
   const readStartStamp   = nullOrStringOf(startStamp);

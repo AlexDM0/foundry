@@ -8,15 +8,15 @@
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join }                               from 'node:path';
 
-import { type GenerationRecord, GenerationRecordIngestion, type LockHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
-import { createGenerationRecordWriter }                                      from '../../adapters/generation-record/GenerationRecordWriter.ts';
-import type { FileReplace }                                                  from '../../lib/atomic-file/FileReplace.ts';
-import { LocalTimeUtil }                                                     from '../../lib/local-time/LocalTimeUtil.ts';
-import { OperationRefusal }                                                  from '../../shared/OperationRefusal.ts';
-import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
+import { type GenerationRecord, GenerationRecordIngestion, type GenerationRecordHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
+import { createGenerationRecordWriter }                                                  from '../../adapters/generation-record/GenerationRecordWriter.ts';
+import type { FileReplace }                                                              from '../../lib/atomic-file/FileReplace.ts';
+import { LocalTimeUtil }                                                                 from '../../lib/local-time/LocalTimeUtil.ts';
+import { OperationRefusal }                                                              from '../../shared/OperationRefusal.ts';
+import { LIMITS }                                                                        from '../../shared/constants/Limits.ts';
 
-/** Stored in the generation record; offered beside `LockHolderIsGone`, which names it. */
-export type { LockHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
+/** A lock record's holder, as its generation record stores it; declared beside `LockHolderIsGone`, which names it. */
+export type LockHolder = GenerationRecordHolder;
 
 /** What a hold checks before each write: it throws once the hold's lock was taken over, so a holder misjudged as gone writes nothing further. */
 export interface HoldFence {

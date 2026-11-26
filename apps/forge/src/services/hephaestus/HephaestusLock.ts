@@ -6,15 +6,16 @@
 import { readdirSync, unlinkSync } from 'node:fs';
 import { join }                    from 'node:path';
 
-import { HephaestusLockIngestion, type HephaestusLockRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
-import { createHephaestusLockWriter }                         from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
-import type { ExclusiveCreation, FileReplace }                from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                           from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                               from '../../lib/process-identity/ProcessIdentity.ts';
-import { OperationRefusal }                                   from '../../shared/OperationRefusal.ts';
+import { HephaestusLockIngestion, type HephaestusLockFileRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+import { createHephaestusLockWriter }                             from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
+import type { ExclusiveCreation, FileReplace }                    from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                               from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
+import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 
-export type { HephaestusLockRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+/** What a Hephaestus lock names, as its ingestion reads it; the CLI's readers name it from here. */
+export type HephaestusLockRecord = HephaestusLockFileRecord;
 
 /**
  * A Hephaestus lock that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. A partial

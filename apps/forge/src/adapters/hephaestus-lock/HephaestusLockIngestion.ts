@@ -1,7 +1,7 @@
 /** `<data>/hephaestus/lock-<generation>.json`, the record of the Hephaestus that holds a board: read, validate, map. */
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 
-export interface HephaestusLockRecord {
+export interface HephaestusLockFileRecord {
   processId:            number;
   processStartStamp:    string;
   bootIdentity:         string;
@@ -14,7 +14,7 @@ export interface HephaestusLockRecord {
 }
 
 export type HephaestusLockFileReading =
-  | { verdict: 'readable'; record: HephaestusLockRecord }
+  | { verdict: 'readable'; record: HephaestusLockFileRecord }
   | { verdict: 'absent' }
   | { verdict: 'unreadable'; reason: string };
 

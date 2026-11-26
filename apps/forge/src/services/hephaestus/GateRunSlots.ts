@@ -18,8 +18,6 @@ import type { BoardChildren }                                                 fr
 import { heldSlotCreateMeansTakenInThisProcess }                              from './HeldSlotCreateFor.ts';
 import { liveLinesUnder }                                                     from './TalosLines.ts';
 
-export type { GateRunHolding } from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
-
 export interface GateRunSlotsOptions {
   ports:                 PlatformPorts;
   folder:                string;

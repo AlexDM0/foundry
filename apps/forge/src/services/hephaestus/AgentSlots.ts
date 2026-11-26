@@ -14,8 +14,6 @@ import { fileReplaceOfThisProcess }                                         from
 import type { PlatformPorts }                                               from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                             from '../../lib/process-identity/ProcessIdentity.ts';
 
-export type { AgentSlotHolding } from '../../adapters/agent-slot/AgentSlotIngestion.ts';
-
 export const AGENT_SLOTS_FOLDER = 'agent-slots';
 
 const SLOT_FILE_PATTERN = /^slot-\d+$/;

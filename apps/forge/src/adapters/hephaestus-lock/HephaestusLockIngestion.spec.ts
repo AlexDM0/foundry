@@ -11,11 +11,11 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory }                                     from '../../testing/ScratchWorkspace.ts';
-import { HEPHAESTUS_LOCK_FORMAT_VERSION, HephaestusLockIngestion, type HephaestusLockRecord } from './HephaestusLockIngestion.ts';
-import { createHephaestusLockWriter }                                                         from './HephaestusLockWriter.ts';
+import { createScratchDirectory, removeScratchDirectory }                                         from '../../testing/ScratchWorkspace.ts';
+import { HEPHAESTUS_LOCK_FORMAT_VERSION, HephaestusLockIngestion, type HephaestusLockFileRecord } from './HephaestusLockIngestion.ts';
+import { createHephaestusLockWriter }                                                             from './HephaestusLockWriter.ts';
 
-const RECORD: HephaestusLockRecord = {
+const RECORD: HephaestusLockFileRecord = {
   processId:            4242,
   processStartStamp:    '1763370000',
   bootIdentity:         'example-boot',
