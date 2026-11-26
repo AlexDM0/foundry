@@ -15,6 +15,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { writeFileAtomically }                                                            from '../../lib/atomic-file/AtomicFile.ts';
@@ -27,24 +29,20 @@ import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP }                               
 import { DocumentAgentJobUtil }                                                           from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
 import { TicketDocumentVersionUtil }                                                      from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlContext }                                                            from '../../shared/@types/ControlContext.ts';
-import {
-  clearCustoms,
-  launchSnapshotOf,
-  type CustomsVerdict,
-  type LaunchSnapshot
-} from '../lifecycle/Customs.ts';
-import type { BoardTransaction }                                        from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }                                            from '../tracker/ProjectLocation.ts';
-import type { BoardChildren }                                           from './BoardChildren.ts';
-import { DocumentAgentWording }                                         from './DocumentAgentWording.ts';
-import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest } from './HatchInbox.ts';
-import { jobFolderIn }                                                  from './HephaestusFiles.ts';
+import { clearCustoms, launchSnapshotOf, type CustomsVerdict }                            from '../lifecycle/Customs.ts';
+import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
+import type { BoardChildren }                                                             from './BoardChildren.ts';
+import { DocumentAgentWording }                                                           from './DocumentAgentWording.ts';
+import { HatchInbox, type HatchReplyToWrite, type PendingHatchRequest }                   from './HatchInbox.ts';
+import { jobFileInDataFolderOf, jobFolderIn }                                             from './HephaestusFiles.ts';
 import {
   DOCUMENT_AGENT_SNAPSHOT_FOLDER,
   PipelineAgentSessions,
   type SnapshotContext,
   type TurnEndContext
 } from './PipelineAgentSessions.ts';
+import { UnreadableJobFileIncident } from './UnreadableJobFileIncident.ts';
 
 const SNAPSHOT_START_FILE = 'document-agent-start.json';
 
@@ -60,11 +58,6 @@ const DELIVERY_MARKERS_FOLDER = 'document-messages';
 const SNAPSHOT_TOUCHED_INCIDENT = 'document-snapshot-touched';
 
 const FAILED_CAUSE = 'document-snapshot-touched';
-
-interface SnapshotStart {
-  startCommit:    string;
-  launchSnapshot: LaunchSnapshot;
-}
 
 /** What the agent's session printed in its current instance, read from its event log. */
 export interface DocumentAgentReading {
@@ -142,7 +135,7 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
   const launchSnapshot = launchSnapshotOf(snapshot);
   const jobFolder      = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
-  if (startCommit !== null && launchSnapshot !== null) writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit, launchSnapshot })}\n`);
+  if (startCommit !== null && launchSnapshot !== null) createSnapshotStartWriter(join(jobFolder, SNAPSHOT_START_FILE)).write({ startCommit, launchSnapshot });
   noteLaunch(context.workspace.trackerDirectory, board, job);
   return snapshot;
 }
@@ -160,11 +153,6 @@ function noteLaunch(trackerDirectory: string, board: Board, job: Readonly<Job>):
 function writeSeenHead(jobFolder: string, document: Readonly<TicketDocument> | null): void {
   const contentHash = document === null ? null : TicketDocumentVersionUtil.headOf(document)?.contentHash ?? null;
   writeFileAtomically(join(jobFolder, SEEN_HEAD_FILE), `${JSON.stringify({ contentHash })}\n`);
-}
-
-/** The commit the job's current instance was launched on, which its document moves are stamped with; `null` before a launch. */
-function snapshotCommitOf(trackerDirectory: string, jobId: string): string | null {
-  return readJson<SnapshotStart>(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE))?.startCommit ?? null;
 }
 
 /** It reads the snapshot and writes only its Hatch folder: no network, no question, no skill. */
@@ -362,8 +350,8 @@ async function sendDeliveries(
   }
 }
 
-function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>): CustomsVerdict {
-  const start = readJson<SnapshotStart>(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE));
+/** With no snapshot start, the launch could not take one, so the check fails closed. */
+function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>, start: SnapshotStart | null): CustomsVerdict {
   if (start === null) return {
     verdict: 'refused', check: 'V16', reason: 'git-failed', facts: ['no snapshot start']
   };
@@ -387,7 +375,8 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 /**
  * In the hold, at each turn end of a document agent (its `result`, or its session's end): Customs on its snapshot. A clean snapshot applies
  * the turn's Hatch requests; a changed one refuses every one of them `document-snapshot-touched`, logs it, opens one incident on the
- * ticket and ends the job `failed`. Answers the replies to write once the hold committed.
+ * ticket and ends the job `failed`. A snapshot start that cannot be read opens the unreadable file's incident on the job in place of
+ * Customs, and the turn's requests wait unanswered. Answers the replies to write once the hold committed.
  */
 function verifyTurnEnds(
   change: BoardTransaction,
@@ -402,11 +391,16 @@ function verifyTurnEnds(
   for (const jobId of new Set(turnEndJobIds)) {
     const job = board.jobById(jobId);
     if (job === undefined || !isDocumentAgentJob(job)) continue;
+    const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
+    if (snapshotStart.verdict === 'unreadable') {
+      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      continue;
+    }
+    const start    = snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null;
     const requests = pending.filter((request) => request.jobId === job.id);
-    const verdict  = turnEndVerdictOf(context, board, job);
+    const verdict  = turnEndVerdictOf(context, board, job, start);
     if (verdict.verdict === 'verified') {
-      const snapshotCommit = snapshotCommitOf(context.workspace.trackerDirectory, job.id);
-      replies.push(...HatchInbox.applyTurnEndRequests(change, repositoryRoot, requests, controlContext, snapshotCommit));
+      replies.push(...HatchInbox.applyTurnEndRequests(change, repositoryRoot, requests, controlContext, start?.startCommit ?? null));
       continue;
     }
     const ticketId = job.ticketIds[0] ?? '';
@@ -465,7 +459,6 @@ export const DocumentAgentSessions = Object.freeze({
   snapshotDirectoryOf,
   prepareSnapshot,
   noteLaunch,
-  snapshotCommitOf,
   documentAgentProfileOf,
   documentAgentFactsOf,
   readingsOf,

@@ -8,7 +8,7 @@
  * untouched applies the turn's requests, on recorded git; a turn end whose snapshot fails Customs refuses the turn's requests, logs it,
  * opens one incident on the ticket and ends the job `failed`; and each document has a snapshot of its own, so the spec's and the plan's
  * agents never reset or dirty each other's, removed once no agent of the document holds it, a waiting one included, and tried again after a
- * later agent held it.
+ * later agent held it. A snapshot start that cannot be read opens the unreadable file's incident on the job, which then takes no step on it.
  */
 import {
   existsSync,
@@ -26,6 +26,7 @@ import {
 } from 'bun:test';
 
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
+import { createSnapshotStartWriter }                                                    from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives }             from '../../lib/git/GitWorktrees.ts';
 import type { ChildInput }                                                              from '../../lib/talos/@types/TalosFrame.ts';
@@ -287,7 +288,8 @@ function untouchedSnapshotFor(fixture: SessionFixture): void {
   const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
   mkdirSync(jobFolder, { recursive: true });
   const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME));
-  writeFileSync(join(jobFolder, 'document-agent-start.json'), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+  if (launchSnapshot === null) throw new Error('the recorded snapshot answers its refs');
+  createSnapshotStartWriter(join(jobFolder, 'document-agent-start.json')).write({ startCommit: START_COMMIT, launchSnapshot });
 }
 
 describe('a turn end whose snapshot Customs finds untouched', () => {
@@ -303,6 +305,27 @@ describe('a turn end whose snapshot Customs finds untouched', () => {
     expect(replies.map((reply) => reply.reply.outcome)).toEqual(['done']);
     expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.readyAtNumber).toBe(1);
     expect(fixture.board.incidents()).toEqual([]);
+    expect(fixture.board.jobById('J9')?.state).toBe('running');
+  });
+});
+
+describe('a turn end whose snapshot start cannot be read', () => {
+  test('opens the unreadable file\'s incident on the job, once, answers no request, and keeps the job running', () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(ticketDocumentRecordFixture('004', [{ kind: 'spec', texts: [SPEC_TEXT] }]), [job]);
+    const jobFolder = jobFolderIn(fixture.trackerDirectory, 'J9');
+    mkdirSync(jobFolder, { recursive: true });
+    writeFileSync(join(jobFolder, 'document-agent-start.json'), 'not JSON');
+    const request = { jobId: 'J9', requestId: 'R1', text: JSON.stringify(HatchFormatUtil.requestOf('R1', { kind: 'ticket-document-agent-ready' })) };
+    const context = turnEndContextOf(fixture, join(fixture.rootDirectory, 'worktrees'));
+
+    const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), context, ['J9', 'J9'], [request], ECHOED_CONTROL_CONTEXT);
+
+    expect(replies).toEqual([]);
+    expect(fixture.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+      ['system-file-unreadable', 'J9', 'jobs/J9/document-agent-start.json'],
+    ]);
+    expect(fixture.records.some((record) => record.kind === 'ticket-document-snapshot-touched')).toBe(false);
     expect(fixture.board.jobById('J9')?.state).toBe('running');
   });
 });

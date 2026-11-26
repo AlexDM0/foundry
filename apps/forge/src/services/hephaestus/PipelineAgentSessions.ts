@@ -9,11 +9,12 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
-  writeFileSync
+  readFileSync
 } from 'node:fs';
 import { join } from 'node:path';
 
+import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle }                                                              from '../../lib/git/GitPaths.ts';
@@ -39,17 +40,17 @@ import {
   watchedRefsOf,
   type AgentNaming,
   type CustomsVerdict,
-  type LaunchSnapshot,
   type RefMovesAllowed
 } from '../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding } from '../lifecycle/Landing.ts';
-import type { BoardTransaction }        from '../tracker/BoardTransaction.ts';
-import { projectLocationOf }            from '../tracker/ProjectLocation.ts';
-import type { Workspace }               from '../tracker/Workspace.ts';
-import { ConstitutionCommits }          from './ConstitutionCommits.ts';
-import { GroupWorktrees }               from './GroupWorktrees.ts';
-import { jobFolderIn }                  from './HephaestusFiles.ts';
-import { CONSTITUTION_DEFAULT_PATH }    from './InstructionFiles.ts';
+import type { SharedRepositoryLanding }       from '../lifecycle/Landing.ts';
+import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
+import { projectLocationOf }                  from '../tracker/ProjectLocation.ts';
+import type { Workspace }                     from '../tracker/Workspace.ts';
+import { ConstitutionCommits }                from './ConstitutionCommits.ts';
+import { GroupWorktrees }                     from './GroupWorktrees.ts';
+import { jobFileInDataFolderOf, jobFolderIn } from './HephaestusFiles.ts';
+import { CONSTITUTION_DEFAULT_PATH }          from './InstructionFiles.ts';
+import { UnreadableJobFileIncident }          from './UnreadableJobFileIncident.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
@@ -70,12 +71,6 @@ function readerSnapshotFoldersOf(worktreesRoot: string): string[] {
 const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
 
 const SNAPSHOT_TOUCHED_INCIDENT = 'setup-snapshot-touched';
-
-/** What a turn end's Customs holds the snapshot to: its HEAD and every ref when the job's current instance launched. */
-interface SnapshotStart {
-  startCommit:    string;
-  launchSnapshot: LaunchSnapshot;
-}
 
 export interface SnapshotContext {
   workspace:     Workspace;
@@ -191,16 +186,8 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
   const launchSnapshot = launchSnapshotOf(snapshot);
   const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
-  if (startCommit !== null && launchSnapshot !== null) writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit, launchSnapshot })}\n`);
+  if (startCommit !== null && launchSnapshot !== null) createSnapshotStartWriter(join(jobFolder, SNAPSHOT_START_FILE)).write({ startCommit, launchSnapshot });
   return snapshot;
-}
-
-function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart | null {
-  try {
-    return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as SnapshotStart;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -289,8 +276,8 @@ function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Re
   }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot)));
 }
 
-function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>): CustomsVerdict {
-  const start = snapshotStartOf(context.workspace.trackerDirectory, job.id);
+/** With no snapshot start, the launch could not take one, so the check fails closed. */
+function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>, start: SnapshotStart | null): CustomsVerdict {
   if (start === null) return {
     verdict: 'refused', check: 'V16', reason: 'git-failed', facts: ['no snapshot start']
   };
@@ -313,14 +300,20 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 
 /**
  * In the hold that reads each turn's `result`: Customs on the snapshot. A refusal marks the record's snapshot touched, so Apply refuses
- * `setup-snapshot-touched`, and opens one incident; a snapshot already touched, or an agent with an open incident, opens nothing again.
+ * `setup-snapshot-touched`, and opens one incident; a snapshot already touched, or an agent with an open incident, opens nothing again. A
+ * snapshot start that cannot be read opens the unreadable file's incident on the agent in place of Customs.
  */
 function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobIds: readonly string[]): void {
   const { board, at } = change;
   for (const jobId of jobIds) {
     const job = board.jobById(jobId);
     if (job === undefined || !isPipelineAgentJob(job)) continue;
-    const verdict = turnEndVerdictOf(context, board, job);
+    const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
+    if (snapshotStart.verdict === 'unreadable') {
+      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      continue;
+    }
+    const verdict = turnEndVerdictOf(context, board, job, snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null);
     if (verdict.verdict === 'verified') continue;
     const setup = servedSetupOf(board, job);
     if (setup !== null && board.setupSnapshotIsTouched(setup.setupId)) continue;

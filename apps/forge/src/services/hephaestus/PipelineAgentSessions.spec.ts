@@ -5,19 +5,15 @@
  * (a first setup's with none launches under none, never the vendor's default), and the facts its first message is built from (the record and
  * the installed default constitution), so a fresh session in place of a replaced one starts from the same; a launch adds the record's snapshot
  * at that commit, or checks an existing one out at it when a resume moved it, and takes the
- * snapshot start again. A snapshot no open record and no live agent holds is removed once per Hephaestus, and one the removal leaves is named as a
+ * snapshot start again; a snapshot start that cannot be read opens the unreadable file's incident on the agent in place of Customs. A
+ * snapshot no open record and no live agent holds is removed once per Hephaestus, and one the removal leaves is named as a
  * leftover. A namespaced tracker's turn end lets a ref outside its own move. On a forge over entities, an entity's session is served
  * from the record's one snapshot, its facts name its entity, and a record whose sessions are only at entities still pins its snapshot
  * commit. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of `src/testing/RecordedGitScenarios.ts`,
  * whose snapshot is setup S1's under a worktrees root at the repository.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import path, { join } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import path, { join }                           from 'node:path';
 
 import {
   afterEach,
@@ -26,6 +22,8 @@ import {
   test
 } from 'bun:test';
 
+import { SnapshotStartIngestion }                                   from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                                from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
 import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
@@ -118,9 +116,8 @@ function enter(scenario: string): void {
 function writeSnapshotStart(jobId: string): void {
   enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
   const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME));
-  const jobFolder = jobFolderIn(trackerDirectory, jobId);
-  mkdirSync(jobFolder, { recursive: true });
-  writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+  if (launchSnapshot === null) throw new Error('the recorded snapshot answers its refs');
+  createSnapshotStartWriter(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE)).write({ startCommit: START_COMMIT, launchSnapshot });
 }
 
 function touchedIncidentsOf(board: Board): readonly (readonly [string | null, Readonly<Record<string, string>>])[] {
@@ -175,8 +172,8 @@ function headResolvedAs(commit: string): RecordedGitStep {
   };
 }
 
-function snapshotStartWritten(jobId: string): unknown {
-  return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as unknown;
+function snapshotStartWritten(jobId: string): ReturnType<SnapshotStartIngestion['read']> {
+  return new SnapshotStartIngestion(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE)).read();
 }
 
 testWhenGitIsRecorded('a launch adds the record\'s snapshot, detached at its snapshot commit, and takes the snapshot start', async () => {
@@ -196,7 +193,7 @@ testWhenGitIsRecorded('a launch adds the record\'s snapshot, detached at its sna
   const prepared = await recordedGit.playStage([added], async () => PipelineAgentSessions.prepareSnapshot(context, board, job));
 
   expect(prepared).toBe(snapshot);
-  expect(snapshotStartWritten(jobId)).toMatchObject({ startCommit: START_COMMIT });
+  expect(snapshotStartWritten(jobId)).toMatchObject({ verdict: 'readable', snapshotStart: { startCommit: START_COMMIT } });
 });
 
 testWhenGitIsRecorded('a launch checks an existing snapshot out at the record\'s snapshot commit when a resume moved it', async () => {
@@ -212,7 +209,7 @@ testWhenGitIsRecorded('a launch checks an existing snapshot out at the record\'s
   await recordedGit.playStage([headResolvedAs(START_COMMIT), resetToTheMovedCommit], async () => PipelineAgentSessions.prepareSnapshot(context, board, job));
 
   expect(existsSync(snapshot)).toBe(true);
-  expect(snapshotStartWritten(jobId)).toHaveProperty('launchSnapshot');
+  expect(snapshotStartWritten(jobId)).toHaveProperty(['snapshotStart', 'launchSnapshot']);
 });
 
 test('a turn end with no snapshot start fails closed, and an agent no record names gets the incident alone', () => {
@@ -224,6 +221,22 @@ test('a turn end with no snapshot start fails closed, and an agent no record nam
 
   expect(touchedIncidentsOf(board)).toEqual([[job.id, { check: 'V16', reason: 'git-failed', paths: 'no snapshot start' }]]);
   expect(board.logRecordsSoFar().some((record) => record.kind === 'pipeline-snapshot-touched')).toBe(false);
+});
+
+test('a turn end whose snapshot start cannot be read opens the unreadable file\'s incident on the agent, once, and runs no Customs', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  const jobFolder = jobFolderIn(trackerDirectory, jobId);
+  mkdirSync(jobFolder, { recursive: true });
+  const startOfBeforeTheVersion = { startCommit: START_COMMIT, launchSnapshot: { refs: {}, hooksFolderDigest: null } };
+  writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify(startOfBeforeTheVersion)}\n`);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+
+  expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts])).toEqual([
+    ['system-file-unreadable', jobId, { file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, reason: 'its version is not 1' }],
+  ]);
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(false);
 });
 
 test('the record gives its agent the billing, before any pipeline is stored, and the facts of its first message', () => {
