@@ -44,13 +44,13 @@ const RETRIES_WATCHED = 3;
 
 function slotsIn(folder: string, liveHolders: Pick<Set<string>, 'has'>): GateRunSlots {
   return GateRunSlots.createGateRunSlots({
-    ports, folder, limit: SLOT_LIMIT, holderIsLive: (holding) => liveHolders.has(holding.holder), retryMilliseconds: RETRY_MILLISECONDS,
+    ports, folder, limit: SLOT_LIMIT, holderIsLive: (holding) => liveHolders.has(holding.holder), retryMilliseconds: RETRY_MILLISECONDS, log: () => {},
   });
 }
 
 function childJudgedSlotsIn(folder: string): GateRunSlots {
   return GateRunSlots.createGateRunSlots({
-    ports, folder, limit: 2, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: RETRY_MILLISECONDS,
+    ports, folder, limit: 2, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: RETRY_MILLISECONDS, log: () => {},
   });
 }
 

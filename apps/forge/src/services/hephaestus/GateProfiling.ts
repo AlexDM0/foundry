@@ -6,18 +6,11 @@
  * profile stream follows. A Stop sends `stop` to its running line. At a Hephaestus's start, the lines an earlier Hephaestus left are stopped,
  * then a run it left running reads `stopped` and every profile worktree goes.
  */
-import {
-  appendFileSync,
-  closeSync,
-  existsSync,
-  fstatSync,
-  mkdirSync,
-  openSync,
-  readdirSync,
-  readSync
-}                 from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { join }                               from 'node:path';
 
+import { GateProfileOutputIngestion }                                                     from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
+import { createGateProfileOutputWriter }                                                  from '../../adapters/gate-profile-output/GateProfileOutputWriter.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -49,8 +42,6 @@ export interface GateProfileOutputLine {
 
 /** A run's output after a cursor, re-read from where the last call stopped on each call. */
 export type GateProfileOutputFollower = () => GateProfileOutputLine[];
-
-const LINE_FEED_BYTE = 0x0a;
 
 const OUTCOME_ENDINGS: Readonly<Record<GateOutcome, Exclude<GateProfileRunEnding, 'timed-out'>>> = {
   'passed':     'passed',
@@ -113,6 +104,8 @@ function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecordi
       return { ...note, value: suggestion.task, sourcePaths: [...suggestion.folders] };
     case 'gate-not-through-turbo':
       return { ...note, value: suggestion.gate, sourcePaths: [] };
+    case 'turbo-configuration-unreadable':
+      return { ...note, value: suggestion.reason, sourcePaths: [suggestion.file] };
   }
 }
 
@@ -196,7 +189,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
   }
 
   function appendOutput(profileRunId: string, text: string): void {
-    appendFileSync(join(outputFolder, `${profileRunId}.ndjson`), `${JSON.stringify({ text })}\n`);
+    createGateProfileOutputWriter(outputFilePathOf(workspace.trackerDirectory, profileRunId)).append(text);
   }
 
   function runFolderOf(profileRunId: string): string {
@@ -286,51 +279,33 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
   };
 }
 
-function outputTextOf(lineText: string): string | null {
-  try {
-    const parsed: unknown = JSON.parse(lineText);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const { text } = parsed as { text?: unknown };
-    return typeof text === 'string' ? text : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The bytes of the file from `offset` to its end; none when the file does not exist yet. */
-function bytesFrom(filePath: string, offset: number): Uint8Array {
-  if (!existsSync(filePath)) return new Uint8Array();
-  const descriptor = openSync(filePath, 'r');
-  try {
-    const length = Math.max(fstatSync(descriptor).size - offset, 0);
-    const bytes = new Uint8Array(length);
-    const read = readSync(descriptor, bytes, 0, length, offset);
-    return bytes.subarray(0, read);
-  } finally {
-    closeSync(descriptor);
-  }
+function outputFilePathOf(trackerDirectory: string, profileRunId: string): string {
+  return join(trackerDirectory, GATE_PROFILE_RUNS_FOLDER, `${profileRunId}.ndjson`);
 }
 
 /**
- * Follows `<data>/gate-profile-runs/<P>.ndjson` after line `afterLineNumber`. Each call reads only the bytes appended since the last one;
- * an unterminated last line waits for its line feed, and a line that is no `{"text": …}` keeps its number and is not sent.
+ * Follows `<data>/gate-profile-runs/<P>.ndjson` after line `afterLineNumber`. Each call reads only the bytes appended since the last one; a
+ * line that cannot be read keeps its number, is not sent and is logged: it is one piece of shown output, which nothing decides on.
  */
-function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number): GateProfileOutputFollower {
-  const outputFilePath = join(trackerDirectory, GATE_PROFILE_RUNS_FOLDER, `${profileRunId}.ndjson`);
-  const decoder = new TextDecoder();
-  let consumedBytes = 0;
+function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number, log: (line: string) => void): GateProfileOutputFollower {
+  const outputFilePath = outputFilePathOf(trackerDirectory, profileRunId);
+  const ingestion = new GateProfileOutputIngestion(outputFilePath);
   let lineNumber = 0;
+  let unreadableFileLogged = false;
   return () => {
-    const bytes = bytesFrom(outputFilePath, consumedBytes);
-    const lines: GateProfileOutputLine[] = [];
-    let lineStart = 0;
-    for (let lineEnd = bytes.indexOf(LINE_FEED_BYTE); lineEnd !== -1; lineEnd = bytes.indexOf(LINE_FEED_BYTE, lineStart)) {
-      lineNumber += 1;
-      const text = outputTextOf(decoder.decode(bytes.subarray(lineStart, lineEnd)));
-      if (text !== null && lineNumber > afterLineNumber) lines.push({ lineNumber, text });
-      lineStart = lineEnd + 1;
+    const reading = ingestion.read();
+    if (reading.verdict === 'absent') return [];
+    if (reading.verdict === 'unreadable') {
+      if (!unreadableFileLogged) log(`The gate profile output ${outputFilePath} could not be read (${reading.reason}); its stream waits.`);
+      unreadableFileLogged = true;
+      return [];
     }
-    consumedBytes += lineStart;
+    const lines: GateProfileOutputLine[] = [];
+    for (const lineReading of reading.lines) {
+      lineNumber += 1;
+      if (lineReading.verdict === 'unreadable') log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${lineReading.reason}); it is not sent.`);
+      else if (lineNumber > afterLineNumber) lines.push({ lineNumber, text: lineReading.text });
+    }
     return lines;
   };
 }

@@ -7,9 +7,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
-import type { HatchReply }                               from '../../adapters/hatch/@types/HatchFormat.ts';
+import type { HatchReply, HatchRequestReading }          from '../../adapters/hatch/@types/HatchFormat.ts';
 import { hatchReplyFilePathOf, hatchRequestFilePathOf }  from '../../adapters/hatch/HatchFolder.ts';
-import { HatchFormatUtil }                               from '../../adapters/hatch/utils/HatchFormatUtil.ts';
+import { HatchRequestIngestion }                         from '../../adapters/hatch/HatchRequestIngestion.ts';
+import { HATCH_FORMAT_VERSION }                          from '../../adapters/hatch/constants/HatchFormatVersion.ts';
 import { writeFileAtomically }                           from '../../lib/atomic-file/AtomicFile.ts';
 import type { Job, JobState }                            from '../../lib/tracker-model/@types/Job.ts';
 import type { HatchAppliedRecord, LogRecordFieldsOf }    from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -30,7 +31,7 @@ import { PipelineAgentSessions }                         from './PipelineAgentSe
 export interface PendingHatchRequest {
   jobId:     string;
   requestId: string;
-  text:      string;
+  reading:   HatchRequestReading;
 }
 
 export interface HatchReplyToWrite {
@@ -67,7 +68,6 @@ function relayedContextWith(effectReadings: EffectReadingSource): ControlContext
 }
 
 const REQUEST_FILE_PATTERN = /^(.+)\.json$/;
-const HATCH_FORMAT_VERSION = 1;
 
 function hatchDirectoryOf(repositoryRoot: string, jobId: string): string {
   return join(WorktreesFolder.hatchRootOf(repositoryRoot), jobId);
@@ -96,18 +96,6 @@ function replyExists(hatchDirectory: string, requestId: string): boolean {
   }
 }
 
-/** A request naming a format this Hephaestus does not read waits for a Hephaestus that does, after a restart; one naming none is malformed. */
-function namesAnotherFormat(text: string): boolean {
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (typeof parsed !== 'object' || parsed === null) return false;
-    const formatVersion = (parsed as { hatchFormatVersion?: unknown }).hatchFormatVersion;
-    return typeof formatVersion === 'number' && formatVersion !== HATCH_FORMAT_VERSION;
-  } catch {
-    return false;
-  }
-}
-
 /** Outside the lock: every unanswered request of each job whose folder may be read, in request-id order within a job. */
 function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[]): PendingHatchRequest[] {
   return jobs.filter(hatchIsReadable).flatMap((job) => {
@@ -115,12 +103,9 @@ function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[
     return requestIdsIn(hatchDirectory)
       .filter((requestId) => !replyExists(hatchDirectory, requestId))
       .flatMap((requestId) => {
-        try {
-          const text = readFileSync(hatchRequestFilePathOf(hatchDirectory, requestId), 'utf8');
-          return namesAnotherFormat(text) ? [] : [{ jobId: job.id, requestId, text }];
-        } catch {
-          return [];
-        }
+        // A request naming another format waits for a Hephaestus that reads it, after a restart; one naming none is malformed.
+        const stored = new HatchRequestIngestion(hatchRequestFilePathOf(hatchDirectory, requestId)).read();
+        return stored.verdict === 'readable' ? [{ jobId: job.id, requestId, reading: stored.reading }] : [];
       });
   });
 }
@@ -186,7 +171,7 @@ function replyOf(
   context: ControlContext = RELAYED_COMMAND_CONTEXT,
   snapshotCommit: string | null = null,
 ): { reply: HatchReply; commandKind: string } {
-  const reading = HatchFormatUtil.requestReadingOf(request.text);
+  const { reading } = request;
   if (reading.verdict === 'refused') {
     const detail: OperationRefusalDetail = reading.reason === 'hatch-identity-mismatch'
       ? { kind: 'hatch-identity-mismatch', requestId: request.requestId, jobId: job.id }
@@ -274,8 +259,7 @@ function refuseRequests(change: BoardTransaction, repositoryRoot: string, pendin
 }
 
 function commandKindOf(request: PendingHatchRequest): string {
-  const reading = HatchFormatUtil.requestReadingOf(request.text);
-  return reading.verdict === 'read' ? reading.command.kind : 'unread';
+  return request.reading.verdict === 'read' ? request.reading.command.kind : 'unread';
 }
 
 function applyEach(

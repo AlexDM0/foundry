@@ -1,15 +1,14 @@
 /** Maps a control command to the Hatch's request and reads requests and replies back, refusing a request that claims an identity. */
 import type { ControlCommand }         from '../../../shared/@types/ControlCommand.ts';
 import type { OperationRefusalStatus } from '../../../shared/OperationRefusal.ts';
+import { StoredValueUtil }             from '../../utils/StoredValueUtil.ts';
 import type {
-  HatchFormatVersion,
   HatchReply,
   HatchReplyReading,
   HatchRequest,
   HatchRequestReading
 } from '../@types/HatchFormat.ts';
-
-const HATCH_FORMAT_VERSION: HatchFormatVersion = 1;
+import { HATCH_FORMAT_VERSION } from '../constants/HatchFormatVersion.ts';
 
 /** Fields only Hephaestus may decide: who sent the request, and what its admission stamped. */
 const IDENTITY_FIELDS = ['jobId', 'role'] as const;
@@ -69,13 +68,7 @@ function commandWithBody(command: Record<string, unknown>, bodyText: unknown): R
  * Checks only what the Hatch owns: the version, the request id, that the command is an object of a named kind, and that neither the
  * request nor its command claims an identity or an admission. Whether the kind is one the role may run is `Bouncer`'s.
  */
-function requestReadingOf(text: string): HatchRequestReading {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    return { verdict: 'refused', reason: 'malformed-hatch-request' };
-  }
+function requestReadingOfValue(parsed: unknown): HatchRequestReading {
   if (!isRecord(parsed)) return { verdict: 'refused', reason: 'malformed-hatch-request' };
   const { command, requestId } = parsed;
   if (!isRecord(command)) return { verdict: 'refused', reason: 'malformed-hatch-request' };
@@ -89,6 +82,12 @@ function requestReadingOf(text: string): HatchRequestReading {
   if (restoredCommand === null) return { verdict: 'refused', reason: 'malformed-hatch-request' };
   // The kind and its fields are checked by the policy and the applier; the Hatch only carries them.
   return { verdict: 'read', requestId, command: restoredCommand as unknown as ControlCommand };
+}
+
+function requestReadingOf(text: string): HatchRequestReading {
+  const parsedJson = StoredValueUtil.parsedJsonOf(text);
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'refused', reason: 'malformed-hatch-request' };
+  return requestReadingOfValue(parsedJson.value);
 }
 
 function replyReadingOf(text: string): HatchReplyReading {
@@ -112,5 +111,6 @@ function replyReadingOf(text: string): HatchReplyReading {
 export const HatchFormatUtil = Object.freeze({
   requestOf,
   requestReadingOf,
+  requestReadingOfValue,
   replyReadingOf,
 });

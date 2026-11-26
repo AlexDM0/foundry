@@ -13,6 +13,7 @@ import {
   test
 } from 'bun:test';
 
+import { createHephaestusLockWriter }                     from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
 import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
@@ -52,7 +53,7 @@ function deadRecord(): HephaestusLockRecord {
 }
 
 function plant(generation: number, record: HephaestusLockRecord): void {
-  writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, generation), JSON.stringify(record));
+  createHephaestusLockWriter(HephaestusLock.filePathFor(hephaestusDirectory, generation)).createWhole(record);
 }
 
 beforeEach(() => {
@@ -99,9 +100,16 @@ describeWhenRecorded(['process-table-recording'], 'HephaestusLock.acquire', () =
   test('a dead newest generation, or an unreadable one, is followed by the next, which removes every older one', () => {
     plant(2, deadRecord());
     writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 5), '{ not a hephaestusLock');
-    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({ verdict: 'dead', generation: 5, record: null });
-    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 6 });
+    expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toMatchObject({ verdict: 'dead', generation: 5, record: null });
+    const acquisition = HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord());
+    expect(acquisition).toMatchObject({ verdict: 'acquired', generation: 6, unreadableTakenOver: { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 5) } });
+    expect(acquisition.verdict === 'acquired' ? acquisition.unreadableTakenOver?.reason : null).toStartWith('it is not valid JSON');
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([6]);
+  });
+
+  test('a dead newest generation that reads whole is taken over without an unreadable lock to log', () => {
+    plant(3, deadRecord());
+    expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 4 });
   });
 });
 

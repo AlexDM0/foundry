@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import { createHephaestusLockWriter }                      from '../src/adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import { LocalTimeUtil }                                   from '../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                              from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { HephaestusLockRecord }                       from '../src/services/hephaestus/HephaestusLock.ts';
@@ -72,7 +73,7 @@ function writeLiveHephaestusLock(): void {
     installVersion:       17,
     talosProtocolVersion: 2,
   };
-  writeFileSync(join(hephaestusDirectory, 'lock-1.json'), JSON.stringify(record));
+  createHephaestusLockWriter(join(hephaestusDirectory, 'lock-1.json')).createWhole(record);
 }
 
 async function addTask(): Promise<{ exitCode: number; errorText: string }> {

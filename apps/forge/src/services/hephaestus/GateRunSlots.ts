@@ -3,24 +3,20 @@
  * folder, and the process answering for it. A slot whose holder is no longer live is taken over, so a crashed Hephaestus, an ended gate line
  * or one that died before it claimed frees its slot without a release.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname, join }                       from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join }         from 'node:path';
 
-import { createFileAtomically, removeHeldFile, writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { FileReplace }                                          from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
-import { failureMeansTheFileIsHeld }                                 from '../../lib/atomic-file/HeldFileFailure.ts';
-import type { PlatformPorts }                                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, storedIdentityOf }                    from '../../lib/process-identity/ProcessIdentity.ts';
-import type { BoardChildren }                                        from './BoardChildren.ts';
-import { heldSlotCreateMeansTakenInThisProcess }                     from './HeldSlotCreateFor.ts';
-import { liveLinesUnder }                                            from './TalosLines.ts';
-
-/** A slot's holder and the process answering for it while its gate's line has no child record: the acquirer until the launch is recorded. */
-export interface GateRunHolding {
-  holder:  string;
-  process: ProcessIdentity | null;
-}
+import { GateRunSlotIngestion, type GateRunHolding, type GateRunSlotReading } from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
+import { createGateRunSlotWriter }                                            from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
+import { createFileAtomically, removeHeldFile }                               from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                                                   from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                           from '../../lib/atomic-file/FileReplaceFor.ts';
+import { failureMeansTheFileIsHeld }                                          from '../../lib/atomic-file/HeldFileFailure.ts';
+import type { PlatformPorts }                                                 from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                               from '../../lib/process-identity/ProcessIdentity.ts';
+import type { BoardChildren }                                                 from './BoardChildren.ts';
+import { heldSlotCreateMeansTakenInThisProcess }                              from './HeldSlotCreateFor.ts';
+import { liveLinesUnder }                                                     from './TalosLines.ts';
 
 export interface GateRunSlotsOptions {
   ports:                 PlatformPorts;
@@ -32,6 +28,8 @@ export interface GateRunSlotsOptions {
   fileReplace?:          FileReplace;
   /** Whether a held-file failure on a slot create means a taken slot rather than a fault; this process's platform decides when not given. */
   heldCreateMeansTaken?: boolean;
+  /** Where a slot that could not be read and is taken over is logged. */
+  log:                   (line: string) => void;
 }
 
 export interface GateRunSlots {
@@ -79,36 +77,26 @@ async function sleepUnlessStopped(milliseconds: number, stopSignal: AbortSignal 
 }
 
 const SLOT_FILE_PREFIX = 'slot-';
-const HOLDING_SEPARATOR = '\n';
 
-function slotTextIn(slotPath: string): string | null {
-  try {
-    return readFileSync(slotPath, 'utf8');
-  } catch {
-    return null;
-  }
+/** A slot as it was judged, with the text it was judged by. */
+type JudgedSlot = Exclude<GateRunSlotReading, { verdict: 'absent' }> & { storedText: string };
+
+function readingOf(slotPath: string): GateRunSlotReading {
+  return new GateRunSlotIngestion(slotPath).read();
 }
 
-function slotTextOf(holding: GateRunHolding): string {
-  return holding.process === null ? holding.holder : `${holding.holder}${HOLDING_SEPARATOR}${JSON.stringify(holding.process)}`;
+/** A slot whose bytes could not be read at all is left for a later claim. */
+function judgedSlotOf(slotPath: string): JudgedSlot | null {
+  const reading = readingOf(slotPath);
+  if (reading.verdict === 'absent') return null;
+  const { storedText } = reading;
+  return storedText === null ? null : { ...reading, storedText };
 }
 
-/** An unreadable process line reads as no process, so the holder is judged by its child alone. */
-function holdingOf(slotText: string): GateRunHolding {
-  const separatorIndex = slotText.indexOf(HOLDING_SEPARATOR);
-  if (separatorIndex < 0) return { holder: slotText, process: null };
-  let recordedProcess: unknown = null;
-  try {
-    recordedProcess = JSON.parse(slotText.slice(separatorIndex + HOLDING_SEPARATOR.length));
-  } catch {
-    recordedProcess = null;
-  }
-  return { holder: slotText.slice(0, separatorIndex), process: storedIdentityOf(recordedProcess) };
-}
-
+/** An unreadable slot names no holder. */
 function holderIn(slotPath: string): string | null {
-  const slotText = slotTextIn(slotPath);
-  return slotText === null ? null : holdingOf(slotText).holder;
+  const reading = readingOf(slotPath);
+  return reading.verdict === 'readable' ? reading.holding.holder : null;
 }
 
 function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: ProcessIdentity | null): boolean {
@@ -144,27 +132,32 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   }
 
   /** On Windows a create over a slot that is being deleted fails as a held file, so that slot reads as taken; elsewhere those codes are faults. */
-  function createdExclusively(slotPath: string, slotText: string): boolean {
+  function createdExclusively(create: () => 'created' | 'already-exists'): boolean {
     try {
-      return createFileAtomically(slotPath, slotText, fileReplace) === 'created';
+      return create() === 'created';
     } catch (failure) {
       if (heldCreateMeansTaken && failureMeansTheFileIsHeld(failure)) return false;
       throw failure;
     }
   }
 
-  /** Moved aside before it is removed, so of two Hephaestus processes taking over one stale slot only the first removes it. */
-  function freedIfStale(slotPath: string, slotText: string): void {
-    if (options.holderIsLive(holdingOf(slotText))) return;
+  /**
+   * Moved aside before it is removed, so of two Hephaestus processes taking over one stale slot only the first removes it; a slot changed
+   * since it was judged goes back as it was. An unreadable slot names no holder to judge, so it is taken over.
+   */
+  function freedIfStale(slotPath: string, judged: JudgedSlot): void {
+    if (judged.verdict === 'readable' && options.holderIsLive(judged.holding)) return;
     const asidePath = `${slotPath}.${process.pid}.stale`;
     try {
       if (fileReplace.replaceFile(slotPath, asidePath).verdict === 'held') return;
     } catch {
       return;
     }
-    const movedText = slotTextIn(asidePath);
-    if (movedText !== slotText && movedText !== null && !createdExclusively(slotPath, movedText)) return;
+    const moved = readingOf(asidePath);
+    const movedText = moved.verdict === 'absent' ? null : moved.storedText;
+    if (movedText !== judged.storedText && movedText !== null && !createdExclusively(() => createFileAtomically(slotPath, movedText, fileReplace))) return;
     removeHeldFile(asidePath, fileReplace);
+    if (judged.verdict === 'unreadable') options.log(`The gate run slot ${slotPath} could not be read (${judged.reason}); it was taken over.`);
   }
 
   function tryAcquire(holder: string): boolean {
@@ -186,20 +179,21 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   function takeSlot(holder: string): boolean {
     mkdirSync(options.folder, { recursive: true });
     if (slotPaths.some((slotPath) => holderIn(slotPath) === holder)) return true;
-    const ownText = slotTextOf({ holder, process: acquirer() });
+    const ownHolding = { holder, process: acquirer() };
     for (const slotPath of slotPaths) {
-      if (createdExclusively(slotPath, ownText)) return true;
-      const current = slotTextIn(slotPath);
-      if (current === null) continue;
-      freedIfStale(slotPath, current);
-      if (createdExclusively(slotPath, ownText)) return true;
+      const writer = createGateRunSlotWriter(slotPath, fileReplace);
+      if (createdExclusively(() => writer.create(ownHolding))) return true;
+      const judged = judgedSlotOf(slotPath);
+      if (judged === null) continue;
+      freedIfStale(slotPath, judged);
+      if (createdExclusively(() => writer.create(ownHolding))) return true;
     }
     return false;
   }
 
   function recordSpawnedProcess(holder: string, spawnedProcess: ProcessIdentity | null): void {
     for (const slotPath of slotPaths) {
-      if (holderIn(slotPath) === holder) writeFileAtomically(slotPath, slotTextOf({ holder, process: spawnedProcess }));
+      if (holderIn(slotPath) === holder) createGateRunSlotWriter(slotPath).write({ holder, process: spawnedProcess });
     }
   }
 

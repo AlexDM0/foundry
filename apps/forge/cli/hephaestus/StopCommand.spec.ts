@@ -5,13 +5,8 @@
  * what Windows gives. The registry's presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and
  * a release `handed-over`, each also in the registry, the handover's ending written before the crash path lets go of the generation.
  */
-import {
-  existsSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join }                             from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -19,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import { createHephaestusLockWriter }                                               from '../../src/adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import type { PlatformPorts }                                                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessStopStage }                                                    from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { hephaestusFilesIn }                                                        from '../../src/services/hephaestus/HephaestusFiles.ts';
@@ -248,7 +244,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         installVersion:       1,
         talosProtocolVersion: 1,
       };
-      writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 1 + 1), JSON.stringify(successorRecord));
+      createHephaestusLockWriter(HephaestusLock.filePathFor(hephaestusDirectory, 1 + 1)).createWhole(successorRecord);
       // A claim removes the generations below its own.
       rmSync(HephaestusLock.filePathFor(hephaestusDirectory, 1), { force: true });
     };

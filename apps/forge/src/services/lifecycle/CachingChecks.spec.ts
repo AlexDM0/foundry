@@ -2,7 +2,8 @@
  * The four caching checks on scratch repositories, suggestions only: a repository using Turbo with its cache per worktree (`.turbo/cache`),
  * a task whose inputs miss its templates and fixtures, and a gate run past `turbo run` gets all three of its suggestions; one with no caching
  * tool gets the slow gates from the recorded profile times, each gate once with its slowest time; an absolute cache folder, default inputs
- * and gates through Turbo get none. Nothing is written.
+ * and gates through Turbo get none. A `turbo.json` that cannot be read is flagged as itself, and nothing is guessed from it. Nothing is
+ * written.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -80,6 +81,18 @@ describe('the caching checks suggest and never install', () => {
 
     expect(CachingChecks.cachingSuggestionsOf(repositoryDirectory, [], recordedTimes)).toEqual([
       { kind: 'no-caching-tool', slowGates: [{ name: 'tests', milliseconds: SLOW_GATE_MILLISECONDS + 5 }] },
+    ]);
+  });
+
+  test.each([
+    ['not JSON', '{ "tasks": '],
+    ['a task that is not an object', JSON.stringify({ tasks: { test: 'run' } })],
+  ])('a turbo.json that is %s is flagged as unreadable, and nothing else is suggested from it', (_case, text) => {
+    writeFileSync(join(repositoryDirectory, 'turbo.json'), text);
+    const gates = [{ name: 'tests', run: 'bun test' }];
+
+    expect(CachingChecks.cachingSuggestionsOf(repositoryDirectory, gates, recordWith({ tests: 90_000 }))).toEqual([
+      { kind: 'turbo-configuration-unreadable', file: 'turbo.json', reason: expect.any(String) as unknown as string },
     ]);
   });
 

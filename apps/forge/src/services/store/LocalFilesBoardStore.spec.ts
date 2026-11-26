@@ -26,6 +26,7 @@ import {
   test,
 } from 'bun:test';
 
+import { GENERATION_RECORD_FORMAT_VERSION }                             from '../../adapters/generation-record/GenerationRecordIngestion.ts';
 import type { PipelineEntity }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import { TicketBodyHashUtil }                                           from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
@@ -261,7 +262,9 @@ describe('the lock', () => {
     const { workspace } = await initialisedStoreIn('');
     const lockFolder = localStoreLayoutOf(workspace).storeLockFolder;
     const leftHolder = { processId: 4242, startStamp: '1763370000', bootIdentity: 'example-boot' };
-    writeFileSync(join(lockFolder, 'generation-99'), JSON.stringify({ holder: leftHolder, acquiredAt: STARTED_AT, state: 'held' }));
+    writeFileSync(join(lockFolder, 'generation-99'), JSON.stringify({
+      version: GENERATION_RECORD_FORMAT_VERSION, holder: leftHolder, acquiredAt: STARTED_AT, state: 'held'
+    }));
     const judged: LockHolder[] = [];
     const store = createLocalFilesBoardStore(storeOptionsIn('', undefined, lockTakerJudgingHoldersBy((holder) => {
       judged.push(holder);

@@ -1,16 +1,25 @@
 /**
  * The caching checks of a pipeline being set up, as suggestions only: nothing is installed and no tracked file is edited. Read from the
  * repository's `turbo.json` and the times the gate profiles User started recorded: a slow pipeline with no caching tool, a cache kept per
- * worktree, task inputs blind to what an import graph cannot see, and a gate run past the cache.
+ * worktree, task inputs blind to what an import graph cannot see, and a gate run past the cache. A `turbo.json` that cannot be read is one
+ * suggestion of its own, since User's file is flagged, never guessed at.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { isAbsolute, join }                      from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { isAbsolute, join }        from 'node:path';
+
+import {
+  TURBO_CONFIGURATION_FILE_NAME,
+  type TurboConfiguration,
+  TurboConfigurationIngestion,
+  type TurboTask
+} from '../../adapters/turbo-configuration/TurboConfigurationIngestion.ts';
 
 export type CachingSuggestion =
   | { kind: 'no-caching-tool'; slowGates: { name: string; milliseconds: number }[] }
   | { kind: 'per-worktree-cache'; cacheFolder: string }
   | { kind: 'task-inputs-unseen'; task: string; folders: string[] }
-  | { kind: 'gate-not-through-turbo'; gate: string };
+  | { kind: 'gate-not-through-turbo'; gate: string }
+  | { kind: 'turbo-configuration-unreadable'; file: string; reason: string };
 
 /** One recorded gate profile: the gate and how long it ran. A gate profiled in several phases has a time for each. */
 export interface RecordedGateTime {
@@ -24,8 +33,6 @@ export const SLOW_GATE_MILLISECONDS = 30_000;
 /** Turbo's own default, inside the worktree, so every worktree builds its cache again. */
 const TURBO_DEFAULT_CACHE_FOLDER = '.turbo/cache';
 
-const TURBO_CONFIGURATION_FILE = 'turbo.json';
-
 const OTHER_CACHING_TOOL_FILES: readonly string[] = ['nx.json'];
 
 /** What a task reads that its imports never name: a spawned binary, templates and fixtures. */
@@ -36,23 +43,6 @@ const SKIPPED_FOLDER_NAMES: readonly string[] = ['node_modules', '.git'];
 const TURBO_DEFAULT_INPUTS = '$TURBO_DEFAULT$';
 
 const TURBO_RUN_PATTERN = /(^|[\s;&|])turbo run \S/;
-
-interface TurboConfiguration {
-  cacheDir?: unknown;
-  tasks?:    unknown;
-  pipeline?: unknown;
-}
-
-function turboConfigurationOf(repositoryDirectory: string): TurboConfiguration | null {
-  const path = join(repositoryDirectory, TURBO_CONFIGURATION_FILE);
-  if (!existsSync(path)) return null;
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    return typeof parsed === 'object' && parsed !== null ? parsed as TurboConfiguration : {};
-  } catch {
-    return {};
-  }
-}
 
 /** The unseen-input folders at the root and one level down, as paths relative to the repository. */
 function unseenInputFoldersOf(repositoryDirectory: string): string[] {
@@ -70,12 +60,9 @@ function unseenInputFoldersOf(repositoryDirectory: string): string[] {
 }
 
 /** A task with no `inputs`, or with Turbo's defaults among them, reads every tracked file already. */
-function unseenFoldersOfTask(task: unknown, folders: readonly string[]): string[] {
-  if (typeof task !== 'object' || task === null || !Object.hasOwn(task, 'inputs')) return [];
-  const { inputs } = (task as { inputs: unknown });
-  if (!Array.isArray(inputs)) return [];
-  const patterns = inputs.filter((input): input is string => typeof input === 'string');
-  if (patterns.includes(TURBO_DEFAULT_INPUTS)) return [];
+function unseenFoldersOfTask(task: TurboTask, folders: readonly string[]): string[] {
+  const patterns = task.inputs;
+  if (patterns === null || patterns.includes(TURBO_DEFAULT_INPUTS)) return [];
   const roots = patterns.map(patternRootOf).filter((root) => root !== '');
   return folders.filter((folder) => !roots.some((root) => folder === root || folder.startsWith(`${root}/`)));
 }
@@ -86,11 +73,9 @@ function patternRootOf(pattern: string): string {
 }
 
 function taskSuggestionsOf(configuration: TurboConfiguration, folders: readonly string[]): CachingSuggestion[] {
-  const tasks = configuration.tasks ?? configuration.pipeline;
-  if (typeof tasks !== 'object' || tasks === null) return [];
-  return Object.entries(tasks).flatMap(([task, definition]): CachingSuggestion[] => {
-    const unseen = unseenFoldersOfTask(definition, folders);
-    return unseen.length === 0 ? [] : [{ kind: 'task-inputs-unseen', task, folders: unseen }];
+  return configuration.tasks.flatMap((task): CachingSuggestion[] => {
+    const unseen = unseenFoldersOfTask(task, folders);
+    return unseen.length === 0 ? [] : [{ kind: 'task-inputs-unseen', task: task.name, folders: unseen }];
   });
 }
 
@@ -102,13 +87,15 @@ function slowestTimeOfEachGate(recordedTimes: readonly RecordedGateTime[]): Reco
 }
 
 function cachingSuggestionsOf(repositoryDirectory: string, gates: readonly { name: string; run: string }[], recordedTimes: readonly RecordedGateTime[]): CachingSuggestion[] {
-  const configuration = turboConfigurationOf(repositoryDirectory);
-  if (configuration === null) {
+  const reading = new TurboConfigurationIngestion(join(repositoryDirectory, TURBO_CONFIGURATION_FILE_NAME)).read();
+  if (reading.verdict === 'unreadable') return [{ kind: 'turbo-configuration-unreadable', file: TURBO_CONFIGURATION_FILE_NAME, reason: reading.reason }];
+  if (reading.verdict === 'absent') {
     if (OTHER_CACHING_TOOL_FILES.some((file) => existsSync(join(repositoryDirectory, file)))) return [];
     const slowGates = slowestTimeOfEachGate(recordedTimes).filter((gate) => gate.milliseconds >= SLOW_GATE_MILLISECONDS);
     return slowGates.length === 0 ? [] : [{ kind: 'no-caching-tool', slowGates }];
   }
-  const cacheFolder = typeof configuration.cacheDir === 'string' ? configuration.cacheDir : TURBO_DEFAULT_CACHE_FOLDER;
+  const { configuration } = reading;
+  const cacheFolder = configuration.cacheFolder ?? TURBO_DEFAULT_CACHE_FOLDER;
   return [
     ...isAbsolute(cacheFolder) ? [] : [{ kind: 'per-worktree-cache', cacheFolder } as const],
     ...taskSuggestionsOf(configuration, unseenInputFoldersOf(repositoryDirectory)),

@@ -1,0 +1,60 @@
+/**
+ * A gate run slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, its holder
+ * line and its process document both; a missing slot is absent; any other file is unreadable and never thrown, with the text it holds,
+ * since a taker compares that text after moving it aside.
+ */
+import { writeFileSync } from 'node:fs';
+import { join }          from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+} from 'bun:test';
+
+import { createScratchDirectory, removeScratchDirectory }                          from '../../testing/ScratchWorkspace.ts';
+import { GATE_RUN_SLOT_FORMAT_VERSION, GateRunSlotIngestion, type GateRunHolding } from './GateRunSlotIngestion.ts';
+import { createGateRunSlotWriter }                                                 from './GateRunSlotWriter.ts';
+
+const HOLDING: GateRunHolding = { holder: '/example/tracker/children/J4/gate-tests', process: { processId: 5001, startStamp: '1700000001', bootIdentity: 'boot-example' } };
+
+let scratchDirectory = '';
+
+const slotFilePath = (): string => join(scratchDirectory, 'slot-1');
+
+const reading = (): ReturnType<GateRunSlotIngestion['read']> => new GateRunSlotIngestion(slotFilePath()).read();
+
+beforeEach(() => {
+  scratchDirectory = createScratchDirectory('gate-run-slot-ingestion');
+});
+
+afterEach(() => {
+  removeScratchDirectory(scratchDirectory);
+});
+
+test('no file is absent', () => {
+  expect(reading()).toEqual({ verdict: 'absent' });
+});
+
+test('what the writer creates, and then rewrites, reads back as the same holding; a second create finds the slot taken', () => {
+  const writer = createGateRunSlotWriter(slotFilePath());
+  expect(writer.create(HOLDING)).toBe('created');
+  expect(reading()).toMatchObject({ verdict: 'readable', holding: HOLDING });
+  expect(writer.create({ ...HOLDING, holder: '/example/other' })).toBe('already-exists');
+  writer.write({ ...HOLDING, process: null });
+  expect(reading()).toMatchObject({ verdict: 'readable', holding: { ...HOLDING, process: null } });
+});
+
+const DOCUMENT = { version: GATE_RUN_SLOT_FORMAT_VERSION, process: HOLDING.process };
+
+test.each([
+  ['a holder line alone', HOLDING.holder],
+  ['no holder line', `\n${JSON.stringify(DOCUMENT)}`],
+  ['a process line that is not JSON', `${HOLDING.holder}\nnot json`],
+  ['a process document of no version', `${HOLDING.holder}\n${JSON.stringify({ process: HOLDING.process })}`],
+  ['a process document of another version', `${HOLDING.holder}\n${JSON.stringify({ ...DOCUMENT, version: GATE_RUN_SLOT_FORMAT_VERSION + 1 })}`],
+  ['a wrong process', `${HOLDING.holder}\n${JSON.stringify({ ...DOCUMENT, process: 'a process' })}`],
+])('%s is unreadable, with the text it holds', (_case, text) => {
+  writeFileSync(slotFilePath(), text);
+  expect(reading()).toMatchObject({ verdict: 'unreadable', storedText: text });
+});

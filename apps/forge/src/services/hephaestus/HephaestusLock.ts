@@ -3,27 +3,19 @@
  * `<data>/hephaestus/lock-<n>.json` exclusively, never rewritten, and the newest generation naming a live process identity is Hephaestus.
  * Nobody unlinks a Hephaestus lock it does not hold; the holder removes the generations below its own.
  */
-import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
-import { join }                                  from 'node:path';
+import { readdirSync, unlinkSync } from 'node:fs';
+import { join }                    from 'node:path';
 
-import { createWholeFileAtomically }           from '../../lib/atomic-file/AtomicFile.ts';
-import type { ExclusiveCreation, FileReplace } from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }            from '../../lib/atomic-file/FileReplaceFor.ts';
-import type { PlatformPorts }                  from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                from '../../lib/process-identity/ProcessIdentity.ts';
-import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
+import { HephaestusLockIngestion, type HephaestusLockFileRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+import { createHephaestusLockWriter }                             from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
+import type { ExclusiveCreation, FileReplace }                    from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                               from '../../lib/atomic-file/FileReplaceFor.ts';
+import type { PlatformPorts }                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
+import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 
-export interface HephaestusLockRecord {
-  processId:            number;
-  processStartStamp:    string;
-  bootIdentity:         string;
-  port:                 number;
-  url:                  string;
-  tokenFile:            string;
-  codeVersion:          string;
-  installVersion:       number;
-  talosProtocolVersion: number;
-}
+/** What a Hephaestus lock names, as its ingestion reads it; the CLI's readers name it from here. */
+export type HephaestusLockRecord = HephaestusLockFileRecord;
 
 /**
  * A Hephaestus lock that cannot be read names no process, so it reads as dead: it was created whole, and only a damaged file is unreadable. A partial
@@ -33,17 +25,20 @@ export interface HephaestusLockRecord {
 export type HephaestusLockReading =
   | { verdict: 'none' }
   | { verdict: 'live'; generation: number; record: HephaestusLockRecord }
-  | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null };
+  | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null; unreadableReason?: string };
+
+/** A newest generation that could not be read and that this acquisition took over, so the taker can log it. */
+export interface UnreadableHephaestusLockTakenOver {
+  hephaestusLockFilePath: string;
+  reason:                 string;
+}
 
 export type HephaestusLockAcquisition =
-  | { verdict: 'acquired'; generation: number }
+  | { verdict: 'acquired'; generation: number; unreadableTakenOver?: UnreadableHephaestusLockTakenOver }
   | { verdict: 'already-running'; generation: number; record: HephaestusLockRecord }
   | { verdict: 'contended' };
 
 const HEPHAESTUS_LOCK_FILE_PATTERN = /^lock-(\d+)\.json$/;
-
-const NUMBER_FIELDS = ['processId', 'port', 'installVersion', 'talosProtocolVersion'] as const;
-const TEXT_FIELDS   = ['processStartStamp', 'bootIdentity', 'url', 'tokenFile', 'codeVersion'] as const;
 
 function filePathFor(hephaestusDirectory: string, generation: number): string {
   return join(hephaestusDirectory, `lock-${generation}.json`);
@@ -65,24 +60,6 @@ function generationsIn(hephaestusDirectory: string): number[] {
     .sort((a, b) => a - b);
 }
 
-function recordIsWellFormed(fields: Record<string, unknown>): boolean {
-  return NUMBER_FIELDS.every((field) => typeof fields[field] === 'number') && TEXT_FIELDS.every((field) => typeof fields[field] === 'string');
-}
-
-function hephaestusLockRecordOfStored(parsed: unknown): HephaestusLockRecord | null {
-  if (typeof parsed !== 'object' || parsed === null) return null;
-  const fields = parsed as Record<string, unknown>;
-  return recordIsWellFormed(fields) ? fields as unknown as HephaestusLockRecord : null;
-}
-
-function readHephaestusLockRecord(hephaestusLockFilePath: string): HephaestusLockRecord | null {
-  try {
-    return hephaestusLockRecordOfStored(JSON.parse(readFileSync(hephaestusLockFilePath, 'utf8')));
-  } catch {
-    return null;
-  }
-}
-
 function identityNamedBy(record: HephaestusLockRecord): ProcessIdentity {
   return { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
 }
@@ -96,7 +73,11 @@ function hephaestusLockNamesALiveProcess({ processSupervision }: PlatformPorts, 
 function newestOf(ports: PlatformPorts, hephaestusDirectory: string): HephaestusLockReading {
   const newest = generationsIn(hephaestusDirectory).at(-1);
   if (newest === undefined) return { verdict: 'none' };
-  const record = readHephaestusLockRecord(filePathFor(hephaestusDirectory, newest));
+  const reading = new HephaestusLockIngestion(filePathFor(hephaestusDirectory, newest)).read();
+  if (reading.verdict === 'unreadable') return {
+    verdict: 'dead', generation: newest, record: null, unreadableReason: reading.reason
+  };
+  const record = reading.verdict === 'readable' ? reading.record : null;
   if (record !== null && hephaestusLockNamesALiveProcess(ports, record)) return { verdict: 'live', generation: newest, record };
   return { verdict: 'dead', generation: newest, record };
 }
@@ -121,7 +102,7 @@ function removeGenerationsBelow(hephaestusDirectory: string, generation: number)
 function createHephaestusLockWhole(hephaestusDirectory: string, generation: number, record: HephaestusLockRecord, fileReplace: FileReplace): ExclusiveCreation {
   const hephaestusLockFilePath = filePathFor(hephaestusDirectory, generation);
   try {
-    return createWholeFileAtomically(hephaestusLockFilePath, `${JSON.stringify(record, null, 2)}\n`, fileReplace);
+    return createHephaestusLockWriter(hephaestusLockFilePath, fileReplace).createWhole(record);
   } catch (failure) {
     throw new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, reason: String(failure) });
   }
@@ -140,7 +121,9 @@ function acquire(ports: PlatformPorts, hephaestusDirectory: string, record: Heph
   }
   if (newerGenerationExists(hephaestusDirectory, claimed)) return { verdict: 'contended' };
   removeGenerationsBelow(hephaestusDirectory, claimed);
-  return { verdict: 'acquired', generation: claimed };
+  if (newest.verdict !== 'dead' || newest.unreadableReason === undefined) return { verdict: 'acquired', generation: claimed };
+  const unreadableTakenOver = { hephaestusLockFilePath: filePathFor(hephaestusDirectory, newest.generation), reason: newest.unreadableReason };
+  return { verdict: 'acquired', generation: claimed, unreadableTakenOver };
 }
 
 /** Run before each effect batch: a Hephaestus whose generation was overtaken stops `hephaestus-lock-taken` without acting. */

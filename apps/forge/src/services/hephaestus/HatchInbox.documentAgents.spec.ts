@@ -38,7 +38,7 @@ function documentAgentBoard(): BoardFixture & { change: BoardTransaction } {
 }
 
 function requestOf(requestId: string, command: Record<string, unknown>): PendingHatchRequest {
-  return { jobId: 'J9', requestId, text: JSON.stringify(HatchFormatUtil.requestOf(requestId, command as unknown as ControlCommand)) };
+  return { jobId: 'J9', requestId, reading: HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf(requestId, command as unknown as ControlCommand))) };
 }
 
 const READY = requestOf('R1', { kind: 'ticket-document-agent-ready' });

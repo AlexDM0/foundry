@@ -13,6 +13,7 @@ import {
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
+import { GENERATION_RECORD_FORMAT_VERSION }               from '../../adapters/generation-record/GenerationRecordIngestion.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                         from '../../shared/constants/Limits.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../testing/ChildProcessCaseTimeout.ts';
@@ -73,7 +74,9 @@ function newestRecordIn(lockDirectoryPath: string): unknown {
 }
 
 function heldRecordOf(holder: { processId: number; startStamp: string | null; bootIdentity: string | null }): string {
-  return JSON.stringify({ acquiredAt: new Date().toISOString(), holder, state: 'held' });
+  return JSON.stringify({
+    version: GENERATION_RECORD_FORMAT_VERSION, acquiredAt: new Date().toISOString(), holder, state: 'held'
+  });
 }
 
 async function refusalAfterTheWholeRetryBudget(action: () => Promise<unknown>): Promise<unknown> {
@@ -162,7 +165,9 @@ test('a lock whose recorded holder\'s id now runs another process, as after a re
 
 test('a lock held by this live process is kept however old its record, and refused after the whole retry budget', async () => {
   const workspace = scratchWorkspace('lock-old-live-holder');
-  writeGeneration(localStoreLayoutOf(workspace).storeLockFolder, 1, JSON.stringify({ acquiredAt: '2026-09-18T20:11:03+02:00', holder: lockHolderOf(SUPERVISION), state: 'held' }));
+  writeGeneration(localStoreLayoutOf(workspace).storeLockFolder, 1, JSON.stringify({
+    version: GENERATION_RECORD_FORMAT_VERSION, acquiredAt: '2026-09-18T20:11:03+02:00', holder: lockHolderOf(SUPERVISION), state: 'held'
+  }));
 
   const caught = await refusalAfterTheWholeRetryBudget(() => withLock(workspace, () => 'must not run', anHourAhead, PLATFORM_TAKER));
 

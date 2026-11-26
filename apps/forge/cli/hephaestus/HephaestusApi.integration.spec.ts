@@ -286,7 +286,7 @@ describe('the Hephaestus API on a scratch board', () => {
       extra: [],
     }));
     mkdirSync(join(dataFolder, GATE_PROFILE_RUNS_FOLDER));
-    writeFileSync(join(dataFolder, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), `${JSON.stringify({ text: 'first' })}\n${JSON.stringify({ text: 'second' })}\n`);
+    writeFileSync(join(dataFolder, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), `${JSON.stringify({ version: 1, text: 'first' })}\n${JSON.stringify({ version: 1, text: 'second' })}\n`);
     const hephaestus = await startHephaestus();
     const url = await hephaestus.firstOutputLine ?? '';
     const headers = tokenHeaders();

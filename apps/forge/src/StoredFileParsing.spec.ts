@@ -18,22 +18,13 @@ const SCANNED_FOLDER = 'src/services/';
 
 const JSON_PARSE_PATTERN = /\bJSON\s*(?:\.\s*parse|\[\s*['"]parse['"]\s*\])\s*\(/;
 
-const STORED_FILE_OFFENDER = 'A stored file, still parsed in the service until its ingestion class lands.';
-
 /** `<path>: <trimmed line>`, sorted by path, with what each parse reads. */
 const ALLOWED_PARSES: Readonly<Record<string, string>> = {
-  'src/services/hephaestus/AgentSlots.ts: stored = JSON.parse(slotText);':                                                                        STORED_FILE_OFFENDER,
-  'src/services/hephaestus/GateProfiling.ts: const parsed: unknown = JSON.parse(lineText);':                                                      STORED_FILE_OFFENDER,
-  'src/services/hephaestus/GateRunSlots.ts: recordedProcess = JSON.parse(slotText.slice(separatorIndex + HOLDING_SEPARATOR.length));':            STORED_FILE_OFFENDER,
-  'src/services/hephaestus/HatchInbox.ts: const parsed: unknown = JSON.parse(text);':                                                             STORED_FILE_OFFENDER,
-  'src/services/hephaestus/HephaestusLock.ts: return hephaestusLockRecordOfStored(JSON.parse(readFileSync(hephaestusLockFilePath, \'utf8\')));':  STORED_FILE_OFFENDER,
   'src/services/hephaestus/HephaestusServer.ts: body = JSON.parse(new TextDecoder().decode(boundedBody.bytes));':                                 'The body of an HTTP request.',
   'src/services/hephaestus/InstallChangeWatch.ts: const parsed = JSON.parse(standardOutput) as Partial<Record<keyof ProgramVersions, unknown>>;': 'The output of a process.',
   'src/services/hephaestus/Restart.ts: const parsed = JSON.parse(lastLine) as Record<string, unknown> | null;':                                   'The output of a process.',
   'src/services/hephaestus/TalosConnection.ts: const parsed: unknown = JSON.parse(line);':
     'A line Talos sends on the socket.',
-  'src/services/lifecycle/CachingChecks.ts: const parsed: unknown = JSON.parse(readFileSync(path, \'utf8\'));': STORED_FILE_OFFENDER,
-  'src/services/tracker/GenerationLock.ts: const parsed: unknown = JSON.parse(generationText);':                STORED_FILE_OFFENDER,
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_PARSES);
