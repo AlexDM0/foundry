@@ -9,38 +9,28 @@ import {
   fstatSync,
   openSync,
   readdirSync,
-  readFileSync,
   readSync
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { createWholeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import { errorCodeOf }               from '../../lib/atomic-file/HeldFileFailure.ts';
-import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
-import type { ProcessIdentity }      from '../../lib/process-identity/ProcessIdentity.ts';
-import type { Job }                  from '../../lib/tracker-model/@types/Job.ts';
 import type {
   CrashErrorOrigin,
   CrashLogError,
-  CrashLogInputs,
   CrashLogJob,
-  CrashLogRecord,
-  CrashLogWrite
-} from './@types/CrashLogRecord.ts';
-import type { PresenceFileReading } from './@types/PresenceRecord.ts';
-import type { HephaestusFiles }     from './HephaestusFiles.ts';
-import {
-  CRASH_LOG_CREATION_ATTEMPTS,
-  CRASH_LOG_FORMAT_VERSION,
-  CRASH_LOG_TAIL_LINES,
-  CRASH_LOG_TAIL_READ_BOUND_BYTES
-} from './constants/PresenceLimits.ts';
+  CrashLogRecord
+} from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import { CrashLogIngestion }                                                                  from '../../adapters/crash-log/CrashLogIngestion.ts';
+import { createCrashLogWriter }                                                               from '../../adapters/crash-log/CrashLogWriter.ts';
+import { CRASH_LOG_FORMAT_VERSION }                                                           from '../../adapters/crash-log/constants/CrashLogFileVersions.ts';
+import type { ProcessIdentity }                                                               from '../../lib/process-identity/ProcessIdentity.ts';
+import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
+import type { CrashLogInputs, CrashLogWrite }                                                 from './@types/CrashLogRecord.ts';
+import type { PresenceFileReading }                                                           from './@types/PresenceRecord.ts';
+import type { HephaestusFiles }                                                               from './HephaestusFiles.ts';
+import type { UnreadableBoardFiles }                                                          from './UnreadableBoardFiles.ts';
+import { CRASH_LOG_CREATION_ATTEMPTS, CRASH_LOG_TAIL_LINES, CRASH_LOG_TAIL_READ_BOUND_BYTES } from './constants/PresenceLimits.ts';
 
 const CRASH_LOG_FILE_PATTERN = /^crash-(?<crashLogNumber>[1-9]\d*)\.json$/;
-
-const MISSING_FILE_CODE = 'ENOENT';
-
-const CRASH_LOG_COMPONENTS = ['hephaestus', 'talos', 'unknown'] as const;
 
 function pathOf(files: HephaestusFiles, crashLogNumber: number): string {
   return join(files.crashLogDirectory, `crash-${crashLogNumber}.json`);
@@ -111,42 +101,14 @@ function list(files: HephaestusFiles): number[] {
     .sort((a, b) => a - b);
 }
 
-function isListOrNull(value: unknown): boolean {
-  return value === null || Array.isArray(value);
-}
-
-function isWholeNumberOrNull(value: unknown): boolean {
-  return value === null || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 1);
-}
-
 function read(files: HephaestusFiles, crashLogNumber: number): PresenceFileReading<CrashLogRecord> {
-  let text: string;
-  try {
-    text = readFileSync(pathOf(files, crashLogNumber), 'utf8');
-  } catch (failure) {
-    if (errorCodeOf(failure) === MISSING_FILE_CODE) return { verdict: 'absent' };
-    return { verdict: 'unreadable', reason: `not readable: ${String(failure)}` };
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (failure) {
-    return { verdict: 'unreadable', reason: `not JSON: ${String(failure)}` };
-  }
-  if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', reason: 'not a JSON object' };
-  const field = (key: keyof CrashLogRecord): unknown => (Object.hasOwn(parsed, key) ? parsed[key] : undefined);
-  const unreadable = (reason: string): PresenceFileReading<CrashLogRecord> => ({ verdict: 'unreadable', reason });
-  if (field('crashLogVersion') !== CRASH_LOG_FORMAT_VERSION) return unreadable(`crashLogVersion ${String(field('crashLogVersion'))} is not ${CRASH_LOG_FORMAT_VERSION}`);
-  if (!isWholeNumberOrNull(field('crashedGeneration'))) return unreadable('crashedGeneration is not a generation or null');
-  const component = field('component');
-  if (typeof component !== 'string' || !(CRASH_LOG_COMPONENTS as readonly string[]).includes(component)) return unreadable('component is not a crashed component');
-  if (typeof field('suspected') !== 'boolean') return unreadable('suspected is not a flag');
-  if (typeof field('recordedAt') !== 'string') return unreadable('recordedAt is not a string');
-  if (!JsonRecordUtil.valueIsAPlainObject(field('recordedBy'))) return unreadable('recordedBy is not an object');
-  if (!isListOrNull(field('activeJobs')) || !isListOrNull(field('talosChildren')) || !isListOrNull(field('logTail'))) {
-    return unreadable('activeJobs, talosChildren and logTail are each a list or null');
-  }
-  return { verdict: 'read', record: parsed as unknown as CrashLogRecord };
+  const reading = new CrashLogIngestion(pathOf(files, crashLogNumber)).read();
+  return reading.verdict === 'readable' ? { verdict: 'read', record: reading.record } : reading;
+}
+
+/** A crash log is board-wide evidence that never heals, so Hephaestus warns in the board header of one it cannot read until it restarts. */
+function reportUnreadable(reading: PresenceFileReading<CrashLogRecord>, crashLogNumber: number, unreadableBoardFiles: UnreadableBoardFiles): void {
+  if (reading.verdict === 'unreadable') unreadableBoardFiles.report({ file: `hephaestus/crash-logs/crash-${crashLogNumber}.json`, reason: reading.reason });
 }
 
 function sameProcessIdentity(stored: ProcessIdentity | null, candidate: ProcessIdentity | null): boolean {
@@ -167,24 +129,29 @@ function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord>, candid
   return candidate.crashedProcess !== null || JSON.stringify(record.classification) === JSON.stringify(candidate.classification);
 }
 
-/** Only the newest log can be this crash's: another crash needs a start that served in between. */
-function newestLogOfTheSameCrash(files: HephaestusFiles, crash: CrashIdentity): number | null {
+/**
+ * Only the newest log can be this crash's: another crash needs a start that served in between. An unreadable newest log is reported and
+ * read as another crash's, so this crash is logged anew rather than lost.
+ */
+function newestLogOfTheSameCrash(files: HephaestusFiles, crash: CrashIdentity, unreadableBoardFiles: UnreadableBoardFiles): number | null {
   const newestNumber = list(files).at(-1);
-  return newestNumber !== undefined && recordsTheSameCrash(read(files, newestNumber), crash) ? newestNumber : null;
+  if (newestNumber === undefined) return null;
+  const newest = read(files, newestNumber);
+  reportUnreadable(newest, newestNumber, unreadableBoardFiles);
+  return recordsTheSameCrash(newest, crash) ? newestNumber : null;
 }
 
 /**
  * The next number is one above the highest on disk, so removing older logs frees no number; once the folder is emptied, numbering starts
  * again at 1, as nothing names a removed log.
  */
-function writeOnce(files: HephaestusFiles, record: CrashLogRecord): CrashLogWrite {
-  const text = `${JSON.stringify(record, null, 2)}\n`;
+function writeOnce(files: HephaestusFiles, record: CrashLogRecord, unreadableBoardFiles: UnreadableBoardFiles): CrashLogWrite {
   for (let attempt = 0; attempt < CRASH_LOG_CREATION_ATTEMPTS; attempt++) {
-    const alreadyWritten = newestLogOfTheSameCrash(files, record);
+    const alreadyWritten = newestLogOfTheSameCrash(files, record, unreadableBoardFiles);
     if (alreadyWritten !== null) return { verdict: 'already-written', crashLogNumber: alreadyWritten };
     const newestNumber = list(files).at(-1) ?? 0;
     const crashLogNumber = newestNumber + 1;
-    if (createWholeFileAtomically(pathOf(files, crashLogNumber), text) === 'created') return { verdict: 'written', crashLogNumber };
+    if (createCrashLogWriter(pathOf(files, crashLogNumber)).create(record) === 'created') return { verdict: 'written', crashLogNumber };
   }
   throw new Error(`No crash log number was free after ${CRASH_LOG_CREATION_ATTEMPTS} attempts in ${files.crashLogDirectory}.`);
 }
@@ -233,5 +200,6 @@ export const CrashLog = Object.freeze({
   newestLogOfTheSameCrash,
   list,
   read,
+  reportUnreadable,
   logTailOf,
 });

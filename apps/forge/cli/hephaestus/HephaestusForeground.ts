@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 
+import type { CrashedComponent }                                                     from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeOwnerOnlyFileAtomically }                                              from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                             from '../../src/lib/local-time/LocalTimeUtil.ts';
@@ -24,7 +25,6 @@ import type { StartOrigin }                                                     
 import type { LogRecordFieldsOf }                                                    from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
-import type { CrashedComponent }                                                     from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
 import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                                        from '../../src/services/hephaestus/BoardChildren.ts';
@@ -575,6 +575,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     writeRegistryCrash: (report) => registerHephaestus(request, { presence: report }),
     stampNow:           () => LocalTimeUtil.formatLocalIso(context.now()),
     log,
+    unreadableBoardFiles,
   });
   crashPathReach.contextNow = () => (crashableGeneration === null ? null : crashPathContextOf(crashableGeneration));
 

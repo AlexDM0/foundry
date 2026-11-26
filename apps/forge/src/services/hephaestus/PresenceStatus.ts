@@ -16,6 +16,7 @@ import { Presence }                                                   from './Pr
 import { StartClassification }                                        from './StartClassification.ts';
 import { StartGate }                                                  from './StartGate.ts';
 import { newestTalosStartNumberIn, runningIdentityOf, talosRecordAt } from './TalosStart.ts';
+import { createUnreadableBoardFiles }                                 from './UnreadableBoardFiles.ts';
 
 export type PresenceState = 'serving' | 'starting' | 'down' | 'off-after-crash';
 
@@ -155,11 +156,13 @@ function downReadingOf(request: PresenceStatusRequest): StatusPresenceReading {
   const classification = StartClassification.classify(evidence);
   const stored = storedPresenceOf(files);
   const offAfterCrash = StartGate.crashToLogOf(classification);
+  // `status` shows what it reads; with no Hephaestus serving there is no board header to warn in, and the next start reports the file.
+  const unreadableBoardFiles = createUnreadableBoardFiles(() => undefined);
   return {
     presence: {
       state:           offAfterCrash ? 'off-after-crash' : 'down',
       lastStart:       stored?.startClassification ?? null,
-      crashLog:        offAfterCrash ? statusCrashLogOf(files, StartGate.loggedCrashLogOf(files, evidence, classification)) : null,
+      crashLog:        offAfterCrash ? statusCrashLogOf(files, StartGate.loggedCrashLogOf(files, evidence, classification, unreadableBoardFiles)) : null,
       heartbeat:       storedHeartbeatOf(files),
       supervision:     supervisionOf(request),
       abandonedPasses: stored?.abandonedPasses ?? null,

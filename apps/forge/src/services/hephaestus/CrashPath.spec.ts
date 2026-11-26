@@ -19,13 +19,14 @@ import {
   test
 } from 'bun:test';
 
+import type { CrashLogRecord }                                        from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import type { CrashLogRecord }                                        from './@types/CrashLogRecord.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import { CrashPath, type CrashPathContext, type RegistryCrashReport } from './CrashPath.ts';
 import { hephaestusFilesIn, type HephaestusFiles }                    from './HephaestusFiles.ts';
 import { Presence }                                                   from './Presence.ts';
+import { createUnreadableBoardFiles }                                 from './UnreadableBoardFiles.ts';
 
 const CRASHED_AT = '2026-11-19T09:03:10.000+01:00';
 
@@ -68,13 +69,14 @@ function fakeCrashPathOf(overrides: Partial<CrashPathContext> = {}): FakeCrashPa
   const logLines: string[] = [];
   const context: CrashPathContext = {
     files,
-    generation:         4,
-    activeJobs:         () => [],
-    talosChildren:      () => [{ state: 'running' }],
-    stopLeaseRenewal:   () => { renewalStops += 1; },
-    writeRegistryCrash: async (report) => { registryReports.push(report); },
-    stampNow:           () => CRASHED_AT,
-    log:                (line) => { logLines.push(line); },
+    generation:           4,
+    activeJobs:           () => [],
+    talosChildren:        () => [{ state: 'running' }],
+    stopLeaseRenewal:     () => { renewalStops += 1; },
+    writeRegistryCrash:   async (report) => { registryReports.push(report); },
+    stampNow:             () => CRASHED_AT,
+    log:                  (line) => { logLines.push(line); },
+    unreadableBoardFiles: createUnreadableBoardFiles((line) => { logLines.push(line); }),
     ...overrides,
   };
   return {

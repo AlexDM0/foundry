@@ -12,6 +12,7 @@ import type {
 } from 'forge-contracts/ForgePresenceDocument';
 
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE } from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
+import type { CrashLogJob, CrashLogRecord }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import type { HeartbeatRecord }                from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                 from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }     from '../../adapters/presence/@types/StartClassificationVerdict.ts';
@@ -23,7 +24,6 @@ import type { Board }                          from '../../lib/tracker-model/Boa
 import { Playbook }                            from '../../lib/tracker-model/Playbook.ts';
 import { INTERRUPTED_HOLD_PREFIX }             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { CRASH_INTERRUPTION_CAUSES }           from '../../lib/tracker-model/constants/JobStates.ts';
-import type { CrashLogJob, CrashLogRecord }    from './@types/CrashLogRecord.ts';
 import { PresenceStatus }                      from './PresenceStatus.ts';
 
 /** A crash log as `CrashLog.list` and `CrashLog.read` found it. */

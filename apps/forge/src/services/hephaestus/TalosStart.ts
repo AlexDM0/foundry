@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
 import { writeFileAtomically, writeOwnerOnlyFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                    from '../../lib/process-identity/ProcessIdentity.ts';
@@ -216,16 +217,11 @@ function registeredChildrenOf(boardFolder: string, startNumber: number): Registe
   });
 }
 
-/** Each child record a Talos registered, copied as stored: parsed where it is JSON, its text where it is not; one never written is left out. */
+/** Each child record a Talos registered, copied as stored for a crash log; one never written is left out. */
 export function persistedChildRecordsOf(boardFolder: string, startNumber: number): unknown[] {
   return registeredChildrenOf(boardFolder, startNumber).flatMap(({ childFolder, instance }) => {
-    const text = textOf(childFilesOf(boardFolder, childFolder, instance).recordPath);
-    if (text === null) return [];
-    try {
-      return [JSON.parse(text) as unknown];
-    } catch {
-      return [text];
-    }
+    const copied = new TalosChildRecordCopy(childFilesOf(boardFolder, childFolder, instance).recordPath).read();
+    return copied.verdict === 'readable' ? [copied.copy] : [];
   });
 }
 

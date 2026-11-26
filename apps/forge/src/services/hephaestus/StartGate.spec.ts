@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import type { CrashLogError }                                    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import { LocalTimeUtil }                                         from '../../lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                                    from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                  from '../../lib/process-identity/ProcessIdentity.ts';
@@ -25,7 +26,6 @@ import { createScratchDirectory, removeScratchDirectory }        from '../../tes
 import { writeReadableTracker }                                  from '../../testing/TrackerFileFixtures.ts';
 import { createLocalFilesBoardStore }                            from '../store/LocalFilesBoardStore.ts';
 import { type Workspace, workspacePathsFor }                     from '../tracker/Workspace.ts';
-import type { CrashLogError }                                    from './@types/CrashLogRecord.ts';
 import type { PresenceEndingToWrite }                            from './@types/PresenceRecord.ts';
 import { CrashLog }                                              from './CrashLog.ts';
 import { hephaestusFilesIn, type HephaestusFiles }               from './HephaestusFiles.ts';
@@ -201,7 +201,7 @@ describe('after a crash in this boot', () => {
     const earlierRun = { processId: 4141, startStamp: '1699990000', bootIdentity: CURRENT_BOOT };
     CrashLog.writeOnce(files, crashPathLogOf(CRASHED_GENERATION, {
       origin: 'pass', name: 'EarlierError', message: 'an earlier crash of the same generation', stack: null
-    }, earlierRun));
+    }, earlierRun), createUnreadableBoardFiles(() => undefined));
     const olderLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const verdict = admit(SUCCESSOR);
@@ -228,7 +228,7 @@ test('a user start after a crash the crash path recorded serves and finds that c
   plantPreviousGeneration(CURRENT_BOOT, { kind: 'crashed', component: 'hephaestus', crashLogNumber: FIRST_CRASH_LOG_NUMBER }, true);
   CrashLog.writeOnce(files, crashPathLogOf(CRASHED_GENERATION, {
     origin: 'pass', name: 'Error', message: 'example failure', stack: null
-  }));
+  }), createUnreadableBoardFiles(() => undefined));
 
   const verdict = admit(USER);
 
@@ -297,7 +297,7 @@ test('a start that took Hephaestus lock 1 again after a stop and died before its
 test('a crash whose generation nothing names is logged under the next number with no generation, and a second start finds that log', () => {
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   writeFileSync(files.presenceFilePath, 'not JSON\n');
-  CrashLog.writeOnce(files, crashPathLogOf(2));
+  CrashLog.writeOnce(files, crashPathLogOf(2), createUnreadableBoardFiles(() => undefined));
 
   const first = admit(SUCCESSOR);
   const second = admit(SUCCESSOR);

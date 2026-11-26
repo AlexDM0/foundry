@@ -1437,7 +1437,8 @@ intervals at the boot) and `crashed` (Hephaestus or Talos). After `crashed`, or 
 crash, the start writes the crash log `<data>/hephaestus/crash-logs/crash-<number>.json` once; a log already there, from
 the crash itself or an earlier start, stays. A crash log's number is its own, one above the highest log on disk (1 again
 once the folder is emptied), never the Hephaestus lock generation, which starts again at 1 after a stop; the crashed
-generation is a field inside the log. Only a start by `user` then serves. A successor that finds a crash before it
+generation is a field inside the log, which carries `crashLogVersion` 2; a log Hephaestus cannot read is a board header
+warning until it restarts, and a crash it may have recorded is logged anew. Only a start by `user` then serves. A successor that finds a crash before it
 stays off: it writes the registry's `presence` as `crashed`, logs one line to `hephaestus.log`,
 takes no Hephaestus lock, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge
 is off after a crash of Hephaestus lock <n>; read why with `forge crash-log`, and start it yourself with

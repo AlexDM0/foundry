@@ -38,6 +38,7 @@ import {
   expect,
   test,
 } from 'bun:test';
+import type { CrashedComponent, CrashLogError }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeHatchRequest }                       from '../../adapters/hatch/HatchFolder.ts';
 import type { AgentAdapter }                       from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
@@ -96,7 +97,6 @@ import { writeTracker }                                             from '../tra
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                        from '../tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                   from '../tracker/constants/MonitorRegistryFiles.ts';
-import type { CrashedComponent, CrashLogError }                     from './@types/CrashLogRecord.ts';
 import type { StartGateVerdict }                                    from './@types/StartClassification.ts';
 import type { BoardChildren }                                       from './BoardChildren.ts';
 import { CrashLog }                                                 from './CrashLog.ts';
@@ -505,14 +505,15 @@ function renewalOf(serving: Pick<ForgeServing, 'generation' | 'holder'>): LeaseR
 
 function crashPathContextOf(serving: ForgeServing): CrashPathContext {
   return {
-    files:              forgeFiles(),
-    generation:         serving.generation,
-    activeJobs:         () => storedJobs().map(CrashLog.activeJobOf),
-    talosChildren:      () => null,
-    stopLeaseRenewal:   () => serving.renewal?.stop(),
-    writeRegistryCrash: (report) => registerTheForge(report),
-    stampNow:           () => SESSION_STAMP,
-    log:                (line) => hephaestusLog.push(line),
+    files:                forgeFiles(),
+    generation:           serving.generation,
+    activeJobs:           () => storedJobs().map(CrashLog.activeJobOf),
+    talosChildren:        () => null,
+    unreadableBoardFiles: createUnreadableBoardFiles(() => undefined),
+    stopLeaseRenewal:     () => serving.renewal?.stop(),
+    writeRegistryCrash:   (report) => registerTheForge(report),
+    stampNow:             () => SESSION_STAMP,
+    log:                  (line) => hephaestusLog.push(line),
   };
 }
 
@@ -1494,7 +1495,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(CrashLog.read(forgeFiles(), 2)).toMatchObject({ verdict: 'read', record: { crashedGeneration: 1, crashedProcess: crashedAgain.holder } });
       expect(StartGate.loggedCrashLogOf(forgeFiles(), StartGate.evidenceOf({
         ports, files: forgeFiles(), workspace: sessionWorkspace, origin: successorOrigin
-      }), successorStart.verdict.classification)).toBe(2);
+      }), successorStart.verdict.classification, createUnreadableBoardFiles(() => undefined))).toBe(2);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
     test('an unexpected error in a pass: the crash path writes the crash log with the error and the registry presence crashed, the forge ends, '

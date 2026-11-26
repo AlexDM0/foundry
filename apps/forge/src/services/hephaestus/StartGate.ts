@@ -2,13 +2,13 @@
  * The gate every start of a board's forge passes before it takes a Hephaestus lock: it reads what the generation before it left, classifies the start,
  * writes the crash log of a crash it finds, and answers whether the start may serve. `start`, the foreground entry and `status` read it.
  */
+import type { CrashLogJob, CrashLogRecord }               from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY } from '../../lib/process-identity/ProcessIdentity.ts';
 import type { StoreReadFace }                             from '../store/BoardStore.ts';
 import type { Workspace }                                 from '../tracker/Workspace.ts';
-import type { CrashLogJob, CrashLogRecord }               from './@types/CrashLogRecord.ts';
 import type { StartGateVerdict }                          from './@types/StartClassification.ts';
 import { CrashLog }                                       from './CrashLog.ts';
 import type { HephaestusFiles }                           from './HephaestusFiles.ts';
@@ -96,10 +96,12 @@ function hephaestusLockHolderOf(evidence: StartEvidence, crashedGeneration: numb
 }
 
 /** The crash log a `crashed` ending of the crashed generation names, while that log is still there: the crash path wrote it. */
-function crashLogNamedByTheEnding(files: HephaestusFiles, presenceOfTheCrash: PresenceRecord | null): number | null {
+function crashLogNamedByTheEnding(files: HephaestusFiles, presenceOfTheCrash: PresenceRecord | null, unreadableBoardFiles: UnreadableBoardFiles): number | null {
   const ending = presenceOfTheCrash?.ending;
   if (ending?.kind !== 'crashed' || ending.crashLogNumber === null) return null;
-  return CrashLog.read(files, ending.crashLogNumber).verdict === 'read' ? ending.crashLogNumber : null;
+  const reading = CrashLog.read(files, ending.crashLogNumber);
+  CrashLog.reportUnreadable(reading, ending.crashLogNumber, unreadableBoardFiles);
+  return reading.verdict === 'read' ? ending.crashLogNumber : null;
 }
 
 function presenceOfTheCrashIn(evidence: StartEvidence, classification: StartClassificationVerdict): PresenceRecord | null {
@@ -110,14 +112,16 @@ function presenceOfTheCrashIn(evidence: StartEvidence, classification: StartClas
 }
 
 /** The log a start already wrote for this crash, or the crash path did, read without writing one: `status` names it. */
-function loggedCrashLogOf(files: HephaestusFiles, evidence: StartEvidence, classification: StartClassificationVerdict): number | null {
+function loggedCrashLogOf(
+  files: HephaestusFiles, evidence: StartEvidence, classification: StartClassificationVerdict, unreadableBoardFiles: UnreadableBoardFiles
+): number | null {
   const crashedGeneration = classification.previousGeneration;
   const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
-  return crashLogNamedByTheEnding(files, presenceOfTheCrash) ?? CrashLog.newestLogOfTheSameCrash(files, {
+  return crashLogNamedByTheEnding(files, presenceOfTheCrash, unreadableBoardFiles) ?? CrashLog.newestLogOfTheSameCrash(files, {
     crashedGeneration,
     crashedProcess: presenceOfTheCrash?.process ?? hephaestusLockHolderOf(evidence, crashedGeneration),
     classification,
-  });
+  }, unreadableBoardFiles);
 }
 
 /** Written once: the crash path, or an earlier start, may have logged this crash already, and that log stays. Answers the log's number. */
@@ -128,7 +132,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
   const crashedGeneration = classification.previousGeneration;
   const { heartbeat } = evidence;
   const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
-  const loggedByTheCrashPath = crashLogNamedByTheEnding(files, presenceOfTheCrash);
+  const loggedByTheCrashPath = crashLogNamedByTheEnding(files, presenceOfTheCrash, request.unreadableBoardFiles);
   if (loggedByTheCrashPath !== null) return loggedByTheCrashPath;
   const heartbeatOfTheCrash = heartbeat.verdict === 'read' && heartbeat.record.generation === crashedGeneration ? heartbeat.record : null;
   const component: CrashLogRecord['component'] = classification.crashedComponent ?? 'unknown';
@@ -146,7 +150,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
     activeJobs:           activeJobsOf(boardReads),
     talosChildren:        talosChildrenOf(workspace.trackerDirectory),
     logTail:              CrashLog.logTailOf(files.logFilePath),
-  })).crashLogNumber;
+  }), request.unreadableBoardFiles).crashLogNumber;
 }
 
 /** Only a start the user made serves after a crash or a suspected one (decisions 14 and 39): a successor stays off. */

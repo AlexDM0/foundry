@@ -13,6 +13,7 @@ import {
 import { CrashLog }                               from '../../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                      from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { Presence }                               from '../../../src/services/hephaestus/Presence.ts';
+import { createUnreadableBoardFiles }             from '../../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { requireWorkspace }                       from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { defaultSpecPlatformPorts }               from '../../../src/testing/DefaultSpecPlatformPorts.ts';
@@ -67,7 +68,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'status after
       activeJobs:           [],
       talosChildren:        null,
       logTail:              [],
-    }));
+    }), createUnreadableBoardFiles(() => undefined));
     Presence.writeStartedPresence(files, {
       generation:          CRASHED_GENERATION,
       process:             crashed,

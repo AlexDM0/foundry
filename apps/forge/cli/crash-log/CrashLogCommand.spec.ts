@@ -13,6 +13,7 @@ import {
 import type { StartClassificationVerdict }        from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import { CrashLog }                               from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { createUnreadableBoardFiles }             from '../../src/services/hephaestus/UnreadableBoardFiles.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -84,7 +85,7 @@ function writeCrashLog(crashedGeneration: number, errorName: string, classificat
     }],
     talosChildren: null,
     logTail:       ['an example log line'],
-  })).crashLogNumber;
+  }), createUnreadableBoardFiles(() => undefined)).crashLogNumber;
 }
 
 async function crashLogRun(commandLine: readonly string[]) {
