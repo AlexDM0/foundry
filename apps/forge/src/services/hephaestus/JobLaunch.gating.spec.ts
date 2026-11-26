@@ -32,6 +32,7 @@ import {
   test
 } from 'bun:test';
 
+import type { GateRunManifest }                         from '../../adapters/gate-manifest/GateRunManifestIngestion.ts';
 import { createJobStartWriter }                         from '../../adapters/job-start/JobStartWriter.ts';
 import type { ChildEnd }                                from '../../lib/talos/ChildRecord.ts';
 import type { InterruptionCause, Job }                  from '../../lib/tracker-model/@types/Job.ts';
@@ -52,18 +53,13 @@ import {
   type RecordedGitStep,
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }    from '../../testing/TalosChildReadings.ts';
-import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
-import { GateRun }                                        from '../lifecycle/GateRun.ts';
-import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
-import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import {
-  type BuildJobObservation,
-  type GateRunManifest,
-  JobLaunch,
-  type JobLaunchContext
-} from './JobLaunch.ts';
+import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }                from '../../testing/TalosChildReadings.ts';
+import { testWhenGitIsRecorded }                                      from '../../testing/ToolGuard.ts';
+import { GateRun }                                                    from '../lifecycle/GateRun.ts';
+import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
+import { jobFolderIn }                                                from './HephaestusFiles.ts';
+import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 
 const PIPELINE: Pipeline = {
   version: 5,
@@ -338,7 +334,7 @@ describe('the gate-run manifest', () => {
     const writtenAtTheStart = readFileSync(jobFileOf(scene, 'gate-run.json'), 'utf8');
 
     expect(JSON.parse(writtenAtTheStart)).toEqual({
-      phase: 'build', phaseHash: PipelineUtil.phaseHashOf(PIPELINE, 'build'), prepare: [], gates: PIPELINE.gates
+      version: 1, phase: 'build', phaseHash: PipelineUtil.phaseHashOf(PIPELINE, 'build'), prepare: [], gates: PIPELINE.gates
     });
 
     await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE], AUDIT_ADDED_IN_FRONT);
@@ -386,21 +382,19 @@ describe('the gate-run manifest', () => {
     expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 1 });
   });
 
-  testWhenGitIsRecorded('a manifest that cannot be read is never replaced, and the run cannot go on', async () => {
+  testWhenGitIsRecorded('a manifest that cannot be read is never replaced, and the run waits on the file\'s incident', async () => {
     const gateWithANetworkText = { name: 'tests', run: 'bun test', network: 'example.com' };
     const unreadableManifests = [
       '{ "phase": "build" }\n',
       `${JSON.stringify({
-        phase: 'build', phaseHash: PipelineUtil.phaseHashOf(PIPELINE, 'build'), prepare: [], gates: [gateWithANetworkText]
+        version: 1, phase: 'build', phaseHash: PipelineUtil.phaseHashOf(PIPELINE, 'build'), prepare: [], gates: [gateWithANetworkText]
       })}\n`,
     ];
     for (const unreadable of unreadableManifests) {
       const scene = gatingScene();
       writeFileSync(jobFileOf(scene, 'gate-run.json'), unreadable);
 
-      expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({
-        verdict: 'judged', outcome: 'cannot-run', step: 'gate-run.json', ran: true, manifest: null
-      });
+      expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J2/gate-run.json' });
       expect(readFileSync(jobFileOf(scene, 'gate-run.json'), 'utf8')).toBe(unreadable);
     }
   });
@@ -575,6 +569,7 @@ describe('a job of an entity', () => {
     expect(await entityGateOf(scene, 'forge')).toMatchObject({ verdict: 'running', stepIndex: 0 });
 
     expect(JSON.parse(readFileSync(jobFileOf(scene, 'gate-run.json'), 'utf8'))).toEqual({
+      version:           1,
       phase:             'build',
       phaseHash:         PipelineUtil.phaseHashOf(PIPELINE_WITH_ENTITIES, 'build'),
       entityPhaseHashes: { forge: PipelineUtil.entityPhaseHashOf(PIPELINE_WITH_ENTITIES, 'forge', 'build') },

@@ -13,27 +13,29 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { JobStartIngestion, type JobStart }                             from '../../adapters/job-start/JobStartIngestion.ts';
-import { createJobStartWriter }                                         from '../../adapters/job-start/JobStartWriter.ts';
-import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict } from '../../adapters/step-verdict/StepVerdictIngestion.ts';
-import { createStepVerdictWriter }                                      from '../../adapters/step-verdict/StepVerdictWriter.ts';
-import { TicketHandoffUtil }                                            from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
-import type { AgentAdapter }                                            from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                          from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }                                               from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                                   from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                                 from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf }                                        from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS }                                        from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                             from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }                                           from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                         from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ShellExitReport }                                         from '../../lib/shell-line/ShellLine.ts';
-import type { ChildInput }                                              from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                                                from '../../lib/talos/ChildRecord.ts';
-import type { ReviewBarRequest }                                        from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Decision }                                                from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase, GateRunStamp }                                 from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GateRunManifestIngestion, type GateRunManifest, type ManifestStepEntity } from '../../adapters/gate-manifest/GateRunManifestIngestion.ts';
+import { createGateRunManifestWriter }                                             from '../../adapters/gate-manifest/GateRunManifestWriter.ts';
+import { JobStartIngestion, type JobStart }                                        from '../../adapters/job-start/JobStartIngestion.ts';
+import { createJobStartWriter }                                                    from '../../adapters/job-start/JobStartWriter.ts';
+import { StepVerdictIngestion, type GateStepOutcome, type StepVerdict }            from '../../adapters/step-verdict/StepVerdictIngestion.ts';
+import { createStepVerdictWriter }                                                 from '../../adapters/step-verdict/StepVerdictWriter.ts';
+import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
+import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                                                     from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }                                                          from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                                              from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf }                                                   from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }                                                   from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                                        from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }                                                      from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                                    from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ShellExitReport }                                                    from '../../lib/shell-line/ShellLine.ts';
+import type { ChildInput }                                                         from '../../lib/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                                                           from '../../lib/talos/ChildRecord.ts';
+import type { ReviewBarRequest }                                                   from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { Decision }                                                           from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase, GateRunStamp }                                            from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateCacheReportOfGate,
   GateOutcome,
@@ -157,20 +159,6 @@ export interface JobLaunchContext {
 
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
 export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'worktree-unnormalised' | 'installing' | 'install-failed' | 'installed';
-
-/**
- * A gate run's phase, its phase hash and the steps it runs, fixed as the run starts: a pipeline edited or reordered mid-run changes neither
- * the gate a step folder runs nor the hash the settlement stamps.
- */
-export interface GateRunManifest extends GateRunStamp {
-  prepare: (PipelineStep & ManifestStepEntity)[];
-  gates:   (PipelineGate & ManifestStepEntity)[];
-}
-
-/** A package build's manifest names the dependent whose step a step is; the job's own steps name none. */
-interface ManifestStepEntity {
-  entity?: EntityKey;
-}
 
 export type GateProgress =
   | { verdict: 'pending' }
@@ -756,58 +744,26 @@ function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: Gat
   };
 }
 
-function isNamedLine(value: unknown): boolean {
-  const entity = reportFieldOf(value, 'entity');
-  return typeof value === 'object' && value !== null && typeof reportFieldOf(value, 'name') === 'string' && typeof reportFieldOf(value, 'run') === 'string'
-    && (entity === undefined || typeof entity === 'string');
-}
-
-function isAbsentOrTextList(value: unknown): boolean {
-  return value === undefined || (Array.isArray(value) && value.every((entry) => typeof entry === 'string'));
-}
-
-/** A gate as `pipeline.json` stores it, so its confinement and red handoff read only what they expect. */
-function isStoredGate(value: unknown): boolean {
-  const optionalTexts = [reportFieldOf(value, 'fix'), reportFieldOf(value, 'in')];
-  const forgeOnly     = reportFieldOf(value, 'forgeOnly');
-  return isNamedLine(value) && optionalTexts.every((text) => text === undefined || typeof text === 'string')
-    && ['definedBy', 'network', 'writes'].every((field) => isAbsentOrTextList(reportFieldOf(value, field)))
-    && (forgeOnly === undefined || forgeOnly === true);
-}
-
-function isAbsentOrTextRecord(value: unknown): boolean {
-  return value === undefined || (typeof value === 'object' && value !== null && !Array.isArray(value)
-    && Object.values(value).every((entry) => typeof entry === 'string'));
-}
-
-function isGateRunManifestOf(value: unknown, phase: GatePhase): value is GateRunManifest {
-  const prepare = reportFieldOf(value, 'prepare');
-  const gates   = reportFieldOf(value, 'gates');
-  return reportFieldOf(value, 'phase') === phase && typeof reportFieldOf(value, 'phaseHash') === 'string'
-    && isAbsentOrTextRecord(reportFieldOf(value, 'entityPhaseHashes'))
-    && Array.isArray(prepare) && prepare.every(isNamedLine) && Array.isArray(gates) && gates.every(isStoredGate);
-}
-
 /**
  * The run's manifest. A run with none has not started: the manifest is written atomically from `pipeline` before its first step runs, and
- * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced; one that cannot be
- * written, since the pipeline no longer holds the job's entity, reads as unreadable.
+ * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced; `cannot-run` when none
+ * can be written, since the pipeline no longer holds the job's entity.
  */
 function gateRunManifestOf(
   context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>
-): GateRunManifest | 'unreadable' | StoredFileUnreadable {
+): GateRunManifest | 'cannot-run' | StoredFileUnreadable {
+  const { trackerDirectory } = context.workspace;
   const manifestPath = join(jobFolderOf(context.workspace, job), gateRunManifestFileOf(place));
-  if (existsSync(manifestPath)) {
-    const stored = readJsonFile<unknown>(manifestPath);
-    return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
-  }
+  const stored = new GateRunManifestIngestion(manifestPath, place.phase).read();
+  if (stored.verdict === 'readable') return stored.manifest;
+  if (stored.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, manifestPath, stored.reason);
   // A package build's start names the entities its run leaves out, so no run starts from a start that cannot be read.
-  const start = jobStartOf(context.workspace.trackerDirectory, job.id);
+  const start = jobStartOf(trackerDirectory, job.id);
   if (StoredFileUnreadable.isUnreadableFile(start)) return start;
   const manifest = manifestOf(pipeline, job, place.phase, start ?? {});
-  if (manifest === null) return 'unreadable';
+  if (manifest === null) return 'cannot-run';
   mkdirSync(dirname(manifestPath), { recursive: true });
-  writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  createGateRunManifestWriter(manifestPath).write(manifest);
   return manifest;
 }
 
@@ -955,7 +911,7 @@ function gateRunProgressOf(
 ): Exclude<GateProgress, { verdict: 'pending' }> {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
   if (StoredFileUnreadable.isUnreadableFile(manifest)) return manifest;
-  if (manifest === 'unreadable') return {
+  if (manifest === 'cannot-run') return {
     verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null, cacheReports: [], stepRuns: []
   };
   const cacheReports: GateCacheReportOfGate[] = [];
@@ -981,7 +937,7 @@ function lineReadsLost(context: JobLaunchContext, job: Readonly<Job>, folderName
 
 function gateRunStepReadsLost(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>, stepIndex: number): boolean {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
-  const step = manifest === 'unreadable' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, place, job)[stepIndex];
+  const step = manifest === 'cannot-run' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, place, job)[stepIndex];
   return step !== undefined && lineReadsLost(context, job, step.folder);
 }
 
@@ -2932,7 +2888,7 @@ async function spawnGateRunStep(
   context: JobLaunchContext, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }
 ): Promise<void> {
   const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
-  const step = manifest === 'unreadable' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, run.place, job)[run.stepIndex];
+  const step = manifest === 'cannot-run' || StoredFileUnreadable.isUnreadableFile(manifest) ? undefined : gateStepsOf(manifest, run.place, job)[run.stepIndex];
   if (step !== undefined) await spawnGateStep(context, job, run.pipeline, step);
 }
 
