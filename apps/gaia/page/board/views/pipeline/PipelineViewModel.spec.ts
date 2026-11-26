@@ -1,6 +1,7 @@
 /**
- * The Pipeline view's screen choice. What matters: the facts decide before the route. With no record and no pipeline the setup landing
- * shows, and an unreadable `pipeline.json` lands there too with its reason; a record in `setup` mode opens the route's step only while
+ * The Pipeline view's screen choice. What matters: the facts decide before the route. With no record and no pipeline the setup landing,
+ * the welcome, shows, and at the agent step's route the agent step that starts the setup; an unreadable `pipeline.json` lands on both with
+ * its reason; a record in `setup` mode opens the route's step only while
  * the record has reached it, and the resume summary on the bare `#pipeline` or an unknown or unreached step; a record in `update` or
  * `advise` mode is the flow being edited, or the constitution at `#pipeline/edit/constitution`; a readable pipeline is the live flow. A
  * step's route is `#pipeline/setup/<step>`; once the setup is applied, the live
@@ -30,14 +31,17 @@ function withApplied(board: BoardDocument, applied: BoardDocument['pipeline']['a
 }
 
 describe('the screen the facts and the route pick', () => {
-  test('no record and no pipeline is the setup landing, with nothing unreadable', () => {
+  test('no record and no pipeline is the setup landing, with nothing unreadable, and the agent step\'s route the step that starts the setup', () => {
     expect(screenOf(pipelineBoardStateOf('A0'), pipelineRoute(null))).toEqual({ screen: 'setup-landing', unreadable: null });
     expect(screenOf(pipelineBoardStateOf('A0'), pipelineRoute('setup/research'))).toEqual({ screen: 'setup-landing', unreadable: null });
+    expect(screenOf(pipelineBoardStateOf('A0'), PipelineViewModel.setupStartRoute)).toEqual({ screen: 'setup-start', unreadable: null });
+    expect(PipelineViewModel.setupStartRoute).toEqual(pipelineRoute('setup/agent'));
   });
 
-  test('an unreadable pipeline is the setup landing with its reason', () => {
+  test('an unreadable pipeline is the setup landing with its reason, and so is the step that starts the setup', () => {
     const malformed = { readingVerdict: 'malformed', reason: 'gates[1] has no run line' } as const;
     expect(screenOf(pipelineBoardStateOf('A0-unreadable'), pipelineRoute(null))).toEqual({ screen: 'setup-landing', unreadable: malformed });
+    expect(screenOf(pipelineBoardStateOf('A0-unreadable'), pipelineRoute('setup/agent'))).toEqual({ screen: 'setup-start', unreadable: malformed });
     const older = withApplied(pipelineBoardStateOf('A0'), { readingVerdict: 'older', fileText: '{}\n' });
     expect(screenOf(older, pipelineRoute(null))).toEqual({ screen: 'setup-landing', unreadable: { readingVerdict: 'older' } });
   });
@@ -137,6 +141,7 @@ describe('the words and routes', () => {
     expect(PipelineViewModel.screenTitleOf({ screen: 'setup-step', step: 'design' })).toBe('Pipeline design');
     expect(PipelineViewModel.screenTitleOf({ screen: 'flow', stage: 'live' })).toBe('Pipeline');
     expect(PipelineViewModel.screenTitleOf({ screen: 'setup-landing', unreadable: null })).toBe('Set up the pipeline');
+    expect(PipelineViewModel.screenTitleOf({ screen: 'setup-start', unreadable: null })).toBe('Agent');
   });
 
   test('an unreadable file\'s banner names its reason and says a new setup replaces it', () => {

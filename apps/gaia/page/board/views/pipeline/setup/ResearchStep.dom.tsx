@@ -1,14 +1,14 @@
 /**
- * The research step against fake controls and a fake transcript. What matters: the findings render by topic with their source paths and
- * the scripts with their command and meaning, a script that needs a network with the amber dot and its note; the stack chips pop in and no
- * finding offers to run anything; Answer sends the chosen letter or the Other text and the card turns into the answered pill; Continue
- * is enabled while the agent still researches; while a turn runs the typing line says what the agent does, politely live; a step prompt
- * Hephaestus sent reads as its system line with the prompt on User's ask, never as a User bubble; grey lines
- * stand in before the first finding; Stop stops the agent's job; the panel head says the agent researches, and the page's one Flint slot
- * waits on User while a research question is open. In monorepo mode (MonoResearch): the layout comes first; each session's row says its
- * state in words; a press on a row shows that session's findings and chat at its level in the route; Stop on a row stops that session
- * alone, and Stop all stops every live session and none that ended; Continue opens the entities step; no control sets how many sessions
- * run at once.
+ * The research step against fake controls and a fake transcript. What matters: the findings render by topic with their source paths and the
+ * scripts with their command and meaning, a script that needs a network with the amber dot and its note; the stack chips pop in and no
+ * finding offers to run anything; Answer sends the chosen letter or the Other text and the card turns into the answered pill; Continue is
+ * enabled while the agent still researches; while a turn runs the typing line says what the agent does, politely live; a step prompt
+ * Hephaestus sent reads as its system line with the prompt on User's ask, never as a User bubble; grey lines stand in before the first
+ * finding; Stop, in the agent's panel, stops the agent's job; the footer says the step is saved and leads Back to billing; the panel head
+ * says the agent researches, and the page's one Flint slot waits on User while a research question is open; the step's place in the steps
+ * heads the page. In monorepo mode (MonoResearch): the layout comes first; each session's row says its state in words; a press on a row
+ * shows that session's findings and chat at its level in the route; Stop on a row stops that session alone, and Stop all stops every live
+ * session and none that ended; Continue opens the entities step; no control sets how many sessions run at once.
  */
 import {
   cleanup,
@@ -65,7 +65,7 @@ function renderResearch(board: BoardDocument = researchingBoard()) {
 describe('the findings', () => {
   test('render by topic with their source paths, and the scripts with command and meaning', () => {
     renderResearch();
-    expect(screen.getByRole('heading', { name: 'Getting to know Example Agency' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'What Example Agency is made of' })).toBeDefined();
     expect(screen.getByRole('region', { name: 'Stack' }).textContent).toContain('tsconfig.json');
     expect(screen.getByRole('region', { name: 'Conventions' }).textContent).toContain('CONTRIBUTING.md');
     const scripts = screen.getByRole('region', { name: 'Scripts' });
@@ -108,11 +108,11 @@ describe('the findings', () => {
 });
 
 describe('the status', () => {
-  test('the line over the page names the agent, the snapshot and the time since its launch', () => {
+  test('the step\'s place in the steps heads the page, and the line under the title names the agent, the snapshot and the time since its launch', () => {
     renderResearch();
+    expect(screen.getByText('Step 3 of 6')).toBeDefined();
     expect(document.querySelector('.board-pipeline-research-status')?.textContent)
       .toBe('Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s');
-    expect(screen.getByText('2 scripts found · 1 open question').getAttribute('aria-live')).toBe('polite');
   });
 
   test('the panel head says the agent researches, and with a research question open Flint waits on User in the one slot of the page', () => {
@@ -237,6 +237,14 @@ describe('the actions', () => {
       ...SENT_COMMAND_VERSION, kind: 'job-stop', jobId: 'J4', mode: 'stop'
     }]);
     expect(window.location.hash).toBe('#forge/example-tracker/pipeline');
+  });
+
+  test('the footer says the step is saved, leads Back to billing and keeps Stop in the agent\'s panel', () => {
+    renderResearch();
+    const footer = screen.getByRole('region', { name: 'Research actions' });
+    expect(within(footer).getByText('Saved as you go · the agent keeps working if you leave')).toBeDefined();
+    expect(within(footer).getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('#forge/example-tracker/pipeline/setup/billing');
+    expect(within(footer).queryByRole('button', { name: 'Stop the pipeline agent' })).toBeNull();
   });
 });
 

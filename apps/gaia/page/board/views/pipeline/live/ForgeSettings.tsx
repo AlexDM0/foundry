@@ -51,7 +51,7 @@ function AgentCard({ facts }: ForgeSettingsProps) {
       {choiceKind === null ? <Text>No agent is chosen for this forge, so no job launches. Choose its program below.</Text> : null}
       <AgentProgramPanel agent={agent} choice={agent.choice} target={{ kind: 'forge' }} project={project} programChoice={programChoice} />
       <Row centerY gap="eight" wrap>
-        <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} />
+        <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} wait={AgentChoiceModel.lookAgainWait} />
         <Text muted>Forge runs the program again and launches every job that stood not launched.</Text>
       </Row>
       {choiceKind === 'machine' && agent.otherForgesFollowingMachine !== 0
@@ -81,7 +81,13 @@ function BillingCard({ facts, agentChoice, billingNotOffered }: BillingCardProps
       <Text>{ForgeBillingModel.noticeTextOf(billingNotOffered, displayName)}</Text>
       <BillingCards cards={cards} choice={choice} onChoose={setChoice} />
       <span>
-        <CommandButton label="Save billing" command={ForgeBillingModel.saveCommandOf(agentChoice, choice, cards)} primary attention />
+        <CommandButton
+          label="Save billing"
+          command={ForgeBillingModel.saveCommandOf(agentChoice, choice, cards)}
+          primary
+          attention
+          wait={AgentChoiceModel.programCheckWaitOf(displayName, 'keeps the billing with this forge\'s agent')}
+        />
       </span>
     </Card>
   );

@@ -1,11 +1,14 @@
 /**
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
  * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
- * does not hold is absent, never zero. Agents is
- * `8+` while a forge at a version Gaia cannot talk to runs agents no total counts.
+ * does not hold is absent, never zero. Agents is `8+` while a forge at a version Gaia cannot talk to runs agents no total counts. A forge
+ * with no pipeline, which Gaia knows by the forge's "no pipeline" question, says so under its name, where its setup stands while its board
+ * shows it, and, before its setup is under way, offers Set up in place of a count while Gaia reads it in full, talks to it and nothing else
+ * of it waits. That question counts nowhere (`FleetDocumentUtil`).
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../components/ConditionDot.tsx';
+import type { SetupProgress }                        from '../shared/@types/SetupProgress.ts';
 import { type GaiaRoute, type GaiaView, HashRouter } from '../shared/HashRouter.ts';
 import { type MachineLoad, MachineLoadModel }        from '../shared/MachineLoadModel.ts';
 import { FleetDocumentUtil }                         from '../shared/utils/FleetDocumentUtil.ts';
@@ -35,14 +38,27 @@ export interface RailViewRow {
 }
 
 export interface RailForgeRow {
-  readonly trackerId: string;
-  readonly project:   string;
-  readonly condition: DotCondition;
+  readonly trackerId:   string;
+  readonly project:     string;
+  readonly condition:   DotCondition;
   /** The condition word, and for a forge at another version what that version means: `Older than this Gaia · update the forge`. */
-  readonly title:     string;
-  readonly href:      string;
-  readonly count:     RailCount | null;
-  readonly isCurrent: boolean;
+  readonly title:       string;
+  readonly href:        string;
+  readonly count:       RailCount | null;
+  readonly isCurrent:   boolean;
+  /** Under the name while the forge has no pipeline: `Not set up yet`, or `Setting up · step 3 of 6` while its board shows where it stands. */
+  readonly setupLine:   string | null;
+  /**
+   * The dashed Set up in place of a count: the forge has no pipeline, no setup of it is under way, nothing else of it waits on User, and Gaia
+   * reads it in full and talks to it, so the forge view opens on its onboarding.
+   */
+  readonly offersSetUp: boolean;
+}
+
+/** Where the setup of the forge shown in place stands, as its board last told the page. */
+export interface OpenForgeSetup {
+  readonly trackerId: string;
+  readonly progress:  SetupProgress;
 }
 
 export interface RailContent {
@@ -65,6 +81,32 @@ const RAIL_VIEWS: readonly RailView[] = ['attention', 'agents', 'activity', 'for
 
 const NO_FORGE_LINE = 'No forge is registered';
 
+const NOT_SET_UP_LINE = 'Not set up yet';
+
+/** The board shown in place says where its setup stands; any other forge has no pipeline while its "no pipeline" question is open. */
+function setupLineOf(forge: FleetDocumentForge, openForgeSetup: OpenForgeSetup | null): string | null {
+  const progress = openForgeSetup?.trackerId === forge.trackerId ? openForgeSetup.progress : null;
+  if (progress?.stage === 'setting-up') return `Setting up · step ${progress.stepNumber} of ${progress.stepCount}`;
+  return progress !== null || FleetDocumentUtil.reportsNoPipeline(forge) ? NOT_SET_UP_LINE : null;
+}
+
+/** Only a forge Gaia reads in full and talks to opens on its onboarding; any other opens on why it cannot. */
+function setUpOpensTheOnboarding(forge: FleetDocumentForge): boolean {
+  return forge.fidelity === 'full' && !FleetDocumentUtil.cannotTalkAtItsVersion(forge);
+}
+
+function progressIsTheSame(previousProgress: SetupProgress, reportedProgress: SetupProgress): boolean {
+  if (previousProgress.stage === 'not-started' || reportedProgress.stage === 'not-started') return previousProgress.stage === reportedProgress.stage;
+  return previousProgress.stepNumber === reportedProgress.stepNumber && previousProgress.stepCount === reportedProgress.stepCount;
+}
+
+/** The open forge's setup after its board reported, the same object when nothing changed; `null` progress clears only that forge's. */
+function openForgeSetupAfterReport(previous: OpenForgeSetup | null, trackerId: string, progress: SetupProgress | null): OpenForgeSetup | null {
+  if (progress === null) return previous?.trackerId === trackerId ? null : previous;
+  if (previous?.trackerId === trackerId && progressIsTheSame(previous.progress, progress)) return previous;
+  return { trackerId, progress };
+}
+
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
@@ -84,13 +126,15 @@ function countOf(count: number, tone: RailCountTone, mark: RailCountMark = ''): 
 function forgeCountOf(forge: FleetDocumentForge): RailCount | null {
   switch (forge.fidelity) {
     case 'full': {
-      const waiting = forge.attention.length + forge.outageEndings;
+      const waiting = FleetDocumentUtil.attentionWaitingOnUserOf(forge).length + forge.outageEndings;
       return waiting === 0 ? null : countOf(waiting, 'attention');
     }
     case 'counts-only':
       return forge.attentionCount === null || forge.attentionCount === 0 ? null : countOf(forge.attentionCount, 'attention');
-    case 'unreachable':
-      return forge.attention.length === 0 ? null : countOf(forge.attention.length, 'muted', '?');
+    case 'unreachable': {
+      const lastReported = FleetDocumentUtil.attentionWaitingOnUserOf(forge).length;
+      return lastReported === 0 ? null : countOf(lastReported, 'muted', '?');
+    }
     default:
       return null;
   }
@@ -98,10 +142,11 @@ function forgeCountOf(forge: FleetDocumentForge): RailCount | null {
 
 /** What waits on User across the fleet; `4+` when a forge Gaia cannot read in full may hold more, absent when nothing waits. */
 function attentionCountOf(fleetDocument: FleetDocument): RailCount | null {
-  const { waitingOnUser, incompleteFor } = fleetDocument.figures;
+  const { incompleteFor } = fleetDocument.figures;
+  const waiting = FleetDocumentUtil.waitingOnUserTotalOf(fleetDocument);
   const morePossible = incompleteFor.length > 0;
-  if (waitingOnUser === 0 && !morePossible) return null;
-  return countOf(waitingOnUser, 'attention', morePossible ? '+' : '');
+  if (waiting === 0 && !morePossible) return null;
+  return countOf(waiting, 'attention', morePossible ? '+' : '');
 }
 
 /** A count as one piece of text, its mark after it: `4+`, `2?`. */
@@ -138,7 +183,23 @@ function railViewOf(route: GaiaRoute): RailView | null {
   return route.view === 'forge' ? null : route.view;
 }
 
-function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): RailContent {
+function forgeRowOf(forge: FleetDocumentForge, currentTrackerId: string | null, openForgeSetup: OpenForgeSetup | null): RailForgeRow {
+  const count = forgeCountOf(forge);
+  const setupLine = setupLineOf(forge, openForgeSetup);
+  return {
+    trackerId:   forge.trackerId,
+    project:     forge.project,
+    condition:   ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
+    title:       forgeTitleOf(forge),
+    href:        forgeHrefOf(forge),
+    count,
+    isCurrent:   forge.trackerId === currentTrackerId,
+    setupLine,
+    offersSetUp: setupLine === NOT_SET_UP_LINE && count === null && setUpOpensTheOnboarding(forge),
+  };
+}
+
+function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute, openForgeSetup: OpenForgeSetup | null = null): RailContent {
   const currentView = railViewOf(route);
   const currentTrackerId = route.view === 'forge' ? route.trackerId : null;
   return {
@@ -149,15 +210,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
       count:     viewCountOf(view, fleetDocument),
       isCurrent: view === currentView,
     })),
-    forges: fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => ({
-      trackerId: forge.trackerId,
-      project:   forge.project,
-      condition: ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
-      title:     forgeTitleOf(forge),
-      href:      forgeHrefOf(forge),
-      count:     forgeCountOf(forge),
-      isCurrent: forge.trackerId === currentTrackerId,
-    })),
+    forges:      fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => forgeRowOf(forge, currentTrackerId, openForgeSetup)),
     noForgeLine: fleetDocument !== null && fleetDocument.forges.length === 0 ? NO_FORGE_LINE : null,
     machine:     fleetDocument === null ? null : MachineLoadModel.machineLoadOf(fleetDocument),
   };
@@ -166,6 +219,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
 export const RailModel = {
   railContentOf,
   attentionCountOf,
+  openForgeSetupAfterReport,
   countTextOf,
   VIEW_LABELS,
 } as const;

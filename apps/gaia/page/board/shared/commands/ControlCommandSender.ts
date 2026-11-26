@@ -15,10 +15,12 @@ export const UNREACHABLE_WORDING = 'Hephaestus could not be reached. Try again.'
 export const OUTCOME_UNKNOWN_WORDING = 'Hephaestus may have applied this, but its answer was lost. Check the board before sending it again.';
 
 export interface ControlCommandSender {
-  readonly enabled: boolean;
+  readonly enabled:   boolean;
   /** The refusal of the last send, `null` before one and after one the forge applied. */
-  readonly refusal: string | null;
-  readonly send:    () => Promise<void>;
+  readonly refusal:   string | null;
+  /** Whether a send is on its way to the forge and its answer has not come yet. */
+  readonly isSending: boolean;
+  readonly send:      () => Promise<void>;
 }
 
 export interface ControlCommandOptions {
@@ -45,6 +47,8 @@ function commandsOf(command: SentCommands | null): readonly BoardCommandDocument
 export interface ControlCommandSequenceSender {
   /** Whether the board lets a control act now and no send is on its way. */
   readonly canSend:         boolean;
+  /** Whether a send is on its way to the forge and its answer has not come yet. */
+  readonly isSending:       boolean;
   readonly refusal:         string | null;
   /** The code and facts of the last send's refusal when the forge refused it, `null` otherwise. */
   readonly forgeRefusal:    ForgeRefusalFacts | null;
@@ -100,7 +104,7 @@ export function useControlCommandSequence(options: ControlCommandOptions = {}): 
   };
 
   return {
-    canSend, refusal, forgeRefusal, appliedCommands, sendCommands
+    canSend, isSending: sending, refusal, forgeRefusal, appliedCommands, sendCommands
   };
 }
 
@@ -113,5 +117,7 @@ export function useControlCommand(command: SentCommands | null, options: Control
   const send = async (): Promise<void> => {
     if (enabled) await sequence.sendCommands(commands);
   };
-  return { enabled, refusal: sequence.refusal, send };
+  return {
+    enabled, refusal: sequence.refusal, isSending: sequence.isSending, send
+  };
 }

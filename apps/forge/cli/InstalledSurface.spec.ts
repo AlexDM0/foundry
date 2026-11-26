@@ -106,7 +106,7 @@ describe('the guard, planted in memory', () => {
     const renamedCli = cliSurfaceWithHelpReplaced('--depends-on', '--waits-on');
     const renamedTexts = withTextReplaced(INSTALLED_TEXTS, 'resources/templates/Reference.md', '--depends-on', '--waits-on');
     expect(sentencesWith(renamedTexts, renamedCli)).toContain(`the files installed at INSTALL_VERSION ${INSTALL_VERSION} name the flag --depends-on, which the CLI `
-      + 'no longer has: an installed file became wrong, so bump INSTALL_VERSION in cli/constants/InstallVersion.ts (CLAUDE.md, Generated and installed files) '
+      + 'no longer has: an installed file became wrong, so bump INSTALL_VERSION in cli/constants/InstallVersion.ts (.claude/rules/forge.md, Generated and installed files) '
       + 'and freeze the new version\'s surface');
   });
 

@@ -161,12 +161,12 @@ function retiredNamesIn(filePath: string, text: string): string[] {
 test('the scan reads every program and package file but this one, the board and the design documents, the renamed roots among them', () => {
   const filePaths = scannedFiles().map(({ path }) => path);
   expect(filePaths.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
-  expect(filePaths).toContain('CLAUDE.md');
+  expect(filePaths).toContain('README.md');
   expect(filePaths).toEqual(expect.arrayContaining(['forge-contracts/package.json', 'system-versions/package.json']));
   expect(filePaths.some((filePath) => filePath.startsWith('src/services/hephaestus/'))).toBe(true);
   expect(filePaths.some((filePath) => filePath.startsWith('src/lib/talos/'))).toBe(true);
   expect(filePaths.filter((filePath) => filePath === THIS_FILE || UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)))).toEqual([]);
-  expect(readFileSync(join(REPOSITORY_ROOT, 'CLAUDE.md'), 'utf8')).toContain('Hephaestus');
+  expect(readFileSync(join(REPOSITORY_ROOT, 'README.md'), 'utf8')).toContain('Hephaestus');
 });
 
 test('no repository file names a component by its retired name, beyond the exact allowlist', () => {

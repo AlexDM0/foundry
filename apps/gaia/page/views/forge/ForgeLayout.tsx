@@ -3,7 +3,10 @@
  * question as a popover under its button and Open in new tab, or, for a forge Gaia cannot talk to, the
  * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
  * Hephaestus and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
- * talk to or why its board cannot be shown. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
+ * talk to or why its board cannot be shown. While the forge's board is in setup the bar is its name, the setup step bar (or the repository's
+ * path before a setup record opens), the condition's word while it is not live, and one quiet menu of the rare controls: Open in new tab,
+ * Pause or Unpause, Stop with its question in place, and the restarts. It takes no hooks: the states and the handlers come in as props, so a
+ * spec unfolds it whole.
  */
 import type { ReactNode, RefObject } from 'react';
 
@@ -18,6 +21,9 @@ import {
   ChoiceOption,
   ConfirmStrip,
   IconButton,
+  Menu,
+  MenuItem,
+  MenuSeparator,
   MonoId,
   Popover,
   Text
@@ -28,9 +34,11 @@ import { ForgeCommandTextUtil, type StopQuestion } from '../../shared/utils/Forg
 import { ForgeVersionsTextUtil }                   from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import type {
   BarCannotTalk,
+  BarCommand,
   BarLineSegment,
   BarRefusal,
   BarUpdateStep,
+  BarVersionPair,
   BarVersions,
   ForgeBar,
   ForgeArea,
@@ -256,20 +264,131 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
   );
 }
 
+export interface ForgeActionsMenuProps extends ForgeBarControlsProps {
+  readonly menuIsOpen:       boolean;
+  /** Opens or closes the menu; a close also puts Stop's question away. */
+  readonly onMenuOpenChange: (isOpen: boolean) => void;
+}
+
+const FORGE_ACTIONS_LABEL = 'Forge actions';
+
+/** The trigger's three dots, hidden since the trigger's name says what it opens. */
+const MORE_GLYPH = '⋯';
+
+/** A restart's item: its words, the running version as its description, and a mark while a newer version is installed. */
+interface RestartItemProps {
+  readonly restart:   BarCommand;
+  readonly pair:      BarVersionPair | undefined;
+  readonly onCommand: (command: ForgeCommandBody) => void;
+}
+
+function RestartItem({ restart, pair, onCommand }: RestartItemProps) {
+  return (
+    <MenuItem
+      label={restart.label}
+      {...(pair === undefined ? {} : { description: pair.line.map((segment) => segment.text).join(''), title: pair.title })}
+      marked={pair?.newerIsInstalled ?? false}
+      closing="return-focus"
+      onChoose={() => onCommand(restart.command)}
+    />
+  );
+}
+
+/**
+ * The setup bar's one menu: Open in new tab, Pause or Unpause, Stop, whose question opens in its place, and a restart of Hephaestus and of
+ * Talos with the versions each runs; a control that cannot act now is left out, and a newer installed version marks the trigger.
+ */
+export function ForgeActionsMenu(props: ForgeActionsMenuProps) {
+  const {
+    bar, commandIsOnItsWay, stopIsOpen, onCommand, onOpenStop, onOpenInNewTab, menuIsOpen, onMenuOpenChange
+  } = props;
+  const controlsMayAct = bar.controlContractIsKnown && !commandIsOnItsWay;
+  const { pauseOrUnpause, stop, versions } = bar;
+  const restartsMayAct = versions !== null && versions.restartsMayAct && !commandIsOnItsWay;
+  const pairOf = (component: BarVersionPair['component']) => versions?.pairs.find((pair) => pair.component === component);
+  return (
+    <Menu
+      label={FORGE_ACTIONS_LABEL}
+      trigger="icon"
+      align="end"
+      wide
+      triggerContent={<span aria-hidden="true">{MORE_GLYPH}</span>}
+      triggerName={`${FORGE_ACTIONS_LABEL} of ${bar.project}`}
+      triggerTitle={FORGE_ACTIONS_LABEL}
+      marked={versions?.pairs.some((pair) => pair.newerIsInstalled) ?? false}
+      isOpen={menuIsOpen}
+      onOpenChange={onMenuOpenChange}
+    >
+      <MenuItem label={OPEN_IN_NEW_TAB_LABEL} closing="return-focus" onChoose={onOpenInNewTab} />
+      {pauseOrUnpause === null || !controlsMayAct
+        ? null
+        : <MenuItem label={pauseOrUnpause.label} closing="return-focus" onChoose={() => onCommand(pauseOrUnpause.command)} />}
+      {stop === null || !controlsMayAct ? null : (
+        stopIsOpen ? <StopQuestionStrip question={stop} {...props} /> : <MenuItem label="Stop" closing="stays-open" onChoose={onOpenStop} />
+      )}
+      {restartsMayAct ? (
+        <>
+          <MenuSeparator />
+          <RestartItem restart={versions.restartHephaestus} pair={pairOf('Hephaestus')} onCommand={onCommand} />
+          <RestartItem restart={versions.restartTalos} pair={pairOf('Talos')} onCommand={onCommand} />
+        </>
+      ) : null}
+    </Menu>
+  );
+}
+
+export interface ForgeSetupBarContentProps {
+  readonly stepBar:   ReactNode;
+  readonly root:      string;
+  /** The forge's condition while it is not live, said by its dot and word, the whole reading in its tooltip; `null` while live. */
+  readonly condition: ForgeBarStatus | null;
+}
+
+/**
+ * What the setup bar shows after the forge's name: the setup step bar, or, before a setup record opens, the repository's path; then the
+ * condition while the forge is not live.
+ */
+export function ForgeSetupBarContent({ stepBar, root, condition }: ForgeSetupBarContentProps) {
+  return (
+    <>
+      {stepBar !== null && stepBar !== undefined
+        ? <span className="gaia-forge-frame-bar-setup">{stepBar}</span>
+        : <span className="gaia-forge-frame-bar-root"><Text typeRole="small" mono muted>{root}</Text></span>}
+      {condition === null ? null : (
+        <span className="gaia-forge-frame-bar-condition" title={condition.text}>
+          <ConditionDot condition={condition.condition} />
+          <span className="gaia-forge-frame-bar-word" data-condition={condition.condition === 'outdated' ? condition.condition : undefined}>{condition.word}</span>
+        </span>
+      )}
+    </>
+  );
+}
+
+/** The setup step bar on a line of its own under a forge's whole bar, so the setup's steps show whatever the bar holds. */
+export function ForgeSetupStepRow({ stepBar }: { readonly stepBar: ReactNode }) {
+  if (stepBar === null || stepBar === undefined) return null;
+  return <div className="gaia-forge-frame-setup-row">{stepBar}</div>;
+}
+
 export interface ForgeBarLayoutProps {
   /** The forge's name, or its tracker id until the fleet document names it. */
   readonly name:     string;
   /** `null` until the fleet document reports the forge. */
   readonly status:   ForgeBarStatus | null;
   readonly controls: ReactNode;
+  /** In the status's place while the forge's board is in setup (`ForgeSetupBarContent`); the bar is then the setup bar. */
+  readonly setup?:   ReactNode;
 }
 
 /** The bar heads the view, since a forge in place has no page title; its line keeps to one line, the whole reading in its tooltip. */
-export function ForgeBarLayout({ name, status, controls }: ForgeBarLayoutProps) {
+export function ForgeBarLayout({
+  name, status, controls, setup
+}: ForgeBarLayoutProps) {
   return (
-    <header className="gaia-forge-frame-bar">
+    <header className="gaia-forge-frame-bar" data-setup={setup === undefined ? undefined : ''}>
       <ForgeMark />
       <h1 className="gaia-forge-frame-bar-name">{name}</h1>
+      {setup}
       {status === null ? null : (
         <span className="gaia-forge-frame-bar-status">
           <ConditionDot condition={status.condition} />

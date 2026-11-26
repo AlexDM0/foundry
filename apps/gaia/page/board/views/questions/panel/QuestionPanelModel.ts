@@ -170,17 +170,9 @@ function shownDecisionOf(queue: readonly QueuedDecision[], pointedDecisionId: st
     ?? null;
 }
 
-/** The board's "no pipeline" question, which the pipeline setup answers: Apply withdraws it. */
-const CHECKS_NOT_SET_KIND = 'checks-not-set';
-
-/**
- * The decisions that never open the panel by themselves: the board's "no pipeline" question while the board has no readable pipeline,
- * since the Pipeline view then shows the setup, which answers it. User still opens it from the Questions tab. A Hephaestus that serves no
- * pipeline facts quiets nothing.
- */
-function decisionIdsTheSetupAnswersOf(queue: readonly QueuedDecision[], pipelineReadingVerdict: string | null): string[] {
-  if (pipelineReadingVerdict === null || pipelineReadingVerdict === 'readable') return [];
-  return queue.filter(({ decision }) => decision.kind === CHECKS_NOT_SET_KIND).map(({ decision }) => decision.id);
+/** The decisions the panel may show: none while the board is in setup, whose onboarding is then all the board shows; else every open one. */
+function panelQueueOf(queue: readonly QueuedDecision[], boardIsInSetup: boolean): readonly QueuedDecision[] {
+  return boardIsInSetup ? [] : queue;
 }
 
 /** It shows while User opened it or a decision opened that was not open when User last folded it; never with nothing open. */
@@ -367,5 +359,5 @@ function conversationTurnsOf(items: readonly ChatThreadItem[], jobId: string, to
 }
 
 export const QuestionPanelModel = Object.freeze({
-  shownDecisionOf, panelIsShownOf, decisionIdsTheSetupAnswersOf, nextDecisionIdOf, questionPanelModelOf, lastStepsOf, conversationTurnsOf
+  shownDecisionOf, panelIsShownOf, panelQueueOf, nextDecisionIdOf, questionPanelModelOf, lastStepsOf, conversationTurnsOf
 });

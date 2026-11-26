@@ -17,7 +17,7 @@ export function AgentNotice({ notice }: { readonly notice: AgentNoticeView }) {
         action={(
           <Row centerY gap="eight">
             <Button label={notice.actionLabel} compact href={hrefOf(notice.actionRoute)} />
-            {notice.offersLookAgain ? <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} compact /> : null}
+            {notice.offersLookAgain ? <CommandButton label="Look again" command={AgentChoiceModel.lookAgainCommand()} compact wait={AgentChoiceModel.lookAgainWait} /> : null}
           </Row>
         )}
       />

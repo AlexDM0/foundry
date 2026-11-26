@@ -23,6 +23,7 @@ import type { BoardServices }                                           from '..
 import { PaintedTranscriptsContext }                                    from '../board/conversation/TranscriptLog.tsx';
 import { ControlSurroundingsContext, type ControlSurroundings }         from '../board/shared/commands/ControlAvailability.ts';
 import { BoardGoToContext, BoardTrackerContext }                        from '../board/shared/routing/BoardRouteLinks.ts';
+import { pipelineBoardStateOf }                                         from '../board/testing/PipelineFixture.ts';
 import {
   DOCUMENT_STATES,
   DOCUMENTS_PROJECT,
@@ -48,9 +49,11 @@ import { followCaretIn }                                                        
 import { scrollToLines, TicketDocumentsPage, type PageStateAtMount }                                  from '../board/views/documents/TicketDocumentsView.tsx';
 import { FirstOpenPhaseContext }                                                                      from '../board/views/pipeline/flow/FlowSelection.ts';
 import type { PipelinePhase }                                                                         from '../board/views/pipeline/flow/PipelinePhaseModel.ts';
+import type { SetupProgress }                                                                         from '../shared/@types/SetupProgress.ts';
 import { BoardRouter, type BoardRoute }                                                               from '../shared/BoardRouter.ts';
 import { HashRouter }                                                                                 from '../shared/HashRouter.ts';
 import { GaiaShell, viewPartsOf }                                                                     from '../shell/GaiaApp.tsx';
+import type { OpenForgeSetup }                                                                        from '../shell/RailModel.ts';
 import { ForgesLayout }                                                                               from '../views/forges/ForgesLayout.tsx';
 import { ForgesModel, type StopDialogState }                                                          from '../views/forges/ForgesModel.ts';
 import { GaiaPanelModel }                                                                             from '../views/forges/GaiaPanelModel.ts';
@@ -62,12 +65,18 @@ import { forgeViewSurroundingsAt, silentBoardServicesOf }                       
 import { FLEET_AT_LIMIT }                                                                             from './fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                                                                             from './fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                                                from './fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT }                   from './fixtures/fleet-five-forges.ts';
-import { FLEET_OUTAGE_ENDINGS }                                                                       from './fixtures/fleet-outage-endings.ts';
-import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG }     from './fixtures/fleet-storefront-crashed.ts';
-import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                                 from './fixtures/fleet-versions.ts';
-import { storefrontBoardOf }                                                                          from './fixtures/storefront-board.ts';
-import { STOREFRONT_ONE_TICKET_BOARD, STOREFRONT_TICKETS_BOARD }                                      from './fixtures/storefront-tickets-board.ts';
+import {
+  FLEET_FIVE_FORGES,
+  FLEET_FIVE_FORGES_READINGS,
+  FLEET_FIVE_FORGES_TRACKER_IDS,
+  FLEET_FIXTURES_READ_AT
+} from './fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                                                                   from './fixtures/fleet-outage-endings.ts';
+import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG } from './fixtures/fleet-storefront-crashed.ts';
+import { FLEET_STOREFRONT_IN_SETUP }                                                              from './fixtures/fleet-storefront-in-setup.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                             from './fixtures/fleet-versions.ts';
+import { storefrontBoardOf }                                                                      from './fixtures/storefront-board.ts';
+import { STOREFRONT_ONE_TICKET_BOARD, STOREFRONT_TICKETS_BOARD }                                  from './fixtures/storefront-tickets-board.ts';
 
 export type ScreenTheme = 'dark' | 'light';
 
@@ -595,6 +604,7 @@ export function screenMarkupOf(
   storefrontBoard: BoardDocument | null = null,
   firstOpenPhase: PipelinePhase = 'build',
   paintedTranscripts: ReadonlyMap<string, readonly BoardTranscriptEntryDocument[]> = new Map(),
+  openForgeSetup: OpenForgeSetup | null = null,
 ): string {
   const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
   const route = HashRouter.routeOf(screen.fragment);
@@ -621,6 +631,7 @@ export function screenMarkupOf(
             view={view}
             themeChoice={theme}
             onThemeChoice={doNothing}
+            openForgeSetup={openForgeSetup}
           />
         </PaintedTranscriptsContext>
       </FirstOpenPhaseContext>
@@ -1068,4 +1079,64 @@ export function ticketsScreenMarkupOf(screen: TicketsScreen, theme: ScreenTheme)
 /** A whole page for a browser, opened at the artboard's 1680 by 1180, in the screen's theme. */
 export function ticketsScreenDocumentOf(screen: TicketsScreen, theme: ScreenTheme): string {
   return documentAround(`Tickets ${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${ticketsScreenMarkupOf(screen, theme)}</div>`);
+}
+
+/** The onboarding's screens, drawn at the page's artboard size. */
+export interface SetupScreen {
+  readonly title:         string;
+  /** The artboard's name among the owner's onboarding drawings. */
+  readonly designFile:    'onboarding/Main.dc.html' | 'onboarding/AgentStep.dc.html' | 'onboarding/ResearchStep.dc.html';
+  readonly board:         BoardDocument;
+  readonly boardRoute:    BoardRoute;
+  /** Where the setup stands as the board tells the page once it shows, which a server render runs no effect to learn. */
+  readonly setupProgress: SetupProgress;
+}
+
+/** The setup's board as Example Storefront's, named as the fleet names it; its open decisions stay, which the onboarding never shows. */
+function boardInSetupOf(board: BoardDocument): BoardDocument {
+  return { ...board, project: FLEET_FIVE_FORGES_READINGS.exampleStorefront.project };
+}
+
+/** Example Storefront with no pipeline yet: the welcome, the agent step that starts its setup, and the research step of an open setup. */
+export const SETUP_SCREENS: readonly SetupScreen[] = [
+  {
+    title:         'Welcome to a new forge',
+    designFile:    'onboarding/Main.dc.html',
+    board:         boardInSetupOf(pipelineBoardStateOf('landing-found')),
+    boardRoute:    { tab: 'pipeline', item: null },
+    setupProgress: { stage: 'not-started' },
+  },
+  {
+    title:         'Setup step 1, Agent',
+    designFile:    'onboarding/AgentStep.dc.html',
+    board:         boardInSetupOf(pipelineBoardStateOf('landing-found')),
+    boardRoute:    { tab: 'pipeline', item: 'setup/agent' },
+    setupProgress: { stage: 'setting-up', stepNumber: 1, stepCount: 6 },
+  },
+  {
+    title:         'Setup step 3, Research',
+    designFile:    'onboarding/ResearchStep.dc.html',
+    board:         boardInSetupOf(pipelineBoardStateOf('A1')),
+    boardRoute:    { tab: 'pipeline', item: 'setup/research' },
+    setupProgress: { stage: 'setting-up', stepNumber: 3, stepCount: 6 },
+  },
+];
+
+/** Example Storefront in place at the screen's setup route, drawn from the screen's board, its rail row saying where the setup stands. */
+export function setupScreenMarkupOf(screen: SetupScreen, theme: ScreenTheme): string {
+  const storefrontInSetup: ArtboardScreen = {
+    artboard:      'B1',
+    title:         screen.title,
+    designFile:    screen.designFile,
+    fleetDocument: FLEET_STOREFRONT_IN_SETUP,
+    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: screen.boardRoute }),
+    viewState:     'as-routed',
+  };
+  const openForgeSetup: OpenForgeSetup = { trackerId: TRACKER_IDS.exampleStorefront, progress: screen.setupProgress };
+  return screenMarkupOf(storefrontInSetup, theme, screen.board, 'build', new Map(), openForgeSetup);
+}
+
+/** A whole page for a browser at the page's artboard size, in the screen's theme. */
+export function setupScreenDocumentOf(screen: SetupScreen, theme: ScreenTheme): string {
+  return documentAround(`Onboarding ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${setupScreenMarkupOf(screen, theme)}</div>`);
 }

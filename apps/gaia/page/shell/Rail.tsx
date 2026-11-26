@@ -1,15 +1,28 @@
 /**
  * The 232 px rail under the brand bar: the four views with their counts, one row per forge or the line saying there is none, and this
- * machine with its slot meter. Every row is a link to its route; the current one carries `aria-current`.
+ * machine with its slot meter. Every row is a link to its route; the current one carries `aria-current`. A forge with no pipeline says so
+ * under its name, and a dashed Set up stands in its count's place while nothing else of it waits.
  */
-import { ConditionDot }                          from '../components/ConditionDot.tsx';
-import { CountBadge, MicroCapsLabel, SlotMeter } from '../lib/design-system/DesignSystemInterface.ts';
+import { ConditionDot } from '../components/ConditionDot.tsx';
+import {
+  CountBadge,
+  MicroCapsLabel,
+  SlotMeter,
+  Tag
+} from '../lib/design-system/DesignSystemInterface.ts';
 
-import type { MachineLoad }                           from '../shared/MachineLoadModel.ts';
-import type { RailContent, RailCount, RailCountMark } from './RailModel.ts';
+import type { MachineLoad } from '../shared/MachineLoadModel.ts';
+import type {
+  RailContent,
+  RailCount,
+  RailCountMark,
+  RailForgeRow
+} from './RailModel.ts';
 
 const MACHINE_HREF = '#forges';
 const FORGES_HEAD_ID = 'gaia-rail-forges-head';
+
+const SET_UP_LABEL = 'Set up';
 
 /** What a count's mark says, as its holder's tooltip, since the mark itself is only the badge's qualifier. */
 const MARK_TITLES: Readonly<Record<Exclude<RailCountMark, ''>, string>> = {
@@ -40,6 +53,17 @@ function RailMachineLink({ machine }: { readonly machine: MachineLoad }) {
   );
 }
 
+/** The forge's name, and under it where its setup stands while it has no pipeline. */
+function RailForgeName({ row }: { readonly row: RailForgeRow }) {
+  if (row.setupLine === null) return <span className="gaia-rail-row-label">{row.project}</span>;
+  return (
+    <span className="gaia-rail-row-lines">
+      <span className="gaia-rail-row-label">{row.project}</span>
+      <span className="gaia-rail-row-setup">{row.setupLine}</span>
+    </span>
+  );
+}
+
 export function Rail({ content }: { readonly content: RailContent }) {
   return (
     <nav className="gaia-rail" aria-label="Gaia">
@@ -58,10 +82,17 @@ export function Rail({ content }: { readonly content: RailContent }) {
           </div>
           {content.noForgeLine === null ? null : <p className="gaia-rail-no-forge">{content.noForgeLine}</p>}
           {content.forges.map((row) => (
-            <a key={row.trackerId} className="gaia-rail-row" href={row.href} aria-current={row.isCurrent ? 'page' : undefined} title={row.title}>
+            <a
+              key={row.trackerId}
+              className="gaia-rail-row"
+              href={row.href}
+              aria-current={row.isCurrent ? 'page' : undefined}
+              title={row.title}
+              data-setup={row.setupLine === null ? undefined : ''}
+            >
               <ConditionDot condition={row.condition} />
-              <span className="gaia-rail-row-label">{row.project}</span>
-              <RailCountBadge count={row.count} />
+              <RailForgeName row={row} />
+              {row.offersSetUp ? <span className="gaia-rail-count"><Tag text={SET_UP_LABEL} tone="warn" dashed /></span> : <RailCountBadge count={row.count} />}
             </a>
           ))}
         </div>

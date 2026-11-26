@@ -63,7 +63,7 @@ names and the theme button shows, for the by-eye pass against the artboards.
 - **No shadow at rest.**
 - **"You" only for what waits on User:** "Waiting on you", "2 wait on you". Attention's lead reads "What waits on you across every forge,
   and the forges that need a look.", and the list of what waits is labelled "Waiting on you".
-- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`CLAUDE.md` rule 12;
+- **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`.claude/rules/gaia.md` rule 12;
   `page/PageImportDirection.spec.ts` holds that only `page/board/` imports Flint).
 
 ## The shell
@@ -113,6 +113,7 @@ shown, and a choice made in the window stands through a document that still carr
 | Activity | no count | as Views |
 | Forges count | The forges not hidden, plain | as Views |
 | Forges group | Micro-caps "Forges", then one row per forge not hidden, in registry order: its `ConditionDot`, the project name (ellipsis), its waiting count. The row's title is the condition word, and for a forge at another version what that version means ("Older than this Gaia · update the forge"), and the agents a network outage stopped. With no forge registered the group says "No forge is registered" and lists none; before the first document the group is absent | A row goes to `#forge/<trackerId>` when the forge can open in place (read in full, or unreachable as last reported), else to `#forges?forge=<trackerId>`, its Forges row in view |
+| A forge in setup | A forge with no pipeline, known by its open "no pipeline" question (`checks-not-set`): a second line under the name, "Not set up yet", and the dashed warn tag "Set up" in place of its count while nothing else of it waits and Gaia reads it in full and talks to it (an unreachable forge, or one at a version Gaia cannot talk to, keeps the line and offers no Set up). The forge shown in place says where its setup stands as its board tells the page: "Setting up · step 3 of 6", with no Set up tag. That question waits on nobody: no count holds it (the forge's, Attention's, the window title's, a forge bar's) and the Attention view does not list it | as the row |
 | A forge's count | Read in full: its attention entries plus its agents a network outage stopped, in the warn tone. Counts only: the count it reports. Unreachable: the count it last reported, plain, marked `?` ("2?", titled "as last reported"). Absent when none | as the row |
 | This machine | At the bottom: micro-caps "This machine"; the figure in mono, "10 / 12", and "agents"; a `SlotMeter` of the limit in orange (used filled, free open); the limit line "limit 12 of 12 CPUs". With no limit known the figure is the agents alone, the meter has one slot per CPU, and the line reads "no limit known · 12 CPUs" | One link to `#forges` |
 
@@ -535,8 +536,9 @@ route in `page/shared/HashRouter.ts` and `page/shared/BoardRouter.ts`, the bar's
 Held by: `page/views/forge/ForgeView.spec.tsx`, `ForgeModel.spec.ts`, `ForgeLayout.spec.tsx`,
 `ForgeModel.runningVersions.spec.tsx`, `ForgePresenceModel.spec.ts`, `ForgePresenceLayout.spec.tsx`, the forge-in-place specs at
 other versions (`ForgeModel.versions.spec.ts`, `ForgeLayout.versions.spec.tsx`, see the versions document, U3),
-`page/shared/HashRouter.spec.ts`, `page/shell/GaiaApp.spec.tsx`, and the B1 screens of `page/Screens.visual.spec.ts`
-(`ARTBOARD_SCREENS` and `CRASHED_FORGE_SCREENS` in `page/testing/ArtboardScreens.tsx`).
+`page/shared/HashRouter.spec.ts`, `page/shell/GaiaApp.spec.tsx`, `page/views/forge/ForgeLayout.setup.spec.tsx`, and the B1 screens
+of `page/Screens.visual.spec.ts` (`ARTBOARD_SCREENS`, `CRASHED_FORGE_SCREENS` and the onboarding's `SETUP_SCREENS` in
+`page/testing/ArtboardScreens.tsx`).
 
 The route. `#forge/<trackerId>` opens the forge at its default tab; `/<tab>` names one of the board's tabs (`kanban`, `waves`,
 `progress`, `epics`, `tickets`, `agents`, `questions`, `assistant`, `intake`, `pipeline`, in that order); the segments after it
@@ -591,6 +593,16 @@ disabled and keeps Open in new tab.
 - At a version this Gaia cannot talk to (newer or older): the bar and the notice of the versions document, U3.
 - No such forge: no bar but the tracker id, and "The registry names no forge with this id."
 - A refusal: under the bar until dismissed.
+- In setup, while the forge's board has no readable pipeline and Gaia talks to the forge (the onboarding's artboards: the welcome, the
+  agent step and the research step, `SETUP_SCREENS`): the forge is shown as its onboarding alone, whatever its condition. The bar is the
+  mark, the name, then the setup's compact stepper, its current step marked by a dot and done steps checked and linked, or, on the welcome
+  before a setup record opens, the repository's path in mono; the agent step that starts a setup marks Agent current. While the forge is
+  not live (paused, held, restarting, not answering) its condition's dot and word follow, the whole reading in their tooltip. At its right
+  one quiet "⋯" menu, "Forge actions of <project>": Open in new tab, Pause or Unpause, Stop with its question in place, and Restart
+  Hephaestus and Restart Talos with the running versions as their descriptions, a newer installed version marking the trigger and its
+  item; a control that cannot act now is left out. No status line, no Pause button, no running versions line, no board header, no question
+  panel, and no banner or agent notice for a job not launched only for want of an agent, which the setup chooses. Which step it is and that
+  it is saved the step's own page says, not the bar. A program path of this machine reads from `~`, the whole path in its tooltip.
 - The brand bar has no theme button on this route, so B1 paints the very same markup in both themes.
 
 **Acceptance.**
@@ -612,6 +624,10 @@ disabled and keeps Open in new tab.
    (`ForgeModel.spec.ts`, `ForgeLayout.spec.tsx`, `ForgeView.spec.tsx`).
 7. A forge off after a crash shows the alert with the registry's crash summary and Start; started again, it lists its crash log,
    read only when User opens it (`ForgePresenceModel.spec.ts`, `ForgePresenceLayout.spec.tsx`, `Screens.visual.spec.ts`).
+8. A forge Gaia talks to whose board has no readable pipeline shows its onboarding alone, whatever its condition: the setup bar with its
+   one menu, no status line, Pause or versions line, no board header, no question panel and no notice of a job not launched for want of
+   an agent; the stepper marks the step the page and the rail row name (`ForgeLayout.setup.spec.tsx`, `ForgeView.spec.tsx`,
+   `page/board/shell/BoardApp.dom.tsx`, `QuestionPanelModel.spec.ts`, `page/shell/RailModel.setup.spec.ts`, `Screens.visual.spec.ts`).
 
 ## B2. Start, stop and a refusal
 

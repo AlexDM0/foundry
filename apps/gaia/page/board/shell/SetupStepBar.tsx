@@ -1,24 +1,29 @@
 /**
- * The setup header's step bar, in the tab bar's place while the board has no readable pipeline: the setup steps in a compact stepper,
- * six in single mode and seven with the entities step in monorepo mode, and at the right end which step this is.
+ * The setup's step bar, which the page's head over the board shows beside the forge's name while the board has no readable pipeline: the
+ * setup steps in a compact stepper, six in single mode and seven with the entities step in monorepo mode, a done or recheck step linking
+ * back to its route. Which step this is, and that it is saved, the step's own page says.
  */
-import { Stepper, type StepperStep, Text } from '../../lib/design-system/DesignSystemInterface.ts';
+import { Stepper, type StepperStep } from '../../lib/design-system/DesignSystemInterface.ts';
+
+import type { BoardRoute }    from '../../shared/BoardRouter.ts';
+import { useBoardHrefOf }     from '../shared/routing/BoardRouteLinks.ts';
+import type { SetupStepView } from './HeaderModel.ts';
 
 export interface SetupStepBarProps {
-  readonly steps: readonly StepperStep[];
+  readonly steps: readonly SetupStepView[];
 }
 
-/** "Step 2 of 6 · saved as you go", "Step 4 of 7" in monorepo mode, or only that the steps are saved while no step is current. */
-function stepPositionTextOf(steps: readonly StepperStep[]): string {
-  const currentIndex = steps.findIndex((step) => step.status === 'current');
-  return currentIndex < 0 ? 'Saved as you go' : `Step ${currentIndex + 1} of ${steps.length} · saved as you go`;
+/** A step that reopens links to its route under the mounted board. */
+function stepperStepOf(step: SetupStepView, hrefOf: (route: BoardRoute) => string): StepperStep {
+  const { reopensAt, ...stepFields } = step;
+  return reopensAt === null ? stepFields : { ...stepFields, href: hrefOf(reopensAt) };
 }
 
 export function SetupStepBar({ steps }: SetupStepBarProps) {
+  const hrefOf = useBoardHrefOf();
   return (
     <div className="board-setup-step-bar">
-      <Stepper label="Setup steps" orientation="horizontal" compact steps={steps} />
-      <Text typeRole="tab" subtle>{stepPositionTextOf(steps)}</Text>
+      <Stepper label="Setup steps" orientation="horizontal" compact steps={steps.map((step) => stepperStepOf(step, hrefOf))} />
     </div>
   );
 }

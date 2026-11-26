@@ -1,12 +1,13 @@
 /**
- * The agent choice's model, pure, for the setup's agent step and the forge's settings alike: the vendor cards from the vendors the forge
- * knows (one it cannot run yet is shown by its own name as coming later, never chosen), this machine's program or the one forge found where
- * installers put it, the program's run as forge reports it, where forge looked, and the commands of each choice. A program chosen for every
- * forge is kept as this machine's first and then followed; Gaia names no vendor of its own and words every card from what the forge sends.
+ * The agent choice's model, pure, for the setup's agent step and the forge's settings alike: a vendor card for each vendor the forge can
+ * run and one line naming those it cannot run yet, this machine's program or the one forge found where installers put it, the program's
+ * run as forge reports it, where forge looked, and the commands of each choice. A program chosen for every forge is kept as this machine's
+ * first and then followed; Gaia names no vendor of its own and words every card and line from what the forge sends.
  */
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';
+import type { CommandWaitExplanation }                                                          from '../../../shared/commands/CommandWait.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 
@@ -18,14 +19,12 @@ export type AgentChoiceTarget =
   | { readonly kind: 'start'; readonly replacesUnreadablePipeline: boolean }
   | { readonly kind: 'forge' };
 
-export type VendorCardTag = { readonly text: string; readonly tone: 'neutral' | 'warn' };
-
 export interface VendorCard {
-  readonly vendor:      string;
-  readonly label:       string;
-  readonly description: string;
-  readonly selectable:  boolean;
-  readonly tag:         VendorCardTag;
+  readonly vendor:         string;
+  readonly label:          string;
+  readonly description:    string;
+  /** Whether forge knows a program of the vendor on this machine: "Found", else "Not found". */
+  readonly programIsFound: boolean;
 }
 
 /** This machine's program of the vendor: the one kept for every forge, else the first one forge found where installers put it. */
@@ -42,8 +41,6 @@ export interface PlaceRow {
   readonly word:  string;
 }
 
-const COMING_LATER: VendorCardTag = { text: 'Coming later', tone: 'neutral' };
-
 function machineProgramOf(agent: BoardAgentDocument): MachineProgram | null {
   if (agent.machineProgramPath !== null) return { path: agent.machineProgramPath, isKept: true };
   const found = agent.places.find((place) => place.found);
@@ -51,18 +48,21 @@ function machineProgramOf(agent: BoardAgentDocument): MachineProgram | null {
 }
 
 function vendorCardsOf(agent: BoardAgentDocument): readonly VendorCard[] {
-  const programIsKnown = machineProgramOf(agent) !== null || agent.programPath !== null;
-  return agent.vendors.map((vendor): VendorCard => (vendor.supported
-    ? {
-      vendor:      vendor.vendor,
-      label:       vendor.displayName,
-      description: 'Runs every job of this forge.',
-      selectable:  true,
-      tag:         programIsKnown ? { text: 'Found', tone: 'neutral' } : { text: 'Not found', tone: 'warn' },
-    }
-    : {
-      vendor: vendor.vendor, label: vendor.displayName, description: 'Forge runs it in a later version.', selectable: false, tag: COMING_LATER
+  const programIsFound = machineProgramOf(agent) !== null || agent.programPath !== null;
+  return agent.vendors
+    .filter((vendor) => vendor.supported)
+    .map((vendor) => ({
+      vendor: vendor.vendor, label: vendor.displayName, description: 'Runs every job of this forge.', programIsFound
     }));
+}
+
+/** "A and B come in a later version of forge.": the vendors the forge names and cannot run yet; `null` when there are none. */
+function laterVendorsTextOf(agent: BoardAgentDocument): string | null {
+  const names = agent.vendors.filter((vendor) => !vendor.supported).map((vendor) => vendor.displayName);
+  const lastName = names.at(-1);
+  if (lastName === undefined) return null;
+  if (names.length === 1) return `${lastName} comes in a later version of forge.`;
+  return `${names.slice(0, -1).join(', ')} and ${lastName} come in a later version of forge.`;
 }
 
 /** The vendor shown chosen: the choice's, else the first one the forge can run. */
@@ -191,17 +191,27 @@ function continueCommandOf(setupId: string, recordAgent: BoardPipelineAgentDocum
   };
 }
 
+/** What the panel over the page says while forge runs the agent's program once before it answers, and what it does once the program ran. */
+function programCheckWaitOf(displayName: string, afterwards: string): CommandWaitExplanation {
+  return {
+    title:       `Checking ${displayName}`,
+    explanation: `Forge starts the ${displayName} program once to check that it runs on this machine, then ${afterwards}.`,
+  };
+}
+
+/** What the panel over the page says while Look again runs the agent's program. */
+const LOOK_AGAIN_WAIT: CommandWaitExplanation = Object.freeze({
+  title:       'Looking again',
+  explanation: 'Forge starts the agent\'s program once to check that it runs on this machine. Once it runs, forge launches every job that stood not launched.',
+});
+
 function lookAgainCommand(): BoardCommandDocument {
   return { ...COMMAND_VERSION, kind: 'agent-look-again' };
 }
 
-/** "Example Agent · /Users/example/.local/bin/agent", or that no program is named yet. */
-function footerTextOf(displayName: string, programPath: string | null): string {
-  return programPath === null ? `No ${displayName} program yet` : `${displayName} · ${programPath}`;
-}
-
 export const AgentChoiceModel = Object.freeze({
   vendorCardsOf,
+  laterVendorsTextOf,
   chosenVendorOf,
   displayNameOf,
   machineProgramOf,
@@ -220,5 +230,6 @@ export const AgentChoiceModel = Object.freeze({
   startCommandsOf,
   continueCommandOf,
   lookAgainCommand,
-  footerTextOf,
+  programCheckWaitOf,
+  lookAgainWait: LOOK_AGAIN_WAIT,
 });

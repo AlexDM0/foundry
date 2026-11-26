@@ -234,6 +234,18 @@ body {
   font-weight: var(--weight-strong);
 }
 .gaia-rail-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A forge with no pipeline takes a second line under its name, where its setup stands. */
+.gaia-rail-row[data-setup] { height: auto; min-height: var(--rail-row-height); padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.gaia-rail-row-lines { display: flex; flex: 1; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.gaia-rail-row-setup {
+  overflow: hidden;
+  font-size: var(--fs-small);
+  font-weight: normal;
+  line-height: var(--line-height-small);
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .gaia-rail-count { display: inline-flex; flex: none; align-items: center; }
 .gaia-rail-no-forge { margin: 0; padding: var(--sp-half) var(--rail-inset); font-size: var(--fs-tab); color: var(--ink-4); }
 .gaia-rail-spacer { flex: 1; }
@@ -1073,6 +1085,12 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   line-height: var(--line-height-tab);
   color: var(--ink-muted);
 }
+/* In setup the bar is the name, the setup's step bar or the repository's path, wrapping under the name when the window is narrow, and the menu. */
+.gaia-forge-frame-bar[data-setup] { flex-wrap: wrap; row-gap: var(--space-6); }
+.gaia-forge-frame-bar-setup { display: flex; flex: 0 1 auto; min-width: 0; margin-left: var(--space-10); }
+.gaia-forge-frame-bar-root { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-forge-frame-bar-condition { display: inline-flex; flex: none; align-items: center; gap: var(--space-7); }
+.gaia-forge-frame-setup-row { display: flex; flex: none; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); }
 /* The controls take the room the line leaves. */
 .gaia-forge-frame-bar-controls { display: inline-flex; flex: 1 0 auto; justify-content: flex-end; align-items: center; gap: var(--space-10); }
 .gaia-forge-frame { display: flex; flex: 1; flex-direction: column; box-sizing: border-box; min-height: 0; }

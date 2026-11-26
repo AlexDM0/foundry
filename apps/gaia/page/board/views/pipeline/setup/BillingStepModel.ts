@@ -14,7 +14,6 @@ import type { BoardBillingDocument, BoardSetupRecordDocument }      from '../../
 import type { PanelStatus }                                         from '../PipelinePanel.tsx';
 import { AgentChoiceModel }                                         from '../agent/AgentChoiceModel.ts';
 import { NOT_LAUNCHED_PANEL_STATUS, type AgentSessionState }        from '../agent-panel/AgentSessionModel.ts';
-import type { PipelinePhase }                                       from '../flow/PipelinePhaseModel.ts';
 
 export type BillingMode = BoardBillingDocument['mode'];
 
@@ -55,14 +54,6 @@ export const HOW_IT_WORKS_LINES: readonly string[] = [
   'Proposes the prepare steps, the gates, the review, and each agent\'s model, effort and brief.',
   'Profiles a gate in a phase when you ask, and shows its time. The time only informs.',
   'Talks it through with you. You change any part, then apply it.',
-];
-
-/** The four phases every ticket goes through, as "What the pipeline decides" names them. */
-export const PIPELINE_PHASE_SUMMARIES: readonly { readonly phase: PipelinePhase; readonly name: string; readonly line: string }[] = [
-  { phase: 'ticket', name: 'Ticket', line: 'Which agent files a request, and if you ready each draft.' },
-  { phase: 'build', name: 'Build', line: 'Which agent builds it, and the gates it must pass.' },
-  { phase: 'review', name: 'Review', line: 'Which agent reviews it, and if you review the code too.' },
-  { phase: 'merge', name: 'Merge', line: 'The gates that run on the latest main before the merge.' },
 ];
 
 /** The footer's words for the chosen billing: its name, and what it means. */

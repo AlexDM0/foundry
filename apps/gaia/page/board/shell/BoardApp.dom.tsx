@@ -7,7 +7,10 @@
  * (`.claude/rules/flint.md`). The Questions tab is drawn by its view, the question panel shows beside it, and `questions/<id>` opens it at that
  * question. The Kanban is drawn under the filter line, a card opens the detail panel over it, a header figure outlines its lane, and its item
  * `merge-queue` draws the Merge queue's detail. The Pipeline tab is drawn on a board with a readable pipeline and on one in setup, where it is the only
- * tab and the header holds the setup steps, the entities step among them in monorepo mode.
+ * tab, the board draws no header, and the page's own head, drawn at the board's top, is told where the setup stands and holds the setup steps,
+ * the entities step among them in monorepo mode, but none on the welcome before a setup record opens, while the agent step that starts one
+ * stands at its first step; out of setup it is told nothing. In setup a job not launched only for want of an agent raises neither the agent
+ * notice nor a notice banner, while another notice still shows.
  */
 import {
   act,
@@ -31,10 +34,12 @@ import type { BoardServices }          from '../@types/BoardServices.ts';
 import type { BoardTabViewTable }      from '../@types/BoardTabViewProps.ts';
 import { Board }                       from '../Board.tsx';
 import type { EventStreamHandlers }    from '../api/BoardEventStreamClient.ts';
+import { useBoardSetupHead }           from '../shared/BoardSetupHead.ts';
 import { CommandButton }               from '../shared/commands/CommandButton.tsx';
 import { boardHrefOf }                 from '../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,
+  exampleAgentJob,
   exampleAskingDecision,
   FIXTURE_NOW,
   FIXTURE_TRACKER_ID
@@ -146,8 +151,25 @@ function servingBoard(changes: Partial<BoardDocument> = {}): BoardDocument {
   return boardStateFixture({ pipeline: pipelineBoardStateOf('A5').pipeline, ...changes });
 }
 
+/** The page's own head as a forge view draws it over the board: where the setup stands, then the step bar it is handed. */
+function PageHeadOverTheBoard() {
+  const setupHead = useBoardSetupHead();
+  if (setupHead === null) return <div role="banner" aria-label="Page head">Out of setup</div>;
+  const { progress } = setupHead;
+  return (
+    <div role="banner" aria-label="Page head">
+      {progress.stage === 'setting-up' ? `Step ${progress.stepNumber} of ${progress.stepCount}` : 'Not started'}
+      {setupHead.stepBar}
+    </div>
+  );
+}
+
 function renderedBoard(fake: FakeBoard, route: BoardRoute | null, tabViews: BoardTabViewTable = stubTabViewsWith()): void {
-  render(<BoardApp services={fake.services} route={route} project="Example Agency" tabViews={tabViews} />);
+  render(<BoardApp services={fake.services} route={route} project="Example Agency" tabViews={tabViews}><PageHeadOverTheBoard /></BoardApp>);
+}
+
+function pageHead(): HTMLElement {
+  return screen.getByRole('banner', { name: 'Page head' });
 }
 
 function liveWith(fake: FakeBoard): void {
@@ -391,22 +413,68 @@ describe('the pipeline', () => {
     expect(screen.getByRole('region', { name: 'Pipeline' }).getAttribute('data-screen')).toBe('flow');
   });
 
-  test('a board in setup shows the Pipeline tab alone, under the setup steps with the entities step', async () => {
+  test('a board in setup shows the Pipeline tab alone and no header, the page\'s head holding the setup steps with the entities step', async () => {
     const fake = fakeBoardOf();
     renderedBoard(fake, null, BOARD_TAB_VIEWS);
     await fake.answerReads(entitiesStepBoardOf());
-    const header = screen.getByRole('banner');
-    expect(within(within(header).getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem').map((step) => step.textContent))
+    expect(document.querySelector('.board-header')).toBeNull();
+    expect(pageHead().textContent).toStartWith('Step 4 of 7');
+    expect(within(within(pageHead()).getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem').map((step) => step.textContent))
       .toEqual(expect.arrayContaining([expect.stringContaining('Entities')]));
-    expect(within(header).queryByRole('link', { name: 'Agents' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Agents' })).toBeNull();
     expect(document.querySelector('.board-pipeline')?.getAttribute('data-screen')).toBe('setup-resume');
   });
 
-  test('a board in setup routed at the entities step draws that step under the setup header', async () => {
+  test('a board in setup routed at the entities step draws that step under the page\'s head with its setup steps', async () => {
     const fake = fakeBoardOf();
     renderedBoard(fake, { tab: 'pipeline', item: 'setup/entities' }, BOARD_TAB_VIEWS);
     await fake.answerReads(entitiesStepBoardOf());
     expect(screen.getByRole('heading', { name: 'The entities of Example Agency' })).toBeDefined();
-    expect(within(screen.getByRole('banner')).getByRole('list', { name: 'Setup steps' })).toBeDefined();
+    expect(within(pageHead()).getByRole('list', { name: 'Setup steps' })).toBeDefined();
+  });
+
+  test('before a setup record opens the page\'s head is told the setup has not started, and holds no step bar', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, null, BOARD_TAB_VIEWS);
+    await fake.answerReads(pipelineBoardStateOf('A0'));
+    expect([pageHead().textContent, within(pageHead()).queryByRole('list', { name: 'Setup steps' })]).toEqual(['Not started', null]);
+  });
+
+  test('on the agent step that starts a setup, before a record opens, the page\'s head holds the setup steps with Agent current', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'pipeline', item: 'setup/agent' }, BOARD_TAB_VIEWS);
+    await fake.answerReads(pipelineBoardStateOf('A0'));
+    expect(pageHead().textContent).toStartWith('Step 1 of 6');
+    const steps = within(within(pageHead()).getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem');
+    expect(steps.findIndex((step) => step.getAttribute('aria-current') === 'step' || step.querySelector('[aria-current="step"]') !== null)).toBe(0);
+    expect(document.querySelector('.board-pipeline')?.getAttribute('data-screen')).toBe('setup-start');
+  });
+
+  test('out of setup the page\'s head heads the board, told nothing of a setup, over the board\'s own header', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, null);
+    await fake.answerReads(servingBoard());
+    expect(pageHead().textContent).toBe('Out of setup');
+    expect(pageHead().compareDocumentPosition(document.querySelector('.board-header') as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test('in setup a job not launched for want of an agent raises no notice, while another notice still shows', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, null, BOARD_TAB_VIEWS);
+    const board = pipelineBoardStateOf('A0');
+    await fake.answerReads({
+      ...board,
+      jobs:    [...board.jobs, exampleAgentJob({ id: 'J1', notLaunched: { cause: 'no-agent-chosen', programPath: null, text: 'no agent is chosen for this board' } })],
+      notices: [
+        {
+          kind: 'agent-program-refused', facts: { jobId: 'J1', cause: 'no-agent-chosen' }, text: 'job J1 is not launched: no agent is chosen for this board', causeText: null
+        },
+        {
+          kind: 'rounds-not-converging', facts: { ticketId: '042' }, text: 'Example: the rounds of #042 are not converging', causeText: null
+        },
+      ],
+    });
+    expect(screen.queryByText(/is not launched/u)).toBeNull();
+    expect(screen.getByRole('list', { name: '1 notices' }).textContent).toBe('Example: the rounds of #042 are not converging');
   });
 });

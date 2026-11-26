@@ -136,8 +136,6 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     + '--with-real-claude to opt in.\';'
   ]:
     'Permanent: the cutover smoke runs real sessions on purpose, refused without its flag.',
-  'cli/testing/InstalledSurfaceScan.ts: vendor-name: + \'cli/constants/InstallVersion.ts (CLAUDE.md, Generated and installed files) and freeze the new version\\\'s surface\'),':
-    'Permanent: this repository\'s own agent folders and evidence, which the scans and the smoke skip.',
   'cli/testing/RecordedGitStages.ts: vendor-name: const INSTALLED_SKILLS_FOLDER = \'.claude/skills\';':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   [

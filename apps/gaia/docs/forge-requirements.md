@@ -119,8 +119,8 @@ and skip the extra read.
 
 The board document's `agent.vendors` lists the vendors forge knows, each with its `displayName` and whether it is `supported`. Forge 4.1
 lists the vendors it plans to run beside the one it runs, each `supported: false`, so a client shows them as coming later in their own
-names. Gaia names no vendor of its own (`src/AgentVendorNames.spec.ts`): its agent step draws each unsupported vendor as a disabled card,
-"Coming later", by the `displayName` forge sends.
+names. Gaia names no vendor of its own (`src/AgentVendorNames.spec.ts`): its agent step names the unsupported vendors in one line, as
+coming in a later version of forge, by the `displayName` forge sends.
 
 ### V12. Serve a ticket's documents and take the user's commands on them (Must, met in 4.2)
 
@@ -188,6 +188,31 @@ without a rule of forge's copied into Gaia.
 **Acceptance.** Met: forge 4.4 serves them; the `hephaestus-fetch-ticket-documents` recording holds a spec agent's open anchored question,
 the board document's draft of that ticket and the refused approval.
 
+### V16. Say in the monitor where a forge's pipeline setup stands (Should)
+
+**Requirement.** The monitor snapshot, and every monitor event, carries `pipeline`: the stored pipeline's reading verdict (`readable`,
+`absent`, `older`, `malformed`, as the board's `pipeline.applied.readingVerdict`) and, while a setup record is open, its `mode`, its
+`currentStep` and the number of steps it walks (six, or seven with the entities step), else `null`. Forge adds it in a minor.
+
+**Reason.** Gaia's rail says of every forge with no pipeline whether it is not set up yet or where its setup stands ("Setting up · step 3
+of 6"), and offers Set up in its count's place. Today Gaia knows a forge has no pipeline only by its open `checks-not-set` decision in
+the monitor's attention, and where a setup stands only for the one forge whose board it shows; it reads no other board for the rail.
+
+**Acceptance.** The `hephaestus-fetch-supported-forge` recording holds a forge with no pipeline and no record, and one with a setup record
+at its research step; Gaia then words every forge's row from the monitor alone and drops its use of `checks-not-set` for this.
+
+### V17. Run a chosen agent program once per choice, not once per command (Should)
+
+**Requirement.** A choice that keeps a program for every forge and has this forge follow it sends `machine-agent-program-set` and then
+`pipeline-setup-start`, `pipeline-setup-agent` or `pipeline-agent-set` with `{follows: "machine"}`. Forge runs the program with its
+version arguments for each, so the choice runs it twice. Forge runs it once: a follow command whose machine program was checked moments
+before, at the same path, takes that check, or one command both keeps the machine's program and follows it. Forge adds it in a minor.
+
+**Reason.** Each run of a vendor's program can take seconds, and User waits on both before the answer comes; Gaia shows the wait in a
+panel past a second, but cannot shorten it.
+
+**Acceptance.** A start with a program chosen for every forge runs the program once, held by a spec of forge's command route.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.4) and keeps nothing for an older forge: forge 1, 2 or 3,
@@ -207,6 +232,8 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V13 | A forge before 4.2 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V14 | A forge before 4.3 is older than Gaia can talk to, and Gaia offers Update forge. |
 | V15 | A forge before 4.4 is older than Gaia can talk to, and Gaia offers Update forge. |
+| V16 | A forge with no pipeline reads "Not set up yet" in the rail, known by its open `checks-not-set` decision; only the forge shown in place says its step. |
+| V17 | A program chosen for every forge runs twice before the answer comes; Gaia's wait panel says what forge checks meanwhile. |
 
 ## 4. Order for forge
 

@@ -6,9 +6,12 @@
  * counted them and zero on another, and say which tab and which Kanban lane they open; the agents figure counts the jobs holding a launch
  * slot, never the rows in progress nor the Assistant, and says so on hover, from the same slot jobs as the activity strip. The status
  * details are the usage windows the facts carry and never a placeholder, a limit hit naming its reset on the viewer's clock, since the
- * stored stamp is UTC; while the board has no readable pipeline the header is in setup, its quiet pill reading Setting up, with the
- * record's step statuses (done and recheck steps reopening at their route) and no usage, six steps with the entities step while the record
- * is in monorepo mode and five once it declined it; before the first board it is not.
+ * stored stamp is UTC; while the board has no readable pipeline it is in setup and draws no header, and the model holds the record's step
+ * statuses for the page's own head (done and recheck steps reopening at their route), six steps with the entities step while the record
+ * is in monorepo mode and five once it declined it; before the first board it is not. In setup the model says where the setup stands, at
+ * the record's current step or not started before a record opens, but at the first step on the agent step that starts one, and its
+ * notices leave out a job not launched only for want of an agent while listing the new-code notice, which no status line shows then; every
+ * other notice stays.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -22,9 +25,9 @@ import {
   FIXTURE_ASSISTANT_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import { entitiesStepBoardOf }  from '../testing/EntitiesStepFixture.ts';
-import { pipelineBoardStateOf } from '../testing/PipelineFixture.ts';
-import { headerModelOf }        from './HeaderModel.ts';
+import { entitiesStepBoardOf }                          from '../testing/EntitiesStepFixture.ts';
+import { pipelineBoardStateOf }                         from '../testing/PipelineFixture.ts';
+import { headerModelOf, setupProgressOnStartingStepOf } from './HeaderModel.ts';
 
 /** The fixture board with a readable pipeline, so the header is out of setup, and the changes given. */
 function servingBoard(changes: Partial<BoardDocument> = {}): BoardDocument {
@@ -101,17 +104,11 @@ describe('the status details', () => {
 });
 
 describe('the header in setup', () => {
-  test('a board with no pipeline is in setup with Agent current and the rest upcoming, and shows no usage', () => {
-    const model = headerModelOf({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage }, FIXTURE_NOW, 'live');
+  test('a board with no pipeline is in setup with Agent current and the rest upcoming', () => {
+    const model = headerModelOf(pipelineBoardStateOf('A0'), FIXTURE_NOW, 'live');
     expect(model.setupSteps?.map(({ label, status }) => [label, status])).toEqual([
       ['Agent', 'current'], ['Billing', 'upcoming'], ['Research', 'upcoming'], ['Constitution', 'upcoming'], ['Pipeline design', 'upcoming'], ['Apply', 'upcoming'],
     ]);
-    expect(model.statusDetails).toEqual([]);
-  });
-
-  test('a live board in setup reads Setting up on the quiet pill', () => {
-    const model = headerModelOf(pipelineBoardStateOf('A0'), FIXTURE_NOW, 'live');
-    expect([model.statusToken, model.statusLabel, model.isRunning]).toEqual(['live', 'Setting up', false]);
   });
 
   test('the stepper shows the record\'s statuses, and only a done or recheck step reopens at its route', () => {
@@ -139,6 +136,30 @@ describe('the header in setup', () => {
       draft: null,
     });
     expect(headerModelOf(declined, FIXTURE_NOW, 'live').setupSteps?.map(({ key }) => key)).toEqual(['agent', 'billing', 'research', 'constitution', 'design', 'apply']);
+  });
+
+  test('the setup stands at the record\'s current step among the steps it walks, and has not started before a record opens', () => {
+    expect(headerModelOf(pipelineBoardStateOf('A0b-recheck'), FIXTURE_NOW, 'live').setupProgress).toEqual({ stage: 'setting-up', stepNumber: 3, stepCount: 6 });
+    expect(headerModelOf(entitiesStepBoardOf(), FIXTURE_NOW, 'live').setupProgress).toEqual({ stage: 'setting-up', stepNumber: 4, stepCount: 7 });
+    expect(headerModelOf(pipelineBoardStateOf('A0'), FIXTURE_NOW, 'live').setupProgress).toEqual({ stage: 'not-started' });
+    expect(headerModelOf(pipelineBoardStateOf('A5'), FIXTURE_NOW, 'live').setupProgress).toBeNull();
+  });
+
+  test('on the agent step that starts a setup, before a record opens, the setup stands at its first step', () => {
+    const setupSteps = headerModelOf(pipelineBoardStateOf('A0'), FIXTURE_NOW, 'live').setupSteps ?? [];
+    expect(setupProgressOnStartingStepOf(setupSteps)).toEqual({ stage: 'setting-up', stepNumber: 1, stepCount: 6 });
+  });
+
+  test('a job not launched for want of an agent is no notice in setup; new code and every other notice are listed', () => {
+    const notices = [
+      { ...noticeOf('agent-program-refused', 'Example: job J1 is not launched: no agent is chosen'), facts: { jobId: 'J1', cause: 'no-agent-chosen' } },
+      { ...noticeOf('agent-program-refused', 'Example: job J2 is not launched: the program is not there'), facts: { jobId: 'J2', cause: 'not-there' } },
+      noticeOf('new-code', 'Example: new code is on disk'),
+    ];
+    expect(headerModelOf({ ...pipelineBoardStateOf('A0'), notices }, FIXTURE_NOW, 'live').notices)
+      .toEqual(['Example: job J2 is not launched: the program is not there', 'Example: new code is on disk']);
+    expect(headerModelOf(servingBoard({ notices }), FIXTURE_NOW, 'live').notices)
+      .toEqual(['Example: job J1 is not launched: no agent is chosen', 'Example: job J2 is not launched: the program is not there']);
   });
 
   test('an unreadable pipeline is setup too, a readable one is not, and before the first board the header is not in setup', () => {

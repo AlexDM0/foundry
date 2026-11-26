@@ -2,9 +2,10 @@
  * The forge's settings against fake controls and a planted file chooser. What matters: the agent shows its vendor, that it follows this
  * machine's program, the path and that it runs; a program kept for every forge, when other forges follow this machine's, asks first and
  * names how many, and sends nothing until confirmed; unticked it pins the program with `pipeline-agent-set`; Look again sends
- * `agent-look-again`; Edit tools lists each tool with where it was found or that the machine lacks it, and keeps the edited list whole with
- * `pipeline-tools-set`, a tool added by name for forge to find; the billing shows only while the pipeline bills a way the agent does not, and
- * saves the chosen way with the agent as it is, in one `pipeline-agent-set`; and the live footer leads here.
+ * `agent-look-again`; while forge runs the program, a send shows the busy ring and past a second the panel that names the check; Edit
+ * tools lists each tool with where it was found or that the machine lacks it, and keeps the edited list whole with `pipeline-tools-set`, a
+ * tool added by name for forge to find; the billing shows only while the pipeline bills a way the agent does not, and saves the chosen
+ * way with the agent as it is, in one `pipeline-agent-set`; and the live footer leads here.
  */
 import {
   cleanup,
@@ -19,9 +20,12 @@ import {
   test
 } from 'bun:test';
 
+import { BoardClockContext }                                                      from '../../../shared/BoardClock.ts';
+import { COMMAND_WAIT_PANEL_DELAY_MILLISECONDS }                                  from '../../../shared/commands/CommandWait.ts';
 import { ProgramFileChooserContext }                                              from '../../../shared/commands/ProgramFileChooser.ts';
 import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR }                       from '../../../testing/AgentFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
+import { manualBoardClock }                                                       from '../../../testing/ManualBoardClock.ts';
 import { onBoard }                                                                from '../../../testing/OnBoard.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
 import { PipelineView }                                                           from '../PipelineView.tsx';
@@ -34,12 +38,14 @@ afterEach(() => {
 const SETTINGS_ROUTE = { tab: 'pipeline', item: 'settings' } as const;
 const CHOSEN_PATH = '/Users/example/tools/example-agent';
 
-function renderSettings(fixture: PipelineFixtureName = 'forge-settings') {
+function renderSettings(fixture: PipelineFixtureName = 'forge-settings', clock = manualBoardClock().clock) {
   const controls = fakeControls();
   controls.render(
-    <ProgramFileChooserContext value={() => Promise.resolve(CHOSEN_PATH)}>
-      {onBoard(<PipelineView facts={pipelineBoardStateOf(fixture)} route={SETTINGS_ROUTE} {...pipelineViewServicesOf()} />)}
-    </ProgramFileChooserContext>,
+    <BoardClockContext.Provider value={clock}>
+      <ProgramFileChooserContext value={() => Promise.resolve(CHOSEN_PATH)}>
+        {onBoard(<PipelineView facts={pipelineBoardStateOf(fixture)} route={SETTINGS_ROUTE} {...pipelineViewServicesOf()} />)}
+      </ProgramFileChooserContext>
+    </BoardClockContext.Provider>,
   );
   return controls;
 }
@@ -84,6 +90,33 @@ describe('the agent', () => {
     const controls = renderSettings();
     await clickSettled(screen.getByRole('button', { name: 'Look again' }));
     expect(controls.sent).toEqual([{ ...SENT_COMMAND_VERSION, kind: 'agent-look-again' }]);
+  });
+});
+
+describe('the waits while forge runs the program', () => {
+  test('Use this program shows the busy ring at once and, past a second, the panel naming the check, until forge answers', async () => {
+    const time = manualBoardClock();
+    const controls = renderSettings('forge-settings', time.clock);
+    await clickSettled(screen.getByRole('button', { name: 'Choose program…' }));
+    controls.holdCommands();
+    await clickSettled(screen.getByRole('button', { name: 'Use this program' }));
+    expect([screen.getByRole('progressbar', { name: 'Use this program: waiting on the forge' }) instanceof HTMLElement, screen.queryByRole('dialog')])
+      .toEqual([true, null]);
+    time.passes(COMMAND_WAIT_PANEL_DELAY_MILLISECONDS);
+    expect(screen.getByRole('dialog', { name: 'Checking Example Agent' }).textContent)
+      .toContain('Forge starts the Example Agent program once to check that it runs on this machine, then keeps it as this forge\'s Example Agent.');
+    await controls.releaseCommands();
+    expect([screen.queryByRole('dialog'), screen.queryByRole('progressbar')]).toEqual([null, null]);
+  });
+
+  test('Look again opens the panel past a second, saying forge launches the jobs that stood not launched once the program runs', async () => {
+    const time = manualBoardClock();
+    const controls = renderSettings('forge-settings', time.clock);
+    controls.holdCommands();
+    await clickSettled(screen.getByRole('button', { name: 'Look again' }));
+    time.passes(COMMAND_WAIT_PANEL_DELAY_MILLISECONDS);
+    expect(screen.getByRole('dialog', { name: 'Looking again' }).textContent).toContain('forge launches every job that stood not launched');
+    await controls.releaseCommands();
   });
 });
 

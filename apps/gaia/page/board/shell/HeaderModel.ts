@@ -2,13 +2,16 @@
  * The header's model, pure: the status line (its label from the forge's state and the event stream, its mono details), the new-code notice,
  * the header statistics with today's figures as the forge serves them, the activity strip's facts, and the open notices and the warnings in
  * the forge's sentences. The forge's controls are Gaia's forge bar's, so the header offers none. The incident defaults are the incident
- * line's (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline the header is in setup: its state
- * pill reads Setting up, and it holds the setup steps with the record's statuses, and no usage.
+ * line's (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline it is in setup and draws no header:
+ * the model then holds the setup steps with the record's statuses and where the setup stands, for the page's own head, and its notices
+ * leave out a job not launched for want of an agent, which the setup chooses, and list the new-code notice, which no status line shows.
  */
 
 import type { BoardDocument, BoardHephaestusDocument, BoardUsageDocument } from '../../@types/board/BoardDocument.ts';
+import type { BoardNoticeDocument }                                        from '../../@types/board/BoardFactDocuments.ts';
 import type { BoardSetupRecordDocument }                                   from '../../@types/board/BoardPipelineDocuments.ts';
 import type { StepperStep }                                                from '../../lib/design-system/DesignSystemInterface.ts';
+import type { SetupProgress }                                              from '../../shared/@types/SetupProgress.ts';
 import type { BoardRoute, BoardTab }                                       from '../../shared/BoardRouter.ts';
 import { CountTextUtil }                                                   from '../../shared/utils/CountTextUtil.ts';
 import type { ConnectionState }                                            from '../api/BoardEventStreamClient.ts';
@@ -40,14 +43,19 @@ export type SetupStepView = Omit<StepperStep, 'href'> & { readonly reopensAt: Bo
 
 export interface HeaderModel {
   readonly statusToken:   StatusToken;
-  /** The state pill's word: the status token's, or Setting up while the board is in setup. */
+  /** The state pill's word. */
   readonly statusLabel:   string;
-  /** The orange state pill with its dot: live and out of setup; every other state is the quiet pill. */
+  /** The orange state pill with its dot: live; every other state is the quiet pill. */
   readonly isRunning:     boolean;
-  /** The quiet details after the state pill: each usage window the facts carry, then a usage limit hit; none in setup. */
+  /** The quiet details after the state pill: each usage window the facts carry, then a usage limit hit. */
   readonly statusDetails: readonly string[];
-  /** The setup steps with the record's statuses while the board has no readable pipeline; `null` once it has one, and before the first board. */
+  /**
+   * The setup steps with the record's statuses while the board has no readable pipeline, when the board draws no header; `null` once it has
+   * one, and before the first board.
+   */
   readonly setupSteps:    readonly SetupStepView[] | null;
+  /** Where the setup stands while the board is in setup; `null` out of it. */
+  readonly setupProgress: SetupProgress | null;
   /** The forge's sentence while new code is on disk. */
   readonly newCodeNotice: string | null;
   readonly statistics:    readonly HeaderStatistic[];
@@ -66,8 +74,6 @@ const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
   'down':       'Down',
 };
 
-const SETUP_STATUS_LABEL = 'Setting up';
-
 const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<BoardHephaestusDocument['state'], 'serving'>, StatusToken>> = {
   'held-by-install-change': 'held',
   'restarting':             'restarting',
@@ -77,6 +83,8 @@ const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<BoardHephaestusDocu
 const INCIDENT_DEFAULTED = 'incident-defaulted';
 
 const NEW_CODE = 'new-code';
+
+const AGENT_PROGRAM_REFUSED = 'agent-program-refused';
 
 const PAUSED_DISPLAY_STATE = 'paused';
 
@@ -104,7 +112,7 @@ function usageTextsOf(usage: BoardUsageDocument): string[] {
   return [...windowTexts, `${window}usage limit hit${resetText}`];
 }
 
-/** The record's current step is current; a done or recheck step reopens at its route; with no record, Billing is current. */
+/** The record's current step is current; a done or recheck step reopens at its route; with no record, Agent is current. */
 function setupStepsOf(record: BoardSetupRecordDocument | null): SetupStepView[] {
   return PipelineViewModel.setupStepsOf(record).map((step) => {
     const status = PipelineViewModel.setupStepStatusOf(record, step);
@@ -117,8 +125,36 @@ function setupStepsOf(record: BoardSetupRecordDocument | null): SetupStepView[] 
 
 /** In setup while the board says its pipeline is anything but readable; before the first board it is not. */
 function setupStepsOfBoard(board: BoardDocument | null): SetupStepView[] | null {
-  if (board === null || board.pipeline.applied.readingVerdict === 'readable') return null;
+  if (board === null || !PipelineViewModel.isInSetup(board)) return null;
   return setupStepsOf(board.pipeline.setup?.record ?? null);
+}
+
+/** The setup stands at the stepper's current step; with none current it has not started. */
+function progressAtCurrentStepOf(setupSteps: readonly SetupStepView[]): SetupProgress {
+  const currentIndex = setupSteps.findIndex((step) => step.status === 'current');
+  return currentIndex < 0 ? { stage: 'not-started' } : { stage: 'setting-up', stepNumber: currentIndex + 1, stepCount: setupSteps.length };
+}
+
+/** A setup record in setup mode stands at its current step; before one opens the setup has not started. */
+function setupProgressOf(board: BoardDocument, setupSteps: readonly SetupStepView[]): SetupProgress {
+  return board.pipeline.setup?.record.mode === 'setup' ? progressAtCurrentStepOf(setupSteps) : { stage: 'not-started' };
+}
+
+/** On the agent step that starts a setup, before a record opens, the setup stands at that first step, which its stepper marks current. */
+export function setupProgressOnStartingStepOf(setupSteps: readonly SetupStepView[]): SetupProgress {
+  return progressAtCurrentStepOf(setupSteps);
+}
+
+/** A job not launched because the board has no agent yet says only what the setup is there to choose. */
+function waitsOnlyForAnAgent(notice: BoardNoticeDocument): boolean {
+  return notice.kind === AGENT_PROGRAM_REFUSED && PipelineViewModel.isNotLaunchedForWantOfAnAgent(notice.facts['cause']);
+}
+
+/** Out of setup the new-code notice is the status line's; in setup no status line shows, so it is listed, and an agent's absence is not. */
+function noticesShownOf(notices: readonly BoardNoticeDocument[], isInSetup: boolean): string[] {
+  return notices
+    .filter((notice) => notice.kind !== INCIDENT_DEFAULTED && (isInSetup ? !waitsOnlyForAnAgent(notice) : notice.kind !== NEW_CODE))
+    .map((notice) => notice.text);
 }
 
 interface BoardFigures {
@@ -183,14 +219,15 @@ export function headerModelOf(board: BoardDocument | null, now: Date, connection
   const notices = board?.notices ?? [];
   return {
     statusToken,
-    statusLabel:   setupSteps === null ? STATUS_LABEL[statusToken] : SETUP_STATUS_LABEL,
-    isRunning:     statusToken === 'live' && setupSteps === null,
-    statusDetails: board === null || setupSteps !== null ? [] : usageTextsOf(board.usage),
+    statusLabel:   STATUS_LABEL[statusToken],
+    isRunning:     statusToken === 'live',
+    statusDetails: board === null ? [] : usageTextsOf(board.usage),
     setupSteps,
+    setupProgress: board === null || setupSteps === null ? null : setupProgressOf(board, setupSteps),
     newCodeNotice: notices.find((notice) => notice.kind === NEW_CODE)?.text ?? null,
     statistics:    board === null ? [] : statisticsOf(board, boardFiguresOf(board, activity, TimeUtil.calendarDateOf(now.getTime()))),
     activity,
-    notices:       notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map((notice) => notice.text),
+    notices:       noticesShownOf(notices, setupSteps !== null),
     warnings:      (board?.warnings ?? []).map((warning) => warning.text),
   };
 }

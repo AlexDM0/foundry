@@ -9,7 +9,9 @@
  * warnings of monitor contract 2, a failed restart as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
  * state, the forge program found. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
  * fixture, one screen per board render, Example Billing's Update forge at each of its steps. Artboard 0, Tickets, is painted once per segment
- * on the spec-then-plan route and once more for In draft on the one-ticket route.
+ * on the spec-then-plan route and once more for In draft on the one-ticket route. The onboarding's three artboards, the welcome, the agent
+ * step and the research step, are painted over B1 with Example Storefront in setup: the onboarding alone, the stepper in the forge's bar at
+ * the step the page and the rail name, and none of the bar's status, controls or versions, no banner and no board header.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`. A screen
@@ -52,6 +54,9 @@ import {
   screenDocumentOf,
   SCREEN_THEMES,
   screenMarkupOf,
+  SETUP_SCREENS,
+  setupScreenDocumentOf,
+  setupScreenMarkupOf,
   SPLASH_MARK_SIZE_PIXELS,
   SPLASH_PAGE_PATH,
   SPLASH_SCREENS,
@@ -665,6 +670,65 @@ describe('the Tickets screens', () => {
       for (const theme of SCREEN_THEMES) {
         for (const inlineStyle of inlineStylesOf(ticketsScreenMarkupOf(screen, theme))) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
         expect(ticketsScreenDocumentOf(screen, theme).includes(`<html lang="en" data-theme="${theme}">`)).toBe(true);
+      }
+    }
+  });
+});
+
+/** What each onboarding screen shows, in the words the page draws, by its title. */
+const SETUP_SCREEN_STATES: Readonly<Record<string, readonly string[]>> = {
+  'Welcome to a new forge': [
+    'Not set up yet',
+    '~/development/example-storefront',
+    'Set up Example Storefront\'s pipeline',
+    'Every answer is saved as you go',
+    'Start with the agent',
+    '4 tickets wait for a pipeline; none of them builds yet.',
+  ],
+  'Setup step 1, Agent':    ['Setting up · step 1 of 6', 'Step 1 of 6', 'Which agent builds Example Storefront', 'Where forge looked', 'Continue to billing'],
+  'Setup step 3, Research': ['Setting up · step 3 of 6', 'Step 3 of 6', 'What Example Storefront is made of', 'Continue to constitution'],
+};
+
+/**
+ * What the onboarding leaves out: the bar's status line and controls, the running versions, the not-launched banners, the board's header
+ * and the question panel.
+ */
+const LEFT_OUT_OF_SETUP = ['wait on you', 'Pause', 'Open in new tab', 'Restart Hephaestus', 'is not launched', 'Set up the pipeline', 'saved as you go ·'];
+
+/** The step the forge bar's stepper marks current, by its label; `null` with no stepper in the bar. */
+function currentSetupStepOf(markup: string): string | null {
+  const forgeBar = MarkupTree.onlyElementIn(MarkupTree.parse(markup), (element) => element.attributes['class'] === 'gaia-forge-frame-bar');
+  const [stepper] = elementsLabelled(forgeBar, 'Setup steps');
+  if (stepper === undefined) return null;
+  const [currentStep] = MarkupTree.elementsIn(stepper, (element) => element.attributes['aria-current'] === 'step');
+  return currentStep === undefined ? '' : MarkupTree.textOf(currentStep);
+}
+
+describe('the onboarding screens', () => {
+  test('the welcome, the agent step and the research step are each painted once, from their own artboard source', () => {
+    expect(SETUP_SCREENS.map((screen) => screen.designFile)).toEqual(['onboarding/Main.dc.html', 'onboarding/AgentStep.dc.html', 'onboarding/ResearchStep.dc.html']);
+  });
+
+  test('each screen shows the state its artboard draws, and nothing of the forge but the onboarding', () => {
+    for (const screen of SETUP_SCREENS) {
+      const markup = setupScreenMarkupOf(screen, 'light');
+      const text = MarkupTree.textOf(MarkupTree.parse(markup));
+      for (const shown of SETUP_SCREEN_STATES[screen.title] ?? []) expect([screen.title, shown, text.includes(shown)]).toEqual([screen.title, shown, true]);
+      for (const leftOut of LEFT_OUT_OF_SETUP) expect([screen.title, leftOut, text.includes(leftOut)]).toEqual([screen.title, leftOut, false]);
+      expect([screen.title, markup.includes('class="board-header"'), markup.includes('gaia-forge-frame-bar-status'), markup.includes('board-question-panel')])
+        .toEqual([screen.title, false, false, false]);
+    }
+  });
+
+  test('the stepper in the forge\'s bar marks the step the page and the rail name, and the welcome shows none', () => {
+    expect(SETUP_SCREENS.map((screen) => currentSetupStepOf(setupScreenMarkupOf(screen, 'light')))).toEqual([null, 'Agent', 'Research']);
+  });
+
+  test('a screen holds no colour of its own, and its document names its theme', () => {
+    for (const screen of SETUP_SCREENS) {
+      for (const theme of SCREEN_THEMES) {
+        for (const inlineStyle of inlineStylesOf(setupScreenMarkupOf(screen, theme))) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
+        expect(setupScreenDocumentOf(screen, theme).includes(`<html lang="en" data-theme="${theme}">`)).toBe(true);
       }
     }
   });

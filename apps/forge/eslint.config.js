@@ -12,7 +12,7 @@ const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/testing/**/*.ts'];
 
 /**
- * Each process reach CLAUDE.md confines, with the exact files allowed to make it. A `shippingOnly` reach binds no spec or
+ * Each process reach forge's rule file confines, with the exact files allowed to make it. A `shippingOnly` reach binds no spec or
  * testing folder, which exercise the platform directly.
  */
 const CONFINED_REACHES = [

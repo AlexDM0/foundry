@@ -2,7 +2,7 @@
 
 > **Question:** What is agreed and not started, and why does it wait?  
 > **Time:** 2 minutes.  
-> **Read first:** [CLAUDE.md](../CLAUDE.md).
+> **Read first:** [forge's rules](../../../.claude/rules/forge.md).
 
 ## In one screen
 

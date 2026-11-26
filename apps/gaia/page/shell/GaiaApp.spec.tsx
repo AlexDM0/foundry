@@ -8,6 +8,7 @@
  * shows the connection banner under the page title and disables every control until the stream opens again. And (W5.2): the Agents route
  * shows the Agents view under its page title and figures, its selected agent survives the source's next document, and a filter press goes
  * to the fragment that keeps it. And motion may start only once the source holds a document; the frames after it are MotionReadiness's.
+ * And the shell hands the rail where the setup of the forge shown in place stands, as that forge's board told the page.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
  * would paint for the source's current document: Gaia's own markup, and a package part only as the whole markup the package draws for the
@@ -464,5 +465,24 @@ describe('motion', () => {
     expect(MotionReadiness.motionMayStartWith(source.current())).toBe(true);
     source.publish(FLEET_EMPTY);
     expect(MotionReadiness.motionMayStartWith(source.current())).toBe(true);
+  });
+});
+
+describe('the setup of the forge shown in place', () => {
+  test('the shell hands the rail where it stands, under that forge\'s name', () => {
+    const unfolded = tree.unfolded(
+      <GaiaShell
+        fleetDocument={FLEET_FIVE_FORGES}
+        streamState="live"
+        route={{ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: null }}
+        view={{
+          title: null, lead: '', figures: [], actions: null, content: null
+        }}
+        themeChoice="dark"
+        onThemeChoice={() => undefined}
+        openForgeSetup={{ trackerId: TRACKER_IDS.exampleStorefront, progress: { stage: 'setting-up', stepNumber: 2, stepCount: 6 } }}
+      />,
+    );
+    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-row-setup')).map((line) => tree.textOf([line]))).toEqual(['Setting up · step 2 of 6']);
   });
 });
