@@ -1,12 +1,19 @@
 /**
  * `stop`, answered in this process: it finds nothing to do with no Hephaestus live or, over a fake process table, never reports a clean stop
  * after an end that skipped Hephaestus's own stop, and repairs only once the process is gone, also when an earlier close was refused and left
- * a dead Hephaestus lock. The stop waits of a stopping Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past
- * what Windows gives. The registry's presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and
- * a release `handed-over`, each also in the registry, the handover's ending written before the crash path lets go of the generation.
+ * a dead Hephaestus lock; a live one whose lock cannot be read is still ended. The stop waits of a stopping Hephaestus share one bound, so a
+ * drive pass that never ends cannot hold back the stop record past what Windows gives. The registry's presence key is written in each state
+ * and kept by a call without one; a stop ends presence `stopped` and a release `handed-over`, each also in the registry, the handover's
+ * ending written before the crash path lets go of the generation.
  */
-import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { join }                             from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -78,7 +85,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
   });
 
   /** A live Hephaestus whose API never answers, played by one process-table entry that a stop ends only after further reads of it. */
-  function plantWedgedHephaestus(fallbackStopIsForced: boolean, whenStopLands: (hephaestusDirectory: string) => void = () => undefined) {
+  function plantWedgedHephaestus(
+    fallbackStopIsForced: boolean,
+    whenStopLands: (hephaestusDirectory: string) => void = () => undefined,
+    lockFormat: 'current' | 'without-version' = 'current',
+  ) {
     const workspace = requireWorkspace(repositoryDirectory);
     const { hephaestusDirectory } = hephaestusFilesIn(workspace.trackerDirectory);
     const identity  = { processId: WEDGED_PROCESS_ID, startStamp: '2', bootIdentity: 'example-boot' };
@@ -107,7 +118,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         },
       },
     };
-    const acquisition = HephaestusLock.acquire(platformPorts, hephaestusDirectory, {
+    const record = {
       processId:            identity.processId,
       processStartStamp:    identity.startStamp,
       bootIdentity:         identity.bootIdentity,
@@ -117,8 +128,13 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
       codeVersion:          'code-example',
       installVersion:       1,
       talosProtocolVersion: 1,
-    });
-    expect(acquisition.verdict).toBe('acquired');
+    };
+    if (lockFormat === 'without-version') {
+      mkdirSync(hephaestusDirectory, { recursive: true });
+      writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 1), JSON.stringify(record));
+    } else {
+      expect(HephaestusLock.acquire(platformPorts, hephaestusDirectory, record).verdict).toBe('acquired');
+    }
     const stopContext = () => createCapturedCommandContext({
       currentDirectory: repositoryDirectory, homeDirectory, temporaryDirectories: [], platformPorts
     });
@@ -181,6 +197,19 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(await runCommandLine(['stop'], again), again.errorText()).toBe(0);
     expect(again.outputText().trim()).toBe('No Hephaestus is live; nothing to stop.');
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+  });
+
+  test('a live Hephaestus whose lock has no version, as one of older code holds, reads live and is still ended by stop', async () => {
+    const wedged = plantWedgedHephaestus(true, undefined, 'without-version');
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('live-unreadable');
+
+    const stopped = wedged.stopContext();
+    expect(await stopWithInstantWaits(['stop'], stopped), stopped.errorText()).toBe(0);
+
+    expect(wedged.stopStages).toEqual(['force']);
+    expect(stopped.outputText()).toContain(`Ended Hephaestus at ${UNANSWERING_URL} by force`);
+    expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('none');
   });
 
   test('the registry entry of a board names no page and no progress file: it holds exactly these keys', async () => {

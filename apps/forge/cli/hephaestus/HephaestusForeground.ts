@@ -158,14 +158,14 @@ export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFil
   };
 }
 
-function alreadyRunningRefusal(files: HephaestusFiles, generation: number, record: HephaestusLockRecord): OperationRefusal {
+function alreadyRunningRefusal(files: HephaestusFiles, generation: number, url: string): OperationRefusal {
   const hephaestusLockFilePath = HephaestusLock.filePathFor(files.hephaestusDirectory, generation);
-  return new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: record.url, hephaestusLockFilePath });
+  return new OperationRefusal('refused', { kind: 'hephaestus-already-running', url, hephaestusLockFilePath });
 }
 
 export function requireNoLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles): void {
   const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
-  if (newest.verdict === 'live') throw alreadyRunningRefusal(files, newest.generation, newest.record);
+  if (HephaestusLock.namesALiveHephaestus(newest)) throw alreadyRunningRefusal(files, newest.generation, HephaestusLock.holderOf(newest).url);
 }
 
 /** Hephaestus's own store of its board, built from its workspace: the context of a start names no current directory. */
@@ -265,7 +265,7 @@ function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): s
 
 function hephaestusLockRefusalOf(acquisition: Exclude<HephaestusLockAcquisition, { verdict: 'acquired' }>, files: HephaestusFiles): OperationRefusal {
   if (acquisition.verdict === 'contended') return new OperationRefusal('refused', { kind: 'hephaestus-contended', hephaestusDirectory: files.hephaestusDirectory });
-  return alreadyRunningRefusal(files, acquisition.generation, acquisition.record);
+  return alreadyRunningRefusal(files, acquisition.generation, acquisition.url);
 }
 
 /** Resolves once Hephaestus should end or hand over, and is settled at most once. */
@@ -437,7 +437,7 @@ async function waitForThePredecessorToEnd(ports: PlatformPorts, files: Hephaestu
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_STOP_TRIES, intervalMilliseconds: HEPHAESTUS_STOP_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
     const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
-    if (newest.verdict !== 'live' || newest.generation !== predecessorGeneration) return;
+    if (!HephaestusLock.namesALiveHephaestus(newest) || newest.generation !== predecessorGeneration) return;
     await Bun.sleep(schedule.intervalMilliseconds);
   }
 }
@@ -988,7 +988,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
 
   const serving = await startServing(request.portChoice).catch(async (thrown: unknown) => {
     // A start that lost to a live Hephaestus leaves the board served.
-    const boardIsServed = HephaestusLock.newestOf(platformPorts, files.hephaestusDirectory).verdict === 'live';
+    const boardIsServed = HephaestusLock.namesALiveHephaestus(HephaestusLock.newestOf(platformPorts, files.hephaestusDirectory));
     if (request.successorOf !== undefined && !boardIsServed) await registerTheFailedSuccessor(request.successorOf, thrown);
     throw thrown;
   });

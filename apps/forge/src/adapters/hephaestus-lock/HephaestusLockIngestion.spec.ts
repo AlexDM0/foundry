@@ -1,6 +1,7 @@
 /**
  * The Hephaestus lock's stored format both ways. What matters: the writer's record reads back as the same record and is created only once;
- * a missing file is absent; any other file is unreadable, never thrown, since an unreadable lock reads as dead and is taken over.
+ * a missing file is absent; any other file is unreadable, never thrown, and names the process its JSON still names, since an unreadable lock
+ * whose process lives must not be taken over.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -69,5 +70,30 @@ test.each([
 
 test.each(Object.keys(RECORD))('a wrong "%s" is unreadable', (field) => {
   storeDocument({ ...RECORD, version: HEPHAESTUS_LOCK_FORMAT_VERSION, [field]: null });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: expect.stringContaining(`"${field}"`) as unknown as string });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining(`"${field}"`) as unknown as string });
+});
+
+test('an unreadable lock whose JSON still names a process carries that holder, and only that', () => {
+  storeDocument(RECORD);
+  expect(reading()).toEqual({
+    verdict:     'unreadable',
+    reason:      `its version is not ${HEPHAESTUS_LOCK_FORMAT_VERSION}`,
+    namedHolder: {
+      processId: RECORD.processId, processStartStamp: RECORD.processStartStamp, bootIdentity: RECORD.bootIdentity, url: RECORD.url, tokenFile: RECORD.tokenFile
+    },
+  });
+});
+
+test.each([
+  ['not JSON', '{ not a lock'],
+  ['no process id', JSON.stringify({ ...RECORD, processId: null })],
+  ['no url', JSON.stringify({ ...RECORD, url: 7 })],
+])('an unreadable lock with %s names no holder', (_case, text) => {
+  writeFileSync(lockFilePath(), text);
+  expect(reading()).toMatchObject({ verdict: 'unreadable', namedHolder: null });
+});
+
+test('a holder without a token file is named with none, so a stop goes to its process', () => {
+  storeDocument({ ...RECORD, tokenFile: undefined });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', namedHolder: { processId: RECORD.processId, tokenFile: null } });
 });
