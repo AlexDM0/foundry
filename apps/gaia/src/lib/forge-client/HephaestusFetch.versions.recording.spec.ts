@@ -1,11 +1,7 @@
 /**
- * The real-system spec of hephaestus-fetch against forges at another system version than the one Gaia supports, run only by
+ * The real-system spec of hephaestus-fetch against forges at another system version than Gaia supports, run only by
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM=<program> bun run record hephaestus-fetch-versions`. Each
- * situation is its own scratch forge under its own scratch home: `versions-older`, `versions-ahead` and `versions-newer` the named forge
- * with its test setting `FORGE_VERSIONS_ANSWER`, which replaces only what `/api/versions` and the monitor stream name, below, ahead of and
- * past the version Gaia supports; and `versions-absent` the unversioned program, a forge from before system
- * versions, which answers `/api/versions` as any unknown path (404, `not-found`). The ahead forge is also asked at each versioned path Gaia
- * calls, a command it carries out among them. Every situation is recorded in one run or none is.
+ * situation is its own scratch forge; all are recorded in one run or none is.
  */
 import {
   afterAll,

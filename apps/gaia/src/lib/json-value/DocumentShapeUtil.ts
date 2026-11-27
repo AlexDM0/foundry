@@ -5,10 +5,9 @@
 import { JsonValueUtil, type JsonObject } from './JsonValueUtil.ts';
 
 /**
- * `text` is any string, `whole-number` a safe integer of zero or more, `number` any finite number, `text-list` an array of strings, `json`
- * any value that is present, and `passed-over` a key the reader names but does not read, present or not. `optional` lets the key be absent,
- * `nullable` lets it hold `null`; `listOf` is an array whose every item is an object of the shape, `eachOf` one whose every item fits the
- * rule, `recordOf` an object whose every own value fits the rule, and `anyShapeOf` an object that fits one of the shapes.
+ * `whole-number` is a safe integer of zero or more, `json` any present value and `passed-over` a key named but not read; `optional` allows absence
+ * and `nullable` `null`; `listOf` checks each item against a shape, `eachOf` against a rule, `recordOf` each own value, and `anyShapeOf` one of
+ * several shapes.
  */
 export type FieldRule =
   | 'text'

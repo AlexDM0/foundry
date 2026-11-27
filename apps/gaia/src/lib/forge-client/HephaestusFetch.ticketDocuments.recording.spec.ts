@@ -1,14 +1,7 @@
 /**
- * The real-system spec of hephaestus-fetch against a ticket's documents, run only by
- * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record hephaestus-fetch-ticket-documents`. It starts Example Bookshop under a scratch home
- * with two draft tickets and a stored pipeline in the spec-then-plan route, whose builder reads the plan only once User approved it. It
- * saves the first draft's spec through the commands endpoint, which opens the draft's documents; no message is sent, so no agent launches.
- * It records that save with the board's events up to the `documents` event, the documents and the board read after it, the second draft's
- * refusal as a ticket with no documents, and an unknown ticket's. Then the stopped board is given the spec agent's job, waiting for its
- * next message, and its open question on a line of the spec in the shape `document ask` stores, naming that job, since the fake agent
- * asks none: it records the board with that question and the draft that waits on it, its agent named, the spec's refused approval, the
- * answer, an option with a note, and the documents and the board read after it. The values the run draws are recorded as example values;
- * the forge's install and code versions stamp it.
+ * The real-system spec of hephaestus-fetch against a ticket's documents, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
+ * hephaestus-fetch-ticket-documents`: it brings Example Bookshop through each of `TICKET_DOCUMENTS_SITUATIONS`, planting the spec agent's question
+ * itself since the fake agent asks none.
  */
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                        from 'node:path';

@@ -1,10 +1,7 @@
 /**
- * The real-system spec of process-run, run only by `bun run record process-run`: it starts real programs, checks what the boundary makes
- * of each outcome, and records the answer of every stable call shape for the recorded-runs mock. The cases that matter: a finished run
- * with its exit code and output, a program that is not there, a run that outlives its bound and is ended, a run its caller cancels, before
- * or after the start, the working directory, the environment a child is handed, an owned start that runs until it is stopped or ends by
- * itself, the channel on an owned child's descriptors 3 and 4, both ways, and its end when the child stops reading or ends, and a detached
- * start that outlives the call.
+ * The real-system spec of process-run, run only by `bun run record process-run`: it starts real programs and records the answer of every stable
+ * call shape for the recorded-runs mock, from finished, missing, timed-out and cancelled runs to owned and detached starts and an owned child's
+ * channel on descriptors 3 and 4.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

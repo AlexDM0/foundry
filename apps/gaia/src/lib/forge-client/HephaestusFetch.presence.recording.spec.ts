@@ -1,11 +1,7 @@
 /**
- * The real-system spec of hephaestus-fetch against a forge's presence and crash logs, run only by
- * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record hephaestus-fetch-presence`. It starts Example Storefront under a scratch home, its fake
- * agent playing every session, with a draft ticket, an empty gate list stored, the Assistant switched on and the agent its board offers
- * chosen, and records its presence while it serves and a crash log it has none of; then, once the Assistant's job runs, kills its Hephaestus
- * from outside, starts it as User does, and records its presence after the crash and the crash log it wrote, which names the Assistant's job
- * as active. Neither recorded presence lists interrupted work: the Assistant's session outlives Hephaestus under Talos, so the waiting work
- * rests on written documents. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
+ * The real-system spec of hephaestus-fetch against presence and crash logs, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
+ * hephaestus-fetch-presence`: Example Storefront serving, then after its Hephaestus is killed and started again. No presence lists interrupted
+ * work, since the Assistant's session outlives Hephaestus.
  */
 import { readFileSync } from 'node:fs';
 import {

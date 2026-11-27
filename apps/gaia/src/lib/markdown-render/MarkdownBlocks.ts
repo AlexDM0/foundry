@@ -1,9 +1,7 @@
 /**
- * Reads Markdown into blocks a page draws itself, never into HTML: headings, paragraphs, lists with their checkboxes, code, diagrams (a
- * `mermaid` fence), quotes, tables and rules, each with the source lines it spans and the section path of the headings above it, and
- * inline spans that carry the source line and column where their text starts. Raw HTML stays text, an image stays its alternative text, a
- * character reference such as `&amp;` is a span of its own for the page to draw as the character it names, and a link keeps its target
- * only when `hrefIsAllowed` allows it. Lines and columns count from 1, after `\r\n` became `\n`.
+ * Reads Markdown into blocks a page draws itself, never into HTML, each with its source lines and section path, and spans that carry where their
+ * text starts, counted from 1 after `\r\n` became `\n`. Raw HTML stays text, an image its alternative text, a character reference its own span, and
+ * a link keeps its target only when `hrefIsAllowed` allows it.
  */
 import { Lexer, type Token, type Tokens } from 'marked';
 

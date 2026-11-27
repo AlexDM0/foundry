@@ -1,14 +1,7 @@
 /**
- * The real-system spec of hephaestus-fetch against Example Storefront's board, run only by
- * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record hephaestus-fetch-board`. It starts the forge under a scratch home in a scratch
- * repository with two apps, its fake agent playing every session, and brings the board to tickets in several statuses, an agent's question
- * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps with the
- * Assistant switched on (a board whose Assistant is off defaults every incident at once), and an update
- * of it whose entities draft holds a standing refusal with its fix, which Apply refuses, keeping the first setup record at its billing step,
- * started with the agent the board offers, before a billing is chosen; then it records each situation of `BOARD_SITUATIONS` at the
- * versioned path Gaia calls, the Assistant switched
- * off and on again among them, and last a job not launched once the program its agent is pinned to is gone. The values the run
- * draws are recorded as example values; the forge's install and code versions stamp it.
+ * The real-system spec of hephaestus-fetch against Example Storefront's board, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
+ * hephaestus-fetch-board`: it brings a scratch forge, its fake agent playing every session, through each of `BOARD_SITUATIONS` and records it at
+ * the versioned path Gaia calls.
  */
 import {
   mkdirSync,
@@ -456,6 +449,7 @@ beforeAll(async () => {
   await scratchForge.runForDocument(repository, ['start', '--json']);
   followTheLiveHephaestusWithItsExamples();
   await applyAPipelineOverTheApps();
+  // A board whose Assistant is off defaults every incident at once, leaving no open incident to record.
   expect(await sendCommand({ kind: 'pipeline-assistant-set', on: true })).toMatchObject({ status: SUCCESS_STATUS });
   await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
   leaveIncidentsOfAnEndedAssistantTurn();

@@ -1,8 +1,6 @@
 /**
- * The shape check against its own contract: every key that is missing or fails its rule is named as a path, in the shape's order; an
- * optional key may be absent and a nullable one `null`, and nothing else; a document that is no object names every key it requires; a key
- * is read only as the document's own; a passed-over key may hold anything or be absent; and a list of values, a record of values and an
- * object of one of several shapes are checked item by item.
+ * The shape check against its own contract: every missing or failing key is named as a path in the shape's order, optional and nullable allow only
+ * absence and `null`, only own keys are read, and lists, records and one-of-several shapes are checked item by item.
  */
 import { describe, expect, test } from 'bun:test';
 

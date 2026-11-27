@@ -1,8 +1,7 @@
 /**
- * What a page that draws Markdown as its own elements relies on: each block's source lines and each span's start, exact enough to map a
- * selection back to the source, a block nested in a list item ending on its own last line; a `mermaid` fence read as a diagram with its own
- * source lines; a character reference a span of its own; raw HTML and images left as text; a link's
- * target kept only under the renderer's allowlist; and the section path of the headings above a block, the document's title left out.
+ * What a page drawing Markdown as its own elements relies on: source lines per block and a start per span, exact enough to map a selection back,
+ * `mermaid` fences as diagrams, character references as spans, raw HTML and images left as text, links kept only under the allowlist, and each
+ * block's section path.
  */
 import { describe, expect, test } from 'bun:test';
 

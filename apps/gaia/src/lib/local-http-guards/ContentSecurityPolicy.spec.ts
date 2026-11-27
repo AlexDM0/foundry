@@ -1,8 +1,7 @@
 /**
- * The page's content security policy: frames from its own origin alone, which the sandboxed `srcdoc` frame needs, never framed itself, every other
- * resource from its own origin, fonts in a directive of their own rather than left to the default. An answer keeps a policy of its own
- * and gets the page's otherwise, a guard's refusal included. The diagram frame's policy runs its scripts in a sandbox with no origin of its
- * own, never with the same origin, takes its script from its server alone and lets nothing else load but inline styles and data images.
+ * The page's content security policy: everything from its own origin, fonts in a directive of their own, frames only from its own origin and never
+ * framed itself, kept by every answer without a policy of its own. The diagram frame's policy sandboxes its scripts with no origin, loading only
+ * its own script, inline styles and data images.
  */
 import { describe, expect, test } from 'bun:test';
 

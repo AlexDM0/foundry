@@ -1,8 +1,7 @@
 /**
- * The HTTP client of one Hephaestus: its versions, identity, board summary, monitor snapshot and board document, a ticket's documents,
- * its event streams, a control or board command, a picture up and down, and a session code. Every call answers the forge's document or
- * a verdict; the documents stay unchecked JSON for the ingestions that read them. `/api/versions` is asked at its one path; every other
- * endpoint at the version forge's registry serves the supported forge version.
+ * The HTTP client of one Hephaestus: versions, identity, summary, snapshot, board, ticket documents, streams, commands, pictures and session codes.
+ * Every call answers the forge's unchecked JSON document or a verdict; `/api/versions` is asked at its one path, every other endpoint at the
+ * supported forge version's.
  */
 import { FORGE_COMPATIBILITY_REGISTRY }              from 'forge-contracts/ForgeCompatibilityRegistry';
 import type { ForgeControlCommand }                  from 'forge-contracts/ForgeControlCommand';

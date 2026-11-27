@@ -1,10 +1,7 @@
 /**
- * The real-system spec of hephaestus-fetch against local Bun servers, run only by `bun run record hephaestus-fetch-other-programs`. Programs
- * that are no forge, on the port a registry entry names, and the boundary's real `fetch` records what it answers at each path Gaia calls:
- * a web page on every route Gaia asks, `/api/versions` included, and a stream that sends an event no snapshot can be read from, or ends
- * inside an event. No forge sends these, and a forge cannot be brought to; the Bun that serves them stamps the recording. Local servers
- * prove the rest of the boundary against the real `fetch`, recording nothing: the bearer and the body it sends, a byte body and a byte
- * answer with their content types, a bound that runs out, and a stream, with its last event id, read until it ends, breaks or is closed.
+ * The real-system spec of hephaestus-fetch against local Bun servers, run only by `bun run record hephaestus-fetch-other-programs`: it records what
+ * programs that are no forge answer at each path Gaia calls, which no forge can be brought to send, and proves the rest of the boundary against the
+ * real `fetch`. Bun stamps it.
  */
 import {
   afterEach,

@@ -1,10 +1,7 @@
 /**
- * Every call of the forge client answers a document or a verdict, never a throw, and each outcome of each call is proven against an answer
- * recorded for a forge at the version this client supports, or from a program that is no forge; the table below uses every such answer of
- * each situation of the forge, so none is left unproven. A monitor stream that ends inside an event hands on no half snapshot, and one
- * whose snapshot handler throws is closed all the same. The token travels as a bearer on the guarded routes only, and no answer carries
- * it. Every endpoint is called at its versioned path, at the version forge's compatibility registry serves the forge version this client
- * supports, and `/api/versions` at its one path, which a forge before system versions refuses.
+ * Every call of the forge client answers a document or a verdict, never a throw, each outcome proven against a recorded answer that the table below
+ * uses in full. A half event hands on no snapshot, the token travels only as a bearer on guarded routes, and every endpoint is called at its
+ * versioned path but `/api/versions`.
  */
 import { describe, expect, test } from 'bun:test';
 
