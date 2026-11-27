@@ -1,12 +1,7 @@
 /**
- * The verb names the subcommand a refusal tells the reader to run, and the moved phrase ends the line a move prints and the sentence a
- * ticket move logs. What callers rely on: every status has a verb, so no refusal falls back to a vaguer command; no two statuses share
- * one, so a verb read back as a subcommand reaches exactly one status; and both wordings stay byte for byte what they were. The frozen
- * tables were retaken from `git show 9c7a8e2:src/shared/constants/StatusVerbs.ts`, the `spoken` column of
- * `git show 9c7a8e2:cli/task/TaskCommand.ts` and `MOVE_PHRASE_FOR_KIND` in `git show 9c7a8e2:src/adapters/utils/LogUtil.ts`, where the
- * two phrase tables agree on the statuses they share.
- * The word tables give every status, ticket type, priority and dispatcher state the word the command line printed before they existed,
- * the value itself, retaken from `git show 75548d8:cli/tickets/TicketReading.ts` and `git show 75548d8:cli/tracking/status/StatusCommand.ts`.
+ * Every status has its own verb, so a refusal's subcommand reaches exactly one status, and every wording stays byte for byte what the command
+ * line printed: frozen at 9c7a8e2 from `src/shared/constants/StatusVerbs.ts`, `cli/task/TaskCommand.ts` and `src/adapters/utils/LogUtil.ts`,
+ * and at 75548d8 from `cli/tickets/TicketReading.ts` and `cli/tracking/status/StatusCommand.ts`.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * The Hatch request carries a command and, beside it, the body a verb read (a ticket's, an epic's or the pipeline agent's constitution);
- * reading it back restores the command whole. A request or command naming a job, a role or an admission is refused
- * `hatch-identity-mismatch`, because identity is the folder's. A reply is read only in its two shapes; anything else is malformed rather
- * than guessed at.
+ * The Hatch request carries a command and the body a verb read, and reads back whole; one naming a job, a role or an admission is refused
+ * `hatch-identity-mismatch`, because identity is the folder's; a reply is read only in its two shapes.
  */
 import { describe, expect, test } from 'bun:test';
 

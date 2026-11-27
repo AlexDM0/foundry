@@ -1,8 +1,7 @@
 /**
- * Talos's launch registry, `talos/launches-<startNumber>.ndjson`, read line by line into the launches it accepted. Talos appends a line before
- * it spawns the child, so an unterminated last line that does not parse was cut short and names no child that ran: it is passed over. Every
- * other line that does not fit is named, and the readable lines still count. The lines carry no version: Talos writes them, and a Hephaestus
- * reads the registry of a Talos of older code.
+ * Talos's launch registry, `talos/launches-<startNumber>.ndjson`. Talos appends a line before it spawns the child, so an unparsable
+ * unterminated last line names no child that ran and is passed over. The lines carry no version: a Hephaestus reads them as written by a
+ * Talos of older code too.
  */
 import { JsonRecordUtil }           from '../../lib/json-record/JsonRecordUtil.ts';
 import type { LaunchRegistryEntry } from '../../lib/talos/ChildLaunch.ts';

@@ -1,8 +1,6 @@
 /**
- * The fields `status --json` carries for a dispatcher. What its readers rely on: the keys come in a fixed order, since they are appended
- * to a document whose order is a contract; every model, effort and priority is resolved to its default, so a reader copies rather than
- * fills them; a paused build carries its row's note whoever paused it; and `ticketRows` follows the tickets it is handed, with the
- * ticket's linked row and its review bars oldest filed first, a round only where the bar stores one.
+ * The fields `status --json` carries for a dispatcher: the keys come in a fixed order, since the document's order is a contract, and
+ * every model, effort and priority is resolved to its default, so a reader copies rather than fills them.
  */
 import { describe, expect, test } from 'bun:test';
 

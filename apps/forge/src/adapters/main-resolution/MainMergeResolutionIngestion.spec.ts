@@ -1,8 +1,6 @@
 /**
- * A `merging-main` conflict's kept resolution both ways. What matters: what the writer stores reads back as the same resolution, its lines
- * `null` when git could not measure them; a missing file is absent, since the first look measures and keeps it; and a file that is not
- * JSON, of another version or none, or with any field of the wrong shape is unreadable, never one to measure again against a later HEAD,
- * and never a throw.
+ * A `merging-main` conflict's kept resolution both ways: what the writer stores reads back the same, a missing file is absent since the
+ * first look keeps it, and any other file is unreadable, never one to measure again against a later HEAD, and never a throw.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

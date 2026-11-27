@@ -1,8 +1,6 @@
 /**
- * One claim per kind of refusal: a refusal built from words is printed verbatim, and a refusal built from a detail is printed exactly as
- * the util that owns that kind words it. The delegates pin their own texts, so the claims compare with their answers. The texts worded here
- * are pinned byte for byte, frozen from the services that wrote them at 6fb290d; retake them with `git show 6fb290d:src/services/tracker/Workspace.ts`
- * and `git show 6fb290d:src/services/tracker/TrackerLock.ts`.
+ * One claim per kind of refusal: words are printed verbatim, and a detail exactly as the util that owns its kind words it. The texts
+ * worded here are frozen from `git show 6fb290d:src/services/tracker/Workspace.ts` and `git show 6fb290d:src/services/tracker/TrackerLock.ts`.
  */
 import { expect, test } from 'bun:test';
 

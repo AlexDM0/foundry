@@ -16,12 +16,8 @@ const {
 } = LogUtil;
 
 /**
- * Taken from the binary before the records existed, at bc42604 (the last commit before step 4b). To retake a row, check that commit out
- * in a worktree, run `bun run <worktree>/agent-progress.ts init` in a scratch git repository, then the command that logs the row (`log`,
- * a `ticket` or `task` verb, `range`, `concurrency`, `dispatcher`, `clear --yes`), and copy its text from the `log` in progress.json.
- * Rows no command reaches easily (a hold or abandon without a reason, two dependencies at once) are read from the wording in
- * bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. A kind newer than bc42604, such as
- * `entity-assigned`, `need-declared` or a crossing ticket's stage records, was taken from `LogUtil` when it was added.
+ * Taken from the binary at bc42604, before the records existed: retake a row by running the command that logs it from that commit in a
+ * scratch repository and copying its text from the `log` in progress.json. A kind newer than bc42604 was taken from `LogUtil` when added.
  */
 const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [{ kind: 'note', fields: { text: 'Example note from the orchestrator' } }, 'Example note from the orchestrator'],

@@ -1,8 +1,6 @@
 /**
- * A gate run's manifest both ways. What matters: what the writer stores reads back as the same manifest, a dependent's step keeping the
- * entity it names; a missing file is absent, since a run with none has not started; and a manifest that is not JSON, of another version or
- * none, of another phase than the run's, or with any step or gate field of the wrong shape is unreadable, so no run goes on from a part of
- * it, and nothing throws.
+ * A gate run's manifest both ways: what the writer stores reads back the same, a missing file is absent since the run has not started,
+ * and any manifest of the wrong version, phase or shape is unreadable, so no run goes on from a part of it, and nothing throws.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

@@ -1,10 +1,6 @@
 /**
- * One table of reports, each with the verdict its schema must give: the validator and the draft-07 document are one source, so the table
- * holds both. The cases that matter are the shapes the design removed or constrained: no `blockedOn`, a `blocked` report needing its
- * reason, a `needs-declared` builder outcome, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only
- * beside `cannot-resolve`; a package stage's report states, and confirms or corrects, what the package exposes, and no other report does;
- * only a package build refuses the work (E22), and only with its reason; only an adapt build sends the ticket back to a package, and only
- * with what the package must give (E41).
+ * One table of reports, each with the verdict its schema gives; the validator and the draft-07 document are one source, so it holds both.
+ * The cases that matter are the shapes the design removed or constrained, and the reports only a crossing ticket's stages may send.
  */
 import { describe, expect, test } from 'bun:test';
 

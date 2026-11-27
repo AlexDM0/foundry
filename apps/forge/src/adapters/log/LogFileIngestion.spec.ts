@@ -1,8 +1,6 @@
 /**
- * The log is read strictly, like progress.json: a missing file is an empty log, never an unreadable one; blank lines are no records;
- * and any other line that is not a well-formed record makes the whole file unreadable, naming the file, its 1-based line and the field,
- * because a person repairs it by hand from that reason alone. A field added later as optional, such as `job-launched`'s `intakeText`,
- * `entity` or `stage`, leaves a line stored before it readable.
+ * The log is read strictly: a missing file is an empty log, and any line that is not a well-formed record makes the file unreadable,
+ * naming its line and field, since a person repairs it by hand from that reason alone. A later optional field leaves older lines readable.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

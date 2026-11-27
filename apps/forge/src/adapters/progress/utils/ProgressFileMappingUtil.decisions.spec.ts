@@ -1,9 +1,6 @@
 /**
- * The decisions, incidents and their counters in progress.json. What matters: each is written only once set, so a file without them stays
- * byte-identical; a file with them round-trips byte for byte; a key the tool does not know on a decision, a question, an option, an
- * incident or its delivery turn keeps its place through a change the Board makes; and an open decision or incident left by the Board is
- * written back as the Board holds it. An option's consequences round-trip byte for byte after its description, and an option without them
- * gets none. A document agent's question keeps its document and anchor byte for byte after its opening stamp.
+ * The decisions, incidents and their counters in progress.json: each is written only once set, a file with them round-trips byte for
+ * byte, and a key the tool does not know keeps its place through a change the Board makes.
  */
 import { expect, test } from 'bun:test';
 

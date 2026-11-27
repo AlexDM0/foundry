@@ -3,7 +3,7 @@ import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 
 /**
  * The files the next agent resolves; on a crossing ticket's conflict split by owner, whether it leaves the merge open for the worker after it
- * (E64) and the files the workers before it resolved.
+ * and the files the workers before it resolved.
  */
 export interface KeptAirlockFacts {
   readonly conflictedFiles:     readonly string[];

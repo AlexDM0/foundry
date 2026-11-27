@@ -1,8 +1,6 @@
 /**
- * The board's pipeline facts mapped into the contract's board document: the stored pipeline as read, the open setup record with what the
- * forge reads around it, the flow a view draws, the gates' profile runs, cache marks and step run times, the pipeline records a view's
- * history shows, the choices a step may take and the product owner's entity assignment. A log record of a kind the contract does not
- * declare maps to no history entry.
+ * The board's pipeline facts mapped into the contract's board document: the stored pipeline, the open setup record, the flow, the gates'
+ * runs, the history and the entity assignment. A log record of a kind the contract does not declare maps to no history entry.
  */
 import type {
   AgentPairDocument,

@@ -1,9 +1,6 @@
 /**
- * The board's readings against the contract's reading documents. What matters: an attention entry keeps every field and carries its target,
- * never a route; a notice keeps its facts beside forge's sentence, and only an incident default carries its cause worded; a warning names
- * the facts its sentence names; today's figures carry the date they counted; a ticket's facts follow the Board's status classes, and its
- * review round falls back to the first repeat round only while a repeat review runs; the stop holds are the Board's holds; and the rule
- * limits are forge's own constants.
+ * The board's readings against the contract's reading documents: attention entries, notices, warnings, today's figures, a ticket's facts
+ * and the stop holds keep every field the Board gives them, and the rule limits are forge's own constants.
  */
 import { describe, expect, test } from 'bun:test';
 

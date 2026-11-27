@@ -1,8 +1,6 @@
 /**
- * A gate run slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, its holder
- * line and its versioned process document both; a missing slot is absent; the forms older code wrote, a document without the version, the
- * process identity itself as the line and the holder line alone, read as their holding, so the holder is judged; any other file is
- * unreadable and never thrown, with the text it holds, since a taker compares that text before it removes the slot.
+ * A gate run slot's stored format both ways: what the writer stores reads back the same, the forms older code wrote read as their holding,
+ * and any other file is unreadable with the text it holds, which a taker compares before it removes the slot.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

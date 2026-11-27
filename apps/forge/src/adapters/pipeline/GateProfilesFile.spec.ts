@@ -1,9 +1,6 @@
 /**
- * `gate-profiles.json` both ways. What matters: written runs read back whole and write back byte for byte, the file's own keys first and
- * every top-level key this build does not know after them, in stored order; a gate's `in` and `network` and a run's `cacheReport` and
- * `entity` are written only when set, so a file from before entities reads and writes back byte for byte; no file is `absent`; and a file
- * nobody could trust whole, a key in a run the read does not know, a cache report outside its words or an entity that is no text included,
- * is `malformed` with a reason naming the offending part, never a throw.
+ * `gate-profiles.json` both ways: written runs read back whole and write back byte for byte, unknown keys after the file's own, optional
+ * fields only when set; no file is `absent`, and a file nobody could trust whole is `malformed` with a reason, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

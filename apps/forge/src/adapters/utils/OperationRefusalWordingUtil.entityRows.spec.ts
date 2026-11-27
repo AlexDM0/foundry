@@ -1,8 +1,6 @@
 /**
- * The rows of `docs/reference/refusals.md` for three entity refusals, against the sentences they document. What matters: a person searches
- * the page for the printed words, so each row's fixed words occur in the command line's sentence and in the API's, and the row names the
- * code; a pipeline with entities is changed with `pipeline update`, which opens an update, so the command line's advice never names
- * `pipeline setup`, which opens a first setup and is refused beside a stored pipeline.
+ * The rows of `docs/reference/refusals.md` for three entity refusals: a person searches the page for the printed words, so each row's
+ * fixed words occur in both sentences, and the command line's advice names `pipeline update`, never `pipeline setup`.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

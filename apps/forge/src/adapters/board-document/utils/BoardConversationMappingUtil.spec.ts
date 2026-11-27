@@ -1,8 +1,6 @@
 /**
- * The board's conversations against the contract's documents. What matters: a decision maps field by field with each option's
- * recommendation as its own field, its letter beside it and an option's absent consequences absent, its relay request id left out; a
- * spec agent's question carries its document, its anchor and its placement at the head, `null` once its lines are gone; an incident maps field by
- * field; a log record keeps its kind, its stamp, the ids it names and its fields as JSON carries them; and no picture limits read `null`.
+ * The board's conversations against the contract's documents: decisions, a spec agent's questions, incidents and log records map field
+ * by field, absent fields read `null`, and the relay request id stays out.
  */
 import { describe, expect, test } from 'bun:test';
 

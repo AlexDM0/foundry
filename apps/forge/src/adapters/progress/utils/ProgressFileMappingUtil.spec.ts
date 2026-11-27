@@ -1,14 +1,7 @@
 /**
- * The model does not hold the format's `version`, so the mapping strips it and puts `version` 2 back first on the way out. Keys the tool
- * does not know are the owner's, so they survive both ways, at the top level, on rows and on a row's phases, in the file's order. A property
- * the model carries that is neither mapped nor read from the file is what a model field added without a stored form looks like at runtime,
- * and it never reaches the file. An optional row key such as `greenPhase` is written only once set, so a file without it keeps its bytes.
- * An unknown key named by an integer is the one exception to the order: it keeps its value but moves to the front of its object. A row's
- * `pipelineHashes` is a forge with entities' alone: a file without it keeps its bytes, also after a forge without entities gated the row.
- * The same holds for the stage keys of a crossing ticket (`stage`, `seals`, `packageReturns`): a row without them keeps its bytes through a
- * whole build, review and delivery on a forge without entities, a row with them reads them back in place, and a malformed one is refused
- * naming its field. The per-stage counts are read from the log (E74), so a row that still carries the retired `stageCounters` keeps it as an
- * unknown key, byte for byte and whatever it holds.
+ * progress.json both ways: keys the tool does not know are the owner's and survive in the file's order, an optional key is written only
+ * once set, so a file without it keeps its bytes, and a model property with no stored form never reaches the file. The retired
+ * `stageCounters` survives as an unknown key, since the per-stage counts are now read from the log.
  */
 import { describe, expect, test } from 'bun:test';
 

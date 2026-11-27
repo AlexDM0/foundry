@@ -1,8 +1,6 @@
 /**
- * A merge's settlement both ways, one format for the merge before review and each round of `merging-main`. What matters: each of the three
- * settlements the writer stores reads back as itself; a missing file is absent, since a merge still running has none; and a file that is
- * not JSON, of another version or none, of another verdict or missing the verdict's own field is unreadable, never a merge still to
- * settle again, and never a throw.
+ * A merge's settlement both ways: each of the three settlements reads back as itself, a missing file is a merge still running, and any
+ * other file is unreadable, never a merge still to settle again, and never a throw.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

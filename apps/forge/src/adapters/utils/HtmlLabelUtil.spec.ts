@@ -1,8 +1,6 @@
 /**
- * The group titles divide a Kanban lane by priority, and the mark titles are the tooltips of a low or a high ticket's mark. What the page
- * relies on: every priority has a group title, and every wording stays byte for byte what the page printed before it moved here.
- * The frozen tables were retaken from `PRIORITY_TITLE` in `git show 4ebbb73:page/kanban/KanbanMarkup.ts` and from `LOW_PRIORITY_TITLE`
- * and `HIGH_PRIORITY_TITLE` in `git show 4ebbb73:page/utils/WorkItemMarkupUtil.ts`, the low title since reworded to say done.
+ * Every priority has a Kanban group title and every mark title stays byte for byte what the page printed before it moved here: frozen
+ * from `git show 4ebbb73:page/kanban/KanbanMarkup.ts` and `page/utils/WorkItemMarkupUtil.ts`, the low title since reworded to say done.
  */
 import { expect, test } from 'bun:test';
 

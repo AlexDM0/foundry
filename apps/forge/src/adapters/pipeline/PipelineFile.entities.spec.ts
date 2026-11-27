@@ -1,11 +1,6 @@
 /**
- * `pipeline.json` with entities, in its one format. What matters: a pipeline with entities is mapped and checked whole, so a
- * stored file gets every refusal the entities earn, each with its own reason naming the entity; once nothing is wrong it is read, and
- * writes back byte for byte; an entity whose whitelist names a package is read with its whitelist, the setup draft's read among them,
- * since a crossing's stages run, and an empty whitelist names none and is read too; beside
- * entities the forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; a file
- * of the version that once held entities is older; a pipeline with entities is written in the read's key order, the Assistant's switch
- * after them; and a setup record's draft is read and written the same way but for the entities' set check, so its refused entities are kept.
+ * `pipeline.json` with entities: a stored file gets every refusal its entities earn, each naming the entity, and once nothing is wrong it
+ * reads and writes back byte for byte; a setup record's draft reads the same but for the set check, so its refused entities are kept.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

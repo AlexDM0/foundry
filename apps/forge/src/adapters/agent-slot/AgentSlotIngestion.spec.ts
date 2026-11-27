@@ -1,8 +1,7 @@
 /**
- * An agent slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, with the
- * current version; a missing slot is absent; a slot of today's fields without that version, as older code wrote, reads as the same
- * holding, so its Hephaestus is judged; any other file is unreadable and never thrown, with the text it holds, since a taker compares that
- * text before it removes the slot.
+ * An agent slot's stored format both ways: what the writer stores reads back with the current version, a slot older code wrote without
+ * that version reads as the same holding, so its Hephaestus is judged, and any other file is unreadable with the text it holds, which a
+ * taker compares before removing the slot.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

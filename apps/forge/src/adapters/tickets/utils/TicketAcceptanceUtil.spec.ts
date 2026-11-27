@@ -1,14 +1,7 @@
 /**
- * The release trusts this reading to tell a review that accounted for every Acceptance item from one that skipped one, so what matters:
- * only `A<n>.` at the start of a line is an item, its continuation lines belong to it, a `Waived:` item counts as accounted for, only the
- * latest `## Review` counts, a `does not hold` line is a gap even beside a `holds` one, a gap outranks a waiver, a heading inside a code
- * fence is not a section, and no body, however malformed, throws. A page quotes the sections and the item text, so those are pinned too:
- * an item's text joins its continuation lines, a section is every `##` heading in order with its source lines, and a CRLF body splits the
- * same as an LF one. The Brief's work files are what filing judges an entity's ticket by (E85): only the `Work belongs in:` line of the first
- * `## Brief` and the lines that continue it count, never the `Out of bounds` line; each token with a folder is a repository path, its
- * quotes, line range, glob and brace alternatives dropped; a bare file name, a placeholder, a link and prose with one slash (`and/or`, `n/a`,
- * `read/write`) name no path. The body forge serves has its Acceptance items separated by blank lines, so a Markdown reader shows each as its
- * own paragraph; every other line stays byte-identical.
+ * The release trusts this reading to tell a review that accounted for every Acceptance item from one that skipped one, so the item and
+ * section rules are pinned, and no body, however malformed, throws. The Brief's `Work belongs in:` line is what filing judges an entity's
+ * ticket by, so which of its tokens are repository paths is pinned too.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * Talos's launch registry read line by line. What matters: every line Talos's own writer appends reads back as its launch; a Talos that
- * accepted no launch has no registry, which is absent; a line that does not fit is named with its number while the other lines still count;
- * an unterminated last line that does not parse was cut short by a Talos that died appending it and is passed over unnamed, while one that
- * parses is whole and named when it does not fit; nothing throws.
+ * Talos's launch registry read line by line: every line its writer appends reads back, no registry is absent, a line that does not fit
+ * is named while the others count, and an unparsable unterminated last line, cut short by a dying Talos, is passed over.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

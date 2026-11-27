@@ -1,8 +1,6 @@
 /**
- * A refusal is what the person who ran the command reads, and scripts match on it, so each reason must word as the command did before
- * the Board refused for it. The frozen table pins one row per reason, plus both hold actions, the singular and plural limit, a
- * rereview with and without the first-review advice, and a ticket-owned row sent to each end of the verb table. Through the API, which
- * a client shows to User, no reason names a command line or a flag.
+ * A refusal is what the person who ran the command reads, and scripts match on it, so each reason words as the command did before the
+ * Board refused for it. Through the API, which a client shows to User, no reason names a command line or a flag.
  */
 import { expect, test } from 'bun:test';
 
@@ -20,12 +18,8 @@ function namingThisProgram(message: string): string {
 }
 
 /**
- * Taken from the binary before the Board existed, at bc42604 (the last commit before step 4b). To retake a row, check that commit out in
- * a worktree, run the refused command with `bun run <worktree>/agent-progress.ts` in a scratch git repository after `init`, and copy its
- * standard error. Rows no command reaches easily (the singular limit, a ticket-owned row sent to re-review) are read from the wording in
- * bc42604:cli/task/TaskCommand.ts, bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. The two review-record
- * reasons are newer than bc42604, and their rows were taken from the wording util when they were added, as were the four draft reasons, the
- * lowering row's "draft or committed", the three network reasons, the five entity reasons and the already-filed ticket id.
+ * Taken from the binary at bc42604, before the Board existed: retake a row by running the refused command from that commit in a scratch
+ * repository and copying its standard error. A reason newer than bc42604 was taken from the wording util when it was added.
  */
 const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = [
   [{ reason: 'unknown-task', taskId: 99 }, 'There is no task #99. Run `agent-progress status` to see the rows this tracker holds.'],

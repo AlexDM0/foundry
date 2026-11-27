@@ -9,12 +9,12 @@ export const JOB_START_FORMAT_VERSION = 1;
 export interface JobStart {
   startCommit:               string;
   contentHashAtLaunch:       string;
-  /** The ticket's document heads at launch, which V18 compares with; absent for a ticket without documents. */
+  /** The ticket's document heads at launch, which `ticketDocumentsUnchanged` compares with; absent for a ticket without documents. */
   documentVersionsAtLaunch?: string;
   launchSnapshot:            LaunchSnapshot;
-  /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
+  /** A package build's home entity, whose gates its run leaves out; absent for every other job. */
   homeEntity?:               EntityKey;
-  /** A package build's dependents whose fix tickets are in its ticket's group, whose gates its run also leaves out (E26). */
+  /** A package build's dependents whose fix tickets are in its ticket's group, whose gates its run also leaves out. */
   dependentsFixedInGroup?:   EntityKey[];
 }
 

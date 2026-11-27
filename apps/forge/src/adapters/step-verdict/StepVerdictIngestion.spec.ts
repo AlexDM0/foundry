@@ -1,8 +1,6 @@
 /**
- * A step's `-verdict.json` both ways. What matters: what the writer stores reads back as the same verdict, its optional fields left out
- * staying out; a missing file is absent, since a step is judged the first time its verdict is read; and a verdict that is not JSON, of
- * another version or none, or changed by hand into a field of the wrong shape, a cache word or step ending outside the vocabularies
- * included, is unreadable, so a run never reuses it, and never throws.
+ * A step's `-verdict.json` both ways: what the writer stores reads back the same, a missing file is a step not judged yet, and a verdict
+ * of another version or changed by hand into the wrong shape is unreadable, so a run never reuses it, and nothing throws.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

@@ -32,7 +32,10 @@ export interface RedHandoffFacts {
   callBudget:          number;
   /** On a `merge-conflict` only: the target tip the session merges in again. */
   mergedTip?:          string;
-  /** Once a job of an entity was sent back for Customs V17, kept on every later red handoff of the job: V17 resumes it only once (E11). */
+  /**
+   * Once a job of an entity was sent back by the reach check (`changesStayInHomeAndReach`), kept on every later red handoff of the job:
+   * that check resumes it only once.
+   */
   scopeResumed?:       true;
 }
 

@@ -1,11 +1,6 @@
 /**
- * The closed shapes of the setup payloads. What matters: a well-formed payload reads to the typed value the Board takes; every missing,
- * misshapen or unknown field is named, never thrown; the agent can offer no "Other" option; a draft field outside the closed union is
- * malformed; a source path or a finding's path must stay inside the repository; and the constitution's markdown is kept byte for byte.
- * An entity's definition is a kind, its homes and an optional summary; a field inside an entity reads to the same edit on the entity, a
- * list of non-blank keys or paths, or a cap of at least one job, and a forge-level field never reads inside one. A person's typed edit reads
- * by its target to the same edit, and a missing key, a misshapen value, a key outside its target's and an unknown target are each named.
- * The ticket writing route is one of its two words or `null`, at the forge level only, and the spec and plan approvals are switches.
+ * The closed shapes of the setup payloads: a well-formed payload reads to the typed value the Board takes, every missing, misshapen or
+ * unknown field is named, never thrown, paths stay inside the repository, and the constitution's markdown is kept byte for byte.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,11 +1,6 @@
 /**
- * `pipeline.json` in its one format, both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version`
- * first and an optional key only once set, the Assistant's switch and a gate the forge alone runs included; the minimal pipeline is
- * readable; an empty gate list stays written, since it is "no gates on purpose", not "none set"; a file with no `version` or an earlier one,
- * version 2, 3 and 4 included, is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason naming the offending
- * part, one distinct reason per rule, never a throw; and no file is `absent`. The ticket writing keys are optional: a pipeline without
- * them reads and writes as before, and only the builder and the reviewer read documents, the reviewer always the spec. A file with
- * entities is `PipelineFile.entities.spec.ts`'s.
+ * `pipeline.json` both ways: a written pipeline reads back whole and writes back byte for byte, an optional key only once set; an earlier
+ * version is `older`, a file nobody could trust whole is `malformed` with one distinct reason per rule, and no file is `absent`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

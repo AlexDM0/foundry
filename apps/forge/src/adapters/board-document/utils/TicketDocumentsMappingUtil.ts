@@ -1,8 +1,7 @@
 /**
  * A ticket's documents record mapped into the contract's documents of `GET /api/v1/tickets/{ticketId}/documents` and into the summary
- * the board document carries on the ticket: each document's standing, its head's Markdown, its versions and approvals with their
- * constitution numbers, its messages, its proposals with the lines they cover at the head, a plan's out-of-date spec changes, and the
- * newest effect reading of each document. Every field is named, so a field the record gains reaches no reader until it is mapped here.
+ * the board document carries on the ticket.
+ * Every field is named, so a field the record gains reaches no reader until it is mapped here.
  */
 import type { BoardTicketDocumentsSummaryDocument, TicketDocumentSummaryDocument } from 'forge-contracts/BoardPageDocuments';
 import type {

@@ -1,8 +1,6 @@
 /**
- * A merge's two tips both ways, one format for the merge before review and each round of `merging-main`. What matters: what the writer
- * stores reads back as the same tips; a missing file is absent, since a worktree that holds the target's tip merges nothing; and a file
- * that is not JSON, of another version or none, or with a tip that is not text is unreadable, never a merge that has yet to start, and
- * never a throw.
+ * A merge's two tips both ways: what the writer stores reads back the same, a missing file is a worktree that merges nothing, and any
+ * other file is unreadable, never a merge that has yet to start, and never a throw.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

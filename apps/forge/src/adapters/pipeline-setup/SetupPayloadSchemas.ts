@@ -1,8 +1,6 @@
 /**
- * The closed shapes of the setup payloads a session or a body sends: the pipeline agent's finding, question, constitution, proposal and
- * ready step, the field edits of a draft, and the typed edits a person sends. Each reading maps untrusted JSON to its typed value or
- * names the first field that is missing, misshapen or not in the shape. Whether the value fits the record (a step reached, a line the
- * text holds) is the Board's.
+ * The closed shapes of the setup payloads a session or a body sends. Each reading maps untrusted JSON to its typed value or names the
+ * first field that is missing, misshapen or not in the shape; whether the value fits the record is the Board's.
  */
 import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
 import { GATE_PHASES }      from '../../lib/tracker-model/@types/GatePhase.ts';

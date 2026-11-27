@@ -1,12 +1,6 @@
 /**
- * The board's pipeline facts against the contract's pipeline documents. What matters: a pipeline maps field by field, its optional fields
- * absent where the model leaves them absent, its entities and their agents included; the stored pipeline as read maps for each verdict; a
- * setup record with no check reads `null` and keeps no stored bookkeeping (next numbers, extra keys); each pipeline record the contract
- * declares maps to its history entry and a record of any other kind to none; the ticket writing route, the spec and plan approvals and the
- * documents a role reads map by name; no open setup, flow or entity assignment reads `null`. Each entity carries the pipeline it runs,
- * the forge's approvals and billing joined in; each draft entity names every entity that consumes it, the root's dependents being every
- * other; the Apply refusal is served as the command words it, or `null`; and the draft's entity refusals are served as
- * `BoardEntityRefusalMappingUtil` maps them, none for entities the validator takes.
+ * The board's pipeline facts against the contract's pipeline documents: the pipeline, the stored pipeline, the setup record, its history,
+ * its entities and their refusals map field by field, an absent optional field stays absent, and stored bookkeeping stays out.
  */
 import { describe, expect, test } from 'bun:test';
 

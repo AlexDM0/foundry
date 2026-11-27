@@ -1,10 +1,7 @@
 /**
- * What the log ingestion believes. Every kind the Board logs must pass, so the records come from the Board's own changes and must cover the
- * whole schema; every id and field of every kind must be refused by name when malformed, because the reason is all a person repairing the
- * file sees, and that sweep is derived from the schema so a new kind is held without a line here. One exact reason per field shape pins the
- * wording. `constructor` is refused as a kind because it is a property of every object, and a review bar's task id follows a row's id rule.
- * A job kind or role `onboarder`, which an earlier release logged before the rename to `pipeline-agent`, reads as `pipeline-agent` with no
- * rewrite, since the log is append-only and one refused line would make the whole board unreadable.
+ * What the log ingestion believes: every kind the Board logs passes, and every malformed id and field, swept from the schema, is refused
+ * by name. A job kind or role `onboarder`, logged before the rename, reads as `pipeline-agent`, since the log is append-only and one
+ * refused line would make the whole board unreadable.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -192,7 +189,7 @@ describe('a malformed record', () => {
 });
 
 describe('a record an earlier release logged for the retired job kind and role onboarder', () => {
-  // The shape this repository's own board logged for its job J2 before the rename.
+  // The shape this repository's own board logged for one of its jobs before the rename.
   const OLDER_PIPELINE_AGENT_LAUNCH = '{"at":"2026-11-11T09:22:16+01:00","kind":"job-launched","jobId":"J2","fields":{"kind":"onboarder",'
     + '"role":"onboarder","ticketIds":[],"attempt":1,"target":null,"parentJobId":null}}\n';
   test('reads as a pipeline-agent launch, and the read leaves the log byte-identical', () => {

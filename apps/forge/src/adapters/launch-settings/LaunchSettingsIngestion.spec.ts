@@ -1,8 +1,6 @@
 /**
- * A job's recorded launch pair both ways. What matters: what the writer stores reads back as the same pair, a model or effort outside
- * today's vocabularies included, since whether a later forge still offers it is the caller's question; a missing file is absent, a job
- * before its first launch; and a file that is not JSON, of another version or none, or with a model or effort that is not text is
- * unreadable, never a session resolved afresh, and never a throw.
+ * A job's recorded launch pair both ways: what the writer stores reads back, a model or effort outside today's vocabularies included; a
+ * missing file is a job before its first launch; and any other file is unreadable, never a session resolved afresh, and never a throw.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';

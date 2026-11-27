@@ -1,15 +1,7 @@
 /**
- * `pipeline-setup.json` both ways. What matters: a written record reads back whole and writes back byte for byte, its own keys first in a
- * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
- * byte; a billing not chosen yet is stored as `null`, while a missing one is malformed; a record with no check is written with no `check`
- * key, and one with a check keeps it before `nextNumbers`; a record of a forge without entities, as an open record stored before them, reads
- * and writes back byte for byte with no `entities` key and no `entities` step state, while a record over entities keeps its step state and
- * each entity's part, the part's own check only once set, and an update or advise opened at an entity keeps `openedAtEntity` after the
- * parts, while a record opened at the forge has no such key; a draft whose entities the validator refuses reads and writes back unchanged,
- * since User resolves its refusals before Continue; an edit stored without `batch`, as every edit but a copy's is, reads and writes back
- * byte for byte with no `batch` key, while a copy's edits keep theirs after `undone`, an entity's field included; no file is `absent`; and a
- * file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason naming the offending part, never
- * a throw.
+ * `pipeline-setup.json` both ways: a written record reads back whole and writes back byte for byte, its own keys first and unknown ones
+ * after in stored order, optional keys only once set, a draft the validator refuses unchanged; no file is `absent`, and a file nobody
+ * could trust whole is `malformed` with a reason naming the offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

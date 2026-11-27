@@ -1,9 +1,6 @@
 /**
- * The jobs, the job counter and the merge-queue mark in progress.json. What matters: each is written only once set, so a file without them
- * stays byte-identical; a file with them round-trips byte for byte; and a key the tool does not know on a job, its cursor or its slot keeps
- * its place, through a change the Board makes to the job in place. An intake's title is written only once the product owner gave one, and
- * a job's option notes only while some wait. A job's entity and stage are written only once set: a job without them round-trips byte for
- * byte with neither key, one with them reads back, and a malformed one is refused.
+ * The jobs, the job counter and the merge-queue mark in progress.json: each is written only once set, a file with them round-trips byte
+ * for byte, and a key the tool does not know keeps its place through a change the Board makes to the job.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * The board's jobs against the contract's job documents. What matters: a job maps field by field with its interruption and its lost line
- * in the monitor's cause names (`talos-lost` is `child-lost`); a field the model leaves absent reads `null` as the document declares, and
- * the job's own bookkeeping (event cursor, answered requests, parent job, target) stays out; an ended job, the launch slots and each kind of
- * forecast step map field by field.
+ * The board's jobs against the contract's job documents: a job, an ended job, the launch slots and each forecast step map field by field,
+ * causes in the monitor's names, an absent field reads `null`, and the job's own bookkeeping stays out.
  */
 import { describe, expect, test } from 'bun:test';
 

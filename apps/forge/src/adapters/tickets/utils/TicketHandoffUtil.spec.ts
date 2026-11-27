@@ -1,9 +1,6 @@
 /**
- * A crossing ticket's `## Handoff` in parts, one per stage that built (strategy 4.2). What matters: the first part replaces whatever the
- * section held, the filing template's guidance or a handoff from before the crossing; a stage replaces only its own part and leaves every
- * other part and the text after the section as it was; the parts stay in stage order, two packages' builds each keeping their own; the
- * Acceptance evidence belongs to the last home build stage, so a package build keeps it and `adapt` replaces stage 1's; and a `###` heading
- * inside a stage's own text stays in that text.
+ * A crossing ticket's `## Handoff` in parts, one per stage that built: the first part replaces whatever the section held, a stage
+ * replaces only its own part, the parts stay in stage order, and the Acceptance evidence belongs to the last home build stage.
  */
 import { describe, expect, test } from 'bun:test';
 

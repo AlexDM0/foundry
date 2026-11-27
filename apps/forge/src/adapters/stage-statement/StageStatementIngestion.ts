@@ -8,8 +8,8 @@ import { StoredJsonDocumentUtil }            from '../utils/StoredJsonDocumentUt
 export const STAGE_STATEMENT_FORMAT_VERSION = 1;
 
 /**
- * A package review also keeps the `reach` paths its package's stages changed, which its seal covers (E3). An adapt build that sent the
- * ticket back keeps the package and what the package must give (E41, E42). A package review that does not hold keeps its Review (E34).
+ * A package review also keeps the `reach` paths its package's stages changed, which its seal covers. An adapt build that sent the
+ * ticket back keeps the package and what the package must give. A package review that does not hold keeps its Review.
  */
 export type StageStatement =
   | { stage: 'package-build'; exposedSurfaceChanged: boolean }

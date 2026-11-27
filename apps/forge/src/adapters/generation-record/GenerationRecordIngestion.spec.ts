@@ -1,8 +1,6 @@
 /**
- * A lock generation record's stored format both ways. What matters: what the writer creates reads back as the same record, with the current
- * version, and is created only once; a missing record is absent, which a lock reads as removed by another holder; a record of today's
- * fields without that version, as older code wrote, reads as the same record, so its holder is judged; and any other record is
- * unreadable, never thrown, the record from before process identity among them, which a lock takes over.
+ * A lock generation record's stored format both ways: what the writer creates once reads back with the current version, a record older
+ * code wrote without it reads the same, and any other record, the one from before process identity among them, is unreadable.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

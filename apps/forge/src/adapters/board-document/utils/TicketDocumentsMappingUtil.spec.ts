@@ -1,11 +1,6 @@
 /**
- * A ticket's documents record against the contract's documents. What matters: every field of a document, a version, an approval, a
- * message with its anchor, a proposal, an out-of-date plan and an effect reading is named, an absent optional field reads `null`, and a
- * key the record gains reaches no reader, since nothing is spread; a document the record does not hold reads unwritten; the head's text is
- * the Markdown; constitution numbers are asked per commit; an open proposal covers the lines its edits stand on at the head, moved by the
- * lines changed since its base, and none once a later change touched them or once it is settled; a plan approved on an older spec names
- * that spec version, the spec's head and the spec lines changed between them; the summary carries each standing, the head's number and
- * the newest approved number.
+ * A ticket's documents record against the contract's documents: every field is named, so a key the record gains reaches no reader; an
+ * open proposal covers the lines its edits stand on at the head; and a plan approved on an older spec names the spec lines changed since.
  */
 import { describe, expect, test } from 'bun:test';
 

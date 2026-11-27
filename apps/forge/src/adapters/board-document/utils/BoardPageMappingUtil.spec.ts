@@ -1,10 +1,6 @@
 /**
- * The board's page and its forge-wide figures against the contract's documents. What matters: a ticket, a row, a row's and a ticket's facts
- * and an epic map field by field, their statuses as the model names them; an optional field the model leaves absent stays absent, and a
- * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Hephaestus setting
- * reads as paused and an absent draft list as none; a notice keeps its kind and its other fields as facts, and a value that is no notice is
- * dropped; a Hephaestus lock warning that does not read as one is `null`. A ticket with no documents record carries no `documents` key,
- * and one with a record carries its summary as read.
+ * The board's page and forge-wide figures against the contract's documents: tickets, rows, facts, epics and notices map field by field,
+ * an absent optional field stays absent, and a field no reader names never reaches the document.
  */
 import { describe, expect, test } from 'bun:test';
 
