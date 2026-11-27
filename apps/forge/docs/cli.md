@@ -3303,6 +3303,26 @@ removes it. A journal that cannot be read, another `version`, or an entry breaki
 journal that cannot be removed fails that command at exit 2 with `hold-journal-unremovable`, and the next command
 replays it.
 
+### Lock and slot records
+
+A lock or slot record says which process holds something now: a generation of the store's lock (`<data>/.lock/`), of
+the monitor registry's lock (`<monitor>/.lock/`) or of a repository's `landings.lock`, a generation of the Hephaestus
+lock (`<data>/hephaestus/lock-<n>.json`), an agent slot (`<monitor>/agent-slots/slot-<n>`) and a gate run slot
+(`<monitor>/gate-slots/slot-<n>`). Every writer writes the current `version`: 1 for a lock generation and the Hephaestus
+lock, 2 for an agent slot, and 1 for the process document under a gate run slot's holder line.
+
+Such a record is no stored data but a holding, so it is judged by the process it names and not by its version. A record
+of today's fields reads whatever its version, as older code wrote it, and its holder is judged as a current record's
+is: a live Hephaestus of older code is live to `status`, `jobs`, `nudge`, `update`, `stop`, the control context and
+every start, which all read the Hephaestus lock one way, and nothing takes it over. A gate run slot that older code
+wrote as its holder line alone, or with the process identity itself as the second line, reads the same way. A record
+whose process is gone, or that cannot be read at all, is stale: the next claim takes it over and logs one line, to the
+Hephaestus log or to the command's standard error, with no refusal and nothing for User to remove. A slot whose bytes
+cannot be read is left in place and logged once.
+
+Before 1.0 an older stored format is refused, not migrated. This is no migration: nothing of an older record is
+converted or kept, the record ends with the process that holds it, and the next holder writes the current version.
+
 ### `<data>/version.json`
 
 ```json
