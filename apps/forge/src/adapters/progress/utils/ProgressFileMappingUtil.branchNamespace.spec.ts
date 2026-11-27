@@ -7,6 +7,8 @@ import { expect, test } from 'bun:test';
 
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress }              from '../../../testing/ProgressFixtures.ts';
+import { ProgressFileProblemWording } from '../ProgressFileProblemWording.ts';
+import { wordedReadingOf }            from '../testing/WordedProgressProblem.ts';
 import { ProgressFileMappingUtil }    from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 
@@ -26,7 +28,7 @@ function storedTextWithNamespace(branchNamespace: unknown): string {
 
 function roundTripOf(text: string): string {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return JsonTextUtil.storedFileTextOf(ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(reading.document)));
 }
 
@@ -43,7 +45,7 @@ test('a board that never set a namespace stores none', () => {
 
 test('a namespace that is not lower-case letters, digits and inner dashes makes the file unreadable, naming the key', () => {
   for (const branchNamespace of ['Web', 'web/api', '', 7]) {
-    expect(ProgressFileValidationUtil.readingOf(JSON.parse(storedTextWithNamespace(branchNamespace))), String(branchNamespace))
+    expect(wordedReadingOf(JSON.parse(storedTextWithNamespace(branchNamespace))), String(branchNamespace))
       .toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining('branchNamespace is') });
   }
 });

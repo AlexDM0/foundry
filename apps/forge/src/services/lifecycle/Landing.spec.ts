@@ -288,7 +288,7 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     ];
 
     expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
-    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', reason: expect.any(String) as unknown as string } }]);
+    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', problem: expect.any(Object) as unknown as { code: 'not-a-json-object' } } }]);
   });
 
   test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {

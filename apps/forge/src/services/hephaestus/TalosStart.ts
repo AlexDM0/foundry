@@ -36,6 +36,7 @@ import { TALOS_START_FILE_FORMAT_VERSION }                             from '../
 import type { InterruptionCause }                                      from '../../lib/tracker-model/@types/Job.ts';
 import { INTERRUPTION_CAUSES }                                         from '../../lib/tracker-model/constants/JobStates.ts';
 import { outlivingProgramEnvironment }                                 from '../../shared/Environment.ts';
+import { refuseUnlessOwnerOnly }                                       from '../../shared/OwnerOnlyRestrictionRefusal.ts';
 import { ToolRuntimeUtil }                                             from '../../shared/ToolRuntimeUtil.ts';
 import {
   CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS,
@@ -217,11 +218,13 @@ function registeredChildrenOf(boardFolder: string, startNumber: number, unreadab
   const file = dataFolderPathOf(boardFolder, registryPath);
   if (reading.verdict === 'absent') return [];
   if (reading.verdict === 'unreadable') {
-    unreadableBoardFiles.report({ file, reason: reading.reason });
+    unreadableBoardFiles.report({ file, problem: reading.problem });
     return [];
   }
   const [firstUnreadableLine] = reading.unreadableLines;
-  if (firstUnreadableLine !== undefined) unreadableBoardFiles.report({ file, reason: `line ${firstUnreadableLine.lineNumber}: ${firstUnreadableLine.reason}` });
+  if (firstUnreadableLine !== undefined) {
+    unreadableBoardFiles.report({ file, problem: { ...firstUnreadableLine.problem, lineNumber: firstUnreadableLine.lineNumber } });
+  }
   return reading.entries;
 }
 
@@ -375,9 +378,9 @@ async function settlePreviousTalos(context: TalosStartContext, startNumber: numb
 function writeTalosSecret({ ownerOnlyFiles }: PlatformPorts, secretFilePath: string): string {
   const secret = randomBytes(TALOS_SECRET_BYTES).toString('hex');
   mkdirSync(dirname(secretFilePath), { recursive: true });
-  ownerOnlyFiles.restrictFolder(dirname(secretFilePath));
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFolder(dirname(secretFilePath)));
   writeOwnerOnlyFileAtomically(secretFilePath, secret);
-  ownerOnlyFiles.restrictFile(secretFilePath);
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFile(secretFilePath));
   return secret;
 }
 

@@ -95,6 +95,7 @@ import { EntityOwnershipUtil }           from '../../../lib/tracker-model/utils/
 import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ToolFacts }                from '../../../shared/@types/AgentFacts.ts';
 import { OperationRefusal }              from '../../../shared/OperationRefusal.ts';
+import { PipelineProblemWording }        from '../../pipeline/PipelineProblemWording.ts';
 import { RefusalDocumentUtil }           from '../../utils/RefusalDocumentUtil.ts';
 import { BoardAgentMappingUtil }         from './BoardAgentMappingUtil.ts';
 import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
@@ -239,7 +240,7 @@ function appliedPipelineOf(applied: AppliedPipelineFacts): BoardAppliedPipelineD
     case 'older':
       return { readingVerdict: 'older', fileText: applied.fileText };
     case 'malformed':
-      return { readingVerdict: 'malformed', reason: applied.reason, fileText: applied.fileText };
+      return { readingVerdict: 'malformed', reason: PipelineProblemWording.sentenceOf(applied.problem), fileText: applied.fileText };
     case 'readable':
       return {
         readingVerdict: 'readable',

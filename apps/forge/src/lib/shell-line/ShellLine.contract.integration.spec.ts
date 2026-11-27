@@ -7,6 +7,7 @@
 import { expect, test } from 'bun:test';
 
 import { type PortClause, runPortContract } from '../../testing/PortContract.ts';
+import { spawningShellRequestOf }           from '../../testing/SpawningShellRequest.ts';
 import { createPosixShellLine }             from './PosixShellLine.ts';
 import type { ShellLine }                   from './ShellLine.ts';
 import { shellLineFor }                     from './ShellLineFor.ts';
@@ -20,7 +21,7 @@ const CLAUSES: readonly PortClause<ShellLine>[] = [
     claim: 'hands the line over as its last argument, whatever it holds',
     check: (shellLine) => {
       const line = 'it\'s "quoted" && $HOME';
-      expect(shellLine.spawnRequestOf(line, STATUS_FILE).argv.at(-1)).toBe(line);
+      expect(spawningShellRequestOf(shellLine, line, STATUS_FILE).argv.at(-1)).toBe(line);
     },
   },
   {
@@ -38,7 +39,7 @@ const CLAUSES: readonly PortClause<ShellLine>[] = [
     claim: 'names its grammar, leaves the working directory to the spawn, refuses no folder and limits no line',
     check: (shellLine) => {
       expect(shellLine.lineGrammar).toBe('posix-shell');
-      expect(shellLine.spawnRequestOf('true', STATUS_FILE).workingDirectory).toBe('spawn-option');
+      expect(spawningShellRequestOf(shellLine, 'true', STATUS_FILE).workingDirectory).toBe('spawn-option');
       expect(shellLine.runRefusalOf('//example-server/share')).toBeNull();
       expect(shellLine.lineLimitCharacters).toBeNull();
     },
@@ -57,7 +58,7 @@ const WINDOWS_CLAUSES: readonly PortClause<ShellLine>[] = [
   {
     claim: 'wraps the line as one verbatim argument to an absolute cmd.exe, and names its grammar and its line limit',
     check: (shellLine) => {
-      const request = shellLine.spawnRequestOf('bun test && bun run lint', STATUS_FILE);
+      const request = spawningShellRequestOf(shellLine, 'bun test && bun run lint', STATUS_FILE);
       expect(request.argv[0]).toBe('C:\\Windows\\System32\\cmd.exe');
       expect(request.argv.at(-1)).toContain('(bun test && bun run lint)');
       expect(request.verbatimArguments).toBe(true);
@@ -93,7 +94,7 @@ runPortContract('ShellLine under cmd', [
 const posixShellLine = shellLineFor('darwin', NO_HOST_SHELLS);
 
 function runReal(line: string, environment: Record<string, string> = { PATH: '/usr/bin:/bin' }): { meaning: string; output: string } {
-  const { argv } = posixShellLine.spawnRequestOf(line, STATUS_FILE);
+  const { argv } = spawningShellRequestOf(posixShellLine, line, STATUS_FILE);
   const run = Bun.spawnSync({ cmd: [...argv], env: environment });
   return { meaning: posixShellLine.exitMeaningOf({ exitCode: run.exitCode, signalCode: run.signalCode ?? null, recordedStatus: null }), output: run.stdout.toString() };
 }
@@ -137,9 +138,10 @@ test('a platform with no adapter displays each step on its own line, its folder 
   ])).toBe('bun test    (in service)\nbun run lint');
 });
 
-test('a platform with no adapter refuses a spawn, grants no executable and never reads a line as passed', () => {
+test('a platform with no adapter refuses every folder and spawn, grants no executable and never reads a line as passed', () => {
   const shellLine = shellLineFor('example-platform', NO_HOST_SHELLS);
-  expect(() => shellLine.spawnRequestOf('true', STATUS_FILE)).toThrow('example-platform');
+  expect(shellLine.runRefusalOf('/example')).toBe('no-shell-grammar');
+  expect(shellLine.spawnRequestOf('true', STATUS_FILE)).toEqual({ verdict: 'refused', refusal: 'no-shell-grammar' });
   expect(shellLine.executablesOf('make check')).toEqual([]);
   expect(shellLine.exitMeaningOf({ exitCode: 0, signalCode: null, recordedStatus: '0' })).toBe('cannot-run');
 });

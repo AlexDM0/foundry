@@ -228,7 +228,7 @@ function contextWith(
       endpointOf:   ({ name, instance }) => `/example/${name}-${instance}.sock`,
       endpointFits: () => endpointFits,
     },
-    ownerOnlyFiles: { restrictFolder: () => undefined, restrictFile: () => undefined, isOwnerOnly: () => true },
+    ownerOnlyFiles: { restrictFolder: () => ({ verdict: 'restricted' }), restrictFile: () => ({ verdict: 'restricted' }), isOwnerOnly: () => true },
   };
   const context: TalosStartContext = {
     boardFolder,
@@ -382,7 +382,9 @@ test('a registry line that does not fit is reported to the board header, its oth
 
   expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 1 });
   expect(childFileText('jobs/J-1', 'lost-cause')).toBe('agent-crashed\n');
-  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'talos/launches-1.ndjson', reason: expect.stringMatching(/^line 1: it is not valid JSON/) }]);
+  expect(context.unreadableBoardFiles.files()).toEqual([
+    { file: 'talos/launches-1.ndjson', problem: { code: 'registry-line-not-json', parserError: expect.any(String) as unknown as string, lineNumber: 1 } },
+  ]);
 });
 
 test('a refused forced stop of an orphan stores the refusal, no cause, and is not counted as swept', async () => {
@@ -407,7 +409,8 @@ test('refusals that cannot be read are reported to the board header and count no
   const { context, logged } = contextWith(() => WELCOMED);
 
   expect(await ensureTalos(context)).toMatchObject({ verdict: 'started', previousTalos: 'lost', sweptOrphans: 0 });
-  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'jobs/J-1/child-1.refused-forced-stops', reason: 'its version is not 1' }]);
+  const versionDiffers = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+  expect(context.unreadableBoardFiles.files()).toEqual([{ file: 'jobs/J-1/child-1.refused-forced-stops', problem: versionDiffers }]);
   expect(logged.some((line) => line.includes('cannot read the board file jobs/J-1/child-1.refused-forced-stops'))).toBe(true);
   expect(JSON.parse(childFileText('jobs/J-1', 'refused-forced-stops') ?? 'null')).toEqual({ version: 1, refusals: 1, treeProcessIds: [stubbornChild.processId] });
 });

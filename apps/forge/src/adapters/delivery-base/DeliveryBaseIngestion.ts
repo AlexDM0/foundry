@@ -1,13 +1,14 @@
 /** `document-agent-launch.json` in a document agent's job folder, the document's newest delivery when the job launched: read, validate, map. */
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
-import { StoredValueUtil }        from '../utils/StoredValueUtil.ts';
+import { StoredJsonDocumentUtil }   from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredValueUtil }          from '../utils/StoredValueUtil.ts';
+import type { DeliveryBaseProblem } from './@types/DeliveryBaseProblem.ts';
 
 export const DELIVERY_BASE_FORMAT_VERSION = 1;
 
 export type DeliveryBaseReading =
   | { verdict: 'readable'; deliveryBase: number }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: DeliveryBaseProblem };
 
 export class DeliveryBaseIngestion {
   constructor(private readonly launchFilePath: string) {}
@@ -17,7 +18,7 @@ export class DeliveryBaseIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.launchFilePath, DELIVERY_BASE_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { deliveryBase } = stored.document;
-    if (!StoredValueUtil.wholeNumberIsAtLeast(deliveryBase, 0)) return { verdict: 'unreadable', reason: 'its deliveryBase is not a whole number of at least 0' };
+    if (!StoredValueUtil.wholeNumberIsAtLeast(deliveryBase, 0)) return { verdict: 'unreadable', problem: { code: 'not-a-delivery-number', field: 'deliveryBase' } };
     return { verdict: 'readable', deliveryBase };
   }
 }

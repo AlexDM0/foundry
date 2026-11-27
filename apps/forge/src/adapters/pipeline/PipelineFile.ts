@@ -1,6 +1,6 @@
 /**
  * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in its
- * one format. A file that cannot be read whole is `malformed` with the reason, and one of an earlier version is `older`, never a throw.
+ * one format. A file that cannot be read whole is `malformed` with the problem, and one of an earlier version is `older`, never a throw.
  * Entities are mapped and validated in full, a whitelist that names a package included; a setup record's draft is read the same way but
  * for the entities' set check, so it may hold the refusals User has not resolved yet.
  */
@@ -33,6 +33,7 @@ import {
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
 } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineProblem }                           from '../../lib/tracker-model/@types/PipelineProblem.ts';
 import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
 import {
   DEFAULT_DOCUMENTS_OF_ROLE,
@@ -40,13 +41,12 @@ import {
   FIXED_DOCUMENTS_OF_ROLE,
   RE_REVIEW_THRESHOLD_STEP_LINES
 } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { EntityValidationUtil }        from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { VocabularyUtil }              from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { JsonTextUtil }                from '../../shared/utils/JsonTextUtil.ts';
-import { PathNestingUtil }             from '../../shared/utils/PathNestingUtil.ts';
-import { storedFileTextOf }            from '../StoredFileText.ts';
-import { OperationRefusalWordingUtil } from '../utils/OperationRefusalWordingUtil.ts';
-import { StoredValueUtil }             from '../utils/StoredValueUtil.ts';
+import { EntityValidationUtil } from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import { VocabularyUtil }       from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { JsonTextUtil }         from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }      from '../../shared/utils/PathNestingUtil.ts';
+import { storedFileTextOf }     from '../StoredFileText.ts';
+import { StoredValueUtil }      from '../utils/StoredValueUtil.ts';
 
 /** Entities that are sound as stored but that this tracker cannot hold, which a refusal names instead of a repair. */
 export type UnsupportedEntities = { kind: 'entities-in-a-folder'; projectPrefix: string };
@@ -55,7 +55,7 @@ export type PipelineReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; pipeline: Pipeline }
   | { verdict: 'older' }
-  | { verdict: 'malformed'; reason: string; unsupportedEntities?: UnsupportedEntities };
+  | { verdict: 'malformed'; problem: PipelineProblem; unsupportedEntities?: UnsupportedEntities };
 
 /** A stored file the board cannot use, which nothing writes over. */
 export type UnreadablePipelineReading = Extract<PipelineReading, { verdict: 'older' | 'malformed' }>;
@@ -133,15 +133,19 @@ const AGENT_ROLES = [
   'assistant'
 ] as const satisfies readonly PipelineAgentRole[];
 
-type Mapped<Value> = { value: Value } | { problem: string };
+type Mapped<Value> = { value: Value } | { problem: PipelineProblem };
 
-function problemOf(problem: string): { problem: string } {
+function problemOf(problem: PipelineProblem): { problem: PipelineProblem } {
   return { problem };
 }
 
-function unknownKeyProblemOf(record: Record<string, unknown>, knownKeys: readonly string[], path: string): string | null {
+/** `path` is the record's path, absent at the top level. */
+function unknownKeyProblemOf(record: Record<string, unknown>, knownKeys: readonly string[], path?: string): PipelineProblem | null {
   const unknownKey = Object.keys(record).find((key) => !knownKeys.includes(key));
-  return unknownKey === undefined ? null : `${path}${JSON.stringify(unknownKey)} is not a pipeline key; the keys are ${knownKeys.join(', ')}`;
+  if (unknownKey === undefined) return null;
+  return {
+    code: 'unknown-pipeline-key', ...(path === undefined ? {} : { field: path }), key: unknownKey, knownKeys
+  };
 }
 
 function textIsPresent(value: unknown): value is string {
@@ -150,33 +154,33 @@ function textIsPresent(value: unknown): value is string {
 
 function textListOf(value: unknown, path: string): Mapped<string[] | undefined> {
   if (value === undefined) return { value: undefined };
-  if (!Array.isArray(value) || !value.every(textIsPresent)) return problemOf(`${path} is not a list of non-blank texts`);
+  if (!Array.isArray(value) || !value.every(textIsPresent)) return problemOf({ code: 'not-a-list-of-non-blank-texts', field: path });
   return { value: [...value] };
 }
 
 function optionalTextOf(value: unknown, path: string): Mapped<string | undefined> {
   if (value === undefined) return { value: undefined };
-  return textIsPresent(value) ? { value } : problemOf(`${path} is present and is not a non-blank text`);
+  return textIsPresent(value) ? { value } : problemOf({ code: 'present-and-not-a-non-blank-text', field: path });
 }
 
 function closedRecordOf(value: unknown, path: string, knownKeys: readonly string[]): Mapped<Record<string, unknown>> {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf(`${path} is not an object`);
-  const unknownKeyProblem = unknownKeyProblemOf(value, knownKeys, `${path}.`);
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: path });
+  const unknownKeyProblem = unknownKeyProblemOf(value, knownKeys, path);
   return unknownKeyProblem === null ? { value } : problemOf(unknownKeyProblem);
 }
 
 function namedRecordOf(value: unknown, path: string, knownKeys: readonly string[]): Mapped<Record<string, unknown>> {
   const record = closedRecordOf(value, path, knownKeys);
   if ('problem' in record) return record;
-  if (!textIsPresent(record.value['name'])) return problemOf(`${path} has no name`);
+  if (!textIsPresent(record.value['name'])) return problemOf({ code: 'has-no-name', field: path });
   return record;
 }
 
 /** Relative to the repository root on every host: no root, drive, `~/` or `..` segment. */
 function pathInsideRepositoryOf(value: unknown, path: string): Mapped<string> {
-  if (!textIsPresent(value)) return problemOf(`${path} is not a non-blank text`);
+  if (!textIsPresent(value)) return problemOf({ code: 'not-a-non-blank-text', field: path });
   if (PathNestingUtil.wirePathIsWellFormed(value) || !PathNestingUtil.relativeWirePathStaysInside(value)) {
-    return problemOf(`${path} is not a path inside the repository`);
+    return problemOf({ code: 'not-a-path-inside-the-repository', field: path });
   }
   return { value };
 }
@@ -185,7 +189,7 @@ function pathInsideRepositoryOf(value: unknown, path: string): Mapped<string> {
 function optionalFolderInRepositoryOf(value: unknown, path: string): Mapped<string | undefined> {
   const folder = optionalTextOf(value, path);
   if ('problem' in folder || folder.value === undefined) return folder;
-  return PathNestingUtil.projectWirePathStaysInside(folder.value) ? folder : problemOf(`${path} is not a folder inside the repository`);
+  return PathNestingUtil.projectWirePathStaysInside(folder.value) ? folder : problemOf({ code: 'not-a-folder-inside-the-repository', field: path });
 }
 
 /** Each a repository path leading with `/`, named once. */
@@ -194,16 +198,16 @@ function repositoryPathsOf(value: unknown, path: string): Mapped<string[] | unde
   if ('problem' in paths || paths.value === undefined) return paths;
   const repositoryPaths = paths.value;
   const outsideRepository = repositoryPaths.find((repositoryPath) => !PathNestingUtil.repositoryWirePathStaysInside(repositoryPath));
-  if (outsideRepository !== undefined) return problemOf(`${path} names ${JSON.stringify(outsideRepository)}, which is not a repository path leading with /`);
+  if (outsideRepository !== undefined) return problemOf({ code: 'not-a-repository-path', field: path, path: outsideRepository });
   const repeated = repositoryPaths.find((repositoryPath, index) => repositoryPaths.indexOf(repositoryPath) !== index);
-  return repeated === undefined ? paths : problemOf(`${path} names ${JSON.stringify(repeated)} twice`);
+  return repeated === undefined ? paths : problemOf({ code: 'names-twice', field: path, name: repeated });
 }
 
 function stepOf(value: unknown, path: string): Mapped<PipelineStep> {
   const record = namedRecordOf(value, path, STEP_KEYS);
   if ('problem' in record) return record;
   const { name, run } = record.value;
-  if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
+  if (!textIsPresent(run)) return problemOf({ code: 'has-no-run-line', field: path });
   const folder = optionalFolderInRepositoryOf(record.value['in'], `${path}.in`);
   if ('problem' in folder) return folder;
   return { value: { name: String(name), run, ...(folder.value === undefined ? {} : { in: folder.value }) } };
@@ -214,8 +218,8 @@ function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
   if ('problem' in record) return record;
   const fields = record.value;
   const { name, run, forgeOnly } = fields;
-  if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
-  if (forgeOnly !== undefined && forgeOnly !== true) return problemOf(`${path}.forgeOnly is present and is not true`);
+  if (!textIsPresent(run)) return problemOf({ code: 'has-no-run-line', field: path });
+  if (forgeOnly !== undefined && forgeOnly !== true) return problemOf({ code: 'present-and-not-true', field: `${path}.forgeOnly` });
   const gate: PipelineGate = { name: String(name), run };
   const fix = optionalTextOf(fields['fix'], `${path}.fix`);
   if ('problem' in fix) return fix;
@@ -229,13 +233,13 @@ function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
     if (texts.value !== undefined) gate[key] = texts.value;
   }
   // A relative folder would resolve against wherever Hephaestus runs.
-  if (gate.writes !== undefined && !gate.writes.every(PathNestingUtil.wirePathIsWellFormed)) return problemOf(`${path}.writes holds a folder that is not absolute or ~/`);
+  if (gate.writes !== undefined && !gate.writes.every(PathNestingUtil.wirePathIsWellFormed)) return problemOf({ code: 'holds-a-relative-folder', field: `${path}.writes` });
   if (forgeOnly === true) gate.forgeOnly = true;
   return { value: gate };
 }
 
 function listOf<Item>(value: unknown, path: string, itemOf: (item: unknown, itemPath: string) => Mapped<Item>): Mapped<Item[]> {
-  if (!Array.isArray(value)) return problemOf(`${path} is not a list`);
+  if (!Array.isArray(value)) return problemOf({ code: 'not-a-list', field: path });
   const items: Item[] = [];
   for (const [index, item] of value.entries()) {
     const mapped = itemOf(item, `${path}[${index}]`);
@@ -254,7 +258,7 @@ function namedListOf<Item extends { name: string }>(
   if ('problem' in items) return items;
   const names    = items.value.map((item) => item.name);
   const repeated = names.find((name, index) => names.indexOf(name) !== index);
-  return repeated === undefined ? items : problemOf(`${path} names ${JSON.stringify(repeated)} twice`);
+  return repeated === undefined ? items : problemOf({ code: 'names-twice', field: path, name: repeated });
 }
 
 function phasesOf(value: unknown, gates: readonly PipelineGate[], keyPrefix: string): Mapped<PipelinePhaseOrders> {
@@ -265,17 +269,17 @@ function phasesOf(value: unknown, gates: readonly PipelineGate[], keyPrefix: str
   for (const phase of PHASE_KEYS) {
     const names = record.value[phase];
     const phasePath = `${keyPrefix}phases.${phase}`;
-    if (names === undefined) return problemOf(`${phasePath} is missing`);
-    if (!Array.isArray(names) || !names.every(textIsPresent)) return problemOf(`${phasePath} is not a list of gate names`);
+    if (names === undefined) return problemOf({ code: 'missing', field: phasePath });
+    if (!Array.isArray(names) || !names.every(textIsPresent)) return problemOf({ code: 'not-a-list-of-gate-names', field: phasePath });
     const unknownName = names.find((name) => !gateNames.includes(name));
-    if (unknownName !== undefined) return problemOf(`${phasePath} names ${JSON.stringify(unknownName)}, which is not a gate`);
+    if (unknownName !== undefined) return problemOf({ code: 'names-no-gate', field: phasePath, name: unknownName });
     const repeated = names.find((name, index) => names.indexOf(name) !== index);
-    if (repeated !== undefined) return problemOf(`${phasePath} names ${JSON.stringify(repeated)} twice`);
+    if (repeated !== undefined) return problemOf({ code: 'names-twice', field: phasePath, name: repeated });
     phases[phase] = [...names];
   }
   const gateInNoPhase = gateNames.find((name) => PHASE_KEYS.every((phase) => !phases[phase].includes(name)));
   if (gateInNoPhase === undefined) return { value: phases };
-  return problemOf(`the gate ${JSON.stringify(gateInNoPhase)}${keyPrefix === '' ? '' : ` of ${keyPrefix}gates`} runs in no phase`);
+  return problemOf({ code: 'gate-runs-in-no-phase', field: `${keyPrefix}gates`, gateName: gateInNoPhase });
 }
 
 function reReviewOf(value: unknown, path: string): Mapped<ConditionalReReview | undefined> {
@@ -284,7 +288,7 @@ function reReviewOf(value: unknown, path: string): Mapped<ConditionalReReview | 
   if ('problem' in record) return record;
   const { thresholdLines } = record.value;
   if (typeof thresholdLines !== 'number' || !Number.isInteger(thresholdLines) || thresholdLines < RE_REVIEW_THRESHOLD_STEP_LINES) {
-    return problemOf(`${path}.thresholdLines is not a whole number of at least ${RE_REVIEW_THRESHOLD_STEP_LINES}`);
+    return problemOf({ code: 'not-a-whole-number-of-at-least', field: `${path}.thresholdLines`, lowest: RE_REVIEW_THRESHOLD_STEP_LINES });
   }
   return { value: { thresholdLines } };
 }
@@ -324,15 +328,15 @@ function instructionKindIsKnown(value: unknown): value is InstructionEntry['kind
 }
 
 function instructionEntryOf(value: unknown, path: string): Mapped<InstructionEntry> {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf(`${path} is not an object`);
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: path });
   const entryKind = value['kind'];
-  if (!instructionKindIsKnown(entryKind)) return problemOf(`${path}.kind is not one of ${INSTRUCTION_KINDS.join(', ')}`);
+  if (!instructionKindIsKnown(entryKind)) return problemOf({ code: 'not-one-of', field: `${path}.kind`, choices: INSTRUCTION_KINDS });
   const record = closedRecordOf(value, path, INSTRUCTION_KEYS_OF_KIND[entryKind]);
   if ('problem' in record) return record;
   if (entryKind === 'constitution') return { value: { kind: entryKind } };
   if (entryKind === 'default-brief') {
     const { role } = record.value;
-    return roleIsKnown(role) ? { value: { kind: entryKind, role } } : problemOf(`${path}.role is not one of ${AGENT_ROLES.join(', ')}`);
+    return roleIsKnown(role) ? { value: { kind: entryKind, role } } : problemOf({ code: 'not-one-of', field: `${path}.role`, choices: AGENT_ROLES });
   }
   const filePath = pathInsideRepositoryOf(record.value['path'], `${path}.path`);
   return 'problem' in filePath ? filePath : { value: { kind: entryKind, path: filePath.value } };
@@ -345,7 +349,7 @@ function instructionsOf(value: unknown, path: string): Mapped<InstructionEntry[]
   if ('problem' in entries) return entries;
   const identities = entries.value.map((entry) => JSON.stringify(entry));
   const repeated   = entries.value.find((_entry, index) => identities.indexOf(identities[index] ?? '') !== index);
-  return repeated === undefined ? entries : problemOf(`${path} lists ${JSON.stringify(repeated)} twice`);
+  return repeated === undefined ? entries : problemOf({ code: 'lists-twice', field: path, entry: repeated });
 }
 
 function documentReadingRuleIsKnown(value: unknown): value is DocumentReadingRule {
@@ -361,9 +365,11 @@ function documentsOf(value: unknown, path: string, role: DocumentReadingRole): M
   for (const document of TICKET_DOCUMENT_KINDS) {
     const rule = record.value[document];
     if (rule === undefined) continue;
-    if (!documentReadingRuleIsKnown(rule)) return problemOf(`${path}.${document} is not one of ${DOCUMENT_READING_RULES.join(', ')}`);
+    if (!documentReadingRuleIsKnown(rule)) return problemOf({ code: 'not-one-of', field: `${path}.${document}`, choices: DOCUMENT_READING_RULES });
     if (FIXED_DOCUMENTS_OF_ROLE[role].includes(document) && rule !== DEFAULT_DOCUMENTS_OF_ROLE[role][document]) {
-      return problemOf(`${path}.${document} is ${rule}; the ${role} always reads the ${document}`);
+      return problemOf({
+        code: 'always-read-document', field: `${path}.${document}`, rule, role, document
+      });
     }
     documents[document] = rule;
   }
@@ -379,8 +385,8 @@ function agentSettingsOf(value: unknown, path: string, role: PipelineAgentRole):
   const record = closedRecordOf(value, path, documentReadingRole === null ? AGENT_SETTING_KEYS : DOCUMENT_READING_AGENT_SETTING_KEYS);
   if ('problem' in record) return record;
   const { model, effort } = record.value;
-  if (model !== undefined && !(typeof model === 'string' && VocabularyUtil.agentModelIsKnown(model))) return problemOf(`${path}.model is not a known model`);
-  if (effort !== undefined && !(typeof effort === 'string' && VocabularyUtil.agentEffortIsKnown(effort))) return problemOf(`${path}.effort is not a known effort`);
+  if (model !== undefined && !(typeof model === 'string' && VocabularyUtil.agentModelIsKnown(model))) return problemOf({ code: 'not-a-known-model', field: `${path}.model` });
+  if (effort !== undefined && !(typeof effort === 'string' && VocabularyUtil.agentEffortIsKnown(effort))) return problemOf({ code: 'not-a-known-effort', field: `${path}.effort` });
   const instructions = instructionsOf(record.value['instructions'], `${path}.instructions`);
   if ('problem' in instructions) return instructions;
   const documents = documentReadingRole === null ? { value: undefined } : documentsOf(record.value['documents'], `${path}.documents`, documentReadingRole);
@@ -417,7 +423,7 @@ function approvalsOf(value: unknown): Mapped<Pipeline['approvals']> {
   for (const approval of APPROVALS) {
     const switchValue = record.value[approval];
     if (switchValue === undefined) continue;
-    if (typeof switchValue !== 'boolean') return problemOf(`approvals.${approval} is not true or false`);
+    if (typeof switchValue !== 'boolean') return problemOf({ code: 'not-true-or-false', field: `approvals.${approval}` });
     approvals[approval] = switchValue;
   }
   return { value: approvals };
@@ -430,17 +436,17 @@ function billingOf(value: unknown): Mapped<PipelineBilling | undefined> {
   if ('problem' in record) return record;
   const { mode, maxBudgetUsd } = record.value;
   if (mode === 'subscription') {
-    return maxBudgetUsd === undefined ? { value: { mode } } : problemOf('billing.maxBudgetUsd is present with mode subscription');
+    return maxBudgetUsd === undefined ? { value: { mode } } : problemOf({ code: 'budget-with-subscription', field: 'billing.maxBudgetUsd' });
   }
-  if (mode !== 'api') return problemOf('billing.mode is neither subscription nor api');
+  if (mode !== 'api') return problemOf({ code: 'not-a-billing-mode', field: 'billing.mode' });
   if (maxBudgetUsd === undefined) return { value: { mode } };
-  if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd) || maxBudgetUsd <= 0) return problemOf('billing.maxBudgetUsd is not a positive number');
+  if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd) || maxBudgetUsd <= 0) return problemOf({ code: 'not-a-positive-number', field: 'billing.maxBudgetUsd' });
   return { value: { mode, maxBudgetUsd } };
 }
 
 /** A program is named by an absolute path of either platform's form, so a file read on another host is judged the same. */
 function absolutePathOf(value: unknown, path: string): Mapped<string> {
-  return typeof value === 'string' && (posix.isAbsolute(value) || win32.isAbsolute(value)) ? { value } : problemOf(`${path} is not an absolute path`);
+  return typeof value === 'string' && (posix.isAbsolute(value) || win32.isAbsolute(value)) ? { value } : problemOf({ code: 'not-an-absolute-path', field: path });
 }
 
 /** A vendor and its program: `{follows: "machine"}`, or `{pinned: <absolute path>}`, never both. */
@@ -449,12 +455,14 @@ function agentOf(value: unknown): Mapped<PipelineAgent | undefined> {
   const record = closedRecordOf(value, 'agent', AGENT_KEYS);
   if ('problem' in record) return record;
   const { vendor, program } = record.value;
-  if (typeof vendor !== 'string' || vendor.trim() === '') return problemOf('agent.vendor is not a name');
+  if (typeof vendor !== 'string' || vendor.trim() === '') return problemOf({ code: 'not-a-name', field: 'agent.vendor' });
   const choice = closedRecordOf(program, 'agent.program', AGENT_PROGRAM_CHOICES);
   if ('problem' in choice) return choice;
   const { follows, pinned } = choice.value;
-  if (follows !== undefined && pinned === undefined) return follows === 'machine' ? { value: { vendor, program: { follows } } } : problemOf('agent.program.follows is not machine');
-  if (follows !== undefined || pinned === undefined) return problemOf('agent.program names neither follows nor pinned alone');
+  if (follows !== undefined && pinned === undefined) {
+    return follows === 'machine' ? { value: { vendor, program: { follows } } } : problemOf({ code: 'not-machine', field: 'agent.program.follows' });
+  }
+  if (follows !== undefined || pinned === undefined) return problemOf({ code: 'neither-follows-nor-pinned', field: 'agent.program' });
   const pinnedPath = absolutePathOf(pinned, 'agent.program.pinned');
   return 'problem' in pinnedPath ? pinnedPath : { value: { vendor, program: { pinned: pinnedPath.value } } };
 }
@@ -462,14 +470,14 @@ function agentOf(value: unknown): Mapped<PipelineAgent | undefined> {
 /** Each tool once by its name, at the absolute path it was found at. */
 function toolsOf(value: unknown): Mapped<PipelineTool[] | undefined> {
   if (value === undefined) return { value: undefined };
-  if (!Array.isArray(value)) return problemOf('tools is not a list');
+  if (!Array.isArray(value)) return problemOf({ code: 'not-a-list', field: 'tools' });
   const tools: PipelineTool[] = [];
   for (const [index, tool] of value.entries()) {
     const record = closedRecordOf(tool, `tools[${index}]`, TOOL_KEYS);
     if ('problem' in record) return record;
     const { name } = record.value;
-    if (typeof name !== 'string' || name.trim() === '') return problemOf(`tools[${index}].name is not a name`);
-    if (tools.some((known) => known.name === name)) return problemOf(`tools names ${JSON.stringify(name)} twice`);
+    if (typeof name !== 'string' || name.trim() === '') return problemOf({ code: 'not-a-name', field: `tools[${index}].name` });
+    if (tools.some((known) => known.name === name)) return problemOf({ code: 'names-twice', field: 'tools', name });
     const toolPath = absolutePathOf(record.value['path'], `tools[${index}].path`);
     if ('problem' in toolPath) return toolPath;
     tools.push({ name, path: toolPath.value });
@@ -477,9 +485,9 @@ function toolsOf(value: unknown): Mapped<PipelineTool[] | undefined> {
   return { value: tools };
 }
 
-function sharedNameProblemOf(prepare: readonly PipelineStep[], gates: readonly PipelineGate[]): { problem: string } | null {
+function sharedNameProblemOf(prepare: readonly PipelineStep[], gates: readonly PipelineGate[]): { problem: PipelineProblem } | null {
   const shared = prepare.find((step) => gates.some((gate) => gate.name === step.name));
-  return shared === undefined ? null : problemOf(`${JSON.stringify(shared.name)} names both a prepare step and a gate`);
+  return shared === undefined ? null : problemOf({ code: 'step-and-gate-share-a-name', name: shared.name });
 }
 
 interface OwnSteps {
@@ -502,12 +510,12 @@ function ownStepsOf(record: Record<string, unknown>, keyPrefix: string): Mapped<
 
 function entityKindOf(value: unknown, path: string): Mapped<PipelineEntityKind> {
   const entityKind = ENTITY_KINDS.find((knownKind) => knownKind === value);
-  return entityKind === undefined ? problemOf(`${path} is not one of ${ENTITY_KINDS.join(', ')}`) : { value: entityKind };
+  return entityKind === undefined ? problemOf({ code: 'not-one-of', field: path, choices: ENTITY_KINDS }) : { value: entityKind };
 }
 
 function concurrencyOf(value: unknown, path: string): Mapped<number | undefined> {
   if (value === undefined) return { value: undefined };
-  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? { value } : problemOf(`${path} is not a positive whole number`);
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? { value } : problemOf({ code: 'not-a-positive-whole-number', field: path });
 }
 
 /** The root entity's home may be the repository's root alone, `/`, as a client writes it; any other home names folders below the root. */
@@ -515,7 +523,7 @@ function homeOf(value: unknown, path: string, entityKind: PipelineEntityKind): M
   if (entityKind === 'root' && Array.isArray(value) && value.length === 1 && value[0] === REPOSITORY_ROOT_HOME) return { value: [REPOSITORY_ROOT_HOME] };
   const folders = repositoryPathsOf(value, path);
   if ('problem' in folders) return folders;
-  return folders.value === undefined || folders.value.length === 0 ? problemOf(`${path} names no folder`) : { value: folders.value };
+  return folders.value === undefined || folders.value.length === 0 ? problemOf({ code: 'names-no-folder', field: path }) : { value: folders.value };
 }
 
 function entityOf(value: unknown, entityKey: EntityKey): Mapped<PipelineEntity> {
@@ -524,7 +532,7 @@ function entityOf(value: unknown, entityKey: EntityKey): Mapped<PipelineEntity> 
   if ('problem' in record) return record;
   const fields     = record.value;
   const missingKey = REQUIRED_ENTITY_KEYS.find((key) => fields[key] === undefined);
-  if (missingKey !== undefined) return problemOf(`${path}.${missingKey} is missing`);
+  if (missingKey !== undefined) return problemOf({ code: 'missing', field: `${path}.${missingKey}` });
   const entityKind = entityKindOf(fields['kind'], `${path}.kind`);
   if ('problem' in entityKind) return entityKind;
   const home = homeOf(fields['home'], `${path}.home`, entityKind.value);
@@ -567,10 +575,10 @@ function entityOf(value: unknown, entityKey: EntityKey): Mapped<PipelineEntity> 
 /** Each entity mapped on its own; whether the entities stand together is `entitySetProblemOf`'s. */
 function entitiesOf(value: unknown): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
   if (value === undefined) return { value: undefined };
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf({ code: 'not-an-object', field: 'entities' });
   const entities: Record<EntityKey, PipelineEntity> = {};
   for (const [entityKey, entityValue] of Object.entries(value)) {
-    if (!textIsPresent(entityKey)) return problemOf('entities holds a blank key');
+    if (!textIsPresent(entityKey)) return problemOf({ code: 'holds-a-blank-key', field: 'entities' });
     const entity = entityOf(entityValue, entityKey);
     if ('problem' in entity) return entity;
     entities[entityKey] = entity.value;
@@ -579,19 +587,19 @@ function entitiesOf(value: unknown): Mapped<Record<EntityKey, PipelineEntity> | 
 }
 
 /** The first refusal of the entities checked together by the validator the entities draft shares, which a stored pipeline must pass. */
-function entitySetProblemOf(entities: Readonly<Record<EntityKey, PipelineEntity>> | undefined): { problem: string } | null {
+function entitySetProblemOf(entities: Readonly<Record<EntityKey, PipelineEntity>> | undefined): { problem: PipelineProblem } | null {
   const firstRefusal = entities === undefined ? undefined : EntityValidationUtil.refusalsOf(entities)[0];
-  return firstRefusal === undefined ? null : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));
+  return firstRefusal === undefined ? null : problemOf({ code: 'entities-refused', refusal: firstRefusal });
 }
 
 /** Beside entities the forge's own steps, gates, constitution and reach stay empty. */
-function entitiesProblemOf(document: Record<string, unknown>): { problem: string } | null {
+function entitiesProblemOf(document: Record<string, unknown>): { problem: PipelineProblem } | null {
   if (document['entities'] === undefined) return null;
   const keyNotEmpty = KEYS_EMPTY_BESIDE_ENTITIES.find((key) => {
     const keyValue = document[key];
     return keyValue !== undefined && !(Array.isArray(keyValue) && keyValue.length === 0);
   });
-  return keyNotEmpty === undefined ? null : problemOf(`${keyNotEmpty} is not empty beside entities; each entity holds its own`);
+  return keyNotEmpty === undefined ? null : problemOf({ code: 'not-empty-beside-entities', field: keyNotEmpty });
 }
 
 /**
@@ -603,20 +611,20 @@ type PipelineReadingPurpose = 'stored' | 'draft';
 function ticketWritingOf(value: unknown): Mapped<TicketWritingRoute | undefined> {
   if (value === undefined) return { value: undefined };
   const route = TICKET_WRITING_ROUTES.find((knownRoute) => knownRoute === value);
-  return route === undefined ? problemOf(`ticketWriting is not one of ${TICKET_WRITING_ROUTES.join(', ')}`) : { value: route };
+  return route === undefined ? problemOf({ code: 'not-one-of', field: 'ticketWriting', choices: TICKET_WRITING_ROUTES }) : { value: route };
 }
 
 /** The Assistant's switch is on while the key is present, so the file holds `true` or no key, never `false`. */
 function assistantOf(value: unknown): Mapped<true | undefined> {
   if (value === undefined || value === true) return { value };
-  return problemOf('assistant is present and is not true');
+  return problemOf({ code: 'present-and-not-true', field: 'assistant' });
 }
 
 function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingPurpose): Mapped<Pipeline> {
-  const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS, '');
+  const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS);
   if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
   const missingKey = REQUIRED_KEYS.find((key) => document[key] === undefined);
-  if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
+  if (missingKey !== undefined) return problemOf({ code: 'missing', field: missingKey });
   const entitiesProblem = entitiesProblemOf(document);
   if (entitiesProblem !== null) return entitiesProblem;
   const ownSteps = ownStepsOf(document, '');
@@ -669,16 +677,21 @@ function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingP
 
 /** Only the one format is mapped; no release converts an earlier file, so one with no version or a lower one is `older`, and a higher one is malformed. */
 function readingOf(document: unknown, purpose: PipelineReadingPurpose): PipelineReading {
-  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
+  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const { version } = document;
   if (version === undefined) return { verdict: 'older' };
-  if (typeof version !== 'number' || !Number.isInteger(version)) return { verdict: 'malformed', reason: 'version is not a whole number' };
+  if (typeof version !== 'number' || !Number.isInteger(version)) return { verdict: 'malformed', problem: { code: 'not-a-whole-number', field: 'version' } };
   if (version < PIPELINE_FORMAT_VERSION) return { verdict: 'older' };
   if (version > PIPELINE_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${PIPELINE_FORMAT_VERSION}, which this build reads (newer-format)` };
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'newer-format', field: 'version', storedVersion: version, readVersion: PIPELINE_FORMAT_VERSION
+      }
+    };
   }
   const pipeline = pipelineOf(document, purpose);
-  return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
+  return 'problem' in pipeline ? { verdict: 'malformed', problem: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
 }
 
 function documentReadingOf(document: unknown): PipelineReading {
@@ -694,7 +707,7 @@ function draftReadingOf(document: unknown): PipelineReading {
 function entitiesInAFolderReadingOf(projectPrefix: string): PipelineReading {
   return {
     verdict:             'malformed',
-    reason:              `it holds entities, and only a tracker at the repository's root may hold them, not one in the folder ${projectPrefix} (entities-in-a-folder)`,
+    problem:             { code: 'entities-in-a-folder', projectPrefix },
     unsupportedEntities: { kind: 'entities-in-a-folder', projectPrefix },
   };
 }
@@ -702,9 +715,9 @@ function entitiesInAFolderReadingOf(projectPrefix: string): PipelineReading {
 function read(pipelineFilePath: string): PipelineReading {
   const storedText = storedFileTextOf(pipelineFilePath);
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   return documentReadingOf(parsedJson.value);
 }
 

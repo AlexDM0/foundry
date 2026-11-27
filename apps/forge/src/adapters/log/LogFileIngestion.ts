@@ -10,13 +10,14 @@ export class LogFileIngestion {
   constructor(private readonly logFilePath: string) {}
 
   /**
-   * Never throws. Strict like progress.json: one malformed line makes the whole log unreadable rather than silently shorter. The reason
+   * Never throws. Strict like progress.json: one malformed line makes the whole log unreadable rather than silently shorter. The problem
    * names this file, because the tracker's log may come from progress.json instead and a reader must see which file is at fault.
    */
   read(): LogFileReading {
     const storedText = storedFileTextOf(this.logFilePath);
     if (storedText.verdict === 'absent') return storedText;
-    if (storedText.verdict === 'unreadable') return { verdict: 'unreadable', reason: `${this.logFilePath}: ${storedText.reason}` };
+    const { logFilePath } = this;
+    if (storedText.verdict === 'unreadable') return { verdict: 'unreadable', problem: { ...storedText.problem, logFilePath } };
 
     const records: LogRecord[] = [];
     const lines = storedText.text.split('\n');
@@ -26,10 +27,12 @@ export class LogFileIngestion {
       const lineNumber = i + 1;
 
       const parsedJson = StoredValueUtil.parsedJsonOf(line);
-      if (parsedJson.verdict === 'unparseable') return { verdict: 'unreadable', reason: `${this.logFilePath}, line ${lineNumber}: ${parsedJson.problem}` };
+      if (parsedJson.verdict === 'unparseable') {
+        return { verdict: 'unreadable', problem: { ...parsedJson.problem, logFilePath, lineNumber } };
+      }
 
       const problem = logRecordProblemOf(parsedJson.value);
-      if (problem !== null) return { verdict: 'unreadable', reason: `${this.logFilePath}, line ${lineNumber}: ${problem}` };
+      if (problem !== null) return { verdict: 'unreadable', problem: { ...problem, logFilePath, lineNumber } };
       records.push(LogRecordMappingUtil.recordOf(parsedJson.value));
     }
     return { verdict: 'readable', records };

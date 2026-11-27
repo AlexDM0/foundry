@@ -6,6 +6,7 @@
 import { readdirSync, unlinkSync } from 'node:fs';
 import { join }                    from 'node:path';
 
+import type { HephaestusLockProblem }                             from '../../adapters/hephaestus-lock/@types/HephaestusLockProblem.ts';
 import { HephaestusLockIngestion, type HephaestusLockFileRecord } from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
 import { createHephaestusLockWriter }                             from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import type { ExclusiveCreation, FileReplace }                    from '../../lib/atomic-file/FileReplace.ts';
@@ -27,12 +28,13 @@ export type HephaestusLockRecord = HephaestusLockFileRecord;
 export type HephaestusLockReading =
   | { verdict: 'none' }
   | { verdict: 'live'; generation: number; record: HephaestusLockRecord }
-  | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null; unreadableReason?: string };
+  | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null; unreadableProblem?: HephaestusLockProblem };
 
 /** A stale newest generation this acquisition took over, its process gone or the file unreadable, as a typed record the taker's log words. */
 export interface StaleHephaestusLockTakenOver {
   hephaestusLockFilePath: string;
-  reason:                 StaleLockReason;
+  /** `null` for a lock removed between the listing and its read, so nothing says why. */
+  reason:                 StaleLockReason<HephaestusLockProblem | null>;
 }
 
 export type HephaestusLockAcquisition =
@@ -77,7 +79,7 @@ function newestOf(ports: PlatformPorts, hephaestusDirectory: string): Hephaestus
   if (newest === undefined) return { verdict: 'none' };
   const reading = new HephaestusLockIngestion(filePathFor(hephaestusDirectory, newest)).read();
   if (reading.verdict === 'unreadable') return {
-    verdict: 'dead', generation: newest, record: null, unreadableReason: reading.reason
+    verdict: 'dead', generation: newest, record: null, unreadableProblem: reading.problem
   };
   const record = reading.verdict === 'readable' ? reading.record : null;
   if (record !== null && hephaestusLockNamesALiveProcess(ports, record)) return { verdict: 'live', generation: newest, record };
@@ -112,7 +114,7 @@ function createHephaestusLockWhole(hephaestusDirectory: string, generation: numb
 
 function staleTakenOverOf(hephaestusDirectory: string, dead: Extract<HephaestusLockReading, { verdict: 'dead' }>): StaleHephaestusLockTakenOver {
   const hephaestusLockFilePath = filePathFor(hephaestusDirectory, dead.generation);
-  if (dead.record === null) return { hephaestusLockFilePath, reason: { kind: 'unreadable', reason: dead.unreadableReason ?? 'unknown' } };
+  if (dead.record === null) return { hephaestusLockFilePath, reason: { kind: 'unreadable', problem: dead.unreadableProblem ?? null } };
   return { hephaestusLockFilePath, reason: { kind: 'holder-gone', processId: dead.record.processId } };
 }
 

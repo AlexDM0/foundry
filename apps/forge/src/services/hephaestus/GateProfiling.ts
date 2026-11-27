@@ -10,7 +10,9 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
 
 import { GateProfileOutputIngestion }                                                     from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
+import { GateProfileOutputProblemWording }                                                from '../../adapters/gate-profile-output/GateProfileOutputProblemWording.ts';
 import { createGateProfileOutputWriter }                                                  from '../../adapters/gate-profile-output/GateProfileOutputWriter.ts';
+import { TurboConfigurationProblemWording }                                               from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -105,7 +107,7 @@ function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecordi
     case 'gate-not-through-turbo':
       return { ...note, value: suggestion.gate, sourcePaths: [] };
     case 'turbo-configuration-unreadable':
-      return { ...note, value: suggestion.reason, sourcePaths: [suggestion.file] };
+      return { ...note, value: TurboConfigurationProblemWording.sentenceOf(suggestion.problem), sourcePaths: [suggestion.file] };
   }
 }
 
@@ -298,7 +300,8 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
     const reading = ingestion.read();
     if (reading.verdict === 'absent') return [];
     if (reading.verdict === 'unreadable') {
-      if (!unreadableFileLogged) log(`The gate profile output ${outputFilePath} could not be read (${reading.reason}); its stream waits.`);
+      const problemSentence = GateProfileOutputProblemWording.sentenceOf(reading.problem);
+      if (!unreadableFileLogged) log(`The gate profile output ${outputFilePath} could not be read (${problemSentence}); its stream waits.`);
       unreadableFileLogged = true;
       return [];
     }
@@ -309,7 +312,8 @@ function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterL
       if (lineReading.verdict === 'readable') {
         lines.push({ lineNumber, text: lineReading.text });
       } else if (!unreadableLineLogged) {
-        log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${lineReading.reason}); it and any later unreadable line are not sent.`);
+        const problemSentence = GateProfileOutputProblemWording.sentenceOf(lineReading.problem);
+        log(`Line ${lineNumber} of the gate profile output ${outputFilePath} could not be read (${problemSentence}); it and any later unreadable line are not sent.`);
         unreadableLineLogged = true;
       }
     }

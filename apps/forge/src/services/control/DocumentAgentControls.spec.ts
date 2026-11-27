@@ -120,7 +120,15 @@ describe('the live agent check', () => {
 
   test('a move without the stamped snapshot commit is refused', () => {
     const fixture = documentsBoard([documentAgentJobFixture('004', 'plan')]);
-    expect(refusalDetailOf(() => apply(fixture, { kind: 'ticket-document-agent-ready', jobId: 'J9' })).reason).toBe('document-agent-not-live');
+    let thrown: unknown = null;
+    try {
+      apply(fixture, { kind: 'ticket-document-agent-ready', jobId: 'J9' });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown instanceof OperationRefusal && thrown.detail).toEqual({
+      kind: 'document-agent-not-live', ticketId: '004', document: 'plan', jobId: 'J9'
+    });
   });
 });
 

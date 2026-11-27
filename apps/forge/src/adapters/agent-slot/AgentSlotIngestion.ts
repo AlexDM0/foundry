@@ -6,6 +6,7 @@
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
 import { storedFileTextOf }                       from '../StoredFileText.ts';
 import { StoredJsonDocumentUtil }                 from '../utils/StoredJsonDocumentUtil.ts';
+import type { AgentSlotProblem }                  from './@types/AgentSlotProblem.ts';
 
 export interface AgentSlotHolding {
   trackerId:  string;
@@ -18,7 +19,7 @@ export interface AgentSlotHolding {
 export type AgentSlotReading =
   | { verdict: 'readable'; holding: AgentSlotHolding; storedText: string }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string; storedText: string | null };
+  | { verdict: 'unreadable'; problem: AgentSlotProblem; storedText: string | null };
 
 export const AGENT_SLOT_FORMAT_VERSION = 2;
 
@@ -34,10 +35,10 @@ export class AgentSlotIngestion {
     const document = StoredJsonDocumentUtil.holdingDocumentOfText(storedText);
     if (document.verdict === 'unreadable') return { ...document, storedText };
     const { trackerId, jobId, hephaestus } = document.document;
-    if (typeof trackerId !== 'string') return { verdict: 'unreadable', reason: 'its "trackerId" is not a string', storedText };
-    if (typeof jobId !== 'string') return { verdict: 'unreadable', reason: 'its "jobId" is not a string', storedText };
+    if (typeof trackerId !== 'string') return { verdict: 'unreadable', problem: { code: 'field-not-a-string', field: 'trackerId' }, storedText };
+    if (typeof jobId !== 'string') return { verdict: 'unreadable', problem: { code: 'field-not-a-string', field: 'jobId' }, storedText };
     const identity = storedIdentityOf(hephaestus);
-    if (hephaestus !== null && identity === null) return { verdict: 'unreadable', reason: 'its "hephaestus" is not a process identity', storedText };
+    if (hephaestus !== null && identity === null) return { verdict: 'unreadable', problem: { code: 'field-not-a-process-identity', field: 'hephaestus' }, storedText };
     return { verdict: 'readable', holding: { trackerId, jobId, hephaestus: identity }, storedText };
   }
 }

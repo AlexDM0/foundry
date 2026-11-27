@@ -5,6 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { spawningShellRequestOf }                                                               from '../../testing/SpawningShellRequest.ts';
 import type { ShellExitReport }                                                                 from './ShellLine.ts';
 import { shellLineFor }                                                                         from './ShellLineFor.ts';
 import { COMMAND_LINE_LIMIT_CHARACTERS, createWindowsCommandLine, WINDOWS_LINE_STATUS_TRAILER } from './WindowsCommandLine.ts';
@@ -19,6 +20,7 @@ function windowsShellLine(commandInterpreter: string | undefined = COMMAND_INTER
 describe('the spawn request', () => {
   test('runs the line in cmd.exe at the absolute ComSpec, verbatim, standard error joined, the status trailer after it, in the spawn\'s folder', () => {
     expect(windowsShellLine().spawnRequestOf('npm test', STATUS_FILE)).toEqual({
+      verdict:           'spawns',
       argv:              [COMMAND_INTERPRETER, '/d', '/s', '/c', `"(npm test) 2>&1 & ${WINDOWS_LINE_STATUS_TRAILER}"${STATUS_FILE}""`],
       workingDirectory:  'spawn-option',
       verbatimArguments: true,
@@ -32,13 +34,13 @@ describe('the spawn request', () => {
     ['an unset ComSpec falls back to SystemRoot', undefined, 'C:\\Windows', 'C:\\Windows\\System32\\cmd.exe'],
   ])('%s', (_case, commandInterpreter, systemRoot, interpreter) => {
     const shellLine = createWindowsCommandLine({ commandInterpreter: () => commandInterpreter, systemRoot: () => systemRoot });
-    expect(shellLine.spawnRequestOf('npm test', STATUS_FILE).argv[0]).toBe(interpreter);
+    expect(spawningShellRequestOf(shellLine, 'npm test', STATUS_FILE).argv[0]).toBe(interpreter);
   });
 
-  test('with no absolute interpreter every folder is refused and no spawn request is made', () => {
+  test('with no absolute interpreter every folder and spawn is refused', () => {
     const shellLine = windowsShellLine('cmd.exe', 'Windows');
     expect(shellLine.runRefusalOf('C:\\Example\\repository')).toBe('no-absolute-interpreter');
-    expect(() => shellLine.spawnRequestOf('npm test', STATUS_FILE)).toThrow('absolute');
+    expect(shellLine.spawnRequestOf('npm test', STATUS_FILE)).toEqual({ verdict: 'refused', refusal: 'no-absolute-interpreter' });
   });
 
   test('refuses a network share folder, in either slash, since cmd.exe runs a line there in the Windows folder', () => {

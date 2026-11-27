@@ -3,6 +3,7 @@
  * writes the crash log of a crash it finds, and answers whether the start may serve. `start`, the foreground entry and `status` read it.
  */
 import type { CrashLogJob, CrashLogRecord }               from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import { HeartbeatProblemWording }                        from '../../adapters/heartbeat/HeartbeatProblemWording.ts';
 import type { PresenceRecord }                            from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -157,7 +158,9 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
 function admit(request: StartGateRequest): StartGateVerdict {
   const evidence = evidenceOf(request);
   Presence.reportUnreadablePresence(evidence.presence, request.unreadableBoardFiles);
-  if (evidence.heartbeat.verdict === 'unreadable') request.log(`heartbeat.json could not be read (${evidence.heartbeat.reason}); the start classifies without a last beat.`);
+  if (evidence.heartbeat.verdict === 'unreadable') {
+    request.log(`heartbeat.json could not be read (${HeartbeatProblemWording.sentenceOf(evidence.heartbeat.problem)}); the start classifies without a last beat.`);
+  }
   const classification = StartClassification.classify(evidence);
   if (!crashToLogOf(classification)) return { verdict: 'serve', classification, crashLogNumber: null };
   const crashLogNumber = writeTheCrashLog(request, evidence, classification);

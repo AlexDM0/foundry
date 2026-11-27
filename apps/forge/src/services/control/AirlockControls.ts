@@ -7,9 +7,7 @@ import { GitProcess }                       from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                     from '../../lib/git/GitWorktrees.ts';
 import { predictMerge }                     from '../../lib/git/MergeTree.ts';
 import type { Logged }                      from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { TicketStatus }                from '../../lib/tracker-model/@types/Ticket.ts';
 import type { BranchTreeOf, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
-import { BoardRefusal }                     from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }            from '../../shared/@types/ControlCommand.ts';
 import { type BranchNames, branchNamesOf }  from '../../shared/BranchNames.ts';
 import { OperationRefusal }                 from '../../shared/OperationRefusal.ts';
@@ -21,7 +19,6 @@ import { ticketIdOfReference }              from './ControlTicketLookup.ts';
 
 interface MergeApprovalSubject {
   ticketId:    string;
-  status:      TicketStatus;
   target:      string;
   targetOf:    MergeTargetOf;
   branchNames: BranchNames;
@@ -38,29 +35,28 @@ function subjectOf(change: BoardTransaction, ticketReference: string): MergeAppr
   const ticket = change.board.ticketByReference(ticketIdOfReference(change, ticketReference));
   if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
   const ticketId = ticket.frontmatter.id;
-  if (!change.board.mergeApprovalIsOn()) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
+  change.board.refuseAMergeMoveWithApprovalOff(ticketId);
   const branchNames = branchNamesOf(change.board.branchNamespace());
   const targetOf = mergeTargetRuleOf(mainLineOf(change.workspace.rootDirectory), branchNames.groupTargetPrefix);
   return {
-    ticketId, status: ticket.frontmatter.status, target: targetOf(ticket.frontmatter), targetOf, branchNames
+    ticketId, target: targetOf(ticket.frontmatter), targetOf, branchNames
   };
 }
 
 /** Only a ticket waiting for merge, its green current, is accepted, and only while git predicts a clean merge into its target's tip. */
 function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: BoardTransaction): Logged & { changed?: false } {
   const {
-    ticketId, status, target, targetOf, branchNames
+    ticketId, target, targetOf, branchNames
   } = subjectOf(change, command.ticketReference);
   if (change.board.ticketIsMergeAccepted(ticketId)) return { logged: [], changed: false };
   const repositoryRoot = change.workspace.rootDirectory;
-  const waiting = change.board.ticketsWaitingForMergeOf(target, targetOf, branchTreeIn(repositoryRoot, branchNames));
-  if (!waiting.some((candidate) => candidate.ticketId === ticketId)) throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status });
+  change.board.refuseAMergeAcceptOfATicketNotWaiting(ticketId, target, targetOf, branchTreeIn(repositoryRoot, branchNames));
   const prediction = predictMerge(repositoryRoot, { target, branch: branchNames.ticketBranchOf(ticketId) });
-  if (prediction.verdict === 'conflicting') throw new BoardRefusal({
-    reason: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
+  if (prediction.verdict === 'conflicting') throw new OperationRefusal('refused', {
+    kind: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
   });
-  if (prediction.verdict === 'prediction-failed') throw new BoardRefusal({
-    reason: 'merge-accept-prediction-failed', ticketId, target, gitReason: prediction.reason
+  if (prediction.verdict === 'prediction-failed') throw new OperationRefusal('refused', {
+    kind: 'merge-accept-prediction-failed', ticketId, target, gitReason: prediction.reason
   });
   return change.board.setTicketMergeAccepted(ticketId, true, change.at);
 }
@@ -81,14 +77,14 @@ function undoMergeUpdate(worktree: string, startTip: string): void {
  * reviewer takes it back.
  */
 function updateBranch(command: ControlCommandOf<'merge-update'>, change: BoardTransaction): Logged & { changed?: false } {
-  const { ticketId, status, target } = subjectOf(change, command.ticketReference);
-  if (!change.board.mergeUpdateIsOpenTo(ticketId)) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
+  const { ticketId, target } = subjectOf(change, command.ticketReference);
+  change.board.refuseAMergeUpdateOfATicketNotWaiting(ticketId);
   const worktree = WorktreesFolder.ticketWorktreeOf(change.workspace.rootDirectory, ticketId);
   const startTip = MergeRun.headOf(worktree);
   const targetTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, `refs/heads/${target}`);
   if (startTip === null || targetTip === null) {
-    throw new BoardRefusal({
-      reason: 'merge-update-failed', ticketId, target, gitReason: startTip === null ? `${worktree} has no readable HEAD` : `${target} does not resolve`
+    throw new OperationRefusal('refused', {
+      kind: 'merge-update-failed', ticketId, target, gitReason: startTip === null ? `${worktree} has no readable HEAD` : `${target} does not resolve`
     });
   }
   const merge = MergeRun.mergeInOnce(worktree, { startTip, mergedTip: targetTip });
@@ -96,8 +92,8 @@ function updateBranch(command: ControlCommandOf<'merge-update'>, change: BoardTr
   if (merge.verdict === 'merged') return change.board.recordMergeUpdated(ticketId, target, 'merged', change.at);
   undoMergeUpdate(worktree, startTip);
   if (merge.verdict !== 'conflicted') {
-    throw new BoardRefusal({
-      reason: 'merge-update-failed', ticketId, target, gitReason: merge.verdict === 'git-failed' ? merge.reason : 'unknown commit'
+    throw new OperationRefusal('refused', {
+      kind: 'merge-update-failed', ticketId, target, gitReason: merge.verdict === 'git-failed' ? merge.reason : 'unknown commit'
     });
   }
   return change.board.recordMergeUpdated(ticketId, target, 'conflicted', change.at);

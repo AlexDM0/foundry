@@ -5,6 +5,7 @@
 import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 import { StoredValueUtil }        from '../utils/StoredValueUtil.ts';
+import type { RedHandoffProblem } from './@types/RedHandoffProblem.ts';
 
 export const RED_HANDOFF_FORMAT_VERSION = 1;
 
@@ -39,7 +40,7 @@ export interface RedHandoffFacts {
 export type RedHandoffReading =
   | { verdict: 'readable'; facts: RedHandoffFacts }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: RedHandoffProblem };
 
 const RED_HANDOFF_KINDS: readonly RedHandoffFacts['kind'][] = ['gate', 'customs', 'merge-conflict'];
 
@@ -75,23 +76,23 @@ export class RedHandoffIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.factsFilePath, RED_HANDOFF_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, {
-      kind:                [JobFileShapeUtil.oneOf(RED_HANDOFF_KINDS), 'a red handoff kind'],
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, {
+      kind:                [JobFileShapeUtil.oneOf(RED_HANDOFF_KINDS), 'a-red-handoff-kind'],
       name:                [JobFileShapeUtil.valueIsText, 'text'],
-      command:             [JobFileShapeUtil.valueIsTextOrNull, 'text or null'],
-      fixCommand:          [JobFileShapeUtil.valueIsTextOrNull, 'text or null'],
-      commit:              [JobFileShapeUtil.valueIsText, 'a commit'],
-      exitCode:            [JobFileShapeUtil.valueIsANumberOrNull, 'an exit code or null'],
-      gateFailureNotePath: [JobFileShapeUtil.valueIsText, 'a path'],
-      fullLogPath:         [JobFileShapeUtil.valueIsTextOrNull, 'a path or null'],
-      resume:              [valueIsACount, 'a count'],
-      resumesAllowed:      [valueIsACount, 'a count'],
-      interruptedInstance: [valueIsACount, 'a child instance'],
-      callBudget:          [valueIsACount, 'a count'],
-      mergedTip:           [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'a commit'],
+      command:             [JobFileShapeUtil.valueIsTextOrNull, 'text-or-null'],
+      fixCommand:          [JobFileShapeUtil.valueIsTextOrNull, 'text-or-null'],
+      commit:              [JobFileShapeUtil.valueIsText, 'a-commit'],
+      exitCode:            [JobFileShapeUtil.valueIsANumberOrNull, 'an-exit-code-or-null'],
+      gateFailureNotePath: [JobFileShapeUtil.valueIsText, 'a-path'],
+      fullLogPath:         [JobFileShapeUtil.valueIsTextOrNull, 'a-path-or-null'],
+      resume:              [valueIsACount, 'a-count'],
+      resumesAllowed:      [valueIsACount, 'a-count'],
+      interruptedInstance: [valueIsACount, 'a-child-instance'],
+      callBudget:          [valueIsACount, 'a-count'],
+      mergedTip:           [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'a-commit'],
       scopeResumed:        [JobFileShapeUtil.optional((value) => value === true), 'true'],
     });
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', facts: factsOf(document) };
   }
 }

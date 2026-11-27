@@ -5,12 +5,13 @@
 import { readdirSync, rmdirSync, type Dirent } from 'node:fs';
 import { join }                                from 'node:path';
 
-import { TicketDocumentContentFile }            from '../../adapters/tickets/TicketDocumentContentFile.ts';
-import { TicketDocumentsFileIngestion }         from '../../adapters/tickets/TicketDocumentsFileIngestion.ts';
-import type { LoadedTicketDocumentRecord }      from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { BoardContents, UnreadableRecord } from './@types/BoardRecords.ts';
-import { localStoreLayoutOf }                   from './LocalStoreLayout.ts';
-import type { Workspace }                       from './Workspace.ts';
+import type { UnreadableTicketDocumentsProblem }               from '../../adapters/@types/UnreadableRecordProblem.ts';
+import { TicketDocumentContentFile }                           from '../../adapters/tickets/TicketDocumentContentFile.ts';
+import { TicketDocumentsFileIngestion }                        from '../../adapters/tickets/TicketDocumentsFileIngestion.ts';
+import type { LoadedTicketDocumentRecord }                     from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { BoardContents, UnreadableTicketDocumentsRecord } from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                                  from './LocalStoreLayout.ts';
+import type { Workspace }                                      from './Workspace.ts';
 
 export type TicketDocumentListing = BoardContents['ticketDocumentListing'];
 
@@ -52,30 +53,32 @@ export function ticketDocumentVersionPathOf(workspace: Workspace, ticketId: stri
  */
 export function listTicketDocuments(workspace: Workspace): TicketDocumentListing {
   const records: LoadedTicketDocumentRecord[] = [];
-  const unreadable: UnreadableRecord[]        = [];
+  const unreadable: UnreadableTicketDocumentsRecord[] = [];
   for (const ticketId of ticketFolderNamesIn(localStoreLayoutOf(workspace).ticketDocumentRecordsFolder)) {
     if (folderIsEmpty(ticketFolderOf(workspace, ticketId))) continue;
     const location = ticketDocumentRecordPathOf(workspace, ticketId);
-    const unreadableEntry = (reason: string, entryLocation: string): UnreadableRecord => ({
-      record: 'ticket-documents', key: ticketId, location: entryLocation, reason, line: 0
+    const unreadableEntry = (problem: UnreadableTicketDocumentsProblem, entryLocation: string): UnreadableTicketDocumentsRecord => ({
+      record: 'ticket-documents', key: ticketId, location: entryLocation, problem, line: 0
     });
     const reading = new TicketDocumentsFileIngestion(location).read();
     if (reading.verdict === 'malformed') {
-      unreadable.push(unreadableEntry(reading.reason, location));
+      unreadable.push(unreadableEntry(reading.problem, location));
       continue;
     }
     if (reading.record.ticketId !== ticketId) {
-      unreadable.push(unreadableEntry(`the folder name says ${ticketId} but its \`ticketId\` is ${reading.record.ticketId}`, location));
+      unreadable.push(unreadableEntry({
+        code: 'folder-name-names-another-ticket', field: 'ticketId', ticketIdInFolderName: ticketId, storedTicketId: reading.record.ticketId
+      }, location));
       continue;
     }
     const textOfContentHash: Record<string, string> = {};
     const contentHashes = new Set(reading.record.documents.flatMap((document) => document.versions.map((version) => version.contentHash)));
-    let missing: UnreadableRecord | null = null;
+    let missing: UnreadableTicketDocumentsRecord | null = null;
     for (const contentHash of contentHashes) {
       const versionLocation = ticketDocumentVersionPathOf(workspace, ticketId, contentHash);
       const version = TicketDocumentContentFile.read(versionLocation, contentHash);
       if (version.verdict === 'unreadable') {
-        missing = unreadableEntry(version.reason, versionLocation);
+        missing = unreadableEntry(version.problem, versionLocation);
         break;
       }
       textOfContentHash[contentHash] = version.text;

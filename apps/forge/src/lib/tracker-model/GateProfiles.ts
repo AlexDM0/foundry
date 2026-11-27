@@ -122,7 +122,7 @@ export class GateProfiles {
 
   private requireRun(profileRunId: string): GateProfileRun {
     const reading = this.records.gateProfilesReading;
-    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'gate-profiles-unreadable', problem: reading.reason });
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'gate-profiles-unreadable', problem: reading.problem });
     const run = reading.verdict === 'readable' ? reading.profiles.runs.find((candidate) => candidate.profileRunId === profileRunId) : undefined;
     if (run === undefined) throw new BoardRefusal({ reason: 'unknown-profile-run', profileRunId });
     return run;
@@ -131,7 +131,7 @@ export class GateProfiles {
   /** A malformed file is never written over; an absent one starts empty. */
   private writableProfiles(): StoredGateProfiles {
     const reading = this.records.gateProfilesReading;
-    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'gate-profiles-unreadable', problem: reading.reason });
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'gate-profiles-unreadable', problem: reading.problem });
     if (reading.verdict === 'readable') return reading.profiles;
     const profiles: StoredGateProfiles = {
       formatVersion: GATE_PROFILES_FORMAT_VERSION, nextRunNumber: FIRST_GATE_PROFILE_RUN_NUMBER, runs: [], extra: []

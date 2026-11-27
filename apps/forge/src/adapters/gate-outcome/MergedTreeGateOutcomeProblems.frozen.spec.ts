@@ -6,6 +6,7 @@ import { afterEach, expect, test }                from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import frozenProblems                                     from './FrozenMergedTreeGateOutcomeProblems.json' with { type: 'json' };
 import { MergedTreeGateOutcomeIngestion }                 from './MergedTreeGateOutcomeIngestion.ts';
+import { MergedTreeGateOutcomeProblemWording }            from './MergedTreeGateOutcomeProblemWording.ts';
 
 const NOT_UTF8_CASE = 'bytes that are not UTF-8';
 
@@ -32,5 +33,7 @@ test.each(frozenProblems)('$case', ({ case: problemCase, stored, sentence }) => 
   else if (problemCase === NOT_UTF8_CASE) writeFileSync(filePath, Uint8Array.of(0xff, 0xfe, 0xfd));
   else mkdirSync(filePath);
 
-  expect(new MergedTreeGateOutcomeIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+  const reading = new MergedTreeGateOutcomeIngestion(filePath).read();
+  expect(reading.verdict).toBe('unreadable');
+  expect(reading.verdict === 'unreadable' ? MergedTreeGateOutcomeProblemWording.sentenceOf(reading.problem) : '').toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
 });

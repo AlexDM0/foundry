@@ -3,14 +3,17 @@ import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
 import { expect, test }  from 'bun:test';
 
-import { createScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS             from './FrozenStageStatementProblems.json';
-import { StageStatementIngestion } from './StageStatementIngestion.ts';
+import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import FROZEN_PROBLEMS                  from './FrozenStageStatementProblems.json';
+import { StageStatementIngestion }      from './StageStatementIngestion.ts';
+import { StageStatementProblemWording } from './StageStatementProblemWording.ts';
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
     const filePath = join(createScratchDirectory('frozen-stage-statement'), 'stage-statement.json');
     writeFileSync(filePath, stored);
-    expect(new StageStatementIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence });
+    const reading = new StageStatementIngestion(filePath).read();
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? StageStatementProblemWording.sentenceOf(reading.problem) : '').toBe(sentence);
   });
 }

@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                                        from '../../testing/ScratchWorkspace.ts';
+import type { MergeSettlementProblem }                                                           from './@types/MergeSettlementProblem.ts';
 import { MERGE_SETTLEMENT_FORMAT_VERSION, MergeSettlementIngestion, type TargetMergeSettlement } from './MergeSettlementIngestion.ts';
 import { createMergeSettlementWriter }                                                           from './MergeSettlementWriter.ts';
 
@@ -55,19 +56,19 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a settlement of another version, or of none, is unreadable', () => {
   storeDocument({ version: MERGE_SETTLEMENT_FORMAT_VERSION + 1, verdict: 'merged', mergeCommit: 'merge-commit' });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MERGE_SETTLEMENT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MERGE_SETTLEMENT_FORMAT_VERSION } });
   storeDocument({ verdict: 'merged', mergeCommit: 'merge-commit' });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MERGE_SETTLEMENT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MERGE_SETTLEMENT_FORMAT_VERSION } });
 });
 
-test.each([
-  ['verdict', { verdict: 'aborted' }, 'its "verdict" is not a settlement'],
-  ['mergeCommit', { verdict: 'merged' }, 'its "mergeCommit" is not a commit'],
-  ['conflictedFiles', { verdict: 'conflicted', conflictedFiles: 'shared.txt' }, 'its "conflictedFiles" is not a list of paths'],
-  ['reason', { verdict: 'failed', reason: 1 }, 'its "reason" is not text'],
-])('a wrong %s is unreadable', (_field, document, reason) => {
+test.each<[string, Record<string, unknown>, MergeSettlementProblem]>([
+  ['verdict', { verdict: 'aborted' }, { code: 'not-a-settlement', field: 'verdict' }],
+  ['mergeCommit', { verdict: 'merged' }, { code: 'field-is-not', field: 'mergeCommit', expected: 'a-commit' }],
+  ['conflictedFiles', { verdict: 'conflicted', conflictedFiles: 'shared.txt' }, { code: 'field-is-not', field: 'conflictedFiles', expected: 'a-list-of-paths' }],
+  ['reason', { verdict: 'failed', reason: 1 }, { code: 'field-is-not', field: 'reason', expected: 'text' }],
+])('a wrong %s is unreadable', (_field, document, problem) => {
   storeDocument({ version: MERGE_SETTLEMENT_FORMAT_VERSION, ...document });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

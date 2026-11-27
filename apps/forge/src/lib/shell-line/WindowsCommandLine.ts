@@ -86,9 +86,11 @@ export function createWindowsCommandLine(primitives: WindowsCommandPrimitives): 
   return Object.freeze<ShellLine>({
     spawnRequestOf: (line, statusFile) => {
       const interpreter = interpreterOf(primitives);
-      if (interpreter === null) throw new Error('no absolute cmd.exe path is known: ComSpec and SystemRoot are both unset or relative');
+      if (interpreter === null) return { verdict: 'refused', refusal: 'no-absolute-interpreter' };
       const argv = [interpreter, ...INTERPRETER_ARGUMENTS, `"(${line}) 2>&1 & ${WINDOWS_LINE_STATUS_TRAILER}"${statusFile}""`];
-      return { argv, workingDirectory: 'spawn-option', verbatimArguments: true };
+      return {
+        verdict: 'spawns', argv, workingDirectory: 'spawn-option', verbatimArguments: true
+      };
     },
     runRefusalOf: (workingDirectory) => {
       if (interpreterOf(primitives) === null) return 'no-absolute-interpreter';

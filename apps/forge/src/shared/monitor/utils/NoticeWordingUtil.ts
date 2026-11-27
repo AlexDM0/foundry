@@ -3,7 +3,8 @@
  * an Assistant that cannot come up, and a board file of forge's own that cannot be read. The board document and the monitor snapshot carry
  * them, so both read the same words, which name a neutral action and never a command line: User runs no command.
  */
-import type { MonitorWarning } from '../@types/MonitorSnapshot.ts';
+import type { StoredFileProblem } from '../../@types/StoredFileProblem.ts';
+import type { MonitorWarning }    from '../@types/MonitorSnapshot.ts';
 
 /** A notice Hephaestus derives each pass: its `kind` and the facts that kind carries. */
 export interface NoticeFacts {
@@ -20,8 +21,8 @@ export interface RestartWarningFacts {
 
 /** A board-wide file forge stored for itself that its ingestion could not read, kept by Hephaestus until it restarts. */
 export interface UnreadableFileFacts {
-  readonly file:   string;
-  readonly reason: string;
+  readonly file:    string;
+  readonly problem: StoredFileProblem;
 }
 
 /** What Hephaestus knows of itself that the header warns about. */
@@ -109,11 +110,15 @@ function noticeSentenceOf(notice: NoticeFacts): string {
   return notice.kind === INCIDENT_DEFAULTED ? incidentDefaultTextOf(notice) : noticeTextOf(notice);
 }
 
-/** A header warning with the facts its sentence names: the failed pass's code version, step and error, or the unreadable file and why. */
+/**
+ * A header warning with the facts its sentence names: the failed pass's code version, step and error, or the unreadable file, with the
+ * problem a document mapper words into the served `reason`.
+ */
 export interface WordedWarning {
-  readonly kind:  MonitorWarning['kind'];
-  readonly facts: Readonly<Record<string, string>>;
-  readonly text:  string;
+  readonly kind:     MonitorWarning['kind'];
+  readonly facts:    Readonly<Record<string, string>>;
+  readonly problem?: StoredFileProblem;
+  readonly text:     string;
 }
 
 /** Derived from the notices and Hephaestus's facts, never stored. */
@@ -128,9 +133,10 @@ function wordedWarningsOf(notices: readonly NoticeFacts[], header: HeaderWarning
   const assistantDown: WordedWarning[] = defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE)
     ? [{ kind: 'assistant-down', facts: {}, text: 'no Assistant can come up: open incidents take their defaults' }]
     : [];
-  const unreadableFiles: WordedWarning[] = header.unreadableFiles.map(({ file, reason }) => ({
+  const unreadableFiles: WordedWarning[] = header.unreadableFiles.map(({ file, problem }) => ({
     kind:  'system-file-unreadable',
-    facts: { file, reason },
+    facts: { file },
+    problem,
     text:  `Hephaestus cannot read the board file ${file}: restart Hephaestus, and report a bug if this warning stays`,
   }));
   return [...restartFailed, ...assistantDown, ...unreadableFiles];
@@ -152,13 +158,17 @@ function restartWarningIn(warning: unknown): RestartWarningFacts | null {
   return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
 }
 
-/** The unreadable files as Hephaestus keeps them; an entry that names no file and reason is none. */
+function isAStoredFileProblem(value: unknown): value is StoredFileProblem {
+  return typeof value === 'object' && value !== null && typeof (value as { code?: unknown }).code === 'string';
+}
+
+/** The unreadable files as Hephaestus keeps them; an entry that names no file and problem is none. */
 function unreadableFilesIn(files: unknown): UnreadableFileFacts[] {
   if (!Array.isArray(files)) return [];
   return files.flatMap((entry: unknown) => {
     if (typeof entry !== 'object' || entry === null) return [];
-    const { file, reason } = entry as Partial<Record<keyof UnreadableFileFacts, unknown>>;
-    return typeof file === 'string' && typeof reason === 'string' ? [{ file, reason }] : [];
+    const { file, problem } = entry as Partial<Record<keyof UnreadableFileFacts, unknown>>;
+    return typeof file === 'string' && isAStoredFileProblem(problem) ? [{ file, problem }] : [];
   });
 }
 

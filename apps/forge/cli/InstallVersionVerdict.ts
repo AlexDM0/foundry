@@ -14,7 +14,7 @@ export function installVersionVerdictOf(reading: InstallManifestReading, install
     case 'absent':
       return installedFilesArePresent ? { verdict: 'mismatch', mismatch: { reason: 'unversioned' } } : { verdict: 'current' };
     case 'unreadable':
-      return { verdict: 'mismatch', mismatch: { reason: 'unreadable', manifestProblem: reading.reason } };
+      return { verdict: 'mismatch', mismatch: { reason: 'unreadable', manifestProblem: reading.problem } };
     case 'directory':
       return { verdict: 'mismatch', mismatch: { reason: 'manifest-is-a-directory' } };
     case 'readable':

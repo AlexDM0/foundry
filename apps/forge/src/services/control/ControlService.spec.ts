@@ -328,7 +328,7 @@ describe('ticketIdOfReference', () => {
   const unreadableRecords: UnreadableRecords = {
     ...NO_UNREADABLE_RECORDS,
     tickets: [{
-      record: 'ticket', key: '004', location: '/example-agency/.agent-progress/tickets/004-broken.md', reason: 'the frontmatter has no closing fence', line: 1
+      record: 'ticket', key: '004', location: '/example-agency/.agent-progress/tickets/004-broken.md', problem: { code: 'no-closing-fence' }, line: 1
     }],
   };
 
@@ -349,7 +349,7 @@ describe('ticketIdOfReference', () => {
 
     expect(refusal.status).toBe('unrepaired');
     expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-      'Ticket file ignored: /example-agency/.agent-progress/tickets/004-broken.md (line 1): the frontmatter has no closing fence',
+      'Ticket file ignored: /example-agency/.agent-progress/tickets/004-broken.md (line 1): the frontmatter has no closing `---` fence',
     );
   });
 });

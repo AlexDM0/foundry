@@ -327,7 +327,7 @@ describe('a draft edit', () => {
     }));
 
     expect(refusal.detail).toMatchObject({ kind: 'pipeline-draft-invalid', setupId: 'S1' });
-    expect(refusal.detail?.kind === 'pipeline-draft-invalid' ? refusal.detail.reason : '').toContain('retries');
+    expect(refusal.detail).toMatchObject({ problem: { code: 'unknown-pipeline-key', key: 'retries' } });
   });
 
   test('an Undo that would leave a gate in no phase refuses pipeline-draft-invalid, so no record is left unreadable', () => {
@@ -595,7 +595,14 @@ describe('the record\'s pipeline agent', () => {
   });
 
   test('a start over removes an unreadable record and stops every pipeline agent, since none has a record left to serve', () => {
-    const fixture = boardFixture({ pipelineSetup: { verdict: 'malformed', reason: 'formatVersion is 2' } });
+    const fixture = boardFixture({
+      pipelineSetup: {
+        verdict: 'malformed',
+        problem: {
+          code: 'format-version-not-read', field: 'formatVersion', storedValue: 2, readVersion: 4
+        }
+      }
+    });
     const { job } = fixture.board.launchJob({
       kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
     }, CHANGED_AT);

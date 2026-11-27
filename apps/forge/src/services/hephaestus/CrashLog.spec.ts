@@ -209,7 +209,8 @@ describe('writing a crash log once', () => {
     writeFileSync(CrashLog.pathOf(files, 1), 'not json');
 
     expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()), unreadableBoardFiles)).toEqual({ verdict: 'written', crashLogNumber: 2 });
-    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/crash-logs/crash-1.json', reason: expect.stringContaining('not valid JSON') }]);
+    const notJson = { code: 'not-json', parserError: expect.any(String) as unknown as string } as const;
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/crash-logs/crash-1.json', problem: notJson }]);
   });
 });
 

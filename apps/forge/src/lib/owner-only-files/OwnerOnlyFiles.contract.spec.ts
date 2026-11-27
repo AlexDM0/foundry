@@ -43,7 +43,7 @@ const CLAUSES: readonly PortClause<OwnerOnlyFiles>[] = [
     claim: 'creates an absent folder owner-only',
     check: (ownerOnlyFiles) => {
       const folder = join(scratch, 'secrets');
-      ownerOnlyFiles.restrictFolder(folder);
+      expect(ownerOnlyFiles.restrictFolder(folder)).toEqual({ verdict: 'restricted' });
       expect(statSync(folder).mode & PERMISSION_BITS).toBe(0o700);
       expect(ownerOnlyFiles.isOwnerOnly(folder)).toBe(true);
     },
@@ -55,7 +55,7 @@ const CLAUSES: readonly PortClause<OwnerOnlyFiles>[] = [
       writeFileSync(path, 'example');
       chmodSync(path, WIDE_FILE_MODE);
       expect(ownerOnlyFiles.isOwnerOnly(path)).toBe(false);
-      ownerOnlyFiles.restrictFile(path);
+      expect(ownerOnlyFiles.restrictFile(path)).toEqual({ verdict: 'restricted' });
       expect(statSync(path).mode & PERMISSION_BITS).toBe(0o600);
       expect(ownerOnlyFiles.isOwnerOnly(path)).toBe(true);
     },
@@ -84,8 +84,8 @@ runPortContract('OwnerOnlyFiles', [
 
 test('a platform with no adapter refuses a restriction and reads nothing as owner-only', () => {
   const ownerOnlyFiles = ownerOnlyFilesFor('example-os');
-  expect(() => ownerOnlyFiles.restrictFolder(scratch)).toThrow('example-os');
-  expect(() => ownerOnlyFiles.restrictFile(scratch)).toThrow('example-os');
+  expect(ownerOnlyFiles.restrictFolder(scratch)).toEqual({ verdict: 'refused', cause: 'no-adapter', path: scratch });
+  expect(ownerOnlyFiles.restrictFile(scratch)).toEqual({ verdict: 'refused', cause: 'no-adapter', path: scratch });
   expect(ownerOnlyFiles.isOwnerOnly(scratch)).toBe(false);
 });
 
@@ -114,12 +114,13 @@ describe('WindowsOwnerOnlyFiles over fake icacls output', () => {
   }
 
   const INHERITED_PROFILE_ENTRIES = [SYSTEM_ENTRY, ADMINISTRATORS_ENTRY, OWNER_ENTRY];
+  const NOT_PROVED_AT_PROFILE = { verdict: 'refused', cause: 'not-proved-owner-only', path: PROFILE_PATH } as const;
 
   test('the profile\'s inherited ACL reads owner-only, and a restriction creates the folder and passes', () => {
     const ownerOnlyFiles = adapterOver(() => icaclsOutputOf(INHERITED_PROFILE_ENTRIES));
     expect(ownerOnlyFiles.isOwnerOnly(PROFILE_PATH)).toBe(true);
-    ownerOnlyFiles.restrictFolder(PROFILE_PATH);
-    ownerOnlyFiles.restrictFile(PROFILE_PATH);
+    expect(ownerOnlyFiles.restrictFolder(PROFILE_PATH)).toEqual({ verdict: 'restricted' });
+    expect(ownerOnlyFiles.restrictFile(PROFILE_PATH)).toEqual({ verdict: 'restricted' });
     expect(ownerOnlyFiles.createdFolders).toEqual([PROFILE_PATH]);
   });
 
@@ -132,8 +133,8 @@ describe('WindowsOwnerOnlyFiles over fake icacls output', () => {
   ])('%s is not owner-only, and a restriction refuses', (_name, entry) => {
     const ownerOnlyFiles = adapterOver(() => icaclsOutputOf([...INHERITED_PROFILE_ENTRIES, entry]));
     expect(ownerOnlyFiles.isOwnerOnly(PROFILE_PATH)).toBe(false);
-    expect(() => ownerOnlyFiles.restrictFile(PROFILE_PATH)).toThrow('not proved owner-only');
-    expect(() => ownerOnlyFiles.restrictFolder(PROFILE_PATH)).toThrow('not proved owner-only');
+    expect(ownerOnlyFiles.restrictFile(PROFILE_PATH)).toEqual(NOT_PROVED_AT_PROFILE);
+    expect(ownerOnlyFiles.restrictFolder(PROFILE_PATH)).toEqual(NOT_PROVED_AT_PROFILE);
   });
 
   test.each([
@@ -144,13 +145,13 @@ describe('WindowsOwnerOnlyFiles over fake icacls output', () => {
   ])('%s reads as not owner-only', (_name, output) => {
     const ownerOnlyFiles = adapterOver(() => output);
     expect(ownerOnlyFiles.isOwnerOnly(PROFILE_PATH)).toBe(false);
-    expect(() => ownerOnlyFiles.restrictFile(PROFILE_PATH)).toThrow('not proved owner-only');
+    expect(ownerOnlyFiles.restrictFile(PROFILE_PATH)).toEqual(NOT_PROVED_AT_PROFILE);
   });
 
   test('the real adapter fails closed on a path icacls cannot answer for', () => {
     const ownerOnlyFiles = ownerOnlyFilesFor('win32');
     const absentPath = join(scratch, 'absent');
     expect(ownerOnlyFiles.isOwnerOnly(absentPath)).toBe(false);
-    expect(() => ownerOnlyFiles.restrictFile(absentPath)).toThrow('not proved owner-only');
+    expect(ownerOnlyFiles.restrictFile(absentPath)).toEqual({ verdict: 'refused', cause: 'not-proved-owner-only', path: absentPath });
   });
 });

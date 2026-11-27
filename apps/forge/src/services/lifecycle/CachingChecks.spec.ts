@@ -92,7 +92,7 @@ describe('the caching checks suggest and never install', () => {
     const gates = [{ name: 'tests', run: 'bun test' }];
 
     expect(CachingChecks.cachingSuggestionsOf(repositoryDirectory, gates, recordWith({ tests: 90_000 }))).toEqual([
-      { kind: 'turbo-configuration-unreadable', file: 'turbo.json', reason: expect.any(String) as unknown as string },
+      { kind: 'turbo-configuration-unreadable', file: 'turbo.json', problem: expect.any(Object) as unknown as { code: 'not-a-json-object' } },
     ]);
   });
 

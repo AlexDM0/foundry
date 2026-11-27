@@ -215,8 +215,8 @@ describe('the stored pipeline', () => {
     expect(pipelineFactsOf(inputOf()).pipeline).toMatchObject({ readingVerdict: 'readable', application: null });
     const unreadable = (pipelineReading: PipelineReading) => pipelineFactsOf(inputOf({ pipelineReading }));
     expect(unreadable({ verdict: 'older' }).pipeline).toEqual({ readingVerdict: 'older', fileText: '{"version": 2}\n' });
-    const malformed = unreadable({ verdict: 'malformed', reason: 'Example reason' });
-    expect(malformed.pipeline).toEqual({ readingVerdict: 'malformed', reason: 'Example reason', fileText: '{"version": 2}\n' });
+    const malformed = unreadable({ verdict: 'malformed', problem: { code: 'not-a-list', field: 'gates' } });
+    expect(malformed.pipeline).toEqual({ readingVerdict: 'malformed', problem: { code: 'not-a-list', field: 'gates' }, fileText: '{"version": 2}\n' });
     expect(unreadable({ verdict: 'absent' }).pipeline).toEqual({ readingVerdict: 'absent' });
     expect(unreadable({ verdict: 'absent' }).pipelineFlow).toBeNull();
   });
@@ -587,7 +587,7 @@ describe('the choices, profile runs and history', () => {
     expect(pipelineFactsOf(inputOf({ gateProfilesReading })).profileRuns).toEqual([{
       profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 1200, cacheReport: null
     }]);
-    expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', reason: 'Example' } })).profileRuns).toEqual([]);
+    expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', problem: { code: 'missing', field: 'runs' } } })).profileRuns).toEqual([]);
   });
 
   describe('the gates\' cache marks', () => {

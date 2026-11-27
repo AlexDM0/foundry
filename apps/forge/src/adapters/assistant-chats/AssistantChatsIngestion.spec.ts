@@ -15,6 +15,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { AssistantChatsIngestion, type AssistantChat }    from './AssistantChatsIngestion.ts';
+import { AssistantChatsProblemWording }                   from './AssistantChatsProblemWording.ts';
 import { createAssistantChatsWriter }                     from './AssistantChatsWriter.ts';
 
 const CHATS: AssistantChat[] = [
@@ -63,5 +64,5 @@ test.each([
   const chatsReading = reading();
 
   expect(chatsReading.verdict).toBe('unreadable');
-  expect(chatsReading.verdict === 'unreadable' ? chatsReading.reason : '').toContain(reason);
+  expect(chatsReading.verdict === 'unreadable' ? AssistantChatsProblemWording.sentenceOf(chatsReading.problem) : '').toContain(reason);
 });

@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                                         from '../../testing/ScratchWorkspace.ts';
+import type { MainMergeConflictProblem }                                                          from './@types/MainMergeConflictProblem.ts';
 import { MAIN_MERGE_CONFLICT_FORMAT_VERSION, type MainMergeConflict, MainMergeConflictIngestion } from './MainMergeConflictIngestion.ts';
 import { createMainMergeConflictWriter }                                                          from './MainMergeConflictWriter.ts';
 
@@ -48,18 +49,18 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a conflict of another version, or of none, is unreadable', () => {
   writeFileSync(conflictFilePath(), `${JSON.stringify({ ...CONFLICT, version: MAIN_MERGE_CONFLICT_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MAIN_MERGE_CONFLICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MAIN_MERGE_CONFLICT_FORMAT_VERSION } });
   writeFileSync(conflictFilePath(), `${JSON.stringify(CONFLICT)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MAIN_MERGE_CONFLICT_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MAIN_MERGE_CONFLICT_FORMAT_VERSION } });
 });
 
-test.each([
-  ['targetTip', { targetTip: 1 }, 'its "targetTip" is not a commit'],
-  ['branchTip', { branchTip: null }, 'its "branchTip" is not a commit'],
-  ['conflictedFiles', { conflictedFiles: [1] }, 'its "conflictedFiles" is not a list of paths'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, MainMergeConflictProblem]>([
+  ['targetTip', { targetTip: 1 }, { code: 'field-is-not', field: 'targetTip', expected: 'a-commit' }],
+  ['branchTip', { branchTip: null }, { code: 'field-is-not', field: 'branchTip', expected: 'a-commit' }],
+  ['conflictedFiles', { conflictedFiles: [1] }, { code: 'field-is-not', field: 'conflictedFiles', expected: 'a-list-of-paths' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   writeFileSync(conflictFilePath(), `${JSON.stringify({ version: MAIN_MERGE_CONFLICT_FORMAT_VERSION, ...CONFLICT, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

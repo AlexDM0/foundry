@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { SnapshotStartProblem }                      from './@types/SnapshotStartProblem.ts';
 import { SnapshotStartIngestion, type SnapshotStart }     from './SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                      from './SnapshotStartWriter.ts';
 
@@ -58,20 +59,30 @@ const STORED_LAUNCH_SNAPSHOT = JSON.stringify(START.launchSnapshot);
 
 const STORED_START_COMMIT = `"startCommit":"${START.startCommit}"`;
 
-test.each([
-  ['not JSON', '{', 'it is not valid JSON'],
-  ['the start of before the version', `{"startCommit":"${START.startCommit}","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its version is not 1'],
-  ['another version', `{"version":2,"startCommit":"${START.startCommit}","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its version is not 1'],
-  ['no start commit', `{"version":1,"launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its startCommit is not a commit'],
-  ['an empty start commit', `{"version":1,"startCommit":"","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, 'its startCommit is not a commit'],
-  ['no launch snapshot', `{"version":1,"startCommit":"${START.startCommit}"}`, 'its "launchSnapshot" is not an object'],
-  ['refs that are no commits', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{"main":5},"hooksFolderDigest":null}}`, 'its "launchSnapshot.refs" is not'],
-  ['a hooks digest that is no text', `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{},"hooksFolderDigest":5}}`, 'its "launchSnapshot.hooksFolderDigest" is not'],
-])('%s is unreadable, never a throw', (_case, storedText, reason) => {
+const VERSION_DIFFERS: Partial<SnapshotStartProblem> = { code: 'version-differs', field: 'version', expectedVersion: 1 };
+
+test.each<[string, string, Partial<SnapshotStartProblem>]>([
+  ['not JSON', '{', { code: 'not-json' }],
+  ['the start of before the version', `{"startCommit":"${START.startCommit}","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, VERSION_DIFFERS],
+  ['another version', `{"version":2,"startCommit":"${START.startCommit}","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, VERSION_DIFFERS],
+  ['no start commit', `{"version":1,"launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, { code: 'start-commit-not-a-commit', field: 'startCommit' }],
+  ['an empty start commit', `{"version":1,"startCommit":"","launchSnapshot":${STORED_LAUNCH_SNAPSHOT}}`, { code: 'start-commit-not-a-commit', field: 'startCommit' }],
+  ['no launch snapshot', `{"version":1,"startCommit":"${START.startCommit}"}`, { code: 'field-is-not', field: 'launchSnapshot', expected: 'an-object' }],
+  [
+    'refs that are no commits',
+    `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{"main":5},"hooksFolderDigest":null}}`,
+    { code: 'field-is-not', field: 'launchSnapshot.refs', expected: 'a-record-of-commits' },
+  ],
+  [
+    'a hooks digest that is no text',
+    `{"version":1,${STORED_START_COMMIT},"launchSnapshot":{"refs":{},"hooksFolderDigest":5}}`,
+    { code: 'field-is-not', field: 'launchSnapshot.hooksFolderDigest', expected: 'text-or-null' },
+  ],
+])('%s is unreadable, never a throw', (_case, storedText, problem) => {
   writeFileSync(startFilePath(), storedText);
 
   const startReading = reading();
 
   expect(startReading.verdict).toBe('unreadable');
-  expect(startReading.verdict === 'unreadable' ? startReading.reason : '').toContain(reason);
+  expect(startReading.verdict === 'unreadable' ? startReading.problem : null).toMatchObject(problem);
 });

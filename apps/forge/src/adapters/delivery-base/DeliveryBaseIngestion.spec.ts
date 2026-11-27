@@ -15,6 +15,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { DeliveryBaseIngestion }                          from './DeliveryBaseIngestion.ts';
+import { DeliveryBaseProblemWording }                     from './DeliveryBaseProblemWording.ts';
 import { createDeliveryBaseWriter }                       from './DeliveryBaseWriter.ts';
 
 let scratchDirectory = '';
@@ -55,5 +56,5 @@ test.each([
   const launchReading = reading();
 
   expect(launchReading.verdict).toBe('unreadable');
-  expect(launchReading.verdict === 'unreadable' ? launchReading.reason : '').toContain(reason);
+  expect(launchReading.verdict === 'unreadable' ? DeliveryBaseProblemWording.sentenceOf(launchReading.problem) : '').toContain(reason);
 });

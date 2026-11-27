@@ -2,6 +2,8 @@
  * After a call wrote a tracker, records it in the machine-wide monitor registry. A registry that cannot take the entry warns on standard
  * error and never changes the command's exit code.
  */
+import { LogFileProblemWording }                                                                     from '../src/adapters/log/LogFileProblemWording.ts';
+import { ProgressFileProblemWording }                                                                from '../src/adapters/progress/ProgressFileProblemWording.ts';
 import type { StoreReadFace }                                                                        from '../src/services/store/BoardStore.ts';
 import { type MonitorRegistrationRequest, type ProgressRegistrationReading, registerWithTheMonitor } from '../src/services/tracker/MonitorRegistration.ts';
 import type { Workspace }                                                                            from '../src/services/tracker/Workspace.ts';
@@ -19,7 +21,11 @@ function progressRegistrationReadingOf(reads: StoreReadFace): ProgressRegistrati
   } catch (error) {
     if (!refusalIsOperationRefusal(error) || error.detail?.kind !== 'unreadable-tracker') throw error;
     const { reading } = error.detail;
-    return reading.verdict === 'absent' ? { verdict: 'absent' } : { verdict: 'unreadable', reason: reading.reason };
+    if (reading.verdict === 'absent') return { verdict: 'absent' };
+    const reason = reading.unreadableFile === 'progress-file'
+      ? ProgressFileProblemWording.sentenceOf(reading.problem)
+      : LogFileProblemWording.sentenceOf(reading.problem);
+    return { verdict: 'unreadable', reason };
   }
 }
 

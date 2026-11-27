@@ -2,10 +2,13 @@
  * `presence.json` and `heartbeat.json` under the board's `hephaestus` folder: a generation's start, its abandoned passes and how it ended, and
  * its beats at each renewal Talos confirmed. Every write is synchronous and atomic, so a dying process can still make it; a read is a verdict.
  */
+import type { HeartbeatProblem }                    from '../../adapters/heartbeat/@types/HeartbeatProblem.ts';
 import type { HeartbeatRecord }                     from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import { HeartbeatIngestion }                       from '../../adapters/heartbeat/HeartbeatIngestion.ts';
+import { HeartbeatProblemWording }                  from '../../adapters/heartbeat/HeartbeatProblemWording.ts';
 import { createHeartbeatWriter }                    from '../../adapters/heartbeat/HeartbeatWriter.ts';
 import { HEARTBEAT_FORMAT_VERSION }                 from '../../adapters/heartbeat/constants/HeartbeatFileVersions.ts';
+import type { PresenceProblem }                     from '../../adapters/presence/@types/PresenceProblem.ts';
 import type { AbandonedPassReason, PresenceRecord } from '../../adapters/presence/@types/PresenceRecord.ts';
 import { PresenceIngestion }                        from '../../adapters/presence/PresenceIngestion.ts';
 import { createPresenceWriter }                     from '../../adapters/presence/PresenceWriter.ts';
@@ -23,14 +26,14 @@ import type { UnreadableBoardFiles } from './UnreadableBoardFiles.ts';
 /** The path of `presence.json` inside the board's data folder, as a header warning names it. */
 const PRESENCE_BOARD_FILE = 'hephaestus/presence.json';
 
-function readPresence(files: HephaestusFiles): PresenceFileReading<PresenceRecord> {
+function readPresence(files: HephaestusFiles): PresenceFileReading<PresenceRecord, PresenceProblem> {
   const reading = new PresenceIngestion(files.presenceFilePath).read();
   return reading.verdict === 'readable' ? { verdict: 'read', record: reading.record } : reading;
 }
 
 /** The record heals only when the next start overwrites it, so Hephaestus warns in the board header until it restarts. */
-function reportUnreadablePresence(reading: PresenceFileReading<PresenceRecord>, unreadableBoardFiles: UnreadableBoardFiles): void {
-  if (reading.verdict === 'unreadable') unreadableBoardFiles.report({ file: PRESENCE_BOARD_FILE, reason: reading.reason });
+function reportUnreadablePresence(reading: PresenceFileReading<PresenceRecord, PresenceProblem>, unreadableBoardFiles: UnreadableBoardFiles): void {
+  if (reading.verdict === 'unreadable') unreadableBoardFiles.report({ file: PRESENCE_BOARD_FILE, problem: reading.problem });
 }
 
 /** Overwrites the previous generation's record, which the start's classification has already read. */
@@ -75,7 +78,7 @@ function recordCompletedPass(files: HephaestusFiles, generation: number): Presen
   });
 }
 
-function readHeartbeat(files: HephaestusFiles): PresenceFileReading<HeartbeatRecord> {
+function readHeartbeat(files: HephaestusFiles): PresenceFileReading<HeartbeatRecord, HeartbeatProblem> {
   const reading = new HeartbeatIngestion(files.heartbeatFilePath).read();
   return reading.verdict === 'readable' ? { verdict: 'read', record: reading.record } : reading;
 }
@@ -97,7 +100,7 @@ function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation
 function writeHeartbeat(files: HephaestusFiles, generation: number, at: string, log: (line: string) => void): HeartbeatWrite {
   const stored = readHeartbeat(files);
   // The beat below rewrites the file whole, so an unreadable one heals at once and is only logged.
-  if (stored.verdict === 'unreadable') log(`heartbeat.json could not be read (${stored.reason}); this beat rewrites it.`);
+  if (stored.verdict === 'unreadable') log(`heartbeat.json could not be read (${HeartbeatProblemWording.sentenceOf(stored.problem)}); this beat rewrites it.`);
   const storedGeneration = stored.verdict === 'read' ? stored.record.generation : null;
   if (beatOfTheCurrentRecordAbove(storedGeneration, generation, files)) return { verdict: 'newer-generation-beats', storedGeneration };
   const sequence = stored.verdict === 'read' && storedGeneration === generation ? stored.record.sequence + 1 : 1;

@@ -64,7 +64,7 @@ test('a refusal built from an unreadable tracker carries the reading, and its me
     verdict:        'unreadable',
     unreadableFile: 'log-file',
     filePath:       '/example/.agent-progress/log.jsonl',
-    reason:         'line 1 is broken',
+    problem:        { code: 'record-not-an-object', logFilePath: '/example/.agent-progress/log.jsonl', lineNumber: 1 },
   } as const;
   const refusal = new OperationRefusal('unrepaired', { kind: 'unreadable-tracker', reading });
   expect(refusal.detail).toEqual({ kind: 'unreadable-tracker', reading });

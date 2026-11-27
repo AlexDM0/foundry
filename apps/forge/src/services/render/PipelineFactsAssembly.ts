@@ -143,7 +143,7 @@ function appliedPipelineOf(input: PipelineFactsInput): AppliedPipelineFacts {
     case 'older':
       return { readingVerdict: 'older', fileText };
     case 'malformed':
-      return { readingVerdict: 'malformed', reason: reading.reason, fileText };
+      return { readingVerdict: 'malformed', problem: reading.problem, fileText };
     default: {
       const applications = input.logRecords.filter((record) => record.kind === 'pipeline-applied');
       const newest = applications.at(-1);

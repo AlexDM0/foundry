@@ -118,8 +118,8 @@ describe('an unreadable pipeline.json', () => {
     ['older', { verdict: 'older' }, { kind: 'older-pipeline', filePath: PIPELINE_LOCATION }],
     [
       'malformed',
-      { verdict: 'malformed', reason: 'gates[0] has no name' },
-      { kind: 'malformed-pipeline', filePath: PIPELINE_LOCATION, reason: 'gates[0] has no name' },
+      { verdict: 'malformed', problem: { code: 'has-no-name', field: 'gates[0]' } },
+      { kind: 'malformed-pipeline', filePath: PIPELINE_LOCATION, problem: { code: 'has-no-name', field: 'gates[0]' } },
     ],
   ])('an %s file refuses every pipeline write before the Board changes', (_case, reading, detail) => {
     for (const command of PIPELINE_WRITES) {

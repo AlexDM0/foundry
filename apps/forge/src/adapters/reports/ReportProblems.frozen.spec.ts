@@ -2,6 +2,7 @@
 import { expect, test } from 'bun:test';
 
 import FROZEN_PROBLEMS                      from './FrozenReportProblems.json';
+import { ReportProblemWording }             from './ReportProblemWording.ts';
 import { type JsonSchema, reportVerdictOf } from './ReportValidation.ts';
 
 /** One property for each keyword of the subset, so each frozen report breaks exactly one of them. */
@@ -25,6 +26,7 @@ const EVERY_KEYWORD_SCHEMA: JsonSchema = {
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
-    expect(reportVerdictOf(EVERY_KEYWORD_SCHEMA, JSON.parse(stored))).toEqual({ verdict: 'invalid', problems: [sentence] });
+    const verdict = reportVerdictOf(EVERY_KEYWORD_SCHEMA, JSON.parse(stored));
+    expect(verdict.verdict === 'invalid' ? verdict.problems.map(ReportProblemWording.sentenceOf) : []).toEqual([sentence]);
   });
 }

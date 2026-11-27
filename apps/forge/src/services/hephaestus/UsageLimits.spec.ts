@@ -59,7 +59,7 @@ describe('usageResetsAtOf', () => {
     expect(UsageLimits.usageResetsAtOf({ verdict: 'absent' }, [])).toBeNull();
     expect(UsageLimits.usageResetsAtOf({ verdict: 'absent' }, [{ jobId: 'J2', window: 'five_hour', resetsAt: '2026-11-01T22:00:00.000Z' }])).toBe('2026-11-01T22:00:00.000Z');
     expect(UsageLimits.usageResetsAtOf(marked, [{ jobId: 'J2', window: 'five_hour', resetsAt: '2026-11-01T22:00:00.000Z' }])).toBe('2026-11-03T00:00:00.000Z');
-    expect(UsageLimits.usageResetsAtOf({ verdict: 'malformed', reason: 'example' }, [])).toBeNull();
+    expect(UsageLimits.usageResetsAtOf({ verdict: 'malformed', problem: { code: 'not-a-json-object' } }, [])).toBeNull();
   });
 });
 
@@ -155,7 +155,7 @@ describe('the usage windows', () => {
 
   test('no observation, a malformed file and API billing show no window', () => {
     expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, { verdict: 'absent' }, false).windows).toEqual([]);
-    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, { verdict: 'malformed', reason: 'example' }, false).windows).toEqual([]);
+    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, { verdict: 'malformed', problem: { code: 'not-a-json-object' } }, false).windows).toEqual([]);
     expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, windowsRead, true).windows).toEqual([]);
   });
 });

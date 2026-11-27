@@ -65,6 +65,7 @@ import {
 } from '../../src/testing/RecordedGitFlow.ts';
 import { type RecordedTalosStages, useRecordedTalosStages }               from '../../src/testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
+import { spawningShellRequestOf }                                         from '../../src/testing/SpawningShellRequest.ts';
 import { childFilesIn, talosChildReadingsWith }                           from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
@@ -733,7 +734,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     const drivePass = await drivePassPlaying(buildingSession(), confinement);
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
     const launch = lineLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
-    expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
+    expect(launch.argv).toEqual([...spawningShellRequestOf(ports.shellLine, 'true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
     expect(launch.workingDirectory).toBe(join(requireWorkspace(repositoryDirectory).rootDirectory, WORKTREES_FOLDER, 'ticket-001'));
     expect(openIncidentKinds()).toEqual([]);
     expect(hephaestusLog.filter((line) => line.includes('did not run'))).toEqual([]);

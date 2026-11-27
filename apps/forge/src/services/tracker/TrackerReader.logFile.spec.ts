@@ -1,6 +1,6 @@
 /**
  * The tracker's log is log.jsonl alone: beside a progress.json, any log.jsonl comes back as its own records, an absent one as empty and an
- * unreadable one with its own reason.
+ * unreadable one with its own problem.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
@@ -58,12 +58,11 @@ test('an absent log.jsonl is an empty log', () => {
   expect(storedLogOrVerdictOf(readTracker(workspace))).toEqual({ records: [] });
 });
 
-test('an unreadable log.jsonl keeps its own reason, which names no progress file', () => {
+test('an unreadable log.jsonl keeps its own problem, which names the log file and no progress file', () => {
   writeFileSync(localStoreLayoutOf(workspace).logRecordPath, 'not JSON\n');
 
   const reading = readTracker(workspace);
+  const problem = reading.verdict === 'unreadable' && reading.unreadableFile === 'log-file' ? reading.problem : null;
 
-  expect(reading.verdict === 'unreadable' ? reading.unreadableFile : null).toBe('log-file');
-  expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith(`${localStoreLayoutOf(workspace).logRecordPath}, line 1:`);
-  expect(reading.verdict === 'unreadable' ? reading.reason : localStoreLayoutOf(workspace).progressRecordPath).not.toContain(localStoreLayoutOf(workspace).progressRecordPath);
+  expect(problem).toMatchObject({ code: 'not-json', logFilePath: localStoreLayoutOf(workspace).logRecordPath, lineNumber: 1 });
 });

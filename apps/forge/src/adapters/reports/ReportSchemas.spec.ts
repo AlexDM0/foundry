@@ -8,6 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { ReportProblem } from './@types/ReportProblem.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   EFFECT_READING_REPORT_SCHEMA,
@@ -171,7 +172,10 @@ describe('the report table', () => {
   });
 
   test('an invalid report names each problem by its path', () => {
-    const problems = ['$.headCommit does not match ^(?:[0-9a-f]{40}|[0-9a-f]{64})$', '$.blockedOn is not allowed'];
+    const problems: ReportProblem[] = [
+      { code: 'pattern-mismatch', path: '$.headCommit', pattern: '^(?:[0-9a-f]{40}|[0-9a-f]{64})$' },
+      { code: 'not-allowed', path: '$.blockedOn' },
+    ];
     expect(reportVerdictOf(BUILDER_REPORT_SCHEMA, { ...BUILT, blockedOn: 'x', headCommit: 'abc' })).toEqual({ verdict: 'invalid', problems });
   });
 });

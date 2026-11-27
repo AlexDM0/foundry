@@ -176,10 +176,10 @@ test('a Hephaestus start stops a run left running, never to run again, and leave
 });
 
 test('a malformed file refuses every move, reads as no run, and is never written over', () => {
-  const { board } = boardFixture({ gateProfiles: { verdict: 'malformed', reason: 'runs is missing' } });
+  const { board } = boardFixture({ gateProfiles: { verdict: 'malformed', problem: { code: 'missing', field: 'runs' } } });
 
-  expect(refusalOf(() => board.queueGateProfile(request(), AT))).toEqual({ reason: 'gate-profiles-unreadable', problem: 'runs is missing' });
-  expect(refusalOf(() => board.stopGateProfile('P1', AT))).toEqual({ reason: 'gate-profiles-unreadable', problem: 'runs is missing' });
+  expect(refusalOf(() => board.queueGateProfile(request(), AT))).toEqual({ reason: 'gate-profiles-unreadable', problem: { code: 'missing', field: 'runs' } });
+  expect(refusalOf(() => board.stopGateProfile('P1', AT))).toEqual({ reason: 'gate-profiles-unreadable', problem: { code: 'missing', field: 'runs' } });
   expect(board.gateProfileRuns()).toEqual([]);
   expect(board.stopGateProfilesLeftRunning(AT)).toEqual([]);
   expect(board.gateProfilesWrite()).toEqual({ write: 'unchanged' });

@@ -31,9 +31,9 @@ describe('installVersionVerdictOf', () => {
 
   test('an unreadable manifest is a mismatch carrying the problem, whether or not files are present', () => {
     for (const installedFilesArePresent of [true, false]) {
-      expect(installVersionVerdictOf({ verdict: 'unreadable', reason: 'it is not a JSON object' }, installedFilesArePresent, 7)).toEqual({
+      expect(installVersionVerdictOf({ verdict: 'unreadable', problem: { code: 'not-a-json-object' } }, installedFilesArePresent, 7)).toEqual({
         verdict:  'mismatch',
-        mismatch: { reason: 'unreadable', manifestProblem: 'it is not a JSON object' },
+        mismatch: { reason: 'unreadable', manifestProblem: { code: 'not-a-json-object' } },
       });
     }
   });

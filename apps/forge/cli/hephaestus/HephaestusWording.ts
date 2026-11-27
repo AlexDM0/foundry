@@ -4,6 +4,7 @@
  */
 import { readFileSync }                                       from 'node:fs';
 import type { RedHandoffFacts }                               from '../../src/adapters/red-handoff/RedHandoffIngestion.ts';
+import { UnreadableFileProblemWordingUtil }                   from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
 import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { AgentBillingUtil }                                   from '../../src/lib/agent-launch/utils/AgentBillingUtil.ts';
 import type { DecisionQuestionOption }                        from '../../src/lib/tracker-model/@types/Decision.ts';
@@ -638,7 +639,7 @@ function incidentTextOf(incident: Readonly<Incident>): string {
   const job     = incident.jobId === null ? '' : `, job ${incident.jobId}`;
   return [
     `${incident.id} ${incident.kind}${tickets}${job}`,
-    ...Object.entries(incident.facts).map(([fact, value]) => `  ${fact}: ${value}`),
+    ...Object.entries(UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident)).map(([fact, value]) => `  ${fact}: ${value}`),
     `  moves: ${ALLOWED_MOVES_BY_INCIDENT_KIND[incident.kind].join(', ')}; default ${incident.defaultMove}`,
   ].join('\n');
 }

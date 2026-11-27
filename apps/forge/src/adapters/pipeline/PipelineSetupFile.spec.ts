@@ -25,6 +25,7 @@ import type { Pipeline, PipelineEntity }                  from '../../lib/tracke
 import type { PipelineSetup }                             from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
+import { PipelineSetupProblemWording }                    from './PipelineSetupProblemWording.ts';
 
 const EXAMPLE_SETUP: PipelineSetup = {
   formatVersion:   4,
@@ -534,7 +535,9 @@ describe('a malformed record', () => {
       (document) => ({ ...document, billing: { mode: 'subscription', maxBudgetUsd: 2 } }),
       'billing.maxBudgetUsd is present with mode subscription'],
   ])('%s is malformed with its reason', (_case, documentOf, reason) => {
-    expect(readingOfDocument(documentOf(storedDocument()))).toEqual({ verdict: 'malformed', reason });
+    const reading = readingOfDocument(documentOf(storedDocument()));
+
+    expect(reading.verdict === 'malformed' ? PipelineSetupProblemWording.sentenceOf(reading.problem) : `read as ${reading.verdict}`).toBe(reason);
   });
 
   test('text that is not JSON is malformed, never a throw', () => {

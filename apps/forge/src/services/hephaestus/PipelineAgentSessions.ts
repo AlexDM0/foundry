@@ -315,7 +315,8 @@ function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobId
       if (servedSetup !== null && !board.setupSnapshotIsTouched(servedSetup.setupId)) {
         board.recordSetupSnapshotTouched(servedSetup.setupId, { check: 'V16', reason: 'git-failed' }, at);
       }
-      UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      const file = jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE);
+      UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file, problem: snapshotStart.problem }, at);
       continue;
     }
     const verdict = turnEndVerdictOf(context, board, job, snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null);

@@ -13,6 +13,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { RefusedForcedStopsIngestion }                    from './RefusedForcedStopsIngestion.ts';
+import { RefusedForcedStopsProblemWording }               from './RefusedForcedStopsProblemWording.ts';
 import { createRefusedForcedStopsWriter }                 from './RefusedForcedStopsWriter.ts';
 
 const REFUSALS = { refusals: 2, treeProcessIds: [4242, 4243] };
@@ -22,6 +23,11 @@ let scratchDirectory = '';
 const refusedForcedStopsFilePath = (): string => join(scratchDirectory, 'child-1.refused-forced-stops');
 
 const reading = (): ReturnType<RefusedForcedStopsIngestion['read']> => new RefusedForcedStopsIngestion(refusedForcedStopsFilePath()).read();
+
+/** The reading with its problem worded, as User reads it. */
+function wordedReadingOf(read: ReturnType<RefusedForcedStopsIngestion['read']>): object {
+  return read.verdict === 'unreadable' ? { verdict: read.verdict, reason: RefusedForcedStopsProblemWording.sentenceOf(read.problem) } : read;
+}
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('refused-forced-stops-ingestion');
@@ -45,7 +51,7 @@ test('a child never refused has no file, which is absent', () => {
 test('a file that is not JSON is unreadable', () => {
   writeFileSync(refusedForcedStopsFilePath(), '{"version":1,');
 
-  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining('not valid JSON') });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', problem: { code: 'not-json' } });
 });
 
 test.each([
@@ -57,5 +63,5 @@ test.each([
 ])('%s is unreadable', (_case, changes, reason) => {
   writeFileSync(refusedForcedStopsFilePath(), JSON.stringify({ version: 1, ...REFUSALS, ...changes }));
 
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason });
 });

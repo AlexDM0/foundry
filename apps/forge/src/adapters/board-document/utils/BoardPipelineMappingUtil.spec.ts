@@ -100,8 +100,9 @@ describe('BoardPipelineMappingUtil.pipelineDefinitionOf', () => {
 describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
   test('maps each reading verdict with the fields it carries', () => {
     expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'absent' })).toEqual({ readingVerdict: 'absent' });
-    expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'malformed', reason: 'Not JSON.', fileText: '{' }))
-      .toEqual({ readingVerdict: 'malformed', reason: 'Not JSON.', fileText: '{' });
+    const notJson = { code: 'not-json', parserError: 'Unexpected end' } as const;
+    expect(BoardPipelineMappingUtil.appliedPipelineOf({ readingVerdict: 'malformed', problem: notJson, fileText: '{' }))
+      .toEqual({ readingVerdict: 'malformed', reason: 'it is not valid JSON (Unexpected end)', fileText: '{' });
     const application = {
       appliedRevision: 2, appliedAt: AT, appliedBy: 'user', constitutionCommit: null
     } as const;

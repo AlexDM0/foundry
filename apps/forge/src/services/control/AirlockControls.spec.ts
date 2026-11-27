@@ -14,6 +14,7 @@ import { afterEach, expect } from 'bun:test';
 
 import type { Board }                                   from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                       from '../../testing/EchoedControlContext.ts';
@@ -78,7 +79,7 @@ function scenario(mergeApprovalIsOn = true): Scenario {
 async function refusalOf(attempt: Promise<unknown>): Promise<unknown> {
   let refusal: unknown = null;
   await attempt.catch((error: unknown) => {
-    refusal = refusalDetailOf(() => {
+    refusal = error instanceof OperationRefusal ? error.detail : refusalDetailOf(() => {
       throw error;
     });
   });
@@ -108,7 +109,7 @@ testWhenGitIsRecorded('merge accept: a clean prediction sets mergeAccepted and l
 testWhenGitIsRecorded('merge accept: a branch that would conflict with the target\'s tip is refused with its files, and stays unaccepted', async () => {
   const { board, apply } = scenario();
   expect(await refusalOf(apply(ACCEPT, [MAIN_LINE_READ, branchTreeRead(BRANCH), mergePredicted('main', BRANCH, MERGED_TREE, 'base.ts')]))).toEqual({
-    reason: 'merge-accept-would-conflict', ticketId: '001', target: 'main', conflictedFiles: ['base.ts']
+    kind: 'merge-accept-would-conflict', ticketId: '001', target: 'main', conflictedFiles: ['base.ts']
   });
   expect(board.ticketIsMergeAccepted('001')).toBe(false);
 });
@@ -173,6 +174,6 @@ testWhenGitIsRecorded('merge update: a merge git refuses for an uncommitted edit
     revisionMissing('MERGE_HEAD'),
     commitResolved('HEAD', BRANCH_TIP),
   ]));
-  expect(refusal).toMatchObject({ reason: 'merge-update-failed', ticketId: '001', target: 'main' });
+  expect(refusal).toMatchObject({ kind: 'merge-update-failed', ticketId: '001', target: 'main' });
   expect(board.ticketIsMergeQueued('001')).toBe(true);
 });

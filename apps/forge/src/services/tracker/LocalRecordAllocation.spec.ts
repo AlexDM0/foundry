@@ -47,10 +47,10 @@ function refusalDetailOf(attempt: () => unknown): unknown {
 }
 
 function unreadableRecordsHolding(record: 'epic' | 'draft', key: string, location: string): UnreadableRecords {
-  const unreadable = [{
-    record, key, location, reason: 'example unreadable record', line: 0
-  }];
-  return { ...NO_UNREADABLE_RECORDS, ...(record === 'epic' ? { epics: unreadable } : { drafts: unreadable }) };
+  const place = {
+    key, location, problem: { code: 'file-not-utf8-text' }, line: 0
+  } as const;
+  return record === 'epic' ? { ...NO_UNREADABLE_RECORDS, epics: [{ record, ...place }] } : { ...NO_UNREADABLE_RECORDS, drafts: [{ record, ...place }] };
 }
 
 afterEach(() => {

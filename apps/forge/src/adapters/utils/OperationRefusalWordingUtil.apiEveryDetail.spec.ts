@@ -200,23 +200,14 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'merge-queue-without-a-current-green':   { reason: 'merge-queue-without-a-current-green', ticketId: '004', headTree: 'abc123' },
   'merge-approval-off':                    { reason: 'merge-approval-off', ticketId: '004' },
   'merge-accept-of-a-ticket-not-waiting':  { reason: 'merge-accept-of-a-ticket-not-waiting', ticketId: '004', status: 'committed' },
-  'merge-accept-would-conflict':           {
-    reason: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
-  },
-  'merge-accept-prediction-failed': {
-    reason: 'merge-accept-prediction-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
-  },
-  'merge-update-of-a-ticket-not-waiting': { reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '004', status: 'committed' },
-  'merge-update-failed':                  {
-    reason: 'merge-update-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
-  },
-  'airlock-held':                    { reason: 'airlock-held', target: 'main', jobId: 'J3' },
-  'merge-candidate-not-queued':      { reason: 'merge-candidate-not-queued', ticketId: '004', target: 'main' },
-  'higher-priority-queued':          { reason: 'higher-priority-queued', ticketId: '004', queuedTicketIds: ['005'] },
-  'refresh-beside-a-queued-release': { reason: 'refresh-beside-a-queued-release', group: 'checkout-redesign', releaseTicketId: '005' },
-  'unknown-decision':                { reason: 'unknown-decision', decisionId: 'E9' },
-  'decision-already-answered':       { reason: 'decision-already-answered', decisionId: 'E7' },
-  'decision-answer-count':           {
+  'merge-update-of-a-ticket-not-waiting':  { reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '004', status: 'committed' },
+  'airlock-held':                          { reason: 'airlock-held', target: 'main', jobId: 'J3' },
+  'merge-candidate-not-queued':            { reason: 'merge-candidate-not-queued', ticketId: '004', target: 'main' },
+  'higher-priority-queued':                { reason: 'higher-priority-queued', ticketId: '004', queuedTicketIds: ['005'] },
+  'refresh-beside-a-queued-release':       { reason: 'refresh-beside-a-queued-release', group: 'checkout-redesign', releaseTicketId: '005' },
+  'unknown-decision':                      { reason: 'unknown-decision', decisionId: 'E9' },
+  'decision-already-answered':             { reason: 'decision-already-answered', decisionId: 'E7' },
+  'decision-answer-count':                 {
     reason: 'decision-answer-count', decisionId: 'E7', answerCount: 1, questionCount: 2
   },
   'decision-without-questions':     { reason: 'decision-without-questions' },
@@ -236,15 +227,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'job-is-document-agent':   {
     reason: 'job-is-document-agent', jobId: 'J9', ticketId: '004', document: 'spec'
   },
-  'no-open-incident':       { reason: 'no-open-incident', subject: 'Job J3', move: 'job-fresh' },
-  'several-open-incidents': {
-    reason: 'several-open-incidents', subject: 'Job J3', move: 'job-fresh', incidentIds: ['I1', 'I2']
-  },
-  'worktree-in-use':               { reason: 'worktree-in-use', ticketId: '004', jobIds: ['J3'] },
-  'worktree-has-uncommitted-work': { reason: 'worktree-has-uncommitted-work', ticketId: '004', worktreePath: '/example/worktree' },
-  'worktree-repair-failed':        {
-    reason: 'worktree-repair-failed', ticketId: '004', step: 'reset', gitReason: 'Example reason'
-  },
+  'worktree-in-use':           { reason: 'worktree-in-use', ticketId: '004', jobIds: ['J3'] },
   'ticket-id-already-filed':   { reason: 'ticket-id-already-filed', ticketId: '004' },
   'gate-without-phase':        { reason: 'gate-without-phase', gateName: 'verify' },
   'unknown-gate-phase':        { reason: 'unknown-gate-phase', phase: 'deploy', phases: ['build', 'review', 'merge'] },
@@ -253,7 +236,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   },
   'setup-in-progress':         { reason: 'setup-in-progress', setupId: 'S1' },
   'no-setup-open':             { reason: 'no-setup-open', setupId: 'S1' },
-  'pipeline-setup-unreadable': { reason: 'pipeline-setup-unreadable', problem: 'Example problem' },
+  'pipeline-setup-unreadable': { reason: 'pipeline-setup-unreadable', problem: { code: 'missing', field: 'setupId' } },
   'no-pipeline-to-update':     { reason: 'no-pipeline-to-update', mode: 'update' },
   'pipeline-apply-pending':    { reason: 'pipeline-apply-pending', setupId: 'S1' },
   'no-apply-pending':          { reason: 'no-apply-pending', setupId: 'S1' },
@@ -313,7 +296,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'prepare-order-not-a-reorder': { reason: 'prepare-order-not-a-reorder', names: ['install'], prepareNames: ['install', 'build'] },
   'unknown-setup-edit':          { reason: 'unknown-setup-edit', setupId: 'S1', editId: 'E9' },
   'setup-edit-already-undone':   { reason: 'setup-edit-already-undone', setupId: 'S1', editId: 'E1' },
-  'gate-profiles-unreadable':    { reason: 'gate-profiles-unreadable', problem: 'Example problem' },
+  'gate-profiles-unreadable':    { reason: 'gate-profiles-unreadable', problem: { code: 'missing', field: 'runs' } },
   'gate-profile-running':        {
     reason: 'gate-profile-running', gateName: 'verify', phase: 'merge', profileRunId: 'P1'
   },
@@ -331,17 +314,17 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'no-tracker-found':         { kind: 'no-tracker-found', searchedFrom: ROOT },
   'tracker-lock-held':        { kind: 'tracker-lock-held', lockDirectoryPath: `${ROOT}/lock` },
   'lock-taken-over':          { kind: 'lock-taken-over', lockDirectoryPath: `${ROOT}/lock` },
-  'malformed-hold-journal':   { kind: 'malformed-hold-journal', journalFilePath: `${ROOT}/journal.json`, reason: 'Example reason' },
+  'malformed-hold-journal':   { kind: 'malformed-hold-journal', journalFilePath: `${ROOT}/journal.json`, problem: { code: 'files-not-a-list', field: 'files' } },
   'hold-journal-unremovable': { kind: 'hold-journal-unremovable', journalFilePath: `${ROOT}/journal.json`, reason: 'Example reason' },
   'install-version-mismatch': {
     kind: 'install-version-mismatch', rootDirectory: ROOT, manifestFilePath: `${ROOT}/version.json`, installVersion: 30, mismatch: { reason: 'unversioned' }
   },
   'no-readable-ticket':    { kind: 'no-readable-ticket', reference: '999' },
   'malformed-ticket-file': {
-    kind: 'malformed-ticket-file', filePath: `${ROOT}/004.md`, line: 2, reason: 'Example reason'
+    kind: 'malformed-ticket-file', filePath: `${ROOT}/004.md`, line: 2, problem: { code: 'no-closing-fence' }
   },
   'unreadable-file-in-the-way':         { kind: 'unreadable-file-in-the-way', filePath: `${ROOT}/epic.md`, record: 'epic' },
-  'malformed-pipeline':                 { kind: 'malformed-pipeline', filePath: `${ROOT}/pipeline.json`, reason: 'Example reason' },
+  'malformed-pipeline':                 { kind: 'malformed-pipeline', filePath: `${ROOT}/pipeline.json`, problem: { code: 'has-no-name', field: 'gates[0]' } },
   'entities-in-a-folder':               { kind: 'entities-in-a-folder', filePath: `${ROOT}/pipeline.json`, projectPrefix: 'apps/web' },
   'role-command-refused':               { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: 'ticket add' },
   'verb-not-relayable':                 { kind: 'verb-not-relayable', verb: 'init', jobId: 'J3' },
@@ -371,6 +354,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'too-many-pictures':                  { kind: 'too-many-pictures', pictureCount: 9, limit: 8 },
   'picture-too-large':                  { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },
   'picture-type-unsupported':           { kind: 'picture-type-unsupported', mediaTypes: ['image/png'] },
+  'path-not-owner-only':                { kind: 'path-not-owner-only', path: `${ROOT}/pictures`, cause: 'not-proved-owner-only' },
   'hephaestus-owns-the-lifecycle':      { kind: 'hephaestus-owns-the-lifecycle', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
   'talos-protocol-differs':             { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
   'talos-unavailable':                  { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
@@ -381,6 +365,26 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'no-crash-log':        { kind: 'no-crash-log', number: 7 },
   'ticket-has-live-job': {
     kind: 'ticket-has-live-job', ticketId: '004', jobId: 'J3', state: 'running'
+  },
+  'merge-accept-would-conflict': {
+    kind: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
+  },
+  'merge-accept-prediction-failed': {
+    kind: 'merge-accept-prediction-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
+  },
+  'merge-update-failed': {
+    kind: 'merge-update-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
+  },
+  'no-open-incident':       { kind: 'no-open-incident', subject: 'Job J3', move: 'job-fresh' },
+  'several-open-incidents': {
+    kind: 'several-open-incidents', subject: 'Job J3', move: 'job-fresh', incidentIds: ['I1', 'I2']
+  },
+  'worktree-has-uncommitted-work': { kind: 'worktree-has-uncommitted-work', ticketId: '004', worktreePath: '/example/worktree' },
+  'worktree-repair-failed':        {
+    kind: 'worktree-repair-failed', ticketId: '004', step: 'reset', gitReason: 'Example reason'
+  },
+  'document-agent-not-live': {
+    kind: 'document-agent-not-live', ticketId: '004', document: 'spec', jobId: 'J7'
   },
   'chart-range-bound-unreadable':   { kind: 'chart-range-bound-unreadable', bound: 'from', written: 'soon' },
   'chart-range-backwards':          { kind: 'chart-range-backwards', from: 'now', to: '-2h' },
@@ -395,7 +399,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'machine-limits-newer-version':   { kind: 'machine-limits-newer-version', filePath: '/example/machine-limits.json', version: 9 },
   'older-pipeline':                 { kind: 'older-pipeline', filePath: '/example/pipeline.json' },
   'malformed-setup-command':        { kind: 'malformed-setup-command', commandKind: 'pipeline-setup-answer', field: 'letters' },
-  'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', reason: 'Example reason' },
+  'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', problem: { code: 'has-no-name', field: 'gates[0]' } },
   'draft-copy-outside-entities':    { kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['gate:test'] },
   'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', reason: 'Example reason' },
   'agent-program-does-not-run':     {
@@ -403,7 +407,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   },
   'tool-not-found':               { kind: 'tool-not-found', name: 'example-tool', searchedFolders: ['/opt/example/bin'] },
   'tool-refused':                 { kind: 'tool-refused', name: 'example-tool', reason: '/home/example/repository/bin/example-tool sits inside /home/example/repository' },
-  'machine-config-unwritable':    { kind: 'machine-config-unwritable', filePath: '/home/example/.example-monitor/config.json', reason: 'Example reason' },
+  'machine-config-unwritable':    { kind: 'machine-config-unwritable', filePath: '/home/example/.example-monitor/config.json', problem: { code: 'not-a-json-object' } },
   'task-ticket-missing':          { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
   'namespace-board-has-jobs':     { kind: 'namespace-board-has-jobs', jobCount: 2 },
   'namespace-branch-list-failed': { kind: 'namespace-branch-list-failed', reason: 'Example reason' },

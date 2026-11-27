@@ -10,6 +10,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { AgentSlotIngestion }                             from './AgentSlotIngestion.ts';
+import { AgentSlotProblemWording }                        from './AgentSlotProblemWording.ts';
 import FROZEN_AGENT_SLOT_PROBLEMS                         from './FrozenAgentSlotProblems.json';
 
 /** The rows whose `stored` is `null`, since no stored text builds them. */
@@ -31,9 +32,9 @@ function systemErrorAt(storedFilePath: string): string {
   }
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new AgentSlotIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return 'problem' in reading ? AgentSlotProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -50,5 +51,5 @@ test.each(FROZEN_AGENT_SLOT_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+  expect(sentenceAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
 });

@@ -40,7 +40,7 @@ function storedOf(boardFolder: string, childFolderPath: string, instance: number
   const reading = new RefusedForcedStopsIngestion(filePath).read();
   if (reading.verdict === 'readable') return reading.forcedStopRefusals;
   if (reading.verdict === 'unreadable') {
-    unreadableBoardFiles.report({ file: dataFolderPathOf(boardFolder, filePath), reason: reading.reason });
+    unreadableBoardFiles.report({ file: dataFolderPathOf(boardFolder, filePath), problem: reading.problem });
   }
   return NO_REFUSALS;
 }

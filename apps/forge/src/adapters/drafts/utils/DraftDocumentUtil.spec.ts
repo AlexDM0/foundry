@@ -29,7 +29,7 @@ const DRAFT_WITH_ENTITY = DRAFT_WITHOUT_ENTITY.replace(
 
 function parsedDraft(text: string): Draft {
   const parsing = DraftDocumentUtil.parsedDraftDocumentOf(text);
-  if (parsing.verdict !== 'parsed') throw new Error(`expected a parsed draft, got "${parsing.reason}"`);
+  if (parsing.verdict !== 'parsed') throw new Error(`expected a parsed draft, got "${parsing.problem.code}"`);
   return parsing.draft;
 }
 
@@ -65,11 +65,11 @@ describe('entity and crosses on a filing draft', () => {
   test('a blank entity or a crosses that is not a list of keys is malformed', () => {
     expect(DraftDocumentUtil.parsedDraftDocumentOf(DRAFT_WITH_ENTITY.replace('"checkout-app"', '" "'))).toEqual({
       verdict: 'malformed',
-      reason:  'entity is not an entity key that is not blank',
+      problem: { code: 'entity-not-an-entity-key', field: 'entity' },
     });
     expect(DraftDocumentUtil.parsedDraftDocumentOf(DRAFT_WITH_ENTITY.replace('"design-system"', '7'))).toEqual({
       verdict: 'malformed',
-      reason:  'crosses is not a list of entity keys that are not blank',
+      problem: { code: 'crosses-malformed', field: 'crosses' },
     });
   });
 });

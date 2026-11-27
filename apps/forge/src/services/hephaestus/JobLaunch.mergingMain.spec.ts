@@ -29,6 +29,7 @@ import type { Pipeline }                                 from '../../lib/tracker
 import { Board }                                         from '../../lib/tracker-model/Board.ts';
 import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
 import { branchNamesOf }                                 from '../../shared/BranchNames.ts';
+import { transitionalWordedProblemOf }                   from '../../shared/TransitionalWordedProblem.ts';
 import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
 import { type FrameRecordingTalos, frameRecordingTalos } from '../../testing/FrameRecordingTalos.ts';
@@ -462,7 +463,8 @@ testWhenGitIsRecorded('a conflict that cannot be read stops the look: the resolu
   expect(existsSync(join(scene.jobFolder(), 'main-resolution.json'))).toBe(false);
   expect(scene.reReviewer()).toBeUndefined();
   expect(scene.job()?.state).toBe('merging-main');
-  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.jobId}/main-conflict.json`, reason: 'its version is not 1' } as const;
+  const versionProblem = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.jobId}/main-conflict.json`, problem: versionProblem } as const;
   expect(JobLaunch.mainMergeConflictOf(scene.context.workspace.trackerDirectory, scene.job() as Readonly<Job>)).toEqual(unreadable);
   expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file']])).toEqual([['system-file-unreadable', unreadable.file]]);
 });
@@ -506,7 +508,7 @@ testWhenGitIsRecorded('a re-reviewer in Customs whose verdict cannot be read is 
   const reReviewer = scene.reReviewer();
   if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
   for (const state of ['running', 'in-customs'] as const) scene.board.moveJob(reReviewer.id, state, AT);
-  const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, reason: 'it is not a JSON object' } as const;
+  const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, problem: transitionalWordedProblemOf('it is not a JSON object') } as const;
   const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
 
   JobLaunch.applyBuildJobObservations(change, scene.context, [{
@@ -624,8 +626,8 @@ testWhenGitIsRecorded('a settlement that cannot be read is never settled over: t
 
   expect(readFileSync(join(scene.jobFolder(), 'main-merge-settlement.json'), 'utf8')).toBe(`${JSON.stringify({ version: 1, verdict: 'merged' })}\n`);
   expect(scene.job()?.state).toBe('merging-main');
-  expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file'], incident.facts['reason']])).toEqual([
-    ['system-file-unreadable', `jobs/${scene.jobId}/main-merge-settlement.json`, 'its "mergeCommit" is not a commit'],
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file'], incident.facts['problem'], incident.facts['field']])).toEqual([
+    ['system-file-unreadable', `jobs/${scene.jobId}/main-merge-settlement.json`, 'field-is-not', 'mergeCommit'],
   ]);
 });
 

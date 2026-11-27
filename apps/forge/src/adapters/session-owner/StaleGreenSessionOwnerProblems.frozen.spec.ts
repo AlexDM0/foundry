@@ -3,14 +3,17 @@ import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
 import { expect, test }  from 'bun:test';
 
-import { createScratchDirectory }          from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS                     from './FrozenStaleGreenSessionOwnerProblems.json';
-import { StaleGreenSessionOwnerIngestion } from './StaleGreenSessionOwnerIngestion.ts';
+import { createScratchDirectory }               from '../../testing/ScratchWorkspace.ts';
+import FROZEN_PROBLEMS                          from './FrozenStaleGreenSessionOwnerProblems.json';
+import { StaleGreenSessionOwnerIngestion }      from './StaleGreenSessionOwnerIngestion.ts';
+import { StaleGreenSessionOwnerProblemWording } from './StaleGreenSessionOwnerProblemWording.ts';
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
     const filePath = join(createScratchDirectory('frozen-session-owner'), 'stale-green-session-owner.json');
     writeFileSync(filePath, stored);
-    expect(new StaleGreenSessionOwnerIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence });
+    const reading = new StaleGreenSessionOwnerIngestion(filePath).read();
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? StaleGreenSessionOwnerProblemWording.sentenceOf(reading.problem) : '').toBe(sentence);
   });
 }

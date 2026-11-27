@@ -140,7 +140,7 @@ describe('opening a record', () => {
 });
 
 describe('a record no move but a start over can change', () => {
-  const UNREADABLE: PipelineSetupReading = { verdict: 'malformed', reason: 'setupId is missing' };
+  const UNREADABLE: PipelineSetupReading = { verdict: 'malformed', problem: { code: 'missing', field: 'setupId' } };
 
   test.each<[string, (board: Board) => unknown]>([
     ['openSetup', (board) => board.openSetup(FIRST_SETUP, AT)],
@@ -149,7 +149,7 @@ describe('a record no move but a start over can change', () => {
   ])('an unreadable record refuses %s and is never written over', (_move, move) => {
     const { board, records } = boardFixture({ pipelineSetup: UNREADABLE });
 
-    expect(refusalDetailOf(() => move(board))).toEqual({ reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' });
+    expect(refusalDetailOf(() => move(board))).toEqual({ reason: 'pipeline-setup-unreadable', problem: { code: 'missing', field: 'setupId' } });
     expect(board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
     expect(records).toEqual([]);
   });

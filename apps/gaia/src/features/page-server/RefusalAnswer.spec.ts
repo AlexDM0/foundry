@@ -5,7 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { refusalAnswerOf, type PageServerRefusal } from './RefusalAnswer.ts';
+import type { PageServerRefusal } from './@types/PageServerAnswer.ts';
+import { refusalAnswerOf }        from './RefusalAnswer.ts';
 
 const EXPECTED_STATUS_OF_REFUSAL: Readonly<Record<PageServerRefusal, number>> = {
   'foreign-host':        403,

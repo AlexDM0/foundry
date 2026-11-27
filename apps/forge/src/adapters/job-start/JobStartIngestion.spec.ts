@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import type { JobStartProblem }                                       from './@types/JobStartProblem.ts';
 import { JOB_START_FORMAT_VERSION, JobStartIngestion, type JobStart } from './JobStartIngestion.ts';
 import { createJobStartWriter }                                       from './JobStartWriter.ts';
 
@@ -65,23 +66,27 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a start of another version, or of none, is unreadable', () => {
   storeDocument({ ...PACKAGE_BUILD_START, version: JOB_START_FORMAT_VERSION + 1 });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${JOB_START_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: JOB_START_FORMAT_VERSION } });
   storeDocument({ ...PACKAGE_BUILD_START });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${JOB_START_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: JOB_START_FORMAT_VERSION } });
 });
 
-test.each([
-  ['startCommit', { startCommit: 7 }, 'its "startCommit" is not text'],
-  ['contentHashAtLaunch', { contentHashAtLaunch: null }, 'its "contentHashAtLaunch" is not text'],
-  ['documentVersionsAtLaunch', { documentVersionsAtLaunch: [] }, 'its "documentVersionsAtLaunch" is not text'],
-  ['homeEntity', { homeEntity: 1 }, 'its "homeEntity" is not an entity key'],
-  ['dependentsFixedInGroup', { dependentsFixedInGroup: ['tool', 2] }, 'its "dependentsFixedInGroup" is not a list of entity keys'],
-  ['launchSnapshot', { launchSnapshot: [] }, 'its "launchSnapshot" is not an object'],
-  ['launchSnapshot.refs', { launchSnapshot: { refs: { main: 1 }, hooksFolderDigest: null } }, 'its "launchSnapshot.refs" is not a record of commits'],
-  ['launchSnapshot.hooksFolderDigest', { launchSnapshot: { refs: {} } }, 'its "launchSnapshot.hooksFolderDigest" is not text or null'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, JobStartProblem]>([
+  ['startCommit', { startCommit: 7 }, { code: 'field-is-not', field: 'startCommit', expected: 'text' }],
+  ['contentHashAtLaunch', { contentHashAtLaunch: null }, { code: 'field-is-not', field: 'contentHashAtLaunch', expected: 'text' }],
+  ['documentVersionsAtLaunch', { documentVersionsAtLaunch: [] }, { code: 'field-is-not', field: 'documentVersionsAtLaunch', expected: 'text' }],
+  ['homeEntity', { homeEntity: 1 }, { code: 'field-is-not', field: 'homeEntity', expected: 'an-entity-key' }],
+  ['dependentsFixedInGroup', { dependentsFixedInGroup: ['tool', 2] }, { code: 'field-is-not', field: 'dependentsFixedInGroup', expected: 'a-list-of-entity-keys' }],
+  ['launchSnapshot', { launchSnapshot: [] }, { code: 'field-is-not', field: 'launchSnapshot', expected: 'an-object' }],
+  [
+    'launchSnapshot.refs',
+    { launchSnapshot: { refs: { main: 1 }, hooksFolderDigest: null } },
+    { code: 'field-is-not', field: 'launchSnapshot.refs', expected: 'a-record-of-commits' },
+  ],
+  ['launchSnapshot.hooksFolderDigest', { launchSnapshot: { refs: {} } }, { code: 'field-is-not', field: 'launchSnapshot.hooksFolderDigest', expected: 'text-or-null' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   storeDocument({ version: JOB_START_FORMAT_VERSION, ...PACKAGE_BUILD_START, ...change });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

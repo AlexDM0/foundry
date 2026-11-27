@@ -43,6 +43,7 @@ import type { AttentionEntry }                                     from '../../.
 import type { TodayFigures }                                       from '../../../shared/monitor/TodayFigures.ts';
 import { type HeaderWarningFacts, NoticeWordingUtil }              from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { RefusalDocumentUtil }                                     from '../../utils/RefusalDocumentUtil.ts';
+import { UnreadableFileProblemWordingUtil }                        from '../../utils/UnreadableFileProblemWordingUtil.ts';
 import { BoardPipelineMappingUtil }                                from './BoardPipelineMappingUtil.ts';
 
 /** The limits forge's rules apply, beside the page's figures in `limits`. */
@@ -98,7 +99,11 @@ function noticesOf(notices: readonly unknown[]): BoardNoticeDocument[] {
 /** The header's warnings as the monitor serves them, with the facts each sentence names. */
 function warningsOf(notices: readonly unknown[], header: HeaderWarningFacts): BoardNoticeDocument[] {
   return NoticeWordingUtil.wordedWarningsOf(NoticeWordingUtil.noticeFactsIn(notices), header)
-    .map((warning) => ({ kind: warning.kind, facts: { ...warning.facts }, sentence: warning.text }));
+    .map((warning) => ({
+      kind:     warning.kind,
+      facts:    warning.problem === undefined ? { ...warning.facts } : { ...warning.facts, reason: UnreadableFileProblemWordingUtil.sentenceOfCarried(warning.problem) },
+      sentence: warning.text,
+    }));
 }
 
 function todayOf(calendarDate: string, figures: TodayFigures): BoardTodayDocument {

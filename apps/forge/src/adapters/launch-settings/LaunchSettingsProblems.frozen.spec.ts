@@ -11,6 +11,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_LAUNCH_SETTINGS_PROBLEMS                    from './FrozenLaunchSettingsProblems.json';
 import { LaunchSettingsIngestion }                        from './LaunchSettingsIngestion.ts';
+import { LaunchSettingsProblemWording }                   from './LaunchSettingsProblemWording.ts';
 
 /** The rows whose `stored` is `null`, since no stored text builds them. */
 const UNSTORABLE_CASE_BUILDERS: Readonly<Record<string, (filePath: string) => void>> = {
@@ -31,9 +32,9 @@ function systemErrorAt(storedFilePath: string): string {
   }
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new LaunchSettingsIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return 'problem' in reading ? LaunchSettingsProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -50,5 +51,5 @@ test.each(FROZEN_LAUNCH_SETTINGS_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+  expect(sentenceAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
 });

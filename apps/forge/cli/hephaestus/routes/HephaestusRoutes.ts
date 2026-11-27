@@ -13,11 +13,13 @@ import { BoardStateAssembly }    from '../../../src/services/hephaestus/BoardSta
 import type { EventBroker }      from '../../../src/services/hephaestus/EventBroker.ts';
 import { GateProfiling }         from '../../../src/services/hephaestus/GateProfiling.ts';
 import { hephaestusFilesIn }     from '../../../src/services/hephaestus/HephaestusFiles.ts';
-import type {
-  HephaestusRoutes,
-  RouteAnswer,
-  ServerRefusal,
-  TranscriptFollower
+import {
+  HephaestusServer,
+  type AnswerKind,
+  type HephaestusRoutes,
+  type RouteAnswer,
+  type ServerRefusal,
+  type TranscriptFollower
 } from '../../../src/services/hephaestus/HephaestusServer.ts';
 import { JobTranscript }                                                       from '../../../src/services/hephaestus/JobTranscript.ts';
 import { MonitorSnapshotAssembly, type MonitorHephaestusFacts }                from '../../../src/services/hephaestus/MonitorSnapshotAssembly.ts';
@@ -56,11 +58,6 @@ const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
   'body-too-large': 'The command body is larger than Hephaestus reads, so nothing was done.',
 };
 
-const MONITOR_STATUS = {
-  ANSWERED: 200,
-  STARTING: 503,
-} as const;
-
 /** No cursor, or empty text, starts at the first line; any text but a whole line number is no cursor. */
 function profileOutputCursorOf(after: string | null): number | null {
   if (after === null || after === '') return 0;
@@ -79,32 +76,21 @@ function logRecordsOf(boardReads: StoreReadFace): readonly LogRecord[] {
   return reading.verdict === 'readable' ? reading.records : [];
 }
 
-const PICTURE_STATUS = {
-  STORED:           200,
-  TOO_LARGE:        413,
-  TYPE_UNSUPPORTED: 415,
-} as const;
-
-function pictureRefusalOf(status: number, detail: OperationRefusalDetail): RouteAnswer {
+function pictureRefusalOf(answerKind: AnswerKind, detail: OperationRefusalDetail): RouteAnswer {
   const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal('refused', detail));
-  return { status, body: { refusal: code, fields, text: sentence } };
+  return HephaestusServer.routeAnswerOf(answerKind, { refusal: code, fields, text: sentence });
 }
 
 /** `POST /api/pictures`: the picture stored owner-only by its hash, or its refusal as its code, its fields and the command line's sentence. */
 function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
   if (storing.verdict === 'too-large') {
-    return pictureRefusalOf(PICTURE_STATUS.TOO_LARGE, { kind: 'picture-too-large', bytes: storing.bytes, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
+    return pictureRefusalOf('body-too-large', { kind: 'picture-too-large', bytes: storing.bytes, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
   }
   if (storing.verdict === 'type-unsupported') {
-    return pictureRefusalOf(PICTURE_STATUS.TYPE_UNSUPPORTED, { kind: 'picture-type-unsupported', mediaTypes: ACCEPTED_PICTURE_MEDIA_TYPES });
+    return pictureRefusalOf('type-unsupported', { kind: 'picture-type-unsupported', mediaTypes: ACCEPTED_PICTURE_MEDIA_TYPES });
   }
-  return { status: PICTURE_STATUS.STORED, body: { pictureId: storing.pictureId, bytes: storing.bytes, mediaType: storing.mediaType } };
+  return HephaestusServer.routeAnswerOf('answered', { pictureId: storing.pictureId, bytes: storing.bytes, mediaType: storing.mediaType });
 }
-
-const TICKET_DOCUMENTS_STATUS = {
-  ANSWERED:     200,
-  NO_DOCUMENTS: 404,
-} as const;
 
 /** What a ticket's documents are read from beside the board: the effect readings and the constitution numbers counted so far. */
 interface TicketDocumentsReads {
@@ -135,11 +121,11 @@ function ticketDocumentsAnswerOf(boardReads: StoreReadFace, reads: TicketDocumen
       effectReadings:      reads.effectReadings()?.readingsOf(ticketId) ?? [],
       constitutionNumbers: reads.constitutionNumbers,
     });
-    return { status: TICKET_DOCUMENTS_STATUS.ANSWERED, body: document };
+    return HephaestusServer.routeAnswerOf('answered', document);
   } catch (thrown) {
     if (!(thrown instanceof OperationRefusal)) throw thrown;
     const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(thrown);
-    return { status: TICKET_DOCUMENTS_STATUS.NO_DOCUMENTS, body: { refusal: code, fields, text: sentence } };
+    return HephaestusServer.routeAnswerOf('not-found', { refusal: code, fields, text: sentence });
   }
 }
 
@@ -173,8 +159,8 @@ export function hephaestusRoutesOf(request: HephaestusRouteRequest): HephaestusR
     },
     monitor: (): RouteAnswer => {
       const hephaestus = request.monitorFacts();
-      if (hephaestus === null) return { status: MONITOR_STATUS.STARTING, body: { refusal: 'starting' } };
-      return { status: MONITOR_STATUS.ANSWERED, body: MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(boardStateSource), hephaestus, now: context.now() }) };
+      if (hephaestus === null) return HephaestusServer.routeAnswerOf('starting', { refusal: 'starting' });
+      return HephaestusServer.routeAnswerOf('answered', MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(boardStateSource), hephaestus, now: context.now() }));
     },
     presence:      () => PresenceReader.presenceAnswerOf(presenceSource, request.monitorFacts()?.generation ?? null),
     crashLog:      (writtenNumber) => PresenceReader.crashLogAnswerOf(presenceSource.files, writtenNumber),

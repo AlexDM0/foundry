@@ -317,7 +317,7 @@ test('an unreadable presence record is reported as a board file Hephaestus canno
   const verdict = admit(USER);
 
   expect(verdict.classification.evidence.presence).toBe('unreadable');
-  expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: expect.stringContaining('not valid JSON') }]);
+  expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', problem: { code: 'not-json', parserError: expect.any(String) as unknown as string } }]);
 });
 
 test('an unreadable heartbeat is logged, never reported, since the next beat rewrites it', () => {

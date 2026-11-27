@@ -105,7 +105,7 @@ describe('the presence record', () => {
     writeFileSync(files.presenceFilePath, '[]');
     Presence.reportUnreadablePresence(Presence.readPresence(files), unreadableBoardFiles);
 
-    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', reason: 'it is not a JSON object' }]);
+    expect(unreadableBoardFiles.files()).toEqual([{ file: 'hephaestus/presence.json', problem: { code: 'not-a-json-object' } }]);
   });
 
   test('a stop writes its ending on its own generation\'s record', () => {

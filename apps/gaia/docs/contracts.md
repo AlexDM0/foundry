@@ -251,9 +251,10 @@ none of the model and no `forge-contracts` type.
   `handshake` once the forge's own names the version the watch read, then re-emits each forge event under its name and id, mapped once
   per forge for every page stream that follows it (`BoardStreams.ts`); an event that does not ingest is dropped and logged, never
   forwarded raw. The page's `Last-Event-ID` and `after` reach the forge; a forge stream that ends ends the page's, and a page that goes
-  stops the forge's. Statuses (`BoardRelayAnswers.ts`): 200 answered, 400 a body that is no command Gaia knows, 404 an unregistered forge
-  or an unknown picture, 409 a forge's refusal, 413 a body over its bound, 423 a forge's install hold, 501 a forge version Gaia cannot
-  talk to, 502 a forge that does not answer, a document that does not ingest, an unreadable token file or a refused token.
+  stops the forge's. Statuses (`HttpStatusOfAnswer.ts`, the page server's one table): 200 answered, 400 a body that is no command
+  Gaia knows, 404 an unregistered forge or an unknown picture, 409 a forge's refusal, 413 a body over its bound, 423 a forge's
+  install hold, 501 a forge version Gaia cannot talk to, 502 a forge that does not answer, a document that does not ingest, an
+  unreadable token file or a refused token.
 
 ## The install version
 

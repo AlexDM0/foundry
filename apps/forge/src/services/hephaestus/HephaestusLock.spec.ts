@@ -98,10 +98,10 @@ describeWhenRecorded(['process-table-recording'], 'HephaestusLock.acquire', () =
     expect(acquisition).toMatchObject({ verdict: 'acquired', generation: 6, staleTakenOver: { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 5) } });
     const unreadableReason = acquisition.verdict === 'acquired' ? acquisition.staleTakenOver?.reason : null;
     expect(unreadableReason).toMatchObject({ kind: 'unreadable' });
-    expect(unreadableReason?.kind === 'unreadable' ? unreadableReason.reason : null).toStartWith('it is not valid JSON');
+    expect(unreadableReason?.kind === 'unreadable' ? unreadableReason.problem?.code : null).toBe('not-json');
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([6]);
     writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 7), JSON.stringify({ ...liveRecord(), port: 'not a port' }));
-    const unreadableTakenOver = { reason: { kind: 'unreadable', reason: 'its "port" is not a number' } };
+    const unreadableTakenOver = { reason: { kind: 'unreadable', problem: { code: 'field-not-a-number', field: 'port' } } };
     expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toMatchObject({ verdict: 'acquired', generation: 8, staleTakenOver: unreadableTakenOver });
   });
 

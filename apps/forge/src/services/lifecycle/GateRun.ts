@@ -219,6 +219,7 @@ function recordedStatusOf(statusFile: string): string | null {
 const RUN_REFUSAL_WORDING: Readonly<Record<ShellRunRefusal, (directory: string) => string>> = {
   'network-share-folder':    (directory) => `cmd.exe runs no line in the network share folder ${directory}; move the repository to a drive letter`,
   'no-absolute-interpreter': () => 'no absolute cmd.exe path is known: ComSpec and SystemRoot are both unset or relative',
+  'no-shell-grammar':        () => 'this platform has no shell to run a line in',
 };
 
 function runRefusalReasonOf(refusal: ShellRunRefusal, directory: string): string {
@@ -263,6 +264,7 @@ function runnableLineOf(
   const refusal = shellLine.runRefusalOf(place.directory);
   if (refusal !== null) return { verdict: 'refused', reason: runRefusalReasonOf(refusal, place.directory) };
   const spawnRequest = shellLine.spawnRequestOf(line, place.statusFile);
+  if (spawnRequest.verdict === 'refused') return { verdict: 'refused', reason: runRefusalReasonOf(spawnRequest.refusal, place.directory) };
   const confined = confinedLineOf(spawnRequest.argv, confinement);
   return confined.verdict === 'refused' ? confined : { verdict: 'runs', argv: confined.argv, verbatimArguments: spawnRequest.verbatimArguments };
 }

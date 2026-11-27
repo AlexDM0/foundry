@@ -7,6 +7,7 @@
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
 import { storedFileTextOf }                       from '../StoredFileText.ts';
 import { StoredJsonDocumentUtil }                 from '../utils/StoredJsonDocumentUtil.ts';
+import type { GateRunSlotProblem }                from './@types/GateRunSlotProblem.ts';
 
 /** A slot's holder and the process answering for it while its gate's line has no child record: the acquirer until the launch is recorded. */
 export interface GateRunHolding {
@@ -18,7 +19,7 @@ export interface GateRunHolding {
 export type GateRunSlotReading =
   | { verdict: 'readable'; holding: GateRunHolding; storedText: string }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string; storedText: string | null };
+  | { verdict: 'unreadable'; problem: GateRunSlotProblem; storedText: string | null };
 
 export const GATE_RUN_SLOT_FORMAT_VERSION = 1;
 
@@ -34,14 +35,14 @@ export class GateRunSlotIngestion {
     if (stored.verdict === 'unreadable') return { ...stored, storedText: null };
     const storedText = stored.text;
     const separatorIndex = storedText.indexOf(GATE_RUN_SLOT_HOLDER_SEPARATOR);
-    if (separatorIndex === 0 || storedText.length === 0) return { verdict: 'unreadable', reason: 'it names no holder', storedText };
+    if (separatorIndex === 0 || storedText.length === 0) return { verdict: 'unreadable', problem: { code: 'names-no-holder' }, storedText };
     if (separatorIndex < 0) return { verdict: 'readable', holding: { holder: storedText, process: null }, storedText };
     const processText = storedText.slice(separatorIndex + GATE_RUN_SLOT_HOLDER_SEPARATOR.length);
     const document = StoredJsonDocumentUtil.holdingDocumentOfText(processText);
     if (document.verdict === 'unreadable') return { ...document, storedText };
     const recordedProcess = Object.hasOwn(document.document, 'process') ? document.document['process'] : document.document;
     const process = storedIdentityOf(recordedProcess);
-    if (recordedProcess !== null && process === null) return { verdict: 'unreadable', reason: 'its "process" is not a process identity', storedText };
+    if (recordedProcess !== null && process === null) return { verdict: 'unreadable', problem: { code: 'field-not-a-process-identity', field: 'process' }, storedText };
     return { verdict: 'readable', holding: { holder: storedText.slice(0, separatorIndex), process }, storedText };
   }
 }

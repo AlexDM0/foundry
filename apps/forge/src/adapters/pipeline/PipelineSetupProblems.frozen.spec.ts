@@ -6,6 +6,7 @@ import { afterEach, expect, test }                from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import frozenProblems                                     from './FrozenPipelineSetupProblems.json' with { type: 'json' };
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
+import { PipelineSetupProblemWording }                    from './PipelineSetupProblemWording.ts';
 
 let scratchDirectory: string | null = null;
 
@@ -37,5 +38,6 @@ test.each(frozenProblems)('$case', ({ case: caseText, stored, sentence }) => {
 
   const reading = PipelineSetupFile.read(filePath);
 
-  expect(reading).toEqual({ verdict: 'malformed', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+  if (reading.verdict !== 'malformed') throw new Error(`expected a malformed reading, read ${reading.verdict}`);
+  expect(PipelineSetupProblemWording.sentenceOf(reading.problem)).toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
 });

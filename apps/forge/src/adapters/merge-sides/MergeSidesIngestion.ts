@@ -4,6 +4,7 @@
  */
 import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import type { MergeSidesProblem } from './@types/MergeSidesProblem.ts';
 
 export const MERGE_SIDES_FORMAT_VERSION = 1;
 
@@ -16,7 +17,7 @@ export interface MergeSides {
 export type MergeSidesReading =
   | { verdict: 'readable'; sides: MergeSides }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: MergeSidesProblem };
 
 export class MergeSidesIngestion {
   constructor(private readonly sidesFilePath: string) {}
@@ -26,11 +27,11 @@ export class MergeSidesIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.sidesFilePath, MERGE_SIDES_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, {
-      startTip:  [JobFileShapeUtil.valueIsText, 'a commit'],
-      mergedTip: [JobFileShapeUtil.valueIsText, 'a commit'],
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, {
+      startTip:  [JobFileShapeUtil.valueIsText, 'a-commit'],
+      mergedTip: [JobFileShapeUtil.valueIsText, 'a-commit'],
     });
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', sides: { startTip: document['startTip'] as string, mergedTip: document['mergedTip'] as string } };
   }
 }

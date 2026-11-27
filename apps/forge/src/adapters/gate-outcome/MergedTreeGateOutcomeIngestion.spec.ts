@@ -14,6 +14,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { MergedTreeGate }                            from './@types/MergedTreeGate.ts';
 import { MergedTreeGateOutcomeIngestion }                 from './MergedTreeGateOutcomeIngestion.ts';
+import { MergedTreeGateOutcomeProblemWording }            from './MergedTreeGateOutcomeProblemWording.ts';
 import { createMergedTreeGateOutcomeWriter }              from './MergedTreeGateOutcomeWriter.ts';
 
 let scratchDirectory: string | null = null;
@@ -83,5 +84,5 @@ test.each([
   const outcomeReading = reading();
 
   expect(outcomeReading.verdict).toBe('unreadable');
-  expect(outcomeReading.verdict === 'unreadable' ? outcomeReading.reason : '').toContain(reason);
+  expect(outcomeReading.verdict === 'unreadable' ? MergedTreeGateOutcomeProblemWording.sentenceOf(outcomeReading.problem) : '').toContain(reason);
 });

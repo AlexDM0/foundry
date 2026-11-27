@@ -26,16 +26,13 @@ const ALLOWED_THROWS: readonly string[] = [
   'cli/hephaestus/HephaestusForeground.ts: throw new Error(`the event log of child ${job.childInstance} of job ${job.id} is malformed`);',
   'cli/hephaestus/HephaestusForeground.ts: throw new Error(\'Hephaestus crashed and is stopping, so no pass runs.\');',
   'cli/hephaestus/HephaestusForeground.ts: throw new Error(`${message} This is a crash of Talos: Hephaestus stops.`);',
-  'cli/hephaestus/routes/PresenceReader.ts: throw new Error(`Crash log ${crashLogNumber} cannot be read: ${reading.reason}.`);',
+  'cli/hephaestus/routes/PresenceReader.ts: throw new Error(`Crash log ${crashLogNumber} cannot be read: ${CrashLogProblemWording.sentenceOf(reading.problem)}.`);',
   'cli/tickets/TicketTransition.ts: throw new Error(`No ticket verb moves a ticket to ${targetStatus} through the legality matrix.`);',
+  // Its string-answering path rules feed `AgentAdapter.planOf`, which takes no verdict yet: that is a change of the agent port.
   'src/lib/claude-code/AgentHostFactsFor.ts: throw new Error(`no Claude Code host facts exist for the platform ${platform}`);',
+  // Reached only on a platform with no host facts or by a planted adapter; it goes with the agent port's planning verdict.
   'src/lib/claude-code/ClaudeCodeAdapter.ts: throw new Error(\'a confined session was asked for on a host where no Claude Code sandbox setting applies\');',
-  'src/lib/data-folders/DataFoldersFor.ts: throw new Error(`no data folders exist for the platform ${platform}`);',
-  'src/lib/data-folders/WindowsDataFolders.ts: throw new Error(`no system folder exists, since SystemRoot names no drive-absolute folder: ${systemRoot ?? \'unset\'}`);',
-  'src/lib/owner-only-files/OwnerOnlyFilesFor.ts: throw new Error(`no owner-only files exist for the platform ${platform}`);',
-  'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts: throw new Error(`the ACL of ${path} is not proved owner-only`);',
-  'src/lib/shell-line/ShellLineFor.ts: throw new Error(`no shell line exists for the platform ${platform}`);',
-  'src/lib/shell-line/WindowsCommandLine.ts: throw new Error(\'no absolute cmd.exe path is known: ComSpec and SystemRoot are both unset or relative\');',
+  // Talos's main thread orders its own calls, so each marks a programming error; the thread answers the throw as a failed call.
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(\'the synchronous-calls thread answers no process call before its start\');',
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(\'the synchronous-calls thread answers no endpoint call before its start\');',
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`no event log is open at ${eventLogPath}`);',
@@ -43,6 +40,7 @@ const ALLOWED_THROWS: readonly string[] = [
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`the event log at ${request.eventLogPath} appends sequence ${nextSequence} next, not ${request.entry.sequence}`);',
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`the event-log entry of sequence ${request.entry.sequence} carries no stamp`);',
   'src/lib/tracker-model/BoardRecords.ts: throw new Error(`The board holds no ticket #${ticketId}.`);',
+  // `groupsBy` opens a group only with a member, so an empty builder group is a programming error.
   'src/lib/tracker-model/ReviewStatistics.ts: throw new Error(\'A builder group is never empty.\');',
   'src/lib/tracker-model/TicketDocuments.ts: throw new Error(`The documents record of #${loadedRecord.record.ticketId} names no text for ${contentHash}.`);',
   'src/lib/tracker-model/TicketMoves.ts: throw new Error(`Ticket #${unreleasable.frontmatter.id} is ${unreleasable.frontmatter.status}; '

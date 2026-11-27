@@ -7,6 +7,8 @@ import { expect, test } from 'bun:test';
 
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress }              from '../../../testing/ProgressFixtures.ts';
+import { ProgressFileProblemWording } from '../ProgressFileProblemWording.ts';
+import { wordedReadingOf }            from '../testing/WordedProgressProblem.ts';
 import { ProgressFileMappingUtil }    from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 
@@ -34,7 +36,7 @@ function storedTextWithNeeds(needs: unknown): string {
 
 function roundTripOf(text: string): string {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return JsonTextUtil.storedFileTextOf(ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(reading.document)));
 }
 
@@ -53,7 +55,7 @@ test('a board where no job declared a need stores no needs key', () => {
 
 test('the needs read are the model\'s needs', () => {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(storedTextWithNeeds([NEED])));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   expect(ProgressFileMappingUtil.progressOf(reading.document).needs).toEqual([NEED]);
 });
 
@@ -64,6 +66,6 @@ test.each([
   ['ticket ids that are no list of text', { needs: [{ ...NEED, ticketIds: [3] }] }, 'needs[0].ticketIds is not a list of ticket ids'],
   ['a body that is no text', { needs: [{ ...NEED, body: null }] }, 'needs[0].body is not a string'],
 ] as const)('%s makes the file unreadable, naming the field', (_caseName, document, reason) => {
-  expect(ProgressFileValidationUtil.readingOf(JSON.parse(storedTextWithNeeds(document.needs))))
+  expect(wordedReadingOf(JSON.parse(storedTextWithNeeds(document.needs))))
     .toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining(reason) });
 });

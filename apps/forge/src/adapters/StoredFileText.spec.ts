@@ -46,17 +46,17 @@ test('a file with no byte order mark reads as exactly its bytes, so a write of t
 test('a file that is not UTF-8 is unreadable, so no lossy text of it is ever written back', () => {
   const filePath = scratchFilePath('stored-file-not-utf8');
   writeFileSync(filePath, Buffer.from([0x7B, 0x22, 0x63, 0x61, 0x66, 0xE9, 0x22, 0x7D, 0x0A]));
-  expect(storedFileTextOf(filePath)).toEqual({ verdict: 'unreadable', reason: 'it is not UTF-8 text' });
+  expect(storedFileTextOf(filePath)).toEqual({ verdict: 'unreadable', problem: { code: 'not-utf8-text' } });
 });
 
 test('a file that is not there reads as absent', () => {
   expect(storedFileTextOf(scratchFilePath('stored-file-absent'))).toEqual({ verdict: 'absent' });
 });
 
-test('a path that exists but cannot be read is unreadable, the reason naming the error', () => {
+test('a path that exists but cannot be read is unreadable, the problem carrying the system\'s error', () => {
   const filePath = scratchFilePath('stored-file-directory');
   mkdirSync(filePath);
   const storedText = storedFileTextOf(filePath);
   expect(storedText.verdict).toBe('unreadable');
-  expect(storedText.verdict === 'unreadable' ? storedText.reason : '').toStartWith('it could not be read (');
+  expect(storedText.verdict === 'unreadable' ? storedText.problem : null).toEqual({ code: 'bytes-unreadable', systemError: expect.any(String) });
 });

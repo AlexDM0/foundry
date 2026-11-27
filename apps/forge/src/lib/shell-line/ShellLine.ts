@@ -3,6 +3,7 @@
  * other lib package.
  */
 export interface ShellSpawnRequest {
+  readonly verdict:           'spawns';
   readonly argv:              readonly string[];
   /** `spawn-option`: the caller's working directory goes to the spawn, never into the line. */
   readonly workingDirectory:  'spawn-option';
@@ -22,8 +23,16 @@ export type ShellExitMeaning = 'passed' | 'failed' | 'cannot-run';
 
 export type ShellLineGrammar = 'posix-shell' | 'windows-cmd' | 'none';
 
-/** Why this shell runs no line in a folder: cmd falls back to the Windows folder for a network share, and a bare interpreter name could be any file. */
-export type ShellRunRefusal = 'network-share-folder' | 'no-absolute-interpreter';
+/**
+ * Why this shell runs no line in a folder: cmd falls back to the Windows folder for a network share, a bare interpreter name could be any file,
+ * and a platform with no adapter has no grammar to run a line in.
+ */
+export type ShellRunRefusal = 'network-share-folder' | 'no-absolute-interpreter' | 'no-shell-grammar';
+
+export interface ShellSpawnRefusal {
+  readonly verdict: 'refused';
+  readonly refusal: Exclude<ShellRunRefusal, 'network-share-folder'>;
+}
 
 /** One step a person reads: its line, and the folder it runs in, relative to the checkout, or `null` for the checkout itself. */
 export interface ShellDisplayStep {
@@ -33,7 +42,7 @@ export interface ShellDisplayStep {
 
 export interface ShellLine {
   /** `statusFile` is an absolute path the caller reads after the exit and passes back as `recordedStatus`; it need not exist yet. */
-  spawnRequestOf(line: string, statusFile: string): ShellSpawnRequest;
+  spawnRequestOf(line: string, statusFile: string): ShellSpawnRequest | ShellSpawnRefusal;
   /** A line that cannot run in this folder is refused before its spawn request is asked for. */
   runRefusalOf(workingDirectory: string): ShellRunRefusal | null;
   exitMeaningOf(exitReport: ShellExitReport): ShellExitMeaning;

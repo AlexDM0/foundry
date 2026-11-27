@@ -50,14 +50,14 @@ describe('OperationRefusalWordingUtil.installVersionMismatchMessageOf', () => {
   });
 
   test('an unreadable manifest names the manifest and its problem and asks for update', () => {
-    expect(messageFor({ reason: 'unreadable', manifestProblem: 'it is not a JSON object' })).toBe(
+    expect(messageFor({ reason: 'unreadable', manifestProblem: { code: 'not-a-json-object' } })).toBe(
       '/example/repository/.agent-progress/version.json gives no install version: it is not a JSON object. So the install version of the files '
       + 'agent-progress installed in /example/repository is unknown and nothing was done. Run `agent-progress update` in /example/repository.',
     );
   });
 
   test('an I/O failure reading the manifest names the problem once', () => {
-    const message = messageFor({ reason: 'unreadable', manifestProblem: 'it could not be read (EISDIR: illegal operation on a directory, read)' });
+    const message = messageFor({ reason: 'unreadable', manifestProblem: { code: 'bytes-unreadable', systemError: 'EISDIR: illegal operation on a directory, read' } });
     expect(message).toBe(
       '/example/repository/.agent-progress/version.json gives no install version: it could not be read (EISDIR: illegal operation on a directory, '
       + 'read). So the install version of the files agent-progress installed in /example/repository is unknown and nothing was done. '
@@ -78,7 +78,7 @@ describe('OperationRefusalWordingUtil.installVersionMismatchMessageOf', () => {
       { reason: 'older', installedVersion: 2 },
       { reason: 'newer', installedVersion: 4 },
       { reason: 'unversioned' },
-      { reason: 'unreadable', manifestProblem: 'it is not valid JSON' },
+      { reason: 'unreadable', manifestProblem: { code: 'not-json', parserError: 'JSON Parse error: Unexpected EOF' } },
       { reason: 'manifest-is-a-directory' },
     ];
     expect(mismatches.filter((mismatch) => messageFor(mismatch).includes('\n'))).toEqual([]);

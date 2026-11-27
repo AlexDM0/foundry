@@ -2,8 +2,8 @@
  * `launch-settings.json`, the model and effort a job's first launch ran its session on, read into the recorded pair: read, validate, map.
  * Whether the pair is still one forge offers is the caller's question: a model a later forge retired is no corrupt file.
  */
-import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredJsonDocumentUtil }     from '../utils/StoredJsonDocumentUtil.ts';
+import type { LaunchSettingsProblem } from './@types/LaunchSettingsProblem.ts';
 
 export const LAUNCH_SETTINGS_FORMAT_VERSION = 1;
 
@@ -15,7 +15,9 @@ export interface RecordedLaunchSettings {
 export type LaunchSettingsReading =
   | { verdict: 'readable'; settings: RecordedLaunchSettings }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: LaunchSettingsProblem };
+
+const TEXT_SETTINGS = ['model', 'effort'] as const;
 
 export class LaunchSettingsIngestion {
   constructor(private readonly settingsFilePath: string) {}
@@ -25,11 +27,8 @@ export class LaunchSettingsIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.settingsFilePath, LAUNCH_SETTINGS_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, {
-      model:  [JobFileShapeUtil.valueIsText, 'text'],
-      effort: [JobFileShapeUtil.valueIsText, 'text'],
-    });
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    const settingNotText = TEXT_SETTINGS.find((field) => typeof (Object.hasOwn(document, field) ? document[field] : undefined) !== 'string');
+    if (settingNotText !== undefined) return { verdict: 'unreadable', problem: { code: 'launch-setting-not-text', field: settingNotText } };
     return { verdict: 'readable', settings: { model: document['model'] as string, effort: document['effort'] as string } };
   }
 }

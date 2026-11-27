@@ -295,7 +295,7 @@ export class PipelineSetups {
    */
   openSetup(opening: PipelineSetupOpening, at: string): PipelineSetupChanged {
     const reading = this.records.pipelineSetupReading;
-    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.problem });
     if (reading.verdict === 'readable') throw new BoardRefusal({ reason: 'setup-in-progress', setupId: reading.setup.setupId });
     const stored = this.records.pipeline;
     if (opening.mode !== 'setup' && stored === null) throw new BoardRefusal({ reason: 'no-pipeline-to-update', mode: opening.mode });
@@ -860,7 +860,7 @@ export class PipelineSetups {
    */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
     const reading = this.records.pipelineSetupReading;
-    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.problem });
     if ((reading.verdict === 'absent' || reading.setup.setupId !== setupId) && this.revisionWasApplied(setupId, requesting.draftRevision)) {
       return { logged: [], outcome: 'already-applied', setup: null };
     }
@@ -1249,7 +1249,7 @@ export class PipelineSetups {
 
   private requireOpenSetup(setupId: string): PipelineSetup {
     const reading = this.records.pipelineSetupReading;
-    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.problem });
     if (reading.verdict === 'absent' || reading.setup.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
     return reading.setup;
   }

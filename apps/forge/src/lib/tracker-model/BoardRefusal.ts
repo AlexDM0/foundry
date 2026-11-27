@@ -1,8 +1,10 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
 import type { GatePhase }                                                  from './@types/GatePhase.ts';
+import type { GateProfilesProblem }                                        from './@types/GateProfilesProblem.ts';
 import type { JobKind, JobMoveTarget, JobState }                           from './@types/Job.ts';
 import type { NeedGap }                                                    from './@types/Need.ts';
 import type { PipelineSetupMode, PipelineSetupStep, SourceAnnotationKind } from './@types/PipelineSetup.ts';
+import type { PipelineSetupProblem }                                       from './@types/PipelineSetupProblem.ts';
 import type { TaskStatus }                                                 from './@types/Task.ts';
 import type {
   IncompleteTicket,
@@ -116,7 +118,7 @@ export type BoardRefusalDetail =
   | { reason: 'pipeline-set-per-entity'; entityKeys: readonly string[] }
   | { reason: 'setup-in-progress'; setupId: string }
   | { reason: 'no-setup-open'; setupId: string }
-  | { reason: 'pipeline-setup-unreadable'; problem: string }
+  | { reason: 'pipeline-setup-unreadable'; problem: PipelineSetupProblem }
   | { reason: 'no-pipeline-to-update'; mode: PipelineSetupMode }
   | { reason: 'pipeline-apply-pending'; setupId: string }
   | { reason: 'no-apply-pending'; setupId: string }
@@ -165,7 +167,7 @@ export type BoardRefusalDetail =
   | { reason: 'prepare-order-not-a-reorder'; names: readonly string[]; prepareNames: readonly string[] }
   | { reason: 'unknown-setup-edit'; setupId: string; editId: string }
   | { reason: 'setup-edit-already-undone'; setupId: string; editId: string }
-  | { reason: 'gate-profiles-unreadable'; problem: string }
+  | { reason: 'gate-profiles-unreadable'; problem: GateProfilesProblem }
   | { reason: 'gate-profile-running'; gateName: string; phase: GatePhase; profileRunId: string }
   | { reason: 'unknown-profile-run'; profileRunId: string }
   | { reason: 'unknown-draft'; draftId: string }
@@ -192,10 +194,7 @@ export type BoardRefusalDetail =
   | { reason: 'merge-queue-without-a-current-green'; ticketId: string; headTree: string | null }
   | { reason: 'merge-approval-off'; ticketId: string }
   | { reason: 'merge-accept-of-a-ticket-not-waiting'; ticketId: string; status: TicketStatus }
-  | { reason: 'merge-accept-would-conflict'; ticketId: string; target: string; conflictedFiles: readonly string[] }
-  | { reason: 'merge-accept-prediction-failed'; ticketId: string; target: string; gitReason: string }
   | { reason: 'merge-update-of-a-ticket-not-waiting'; ticketId: string; status: TicketStatus }
-  | { reason: 'merge-update-failed'; ticketId: string; target: string; gitReason: string }
   | { reason: 'airlock-held'; target: string; jobId: string }
   | { reason: 'merge-candidate-not-queued'; ticketId: string; target: string }
   | { reason: 'higher-priority-queued'; ticketId: string; queuedTicketIds: readonly string[] }
@@ -214,11 +213,7 @@ export type BoardRefusalDetail =
   | { reason: 'job-awaits-user-answer'; jobId: string }
   | { reason: 'job-is-product-owner'; jobId: string }
   | { reason: 'job-is-document-agent'; jobId: string; ticketId: string; document: TicketDocumentKind }
-  | { reason: 'no-open-incident'; subject: string; move: string }
-  | { reason: 'several-open-incidents'; subject: string; move: string; incidentIds: readonly string[] }
   | { reason: 'worktree-in-use'; ticketId: string; jobIds: readonly string[] }
-  | { reason: 'worktree-has-uncommitted-work'; ticketId: string; worktreePath: string }
-  | { reason: 'worktree-repair-failed'; ticketId: string; step: string; gitReason: string }
   | { reason: 'ticket-has-no-documents'; ticketId: string }
   /** An agent picked the ticket up, or the document's review is off, which leaves it to its agent. */
   | { reason: 'document-not-editable'; ticketId: string; document: TicketDocumentKind; status: TicketStatus }

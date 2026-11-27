@@ -13,6 +13,7 @@ import {
 } from 'node:path';
 
 import { storedFileTextOf }                                              from '../../adapters/StoredFileText.ts';
+import { StoredFileProblemWordingUtil }                                  from '../../adapters/utils/StoredFileProblemWordingUtil.ts';
 import { writeFileAtomically }                                           from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                    from '../../lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                 from '../../lib/local-time/LocalTimeUtil.ts';
@@ -150,7 +151,7 @@ function updatedEntry(storedEntry: RegistryEntry | undefined, registration: Regi
 function registerUnderTheLock(registration: Registration): MonitorRegistrationOutcome {
   const { registryFilePath, trackerId } = registration;
   const storedText = storedFileTextOf(registryFilePath);
-  if (storedText.verdict === 'unreadable') return { verdict: 'not-registered-unwritable', registryFilePath, reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'not-registered-unwritable', registryFilePath, reason: StoredFileProblemWordingUtil.sentenceOf(storedText.problem) };
   const reading = VersionedRegistryUtil.readingOf(storedText.verdict === 'readable' ? storedText.text : null, REGISTRY_SHAPE);
   if (reading.verdict === 'newer-version') return { verdict: 'not-registered-newer-version', registryFilePath, version: reading.version };
 

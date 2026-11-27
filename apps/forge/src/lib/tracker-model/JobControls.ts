@@ -107,6 +107,15 @@ export class JobControls {
     return { logged: [...pause(), ...jobIds.flatMap((jobId) => this.requestJobStop(jobId, mode, at).logged)] };
   }
 
+  /** A chat turn under an incident never reaches User's own product-owner session, nor a job whose ticket waits on User's answer. */
+  refuseAChatTurnUnderAnIncident(jobId: string): void {
+    const job = this.jobRules.jobById(jobId);
+    if (job?.kind === PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'job-is-product-owner', jobId });
+    const ticketAwaitsUser = this.decisionRules.decisions().some((decision) => decision.kind === 'agent-question'
+      && decision.ticketIds.some((ticketId) => job?.ticketIds.includes(ticketId) === true));
+    if (job?.state === 'waiting-for-answer' || ticketAwaitsUser) throw new BoardRefusal({ reason: 'job-awaits-user-answer', jobId });
+  }
+
   /**
    * A product owner or pipeline agent that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the
    * text and pictures as its first line. A product owner keeps the title its intake was given, and the log records the tickets its intake

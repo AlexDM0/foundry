@@ -595,7 +595,7 @@ describe('the setup record a hold reads and writes', () => {
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
-    const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
+    const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: { code: 'missing', field: 'setupId' } } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
     expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe('{ "formatVersion": 4 }\n');
   });
@@ -652,7 +652,7 @@ describe('the gate profile runs a hold reads and writes', () => {
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
-    const boardRefusal = { reason: 'gate-profiles-unreadable', problem: 'nextRunNumber is missing' } as const;
+    const boardRefusal = { reason: 'gate-profiles-unreadable', problem: { code: 'missing', field: 'nextRunNumber' } } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
     expect(readFileSync(localStoreLayoutOf(workspace).gateProfilesRecordPath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
   });

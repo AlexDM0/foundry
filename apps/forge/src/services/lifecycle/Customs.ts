@@ -13,7 +13,8 @@ import {
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
 
-import type { LaunchSnapshot } from '../../adapters/@types/LaunchSnapshot.ts';
+import type { LaunchSnapshot }  from '../../adapters/@types/LaunchSnapshot.ts';
+import { ReportProblemWording } from '../../adapters/reports/ReportProblemWording.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -436,7 +437,7 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
   if (subject.role === 'pipeline-agent' || subject.role === 'document-agent') return refused('report-invalid', ['no report']);
   const verdict = reportVerdictOf(reportSchemaOf(subject.role, crossingStageNameOf(subject)), subject.report);
-  if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems);
+  if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems.map(ReportProblemWording.sentenceOf));
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   const reportedHead = String(reportFieldOf(subject.report, 'headCommit'));

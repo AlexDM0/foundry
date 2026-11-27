@@ -376,7 +376,7 @@ test.each([
 
   expect(refusal.status).toBe('unrepaired');
   expect(refusal.detail).toEqual({
-    kind: 'malformed-ticket-file', filePath: unreadable.location, line: unreadable.line, reason: unreadable.reason
+    kind: 'malformed-ticket-file', filePath: unreadable.location, line: unreadable.line, problem: unreadable.problem
   });
 });
 

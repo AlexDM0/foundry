@@ -4,7 +4,8 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { AgentAdapter } from '../src/lib/agent-launch/AgentAdapter.ts';
+import { EntityRefusalWording } from '../src/adapters/pipeline/EntityRefusalWording.ts';
+import type { AgentAdapter }    from '../src/lib/agent-launch/AgentAdapter.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -13,6 +14,7 @@ import type {
   PipelineSetupMode,
   PipelineSetupStep
 } from '../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { EntityRefusal }                 from '../src/lib/tracker-model/utils/EntityValidationUtil.ts';
 import type { DraftFieldValue, SetupMessage } from '../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                 from '../src/shared/ResourceFilePath.ts';
@@ -119,9 +121,9 @@ function draftChangesTextOf(changes: readonly DraftFieldValue[]): string {
 }
 
 /** The refusals the draft's entities still hold, which Continue and Apply wait on; nothing when none stands. */
-function standingEntityRefusalsTextOf(standingEntityRefusals: readonly string[]): string[] {
+function standingEntityRefusalsTextOf(standingEntityRefusals: readonly EntityRefusal[]): string[] {
   if (standingEntityRefusals.length === 0) return [];
-  const lines = standingEntityRefusals.map((refusal) => `- ${refusal}`);
+  const lines = standingEntityRefusals.map((refusal) => `- ${EntityRefusalWording.reasonOf(refusal)}`);
   return [['The draft\'s entities still hold these refusals, so Continue and Apply wait until User resolves them:', ...lines].join('\n')];
 }
 

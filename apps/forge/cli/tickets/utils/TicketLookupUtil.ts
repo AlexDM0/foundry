@@ -1,19 +1,19 @@
-import type { Ticket }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import { TicketIdUtil }          from '../../../src/lib/tracker-model/utils/TicketIdUtil.ts';
-import type { UnreadableRecord } from '../../../src/services/tracker/@types/BoardRecords.ts';
-import type { BoardTransaction } from '../../../src/services/tracker/BoardTransaction.ts';
-import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
-import { OutputUtil }            from '../../utils/OutputUtil.ts';
+import type { Ticket }                 from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import { TicketIdUtil }                from '../../../src/lib/tracker-model/utils/TicketIdUtil.ts';
+import type { UnreadableTicketRecord } from '../../../src/services/tracker/@types/BoardRecords.ts';
+import type { BoardTransaction }       from '../../../src/services/tracker/BoardTransaction.ts';
+import { OperationRefusal }            from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }               from '../../../src/shared/constants/ProductNames.ts';
+import { OutputUtil }                  from '../../utils/OutputUtil.ts';
 
-function unreadableTicketOf(unreadableTickets: readonly UnreadableRecord[], reference: string): UnreadableRecord | undefined {
+function unreadableTicketOf(unreadableTickets: readonly UnreadableTicketRecord[], reference: string): UnreadableTicketRecord | undefined {
   const identifier = TicketIdUtil.parseTicketReference(reference);
   if (identifier === null) return undefined;
-  return unreadableTickets.find(({ record, key }) => record === 'ticket' && key === identifier);
+  return unreadableTickets.find(({ key }) => key === identifier);
 }
 
 /** A ticket file that is there and will not parse is exit 2: the tool will not repair a hand edit, and a missing ticket is the caller's to fix. */
-function refuseAMissingTicket(reference: string, unreadableTickets: readonly UnreadableRecord[]): never {
+function refuseAMissingTicket(reference: string, unreadableTickets: readonly UnreadableTicketRecord[]): never {
   const unreadable = unreadableTicketOf(unreadableTickets, reference);
   if (unreadable !== undefined) throw new OperationRefusal('unrepaired', OutputUtil.ignoredTicketFileText(unreadable));
   throw new OperationRefusal(

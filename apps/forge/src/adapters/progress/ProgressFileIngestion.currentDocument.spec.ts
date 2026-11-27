@@ -13,6 +13,7 @@ import { PRODUCT_NAMES }                                  from '../../shared/con
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { StoredProgressFile }                        from './@types/StoredProgressFile.ts';
 import { ProgressFileIngestion }                          from './ProgressFileIngestion.ts';
+import { ProgressFileProblemWording }                     from './ProgressFileProblemWording.ts';
 import { ProgressFileMappingUtil }                        from './utils/ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil }                     from './utils/ProgressFileValidationUtil.ts';
 
@@ -82,7 +83,7 @@ function scratchProgressFilePath(prefix: string): string {
 
 function validatedDocumentOf(storedText: string): StoredProgressFile {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(storedText));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return reading.document;
 }
 
@@ -116,7 +117,8 @@ test('a malformed current document is refused with the current validator\'s reas
     writeFileSync(progressRecordPath, JSON.stringify(document));
     const expectedReason = ProgressFileValidationUtil.documentProblemOf(document);
     expect(expectedReason, JSON.stringify(document)).not.toBeNull();
-    expect(new ProgressFileIngestion(progressRecordPath).read()).toEqual({ verdict: 'unreadable', reason: expectedReason ?? '' });
+    const reading = new ProgressFileIngestion(progressRecordPath).read();
+    expect(reading.verdict === 'unreadable' ? reading.problem : null).toEqual(expectedReason);
   }
 });
 
@@ -131,7 +133,8 @@ test('a version 1 document, and a row in a retired status word, are refused sayi
     writeFileSync(progressRecordPath, JSON.stringify(document));
     const reading = new ProgressFileIngestion(progressRecordPath).read();
 
-    expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith(reasonStart);
-    expect(reading.verdict === 'unreadable' ? reading.reason : '').toEndWith(`run \`${PRODUCT_NAMES.PROGRAM} update\` with a release that still reads it, then use this one`);
+    const sentence = reading.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(reading.problem) : '';
+    expect(sentence).toStartWith(reasonStart);
+    expect(sentence).toEndWith(`run \`${PRODUCT_NAMES.PROGRAM} update\` with a release that still reads it, then use this one`);
   }
 });

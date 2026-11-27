@@ -6,11 +6,14 @@ import { expect, test }  from 'bun:test';
 import { createScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_PROBLEMS            from './FrozenSeenHeadProblems.json';
 import { SeenHeadIngestion }      from './SeenHeadIngestion.ts';
+import { SeenHeadProblemWording } from './SeenHeadProblemWording.ts';
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
     const filePath = join(createScratchDirectory('frozen-seen-head'), 'document-agent-seen-head.json');
     writeFileSync(filePath, stored);
-    expect(new SeenHeadIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence });
+    const reading = new SeenHeadIngestion(filePath).read();
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? SeenHeadProblemWording.sentenceOf(reading.problem) : '').toBe(sentence);
   });
 }

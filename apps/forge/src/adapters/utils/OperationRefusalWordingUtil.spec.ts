@@ -54,21 +54,23 @@ test('an absent progress file is named by its path and said to be missing', () =
     .toBe('/example/.agent-progress/progress.json cannot be read: it is not there');
 });
 
-test('an unreadable progress file is named by its path, followed by the adapter reason verbatim', () => {
+test('an unreadable progress file is named by its path, followed by its problem worded', () => {
   expect(unreadableTrackerMessageOf({
     verdict:        'unreadable',
     unreadableFile: 'progress-file',
     filePath:       '/example/.agent-progress/progress.json',
-    reason:         'it is not valid JSON (Unexpected end of JSON input)',
+    problem:        { code: 'not-json', parserError: 'Unexpected end of JSON input' },
   })).toBe('/example/.agent-progress/progress.json cannot be read: it is not valid JSON (Unexpected end of JSON input)');
 });
 
-test('an unreadable log is called the log, followed by the adapter reason verbatim', () => {
+test('an unreadable log is called the log, followed by its problem worded with the file and the line', () => {
   expect(unreadableTrackerMessageOf({
     verdict:        'unreadable',
     unreadableFile: 'log-file',
     filePath:       '/example/.agent-progress/log.jsonl',
-    reason:         '/example/.agent-progress/log.jsonl, line 1: fields.text is not a string',
+    problem:        {
+      code: 'field-not-text', field: 'fields.text', logFilePath: '/example/.agent-progress/log.jsonl', lineNumber: 1
+    },
   })).toBe('The log cannot be read: /example/.agent-progress/log.jsonl, line 1: fields.text is not a string');
 });
 

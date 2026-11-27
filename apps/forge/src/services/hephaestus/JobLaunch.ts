@@ -748,7 +748,7 @@ function gateRunManifestOf(
   const manifestPath = join(jobFolderOf(context.workspace, job), gateRunManifestFileOf(place));
   const stored = new GateRunManifestIngestion(manifestPath, place.phase).read();
   if (stored.verdict === 'readable') return stored.manifest;
-  if (stored.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, manifestPath, stored.reason);
+  if (stored.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, manifestPath, stored.problem);
   // A package build's start names the entities its run leaves out, so no run starts from a start that cannot be read.
   const start = jobStartOf(trackerDirectory, job.id);
   if (StoredFileUnreadable.isUnreadableFile(start)) return start;
@@ -852,7 +852,7 @@ function stepVerdictOf(
   const jobFolder   = jobFolderOf(context.workspace, job);
   const verdictPath = join(jobFolder, `${step.folder}${STEP_VERDICT_SUFFIX}`);
   const kept        = new StepVerdictIngestion(verdictPath).read();
-  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(context.workspace.trackerDirectory, verdictPath, kept.reason);
+  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(context.workspace.trackerDirectory, verdictPath, kept.problem);
   if (kept.verdict === 'readable') {
     const { stepVerdict } = kept;
     if (stepVerdict.treeId === treeId && stepVerdict.phase === stamp.phase && stepVerdict.phaseHash === stamp.phaseHash) return stepVerdict;
@@ -1006,14 +1006,14 @@ function answeredWaiverTreesOf(context: JobLaunchContext, jobs: readonly Readonl
 function mergeSidesOf(trackerDirectory: string, sidesFilePath: string): TargetMergeRecord | null | StoredFileUnreadable {
   const reading = new MergeSidesIngestion(sidesFilePath).read();
   if (reading.verdict === 'readable') return reading.sides;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, sidesFilePath, reading.reason);
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, sidesFilePath, reading.problem);
 }
 
 /** How the merge settled once its process ended; `null` before. */
 function mergeSettlementOf(trackerDirectory: string, settlementFilePath: string): TargetMergeSettlement | null | StoredFileUnreadable {
   const reading = new MergeSettlementIngestion(settlementFilePath).read();
   if (reading.verdict === 'readable') return reading.settlement;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, settlementFilePath, reading.reason);
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, settlementFilePath, reading.problem);
 }
 
 /** The first look: the target's tip as it stands now, and whether the branch already holds it. */
@@ -1060,7 +1060,7 @@ function newestMainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>)
   for (let round = job.childInstance - 1; round >= FIRST_CHILD_INSTANCE; round -= 1) {
     const conflictFilePath = mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.conflict, round);
     const reading = new MainMergeConflictIngestion(conflictFilePath).read();
-    if (reading.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, reading.reason);
+    if (reading.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, reading.problem);
     if (reading.verdict === 'readable') return { round, conflict: reading.conflict };
   }
   return null;
@@ -1078,7 +1078,7 @@ function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): M
   const resolutionPath = mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.resolution, newest.round);
   const kept = new MainMergeResolutionIngestion(resolutionPath).read();
   if (kept.verdict === 'readable') return kept.resolution;
-  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, resolutionPath, kept.reason);
+  if (kept.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, resolutionPath, kept.problem);
   const worktree = worktreeOf(context.workspace, job);
   const resolutionCommit = MergeRun.headOf(worktree);
   // Fail closed: a HEAD git cannot read is re-reviewed against no commit, which refuses, and nothing is kept for it.
@@ -1161,7 +1161,7 @@ function jobStartOf(trackerDirectory: string, jobId: string): JobStart | null | 
   const startFilePath = join(jobFolderIn(trackerDirectory, jobId), JOB_FILES.start);
   const reading = new JobStartIngestion(startFilePath).read();
   if (reading.verdict === 'readable') return reading.start;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, startFilePath, reading.reason);
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, startFilePath, reading.problem);
 }
 
 function reportFieldOf(report: unknown, field: string): unknown {
@@ -2246,7 +2246,7 @@ function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly 
   }
   const conflictFilePath = join(jobFolder, JOB_FILES.targetConflict);
   const conflict = new TargetConflictIngestion(conflictFilePath).read();
-  if (conflict.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, conflict.reason);
+  if (conflict.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, conflictFilePath, conflict.problem);
   return conflict.verdict === 'absent' ? null : { kind: 'conflict', ...conflict.conflict };
 }
 
@@ -2584,7 +2584,8 @@ function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): Sandbo
   const refusalFilePath = join(jobFolderOf(context.workspace, job), JOB_FILES.sandboxRefusal);
   const reading = new SandboxRefusalIngestion(refusalFilePath).read();
   if (reading.verdict === 'readable') return reading.refusal;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(context.workspace.trackerDirectory, refusalFilePath, reading.reason);
+  const { trackerDirectory } = context.workspace;
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, refusalFilePath, reading.problem);
 }
 
 /** `pipeline` names the entity homes whose configuration folder the step's sandbox denies, as a session's does. */
@@ -2606,6 +2607,10 @@ async function spawnLineChild(
   }
   if (deniedRootRefusalRecorded(context, job, folderName, WorkerProfiles.entityFactsOf(pipeline))) return { verdict: 'refused' };
   const spawnRequest = shellLine.spawnRequestOf(step.line, lineStatusFileOf(jobFolder, folderName));
+  if (spawnRequest.verdict === 'refused') {
+    recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(spawnRequest.refusal, workingDirectory) });
+    return { verdict: 'refused' };
+  }
   const sandboxRequestOf = () => processSandboxRequestOf(context, sandboxFactsFor(context, job, pipeline), confinement);
   const planOf = () => LineSandbox.planOf(sandboxRequestOf(), join(lineFolder, JOB_FILES.profile));
   const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
@@ -3053,7 +3058,7 @@ function recordedLaunchSettingsOf(trackerDirectory: string, jobId: string): Sess
   const settingsFilePath = join(jobFolderIn(trackerDirectory, jobId), JOB_FILES.launchSettings);
   const recorded = new LaunchSettingsIngestion(settingsFilePath).read();
   if (recorded.verdict === 'absent') return null;
-  if (recorded.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, settingsFilePath, recorded.reason);
+  if (recorded.verdict === 'unreadable') return StoredFileUnreadable.unreadableFileOf(trackerDirectory, settingsFilePath, recorded.problem);
   const { model, effort } = recorded.settings;
   return VocabularyUtil.agentModelIsKnown(model) && VocabularyUtil.agentEffortIsKnown(effort) ? { model, effort } : null;
 }

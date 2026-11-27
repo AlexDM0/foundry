@@ -263,6 +263,17 @@ test('a folder that cannot be made is a refused verdict, never a throw', () => {
   expect(failing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EACCES' });
 });
 
+test('a folder that cannot be proved owner-only is a refused verdict, and the old socket file stays', () => {
+  const removedFiles: string[] = [];
+  const refusing = createPosixSocketEndpoint({
+    ...injectedPrimitives(),
+    restrictFolder: (folder) => ({ verdict: 'refused', cause: 'not-proved-owner-only', path: folder }),
+    removeFile:     (path) => removedFiles.push(path),
+  }, MACOS_SOCKET_PATH_LIMIT_BYTES);
+  expect(refusing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'not-proved-owner-only: /example/private' });
+  expect(removedFiles).toEqual([]);
+});
+
 test('a socket file that cannot be removed is a refused verdict at the release, never a throw', () => {
   const failing = createPosixSocketEndpoint({
     ...injectedPrimitives(),

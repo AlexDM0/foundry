@@ -1110,7 +1110,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await passOnce(await startedHephaestus(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS })));
 
     const incidents = (requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'system-file-unreadable');
-    expect(incidents).toMatchObject([{ jobId: mergeJobId, facts: { file: `jobs/${mergeJobId}/airlock-facts.json`, reason: 'its version is not 1' } }]);
+    const facts = {
+      file: `jobs/${mergeJobId}/airlock-facts.json`, problem: 'version-differs', field: 'version', expectedVersion: '1'
+    };
+    expect(incidents).toMatchObject([{ jobId: mergeJobId, facts }]);
     expect(launches.filter((launch) => launch.jobId === reReviewerJobId)).toEqual([]);
   });
 

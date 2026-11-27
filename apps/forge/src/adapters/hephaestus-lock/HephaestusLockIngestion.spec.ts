@@ -77,5 +77,5 @@ test.each([
 
 test.each(Object.keys(RECORD))('a wrong "%s" is unreadable', (field) => {
   storeDocument({ ...RECORD, version: HEPHAESTUS_LOCK_FORMAT_VERSION, [field]: null });
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: expect.stringContaining(`"${field}"`) as unknown as string });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', problem: { field } });
 });

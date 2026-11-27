@@ -10,6 +10,7 @@ import { afterAll, expect, test } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { InstallManifestIngestion }                       from './InstallManifestIngestion.ts';
+import { InstallManifestProblemWording }                  from './InstallManifestProblemWording.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -51,12 +52,12 @@ test('an agent host that is not text reads as no agent host', () => {
 test('a manifest that is not JSON is unreadable, and the reason says so', () => {
   const reading = readingOfText('manifest-not-json', '{ "installVersion": ');
   expect(reading.verdict).toBe('unreadable');
-  expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith('it is not valid JSON (');
+  expect(reading.verdict === 'unreadable' ? reading.problem.code : '').toBe('not-json');
 });
 
 test('a manifest that is JSON but not an object is unreadable', () => {
   for (const manifestText of ['[1]', '1', 'null', '"installVersion"']) {
-    expect(readingOfText('manifest-not-an-object', manifestText), manifestText).toEqual({ verdict: 'unreadable', reason: 'it is not a JSON object' });
+    expect(readingOfText('manifest-not-an-object', manifestText), manifestText).toEqual({ verdict: 'unreadable', problem: { code: 'not-a-json-object' } });
   }
 });
 
@@ -68,7 +69,8 @@ test('a missing, fractional, zero or textual install version is unreadable, and 
     ['{ "installVersion": "x" }', 'installVersion is "x", and it has to be a whole number of at least 1'],
   ];
   for (const [manifestText, reason] of expectedReasons) {
-    expect(readingOfText('manifest-bad-version', manifestText), manifestText).toEqual({ verdict: 'unreadable', reason });
+    const reading = readingOfText('manifest-bad-version', manifestText);
+    expect(reading.verdict === 'unreadable' ? InstallManifestProblemWording.sentenceOf(reading.problem) : reading.verdict, manifestText).toBe(reason);
   }
 });
 

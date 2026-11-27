@@ -14,6 +14,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { HeartbeatRecord }                           from './@types/HeartbeatRecord.ts';
 import { HeartbeatIngestion }                             from './HeartbeatIngestion.ts';
+import { HeartbeatProblemWording }                        from './HeartbeatProblemWording.ts';
 import { createHeartbeatWriter }                          from './HeartbeatWriter.ts';
 
 const BEAT: HeartbeatRecord = {
@@ -25,6 +26,11 @@ let scratchDirectory = '';
 const heartbeatFilePath = (): string => join(scratchDirectory, 'heartbeat.json');
 
 const reading = (): ReturnType<HeartbeatIngestion['read']> => new HeartbeatIngestion(heartbeatFilePath()).read();
+
+/** The reading with its problem worded, as User reads it. */
+function wordedReadingOf(read: ReturnType<HeartbeatIngestion['read']>): object {
+  return read.verdict === 'unreadable' ? { verdict: read.verdict, reason: HeartbeatProblemWording.sentenceOf(read.problem) } : read;
+}
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('heartbeat-ingestion');
@@ -48,7 +54,7 @@ test('a missing file is absent', () => {
 test('a file that is not JSON is unreadable', () => {
   writeFileSync(heartbeatFilePath(), 'not json');
 
-  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining('not valid JSON') });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', problem: { code: 'not-json' } });
 });
 
 test.each([
@@ -60,5 +66,5 @@ test.each([
 ])('%s is unreadable', (_case, changes, reason) => {
   writeFileSync(heartbeatFilePath(), JSON.stringify({ ...BEAT, ...changes }));
 
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason });
 });

@@ -6,12 +6,13 @@ import { createHash }               from 'node:crypto';
 import { type Server, type Socket } from 'node:net';
 import { dirname, join }            from 'node:path';
 
+import type { OwnerOnlyRestriction }           from '../owner-only-files/OwnerOnlyFiles.ts';
 import type { EndpointOutcome, LocalEndpoint } from './LocalEndpoint.ts';
 import { PRIVATE_FOLDER_NAME }                 from './constants/TalosProtocol.ts';
 
 export interface PosixEndpointPrimitives {
   /** Creates the folder when it is absent; the `OwnerOnlyFiles` port's. */
-  readonly restrictFolder: (folder: string) => void;
+  readonly restrictFolder: (folder: string) => OwnerOnlyRestriction;
   readonly removeFile:     (path: string) => void;
   readonly serverOf:       (onConnection: (socket: Socket) => void) => Server;
   readonly connectionTo:   (endpoint: string) => Socket;
@@ -24,13 +25,18 @@ export const LINUX_SOCKET_PATH_LIMIT_BYTES = 108;
 
 const SOCKET_NAME_HEX_DIGITS = 16;
 
-function outcomeOf(attempt: () => void): EndpointOutcome {
+/** An attempt answers its own refusal, or `null` when it is done; a system error it throws is a refusal too. */
+function outcomeOf(attempt: () => EndpointOutcome | null): EndpointOutcome {
   try {
-    attempt();
-    return { verdict: 'done' };
+    return attempt() ?? { verdict: 'done' };
   } catch (error) {
     return { verdict: 'refused', reason: String(error) };
   }
+}
+
+/** The folder's restriction refused, as its cause and path, since this package words nothing. */
+function restrictionRefusalOf(restriction: OwnerOnlyRestriction): EndpointOutcome | null {
+  return restriction.verdict === 'refused' ? { verdict: 'refused', reason: `${restriction.cause}: ${restriction.path}` } : null;
 }
 
 export function createPosixSocketEndpoint(primitives: PosixEndpointPrimitives, socketPathLimitBytes: number): LocalEndpoint {
@@ -44,11 +50,15 @@ export function createPosixSocketEndpoint(primitives: PosixEndpointPrimitives, s
     // The limit counts the terminating zero byte, so the longest bindable path is one byte shorter.
     endpointFits:    (endpoint) => Buffer.byteLength(endpoint, 'utf8') < socketPathLimitBytes,
     prepareEndpoint: (endpoint) => outcomeOf(() => {
-      primitives.restrictFolder(dirname(endpoint));
-      primitives.removeFile(endpoint);
+      const refusal = restrictionRefusalOf(primitives.restrictFolder(dirname(endpoint)));
+      if (refusal === null) primitives.removeFile(endpoint);
+      return refusal;
     }),
-    releaseEndpoint: (endpoint) => outcomeOf(() => primitives.removeFile(endpoint)),
-    serverOf:        primitives.serverOf,
-    connectionTo:    primitives.connectionTo,
+    releaseEndpoint: (endpoint) => outcomeOf(() => {
+      primitives.removeFile(endpoint);
+      return null;
+    }),
+    serverOf:     primitives.serverOf,
+    connectionTo: primitives.connectionTo,
   });
 }

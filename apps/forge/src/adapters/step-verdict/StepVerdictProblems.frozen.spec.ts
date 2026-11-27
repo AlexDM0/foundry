@@ -3,14 +3,17 @@ import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
 import { expect, test }  from 'bun:test';
 
-import { createScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS            from './FrozenStepVerdictProblems.json';
-import { StepVerdictIngestion }   from './StepVerdictIngestion.ts';
+import { createScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
+import FROZEN_PROBLEMS               from './FrozenStepVerdictProblems.json';
+import { StepVerdictIngestion }      from './StepVerdictIngestion.ts';
+import { StepVerdictProblemWording } from './StepVerdictProblemWording.ts';
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
     const filePath = join(createScratchDirectory('frozen-step-verdict'), 'build-verdict.json');
     writeFileSync(filePath, stored);
-    expect(new StepVerdictIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence });
+    const reading = new StepVerdictIngestion(filePath).read();
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? StepVerdictProblemWording.sentenceOf(reading.problem) : '').toBe(sentence);
   });
 }

@@ -12,19 +12,22 @@ import {
   REVIEW_FINDING_SEVERITIES,
   REVIEW_VERDICTS
 }                               from '../../../lib/tracker-model/constants/ReviewRecordVocabulary.ts';
+import type { LogRecordProblem } from '../../../shared/@types/LogFileProblem.ts';
 
 type UnknownObject = Record<string, unknown>;
 
-function wordProblem(value: unknown, path: string, words: readonly string[]): string | null {
+function wordProblem(value: unknown, path: string, words: readonly string[]): LogRecordProblem | null {
   if (typeof value === 'string' && words.includes(value)) return null;
-  return `${path} is ${JSON.stringify(value)}, which is not one of ${words.join(', ')}`;
+  return {
+    code: 'field-not-one-of', field: path, storedValue: JSON.stringify(value) as string | undefined, allowedValues: words
+  };
 }
 
-function textProblem(value: unknown, path: string): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? null : `${path} is not a text that is not blank`;
+function textProblem(value: unknown, path: string): LogRecordProblem | null {
+  return typeof value === 'string' && value.trim() !== '' ? null : { code: 'field-blank', field: path };
 }
 
-function firstProblem(checks: readonly (() => string | null)[]): string | null {
+function firstProblem(checks: readonly (() => LogRecordProblem | null)[]): LogRecordProblem | null {
   for (const check of checks) {
     const problem = check();
     if (problem !== null) return problem;
@@ -32,32 +35,36 @@ function firstProblem(checks: readonly (() => string | null)[]): string | null {
   return null;
 }
 
-function listProblem(value: unknown, path: string, entryProblem: (entry: UnknownObject, entryPath: string) => string | null): string | null {
-  if (!Array.isArray(value)) return `${path} is not a list`;
+function listProblem(
+  value: unknown,
+  path: string,
+  entryProblem: (entry: UnknownObject, entryPath: string) => LogRecordProblem | null,
+): LogRecordProblem | null {
+  if (!Array.isArray(value)) return { code: 'field-not-a-list', field: path };
   for (const [index, entry] of (value as unknown[]).entries()) {
     const entryPath = `${path}[${index}]`;
-    if (!JsonRecordUtil.valueIsAPlainObject(entry)) return `${entryPath} is not an object`;
+    if (!JsonRecordUtil.valueIsAPlainObject(entry)) return { code: 'field-not-an-object', field: entryPath };
     const problem = entryProblem(entry, entryPath);
     if (problem !== null) return problem;
   }
   return null;
 }
 
-function claimProblem(claim: UnknownObject, path: string): string | null {
+function claimProblem(claim: UnknownObject, path: string): LogRecordProblem | null {
   return firstProblem([
     () => textProblem(claim['item'], `${path}.item`),
     () => wordProblem(claim['result'], `${path}.result`, REVIEW_CLAIM_RESULTS),
-    () => (typeof claim['handoffContradicted'] === 'boolean' ? null : `${path}.handoffContradicted is not true or false`),
+    () => (typeof claim['handoffContradicted'] === 'boolean' ? null : { code: 'field-not-a-flag', field: `${path}.handoffContradicted` }),
   ]);
 }
 
-function findingOutcomeProblem(finding: UnknownObject, path: string): string | null {
+function findingOutcomeProblem(finding: UnknownObject, path: string): LogRecordProblem | null {
   const outcomeProblem = wordProblem(finding['outcome'], `${path}.outcome`, REVIEW_FINDING_OUTCOMES);
   if (outcomeProblem !== null) return outcomeProblem;
   return finding['outcome'] === 'fixed' ? textProblem(finding['commit'], `${path}.commit`) : textProblem(finding['filedTicketId'], `${path}.filedTicketId`);
 }
 
-function findingProblem(finding: UnknownObject, path: string): string | null {
+function findingProblem(finding: UnknownObject, path: string): LogRecordProblem | null {
   return firstProblem([
     () => wordProblem(finding['class'], `${path}.class`, REVIEW_FINDING_CLASSES),
     () => wordProblem(finding['severity'], `${path}.severity`, REVIEW_FINDING_SEVERITIES),
@@ -68,15 +75,15 @@ function findingProblem(finding: UnknownObject, path: string): string | null {
   ]);
 }
 
-function verdictProblem(value: unknown, path: string): string | null {
+function verdictProblem(value: unknown, path: string): LogRecordProblem | null {
   return wordProblem(value, path, REVIEW_VERDICTS);
 }
 
-function claimsProblem(value: unknown, path: string): string | null {
+function claimsProblem(value: unknown, path: string): LogRecordProblem | null {
   return listProblem(value, path, claimProblem);
 }
 
-function findingsProblem(value: unknown, path: string): string | null {
+function findingsProblem(value: unknown, path: string): LogRecordProblem | null {
   return listProblem(value, path, findingProblem);
 }
 

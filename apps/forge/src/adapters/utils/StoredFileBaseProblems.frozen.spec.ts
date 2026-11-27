@@ -3,9 +3,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 import { expect, test }                           from 'bun:test';
 
-import { createScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS            from './FrozenStoredFileBaseProblems.json';
-import { StoredJsonDocumentUtil } from './StoredJsonDocumentUtil.ts';
+import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import FROZEN_PROBLEMS                  from './FrozenStoredFileBaseProblems.json';
+import { StoredFileProblemWordingUtil } from './StoredFileProblemWordingUtil.ts';
+import { StoredJsonDocumentUtil }       from './StoredJsonDocumentUtil.ts';
 
 const NOT_UTF8_CASE = 'the bytes are not UTF-8';
 
@@ -24,6 +25,9 @@ for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
     if (stored !== null) writeFileSync(filePath, stored);
     else if (problemCase === NOT_UTF8_CASE) writeFileSync(filePath, Uint8Array.of(0x7b, 0xff, 0xfe, 0x7d));
     else mkdirSync(filePath);
-    expect(StoredJsonDocumentUtil.documentAt(filePath, 1)).toEqual({ verdict: 'unreadable', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+    const document = StoredJsonDocumentUtil.documentAt(filePath, 1);
+    expect(document.verdict).toBe('unreadable');
+    const reason = document.verdict === 'unreadable' ? StoredFileProblemWordingUtil.sentenceOf(document.problem) : '';
+    expect(reason).toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
   });
 }

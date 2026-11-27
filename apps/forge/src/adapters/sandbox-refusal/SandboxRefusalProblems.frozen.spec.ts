@@ -3,14 +3,17 @@ import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
 import { expect, test }  from 'bun:test';
 
-import { createScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import FROZEN_PROBLEMS             from './FrozenSandboxRefusalProblems.json';
-import { SandboxRefusalIngestion } from './SandboxRefusalIngestion.ts';
+import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import FROZEN_PROBLEMS                  from './FrozenSandboxRefusalProblems.json';
+import { SandboxRefusalIngestion }      from './SandboxRefusalIngestion.ts';
+import { SandboxRefusalProblemWording } from './SandboxRefusalProblemWording.ts';
 
 for (const { case: problemCase, stored, sentence } of FROZEN_PROBLEMS) {
   test(`${problemCase}: ${sentence}`, () => {
     const filePath = join(createScratchDirectory('frozen-sandbox-refusal'), 'sandbox-refusal.json');
     writeFileSync(filePath, stored);
-    expect(new SandboxRefusalIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence });
+    const reading = new SandboxRefusalIngestion(filePath).read();
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? SandboxRefusalProblemWording.sentenceOf(reading.problem) : '').toBe(sentence);
   });
 }

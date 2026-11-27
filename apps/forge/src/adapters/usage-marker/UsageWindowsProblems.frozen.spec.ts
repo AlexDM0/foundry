@@ -10,6 +10,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_USAGE_WINDOWS_PROBLEMS                      from './FrozenUsageWindowsProblems.json';
 import { UsageWindowsFile }                               from './UsageWindowsFile.ts';
+import { UsageWindowsProblemWording }                     from './UsageWindowsProblemWording.ts';
 
 /** The rows whose `stored` is `null`, since no stored text builds them. */
 const UNSTORABLE_CASE_BUILDERS: Readonly<Record<string, (filePath: string) => void>> = {
@@ -30,9 +31,9 @@ function systemErrorAt(storedFilePath: string): string {
   }
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = UsageWindowsFile.read(scratchDirectory);
-  return 'reason' in reading ? reading.reason : null;
+  return 'problem' in reading ? UsageWindowsProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -49,5 +50,5 @@ test.each(FROZEN_USAGE_WINDOWS_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+  expect(sentenceAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
 });

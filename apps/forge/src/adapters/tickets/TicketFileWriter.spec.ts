@@ -58,7 +58,7 @@ function committedTicket(): Ticket {
 
 function ticketReadFrom(filePath: string): Ticket {
   const reading = new TicketFileIngestion(filePath).read();
-  if (reading.verdict !== 'parsed') throw new Error(`expected the ticket at ${filePath} to parse, got "${reading.reason}"`);
+  if (reading.verdict !== 'parsed') throw new Error(`expected the ticket at ${filePath} to parse, got "${reading.problem.code}"`);
   return reading.ticket;
 }
 

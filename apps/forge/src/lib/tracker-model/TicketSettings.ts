@@ -103,6 +103,17 @@ export class TicketSettings {
     return { logged: [this.records.logger.log({ kind: 'ticket-network-set', ticketId, fields: { domains: requestedDomains } }, at)], ticket };
   }
 
+  /**
+   * The refusals `setTicketNetwork` gives a new ticket, judged before it is filed: the Board keeps no undo, so a relayed filing refused after
+   * it would still store the ticket while its reply says refused.
+   */
+  refuseANetworkAFilingCannotSet(ticketId: string, domains: readonly string[]): void {
+    const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
+    const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
+    if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
+    if (requestedDomains.length === 0) throw new BoardRefusal({ reason: 'network-unchanged', ticketId, domains: [] });
+  }
+
   /** A key the pipeline's entities do not name is refused, and so is any key when the pipeline names no entity. */
   refuseAnUnknownEntity(ticketId: string, entity: string): void {
     const entityKeys = Object.keys(this.records.pipeline?.entities ?? {});

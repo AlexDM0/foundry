@@ -9,6 +9,7 @@
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join }                               from 'node:path';
 
+import type { GenerationRecordProblem }                                                  from '../../adapters/generation-record/@types/GenerationRecordProblem.ts';
 import { type GenerationRecord, GenerationRecordIngestion, type GenerationRecordHolder } from '../../adapters/generation-record/GenerationRecordIngestion.ts';
 import { createGenerationRecordWriter }                                                  from '../../adapters/generation-record/GenerationRecordWriter.ts';
 import type { FileReplace }                                                              from '../../lib/atomic-file/FileReplace.ts';
@@ -30,9 +31,9 @@ type LockPayload = Omit<GenerationRecord, 'state'>;
 export type LockHolderIsGone = (holder: LockHolder) => boolean;
 
 /** Why a lock record was stale: the process it names is gone, or its shape cannot be read; the boundary words it. */
-export type StaleLockReason =
+export type StaleLockReason<Problem = GenerationRecordProblem> =
   | { kind: 'holder-gone'; processId: number }
-  | { kind: 'unreadable'; reason: string };
+  | { kind: 'unreadable'; problem: Problem };
 
 /** The newest record an acquisition took over, as a typed record the taker's log words. */
 export interface StaleLockRecordTakenOver {
@@ -99,13 +100,13 @@ type GenerationReading =
   | { state: 'held'; holder: LockHolder }
   | { state: 'removed' }
   | { state: 'bytes-unreadable' }
-  | { state: 'unreadable'; reason: string };
+  | { state: 'unreadable'; problem: GenerationRecordProblem };
 
 function readGenerationRecord(generationPath: string): GenerationReading {
   const reading = new GenerationRecordIngestion(generationPath).read();
   if (reading.verdict === 'absent') return { state: 'removed' };
   if (reading.verdict === 'bytes-unreadable') return { state: 'bytes-unreadable' };
-  if (reading.verdict === 'unreadable') return { state: 'unreadable', reason: reading.reason };
+  if (reading.verdict === 'unreadable') return { state: 'unreadable', problem: reading.problem };
   const { record } = reading;
   return record.state === 'released' ? { state: 'released' } : { state: 'held', holder: record.holder };
 }
@@ -158,7 +159,7 @@ function attemptedAcquire(
     if (reading.state === 'bytes-unreadable') return { verdict: 'held' };
     if (reading.state === 'held' && !holderIsGone(reading.holder)) return { verdict: 'held' };
     if (reading.state === 'held') staleTakenOver = { recordPath, reason: { kind: 'holder-gone', processId: reading.holder.processId } };
-    if (reading.state === 'unreadable') staleTakenOver = { recordPath, reason: { kind: 'unreadable', reason: reading.reason } };
+    if (reading.state === 'unreadable') staleTakenOver = { recordPath, reason: { kind: 'unreadable', problem: reading.problem } };
   }
   afterStep('newest-judged-free');
   const claimed = generationAfter(newest ?? 0);

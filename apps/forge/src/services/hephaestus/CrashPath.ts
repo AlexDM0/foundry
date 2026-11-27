@@ -3,6 +3,8 @@
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
 import type { CrashedComponent, CrashLogError, CrashLogJob } from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import { HeartbeatProblemWording }                           from '../../adapters/heartbeat/HeartbeatProblemWording.ts';
+import { PresenceProblemWording }                            from '../../adapters/presence/PresenceProblemWording.ts';
 import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
 import type { CrashLogWrite }                                from './@types/CrashLogRecord.ts';
 import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
@@ -62,9 +64,10 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   const presenceReading = readingOrNull(() => Presence.readPresence(files));
   const heartbeatReading = readingOrNull(() => Presence.readHeartbeat(files));
   // The dying process has no board header left to warn in, so an unreadable file is logged and left out of the crash log.
-  for (const [fileName, reading] of [['presence.json', presenceReading], ['heartbeat.json', heartbeatReading]] as const) {
-    if (reading?.verdict === 'unreadable') context.log(`The crash log of Hephaestus lock ${generation} leaves out ${fileName}, which cannot be read: ${reading.reason}`);
-  }
+  const leftOutLineOf = (fileName: string, sentence: string): string =>
+    `The crash log of Hephaestus lock ${generation} leaves out ${fileName}, which cannot be read: ${sentence}`;
+  if (presenceReading?.verdict === 'unreadable') context.log(leftOutLineOf('presence.json', PresenceProblemWording.sentenceOf(presenceReading.problem)));
+  if (heartbeatReading?.verdict === 'unreadable') context.log(leftOutLineOf('heartbeat.json', HeartbeatProblemWording.sentenceOf(heartbeatReading.problem)));
   const presence = presenceReading?.verdict === 'read' && presenceReading.record.generation === generation ? presenceReading.record : null;
   const heartbeat = heartbeatReading?.verdict === 'read' && heartbeatReading.record.generation === generation ? heartbeatReading.record : null;
   const record = CrashLog.assemble({

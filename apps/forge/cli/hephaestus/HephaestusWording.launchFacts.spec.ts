@@ -16,6 +16,7 @@ import {
   test
 } from 'bun:test';
 
+import { UnreadableFileProblemWordingUtil }         from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
 import type { Job }                                 from '../../src/lib/tracker-model/@types/Job.ts';
 import type { JobOutcome }                          from '../../src/lib/tracker-model/@types/Job.ts';
 import type { TicketStage }                         from '../../src/lib/tracker-model/@types/Task.ts';
@@ -145,7 +146,9 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
     checkout: '', workingDirectory: '', holdsRepository: true, projectFolderFromStart: ''
   };
   const facts = launchFactsOf(crossing.board, request, job, { instructions: BUILD_PROMPT, airlock: null, place });
-  if (StoredFileUnreadable.isUnreadableFile(facts)) throw new Error(`The launch read ${facts.file}, which cannot be read: ${facts.reason}`);
+  if (StoredFileUnreadable.isUnreadableFile(facts)) {
+    throw new Error(`The launch read ${facts.file}, which cannot be read: ${UnreadableFileProblemWordingUtil.sentenceOf(facts.problem)}`);
+  }
   return HephaestusWording.launchTextOf(job, facts, PROMPT_FILLS).firstMessage;
 }
 

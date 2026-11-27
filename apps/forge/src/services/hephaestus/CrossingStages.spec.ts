@@ -256,7 +256,8 @@ describe('a stage statement', () => {
 
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toBeNull();
     writeFileSync(join(jobFolder, 'stage-statement.json'), '{"version":1,"stage":"package-build","exposedSurfaceChanged":"no"}\n');
-    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J7/stage-statement.json', reason: 'its "exposedSurfaceChanged" is not true or false' } as const;
+    const unreadableProblem = { code: 'field-is-not', field: 'exposedSurfaceChanged', expected: 'true-or-false' } as const;
+    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J7/stage-statement.json', problem: unreadableProblem } as const;
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toEqual(unreadable);
     writeFileSync(join(jobFolder, 'stage-statement.json'), '{ not json');
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toMatchObject({ verdict: 'unreadable-file', file: 'jobs/J7/stage-statement.json' });
@@ -283,7 +284,8 @@ describe('a stage statement', () => {
     const packageReview = launchedJobOf(board, 'review', UI_KIT.key, 3);
     mkdirSync(jobFolderIn(trackerDirectory, packageBuild.id), { recursive: true });
     writeFileSync(join(jobFolderIn(trackerDirectory, packageBuild.id), 'stage-statement.json'), '{"stage":"package-build","exposedSurfaceChanged":true}\n');
-    const unreadable = { verdict: 'unreadable-file', file: `jobs/${packageBuild.id}/stage-statement.json`, reason: 'its version is not 1' } as const;
+    const unreadableProblem = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+    const unreadable = { verdict: 'unreadable-file', file: `jobs/${packageBuild.id}/stage-statement.json`, problem: unreadableProblem } as const;
 
     expect(CrossingStages.crossingStageFactsOf(board, trackerDirectory, packageReview, false)).toEqual(unreadable);
     expect(CrossingStages.packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), '001', UI_KIT.key)).toEqual(unreadable);

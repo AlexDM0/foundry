@@ -373,7 +373,8 @@ function staleGreenSessionOwnerOf(
   const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
   if (recorded.verdict === 'readable') return { verdict: 'answered', sessionOwnerJobId: recorded.sessionOwnerJobId };
   if (recorded.verdict === 'unreadable') {
-    return { verdict: 'unreadable', unreadableFile: { jobId: job.id, file: jobFileInDataFolderOf(job.id, STALE_GREEN_SESSION_OWNER_FILE), reason: recorded.reason } };
+    const file = jobFileInDataFolderOf(job.id, STALE_GREEN_SESSION_OWNER_FILE);
+    return { verdict: 'unreadable', unreadableFile: { jobId: job.id, file, problem: recorded.problem } };
   }
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   // One that cannot be read was still left; the launch that reads it for the handoff refuses before this owner is used.

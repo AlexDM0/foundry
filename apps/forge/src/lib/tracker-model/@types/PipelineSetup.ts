@@ -23,6 +23,7 @@ import type {
   PipelineTool,
   TicketWritingRoute
 } from './Pipeline.ts';
+import type { ConstitutionSourcesProblem, PipelineSetupProblem } from './PipelineSetupProblem.ts';
 
 /** The setup record's stored format, the only one read: an older record is set up anew. */
 export const PIPELINE_SETUP_FORMAT_VERSION = 4;
@@ -334,7 +335,7 @@ export interface SnapshotRefusal {
 export type PipelineSetupReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; setup: PipelineSetup }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: PipelineSetupProblem };
 
 /** Main's `CONSTITUTION.md`: its repository path, its text byte for byte and its blob id. */
 export interface MainConstitution {
@@ -391,7 +392,7 @@ export interface StoredConstitutionSources {
 export type ConstitutionSourcesReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; sources: StoredConstitutionSources }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: ConstitutionSourcesProblem };
 
 /** The ways a vendor's agent bills, its default first, as the caller's agent adapters name them; none for a vendor no adapter runs. */
 export type OfferedBillingModesOf = (vendor: string) => readonly PipelineBilling['mode'][];

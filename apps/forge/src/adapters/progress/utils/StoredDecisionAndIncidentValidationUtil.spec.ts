@@ -4,9 +4,15 @@
  */
 import { expect, test } from 'bun:test';
 
+import { sentenceOfProblem }                       from '../testing/WordedProgressProblem.ts';
 import { StoredDecisionAndIncidentValidationUtil } from './StoredDecisionAndIncidentValidationUtil.ts';
 
-const { decisionProblem, incidentProblem, decisionsAndIncidentsProblemOf } = StoredDecisionAndIncidentValidationUtil;
+const decisionProblem = (value: unknown, index: number): string | null => sentenceOfProblem(StoredDecisionAndIncidentValidationUtil.decisionProblem(value, index));
+
+const incidentProblem = (value: unknown, index: number): string | null => sentenceOfProblem(StoredDecisionAndIncidentValidationUtil.incidentProblem(value, index));
+
+const decisionsAndIncidentsProblemOf = (document: Record<string, unknown>): string | null =>
+  sentenceOfProblem(StoredDecisionAndIncidentValidationUtil.decisionsAndIncidentsProblemOf(document));
 
 const WELL_FORMED_QUESTION = {
   question:    'Which export format?',

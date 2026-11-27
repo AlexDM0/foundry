@@ -18,6 +18,7 @@ import {
 import type { GateProfiles }                              from '../../lib/tracker-model/@types/GateProfile.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { GateProfilesFile }                               from './GateProfilesFile.ts';
+import { GateProfilesProblemWording }                     from './GateProfilesProblemWording.ts';
 
 const EXAMPLE_PROFILES: GateProfiles = {
   formatVersion: 1,
@@ -144,6 +145,6 @@ describe('a file nobody can trust whole is malformed, never a throw', () => {
     const reading = GateProfilesFile.read(filePath);
 
     expect(reading.verdict).toBe('malformed');
-    expect(reading.verdict === 'malformed' ? reading.reason : '').toContain(reasonPart);
+    expect(reading.verdict === 'malformed' ? GateProfilesProblemWording.sentenceOf(reading.problem) : '').toContain(reasonPart);
   });
 });

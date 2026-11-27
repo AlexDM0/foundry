@@ -106,7 +106,7 @@ function chatsWrittenOf(reading: Exclude<AssistantChatsReading, { verdict: 'unre
 function chatsInTheHoldOf(board: Board, trackerDirectory: string, job: Readonly<Job>, at: string): readonly AssistantChat[] | null {
   const reading = chatsOf(trackerDirectory, job.id);
   if (reading.verdict !== 'unreadable') return chatsWrittenOf(reading);
-  UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, CHATS_FILE), reason: reading.reason }, at);
+  UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, CHATS_FILE), problem: reading.problem }, at);
   return null;
 }
 

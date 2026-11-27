@@ -117,17 +117,17 @@ describe('readTracker', () => {
     expect(readTracker(workspace)).toEqual({ verdict: 'absent', filePath: localStoreLayoutOf(workspace).progressRecordPath });
   });
 
-  test('a progress file that does not parse is an unreadable progress file, carrying the adapter\'s reason', () => {
+  test('a progress file that does not parse is an unreadable progress file, carrying the adapter\'s problem', () => {
     writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, UNPARSEABLE_PROGRESS_TEXT);
 
     const reading = readTracker(workspace);
 
     expect(reading.verdict === 'unreadable' ? reading.unreadableFile : null).toBe('progress-file');
     expect(reading.verdict === 'unreadable' ? reading.filePath : null).toBe(localStoreLayoutOf(workspace).progressRecordPath);
-    expect(reading.verdict === 'unreadable' ? reading.reason : '').not.toBe('');
+    expect(reading.verdict === 'unreadable' ? reading.problem.code : null).toBe('not-json');
   });
 
-  test('a broken log.jsonl is an unreadable log file, carrying the adapter\'s reason', () => {
+  test('a broken log.jsonl is an unreadable log file, carrying the adapter\'s problem', () => {
     createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
     writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
 
@@ -135,7 +135,9 @@ describe('readTracker', () => {
       verdict:        'unreadable',
       unreadableFile: 'log-file',
       filePath:       localStoreLayoutOf(workspace).logRecordPath,
-      reason:         `${localStoreLayoutOf(workspace).logRecordPath}, line 1: fields.text is not a string`,
+      problem:        {
+        code: 'field-not-text', field: 'fields.text', logFilePath: localStoreLayoutOf(workspace).logRecordPath, lineNumber: 1
+      },
     });
   });
 

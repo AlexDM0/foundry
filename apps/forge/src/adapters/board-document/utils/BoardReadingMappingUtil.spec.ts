@@ -104,12 +104,12 @@ describe('BoardReadingMappingUtil.noticesOf', () => {
 });
 
 describe('BoardReadingMappingUtil.warningsOf', () => {
-  test('serves the monitor\'s warnings with the facts each sentence names', () => {
+  test('serves the monitor\'s warnings with the facts each sentence names, an unreadable file\'s problem worded as its reason', () => {
     const restartWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I4', move: 'ticket-park', cause: 'no-assistant'
     }];
-    const unreadableFiles = [{ file: 'crash-logs/crash-2.json', reason: 'its crashLogVersion is not 2' }];
+    const unreadableFiles = [{ file: 'crash-logs/crash-2.json', problem: { code: 'version-differs', field: 'crashLogVersion', expectedVersion: 2 } }];
     expect(BoardReadingMappingUtil.warningsOf(notices, { restartWarning, unreadableFiles })).toEqual([
       { kind: 'restart-failed', facts: restartWarning, sentence: 'the restart to code code-next failed at handover: Example failure.' },
       { kind: 'assistant-down', facts: {}, sentence: 'no Assistant can come up: open incidents take their defaults' },

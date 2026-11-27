@@ -23,7 +23,9 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageMarkerProblemWording }                 from '../../adapters/usage-marker/UsageMarkerProblemWording.ts';
 import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import { UnreadableFileProblemWordingUtil }          from '../../adapters/utils/UnreadableFileProblemWordingUtil.ts';
 import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
@@ -575,7 +577,8 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs, pipeline);
   const usageMarker = UsageMarkerFile.read(request.monitorFolder);
   if (usageMarker.verdict === 'malformed') {
-    request.log(`The usage marker ${UsageMarkerFile.pathIn(request.monitorFolder)} is malformed (${usageMarker.reason}); no limit is held by it.`);
+    const markerProblem = UsageMarkerProblemWording.sentenceOf(usageMarker.problem);
+    request.log(`The usage marker ${UsageMarkerFile.pathIn(request.monitorFolder)} is malformed (${markerProblem}); no limit is held by it.`);
   }
   return {
     childObservations,
@@ -801,7 +804,8 @@ export function actOnWaiverAnswers(
     const headTree = answeredWaiverTrees.get(step.jobId) ?? null;
     const outcome = ReviewOutcome.actOnWaiverAnswer(board, step.jobId, step.answers, jobFolderIn(trackerDirectory, step.jobId), headTree, at);
     if (outcome.verdict === 'proposals-unreadable') {
-      StoredFileUnreadable.openIncidentOn(board, step.jobId, StoredFileUnreadable.unreadableFileOf(trackerDirectory, outcome.proposalsPath, outcome.reason), at);
+      const unreadable = StoredFileUnreadable.unreadableFileOf(trackerDirectory, outcome.proposalsPath, outcome.problem);
+      StoredFileUnreadable.openIncidentOn(board, step.jobId, unreadable, at);
     }
   }
   return waiverAnswerSteps.some((step) => !UnreadableJobFileIncident.standsOpenFor(board, step.jobId));
@@ -1080,7 +1084,8 @@ function unreadableJobFileRefusalOf(
   request: Pick<DrivePassRequest, 'log'>, job: Readonly<Job>, unreadable: UnreadableJobFile | StoredFileUnreadable
 ): UnreadableJobFileRefusal {
   const unreadableJobFile = StoredFileUnreadable.isUnreadableFile(unreadable) ? StoredFileUnreadable.unreadableJobFileOn(job.id, unreadable) : unreadable;
-  request.log(`Job ${job.id} did not launch: its launch reads ${unreadableJobFile.file}, which cannot be read (${unreadableJobFile.reason}).`);
+  const sentence = UnreadableFileProblemWordingUtil.sentenceOf(unreadableJobFile.problem);
+  request.log(`Job ${job.id} did not launch: its launch reads ${unreadableJobFile.file}, which cannot be read (${sentence}).`);
   return { unreadableJobFile };
 }
 

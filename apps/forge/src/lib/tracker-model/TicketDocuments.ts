@@ -149,6 +149,25 @@ export class TicketDocuments {
     return this.writableDocumentOf(ticketId, kind);
   }
 
+  /** The document as `documentOf` reads it, refused `ticket-has-no-documents` where it reads none. */
+  requireHeldDocument(ticketId: string, kind: TicketDocumentKind): Readonly<TicketDocument> {
+    const held = this.documentOf(ticketId, kind);
+    if (held === null) throw new BoardRefusal({ reason: 'ticket-has-no-documents', ticketId });
+    return held;
+  }
+
+  /** A reading names a version the document holds; one of another, or a version that is no whole number from 1, is refused naming the head. */
+  requireHeldVersion(ticketId: string, kind: TicketDocumentKind, version: number): void {
+    const held         = this.requireHeldDocument(ticketId, kind);
+    const namedVersion = Number.isSafeInteger(version) && version >= 1 ? version : null;
+    if (namedVersion === null || TicketDocumentVersionUtil.versionOfNumber(held, namedVersion) === null) {
+      const headNumber = TicketDocumentVersionUtil.headOf(held)?.number ?? null;
+      throw new BoardRefusal({
+        reason: 'document-version-moved', ticketId, document: kind, version: namedVersion, headNumber
+      });
+    }
+  }
+
   /** `null` for a ticket with no documents record; a document the record lacks is `unwritten`. */
   standingOf(ticketId: string, kind: TicketDocumentKind): DocumentStanding | null {
     const loadedRecord = this.records.ticketDocumentRecordOf(ticketId);

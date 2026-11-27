@@ -443,7 +443,7 @@ describe('an unfinished entities draft', () => {
     expect(setupOf(fixture).draft?.entities?.['admin']?.home).toEqual(['/apps/web']);
     expect(messagesOf(fixture)).toEqual([{
       jobId:   'J1',
-      message: expect.objectContaining({ kind: 'draft-edited', standingEntityRefusals: ['the entities web, admin share the home "/apps/web"'] }),
+      message: expect.objectContaining({ kind: 'draft-edited', standingEntityRefusals: [{ reason: 'equal-homes', home: '/apps/web', entityKeys: ['web', 'admin'] }] }),
     }]);
   });
 

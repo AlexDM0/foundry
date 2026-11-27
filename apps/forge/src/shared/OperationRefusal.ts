@@ -3,12 +3,18 @@
  * `refused` to exit 1, a refusal the caller can act on, and `unrepaired` to exit 2, a state the tool will not repair on its own. A refusal
  * thrown from `src/` carries a detail, a reason code with its facts and no words, that the command line words; only `cli/` builds one from words.
  */
-import type { BoardRefusalDetail }       from '../lib/tracker-model/BoardRefusal.ts';
-import type { AgentProgramRefusalCause } from './@types/AgentProgramCheck.ts';
-import type { InstallVersionMismatch }   from './@types/InstallVersionMismatch.ts';
-import type { RoleCommandRefusalReason } from './@types/RoleCommandRefusalReason.ts';
-import type { UnreadableTracker }        from './@types/UnreadableTracker.ts';
-import type { BranchNamespaceRefusal }   from './BranchNames.ts';
+import type { OwnerOnlyRefusalCause }          from '../lib/owner-only-files/OwnerOnlyFiles.ts';
+import type { PipelineProblem }                from '../lib/tracker-model/@types/PipelineProblem.ts';
+import type { TicketDocumentKind }             from '../lib/tracker-model/@types/TicketDocument.ts';
+import type { BoardRefusalDetail }             from '../lib/tracker-model/BoardRefusal.ts';
+import type { AgentProgramRefusalCause }       from './@types/AgentProgramCheck.ts';
+import type { HoldJournalProblem }             from './@types/HoldJournalProblem.ts';
+import type { InstallVersionMismatch }         from './@types/InstallVersionMismatch.ts';
+import type { MachineConfigUnwritableProblem } from './@types/MachineConfigProblem.ts';
+import type { RoleCommandRefusalReason }       from './@types/RoleCommandRefusalReason.ts';
+import type { UnreadableTicketProblem }        from './@types/UnreadableTicketProblem.ts';
+import type { UnreadableTracker }              from './@types/UnreadableTracker.ts';
+import type { BranchNamespaceRefusal }         from './BranchNames.ts';
 
 export type OperationRefusalStatus = 'refused' | 'unrepaired';
 
@@ -19,13 +25,13 @@ export type OperationRefusalDetail =
   | { kind: 'no-tracker-found'; searchedFrom: string }
   | { kind: 'tracker-lock-held'; lockDirectoryPath: string }
   | { kind: 'lock-taken-over'; lockDirectoryPath: string }
-  | { kind: 'malformed-hold-journal'; journalFilePath: string; reason: string }
+  | { kind: 'malformed-hold-journal'; journalFilePath: string; problem: HoldJournalProblem }
   | { kind: 'hold-journal-unremovable'; journalFilePath: string; reason: string }
   | { kind: 'install-version-mismatch'; rootDirectory: string; manifestFilePath: string; installVersion: number; mismatch: InstallVersionMismatch }
   | { kind: 'no-readable-ticket'; reference: string }
-  | { kind: 'malformed-ticket-file'; filePath: string; line: number; reason: string }
+  | { kind: 'malformed-ticket-file'; filePath: string; line: number; problem: UnreadableTicketProblem }
   | { kind: 'unreadable-file-in-the-way'; filePath: string; record: 'epic' | 'draft' | 'ticket-documents' }
-  | { kind: 'malformed-pipeline'; filePath: string; reason: string }
+  | { kind: 'malformed-pipeline'; filePath: string; problem: PipelineProblem }
   | { kind: 'older-pipeline'; filePath: string }
   | { kind: 'entities-in-a-folder'; filePath: string; projectPrefix: string }
   | { kind: 'role-command-refused'; reason: RoleCommandRefusalReason; commandKind: string }
@@ -53,7 +59,8 @@ export type OperationRefusalDetail =
   | { kind: 'need-declare-without-job' }
   /** A setup command whose `field` is missing or not of its shape; `field` names it as the body does, as `edits[0].value`. */
   | { kind: 'malformed-setup-command'; commandKind: string; field: string }
-  | { kind: 'pipeline-draft-invalid'; setupId: string; reason: string }
+  /** `problem` is null when the draft is of an older version. */
+  | { kind: 'pipeline-draft-invalid'; setupId: string; problem: PipelineProblem | null }
   /**
    * A copy to another entity on a draft that has no entities, or with edits outside an entity: `fields` names those edits' fields, none when
    * the draft has no entities.
@@ -71,11 +78,12 @@ export type OperationRefusalDetail =
   /** A tool named with its path that is no program to keep, such as one inside a repository a job could write; `reason` is the resolver's. */
   | { kind: 'tool-refused'; name: string; reason: string }
   /** This machine's config that is newer or malformed is never written over. */
-  | { kind: 'machine-config-unwritable'; filePath: string; reason: string }
+  | { kind: 'machine-config-unwritable'; filePath: string; problem: MachineConfigUnwritableProblem }
   | { kind: 'picture-unknown'; pictureId: string }
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }
   | { kind: 'picture-type-unsupported'; mediaTypes: readonly string[] }
+  | { kind: 'path-not-owner-only'; path: string; cause: OwnerOnlyRefusalCause }
   | { kind: 'hephaestus-owns-the-lifecycle'; url: string; hephaestusLockFilePath: string }
   /** The Talos this Hephaestus started answers another protocol version, so no Talos starts again while it lives. */
   | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }
@@ -88,6 +96,18 @@ export type OperationRefusalDetail =
   /** No crash log of that number, or none at all when `number` is `null`. */
   | { kind: 'no-crash-log'; number: number | null }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
+  /** Git's prediction of `merge accept`'s merge into the target's tip; `gitReason` is git's own. */
+  | { kind: 'merge-accept-would-conflict'; ticketId: string; target: string; conflictedFiles: readonly string[] }
+  | { kind: 'merge-accept-prediction-failed'; ticketId: string; target: string; gitReason: string }
+  | { kind: 'merge-update-failed'; ticketId: string; target: string; gitReason: string }
+  /** A repair or Airlock move named no incident, and its subject has none, or several, of the open ones the Bouncer lets it handle. */
+  | { kind: 'no-open-incident'; subject: string; move: string }
+  | { kind: 'several-open-incidents'; subject: string; move: string; incidentIds: readonly string[] }
+  | { kind: 'worktree-has-uncommitted-work'; ticketId: string; worktreePath: string }
+  /** `gitReason` is git's own. */
+  | { kind: 'worktree-repair-failed'; ticketId: string; step: string; gitReason: string }
+  /** A document agent's move that Hephaestus did not stamp with its snapshot's commit, worded as the Board's own `document-agent-not-live`. */
+  | { kind: 'document-agent-not-live'; ticketId: string; document: TicketDocumentKind; jobId: string }
   | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
   | { kind: 'chart-range-backwards'; from: string; to: string }
   | { kind: 'chart-range-tick-unreadable'; tickMinutes: string }

@@ -52,6 +52,9 @@ export interface HephaestusIdentity extends Omit<IdentityDocument, 'application'
 /** What a 401, a 403, a 413 or a 500 refuses, which the routes word as `text` beside it. */
 export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'malformed-body' | 'body-too-large';
 
+/** What a route answers, which `HTTP_STATUS_OF_ANSWER` alone turns into its HTTP status. */
+export type AnswerKind = ServerRefusal | 'answered' | 'not-found' | 'refused' | 'type-unsupported' | 'launches-held' | 'starting';
+
 /** A route's answer: the status and the JSON body. */
 export interface RouteAnswer {
   status: number;
@@ -131,16 +134,20 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_NAMES   = [LOOPBACK_ADDRESS, 'localhost'];
 
 const BEARER_PREFIX = 'Bearer ';
-const HTTP_STATUS = {
-  OK:           200,
-  BAD_REQUEST:  400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN:    403,
-  NOT_FOUND:    404,
-  TOO_LARGE:    413,
-  SERVER_ERROR: 500,
-  UNAVAILABLE:  503,
-} as const;
+/** The one map from an answer to its HTTP status: every route of the API answers through it. */
+const HTTP_STATUS_OF_ANSWER: Readonly<Record<AnswerKind, number>> = Object.freeze({
+  'answered':         200,
+  'malformed-body':   400,
+  'unauthorized':     401,
+  'forbidden':        403,
+  'not-found':        404,
+  'refused':          409,
+  'body-too-large':   413,
+  'type-unsupported': 415,
+  'launches-held':    423,
+  'read-failed':      500,
+  'starting':         503,
+});
 
 // Job ids and served file names need no percent-decoding, so a segment holding an escape is no route and gets the 404.
 const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
@@ -166,20 +173,24 @@ const MONITOR_EVENTS_PATH = '/api/monitor/events';
 /** The API serves no page: an answer may load nothing, post nowhere and sit in no frame. */
 const API_CONTENT_SECURITY_POLICY = 'default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'none\'';
 
+function routeAnswerOf(answerKind: AnswerKind, body: unknown): RouteAnswer {
+  return { status: HTTP_STATUS_OF_ANSWER[answerKind], body };
+}
+
 function jsonResponse(answer: RouteAnswer): Response {
   return Response.json(answer.body, { status: answer.status });
 }
 
-const STATUS_OF_SERVER_REFUSAL: Readonly<Record<ServerRefusal, number>> = {
-  'unauthorized':   HTTP_STATUS.UNAUTHORIZED,
-  'forbidden':      HTTP_STATUS.FORBIDDEN,
-  'read-failed':    HTTP_STATUS.SERVER_ERROR,
-  'malformed-body': HTTP_STATUS.BAD_REQUEST,
-  'body-too-large': HTTP_STATUS.TOO_LARGE,
-};
+function answerResponse(answerKind: AnswerKind, body: unknown): Response {
+  return jsonResponse(routeAnswerOf(answerKind, body));
+}
+
+function notFoundResponse(): Response {
+  return answerResponse('not-found', { refusal: 'not-found' });
+}
 
 function refusalResponse(routes: HephaestusRoutes, refusal: ServerRefusal): Response {
-  return jsonResponse({ status: STATUS_OF_SERVER_REFUSAL[refusal], body: { refusal, text: routes.refusalTextOf(refusal) } });
+  return answerResponse(refusal, { refusal, text: routes.refusalTextOf(refusal) });
 }
 
 function unauthorizedResponse(routes: HephaestusRoutes): Response {
@@ -216,11 +227,8 @@ function bearerTokenMatches(request: Request, expectedToken: string | null): boo
 
 /** A command refusal before any route read the body, in the control contract's shape. */
 function commandRefusalResponse(routes: HephaestusRoutes, refusal: 'malformed-body' | 'body-too-large', fields: Record<string, number>): Response {
-  return jsonResponse({
-    status: STATUS_OF_SERVER_REFUSAL[refusal],
-    body:   {
-      controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal, fields, text: routes.refusalTextOf(refusal)
-    },
+  return answerResponse(refusal, {
+    controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal, fields, text: routes.refusalTextOf(refusal)
   });
 }
 
@@ -269,14 +277,14 @@ async function boundedBodyOf(request: Request, sizeLimitBytes: number): Promise<
 async function answerPictureUpload(request: Request, routes: HephaestusRoutes): Promise<Response> {
   if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   const upload = await boundedBodyOf(request, PICTURE_SIZE_LIMIT_BYTES);
-  if (upload.verdict === 'read' && upload.bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
+  if (upload.verdict === 'read' && upload.bytes.length === 0) return answerResponse('malformed-body', { refusal: 'malformed-body' });
   return jsonResponse(routes.storePicture(upload));
 }
 
 /** Never sniffed, never cached, and sandboxed: a picture is shown as an image and can run nothing. */
 function pictureResponse(routes: HephaestusRoutes, pictureId: string): Response {
   const picture = routes.picture(pictureId);
-  if (picture === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  if (picture === null) return notFoundResponse();
   return new Response(new Uint8Array(picture.bytes), {
     headers: {
       'content-type': picture.mediaType, 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox', 'cache-control': 'no-store'
@@ -342,7 +350,7 @@ function handshakeEventText(systemVersion: SystemVersion): string {
 
 function eventsResponse(request: Request, routes: HephaestusRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): Response {
   const broker = routes.events();
-  if (broker === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
+  if (broker === null) return answerResponse('not-found', { refusal: 'not-ready' });
   return eventStreamResponse(eventStreams, (write) => {
     write(handshakeEventText(systemVersion));
     const replay = broker.replayAfter(request.headers.get('last-event-id'));
@@ -366,7 +374,7 @@ function monitorEventText(snapshot: MonitorSnapshot, systemVersion: SystemVersio
 function monitorEventsResponse(routes: HephaestusRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): Response {
   const monitorStream = routes.monitorStream();
   const latest = monitorStream?.latest() ?? null;
-  if (monitorStream === null || latest === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
+  if (monitorStream === null || latest === null) return answerResponse('not-found', { refusal: 'not-ready' });
   return eventStreamResponse(eventStreams, (write) => {
     write(handshakeEventText(systemVersion));
     write(monitorEventText(latest, systemVersion));
@@ -385,7 +393,7 @@ interface StreamContext {
 function transcriptResponse(request: Request, jobId: string, { routes, eventStreams, systemVersion }: StreamContext): Response {
   const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
   const follow = routes.transcriptOf(jobId, after);
-  if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  if (follow === null) return notFoundResponse();
   return eventStreamResponse(eventStreams, (write) => {
     write(handshakeEventText(systemVersion));
     const history = follow();
@@ -404,7 +412,7 @@ function transcriptResponse(request: Request, jobId: string, { routes, eventStre
 function profileOutputResponse(request: Request, profileRunId: string, { routes, eventStreams, systemVersion }: StreamContext): Response {
   const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
   const follow = routes.profileOutputOf(profileRunId, after);
-  if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  if (follow === null) return notFoundResponse();
   return eventStreamResponse(eventStreams, (write) => {
     write(handshakeEventText(systemVersion));
     const sendNew = () => follow().forEach((line) => write(`id: ${line.lineNumber}\nevent: line\ndata: ${JSON.stringify({ text: line.text })}\n\n`));
@@ -416,12 +424,8 @@ function profileOutputResponse(request: Request, profileRunId: string, { routes,
 
 function jobFileResponse(routes: HephaestusRoutes, jobId: string, fileName: string): Response {
   const text = SERVED_JOB_FILE_NAMES.includes(fileName) ? routes.jobFileText(jobId, fileName) : null;
-  if (text === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  if (text === null) return notFoundResponse();
   return new Response(text, { headers: { 'content-type': 'text/plain; charset=utf-8', 'content-security-policy': 'sandbox' } });
-}
-
-function notFoundResponse(): Response {
-  return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
 }
 
 /** The routes that answer board data, each behind the bearer token; `null` for any other request. */
@@ -429,8 +433,8 @@ function dataRouteOf(request: Request, routes: HephaestusRoutes, eventStreams: E
   const { pathname, searchParams } = new URL(request.url);
   if (request.method !== 'GET') return null;
   const streamContext: StreamContext = { routes, eventStreams, systemVersion };
-  if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
-  if (pathname === BOARD_PATH) return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.board() });
+  if (pathname === '/api/state') return () => answerResponse('answered', routes.state());
+  if (pathname === BOARD_PATH) return () => answerResponse('answered', routes.board());
   if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams, systemVersion);
   if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
   if (pathname === PRESENCE_PATH) return () => jsonResponse(routes.presence());
@@ -459,20 +463,20 @@ function routeOf(request: Request, routes: HephaestusRoutes, documents: OpenDocu
   const { pathname } = new URL(request.url);
   const { method } = request;
   // Before the identity's 503: a client of any version asks this first, also while Hephaestus starts.
-  if (method === 'GET' && pathname === VERSIONS_PATH) return jsonResponse({ status: HTTP_STATUS.OK, body: documents.versions });
+  if (method === 'GET' && pathname === VERSIONS_PATH) return answerResponse('answered', documents.versions);
   const dataRoute = dataRouteOf(request, routes, eventStreams, documents.versions.current);
   if (dataRoute !== null) return bearerTokenMatches(request, routes.token()) ? readAnswerOf(routes, dataRoute) : unauthorizedResponse(routes);
   if (method === 'GET' && pathname === '/api/identity') {
     return routes.started()
-      ? jsonResponse({ status: HTTP_STATUS.OK, body: documents.identity })
-      : jsonResponse({ status: HTTP_STATUS.UNAVAILABLE, body: { refusal: 'starting' } });
+      ? answerResponse('answered', documents.identity)
+      : answerResponse('starting', { refusal: 'starting' });
   }
-  if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
+  if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => answerResponse('answered', routes.summary()));
   if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
   if (method === 'POST' && pathname === '/api/pictures') return answerPictureUpload(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();
-    return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
+    return answerResponse('answered', { outcome: 'done' });
   }
   return notFoundResponse();
 }
@@ -567,5 +571,5 @@ function start(serverRequest: HephaestusServerRequest): HephaestusServer {
 }
 
 export const HephaestusServer = Object.freeze({
-  API_CONTENT_SECURITY_POLICY, COMMAND_BODY_BOUND_BYTES, start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
+  API_CONTENT_SECURITY_POLICY, COMMAND_BODY_BOUND_BYTES, HTTP_STATUS_OF_ANSWER, routeAnswerOf, start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
 });

@@ -1,20 +1,21 @@
 /**
  * A ticket's documents record read and written back. What matters: a record with every optional key read and written back is the same bytes,
  * and one without them stays without them, so a read never adds a key; a file that is no JSON, of another version, or that breaks its
- * shape is a `malformed` verdict naming the reason, never a throw; and a version's text is the version only while it hashes to its name,
+ * shape is a `malformed` verdict naming the problem, never a throw; and a version's text is the version only while it hashes to its name,
  * read byte for byte, a leading byte order mark kept.
  */
 import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketDocumentRecord }    from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TicketDocumentVersionUtil }    from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
-import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
-import { loadedRecordFixture }          from '../../testing/TicketDocumentRecordFixtures.ts';
-import { TicketDocumentContentFile }    from './TicketDocumentContentFile.ts';
-import { TicketDocumentsFileIngestion } from './TicketDocumentsFileIngestion.ts';
-import { TicketDocumentsFileWriter }    from './TicketDocumentsFileWriter.ts';
+import type { TicketDocumentRecord }     from '../../lib/tracker-model/@types/TicketDocument.ts';
+import { TicketDocumentVersionUtil }     from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import { createScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import { loadedRecordFixture }           from '../../testing/TicketDocumentRecordFixtures.ts';
+import { TicketDocumentContentFile }     from './TicketDocumentContentFile.ts';
+import { TicketDocumentsFileIngestion }  from './TicketDocumentsFileIngestion.ts';
+import { TicketDocumentsFileWriter }     from './TicketDocumentsFileWriter.ts';
+import { TicketDocumentsProblemWording } from './TicketDocumentsProblemWording.ts';
 
 const SPEC = '## Acceptance\n\nA1. The basket shows.\n';
 
@@ -81,7 +82,7 @@ describe('the record file', () => {
   test('a record with every optional key reads and writes back byte for byte', () => {
     const contents = TicketDocumentsFileWriter.contentsOf(recordWithEveryKey());
     const reading  = TicketDocumentsFileIngestion.parsedRecordOf(contents);
-    if (reading.verdict !== 'parsed') throw new Error(reading.reason);
+    if (reading.verdict !== 'parsed') throw new Error(TicketDocumentsProblemWording.sentenceOf(reading.problem));
     expect(reading.record).toEqual(recordWithEveryKey());
     expect(TicketDocumentsFileWriter.contentsOf(reading.record)).toBe(contents);
   });
@@ -90,7 +91,7 @@ describe('the record file', () => {
     const { record } = loadedRecordFixture('004', { spec: { texts: [] }, plan: { texts: [] } });
     const contents = TicketDocumentsFileWriter.contentsOf(record);
     const reading  = TicketDocumentsFileIngestion.parsedRecordOf(contents);
-    if (reading.verdict !== 'parsed') throw new Error(reading.reason);
+    if (reading.verdict !== 'parsed') throw new Error(TicketDocumentsProblemWording.sentenceOf(reading.problem));
     expect(TicketDocumentsFileWriter.contentsOf(reading.record)).toBe(contents);
     expect(contents).not.toContain('readyAtNumber');
   });
@@ -109,7 +110,7 @@ describe('the record file', () => {
   ])('a file with %s is malformed, never a throw', (_case, contents, reason) => {
     const reading = TicketDocumentsFileIngestion.parsedRecordOf(contents);
     expect(reading.verdict).toBe('malformed');
-    if (reading.verdict === 'malformed') expect(reading.reason).toContain(reason);
+    if (reading.verdict === 'malformed') expect(TicketDocumentsProblemWording.sentenceOf(reading.problem)).toContain(reason);
   });
 
   test('a file that is missing is malformed', () => {
@@ -125,7 +126,7 @@ describe('a version file', () => {
     writeFileSync(location, SPEC);
     expect(TicketDocumentContentFile.read(location, contentHash)).toEqual({ verdict: 'readable', text: SPEC });
     writeFileSync(location, `${SPEC}changed\n`);
-    expect(TicketDocumentContentFile.read(location, contentHash)).toEqual({ verdict: 'unreadable', reason: `its text does not hash to ${contentHash}` });
+    expect(TicketDocumentContentFile.read(location, contentHash)).toEqual({ verdict: 'unreadable', problem: { code: 'text-hash-differs', contentHash } });
   });
 
   test('keeps a leading byte order mark, which its hash was taken over', () => {

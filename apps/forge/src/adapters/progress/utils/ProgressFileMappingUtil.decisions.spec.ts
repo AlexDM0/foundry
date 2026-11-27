@@ -12,6 +12,7 @@ import { createLogger }               from '../../../lib/tracker-model/Logger.ts
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress }              from '../../../testing/ProgressFixtures.ts';
 import type { StoredProgressFile }    from '../@types/StoredProgressFile.ts';
+import { ProgressFileProblemWording } from '../ProgressFileProblemWording.ts';
 import { ProgressFileMappingUtil }    from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 
@@ -88,7 +89,7 @@ function storedTextWithDecisionsAndIncidents(): string {
 
 function storedDocumentOf(text: string): StoredProgressFile {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return reading.document;
 }
 

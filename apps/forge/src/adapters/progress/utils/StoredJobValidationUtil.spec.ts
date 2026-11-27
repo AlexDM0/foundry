@@ -6,9 +6,12 @@
 import { expect, test } from 'bun:test';
 
 import { OLDER_FORMAT_ADVICE }     from '../../constants/OlderFormatAdvice.ts';
+import { sentenceOfProblem }       from '../testing/WordedProgressProblem.ts';
 import { StoredJobValidationUtil } from './StoredJobValidationUtil.ts';
 
-const { jobProblem, jobsProblemOf } = StoredJobValidationUtil;
+const jobProblem = (value: unknown, index: number): string | null => sentenceOfProblem(StoredJobValidationUtil.jobProblem(value, index));
+
+const jobsProblemOf = (document: Record<string, unknown>): string | null => sentenceOfProblem(StoredJobValidationUtil.jobsProblemOf(document));
 
 const WELL_FORMED_JOB = {
   id:                 'J1',

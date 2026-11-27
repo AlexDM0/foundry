@@ -1,10 +1,11 @@
 /** The open incidents for the Assistant, in opening order, each with the moves its kind allows. Read-only, no lock. */
-import type { Incident }                  from '../../src/lib/tracker-model/@types/Incident.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND } from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import { PRODUCT_NAMES }                  from '../../src/shared/constants/ProductNames.ts';
-import { boardReadsOf }                   from '../BoardStoreOf.ts';
-import type { CommandHandler }            from '../CommandHandler.ts';
-import { OutputUtil }                     from '../utils/OutputUtil.ts';
+import { UnreadableFileProblemWordingUtil } from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
+import type { Incident }                    from '../../src/lib/tracker-model/@types/Incident.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }   from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import { PRODUCT_NAMES }                    from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }                     from '../BoardStoreOf.ts';
+import type { CommandHandler }              from '../CommandHandler.ts';
+import { OutputUtil }                       from '../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} incidents [--json]`;
 
@@ -12,7 +13,7 @@ function incidentTextOf(incident: Readonly<Incident>): string {
   const tickets   = incident.ticketIds.length === 0 ? '' : ` on #${incident.ticketIds.join(', #')}`;
   const job       = incident.jobId === null ? '' : `, job ${incident.jobId}`;
   const delivered = incident.deliveredInTurn === null ? 'undelivered' : `delivered to ${incident.deliveredInTurn.jobId}`;
-  const facts     = Object.entries(incident.facts).map(([fact, value]) => `  ${fact}: ${value}`);
+  const facts     = Object.entries(UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident)).map(([fact, value]) => `  ${fact}: ${value}`);
   return [
     `${incident.id} ${incident.kind}${tickets} (${delivered}${job}, ${incident.openedAt})`,
     ...facts,

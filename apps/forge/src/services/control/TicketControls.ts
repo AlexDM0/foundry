@@ -2,10 +2,8 @@
 import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
-import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
 import { TICKET_STATUSES_USER_READIES }       from '../../lib/tracker-model/constants/Statuses.ts';
 import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
@@ -25,17 +23,6 @@ function bodyForNewTicket(bodyText: string | null, ticketId: string, title: stri
 function finderGroupOf(command: CommandOf<'ticket-add'>, change: BoardTransaction): string | undefined {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
   return finderTicketIds.map((ticketId) => change.board.ticketByReference(ticketId)?.frontmatter.group).find((group) => group !== undefined);
-}
-
-/**
- * The refusals `setTicketNetwork` gives a new ticket, judged before it is filed: the Board keeps no undo, so a relayed filing refused after
- * it would still store the ticket while its reply says refused.
- */
-function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly string[]): void {
-  const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
-  const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
-  if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
-  if (requestedDomains.length === 0) throw new BoardRefusal({ reason: 'network-unchanged', ticketId, domains: [] });
 }
 
 /**
@@ -76,7 +63,7 @@ function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {
   if (command.model !== undefined) ticket.frontmatter.model = command.model;
   if (command.effort !== undefined) ticket.frontmatter.effort = command.effort;
   if (command.admission !== undefined) ticket.frontmatter.filedByJob = command.admission.filedByJob;
-  if (command.network.length > 0) refuseANetworkTheFilingCannotSet(ticket.frontmatter.id, command.network);
+  if (command.network.length > 0) change.board.refuseANetworkAFilingCannotSet(ticket.frontmatter.id, command.network);
   if (command.entity !== undefined) {
     change.board.refuseAnUnknownEntity(ticket.frontmatter.id, command.entity);
     ticket.frontmatter.entity = command.entity;

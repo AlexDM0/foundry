@@ -16,6 +16,7 @@ import {
 import type { StoredConstitutionSources }                 from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { ConstitutionSourcesFile }                        from './ConstitutionSourcesFile.ts';
+import { PipelineSetupProblemWording }                    from './PipelineSetupProblemWording.ts';
 
 const EXAMPLE_BLOB = 'c'.repeat(40);
 
@@ -104,6 +105,6 @@ describe('a file nobody could trust whole', () => {
     const reading = ConstitutionSourcesFile.read(sourcesFilePath);
 
     expect(reading.verdict).toBe('malformed');
-    expect(reading.verdict === 'malformed' ? reading.reason.length : 0).toBeGreaterThan(0);
+    expect(reading.verdict === 'malformed' ? PipelineSetupProblemWording.constitutionSourcesSentenceOf(reading.problem).length : 0).toBeGreaterThan(0);
   });
 });

@@ -2,7 +2,6 @@
  * A ticket's documents in the spec-then-plan route, kept by the local store as one record per ticket beside a content file per version.
  * A version is known by its content hash; its number is for display. Line numbers are 1-based, and a range includes both ends.
  */
-
 export type TicketDocumentKind = 'spec' | 'plan';
 
 /** In pipeline order: where two documents disagree, the later one wins. */

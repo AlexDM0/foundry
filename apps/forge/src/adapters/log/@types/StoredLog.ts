@@ -1,4 +1,5 @@
-import type { LogRecord } from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }      from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogFileProblem } from '../../../shared/@types/LogFileProblem.ts';
 
 export interface StoredLog {
   records: LogRecord[];
@@ -7,6 +8,6 @@ export interface StoredLog {
 export type LogFileReading =
   | { verdict: 'readable'; records: LogRecord[] }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: LogFileProblem };
 
-export type StoredLogReading = ({ verdict: 'readable' } & StoredLog) | { verdict: 'unreadable'; reason: string };
+export type StoredLogReading = ({ verdict: 'readable' } & StoredLog) | { verdict: 'unreadable'; problem: LogFileProblem };

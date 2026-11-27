@@ -288,7 +288,8 @@ export function createRecordedAirlocksHarness(
     keptAirlockFactsOf: (mergeJob) => {
       const facts = keptAirlockFacts.get(mergeJob.id);
       if (settings.airlockFactsUnreadable) {
-        return { verdict: 'unreadable', unreadableFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/airlock-facts.json`, reason: 'its version is not 1' } };
+        const problem = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+        return { verdict: 'unreadable', unreadableFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/airlock-facts.json`, problem } };
       }
       return facts === undefined ? { verdict: 'absent' } : { verdict: 'kept', facts };
     },

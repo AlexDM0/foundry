@@ -11,6 +11,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_TICKET_PROBLEMS                             from './FrozenTicketProblems.json';
 import { TicketFileIngestion }                            from './TicketFileIngestion.ts';
+import { TicketFileProblemWording }                       from './TicketFileProblemWording.ts';
 
 const NOT_UTF8_BYTES = Uint8Array.of(0x63, 0x61, 0x66, 0xe9, 0x0a);
 
@@ -33,9 +34,9 @@ function systemErrorAt(storedFilePath: string): string {
   }
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new TicketFileIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return reading.verdict === 'malformed' ? TicketFileProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -52,5 +53,5 @@ test.each(FROZEN_TICKET_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+  expect(sentenceAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
 });

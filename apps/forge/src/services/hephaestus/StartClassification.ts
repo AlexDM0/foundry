@@ -3,7 +3,9 @@
  * Hephaestus lock, Talos's newest record, the boot, and how this start came about. It reads no file, process or clock; the start gate, `status`
  * and the presence document all read its one verdict.
  */
+import type { HeartbeatProblem }                    from '../../adapters/heartbeat/@types/HeartbeatProblem.ts';
 import type { HeartbeatRecord }                     from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
+import type { PresenceProblem }                     from '../../adapters/presence/@types/PresenceProblem.ts';
 import type { PresenceRecord }                      from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }          from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import { LocalTimeUtil }                            from '../../lib/local-time/LocalTimeUtil.ts';
@@ -26,8 +28,8 @@ export type StartOriginReading =
   | { startOrigin: 'successor'; predecessorGeneration: number };
 
 export interface StartEvidence {
-  presence:                  PresenceFileReading<PresenceRecord>;
-  heartbeat:                 PresenceFileReading<HeartbeatRecord>;
+  presence:                  PresenceFileReading<PresenceRecord, PresenceProblem>;
+  heartbeat:                 PresenceFileReading<HeartbeatRecord, HeartbeatProblem>;
   newestLock:                HephaestusLockReading;
   talos:                     TalosRecordReading;
   currentBootIdentity:       string;

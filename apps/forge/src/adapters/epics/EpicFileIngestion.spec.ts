@@ -34,5 +34,5 @@ test('an epic file parses into the epic, which carries no location', () => {
 
 test('a file that is not UTF-8, such as one saved in cp1252, is malformed at line 0', () => {
   const epicPath = epicFileHolding(Buffer.concat([Buffer.from(EPIC_DOCUMENT), Buffer.from([0x63, 0x61, 0x66, 0xE9, 0x0A])]));
-  expect(new EpicFileIngestion(epicPath).read()).toEqual({ verdict: 'malformed', reason: 'the file is not UTF-8 text', line: 0 });
+  expect(new EpicFileIngestion(epicPath).read()).toEqual({ verdict: 'malformed', problem: { code: 'file-not-utf8-text' }, line: 0 });
 });

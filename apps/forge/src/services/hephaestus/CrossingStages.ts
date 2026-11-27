@@ -192,7 +192,7 @@ function stageStatementOf(trackerDirectory: string, jobId: string): StageStateme
   const statementFilePath = stageStatementPathOf(trackerDirectory, jobId);
   const reading = new StageStatementIngestion(statementFilePath).read();
   if (reading.verdict === 'readable') return reading.statement;
-  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, statementFilePath, reading.reason);
+  return reading.verdict === 'absent' ? null : StoredFileUnreadable.unreadableFileOf(trackerDirectory, statementFilePath, reading.problem);
 }
 
 /** The newest job of the ticket that ran `stage` and ended with `outcome`; `null` when none did. */

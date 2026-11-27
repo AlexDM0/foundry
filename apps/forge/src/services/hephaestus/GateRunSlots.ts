@@ -7,7 +7,9 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join }         from 'node:path';
 
+import type { GateRunSlotProblem }                                            from '../../adapters/gate-run-slot/@types/GateRunSlotProblem.ts';
 import { GateRunSlotIngestion, type GateRunHolding, type GateRunSlotReading } from '../../adapters/gate-run-slot/GateRunSlotIngestion.ts';
+import { GateRunSlotProblemWording }                                          from '../../adapters/gate-run-slot/GateRunSlotProblemWording.ts';
 import { createGateRunSlotWriter }                                            from '../../adapters/gate-run-slot/GateRunSlotWriter.ts';
 import { removeHeldFile }                                                     from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }                                                   from '../../lib/atomic-file/FileReplace.ts';
@@ -88,12 +90,12 @@ function readingOf(slotPath: string): GateRunSlotReading {
 }
 
 /** A slot whose bytes could not be read at all is left for a later claim, and handed to `bytesUnreadable`. */
-function judgedSlotOf(slotPath: string, bytesUnreadable: (slotPath: string, reason: string) => void): JudgedSlot | null {
+function judgedSlotOf(slotPath: string, bytesUnreadable: (slotPath: string, problem: GateRunSlotProblem) => void): JudgedSlot | null {
   const reading = readingOf(slotPath);
   if (reading.verdict === 'absent') return null;
   if (reading.verdict === 'readable') return reading;
   if (reading.storedText !== null) return { ...reading, storedText: reading.storedText };
-  bytesUnreadable(slotPath, reading.reason);
+  bytesUnreadable(slotPath, reading.problem);
   return null;
 }
 
@@ -131,8 +133,10 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   const realGatesWaitingInThisProcess = new Set<string>();
   const unreadableSlotPathsLogged = new Set<string>();
 
-  function logUnreadableSlotOnce(slotPath: string, reason: string): void {
-    if (!unreadableSlotPathsLogged.has(slotPath)) options.log(`The gate run slot ${slotPath} could not be read (${reason}); it is left in place.`);
+  function logUnreadableSlotOnce(slotPath: string, problem: GateRunSlotProblem): void {
+    if (!unreadableSlotPathsLogged.has(slotPath)) {
+      options.log(`The gate run slot ${slotPath} could not be read (${GateRunSlotProblemWording.sentenceOf(problem)}); it is left in place.`);
+    }
     unreadableSlotPathsLogged.add(slotPath);
   }
 
@@ -172,7 +176,9 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   function freedIfStale(slotPath: string, judged: JudgedSlot, ownHolding: GateRunHolding): void {
     if (judged.verdict === 'readable' && options.holderIsLive(judged.holding)) return;
     if (!StaleSlotTakeOver.staleSlotFreed(slotPath, judged.storedText, slotTakerFor(ownHolding))) return;
-    const staleReason = judged.verdict === 'unreadable' ? `it could not be read (${judged.reason})` : `its holder ${judged.holding.holder} is no longer live`;
+    const staleReason = judged.verdict === 'unreadable'
+      ? `it could not be read (${GateRunSlotProblemWording.sentenceOf(judged.problem)})`
+      : `its holder ${judged.holding.holder} is no longer live`;
     options.log(`The gate run slot ${slotPath} was stale and is taken over: ${staleReason}.`);
   }
 

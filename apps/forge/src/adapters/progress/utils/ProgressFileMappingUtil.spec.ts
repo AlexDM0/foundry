@@ -18,6 +18,7 @@ import { JsonTextUtil }                from '../../../shared/utils/JsonTextUtil.
 import { boardFixture, ticketFixture } from '../../../testing/BoardFixtures.ts';
 import { emptyProgress, fileRow }      from '../../../testing/ProgressFixtures.ts';
 import type { StoredProgressFile }     from '../@types/StoredProgressFile.ts';
+import { ProgressFileProblemWording }  from '../ProgressFileProblemWording.ts';
 import { ProgressFileMappingUtil }     from './ProgressFileMappingUtil.ts';
 import { ProgressFileValidationUtil }  from './ProgressFileValidationUtil.ts';
 
@@ -45,7 +46,7 @@ function storedTextWithUnknownKeys(): string {
 /** Parsed from text and validated, as the ingestion does, since a typed literal cannot hold a key the type does not know. */
 function storedDocumentOf(text: string): StoredProgressFile {
   const reading = ProgressFileValidationUtil.readingOf(JSON.parse(text));
-  if (reading.verdict === 'unreadable') throw new Error(reading.reason);
+  if (reading.verdict === 'unreadable') throw new Error(ProgressFileProblemWording.sentenceOf(reading.problem));
   return reading.document;
 }
 
@@ -213,7 +214,8 @@ describe('a row\'s pipelineHashes', () => {
   test('a row whose pipelineHashes is not a record of hashes is refused, naming the field', () => {
     for (const pipelineHashes of [['0f871814e52ef878'], { shop: 7 }, 'shop']) {
       const reading = ProgressFileValidationUtil.readingOf(JSON.parse(textOfRows([greenRowOf({ pipelineHashes })])));
-      expect(reading.verdict === 'unreadable' ? reading.reason : null).toBe('tasks[0].pipelineHashes is present and is not a record of a hash for each entity key');
+      const sentence = reading.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(reading.problem) : null;
+      expect(sentence).toBe('tasks[0].pipelineHashes is present and is not a record of a hash for each entity key');
     }
   });
 });
@@ -318,7 +320,7 @@ describe('a row\'s stage keys', () => {
     ];
     for (const [extraKeys, reason] of refusals) {
       const reading = ProgressFileValidationUtil.readingOf(JSON.parse(textOfRows([ticketRowOf(extraKeys)])));
-      expect(reading.verdict === 'unreadable' ? reading.reason : null, JSON.stringify(extraKeys)).toBe(reason);
+      expect(reading.verdict === 'unreadable' ? ProgressFileProblemWording.sentenceOf(reading.problem) : null, JSON.stringify(extraKeys)).toBe(reason);
     }
   });
 });

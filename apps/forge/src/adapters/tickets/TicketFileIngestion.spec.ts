@@ -62,7 +62,7 @@ describe('TicketFileIngestion', () => {
     expect(reading.verdict === 'parsed' ? reading.identifierLine : null).toBe(3);
   });
 
-  test('a path that cannot be read as a file is malformed at line 0 with the reason it could not be read', () => {
+  test('a path that cannot be read as a file is malformed at line 0 with the problem that it could not be read', () => {
     const scratchDirectory = createScratchDirectory('ticket-ingestion');
     scratchDirectories.push(scratchDirectory);
     const directoryPath = join(scratchDirectory, '004-a-directory.md');
@@ -72,7 +72,7 @@ describe('TicketFileIngestion', () => {
 
     expect(reading.verdict).toBe('malformed');
     expect(reading.verdict === 'malformed' ? reading.line : null).toBe(0);
-    expect(reading.verdict === 'malformed' ? reading.reason : '').toStartWith('the file could not be read: ');
+    expect(reading.verdict === 'malformed' ? reading.problem.code : '').toBe('file-unreadable');
   });
 
   /** A lossy decode would read U+FFFD in place of the byte, and the next write would lose it: the body is kept byte for byte or not read. */
@@ -80,7 +80,7 @@ describe('TicketFileIngestion', () => {
     const ticketPath = ticketFileHolding('');
     writeFileSync(ticketPath, Buffer.concat([Buffer.from(TICKET_WITH_A_COMMENT_ABOVE_ITS_ID), Buffer.from([0x63, 0x61, 0x66, 0xE9, 0x0A])]));
 
-    expect(new TicketFileIngestion(ticketPath).read()).toEqual({ verdict: 'malformed', reason: 'the file is not UTF-8 text', line: 0 });
+    expect(new TicketFileIngestion(ticketPath).read()).toEqual({ verdict: 'malformed', problem: { code: 'file-not-utf8-text' }, line: 0 });
   });
 
   test('reading a file leaves it byte for byte', () => {

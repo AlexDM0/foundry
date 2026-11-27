@@ -56,7 +56,7 @@ function unfinishedWriteOf(workspace: Workspace): UnfinishedWriteReading {
   switch (journalReading.verdict) {
     case 'absent':    return { verdict: 'none' };
     case 'readable':  return { verdict: 'pending' };
-    case 'malformed': return { verdict: 'malformed', location: localStoreLayoutOf(workspace).holdJournalPath, reason: journalReading.reason };
+    case 'malformed': return { verdict: 'malformed', location: localStoreLayoutOf(workspace).holdJournalPath, problem: journalReading.problem };
   }
 }
 
@@ -73,7 +73,7 @@ function storedPipelineTextOf(workspace: Workspace): string | null {
 
 function logRecordsReadingOf(workspace: Workspace): LogRecordsReading {
   const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(localStoreLayoutOf(workspace).logRecordPath).read());
-  return storedLog.verdict === 'readable' ? { verdict: 'readable', records: storedLog.records } : { verdict: 'unreadable', reason: storedLog.reason };
+  return storedLog.verdict === 'readable' ? { verdict: 'readable', records: storedLog.records } : { verdict: 'unreadable', problem: storedLog.problem };
 }
 
 function fileTextOrEmpty(filePath: string): string {

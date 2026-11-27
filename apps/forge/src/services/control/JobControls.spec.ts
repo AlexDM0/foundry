@@ -379,7 +379,7 @@ describe('pictures', () => {
   function boardWithStoredPicture(board: Board = boardFixture().board): { board: Board; pictureId: string; applyCommand: (command: ControlCommand) => unknown } {
     const trackerDirectory = createScratchDirectory('job-controls-pictures');
     scratchDirectories.push(trackerDirectory);
-    const ownerOnlyFiles = { restrictFolder: () => undefined, restrictFile: () => undefined, isOwnerOnly: () => true };
+    const ownerOnlyFiles = { restrictFolder: () => ({ verdict: 'restricted' }) as const, restrictFile: () => ({ verdict: 'restricted' }) as const, isOwnerOnly: () => true };
     const storing = PictureStore.storePicture(ownerOnlyFiles, trackerDirectory, Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
     if (storing.verdict !== 'stored') throw new Error('the example picture was not stored');
     const change = { board, at: AT, workspace: { trackerDirectory } } as unknown as BoardTransaction;

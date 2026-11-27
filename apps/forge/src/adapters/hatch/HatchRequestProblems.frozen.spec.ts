@@ -4,6 +4,7 @@ import { join }                    from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { StoredFileProblemWordingUtil }                   from '../utils/StoredFileProblemWordingUtil.ts';
 import frozenProblems                                     from './FrozenHatchRequestProblems.json' with { type: 'json' };
 import { HatchRequestIngestion }                          from './HatchRequestIngestion.ts';
 
@@ -28,5 +29,7 @@ test.each(frozenProblems)('$case', ({ sentence }) => {
   const filePath = join(scratchDirectory, 'R1.json');
   mkdirSync(filePath);
 
-  expect(new HatchRequestIngestion(filePath).read()).toEqual({ verdict: 'unreadable', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+  const reading = new HatchRequestIngestion(filePath).read();
+  expect(reading.verdict).toBe('unreadable');
+  expect(reading.verdict === 'unreadable' ? StoredFileProblemWordingUtil.sentenceOf(reading.problem) : '').toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
 });

@@ -430,7 +430,7 @@ describe('a chats file that cannot be read', () => {
 
     expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts, incident.deliveredInTurn])).toEqual([
       ['blocked', null, {}, null],
-      ['system-file-unreadable', ASSISTANT_ID, { file: `jobs/${ASSISTANT_ID}/assistant-chats.json`, reason: 'it is not a JSON object' }, null],
+      ['system-file-unreadable', ASSISTANT_ID, { file: `jobs/${ASSISTANT_ID}/assistant-chats.json`, problem: 'not-a-json-object' }, null],
     ]);
     const assistant = board.jobById(ASSISTANT_ID) ?? LIVE_ASSISTANT;
     expect(assistant.state).toBe('stopping');

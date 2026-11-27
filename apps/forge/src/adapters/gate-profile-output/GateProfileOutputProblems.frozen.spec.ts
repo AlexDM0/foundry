@@ -6,6 +6,7 @@ import { afterEach, expect, test }                from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import frozenProblems                                     from './FrozenGateProfileOutputProblems.json' with { type: 'json' };
 import { GateProfileOutputIngestion }                     from './GateProfileOutputIngestion.ts';
+import { GateProfileOutputProblemWording }                from './GateProfileOutputProblemWording.ts';
 
 let scratchDirectory: string | null = null;
 
@@ -31,5 +32,8 @@ test.each(frozenProblems)('$case', ({ stored, sentence }) => {
 
   const reading = new GateProfileOutputIngestion(filePath).read();
   const unreadableReading = reading.verdict === 'readable' ? reading.lines[0] : reading;
-  expect(unreadableReading).toEqual({ verdict: 'unreadable', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+  expect(unreadableReading?.verdict).toBe('unreadable');
+  expect(unreadableReading?.verdict === 'unreadable' ? GateProfileOutputProblemWording.sentenceOf(unreadableReading.problem) : '').toBe(
+    sentence.replace('{systemError}', systemErrorOf(filePath)),
+  );
 });

@@ -214,7 +214,7 @@ describe('a stale green that turned red', () => {
     writeFileSync(join(jobFolderIn(trackerDirectory, 'J2'), 'stale-green-session-owner.json'), '{"sessionOwnerJobId":"J1"}\n');
     const unreadable = {
       verdict:        'unreadable' as const,
-      unreadableFile: { jobId: 'J2', file: 'jobs/J2/stale-green-session-owner.json', reason: 'its version is not 1' },
+      unreadableFile: { jobId: 'J2', file: 'jobs/J2/stale-green-session-owner.json', problem: { code: 'version-differs', field: 'version', expectedVersion: 1 } as const },
     };
 
     expect(JobResumption.staleGreenSessionOwnerOf(

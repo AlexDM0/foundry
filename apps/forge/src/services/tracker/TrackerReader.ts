@@ -41,7 +41,7 @@ function progressFileReadingOf(workspace: Workspace): Extract<ProgressFileReadin
       verdict:        'unreadable',
       unreadableFile: 'progress-file',
       filePath:       progressRecordPath,
-      reason:         progressReading.reason,
+      problem:        progressReading.problem,
     };
   }
   return progressReading;
@@ -76,7 +76,7 @@ function readLocalTracker(workspace: Workspace): LocalTrackerReading {
       verdict:        'unreadable',
       unreadableFile: 'log-file',
       filePath:       localStoreLayoutOf(workspace).logRecordPath,
-      reason:         storedLog.reason,
+      problem:        storedLog.problem,
     };
   }
 

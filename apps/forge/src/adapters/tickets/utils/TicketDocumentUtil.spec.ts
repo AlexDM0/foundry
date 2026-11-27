@@ -7,7 +7,8 @@
 import { describe, expect, test }                                from 'bun:test';
 import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../lib/tracker-model/@types/Ticket.ts';
 import { OLDER_FORMAT_ADVICE }                                   from '../../constants/OlderFormatAdvice.ts';
-import { TicketDocumentUtil }                                    from './TicketDocumentUtil.ts';
+import { TicketFileProblemWording }                              from '../TicketFileProblemWording.ts';
+import { type ParsedTicketDocument, TicketDocumentUtil }         from './TicketDocumentUtil.ts';
 
 const FULL_TICKET = [
   '---',
@@ -33,8 +34,17 @@ const FULL_TICKET = [
   '',
 ].join('\n');
 
-function parsedDocument(text: string): { frontmatter: TicketFrontmatter; body: string; lineEnding: LineEnding; storedType?: RetiredTicketType } {
+type WordedTicketDocumentParsing = Exclude<ParsedTicketDocument, { verdict: 'malformed' }> | { verdict: 'malformed'; reason: string; line: number };
+
+/** The parse with a malformed verdict's problem worded as the ticket listing prints it, so a case reads as the sentence User sees. */
+function wordedParsingOf(text: string): WordedTicketDocumentParsing {
   const parsed = TicketDocumentUtil.parsedTicketDocumentOf(text);
+  if (parsed.verdict !== 'malformed') return parsed;
+  return { verdict: 'malformed', reason: TicketFileProblemWording.sentenceOf(parsed.problem), line: parsed.line };
+}
+
+function parsedDocument(text: string): { frontmatter: TicketFrontmatter; body: string; lineEnding: LineEnding; storedType?: RetiredTicketType } {
+  const parsed = wordedParsingOf(text);
   if (parsed.verdict !== 'parsed') {
     throw new Error(`expected a parsed ticket document, got "${parsed.reason}" at line ${parsed.line}`);
   }
@@ -146,7 +156,7 @@ describe('parsedTicketDocumentOf', () => {
 
   test('a document with no closing fence is malformed and names the last line', () => {
     const unterminated = ['---', 'id: "003"', 'title: "No fence"'].join('\n');
-    const parsed       = TicketDocumentUtil.parsedTicketDocumentOf(unterminated);
+    const parsed       = wordedParsingOf(unterminated);
 
     expect(parsed).toEqual({ verdict: 'malformed', reason: 'the frontmatter has no closing `---` fence', line: 3 });
   });
@@ -154,7 +164,7 @@ describe('parsedTicketDocumentOf', () => {
   // Without this, the body's first rule closes the frontmatter and every heading above it is silently kept as a comment.
   test('a document whose closing fence was deleted is refused at the first heading, saying to restore the fence above it', () => {
     const fenceDeleted = FULL_TICKET.replace('task: 17\n---\n', 'task: 17\n').concat('---\n\n## Acceptance\n');
-    const parsed       = TicketDocumentUtil.parsedTicketDocumentOf(fenceDeleted);
+    const parsed       = wordedParsingOf(fenceDeleted);
 
     expect(parsed).toEqual({
       verdict: 'malformed',
@@ -166,7 +176,7 @@ describe('parsedTicketDocumentOf', () => {
 
   // The same refusal meets a correctly fenced file, so its reason must not call the real fence a rule in the body.
   test('a two-hash comment inside a correctly fenced frontmatter is refused without claiming the fence is missing', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n## note from Alex Example\n'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n## note from Alex Example\n'));
 
     expect(parsed.verdict === 'malformed' ? parsed.reason : '').toStartWith('line 15 is the markdown heading `## note from Alex Example`');
     expect(parsed.verdict === 'malformed' ? parsed.reason : '').not.toContain('no closing');
@@ -176,7 +186,7 @@ describe('parsedTicketDocumentOf', () => {
   test('a single-hash line followed by a blank and prose is refused at itself when the closing fence was deleted, saying to restore the fence above it', () => {
     const fenceDeleted = FULL_TICKET.replace('task: 17\n---\n', 'task: 17\n').replace('## Report', 'The dialog forgets the folder.').concat('---\n');
 
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(fenceDeleted)).toEqual({
+    expect(wordedParsingOf(fenceDeleted)).toEqual({
       verdict: 'malformed',
       reason:  'line 15 `# 003 — Fix: the export dialog forgets the folder` is followed after blank lines by line 17, which is not a `key: value` line: '
         + 'if line 15 is a markdown heading, the closing `---` fence was deleted and belongs above it; if it is a comment, line 17 does not belong in the frontmatter',
@@ -186,7 +196,7 @@ describe('parsedTicketDocumentOf', () => {
 
   // In a correctly fenced file the same shape is a comment above a stray line, so the reason must not state that line 15 is a heading.
   test('a single-hash comment followed by a blank and prose inside a fenced frontmatter is refused naming the stray line as well', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n# owners\n\n- Alex Example\n'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n# owners\n\n- Alex Example\n'));
     const reason = parsed.verdict === 'malformed' ? parsed.reason : '';
 
     expect(reason).toContain('line 17 does not belong in the frontmatter');
@@ -200,43 +210,43 @@ describe('parsedTicketDocumentOf', () => {
   });
 
   test('a single-hash comment followed directly by prose is refused at the prose, not as a heading', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n# pairing notes\nnot a key\n'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('task: 17\n', 'task: 17\n# pairing notes\nnot a key\n'));
 
     expect(parsed).toEqual({ verdict: 'malformed', reason: '`not a key` is not a `key: value` line', line: 16 });
   });
 
   test('a content hash reads as stored, and one that is not sixteen hex digits is refused, since the store reads the file it names', () => {
     expect(parsedDocument(FULL_TICKET.replace('task: 17\n', 'contentHash: "5f1d3c9a0b7e2468"\ntask: 17\n')).frontmatter.contentHash).toBe('5f1d3c9a0b7e2468');
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17\n', 'contentHash: "../progress"\ntask: 17\n')))
+    expect(wordedParsingOf(FULL_TICKET.replace('task: 17\n', 'contentHash: "../progress"\ntask: 17\n')))
       .toEqual({ verdict: 'malformed', reason: '`contentHash` is not a content hash of sixteen hex digits: ../progress', line: 14 });
   });
 
   test('an id of zero or past the safe integers is refused rather than padded', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('id: "003"', 'id: 0')))
+    expect(wordedParsingOf(FULL_TICKET.replace('id: "003"', 'id: 0')))
       .toEqual({ verdict: 'malformed', reason: '`id` is not a ticket number: 0', line: 2 });
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('id: "003"', 'id: 99999999999999999999')))
+    expect(wordedParsingOf(FULL_TICKET.replace('id: "003"', 'id: 99999999999999999999')))
       .toEqual({ verdict: 'malformed', reason: '`id` is not a ticket number: 99999999999999999999', line: 2 });
   });
 
   test('a task past the safe integers is refused rather than rounded', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17', 'task: 99999999999999999999')))
+    expect(wordedParsingOf(FULL_TICKET.replace('task: 17', 'task: 99999999999999999999')))
       .toEqual({ verdict: 'malformed', reason: '`task` is not a safe whole number: 99999999999999999999', line: 14 });
   });
 
   test('a quoted task is refused with a reason saying it is quoted', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17', 'task: "5"')))
+    expect(wordedParsingOf(FULL_TICKET.replace('task: 17', 'task: "5"')))
       .toEqual({ verdict: 'malformed', reason: '`task` is quoted, but a task is a whole number written without quotes: "5"', line: 14 });
   });
 
   test('a document that does not open with a fence is malformed at line 1', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf('# just a markdown file\n');
+    const parsed = wordedParsingOf('# just a markdown file\n');
 
     expect(parsed.verdict).toBe('malformed');
     expect(parsed.verdict === 'malformed' ? parsed.line : 0).toBe(1);
   });
 
   test('an unknown status is malformed, names the key and points at its line', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('status: "in-progress"', 'status: "in progress"'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('status: "in-progress"', 'status: "in progress"'));
 
     expect(parsed.verdict).toBe('malformed');
     expect(parsed.verdict === 'malformed' ? parsed.reason : '').toBe(`\`status\` is not a known ticket status: in progress; ${OLDER_FORMAT_ADVICE}`);
@@ -244,7 +254,7 @@ describe('parsedTicketDocumentOf', () => {
   });
 
   test('a required key that is missing is malformed and names the key', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('title: "Fix: the export dialog forgets the folder"\n', ''));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('title: "Fix: the export dialog forgets the folder"\n', ''));
 
     expect(parsed.verdict === 'malformed' ? parsed.reason : '').toBe('the frontmatter has no `title` key');
   });
@@ -252,7 +262,7 @@ describe('parsedTicketDocumentOf', () => {
   test('an indented line is a nested structure this subset does not have, and is refused', () => {
     const nested = FULL_TICKET.replace('group: "export-dialog"', '  nested: true');
 
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(nested))
+    expect(wordedParsingOf(nested))
       .toEqual({ verdict: 'malformed', reason: '`  nested: true` is indented, and this frontmatter has no nested structure', line: 12 });
   });
 
@@ -262,14 +272,14 @@ describe('parsedTicketDocumentOf', () => {
     const expectedReason = 'line 17 is the markdown heading `  ## Report`, and a frontmatter holds no heading (a comment has one `#`); '
       + 'if the closing `---` fence was deleted, restore it above line 17';
 
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(fenceDeleted)).toEqual({ verdict: 'malformed', reason: expectedReason, line: 17 });
+    expect(wordedParsingOf(fenceDeleted)).toEqual({ verdict: 'malformed', reason: expectedReason, line: 17 });
   });
 
   // A single indented hash is not a heading, and must not slip through as a comment either.
   test('an indented single-hash line is refused as indented rather than kept as a comment', () => {
     const indentedHash = FULL_TICKET.replace('group: "export-dialog"', '  # filed while pairing');
 
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(indentedHash)).toEqual({
+    expect(wordedParsingOf(indentedHash)).toEqual({
       verdict: 'malformed',
       reason:  '`  # filed while pairing` is indented, and this frontmatter has no nested structure',
       line:    12,
@@ -315,7 +325,7 @@ describe('releasesGroup', () => {
 
   test('null reads as not marked, and any value but true is malformed at its line', () => {
     expect(parsedDocument(MARKED_TICKET.replace('releasesGroup: true', 'releasesGroup: null')).frontmatter.releasesGroup).toBeUndefined();
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(MARKED_TICKET.replace('releasesGroup: true', 'releasesGroup: yes')))
+    expect(wordedParsingOf(MARKED_TICKET.replace('releasesGroup: true', 'releasesGroup: yes')))
       .toEqual({ verdict: 'malformed', reason: '`releasesGroup` is neither true nor null: yes', line: 14 });
   });
 });
@@ -357,7 +367,7 @@ describe('dependsOn', () => {
   });
 
   test('refuses a value that is not a ticket number, naming its line', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17', 'dependsOn: 3, the importer\ntask: 17'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('task: 17', 'dependsOn: 3, the importer\ntask: 17'));
 
     expect(parsed.verdict).toBe('malformed');
     expect(parsed.verdict === 'malformed' ? parsed.line : 0).toBe(14);
@@ -383,7 +393,7 @@ describe('priority', () => {
   });
 
   test('a priority that is not low, normal or high is malformed and names its line', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\npriority: "urgent"\n'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\npriority: "urgent"\n'));
 
     expect(parsed).toEqual({ verdict: 'malformed', reason: '`priority` is not a known ticket priority: urgent', line: 5 });
   });
@@ -423,14 +433,14 @@ describe('model and effort', () => {
   });
 
   test('a lowercase or unknown size is malformed and names its line', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\nsize: "m"\n')))
+    expect(wordedParsingOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\nsize: "m"\n')))
       .toEqual({ verdict: 'malformed', reason: '`size` is not a known ticket size: m', line: 5 });
   });
 
   test('a model or an effort the tool does not know is malformed and names its line', () => {
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\nmodel: "claude-opus-5-5"\n')))
+    expect(wordedParsingOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\nmodel: "claude-opus-5-5"\n')))
       .toEqual({ verdict: 'malformed', reason: '`model` is not a known agent model: claude-opus-5-5', line: 5 });
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\neffort: "extreme"\n')))
+    expect(wordedParsingOf(FULL_TICKET.replace('type: "bug"\n', 'type: "bug"\neffort: "extreme"\n')))
       .toEqual({ verdict: 'malformed', reason: '`effort` is not a known agent effort: extreme', line: 5 });
   });
 });
@@ -438,14 +448,14 @@ describe('model and effort', () => {
 describe('status words', () => {
   test('reading a current word, quoted or bare, parses', () => {
     for (const storedStatus of ['"in-progress"', 'committed', '"reviewed"']) {
-      const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('status: "in-progress"', `status: ${storedStatus}`));
+      const parsed = wordedParsingOf(FULL_TICKET.replace('status: "in-progress"', `status: ${storedStatus}`));
 
       expect(parsed.verdict).toBe('parsed');
     }
   });
 
   test('a word that is not a ticket status is malformed at its line', () => {
-    const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('status: "in-progress"', 'status: "closed"'));
+    const parsed = wordedParsingOf(FULL_TICKET.replace('status: "in-progress"', 'status: "closed"'));
 
     expect(parsed.verdict === 'malformed' ? parsed.reason : '').toBe(`\`status\` is not a known ticket status: closed; ${OLDER_FORMAT_ADVICE}`);
     expect(parsed.verdict === 'malformed' ? parsed.line : 0).toBe(5);
@@ -580,7 +590,7 @@ describe('epics', () => {
     const withEpics = (value: string): string => FULL_TICKET.replace('task: 17\n', `epics: ${value}\ntask: 17\n`);
 
     expect(parsedDocument(withEpics('search,  checkout-redesign search')).frontmatter.epics).toEqual(['search', 'checkout-redesign']);
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(withEpics('"Checkout"'))).toMatchObject({
+    expect(wordedParsingOf(withEpics('"Checkout"'))).toMatchObject({
       verdict: 'malformed',
       reason:  '`epics` names something that is not an epic key: Checkout',
     });
@@ -612,7 +622,7 @@ describe('network', () => {
     const withNetwork = (value: string): string => FULL_TICKET.replace('task: 17\n', `network: ${value}\ntask: 17\n`);
 
     expect(parsedDocument(withNetwork('API.example.com,  api.example.com cdn.example.com')).frontmatter.network).toEqual(['api.example.com', 'cdn.example.com']);
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(withNetwork('"api.example.com, localhost"'))).toMatchObject({
+    expect(wordedParsingOf(withNetwork('"api.example.com, localhost"'))).toMatchObject({
       verdict: 'malformed',
       reason:  '`network` names something that is not a public domain: localhost',
     });
@@ -659,7 +669,7 @@ describe('entity and crosses', () => {
 
     expect(parsedDocument(withLines('entity: null\ncrosses: null')).frontmatter).not.toHaveProperty('entity');
     expect(parsedDocument(withLines('crosses: design-system,contracts  design-system')).frontmatter.crosses).toEqual(['design-system', 'contracts']);
-    expect(TicketDocumentUtil.parsedTicketDocumentOf(withLines('entity: ""'))).toEqual({
+    expect(wordedParsingOf(withLines('entity: ""'))).toEqual({
       verdict: 'malformed',
       reason:  '`entity` is blank, and it has to name an entity',
       line:    14,

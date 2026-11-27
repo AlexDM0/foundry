@@ -22,7 +22,14 @@ import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracke
 import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';
-import { logRecordProblemOf }                             from './LogRecordProblem.ts';
+import { LogFileProblemWording }                          from './LogFileProblemWording.ts';
+import { logRecordProblemOf as recordProblemOf }          from './LogRecordProblem.ts';
+
+/** A line's problem worded as the log's reader sees it after the file and line, so each case reads as that sentence. */
+function logRecordProblemOf(value: unknown): string | null {
+  const problem = recordProblemOf(value);
+  return problem === null ? null : LogFileProblemWording.recordSentenceOf(problem);
+}
 
 const RECORDED_AT = '2026-09-18T21:30:54+02:00';
 

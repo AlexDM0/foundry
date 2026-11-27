@@ -35,6 +35,7 @@ import { nativePlatformPorts }                                    from '../../te
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { spawnedLineRunner }                                      from '../../testing/SpawnedLineRunner.ts';
+import { spawningShellRequestOf }                                 from '../../testing/SpawningShellRequest.ts';
 import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import {
   type GateConfinement,
@@ -454,7 +455,7 @@ describeWhenGitIsRecorded('the gate process', () => {
   });
 
   test('a shell line is handed to the user\'s shell through sh, so it is one argument whatever it holds', () => {
-    const { argv } = shellLine.spawnRequestOf('bun test && echo "done"', '/example/line-status');
+    const { argv } = spawningShellRequestOf(shellLine, 'bun test && echo "done"', '/example/line-status');
 
     expect(argv.at(-1)).toBe('bun test && echo "done"');
     expect(argv[0]).toBe('/bin/sh');

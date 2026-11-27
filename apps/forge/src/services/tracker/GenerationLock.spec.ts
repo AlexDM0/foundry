@@ -145,7 +145,7 @@ describe('an unreadable record', () => {
       expect(outcome).toEqual({ settled: 'fulfilled', value: 'taken' });
       expect(sleepMilliseconds).toEqual([]);
       const recordPath = LockGenerationSteps.generationPathFor(lockDirectoryPath, 1);
-      expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', reason: expect.any(String) as unknown as string } }]);
+      expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', problem: expect.any(Object) as unknown as { code: 'not-a-json-object' } } }]);
     });
   }
 });

@@ -291,7 +291,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
   if (reading.verdict === 'malformed' && reading.unsupportedEntities !== undefined) {
     throw new OperationRefusal('refused', { ...reading.unsupportedEntities, filePath: pipelineLocation });
   }
-  if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineLocation, reason: reading.reason });
+  if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineLocation, problem: reading.problem });
   if (reading.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath: pipelineLocation });
   const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
   const entity = {

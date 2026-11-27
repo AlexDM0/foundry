@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                                               from '../../testing/ScratchWorkspace.ts';
+import type { MainMergeResolutionProblem }                                                              from './@types/MainMergeResolutionProblem.ts';
 import { MAIN_MERGE_RESOLUTION_FORMAT_VERSION, type MainMergeResolution, MainMergeResolutionIngestion } from './MainMergeResolutionIngestion.ts';
 import { createMainMergeResolutionWriter }                                                              from './MainMergeResolutionWriter.ts';
 
@@ -54,21 +55,21 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a resolution of another version, or of none, is unreadable', () => {
   writeFileSync(resolutionFilePath(), `${JSON.stringify({ ...RESOLUTION, version: MAIN_MERGE_RESOLUTION_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MAIN_MERGE_RESOLUTION_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MAIN_MERGE_RESOLUTION_FORMAT_VERSION } });
   writeFileSync(resolutionFilePath(), `${JSON.stringify(RESOLUTION)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${MAIN_MERGE_RESOLUTION_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: MAIN_MERGE_RESOLUTION_FORMAT_VERSION } });
 });
 
-test.each([
-  ['conflictRound', { conflictRound: 0 }, 'its "conflictRound" is not a round'],
-  ['targetTip', { targetTip: 1 }, 'its "targetTip" is not a commit'],
-  ['branchTip', { branchTip: [] }, 'its "branchTip" is not a commit'],
-  ['conflictedFiles', { conflictedFiles: 'shared.txt' }, 'its "conflictedFiles" is not a list of paths'],
-  ['resolutionCommit', { resolutionCommit: null }, 'its "resolutionCommit" is not a commit'],
-  ['lines', { lines: '12' }, 'its "lines" is not a line count or null'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, MainMergeResolutionProblem]>([
+  ['conflictRound', { conflictRound: 0 }, { code: 'field-is-not', field: 'conflictRound', expected: 'a-round' }],
+  ['targetTip', { targetTip: 1 }, { code: 'field-is-not', field: 'targetTip', expected: 'a-commit' }],
+  ['branchTip', { branchTip: [] }, { code: 'field-is-not', field: 'branchTip', expected: 'a-commit' }],
+  ['conflictedFiles', { conflictedFiles: 'shared.txt' }, { code: 'field-is-not', field: 'conflictedFiles', expected: 'a-list-of-paths' }],
+  ['resolutionCommit', { resolutionCommit: null }, { code: 'field-is-not', field: 'resolutionCommit', expected: 'a-commit' }],
+  ['lines', { lines: '12' }, { code: 'field-is-not', field: 'lines', expected: 'a-line-count-or-null' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   writeFileSync(resolutionFilePath(), `${JSON.stringify({ version: MAIN_MERGE_RESOLUTION_FORMAT_VERSION, ...RESOLUTION, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

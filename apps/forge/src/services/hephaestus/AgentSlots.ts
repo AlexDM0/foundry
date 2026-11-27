@@ -8,6 +8,7 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import { join }                   from 'node:path';
 
 import { AgentSlotIngestion, type AgentSlotHolding, type AgentSlotReading } from '../../adapters/agent-slot/AgentSlotIngestion.ts';
+import { AgentSlotProblemWording }                                          from '../../adapters/agent-slot/AgentSlotProblemWording.ts';
 import { createAgentSlotWriter }                                            from '../../adapters/agent-slot/AgentSlotWriter.ts';
 import { removeHeldFile }                                                   from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }                                                 from '../../lib/atomic-file/FileReplace.ts';
@@ -62,7 +63,7 @@ function storedTextOf(reading: AgentSlotReading): string | null {
 }
 
 function staleReasonOf(judged: JudgedSlot): string {
-  if (judged.verdict === 'unreadable') return `it could not be read (${judged.reason})`;
+  if (judged.verdict === 'unreadable') return `it could not be read (${AgentSlotProblemWording.sentenceOf(judged.problem)})`;
   const { hephaestus } = judged.holding;
   return hephaestus === null ? 'it names no Hephaestus' : `the Hephaestus ${hephaestus.processId} it names is gone`;
 }
@@ -133,7 +134,9 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     if (reading.verdict === 'absent') return null;
     if (reading.verdict === 'readable') return reading;
     if (reading.storedText !== null) return { ...reading, storedText: reading.storedText };
-    if (!unreadableSlotPathsLogged.has(slotPath)) options.log(`The agent slot ${slotPath} could not be read (${reading.reason}); it is left in place.`);
+    if (!unreadableSlotPathsLogged.has(slotPath)) {
+      options.log(`The agent slot ${slotPath} could not be read (${AgentSlotProblemWording.sentenceOf(reading.problem)}); it is left in place.`);
+    }
     unreadableSlotPathsLogged.add(slotPath);
     return null;
   }

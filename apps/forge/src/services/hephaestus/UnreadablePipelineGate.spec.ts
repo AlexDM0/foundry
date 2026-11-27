@@ -36,7 +36,7 @@ describe('a merged-tree gate run on a pipeline.json it cannot read', () => {
   });
 
   test('a malformed file ends the run cannot-run with the reason it is malformed', () => {
-    expect(unreadablePipelineGateOf({ verdict: 'malformed', reason: 'gates is not a list' }))
+    expect(unreadablePipelineGateOf({ verdict: 'malformed', problem: { code: 'not-a-list', field: 'gates' } }))
       .toEqual({
         outcome: 'cannot-run', step: UNREADABLE_PIPELINE_STEP, output: 'gates is not a list', stamp: null
       });
@@ -94,7 +94,7 @@ describe('the merged-tree gate of a tracker in a folder whose stored pipeline ho
 
     expect(gate).toMatchObject({ outcome: 'cannot-run', step: UNREADABLE_PIPELINE_STEP, stamp: null });
     expect(gate?.output).toContain('(entities-in-a-folder)');
-    expect(openedOn.result).toMatchObject({ verdict: 'malformed', reason: gate?.output });
+    expect(openedOn.result).toMatchObject({ verdict: 'malformed', problem: { code: 'entities-in-a-folder', projectPrefix: 'apps/web' } });
     expect(unreadablePipelineGateOf(atTheRoot.reads.readPipeline())).toBeNull();
   });
 });

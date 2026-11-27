@@ -239,7 +239,9 @@ test('a turn end whose snapshot start cannot be read marks the snapshot touched,
   PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
 
   expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts])).toEqual([
-    ['system-file-unreadable', jobId, { file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, reason: 'its version is not 1' }],
+    ['system-file-unreadable', jobId, {
+      file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, problem: 'version-differs', field: 'version', expectedVersion: '1'
+    }],
   ]);
   expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(true);
   expect(board.jobById(jobId)?.state).toBe('stopping');

@@ -5,10 +5,11 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import { JsonRecordUtil }      from '../../lib/json-record/JsonRecordUtil.ts';
-import { storedFileTextOf }    from '../StoredFileText.ts';
-import { StoredValueUtil }     from '../utils/StoredValueUtil.ts';
+import { writeFileAtomically }       from '../../lib/atomic-file/AtomicFile.ts';
+import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
+import type { MachineConfigProblem } from '../../shared/@types/MachineConfigProblem.ts';
+import { storedFileTextOf }          from '../StoredFileText.ts';
+import { StoredValueUtil }           from '../utils/StoredValueUtil.ts';
 
 export const MACHINE_CONFIG_VERSION = 1;
 
@@ -21,7 +22,7 @@ export type MachineConfigReading =
   | { verdict: 'absent' }
   | { verdict: 'read'; config: MachineConfig }
   | { verdict: 'newer-version'; version: number }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: MachineConfigProblem };
 
 /** A file that is newer or malformed is never written over: what it holds is not this build's to replace. */
 export type MachineConfigWrite = 'written' | Extract<MachineConfigReading, { verdict: 'newer-version' | 'malformed' }>;
@@ -32,37 +33,45 @@ function pathIn(monitorFolder: string): string {
   return join(monitorFolder, MACHINE_CONFIG_FILE_NAME);
 }
 
-type StoredDocumentReading = { verdict: 'absent' } | { verdict: 'read'; document: Record<string, unknown> } | { verdict: 'malformed'; reason: string };
+type StoredDocumentReading = { verdict: 'absent' } | { verdict: 'read'; document: Record<string, unknown> } | { verdict: 'malformed'; problem: MachineConfigProblem };
 
 function storedDocumentIn(monitorFolder: string): StoredDocumentReading {
   const storedText = storedFileTextOf(pathIn(monitorFolder));
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
-  if (!JsonRecordUtil.valueIsAPlainObject(parsedJson.value)) return { verdict: 'malformed', reason: 'it is not a JSON object' };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
+  if (!JsonRecordUtil.valueIsAPlainObject(parsedJson.value)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   return { verdict: 'read', document: parsedJson.value };
 }
 
-function agentsOf(value: unknown): MachineConfig['agents'] | string {
-  if (value === undefined) return {};
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return 'its "agents" is not an object';
+function agentsReadingOf(value: unknown): MachineConfigReading {
+  if (value === undefined) return { verdict: 'read', config: { agents: {} } };
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return { verdict: 'malformed', problem: { code: 'agents-not-an-object', field: 'agents' } };
   const agents: MachineConfig['agents'] = {};
   for (const [vendor, entry] of Object.entries(value)) {
     const programPath = JsonRecordUtil.valueIsAPlainObject(entry) ? entry['programPath'] : undefined;
-    if (typeof programPath !== 'string' || programPath === '') return `its agent "${vendor}" names no "programPath"`;
+    if (typeof programPath !== 'string' || programPath === '') {
+      return { verdict: 'malformed', problem: { code: 'agent-names-no-program-path', field: `agents.${vendor}.programPath`, vendor } };
+    }
     agents[vendor] = { programPath };
   }
-  return agents;
+  return { verdict: 'read', config: { agents } };
 }
 
 function readingOf(document: Record<string, unknown>): MachineConfigReading {
   const { version } = document;
-  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return { verdict: 'malformed', reason: 'its "version" is not a whole number' };
+  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return { verdict: 'malformed', problem: { code: 'version-not-a-whole-number', field: 'version' } };
   if (version > MACHINE_CONFIG_VERSION) return { verdict: 'newer-version', version };
-  if (version < MACHINE_CONFIG_VERSION) return { verdict: 'malformed', reason: `its "version" ${version} is older than ${MACHINE_CONFIG_VERSION}` };
-  const agents = agentsOf(document['agents']);
-  return typeof agents === 'string' ? { verdict: 'malformed', reason: agents } : { verdict: 'read', config: { agents } };
+  if (version < MACHINE_CONFIG_VERSION) {
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'version-older', field: 'version', version, readableVersion: MACHINE_CONFIG_VERSION
+      }
+    };
+  }
+  return agentsReadingOf(document['agents']);
 }
 
 /** Never throws: a file that cannot be read or trusted whole is `malformed`, which every reader treats as naming no program. */

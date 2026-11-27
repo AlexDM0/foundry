@@ -3,22 +3,23 @@
  * needs no tracker; a live Hephaestus reads the stored limit at its next launch, and lowering it stops nothing. `machine agent [<path>]`:
  * this machine's program of the agent, which every forge that follows it starts, set only once it ran.
  */
-import { MachineConfigFile }                from '../../../src/adapters/machine-config/MachineConfigFile.ts';
-import { AgentCommandPreparation }          from '../../../src/services/control/AgentCommandPreparation.ts';
-import { AgentPrograms }                    from '../../../src/services/control/AgentPrograms.ts';
-import { AgentSlots }                       from '../../../src/services/hephaestus/AgentSlots.ts';
-import { MachineAgentLimit }                from '../../../src/services/hephaestus/MachineAgentLimit.ts';
-import { registeredRepositoryRootsIn }      from '../../../src/services/tracker/RegisteredRepositoryRoots.ts';
-import type { ControlCommandOf }            from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';
-import { agentCommandPreparationContextOf } from '../../AgentCommandContext.ts';
-import { programPathFrom }                  from '../../AgentProgramWords.ts';
-import type { CommandContext }              from '../../CommandContext.ts';
-import type { CommandHandler }              from '../../CommandHandler.ts';
-import { hatchWhenUnderJob }                from '../../HatchUnderJob.ts';
-import type { ArgumentParser }              from '../../arguments/ArgumentParser.ts';
-import { ProgramAnswerUtil }                from '../../utils/ProgramAnswerUtil.ts';
+import { MachineConfigFile }                   from '../../../src/adapters/machine-config/MachineConfigFile.ts';
+import { AgentCommandPreparation }             from '../../../src/services/control/AgentCommandPreparation.ts';
+import { AgentPrograms }                       from '../../../src/services/control/AgentPrograms.ts';
+import { AgentSlots }                          from '../../../src/services/hephaestus/AgentSlots.ts';
+import { MachineAgentLimit }                   from '../../../src/services/hephaestus/MachineAgentLimit.ts';
+import { registeredRepositoryRootsIn }         from '../../../src/services/tracker/RegisteredRepositoryRoots.ts';
+import type { ControlCommandOf }               from '../../../src/shared/@types/ControlCommand.ts';
+import type { MachineConfigUnwritableProblem } from '../../../src/shared/@types/MachineConfigProblem.ts';
+import { OperationRefusal }                    from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                       from '../../../src/shared/constants/ProductNames.ts';
+import { agentCommandPreparationContextOf }    from '../../AgentCommandContext.ts';
+import { programPathFrom }                     from '../../AgentProgramWords.ts';
+import type { CommandContext }                 from '../../CommandContext.ts';
+import type { CommandHandler }                 from '../../CommandHandler.ts';
+import { hatchWhenUnderJob }                   from '../../HatchUnderJob.ts';
+import type { ArgumentParser }                 from '../../arguments/ArgumentParser.ts';
+import { ProgramAnswerUtil }                   from '../../utils/ProgramAnswerUtil.ts';
 
 const LIMIT_USAGE = `${PRODUCT_NAMES.PROGRAM} machine limit [<n>] [--json]`;
 
@@ -62,8 +63,10 @@ async function machineAgentProgram(commandArguments: ArgumentParser, context: Co
   }));
   const write = MachineConfigFile.writeAgentProgram(monitorFolder, vendor, programPath);
   if (write !== 'written') {
-    const reason = write.verdict === 'newer-version' ? `its version ${write.version} is newer than this program reads` : write.reason;
-    throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), reason });
+    const problem: MachineConfigUnwritableProblem = write.verdict === 'newer-version'
+      ? { code: 'version-newer', field: 'version', version: write.version }
+      : write.problem;
+    throw new OperationRefusal('refused', { kind: 'machine-config-unwritable', filePath: MachineConfigFile.pathIn(monitorFolder), problem });
   }
   ProgramAnswerUtil.printAnswer(commandArguments, context, { outcome: 'done', vendor, programPath }, `This machine's ${displayName} is ${programPath}.`);
 }

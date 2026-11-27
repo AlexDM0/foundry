@@ -3,6 +3,7 @@
  * informs: it never records a green or a gate run, and nothing waits on it.
  */
 import type { GatePhase }               from './GatePhase.ts';
+import type { GateProfilesProblem }     from './GateProfilesProblem.ts';
 import type { GateCacheReport }         from './Job.ts';
 import type { EntityKey, PipelineStep } from './Pipeline.ts';
 import type { GateProfileRunState }     from './PipelineFacts.ts';
@@ -64,7 +65,7 @@ export interface GateProfiles {
 export type GateProfilesReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; profiles: GateProfiles }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: GateProfilesProblem };
 
 /** User's press: one gate in one phase, with the prepare steps of the pipeline the gate came from, and its entity on a forge over entities. */
 export interface GateProfileRequest {

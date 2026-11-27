@@ -1,25 +1,23 @@
-/** Whether a parsed progress.json is a document in the current format this build can read, and if not, the reason naming the offending field. */
-import { JsonRecordUtil }                                    from '../../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }                                       from '../../../lib/tracker-model/@types/GatePhase.ts';
-import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                   from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { FIRST_DRAFT_NUMBER }                                from '../../../lib/tracker-model/constants/DraftFields.ts';
-import { HEPHAESTUS_STATES }                                 from '../../../lib/tracker-model/constants/HephaestusStates.ts';
-import { FIRST_SETUP_NUMBER }                                from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../../lib/tracker-model/constants/ReviewRounds.ts';
-import { TASK_STATUSES }                                     from '../../../lib/tracker-model/constants/Statuses.ts';
-import { FIRST_TASK_ID }                                     from '../../../lib/tracker-model/constants/TaskIds.ts';
-import { TICKET_STAGE_NAMES }                                from '../../../lib/tracker-model/constants/TicketStages.ts';
-import { BoardSettingsUtil }                                 from '../../../lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { TicketStageUtil }                                   from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
-import { VocabularyUtil }                                    from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { BranchNamespaceUtil }                               from '../../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                                     from '../../../shared/constants/ProductNames.ts';
-import { OLDER_FORMAT_ADVICE }                               from '../../constants/OlderFormatAdvice.ts';
-import { StoredValueUtil }                                   from '../../utils/StoredValueUtil.ts';
-import type { StoredProgressFile, StoredTaskPhase }          from '../@types/StoredProgressFile.ts';
-import { CURRENT_PROGRESS_FILE_VERSION }                     from '../constants/ProgressFileVersions.ts';
-import { StoredDecisionAndIncidentValidationUtil }           from './StoredDecisionAndIncidentValidationUtil.ts';
-import { StoredJobValidationUtil }                           from './StoredJobValidationUtil.ts';
+/** Whether a parsed progress.json is a document in the current format this build can read, and if not, the problem naming the offending field. */
+import { JsonRecordUtil }                                     from '../../../lib/json-record/JsonRecordUtil.ts';
+import { GATE_PHASES }                                        from '../../../lib/tracker-model/@types/GatePhase.ts';
+import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                    from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { FIRST_DRAFT_NUMBER }                                 from '../../../lib/tracker-model/constants/DraftFields.ts';
+import { FIRST_SETUP_NUMBER }                                 from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND }  from '../../../lib/tracker-model/constants/ReviewRounds.ts';
+import { FIRST_TASK_ID }                                      from '../../../lib/tracker-model/constants/TaskIds.ts';
+import { BoardSettingsUtil }                                  from '../../../lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { TicketStageUtil }                                    from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
+import { VocabularyUtil }                                     from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
+import type { ProgressFieldExpectation, ProgressFileProblem } from '../../../shared/@types/ProgressFileProblem.ts';
+import { BranchNamespaceUtil }                                from '../../../shared/BranchNames.ts';
+import { StoredValueUtil }                                    from '../../utils/StoredValueUtil.ts';
+import type { StoredProgressFile, StoredTaskPhase }           from '../@types/StoredProgressFile.ts';
+import { CURRENT_PROGRESS_FILE_VERSION }                      from '../constants/ProgressFileVersions.ts';
+import { StoredDecisionAndIncidentValidationUtil }            from './StoredDecisionAndIncidentValidationUtil.ts';
+import { StoredJobValidationUtil }                            from './StoredJobValidationUtil.ts';
+
+const TASKS_NOT_AN_ARRAY: ProgressFileProblem = { code: 'field-is-not', field: 'tasks', expected: 'an-array' };
 
 /** What the retired `checks` verb stored here; the gate pipeline lives in `pipeline.json` now. */
 const RETIRED_PIPELINE_KEYS = ['checkCommand', 'installCommand', 'checksDefinitionFiles', 'gateKeyCommand', 'gateCachePaths'] as const;
@@ -73,108 +71,120 @@ function taskHistoryIsWellFormed(value: unknown): value is StoredTaskPhase[] {
   return Array.isArray(value) && value.every(taskPhaseIsWellFormed);
 }
 
-function taskProblem(value: unknown, index: number): string | null {
-  // An array row is let through to the field checks, so its reason names the first field it lacks.
-  if (typeof value !== 'object' || value === null) return `tasks[${index}] is not an object`;
+function storedJsonOf(value: unknown): string {
+  return String(JSON.stringify(value));
+}
+
+function taskProblem(value: unknown, index: number): ProgressFileProblem | null {
+  const path = `tasks[${index}]`;
+  const fieldNot = (field: string, expected: ProgressFieldExpectation): ProgressFileProblem => ({ code: 'field-is-not', field: `${path}.${field}`, expected });
+  const neitherNorNull = (field: string, expected: ProgressFieldExpectation): ProgressFileProblem => ({ code: 'field-is-neither-nor-null', field: `${path}.${field}`, expected });
+  const presentButNot = (field: string, expected: ProgressFieldExpectation): ProgressFileProblem => ({ code: 'present-field-is-not', field: `${path}.${field}`, expected });
+  const presentAndNot = (field: string, expected: ProgressFieldExpectation): ProgressFileProblem => ({ code: 'present-and-field-is-not', field: `${path}.${field}`, expected });
+  const presentRoundBelow = (field: string, least: number): ProgressFileProblem => ({
+    code: 'present-and-field-is-not-at-least', field: `${path}.${field}`, unit: 'whole-round', least
+  });
+  // An array row is let through to the field checks, so its problem names the first field it lacks.
+  if (typeof value !== 'object' || value === null) return { code: 'field-is-not', field: path, expected: 'an-object' };
   const task: Record<string, unknown> = { ...value };
-  if (!StoredValueUtil.valueIsAWholeNumber(task['id'])) return `tasks[${index}].id is not a whole number`;
-  if (!textFieldIsPresent(task, 'name')) return `tasks[${index}].name is not a string`;
-  if (!taskStatusIsKnown(task['status'])) {
-    return `tasks[${index}].status is ${JSON.stringify(task['status'])}, which is not one of ${TASK_STATUSES.join(', ')}; ${OLDER_FORMAT_ADVICE}`;
-  }
-  if (!nullableTextIsWellFormed(task['start'])) return `tasks[${index}].start is neither a timestamp nor null`;
-  if (!nullableTextIsWellFormed(task['end'])) return `tasks[${index}].end is neither a timestamp nor null`;
-  if (!textFieldIsPresent(task, 'owner')) return `tasks[${index}].owner is not a string`;
-  if (!textFieldIsPresent(task, 'note')) return `tasks[${index}].note is not a string`;
-  if (!nullableTextIsWellFormed(task['ticket'])) return `tasks[${index}].ticket is neither a ticket id nor null`;
-  if (!tokenCountIsWellFormed(task['tokens'])) return `tasks[${index}].tokens is neither a whole number of tokens nor null`;
-  if (task['reviewed'] !== undefined && typeof task['reviewed'] !== 'string') return `tasks[${index}].reviewed is present but not a timestamp`;
-  if (task['reviewRound'] !== undefined && !reviewRoundIsWellFormed(task['reviewRound'])) {
-    return `tasks[${index}].reviewRound is present and is not a whole round of at least ${FIRST_REPEAT_REVIEW_ROUND}`;
-  }
-  if (task['history'] !== undefined && !taskHistoryIsWellFormed(task['history'])) {
-    return `tasks[${index}].history is present and is not a list of phases, each a known status with the timestamp it was reached at; ${OLDER_FORMAT_ADVICE}`;
-  }
-  if (task['agent'] !== undefined && typeof task['agent'] !== 'string') return `tasks[${index}].agent is present but not the key of the claim that started it`;
-  if (task['reviewOf'] !== undefined && typeof task['reviewOf'] !== 'string') return `tasks[${index}].reviewOf is present but not the id of the ticket it reviews`;
-  if (task['reviewBarRound'] !== undefined && !reviewBarRoundIsWellFormed(task['reviewBarRound'])) {
-    return `tasks[${index}].reviewBarRound is present and is not a whole round of at least ${FIRST_REVIEW_BAR_ROUND}`;
-  }
-  if (Object.hasOwn(task, 'checkCommand')) {
-    return `tasks[${index}].checkCommand is present, and a row records the hash of the pipeline it was gated by instead; ${OLDER_FORMAT_ADVICE}`;
-  }
-  if (task['pipelineHash'] !== undefined && !textFieldIsPresent(task, 'pipelineHash')) return `tasks[${index}].pipelineHash is present and is not a hash`;
-  if (task['pipelineHashes'] !== undefined && !entityHashesAreWellFormed(task['pipelineHashes'])) {
-    return `tasks[${index}].pipelineHashes is present and is not a record of a hash for each entity key`;
-  }
-  if (task['greenPhase'] !== undefined && !gatePhaseIsKnown(task['greenPhase'])) {
-    return `tasks[${index}].greenPhase is present and is not one of ${GATE_PHASES.join(', ')}`;
-  }
-  if (task['greenTree'] !== undefined && !textFieldIsPresent(task, 'greenTree')) return `tasks[${index}].greenTree is present and is not a tree`;
-  if (task['mergeQueued'] !== undefined && task['mergeQueued'] !== true) return `tasks[${index}].mergeQueued is present and is not true`;
-  if (task['mergeAccepted'] !== undefined && task['mergeAccepted'] !== true) return `tasks[${index}].mergeAccepted is present and is not true`;
-  if (task['stage'] !== undefined && !ticketStageIsWellFormed(task['stage'])) {
-    return `tasks[${index}].stage is present and is not a stage name, one of ${TICKET_STAGE_NAMES.join(', ')}, with the key of the entity that runs it`;
-  }
-  if (task['seals'] !== undefined && !entityHashesAreWellFormed(task['seals'])) {
-    return `tasks[${index}].seals is present and is not a record of a seal for each package entity key`;
-  }
+  if (!StoredValueUtil.valueIsAWholeNumber(task['id'])) return fieldNot('id', 'a-whole-number');
+  if (!textFieldIsPresent(task, 'name')) return fieldNot('name', 'a-string');
+  if (!taskStatusIsKnown(task['status'])) return {
+    code: 'not-in-vocabulary', field: `${path}.status`, storedJson: storedJsonOf(task['status']), vocabulary: 'task-status'
+  };
+  if (!nullableTextIsWellFormed(task['start'])) return neitherNorNull('start', 'a-timestamp');
+  if (!nullableTextIsWellFormed(task['end'])) return neitherNorNull('end', 'a-timestamp');
+  if (!textFieldIsPresent(task, 'owner')) return fieldNot('owner', 'a-string');
+  if (!textFieldIsPresent(task, 'note')) return fieldNot('note', 'a-string');
+  if (!nullableTextIsWellFormed(task['ticket'])) return neitherNorNull('ticket', 'a-ticket-id');
+  if (!tokenCountIsWellFormed(task['tokens'])) return neitherNorNull('tokens', 'a-whole-number-of-tokens');
+  if (task['reviewed'] !== undefined && typeof task['reviewed'] !== 'string') return presentButNot('reviewed', 'a-timestamp');
+  if (task['reviewRound'] !== undefined && !reviewRoundIsWellFormed(task['reviewRound'])) return presentRoundBelow('reviewRound', FIRST_REPEAT_REVIEW_ROUND);
+  if (task['history'] !== undefined && !taskHistoryIsWellFormed(task['history'])) return presentAndNot('history', 'a-list-of-task-phases');
+  if (task['agent'] !== undefined && typeof task['agent'] !== 'string') return presentButNot('agent', 'the-key-of-the-claim-that-started-it');
+  if (task['reviewOf'] !== undefined && typeof task['reviewOf'] !== 'string') return presentButNot('reviewOf', 'the-id-of-the-ticket-it-reviews');
+  if (task['reviewBarRound'] !== undefined && !reviewBarRoundIsWellFormed(task['reviewBarRound'])) return presentRoundBelow('reviewBarRound', FIRST_REVIEW_BAR_ROUND);
+  if (Object.hasOwn(task, 'checkCommand')) return { code: 'retired-row-check-command', field: `${path}.checkCommand` };
+  if (task['pipelineHash'] !== undefined && !textFieldIsPresent(task, 'pipelineHash')) return presentAndNot('pipelineHash', 'a-hash');
+  if (task['pipelineHashes'] !== undefined && !entityHashesAreWellFormed(task['pipelineHashes'])) return presentAndNot('pipelineHashes', 'a-record-of-entity-hashes');
+  if (task['greenPhase'] !== undefined && !gatePhaseIsKnown(task['greenPhase'])) return presentAndNot('greenPhase', 'a-gate-phase');
+  if (task['greenTree'] !== undefined && !textFieldIsPresent(task, 'greenTree')) return presentAndNot('greenTree', 'a-tree');
+  if (task['mergeQueued'] !== undefined && task['mergeQueued'] !== true) return presentAndNot('mergeQueued', 'true');
+  if (task['mergeAccepted'] !== undefined && task['mergeAccepted'] !== true) return presentAndNot('mergeAccepted', 'true');
+  if (task['stage'] !== undefined && !ticketStageIsWellFormed(task['stage'])) return presentAndNot('stage', 'a-ticket-stage');
+  if (task['seals'] !== undefined && !entityHashesAreWellFormed(task['seals'])) return presentAndNot('seals', 'a-record-of-package-seals');
   if (task['packageReturns'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(task['packageReturns'], 1)) {
-    return `tasks[${index}].packageReturns is present and is not a whole number of at least 1`;
+    return {
+      code: 'present-and-field-is-not-at-least', field: `${path}.packageReturns`, unit: 'whole-number', least: 1
+    };
   }
   return null;
+}
+
+function presentCounterProblemOf(candidate: Record<string, unknown>, field: string, least: number): ProgressFileProblem | null {
+  const value = candidate[field];
+  if (value === undefined || StoredValueUtil.wholeNumberIsAtLeast(value, least)) return null;
+  return {
+    code: 'present-counter-below-first', field, storedJson: storedJsonOf(value), least
+  };
 }
 
 /**
  * `null` for a document whose top level this build reads, before its rows are looked at. A version 3 file keeps its log in log.jsonl, so a
  * `log` in one is refused rather than silently ignored.
  */
-function documentHeaderProblemOf(candidate: unknown): string | null {
-  if (!JsonRecordUtil.valueIsAPlainObject(candidate)) return 'the document is not a JSON object';
+function documentHeaderProblemOf(candidate: unknown): ProgressFileProblem | null {
+  if (!JsonRecordUtil.valueIsAPlainObject(candidate)) return { code: 'document-not-a-json-object' };
   const { version } = candidate;
   if (version !== CURRENT_PROGRESS_FILE_VERSION) {
-    return `version is ${JSON.stringify(version)}, and this build of ${PRODUCT_NAMES.PROGRAM} reads version ${CURRENT_PROGRESS_FILE_VERSION}; ${OLDER_FORMAT_ADVICE}`;
+    return {
+      code: 'version-not-read', field: 'version', storedJson: storedJsonOf(version), readVersion: CURRENT_PROGRESS_FILE_VERSION
+    };
   }
-  if (!textFieldIsPresent(candidate, 'trackerId')) return 'trackerId is not a string';
-  if (!textFieldIsPresent(candidate, 'project')) return 'project is not a string';
-  if (!textFieldIsPresent(candidate, 'startedAt')) return 'startedAt is not a timestamp';
-  if (!BoardSettingsUtil.viewRangeIsWellFormed(candidate['view'])) return 'view is not one of the stored range shapes';
+  if (!textFieldIsPresent(candidate, 'trackerId')) return { code: 'field-is-not', field: 'trackerId', expected: 'a-string' };
+  if (!textFieldIsPresent(candidate, 'project')) return { code: 'field-is-not', field: 'project', expected: 'a-string' };
+  if (!textFieldIsPresent(candidate, 'startedAt')) return { code: 'field-is-not', field: 'startedAt', expected: 'a-timestamp' };
+  if (!BoardSettingsUtil.viewRangeIsWellFormed(candidate['view'])) return { code: 'field-is-not', field: 'view', expected: 'a-stored-range-shape' };
   if (!StoredValueUtil.wholeNumberIsAtLeast(candidate['nextTaskId'], FIRST_TASK_ID)) {
-    return `nextTaskId is ${JSON.stringify(candidate['nextTaskId'])}, and it has to be a whole number of at least ${FIRST_TASK_ID}`;
+    return {
+      code: 'counter-below-first', field: 'nextTaskId', storedJson: storedJsonOf(candidate['nextTaskId']), least: FIRST_TASK_ID
+    };
   }
   if (candidate['concurrencyLimit'] !== undefined && !BoardSettingsUtil.concurrencyLimitIsWellFormed(candidate['concurrencyLimit'])) {
-    return `concurrencyLimit is ${JSON.stringify(candidate['concurrencyLimit'])}, and when present it has to be a whole number of at least ${LOWEST_CONCURRENCY_LIMIT_AGENTS}`;
+    return {
+      code: 'present-counter-below-first', field: 'concurrencyLimit', storedJson: storedJsonOf(candidate['concurrencyLimit']), least: LOWEST_CONCURRENCY_LIMIT_AGENTS
+    };
   }
   if (candidate['hephaestusState'] !== undefined && !BoardSettingsUtil.hephaestusStateIsKnown(candidate['hephaestusState'])) {
-    return `hephaestusState is ${JSON.stringify(candidate['hephaestusState'])}, and when present it has to be one of ${HEPHAESTUS_STATES.join(', ')}`;
+    return {
+      code: 'present-value-is-not', field: 'hephaestusState', storedJson: storedJsonOf(candidate['hephaestusState']), expected: 'one-of-the-hephaestus-states'
+    };
   }
   const retiredKey = RETIRED_PIPELINE_KEYS.find((key) => Object.hasOwn(candidate, key));
-  if (retiredKey !== undefined) return `${retiredKey} is present, and the gate pipeline lives in pipeline.json; ${OLDER_FORMAT_ADVICE}`;
-  if (candidate['nextDraftId'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(candidate['nextDraftId'], FIRST_DRAFT_NUMBER)) {
-    return `nextDraftId is ${JSON.stringify(candidate['nextDraftId'])}, and when present it has to be a whole number of at least ${FIRST_DRAFT_NUMBER}`;
-  }
-  if (candidate['nextSetupId'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(candidate['nextSetupId'], FIRST_SETUP_NUMBER)) {
-    return `nextSetupId is ${JSON.stringify(candidate['nextSetupId'])}, and when present it has to be a whole number of at least ${FIRST_SETUP_NUMBER}`;
-  }
+  if (retiredKey !== undefined) return { code: 'retired-pipeline-key', field: retiredKey };
+  const counterProblem = presentCounterProblemOf(candidate, 'nextDraftId', FIRST_DRAFT_NUMBER) ?? presentCounterProblemOf(candidate, 'nextSetupId', FIRST_SETUP_NUMBER);
+  if (counterProblem !== null) return counterProblem;
   if (candidate['hephaestusFirstStartedAt'] !== undefined && !textFieldIsPresent(candidate, 'hephaestusFirstStartedAt')) {
-    return `hephaestusFirstStartedAt is ${JSON.stringify(candidate['hephaestusFirstStartedAt'])}, and when present it has to be a timestamp`;
+    return {
+      code: 'present-value-is-not', field: 'hephaestusFirstStartedAt', storedJson: storedJsonOf(candidate['hephaestusFirstStartedAt']), expected: 'a-timestamp'
+    };
   }
   const { branchNamespace } = candidate;
   if (branchNamespace !== undefined && !(typeof branchNamespace === 'string' && BranchNamespaceUtil.namespaceIsWellFormed(branchNamespace))) {
-    return `branchNamespace is ${JSON.stringify(branchNamespace)}, and when present it has to be lower-case letters, digits and inner dashes`;
+    return {
+      code: 'present-value-is-not', field: 'branchNamespace', storedJson: storedJsonOf(branchNamespace), expected: 'a-branch-namespace'
+    };
   }
-  const jobsProblem = StoredJobValidationUtil.jobsProblemOf(candidate);
-  if (jobsProblem !== null) return jobsProblem;
-  const needsProblem = StoredJobValidationUtil.needsProblemOf(candidate);
-  if (needsProblem !== null) return needsProblem;
-  const decisionsProblem = StoredDecisionAndIncidentValidationUtil.decisionsAndIncidentsProblemOf(candidate);
-  if (decisionsProblem !== null) return decisionsProblem;
-  if (!Array.isArray(candidate['tasks'])) return 'tasks is not an array';
-  if (Object.hasOwn(candidate, 'log')) return `log is present, and a version ${CURRENT_PROGRESS_FILE_VERSION} file keeps its log in log.jsonl`;
+  const rowsProblem = StoredJobValidationUtil.jobsProblemOf(candidate)
+    ?? StoredJobValidationUtil.needsProblemOf(candidate)
+    ?? StoredDecisionAndIncidentValidationUtil.decisionsAndIncidentsProblemOf(candidate);
+  if (rowsProblem !== null) return rowsProblem;
+  if (!Array.isArray(candidate['tasks'])) return TASKS_NOT_AN_ARRAY;
+  if (Object.hasOwn(candidate, 'log')) return { code: 'log-kept-in-document', field: 'log', documentVersion: CURRENT_PROGRESS_FILE_VERSION };
   return null;
 }
 
-function taskRowsProblemOf(tasks: readonly unknown[]): string | null {
+function taskRowsProblemOf(tasks: readonly unknown[]): ProgressFileProblem | null {
   for (const [index, task] of tasks.entries()) {
     const problem = taskProblem(task, index);
     if (problem !== null) return problem;
@@ -183,22 +193,22 @@ function taskRowsProblemOf(tasks: readonly unknown[]): string | null {
 }
 
 /** `null` for a document in the current format this build reads; the first problem found otherwise, the top level before the rows. */
-function documentProblemOf(parsed: unknown): string | null {
+function documentProblemOf(parsed: unknown): ProgressFileProblem | null {
   const headerProblem = documentHeaderProblemOf(parsed);
   if (headerProblem !== null) return headerProblem;
   const tasks = JsonRecordUtil.recordOf(parsed)?.['tasks'];
-  return Array.isArray(tasks) ? taskRowsProblemOf(tasks) : 'tasks is not an array';
+  return Array.isArray(tasks) ? taskRowsProblemOf(tasks) : TASKS_NOT_AN_ARRAY;
 }
 
 /** The checks above are the stored format's type written as checks, so a document they find nothing wrong with is one of that type. */
-function documentIsStored(parsed: unknown, problemFound: string | null): parsed is StoredProgressFile {
+function documentIsStored(parsed: unknown, problemFound: ProgressFileProblem | null): parsed is StoredProgressFile {
   return problemFound === null && JsonRecordUtil.valueIsAPlainObject(parsed);
 }
 
-function readingOf(parsed: unknown): { verdict: 'readable'; document: StoredProgressFile } | { verdict: 'unreadable'; reason: string } {
+function readingOf(parsed: unknown): { verdict: 'readable'; document: StoredProgressFile } | { verdict: 'unreadable'; problem: ProgressFileProblem } {
   const problem = documentProblemOf(parsed);
-  if (problem !== null) return { verdict: 'unreadable', reason: problem };
-  return documentIsStored(parsed, problem) ? { verdict: 'readable', document: parsed } : { verdict: 'unreadable', reason: 'the document is not in the current format' };
+  if (problem !== null) return { verdict: 'unreadable', problem };
+  return documentIsStored(parsed, problem) ? { verdict: 'readable', document: parsed } : { verdict: 'unreadable', problem: { code: 'document-not-a-json-object' } };
 }
 
 export const ProgressFileValidationUtil = { documentProblemOf, readingOf } as const;

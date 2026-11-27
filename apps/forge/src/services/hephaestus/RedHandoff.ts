@@ -128,7 +128,7 @@ function redHandoffFactsOf(trackerDirectory: string, jobFolder: string): RedHand
   const reading = redHandoffReadingOf(jobFolder);
   if (reading.verdict === 'readable') return reading.facts;
   if (reading.verdict === 'absent') return null;
-  return StoredFileUnreadable.unreadableFileOf(trackerDirectory, join(jobFolder, RED_HANDOFF_FILES.facts), reading.reason);
+  return StoredFileUnreadable.unreadableFileOf(trackerDirectory, join(jobFolder, RED_HANDOFF_FILES.facts), reading.problem);
 }
 
 export const RedHandoff = Object.freeze({

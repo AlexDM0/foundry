@@ -334,7 +334,8 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
 
   writeFileSync(join(scene.jobFolder(), 'target-conflict.json'), `${JSON.stringify({ targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] })}\n`);
-  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/target-conflict.json`, reason: 'its version is not 1' } as const;
+  const versionDiffers = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
+  const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/target-conflict.json`, problem: versionDiffers } as const;
   expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toEqual(unreadable);
 });
 

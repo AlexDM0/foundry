@@ -141,7 +141,8 @@ testWhenGitIsRecorded('a review whose start cannot be read is judged by no gate:
   const scene = gatingScene();
   writeFileSync(join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), 'start.json'), '{"startCommit": ');
 
-  expect(await gateOf(scene, 'review', [HEAD_ON_THE_START_TREE])).toEqual({ verdict: 'unreadable-file', file: 'jobs/J2/start.json', reason: expect.stringContaining('JSON') });
+  const problem = { code: 'not-json', parserError: expect.any(String) };
+  expect(await gateOf(scene, 'review', [HEAD_ON_THE_START_TREE])).toEqual({ verdict: 'unreadable-file', file: 'jobs/J2/start.json', problem });
 });
 
 testWhenGitIsRecorded('a build always waits on the first gate, even on the tree it started from', async () => {
@@ -492,7 +493,7 @@ describe('a gate\'s cache report', () => {
       cacheReport: 'warm',
     })}\n`);
 
-    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J2/gate-1-verdict.json', reason: 'its "cacheReport" is not a cache report' };
+    const unreadable = { verdict: 'unreadable-file', file: 'jobs/J2/gate-1-verdict.json', problem: { code: 'field-is-not', field: 'cacheReport', expected: 'a-cache-report' } };
 
     expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toEqual(unreadable);
   });

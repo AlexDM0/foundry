@@ -5,9 +5,10 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import { storedFileTextOf }    from '../StoredFileText.ts';
-import { StoredValueUtil }     from '../utils/StoredValueUtil.ts';
+import { writeFileAtomically }       from '../../lib/atomic-file/AtomicFile.ts';
+import { storedFileTextOf }          from '../StoredFileText.ts';
+import { StoredValueUtil }           from '../utils/StoredValueUtil.ts';
+import type { MachineLimitsProblem } from './@types/MachineLimitsProblem.ts';
 
 export const MACHINE_LIMITS_VERSION = 1;
 
@@ -19,7 +20,7 @@ export type MachineLimitsReading =
   | { verdict: 'absent' }
   | { verdict: 'read'; limits: MachineLimits }
   | { verdict: 'newer-version'; version: number }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; problem: MachineLimitsProblem };
 
 const MACHINE_LIMITS_FILE_NAME = 'machine-limits.json';
 
@@ -28,13 +29,20 @@ function pathIn(monitorFolder: string): string {
 }
 
 function readingOf(document: unknown): MachineLimitsReading {
-  if (typeof document !== 'object' || document === null || Array.isArray(document)) return { verdict: 'malformed', reason: 'it is not a JSON object' };
+  if (typeof document !== 'object' || document === null || Array.isArray(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const { version, agentLimit } = document as { version?: unknown; agentLimit?: unknown };
-  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return { verdict: 'malformed', reason: 'its "version" is not a whole number' };
+  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return { verdict: 'malformed', problem: { code: 'version-not-a-whole-number', field: 'version' } };
   if (version > MACHINE_LIMITS_VERSION) return { verdict: 'newer-version', version };
-  if (version < MACHINE_LIMITS_VERSION) return { verdict: 'malformed', reason: `its "version" ${version} is older than ${MACHINE_LIMITS_VERSION}` };
+  if (version < MACHINE_LIMITS_VERSION) {
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'version-older', field: 'version', version, readableVersion: MACHINE_LIMITS_VERSION
+      }
+    };
+  }
   if (typeof agentLimit !== 'number' || !Number.isSafeInteger(agentLimit) || agentLimit < 1) {
-    return { verdict: 'malformed', reason: 'its "agentLimit" is not a whole number of at least 1' };
+    return { verdict: 'malformed', problem: { code: 'agent-limit-below-one', field: 'agentLimit' } };
   }
   return { verdict: 'read', limits: { agentLimit } };
 }
@@ -43,9 +51,9 @@ function readingOf(document: unknown): MachineLimitsReading {
 function read(monitorFolder: string): MachineLimitsReading {
   const storedText = storedFileTextOf(pathIn(monitorFolder));
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   return readingOf(parsedJson.value);
 }
 

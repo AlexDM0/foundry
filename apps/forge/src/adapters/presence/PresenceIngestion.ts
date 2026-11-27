@@ -4,6 +4,7 @@ import { storedIdentityOf }                                         from '../../
 import { START_KINDS, START_ORIGINS }                               from '../../lib/tracker-model/constants/JobStates.ts';
 import { StoredJsonDocumentUtil }                                   from '../utils/StoredJsonDocumentUtil.ts';
 import { StoredValueUtil }                                          from '../utils/StoredValueUtil.ts';
+import type { PresenceMalformedField, PresenceProblem }             from './@types/PresenceProblem.ts';
 import type { AbandonedPassReason, PresenceEnding, PresenceRecord } from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                          from './@types/StartClassificationVerdict.ts';
 import { PRESENCE_FORMAT_VERSION }                                  from './constants/PresenceFileVersions.ts';
@@ -11,7 +12,7 @@ import { PRESENCE_FORMAT_VERSION }                                  from './cons
 export type PresenceReading =
   | { verdict: 'readable'; record: PresenceRecord }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: PresenceProblem };
 
 type Fields = Readonly<Record<string, unknown>>;
 
@@ -91,7 +92,7 @@ function abandonedPassesOf(value: unknown): PresenceRecord['abandonedPasses'] | 
 
 function presenceReadingOf(document: Fields): PresenceReading {
   const field = (key: keyof PresenceRecord): unknown => StoredValueUtil.ownFieldOf(document, key);
-  const unreadable = (reason: string): PresenceReading => ({ verdict: 'unreadable', reason });
+  const unreadable = (malformedField: PresenceMalformedField): PresenceReading => ({ verdict: 'unreadable', problem: { code: 'presence-field-malformed', field: malformedField } });
   const generation = field('generation');
   const storedProcess = field('process');
   const processIdentity = storedIdentityOf(storedProcess);
@@ -101,14 +102,14 @@ function presenceReadingOf(document: Fields): PresenceReading {
   const startClassification = startClassificationOf(field('startClassification'));
   const abandonedPasses = abandonedPassesOf(field('abandonedPasses'));
   const ending = endingOf(field('ending'));
-  if (!StoredValueUtil.wholeNumberIsAtLeast(generation, 1)) return unreadable('generation is not a whole number from 1');
-  if (processIdentity === null || !Object.hasOwn(storedProcess as object, 'startStamp')) return unreadable('process is not a process identity');
-  if (typeof codeVersion !== 'string') return unreadable('codeVersion is not a string');
-  if (!StoredValueUtil.valueIsOneOf(startOrigin, START_ORIGINS)) return unreadable('startOrigin is not a start origin');
-  if (typeof startedAt !== 'string') return unreadable('startedAt is not a string');
-  if (startClassification === undefined) return unreadable('startClassification is neither null nor a start classification');
-  if (abandonedPasses === undefined) return unreadable('abandonedPasses is not a count with its last abandoned pass');
-  if (ending === undefined) return unreadable('ending is neither null nor an ending');
+  if (!StoredValueUtil.wholeNumberIsAtLeast(generation, 1)) return unreadable('generation');
+  if (processIdentity === null || !Object.hasOwn(storedProcess as object, 'startStamp')) return unreadable('process');
+  if (typeof codeVersion !== 'string') return unreadable('codeVersion');
+  if (!StoredValueUtil.valueIsOneOf(startOrigin, START_ORIGINS)) return unreadable('startOrigin');
+  if (typeof startedAt !== 'string') return unreadable('startedAt');
+  if (startClassification === undefined) return unreadable('startClassification');
+  if (abandonedPasses === undefined) return unreadable('abandonedPasses');
+  if (ending === undefined) return unreadable('ending');
   return {
     verdict: 'readable',
     record:  {

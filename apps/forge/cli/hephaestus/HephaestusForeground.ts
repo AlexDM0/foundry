@@ -79,6 +79,7 @@ import {
   outlivingProgramEnvironment
 } from '../../src/shared/Environment.ts';
 import { OperationRefusal }                from '../../src/shared/OperationRefusal.ts';
+import { refuseUnlessOwnerOnly }           from '../../src/shared/OwnerOnlyRestrictionRefusal.ts';
 import { versionsAnswerOverride }          from '../../src/shared/VersionsAnswerOverride.ts';
 import {
   HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
@@ -269,7 +270,7 @@ export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line
 function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): string {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
   writeOwnerOnlyFileAtomically(tokenFilePath, token);
-  ownerOnlyFiles.restrictFile(tokenFilePath);
+  refuseUnlessOwnerOnly(ownerOnlyFiles.restrictFile(tokenFilePath));
   return token;
 }
 
@@ -484,7 +485,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const versionsAnswer = versionsAnswerOverride();
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   // Before any worker starts: a folder absent when a sandbox is wrapped would go undenied.
-  platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath));
+  refuseUnlessOwnerOnly(platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath)));
   if (request.successorOf !== undefined) await waitForThePredecessorToEnd(platformPorts, files, request.successorOf);
   requireNoLiveHephaestus(platformPorts, files);
 

@@ -2,12 +2,13 @@
 import { StoredJsonDocumentUtil }              from '../utils/StoredJsonDocumentUtil.ts';
 import { StoredValueUtil }                     from '../utils/StoredValueUtil.ts';
 import type { ForcedStopRefusals }             from './@types/ForcedStopRefusals.ts';
+import type { RefusedForcedStopsProblem }      from './@types/RefusedForcedStopsProblem.ts';
 import { REFUSED_FORCED_STOPS_FORMAT_VERSION } from './constants/RefusedForcedStopsFileVersions.ts';
 
 export type RefusedForcedStopsReading =
   | { verdict: 'readable'; forcedStopRefusals: ForcedStopRefusals }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: RefusedForcedStopsProblem };
 
 function isProcessId(value: unknown): value is number {
   return StoredValueUtil.wholeNumberIsAtLeast(value, 1);
@@ -21,8 +22,10 @@ export class RefusedForcedStopsIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.refusedForcedStopsFilePath, REFUSED_FORCED_STOPS_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { refusals, treeProcessIds } = stored.document;
-    if (!StoredValueUtil.wholeNumberIsAtLeast(refusals, 1)) return { verdict: 'unreadable', reason: 'refusals is not a whole number from 1' };
-    if (!Array.isArray(treeProcessIds) || !treeProcessIds.every(isProcessId)) return { verdict: 'unreadable', reason: 'treeProcessIds is not a list of process ids' };
+    if (!StoredValueUtil.wholeNumberIsAtLeast(refusals, 1)) return { verdict: 'unreadable', problem: { code: 'refused-forced-stops-field-malformed', field: 'refusals' } };
+    if (!Array.isArray(treeProcessIds) || !treeProcessIds.every(isProcessId)) {
+      return { verdict: 'unreadable', problem: { code: 'refused-forced-stops-field-malformed', field: 'treeProcessIds' } };
+    }
     return { verdict: 'readable', forcedStopRefusals: { refusals, treeProcessIds: [...treeProcessIds] } };
   }
 }

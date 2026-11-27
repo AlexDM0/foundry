@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory }                               from '../../testing/ScratchWorkspace.ts';
+import type { SandboxRefusalProblem }                                                   from './@types/SandboxRefusalProblem.ts';
 import { SANDBOX_REFUSAL_FORMAT_VERSION, type SandboxRefusal, SandboxRefusalIngestion } from './SandboxRefusalIngestion.ts';
 import { createSandboxRefusalWriter }                                                   from './SandboxRefusalWriter.ts';
 
@@ -48,17 +49,17 @@ test('a file that is not JSON is unreadable', () => {
 
 test('a refusal of another version, or of none, is unreadable', () => {
   writeFileSync(refusalFilePath(), `${JSON.stringify({ ...REFUSAL, version: SANDBOX_REFUSAL_FORMAT_VERSION + 1 })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${SANDBOX_REFUSAL_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: SANDBOX_REFUSAL_FORMAT_VERSION } });
   writeFileSync(refusalFilePath(), `${JSON.stringify(REFUSAL)}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: `its version is not ${SANDBOX_REFUSAL_FORMAT_VERSION}` });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem: { code: 'version-differs', field: 'version', expectedVersion: SANDBOX_REFUSAL_FORMAT_VERSION } });
 });
 
-test.each([
-  ['step', { step: 1 }, 'its "step" is not text'],
-  ['reason', { reason: undefined }, 'its "reason" is not text'],
-])('a wrong %s is unreadable', (_field, change, reason) => {
+test.each<[string, Record<string, unknown>, SandboxRefusalProblem]>([
+  ['step', { step: 1 }, { code: 'field-is-not', field: 'step', expected: 'text' }],
+  ['reason', { reason: undefined }, { code: 'field-is-not', field: 'reason', expected: 'text' }],
+])('a wrong %s is unreadable', (_field, change, problem) => {
   writeFileSync(refusalFilePath(), `${JSON.stringify({ version: SANDBOX_REFUSAL_FORMAT_VERSION, ...REFUSAL, ...change })}\n`);
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(reading()).toEqual({ verdict: 'unreadable', problem });
 });
 
 test('a folder where the file belongs is unreadable, not absent, and does not throw', () => {

@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { OwnerOnlyRestriction }                      from '../owner-only-files/OwnerOnlyFiles.ts';
 import { type PlatformPorts, platformPortsFor }           from './PlatformPortsFor.ts';
 
 const HOST_FACTS = {
@@ -39,12 +40,12 @@ afterAll(() => {
   removeScratchDirectory(scratchDirectory);
 });
 
-function thrownMessageOf(action: () => unknown): string | null {
+/** An adapter changes the absent file's mode and meets the system's own error; the port with no adapter answers its refusal. */
+function restrictionOrSystemError(restrict: () => OwnerOnlyRestriction): OwnerOnlyRestriction | 'system-error' {
   try {
-    action();
-    return null;
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return restrict();
+  } catch {
+    return 'system-error';
   }
 }
 
@@ -64,12 +65,12 @@ const ADAPTER_PROBES: Readonly<Record<keyof PlatformPorts, (ports: PlatformPorts
     return resolution.verdict === 'found' || resolution.cause !== 'no-adapter';
   },
   ownerOnlyFiles: (ports) => {
-    const message = thrownMessageOf(() => ports.ownerOnlyFiles.restrictFile(join(scratchDirectory, 'absent-folder', 'absent-file')));
-    return message === null || !message.includes('no owner-only files exist');
+    const restriction = restrictionOrSystemError(() => ports.ownerOnlyFiles.restrictFile(join(scratchDirectory, 'absent-folder', 'absent-file')));
+    return restriction === 'system-error' || restriction.verdict === 'restricted' || restriction.cause !== 'no-adapter';
   },
   dataFolders: (ports) => {
-    const message = thrownMessageOf(() => ports.dataFolders.systemFolder());
-    return message === null || !message.includes('no data folders exist');
+    const systemFolder = ports.dataFolders.systemFolder();
+    return systemFolder.verdict === 'found' || systemFolder.cause !== 'no-adapter';
   },
   programFolders:    (ports) => ports.programFolders.installFoldersOf('/home/example').length > 0,
   launchEnvironment: (ports) => ports.launchEnvironment.inheritedVariableNames.length > 0,
@@ -108,7 +109,7 @@ describe(`on the unknown platform ${UNKNOWN_PLATFORM}`, () => {
 
 test('on win32 the host\'s SystemRoot reaches the data folders, so a Windows installed off C: names its own system folder', () => {
   const ports = platformPortsFor('win32', { ...HOST_FACTS, systemRoot: () => 'D:\\Windows' });
-  expect(ports.dataFolders.systemFolder()).toBe('D:\\Windows\\System32');
+  expect(ports.dataFolders.systemFolder()).toEqual({ verdict: 'found', folder: 'D:\\Windows\\System32' });
 });
 
 test('on win32 the host\'s SystemRoot ends every agent\'s search path, and its application folders hold program folders', () => {

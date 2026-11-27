@@ -17,6 +17,7 @@ import type {
   Pipeline,
   PipelineAgentRole
 } from './Pipeline.ts';
+import type { PipelineProblem } from './PipelineProblem.ts';
 import type {
   ApplyRequest,
   PipelineDraftField,
@@ -45,7 +46,7 @@ export interface PipelineApplication {
 export type AppliedPipelineFacts =
   | { readingVerdict: 'absent' }
   | { readingVerdict: 'older'; fileText: string }
-  | { readingVerdict: 'malformed'; reason: string; fileText: string }
+  | { readingVerdict: 'malformed'; problem: PipelineProblem; fileText: string }
   | {
     readingVerdict: 'readable';
     pipeline:       Pipeline;

@@ -14,6 +14,7 @@ import type {
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { EntityRefusal }       from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
 import type { PipelineFieldValue }  from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import type { EffectReadingSource } from './EffectReading.ts';
 
@@ -39,8 +40,8 @@ export type SetupMessage =
     editIds:                readonly string[];
     fields:                 readonly PipelineDraftField[];
     changes:                readonly DraftFieldValue[];
-    /** Why the entity validator refuses the draft's entities after the edit, each as the refusal's reason; empty when none stands. */
-    standingEntityRefusals: readonly string[];
+    /** What the entity validator refuses in the draft's entities after the edit; empty when none stands. */
+    standingEntityRefusals: readonly EntityRefusal[];
   }
   | {
     kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField; changes: readonly DraftFieldValue[]

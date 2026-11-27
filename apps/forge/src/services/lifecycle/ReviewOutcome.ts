@@ -5,6 +5,7 @@
  */
 import { join } from 'node:path';
 
+import type { WaiverProposalsProblem }                   from '../../adapters/waiver-proposals/@types/WaiverProposalsProblem.ts';
 import { WaiverProposalsIngestion, type WaiverProposal } from '../../adapters/waiver-proposals/WaiverProposalsIngestion.ts';
 import { createWaiverProposalsWriter }                   from '../../adapters/waiver-proposals/WaiverProposalsWriter.ts';
 import { readChangeSize, readCommitsDiff }               from '../../lib/git/BranchDiffs.ts';
@@ -306,7 +307,7 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 /** What acting on a waiver answer did: its records, or the stored proposals a grant needed that could not be read, on which it did nothing. */
 export type WaiverAnswerOutcome =
   | { verdict: 'acted'; logged: LogRecord[] }
-  | { verdict: 'proposals-unreadable'; proposalsPath: string; reason: string };
+  | { verdict: 'proposals-unreadable'; proposalsPath: string; problem: WaiverProposalsProblem };
 
 /**
  * Acts on User's recorded answer to the review job's `waiver` decision, in Hephaestus's hold after the answer: granted, each proposed
@@ -330,7 +331,7 @@ function actOnWaiverAnswer(
   if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
   const proposalsPath = waiverProposalsPathOf(jobFolder);
   const reading = new WaiverProposalsIngestion(proposalsPath).read();
-  if (reading.verdict === 'unreadable') return { verdict: 'proposals-unreadable', proposalsPath, reason: reading.reason };
+  if (reading.verdict === 'unreadable') return { verdict: 'proposals-unreadable', proposalsPath, problem: reading.problem };
   if (reading.verdict === 'absent') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, writtenBy: 'board' }, at).logged);

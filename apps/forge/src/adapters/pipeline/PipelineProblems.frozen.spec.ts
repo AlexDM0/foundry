@@ -6,6 +6,7 @@ import { afterEach, expect, test }                from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import frozenProblems                                     from './FrozenPipelineProblems.json' with { type: 'json' };
 import { PipelineFile }                                   from './PipelineFile.ts';
+import { PipelineProblemWording }                         from './PipelineProblemWording.ts';
 
 let scratchDirectory: string | null = null;
 
@@ -35,7 +36,9 @@ const ENTITIES_IN_A_FOLDER_CASE = 'entitiesInAFolderReadingOf';
 
 test.each(frozenProblems)('$case', ({ case: caseText, stored, sentence }) => {
   if (caseText.includes(ENTITIES_IN_A_FOLDER_CASE)) {
-    expect(PipelineFile.entitiesInAFolderReadingOf('apps/web')).toMatchObject({ verdict: 'malformed', reason: sentence });
+    const entitiesInAFolder = PipelineFile.entitiesInAFolderReadingOf('apps/web');
+    if (entitiesInAFolder.verdict !== 'malformed') throw new Error(`expected a malformed reading, read ${entitiesInAFolder.verdict}`);
+    expect(PipelineProblemWording.sentenceOf(entitiesInAFolder.problem)).toBe(sentence);
     return;
   }
   scratchDirectory = createScratchDirectory('frozen-pipeline-problems');
@@ -44,5 +47,6 @@ test.each(frozenProblems)('$case', ({ case: caseText, stored, sentence }) => {
 
   const reading = PipelineFile.read(filePath);
 
-  expect(reading).toEqual({ verdict: 'malformed', reason: sentence.replace('{systemError}', systemErrorOf(filePath)) });
+  if (reading.verdict !== 'malformed') throw new Error(`expected a malformed reading, read ${reading.verdict}`);
+  expect(PipelineProblemWording.sentenceOf(reading.problem)).toBe(sentence.replace('{systemError}', systemErrorOf(filePath)));
 });

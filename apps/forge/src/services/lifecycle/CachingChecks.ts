@@ -7,6 +7,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { isAbsolute, join }        from 'node:path';
 
+import type { TurboConfigurationProblem } from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
 import {
   TURBO_CONFIGURATION_FILE_NAME,
   type TurboConfiguration,
@@ -19,7 +20,7 @@ export type CachingSuggestion =
   | { kind: 'per-worktree-cache'; cacheFolder: string }
   | { kind: 'task-inputs-unseen'; task: string; folders: string[] }
   | { kind: 'gate-not-through-turbo'; gate: string }
-  | { kind: 'turbo-configuration-unreadable'; file: string; reason: string };
+  | { kind: 'turbo-configuration-unreadable'; file: string; problem: TurboConfigurationProblem };
 
 /** One recorded gate profile: the gate and how long it ran. A gate profiled in several phases has a time for each. */
 export interface RecordedGateTime {
@@ -88,7 +89,7 @@ function slowestTimeOfEachGate(recordedTimes: readonly RecordedGateTime[]): Reco
 
 function cachingSuggestionsOf(repositoryDirectory: string, gates: readonly { name: string; run: string }[], recordedTimes: readonly RecordedGateTime[]): CachingSuggestion[] {
   const reading = new TurboConfigurationIngestion(join(repositoryDirectory, TURBO_CONFIGURATION_FILE_NAME)).read();
-  if (reading.verdict === 'unreadable') return [{ kind: 'turbo-configuration-unreadable', file: TURBO_CONFIGURATION_FILE_NAME, reason: reading.reason }];
+  if (reading.verdict === 'unreadable') return [{ kind: 'turbo-configuration-unreadable', file: TURBO_CONFIGURATION_FILE_NAME, problem: reading.problem }];
   if (reading.verdict === 'absent') {
     if (OTHER_CACHING_TOOL_FILES.some((file) => existsSync(join(repositoryDirectory, file)))) return [];
     const slowGates = slowestTimeOfEachGate(recordedTimes).filter((gate) => gate.milliseconds >= SLOW_GATE_MILLISECONDS);

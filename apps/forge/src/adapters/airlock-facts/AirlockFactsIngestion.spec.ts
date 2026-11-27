@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { AirlockFactsIngestion, type KeptAirlockFacts }   from './AirlockFactsIngestion.ts';
+import { AirlockFactsProblemWording }                     from './AirlockFactsProblemWording.ts';
 import { createAirlockFactsWriter }                       from './AirlockFactsWriter.ts';
 
 let scratchDirectory: string | null = null;
@@ -61,5 +62,5 @@ test.each([
   const factsReading = reading();
 
   expect(factsReading.verdict).toBe('unreadable');
-  expect(factsReading.verdict === 'unreadable' ? factsReading.reason : '').toContain(reason);
+  expect(factsReading.verdict === 'unreadable' ? AirlockFactsProblemWording.sentenceOf(factsReading.problem) : '').toContain(reason);
 });

@@ -16,6 +16,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_INSTALL_MANIFEST_PROBLEMS                   from './FrozenInstallManifestProblems.json';
 import { InstallManifestIngestion }                       from './InstallManifestIngestion.ts';
+import { InstallManifestProblemWording }                  from './InstallManifestProblemWording.ts';
 
 /** The rows whose `stored` is `null`, since no stored text builds them. */
 const UNSTORABLE_CASE_BUILDERS: Readonly<Record<string, (filePath: string) => void>> = {
@@ -40,9 +41,9 @@ function systemErrorAt(storedFilePath: string): string {
   }
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new InstallManifestIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return 'problem' in reading ? InstallManifestProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -59,5 +60,5 @@ test.each(FROZEN_INSTALL_MANIFEST_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
+  expect(sentenceAt()).toBe(frozenProblem.sentence.replace('{systemError}', systemErrorAt(filePath())));
 });

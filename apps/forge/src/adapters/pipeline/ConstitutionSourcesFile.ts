@@ -1,11 +1,12 @@
 /**
  * `constitution-sources.json` beside `pipeline.json`: the pipeline agent's sources of the constitution main holds, keyed by that text's
  * blob id, so a record takes them only for that very text. Read, validated and mapped here, and written through the hold. A file the read cannot
- * map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the top level, after its own, in
+ * map whole is `malformed` with the problem, never a throw. Keys this build does not know are kept at the top level, after its own, in
  * their stored order, so a read and a write leave the file byte-identical.
  */
 import { JsonRecordUtil }                                                               from '../../lib/json-record/JsonRecordUtil.ts';
 import type { ConstitutionSourcesReading, SourceAnnotation, StoredConstitutionSources } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { ConstitutionSourcesProblem }                                              from '../../lib/tracker-model/@types/PipelineSetupProblem.ts';
 import { JsonTextUtil }                                                                 from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf }                                                             from '../StoredFileText.ts';
 import { StoredValueUtil }                                                              from '../utils/StoredValueUtil.ts';
@@ -15,8 +16,8 @@ const SOURCES_FORMAT_VERSION = 1;
 
 const OWNED_KEYS: readonly string[] = ['formatVersion', 'blob', 'annotations'];
 
-function annotationsOf(value: unknown): { annotations: SourceAnnotation[] } | { problem: string } {
-  if (!Array.isArray(value)) return { problem: 'annotations is not a list' };
+function annotationsOf(value: unknown): { annotations: SourceAnnotation[] } | { problem: ConstitutionSourcesProblem } {
+  if (!Array.isArray(value)) return { problem: { code: 'not-a-list', field: 'annotations' } };
   const annotations: SourceAnnotation[] = [];
   for (const [index, item] of value.entries()) {
     const mapped = PipelineSetupFile.annotationOf(item, `annotations[${index}]`);
@@ -27,14 +28,19 @@ function annotationsOf(value: unknown): { annotations: SourceAnnotation[] } | { 
 }
 
 function documentReadingOf(document: unknown): ConstitutionSourcesReading {
-  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
+  if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', problem: { code: 'not-a-json-object' } };
   const { formatVersion, blob } = document;
   if (formatVersion !== SOURCES_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `formatVersion is ${JSON.stringify(formatVersion) ?? 'missing'}, and this build reads ${SOURCES_FORMAT_VERSION}` };
+    return {
+      verdict: 'malformed',
+      problem: {
+        code: 'format-version-not-read', field: 'formatVersion', storedValue: formatVersion, readVersion: SOURCES_FORMAT_VERSION
+      }
+    };
   }
-  if (typeof blob !== 'string' || blob === '') return { verdict: 'malformed', reason: 'blob is not a blob id' };
+  if (typeof blob !== 'string' || blob === '') return { verdict: 'malformed', problem: { code: 'not-a-blob-id', field: 'blob' } };
   const mapped = annotationsOf(document['annotations']);
-  if ('problem' in mapped) return { verdict: 'malformed', reason: mapped.problem };
+  if ('problem' in mapped) return { verdict: 'malformed', problem: mapped.problem };
   const extra = Object.entries(document).filter(([key]) => !OWNED_KEYS.includes(key));
   return {
     verdict: 'readable',
@@ -47,9 +53,9 @@ function documentReadingOf(document: unknown): ConstitutionSourcesReading {
 function read(sourcesFilePath: string): ConstitutionSourcesReading {
   const storedText = storedFileTextOf(sourcesFilePath);
   if (storedText.verdict === 'absent') return storedText;
-  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', reason: storedText.reason };
+  if (storedText.verdict === 'unreadable') return { verdict: 'malformed', problem: storedText.problem };
   const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);
-  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', reason: parsedJson.problem };
+  if (parsedJson.verdict === 'unparseable') return { verdict: 'malformed', problem: parsedJson.problem };
   return documentReadingOf(parsedJson.value);
 }
 

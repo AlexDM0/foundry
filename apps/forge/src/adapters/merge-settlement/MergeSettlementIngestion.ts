@@ -2,8 +2,9 @@
  * `target-merge-settlement.json` and `main-merge-settlement[-<round>].json`, how a merge of the target into a ticket's worktree settled once
  * its process ended, read into the settlement: read, validate, map.
  */
-import { type FieldCheck, JobFileShapeUtil } from '../utils/JobFileShapeUtil.ts';
-import { StoredJsonDocumentUtil }            from '../utils/StoredJsonDocumentUtil.ts';
+import { type ExpectationCheck, JobFileShapeUtil } from '../utils/JobFileShapeUtil.ts';
+import { StoredJsonDocumentUtil }                  from '../utils/StoredJsonDocumentUtil.ts';
+import type { MergeSettlementProblem }             from './@types/MergeSettlementProblem.ts';
 
 export const MERGE_SETTLEMENT_FORMAT_VERSION = 1;
 
@@ -15,11 +16,11 @@ export type TargetMergeSettlement =
 export type MergeSettlementReading =
   | { verdict: 'readable'; settlement: TargetMergeSettlement }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: MergeSettlementProblem };
 
-const SETTLEMENT_CHECKS: Readonly<Record<TargetMergeSettlement['verdict'], Readonly<Record<string, FieldCheck>>>> = {
-  merged:     { mergeCommit: [JobFileShapeUtil.valueIsText, 'a commit'] },
-  conflicted: { conflictedFiles: [JobFileShapeUtil.valueIsATextList, 'a list of paths'] },
+const SETTLEMENT_CHECKS: Readonly<Record<TargetMergeSettlement['verdict'], Readonly<Record<string, ExpectationCheck>>>> = {
+  merged:     { mergeCommit: [JobFileShapeUtil.valueIsText, 'a-commit'] },
+  conflicted: { conflictedFiles: [JobFileShapeUtil.valueIsATextList, 'a-list-of-paths'] },
   failed:     { reason: [JobFileShapeUtil.valueIsText, 'text'] },
 };
 
@@ -38,9 +39,9 @@ export class MergeSettlementIngestion {
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
     const { verdict } = document;
-    if (verdict !== 'merged' && verdict !== 'conflicted' && verdict !== 'failed') return { verdict: 'unreadable', reason: 'its "verdict" is not a settlement' };
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, SETTLEMENT_CHECKS[verdict]);
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (verdict !== 'merged' && verdict !== 'conflicted' && verdict !== 'failed') return { verdict: 'unreadable', problem: { code: 'not-a-settlement', field: 'verdict' } };
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, SETTLEMENT_CHECKS[verdict]);
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', settlement: settlementOf(document, verdict) };
   }
 }

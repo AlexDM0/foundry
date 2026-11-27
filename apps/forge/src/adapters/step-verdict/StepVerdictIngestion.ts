@@ -4,8 +4,10 @@ import { GATE_PHASES, type GateRunStamp }                            from '../..
 import type { GateCacheReport, GateOutcome, PipelineStepRun }        from '../../lib/tracker-model/@types/Job.ts';
 import { GATE_CACHE_REPORTS }                                        from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { GATE_OUTCOMES, PIPELINE_STEP_ENDINGS, PIPELINE_STEP_KINDS } from '../../lib/tracker-model/constants/JobStates.ts';
+import type { JobFileFieldProblem }                                  from '../@types/JobFileFieldProblem.ts';
 import { JobFileShapeUtil }                                          from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil }                                    from '../utils/StoredJsonDocumentUtil.ts';
+import type { StepVerdictProblem }                                   from './@types/StepVerdictProblem.ts';
 
 export const STEP_VERDICT_FORMAT_VERSION = 1;
 
@@ -27,7 +29,7 @@ export interface StepVerdict extends GateRunStamp {
 export type StepVerdictReading =
   | { verdict: 'readable'; stepVerdict: StepVerdict }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: StepVerdictProblem };
 
 const GATE_STEP_OUTCOMES: readonly GateStepOutcome[] = [...GATE_OUTCOMES, 'setup-failed'];
 
@@ -35,15 +37,15 @@ function valueIsARunTime(value: unknown): boolean {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
-function stepRunProblemOf(stepRun: unknown): string | null {
+function stepRunProblemOf(stepRun: unknown): JobFileFieldProblem | null {
   if (stepRun === undefined) return null;
-  if (!JsonRecordUtil.valueIsAPlainObject(stepRun)) return 'its "stepRun" is not an object';
-  return JobFileShapeUtil.firstFieldProblemOf(stepRun, {
-    stepKind:        [JobFileShapeUtil.oneOf(PIPELINE_STEP_KINDS), 'a step kind'],
+  if (!JsonRecordUtil.valueIsAPlainObject(stepRun)) return { code: 'field-is-not', field: 'stepRun', expected: 'an-object' };
+  return JobFileShapeUtil.firstMistypedFieldOf(stepRun, {
+    stepKind:        [JobFileShapeUtil.oneOf(PIPELINE_STEP_KINDS), 'a-step-kind'],
     stepName:        [JobFileShapeUtil.valueIsText, 'text'],
-    entity:          [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'an entity key'],
-    runMilliseconds: [valueIsARunTime, 'a run time'],
-    ending:          [JobFileShapeUtil.oneOf(PIPELINE_STEP_ENDINGS), 'a step ending'],
+    entity:          [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsText), 'an-entity-key'],
+    runMilliseconds: [valueIsARunTime, 'a-run-time'],
+    ending:          [JobFileShapeUtil.oneOf(PIPELINE_STEP_ENDINGS), 'a-step-ending'],
   }, 'stepRun.');
 }
 
@@ -84,17 +86,17 @@ export class StepVerdictIngestion {
     const stored = StoredJsonDocumentUtil.documentAt(this.verdictFilePath, STEP_VERDICT_FORMAT_VERSION);
     if (stored.verdict !== 'readable') return stored;
     const { document } = stored;
-    const problem = JobFileShapeUtil.firstFieldProblemOf(document, {
+    const problem = JobFileShapeUtil.firstMistypedFieldOf(document, {
       treeId:            [JobFileShapeUtil.valueIsText, 'text'],
-      phase:             [JobFileShapeUtil.oneOf(GATE_PHASES), 'a gate phase'],
+      phase:             [JobFileShapeUtil.oneOf(GATE_PHASES), 'a-gate-phase'],
       phaseHash:         [JobFileShapeUtil.valueIsText, 'text'],
-      entityPhaseHashes: [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsATextRecord), 'a record of phase hashes'],
-      outcome:           [JobFileShapeUtil.oneOf(GATE_STEP_OUTCOMES), 'a step outcome'],
+      entityPhaseHashes: [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsATextRecord), 'a-record-of-phase-hashes'],
+      outcome:           [JobFileShapeUtil.oneOf(GATE_STEP_OUTCOMES), 'a-step-outcome'],
       output:            [JobFileShapeUtil.valueIsText, 'text'],
-      exitCode:          [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsANumberOrNull), 'an exit code or null'],
-      cacheReport:       [JobFileShapeUtil.optional(JobFileShapeUtil.oneOf(GATE_CACHE_REPORTS)), 'a cache report'],
+      exitCode:          [JobFileShapeUtil.optional(JobFileShapeUtil.valueIsANumberOrNull), 'an-exit-code-or-null'],
+      cacheReport:       [JobFileShapeUtil.optional(JobFileShapeUtil.oneOf(GATE_CACHE_REPORTS)), 'a-cache-report'],
     }) ?? stepRunProblemOf(document['stepRun']);
-    if (problem !== null) return { verdict: 'unreadable', reason: problem };
+    if (problem !== null) return { verdict: 'unreadable', problem };
     return { verdict: 'readable', stepVerdict: stepVerdictOf(document) };
   }
 }

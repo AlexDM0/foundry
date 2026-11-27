@@ -270,7 +270,9 @@ describe('the messages', () => {
     await DocumentAgentSessions.sendDeliveries(fixture.children, fixture.trackerDirectory, fixture.board, CHAT_ADAPTER, fixture.log);
 
     expect(fixture.board.incidents().map((incident) => [incident.kind, incident.ticketIds, incident.jobId, incident.facts])).toEqual([[
-      'system-file-unreadable', ['004'], 'J9', { file: 'jobs/J9/document-agent-launch.json', reason: 'its version is not 1' },
+      'system-file-unreadable', ['004'], 'J9', {
+        file: 'jobs/J9/document-agent-launch.json', problem: 'version-differs', field: 'version', expectedVersion: '1'
+      },
     ]]);
     expect(fixture.board.ticketDocuments().nextQueuedMessageOf('004', 'spec')?.messageId).toBe('M2');
     expect(fixture.board.jobById('J9')?.state).toBe('stopping');

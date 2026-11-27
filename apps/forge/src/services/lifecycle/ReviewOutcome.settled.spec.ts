@@ -404,7 +404,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
       settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
       writeFileSync(join(jobFolder, 'waiver-proposals.json'), storedProposals);
 
-      const unreadable = { verdict: 'proposals-unreadable' as const, proposalsPath: join(jobFolder, 'waiver-proposals.json'), reason: expect.any(String) };
+      const unreadable = { verdict: 'proposals-unreadable' as const, proposalsPath: join(jobFolder, 'waiver-proposals.json'), problem: expect.any(Object) };
       expect(answerTheWaiver('Grant', GATED_TREE)).toEqual([unreadable]);
       expect(ticketBody()).not.toContain('Waived:');
       expect(recordsOfKind('job-ended')).toEqual([]);

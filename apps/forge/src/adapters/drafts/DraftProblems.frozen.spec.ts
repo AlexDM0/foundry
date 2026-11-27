@@ -10,6 +10,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { DraftFileIngestion }                             from './DraftFileIngestion.ts';
+import { DraftFileProblemWording }                        from './DraftFileProblemWording.ts';
 import FROZEN_DRAFT_PROBLEMS                              from './FrozenDraftProblems.json';
 
 const DIRECTORY_CASE = 'a directory stands where the file belongs (built in the spec; {systemError} is the OS message)';
@@ -42,9 +43,9 @@ function parserErrorOf(stored: string | null): string {
   return '';
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new DraftFileIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return reading.verdict === 'malformed' ? DraftFileProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -61,7 +62,7 @@ test.each(FROZEN_DRAFT_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence
+  expect(sentenceAt()).toBe(frozenProblem.sentence
     .replace('{systemError}', systemErrorAt(filePath()))
     .replace('{parserError}', parserErrorOf(frozenProblem.stored)));
 });

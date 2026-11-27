@@ -1,16 +1,17 @@
 /**
  * An epic file's text to the model and back: a frontmatter of `key`, `title` and `slot` between `---` fences, then the description body,
  * kept byte for byte. Like a ticket it is hand-edited between runs, so every other frontmatter line is kept and a file the CLI cannot
- * understand is a verdict with its reason and line, never a throw.
+ * understand is a verdict with its problem and line, never a throw.
  */
 import type { EpicFrontmatter }                           from '../../../lib/tracker-model/@types/Epic.ts';
 import type { LineEnding }                                from '../../../lib/tracker-model/@types/Ticket.ts';
 import { EPIC_COLOUR_SLOT_COUNT, FIRST_EPIC_COLOUR_SLOT } from '../../../lib/tracker-model/constants/EpicFields.ts';
 import { EpicUtil }                                       from '../../../lib/tracker-model/utils/EpicUtil.ts';
+import type { EpicFileProblem }                           from '../@types/EpicFileProblem.ts';
 
 export type ParsedEpicDocument =
   | { verdict: 'parsed'; frontmatter: EpicFrontmatter; body: string; lineEnding: LineEnding }
-  | { verdict: 'malformed'; reason: string; line: number };
+  | { verdict: 'malformed'; problem: EpicFileProblem; line: number };
 
 interface KnownValue {
   rawValue: string;
@@ -28,12 +29,14 @@ const WHOLE_NUMBER_PATTERN = /^\d+$/;
 const KNOWN_KEYS          = new Set(['key', 'title', 'slot']);
 
 class EpicFrontmatterProblem extends Error {
-  readonly line: number;
+  readonly problem: EpicFileProblem;
+  readonly line:    number;
 
-  constructor(reason: string, line: number) {
-    super(reason);
-    this.name = 'EpicFrontmatterProblem';
-    this.line = line;
+  constructor(problem: EpicFileProblem, line: number) {
+    super(problem.code);
+    this.name    = 'EpicFrontmatterProblem';
+    this.problem = problem;
+    this.line    = line;
   }
 }
 
@@ -43,9 +46,9 @@ function withoutCarriageReturn(line: string): string {
 
 /** The closing fence is the first later `---` line, never the last, because a description may hold a horizontal rule. */
 function closingFenceIndexOf(lines: readonly string[]): number {
-  if (withoutCarriageReturn(lines[0] ?? '') !== FRONTMATTER_FENCE) throw new EpicFrontmatterProblem('the first line must be the frontmatter fence `---`', 1);
+  if (withoutCarriageReturn(lines[0] ?? '') !== FRONTMATTER_FENCE) throw new EpicFrontmatterProblem({ code: 'first-line-not-a-fence' }, 1);
   const closingFenceIndex = lines.findIndex((line, index) => index > 0 && withoutCarriageReturn(line) === FRONTMATTER_FENCE);
-  if (closingFenceIndex === -1) throw new EpicFrontmatterProblem('the frontmatter has no closing `---` fence', Math.max(lines.length, 1));
+  if (closingFenceIndex === -1) throw new EpicFrontmatterProblem({ code: 'no-closing-fence' }, Math.max(lines.length, 1));
   return closingFenceIndex;
 }
 
@@ -56,28 +59,30 @@ function textOf(found: KnownValue, key: string): string {
   try {
     parsed = JSON.parse(found.rawValue);
   } catch {
-    throw new EpicFrontmatterProblem(`\`${key}\` opens a quoted value that does not close: ${found.rawValue}`, found.line);
+    throw new EpicFrontmatterProblem({ code: 'quoted-value-unclosed', field: key, storedValue: found.rawValue }, found.line);
   }
-  if (typeof parsed !== 'string') throw new EpicFrontmatterProblem(`\`${key}\` is quoted but does not hold text`, found.line);
+  if (typeof parsed !== 'string') throw new EpicFrontmatterProblem({ code: 'quoted-value-not-text', field: key }, found.line);
   return parsed;
 }
 
 function requiredValue(knownValues: ReadonlyMap<string, KnownValue>, key: string, closingFenceLine: number): KnownValue {
   const found = knownValues.get(key);
-  if (found === undefined) throw new EpicFrontmatterProblem(`the frontmatter has no \`${key}\` key`, closingFenceLine);
+  if (found === undefined) throw new EpicFrontmatterProblem({ code: 'key-missing', field: key }, closingFenceLine);
   return found;
 }
 
 function frontmatterFrom(knownValues: ReadonlyMap<string, KnownValue>, extra: EpicFrontmatter['extra'], closingFenceLine: number): EpicFrontmatter {
   const keyValue = requiredValue(knownValues, 'key', closingFenceLine);
   const key      = textOf(keyValue, 'key');
-  if (!EpicUtil.epicKeyIsWellFormed(key)) throw new EpicFrontmatterProblem(`\`key\` is not an epic key: ${key}`, keyValue.line);
+  if (!EpicUtil.epicKeyIsWellFormed(key)) throw new EpicFrontmatterProblem({ code: 'not-an-epic-key', field: 'key', storedValue: key }, keyValue.line);
 
   const slotValue = requiredValue(knownValues, 'slot', closingFenceLine);
   const slot      = WHOLE_NUMBER_PATTERN.test(slotValue.rawValue) ? Number(slotValue.rawValue) : Number.NaN;
   const lastSlot  = FIRST_EPIC_COLOUR_SLOT + EPIC_COLOUR_SLOT_COUNT - 1;
   if (!EpicUtil.slotIsWellFormed(slot)) {
-    throw new EpicFrontmatterProblem(`\`slot\` is not a colour slot from ${FIRST_EPIC_COLOUR_SLOT} to ${lastSlot}: ${slotValue.rawValue}`, slotValue.line);
+    throw new EpicFrontmatterProblem({
+      code: 'not-a-colour-slot', field: 'slot', storedValue: slotValue.rawValue, firstSlot: FIRST_EPIC_COLOUR_SLOT, lastSlot
+    }, slotValue.line);
   }
 
   return {
@@ -112,7 +117,7 @@ function parsedEpicDocumentOf(text: string): ParsedEpicDocument {
       const key            = separatorIndex > 0 ? line.slice(0, separatorIndex) : line.slice(0, -1);
       const rawValue       = separatorIndex > 0 ? line.slice(separatorIndex + KEY_VALUE_SEPARATOR.length) : '';
       if ((separatorIndex <= 0 && !line.endsWith(':')) || !KEY_PATTERN.test(key)) {
-        throw new EpicFrontmatterProblem(`\`${line}\` is not a \`key: value\` line`, lineNumber);
+        throw new EpicFrontmatterProblem({ code: 'not-a-key-value-line', lineText: line }, lineNumber);
       }
       if (KNOWN_KEYS.has(key)) knownValues.set(key, { rawValue, line: lineNumber });
       else extra.push([key, rawValue]);
@@ -127,7 +132,7 @@ function parsedEpicDocumentOf(text: string): ParsedEpicDocument {
       lineEnding:  (lines[0] ?? '').endsWith(CARRIAGE_RETURN) ? '\r\n' : '\n',
     };
   } catch (problem) {
-    if (problem instanceof EpicFrontmatterProblem) return { verdict: 'malformed', reason: problem.message, line: problem.line };
+    if (problem instanceof EpicFrontmatterProblem) return { verdict: 'malformed', problem: problem.problem, line: problem.line };
     throw problem;
   }
 }

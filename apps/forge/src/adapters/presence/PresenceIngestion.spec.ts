@@ -14,6 +14,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { PresenceRecord }                            from './@types/PresenceRecord.ts';
 import { PresenceIngestion }                              from './PresenceIngestion.ts';
+import { PresenceProblemWording }                         from './PresenceProblemWording.ts';
 import { createPresenceWriter }                           from './PresenceWriter.ts';
 
 const RECORD: PresenceRecord = {
@@ -51,6 +52,11 @@ const presenceFilePath = (): string => join(scratchDirectory, 'presence.json');
 
 const reading = (): ReturnType<PresenceIngestion['read']> => new PresenceIngestion(presenceFilePath()).read();
 
+/** The reading with its problem worded, as User reads it. */
+function wordedReadingOf(read: ReturnType<PresenceIngestion['read']>): object {
+  return read.verdict === 'unreadable' ? { verdict: read.verdict, reason: PresenceProblemWording.sentenceOf(read.problem) } : read;
+}
+
 function storeWith(changes: Record<string, unknown>): void {
   writeFileSync(presenceFilePath(), JSON.stringify({ ...RECORD, ...changes }));
 }
@@ -77,7 +83,7 @@ test('a missing file is absent', () => {
 test('a file that is not JSON is unreadable', () => {
   writeFileSync(presenceFilePath(), '{ "presenceVersion": 2, ');
 
-  expect(reading()).toMatchObject({ verdict: 'unreadable', reason: expect.stringContaining('not valid JSON') });
+  expect(reading()).toMatchObject({ verdict: 'unreadable', problem: { code: 'not-json' } });
 });
 
 test.each([
@@ -94,11 +100,11 @@ test.each([
 ])('%s is unreadable', (_case, changes, reason) => {
   storeWith(changes);
 
-  expect(reading()).toEqual({ verdict: 'unreadable', reason });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason });
 });
 
 test('a list where the record belongs is unreadable', () => {
   writeFileSync(presenceFilePath(), '[]');
 
-  expect(reading()).toEqual({ verdict: 'unreadable', reason: 'it is not a JSON object' });
+  expect(wordedReadingOf(reading())).toEqual({ verdict: 'unreadable', reason: 'it is not a JSON object' });
 });

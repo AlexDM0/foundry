@@ -1,11 +1,12 @@
 /** `stale-green-session-owner.json`, the session a build or review job's first instance resumed for a stale green: read, validate, map. */
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import { StoredJsonDocumentUtil }             from '../utils/StoredJsonDocumentUtil.ts';
+import type { StaleGreenSessionOwnerProblem } from './@types/StaleGreenSessionOwnerProblem.ts';
 
 /** `null` is the recorded answer that the job resumes no ended session. */
 export type StaleGreenSessionOwnerReading =
   | { verdict: 'readable'; sessionOwnerJobId: string | null }
   | { verdict: 'absent' }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: StaleGreenSessionOwnerProblem };
 
 export const STALE_GREEN_SESSION_OWNER_FORMAT_VERSION = 1;
 
@@ -19,7 +20,7 @@ export class StaleGreenSessionOwnerIngestion {
     const { sessionOwnerJobId } = stored.document;
     if (sessionOwnerJobId === null) return { verdict: 'readable', sessionOwnerJobId };
     if (typeof sessionOwnerJobId !== 'string' || sessionOwnerJobId === '') {
-      return { verdict: 'unreadable', reason: 'its "sessionOwnerJobId" is neither a job id nor null' };
+      return { verdict: 'unreadable', problem: { code: 'neither-a-job-id-nor-null', field: 'sessionOwnerJobId' } };
     }
     return { verdict: 'readable', sessionOwnerJobId };
   }

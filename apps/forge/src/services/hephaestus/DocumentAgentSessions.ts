@@ -12,6 +12,7 @@ import { join }                               from 'node:path';
 import { DeliveryBaseIngestion }                                                          from '../../adapters/delivery-base/DeliveryBaseIngestion.ts';
 import { createDeliveryBaseWriter }                                                       from '../../adapters/delivery-base/DeliveryBaseWriter.ts';
 import { SeenHeadIngestion }                                                              from '../../adapters/seen-head/SeenHeadIngestion.ts';
+import { SeenHeadProblemWording }                                                         from '../../adapters/seen-head/SeenHeadProblemWording.ts';
 import { createSeenHeadWriter }                                                           from '../../adapters/seen-head/SeenHeadWriter.ts';
 import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
@@ -289,7 +290,7 @@ function deliverNextMessage(trackerDirectory: string, board: Board, job: Readonl
 function unreadableFileHoldsDeliveryOf(board: Board, jobFolder: string, job: Readonly<Job>, at: string): boolean {
   const launch = new DeliveryBaseIngestion(join(jobFolder, LAUNCH_FILE)).read();
   if (launch.verdict === 'unreadable') {
-    UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), reason: launch.reason }, at);
+    UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, LAUNCH_FILE), problem: launch.problem }, at);
   }
   return launch.verdict === 'unreadable' || UnreadableJobFileIncident.standsOpenFor(board, job.id);
 }
@@ -343,7 +344,10 @@ function settleEndedSessions(board: Board, trackerDirectory: string, jobIds: rea
 function seenHeadHashOf(jobFolder: string, log: (line: string) => void): string | null {
   const seenHeadFilePath = join(jobFolder, SEEN_HEAD_FILE);
   const seenHead = new SeenHeadIngestion(seenHeadFilePath).read();
-  if (seenHead.verdict === 'unreadable') log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${seenHead.reason}`);
+  if (seenHead.verdict === 'unreadable') {
+    const sentence = SeenHeadProblemWording.sentenceOf(seenHead.problem);
+    log(`The document agent's seen head ${seenHeadFilePath} is unreadable, so its next line carries the head again: ${sentence}`);
+  }
   return seenHead.verdict === 'readable' ? seenHead.contentHash : null;
 }
 
@@ -415,7 +419,8 @@ function verifyTurnEnds(
     if (job === undefined || !isDocumentAgentJob(job)) continue;
     const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
     if (snapshotStart.verdict === 'unreadable') {
-      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      const file = jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE);
+      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file, problem: snapshotStart.problem }, at);
       continue;
     }
     const start    = snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null;

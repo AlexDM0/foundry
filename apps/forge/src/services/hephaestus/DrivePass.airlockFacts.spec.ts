@@ -37,5 +37,6 @@ test('a red handoff in the merge job\'s folder that cannot be read stops the age
 
   const facts = airlockFactsOf(board, trackerDirectory, mergeAgent, join(trackerDirectory, 'example-airlock-worktree'));
 
-  expect(facts).toEqual({ unreadableJobFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/red-handoff.json`, reason: expect.any(String) } });
+  const problem = { code: 'not-json', parserError: expect.any(String) as string } as const;
+  expect(facts).toEqual({ unreadableJobFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/red-handoff.json`, problem } });
 });

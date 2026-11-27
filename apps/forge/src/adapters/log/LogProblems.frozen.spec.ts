@@ -11,6 +11,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_LOG_PROBLEMS                                from './FrozenLogProblems.json';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';
+import { LogFileProblemWording }                          from './LogFileProblemWording.ts';
 
 const NOT_UTF8_BYTES = Uint8Array.of(0x63, 0x61, 0x66, 0xe9, 0x0a);
 
@@ -45,9 +46,9 @@ function parserErrorOf(stored: string | null): string {
   return '';
 }
 
-function reasonAt(): string | null {
+function sentenceAt(): string | null {
   const reading = new LogFileIngestion(filePath()).read();
-  return 'reason' in reading ? reading.reason : null;
+  return reading.verdict === 'unreadable' ? LogFileProblemWording.sentenceOf(reading.problem) : null;
 }
 
 beforeEach(() => {
@@ -64,7 +65,7 @@ test.each(FROZEN_LOG_PROBLEMS)('$case', (frozenProblem) => {
   else writeFileSync(filePath(), frozenProblem.stored);
 
   expect(frozenProblem.stored !== null || unstorableCaseBuilder !== undefined).toBe(true);
-  expect(reasonAt()).toBe(frozenProblem.sentence
+  expect(sentenceAt()).toBe(frozenProblem.sentence
     .replace('{systemError}', systemErrorAt(filePath()))
     .replace('{parserError}', parserErrorOf(frozenProblem.stored))
     .replace('{file}', filePath()));

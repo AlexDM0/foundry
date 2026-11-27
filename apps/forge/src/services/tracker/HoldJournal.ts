@@ -131,7 +131,7 @@ export function replayHoldJournal(workspace: Workspace, fence: HoldFence, fileRe
   const reading = readHoldJournal(workspace);
   if (reading.verdict === 'absent') return;
   if (reading.verdict === 'malformed') {
-    throw new OperationRefusal('unrepaired', { kind: 'malformed-hold-journal', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, reason: reading.reason });
+    throw new OperationRefusal('unrepaired', { kind: 'malformed-hold-journal', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, problem: reading.problem });
   }
   applyThenDeleteJournal(workspace, reading.files, fence, () => {}, fileReplace);
 }

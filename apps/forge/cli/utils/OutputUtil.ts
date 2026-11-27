@@ -1,9 +1,15 @@
-import { LogUtil }               from '../../src/adapters/utils/LogUtil.ts';
-import type { LogRecord }        from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { UnreadableRecord } from '../../src/services/tracker/@types/BoardRecords.ts';
-import { JsonTextUtil }          from '../../src/shared/utils/JsonTextUtil.ts';
-import type { CommandContext }   from '../CommandContext.ts';
-import type { ArgumentParser }   from '../arguments/ArgumentParser.ts';
+import { UnreadableRecordProblemWording } from '../../src/adapters/UnreadableRecordProblemWording.ts';
+import { LogUtil }                        from '../../src/adapters/utils/LogUtil.ts';
+import type { LogRecord }                 from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type {
+  UnreadableDraftRecord,
+  UnreadableEpicRecord,
+  UnreadableTicketDocumentsRecord,
+  UnreadableTicketRecord
+} from '../../src/services/tracker/@types/BoardRecords.ts';
+import { JsonTextUtil }        from '../../src/shared/utils/JsonTextUtil.ts';
+import type { CommandContext } from '../CommandContext.ts';
+import type { ArgumentParser } from '../arguments/ArgumentParser.ts';
 
 export const SHORT_COMMIT_LENGTH_CHARACTERS = 8;
 
@@ -11,30 +17,33 @@ function padColumn(text: string, width: number): string {
   return text.length >= width ? `${text} ` : text.padEnd(width);
 }
 
-function ignoredTicketFileText(unreadable: UnreadableRecord): string {
+function ignoredTicketFileText(unreadable: UnreadableTicketRecord): string {
   const place = unreadable.line > 0 ? ` (line ${unreadable.line})` : '';
-  return `Ticket file ignored: ${unreadable.location}${place}: ${unreadable.reason}`;
+  return `Ticket file ignored: ${unreadable.location}${place}: ${UnreadableRecordProblemWording.ticketSentenceOf(unreadable.problem)}`;
 }
 
-function reportIgnoredTicketFiles(context: CommandContext, unreadableTickets: readonly UnreadableRecord[]): void {
+function reportIgnoredTicketFiles(context: CommandContext, unreadableTickets: readonly UnreadableTicketRecord[]): void {
   for (const unreadable of unreadableTickets) context.standardError(ignoredTicketFileText(unreadable));
 }
 
-function reportIgnoredEpicFiles(context: CommandContext, unreadableEpics: readonly UnreadableRecord[]): void {
+function reportIgnoredEpicFiles(context: CommandContext, unreadableEpics: readonly UnreadableEpicRecord[]): void {
   for (const unreadable of unreadableEpics) {
     const place = unreadable.line > 0 ? ` (line ${unreadable.line})` : '';
-    context.standardError(`Epic file ignored: ${unreadable.location}${place}: ${unreadable.reason}`);
+    context.standardError(`Epic file ignored: ${unreadable.location}${place}: ${UnreadableRecordProblemWording.epicSentenceOf(unreadable.problem)}`);
   }
 }
 
-function reportIgnoredDraftFiles(context: CommandContext, unreadableDrafts: readonly UnreadableRecord[]): void {
-  for (const unreadable of unreadableDrafts) context.standardError(`Draft file ignored: ${unreadable.location}: ${unreadable.reason}`);
+function reportIgnoredDraftFiles(context: CommandContext, unreadableDrafts: readonly UnreadableDraftRecord[]): void {
+  for (const unreadable of unreadableDrafts) {
+    context.standardError(`Draft file ignored: ${unreadable.location}: ${UnreadableRecordProblemWording.draftSentenceOf(unreadable.problem)}`);
+  }
 }
 
 /** The ticket's spec and plan are left out of every reading, and the ticket is held and never ready until the record reads again. */
-function reportIgnoredTicketDocumentRecords(context: CommandContext, unreadableRecords: readonly UnreadableRecord[]): void {
+function reportIgnoredTicketDocumentRecords(context: CommandContext, unreadableRecords: readonly UnreadableTicketDocumentsRecord[]): void {
   for (const unreadable of unreadableRecords) {
-    context.standardError(`Ticket documents ignored: ${unreadable.location}: ${unreadable.reason}. Ticket #${unreadable.key ?? ''} is held until they read again.`);
+    const sentence = UnreadableRecordProblemWording.ticketDocumentsSentenceOf(unreadable.problem);
+    context.standardError(`Ticket documents ignored: ${unreadable.location}: ${sentence}. Ticket #${unreadable.key ?? ''} is held until they read again.`);
   }
 }
 
