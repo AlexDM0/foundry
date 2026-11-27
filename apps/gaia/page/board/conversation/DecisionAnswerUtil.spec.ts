@@ -80,18 +80,36 @@ const TWO_QUESTIONS = [
   },
 ];
 
+function questionsOf(id: string, questions: BoardDecisionDocument['questions']) {
+  return DecisionAnswerUtil.questionViewsOf(decisionOf(id, questions));
+}
+
 describe('DecisionAnswerUtil.answerOf', () => {
   test('one option letter per single-select question and the sorted letters of a multi-select', () => {
-    expect(DecisionAnswerUtil.answerOf(decisionOf('E5', TWO_QUESTIONS), [[1], [2, 0]], '')).toEqual({ form: 'letters', choices: ['b', 'ac'] });
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E5', TWO_QUESTIONS), [[1], [2, 0]], null)).toEqual({ form: 'letters', choices: ['b', 'ac'] });
   });
 
-  test('free text answers a decision of one question, never one of several', () => {
-    expect(DecisionAnswerUtil.answerOf(decisionOf('E2', ONE_QUESTION), [], '  Use disk  ')).toEqual({ form: 'text', text: 'Use disk' });
-    expect(DecisionAnswerUtil.answerOf(decisionOf('E5', TWO_QUESTIONS), [], 'Both')).toBeNull();
+  test('the chosen free text answers a decision of one question, never one of several, and never empty', () => {
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E2', ONE_QUESTION), [], '  Use disk  ')).toEqual({ form: 'text', text: 'Use disk' });
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E2', ONE_QUESTION), [], ' ')).toBeNull();
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E5', TWO_QUESTIONS), [], 'Both')).toBeNull();
   });
 
   test('an unanswered question keeps the answer unsendable', () => {
-    expect(DecisionAnswerUtil.answerOf(decisionOf('E5', TWO_QUESTIONS), [[0]], '')).toBeNull();
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E5', TWO_QUESTIONS), [[0]], null)).toBeNull();
+  });
+
+  test('a chosen option is sent by the letter the forge gave it', () => {
+    const lettered = ONE_QUESTION.map((question) => ({ ...question, options: question.options.map((option, index) => ({ ...option, letter: index === 0 ? 'x' : 'y' })) }));
+    expect(DecisionAnswerUtil.answerOf(questionsOf('E2', lettered), [[1]], null)).toEqual({ form: 'letters', choices: ['y'] });
+  });
+});
+
+describe('DecisionAnswerUtil.commandOf', () => {
+  test('wraps an answer as the decision\'s decision-answer, and holds none while there is no answer', () => {
+    const answer = { form: 'text', text: 'Use disk' } as const;
+    expect(DecisionAnswerUtil.commandOf('E2', answer)).toMatchObject({ kind: 'decision-answer', decisionId: 'E2', answer });
+    expect(DecisionAnswerUtil.commandOf('E2', null)).toBeNull();
   });
 });
 

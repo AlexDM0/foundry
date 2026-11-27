@@ -1,25 +1,24 @@
 /**
  * The document agent's question in its chat (`docs/design/agent-questions.md`): open, a card with its anchor line, the question, its context,
- * the lettered options with what each touches and does to the Acceptance, a note in User's own words and Answer; folded to one line while
- * another question is the one open; answered, what User chose. Answer sends `decision-answer` with the option's letter and the note, or the
- * note alone as free text. Under the document's own "Open questions" heading, the list of its questions, each opening its card.
+ * the lettered options with what each touches and does to the Acceptance, User's own words as an option of their own, and Answer; folded
+ * to one line while another question is the one open; answered, what User chose. Answer sends `decision-answer` with the chosen option's
+ * letter, or User's words as free text. Under the document's own "Open questions" heading, the list of its questions, each opening its card.
  */
-import { useState } from 'react';
+import { useMemo } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }                          from '../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardCommandDocument }                       from '../../../@types/board/BoardCommandDocument.ts';
-import type { BoardLineRangeDocument }                     from '../../../@types/board/TicketDocumentsDocument.ts';
-import { ChoiceInput, ChoiceMark, ChoiceOption }           from '../../../lib/design-system/DesignSystemInterface.ts';
-import { OptionConsequencesUtil, type OptionConsequences } from '../../conversation/OptionConsequencesUtil.ts';
-import { CommandButton }                                   from '../../shared/commands/CommandButton.tsx';
+import type { BoardLineRangeDocument }                 from '../../../@types/board/TicketDocumentsDocument.ts';
+import { DecisionAnswerUtil }                          from '../../conversation/DecisionAnswerUtil.ts';
+import { DecisionOptionList, type DecisionOptionLook } from '../../conversation/DecisionOptionList.tsx';
+import { useDecisionAnswer }                           from '../../conversation/UseDecisionAnswer.ts';
+import { CommandButton }                               from '../../shared/commands/CommandButton.tsx';
 import type {
   AnsweredQuestionModel,
   OpenQuestionModel,
   OpenQuestionsListItem,
   QuestionAnchorParts
 } from './DocumentQuestionsModel.ts';
-import { AGENT_NAMES }        from './ProposalModel.ts';
-import type { DocumentPlace } from './TicketDocumentCommands.ts';
+
+const DOCUMENT_CARD_LOOK: DecisionOptionLook = { variant: 'card', tone: 'question', facts: 'lines' };
 
 /** The id each question's card carries, so its item under "Open questions" can bring it into view. */
 export function questionCardIdOf(decisionId: string): string {
@@ -57,47 +56,7 @@ function AnchorLine({ parts, placement, onJumpToAnchor }: {
   );
 }
 
-/**
- * Under an option's label, its Recommended mark, then what it touches and does to the Acceptance, one short line each: the rail's narrow
- * card has no room for a mark column or the fact table of a question's card elsewhere.
- */
-function OptionFactLines({ consequences, recommended }: { readonly consequences: OptionConsequences | null; readonly recommended: boolean }) {
-  return (
-    <span className="board-document-question-facts">
-      {recommended ? <ChoiceMark mark="recommended" text="Recommended" /> : null}
-      {(consequences === null ? [] : OptionConsequencesUtil.factLinesOf(consequences)).map((line) => {
-        switch (line.fact) {
-          case 'touches':
-            return (
-              <span key={line.fact}>
-                {'Touches '}
-                {line.paths.map((path, position) => (
-                  <span key={path}>
-                    {position === 0 ? null : ', '}
-                    <span className="board-document-mono board-document-question-path">{path}</span>
-                  </span>
-                ))}
-              </span>
-            );
-          case 'tradeOff':
-            return <span key={line.fact}>{`Trade-off: ${line.text}`}</span>;
-          case 'acceptanceEffect':
-            return <span key={line.fact}>{line.text}</span>;
-        }
-      })}
-    </span>
-  );
-}
-
-function answerCommandOf(decisionId: string, chosenLetter: string | null, note: string): BoardCommandDocument | null {
-  const trimmedNote = note.trim();
-  const base = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'decision-answer', decisionId } as const;
-  if (chosenLetter !== null) return { ...base, answer: { form: 'letters', choices: [chosenLetter], ...(trimmedNote === '' ? {} : { note: trimmedNote }) } };
-  return trimmedNote === '' ? null : { ...base, answer: { form: 'text', text: trimmedNote } };
-}
-
 export interface OpenQuestionCardProps {
-  readonly place:          DocumentPlace;
   readonly question:       OpenQuestionModel;
   /** Folded, the card is one line that opens it; one question is open at a time. */
   readonly expanded:       boolean;
@@ -126,53 +85,33 @@ function FoldedQuestionCard({ question, onExpand }: Pick<OpenQuestionCardProps, 
 }
 
 export function OpenQuestionCard({
-  place, question, expanded, onExpand, onJumpToAnchor, settled
+  question, expanded, onExpand, onJumpToAnchor, settled
 }: OpenQuestionCardProps) {
-  const [chosenLetter, setChosenLetter] = useState<string | null>(question.recommendedLetter);
-  const [note, setNote] = useState('');
+  const questions = useMemo(() => [{ multiSelect: false, options: question.options }], [question.options]);
+  const decisionAnswer = useDecisionAnswer(questions);
   if (!expanded) return <FoldedQuestionCard question={question} onExpand={onExpand} />;
-  const chosen = question.options.find((option) => option.letter === chosenLetter) ?? null;
-  const noteFieldId = `${questionCardIdOf(question.decisionId)}-note`;
-  const command = settled ? null : answerCommandOf(question.decisionId, chosenLetter, note);
+  const chosenIndex = decisionAnswer.selections[0]?.[0];
+  const chosen = chosenIndex === undefined ? null : question.options[chosenIndex] ?? null;
+  const command = settled ? null : DecisionAnswerUtil.commandOf(question.decisionId, decisionAnswer.answer);
   return (
     <section id={questionCardIdOf(question.decisionId)} className="board-document-question" data-state="open" aria-label={`Question ${question.decisionId}`}>
       <AnchorLine parts={question.anchorParts} placement={question.placement} onJumpToAnchor={onJumpToAnchor} />
       <span className="board-document-question-text">{question.question}</span>
       {question.context === null ? null : <span className="board-document-question-context">{question.context}</span>}
       <div className="board-document-question-options" role="radiogroup" aria-label={`Answers to ${question.decisionId}`}>
-        {question.options.map((option) => (
-          <ChoiceOption
-            key={option.letter}
-            letter={option.letterText}
-            label={option.label}
-            {...(option.description === '' ? {} : { description: option.description })}
-            chosen={option.letter === chosenLetter}
-            {...(option.consequences === null && !option.recommended ? {} : { facts: <OptionFactLines consequences={option.consequences} recommended={option.recommended} /> })}
-            variant="card"
-            tone="question"
-            input={(
-              <ChoiceInput
-                type="radio"
-                name={`${question.decisionId}-answer`}
-                checked={option.letter === chosenLetter}
-                accessibleName={`${option.letterText}. ${option.label}`}
-                disabled={settled}
-                onChange={() => setChosenLetter(option.letter)}
-              />
-            )}
-          />
-        ))}
+        <DecisionOptionList
+          groupName={`${question.decisionId}-answer`}
+          question={questions[0] ?? { multiSelect: false, options: question.options }}
+          chosen={decisionAnswer.selections[0] ?? []}
+          onChoose={(optionIndex) => decisionAnswer.chooseOption(0, optionIndex)}
+          freeText={{
+            text: decisionAnswer.freeText, isChosen: decisionAnswer.freeTextIsChosen, onToggle: decisionAnswer.toggleFreeText, onChange: decisionAnswer.changeFreeText
+          }}
+          look={DOCUMENT_CARD_LOOK}
+          shownLetterOf={(letter) => letter.toUpperCase()}
+          disabled={settled}
+        />
       </div>
-      <label className="board-document-micro" htmlFor={noteFieldId}>Or answer in your own words</label>
-      <textarea
-        id={noteFieldId}
-        className="board-textarea board-document-question-note"
-        rows={2}
-        placeholder={`Optional note for the ${AGENT_NAMES[place.document].toLowerCase()}`}
-        value={note}
-        disabled={settled}
-        onChange={(event) => setNote(event.currentTarget.value)}
-      />
       <div className="board-document-question-foot">
         <span className="board-document-note">The answer goes on the ticket and to the agent.</span>
         <CommandButton label={chosen === null ? 'Answer' : `Answer ${chosen.letterText}`} command={command} primary compact />

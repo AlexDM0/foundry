@@ -120,25 +120,25 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     const [question] = modelOf(exampleQuestionPanelBoard(), 'E7').questions;
     expect(question?.options).toEqual([
       {
-        letter:        'a',
-        label:         'Extend the shared theme tokens',
-        isRecommended: true,
-        description:   'Add account entries to the token file every page reads.',
-        consequences:  {
+        letter:       'a',
+        label:        'Extend the shared theme tokens',
+        recommended:  true,
+        description:  'Add account entries to the token file every page reads.',
+        consequences: {
           touches:          ['src/theme/tokens.css', 'src/account/Layout.tsx'],
           tradeOff:         'One place to change; the storefront reads the same file.',
           acceptanceEffect: 'meets A1 to A3 as written',
         },
       },
       {
-        letter: 'b', label: 'A scoped stylesheet for the account pages', isRecommended: false, description: 'A new stylesheet only the account pages load.', consequences: null
+        letter: 'b', label: 'A scoped stylesheet for the account pages', recommended: false, description: 'A new stylesheet only the account pages load.', consequences: null
       },
       {
-        letter:        'c',
-        label:         'Follow the system setting only',
-        isRecommended: false,
-        description:   null,
-        consequences:  { acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' },
+        letter:       'c',
+        label:        'Follow the system setting only',
+        recommended:  false,
+        description:  null,
+        consequences: { acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' },
       },
     ]);
   });
@@ -155,7 +155,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
         }],
       }],
     });
-    expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.isRecommended])).toEqual([
+    expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.recommended])).toEqual([
       ['Keep the tokens', false],
       ['Split them', true],
     ]);
@@ -173,7 +173,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
         }],
       }],
     });
-    expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.isRecommended])).toEqual([
+    expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.recommended])).toEqual([
       ['Keep the tokens (Recommended)', false],
       ['Split them', false],
     ]);

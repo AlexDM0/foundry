@@ -555,12 +555,6 @@ button.board-document-anchor:hover { background: var(--wash); }
 
 .board-document-question-options { display: flex; flex-direction: column; gap: 6px; }
 
-.board-document-question-facts { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
-
-.board-document-question-path { font-size: var(--fs-micro); overflow-wrap: anywhere; }
-
-.board-document-question .board-document-question-note { min-height: 0; padding: 7px 10px; font-size: var(--fs-tab); resize: none; }
-
 .board-document-question-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 
 .board-document-question-answer { display: flex; align-items: baseline; gap: 8px; }

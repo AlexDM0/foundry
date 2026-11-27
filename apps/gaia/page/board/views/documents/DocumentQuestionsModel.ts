@@ -10,7 +10,8 @@ import type { BoardDecisionDocument, BoardDecisionOptionDocument }              
 import type { BoardTicketDocumentKind }                                                             from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardDocumentMessageDocument, BoardDocumentProposalDocument, BoardLineRangeDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import { CountTextUtil }                                                                            from '../../../shared/utils/CountTextUtil.ts';
-import { OptionConsequencesUtil, type OptionConsequences }                                          from '../../conversation/OptionConsequencesUtil.ts';
+import type { DecisionOptionView }                                                                  from '../../conversation/DecisionAnswerUtil.ts';
+import { OptionConsequencesUtil }                                                                   from '../../conversation/OptionConsequencesUtil.ts';
 import { CommentPopoverModel }                                                                      from './CommentPopoverModel.ts';
 import type { CommentChip }                                                                         from './DocumentBlocks.tsx';
 import { DocumentSelectionModel }                                                                   from './DocumentSelectionModel.ts';
@@ -22,28 +23,20 @@ export interface QuestionAnchorParts {
   readonly linesText:    string;
 }
 
-export interface QuestionOptionModel {
-  /** The letter the forge takes the option by: `a`. */
-  readonly letter:       string;
+export interface QuestionOptionModel extends DecisionOptionView {
   /** The letter as the card shows it: `A`. */
-  readonly letterText:   string;
-  readonly label:        string;
-  readonly description:  string;
-  readonly recommended:  boolean;
-  readonly consequences: OptionConsequences | null;
+  readonly letterText: string;
 }
 
 export interface OpenQuestionModel {
-  readonly decisionId:        string;
-  readonly question:          string;
+  readonly decisionId:  string;
+  readonly question:    string;
   /** Why the agent asks; `null` where it gave no context. */
-  readonly context:           string | null;
-  readonly options:           readonly QuestionOptionModel[];
-  readonly anchorParts:       QuestionAnchorParts;
+  readonly context:     string | null;
+  readonly options:     readonly QuestionOptionModel[];
+  readonly anchorParts: QuestionAnchorParts;
   /** The question's lines on the head now; `null` once they are gone. */
-  readonly placement:         BoardLineRangeDocument | null;
-  /** The option the card holds chosen as it opens, the recommended one; `null` with none recommended. */
-  readonly recommendedLetter: string | null;
+  readonly placement:   BoardLineRangeDocument | null;
 }
 
 export interface AnsweredQuestionModel {
@@ -91,7 +84,7 @@ function optionOf(option: BoardDecisionOptionDocument, optionIndex: number): Que
     letter,
     letterText:   letter.toUpperCase(),
     label:        option.label,
-    description:  option.description,
+    description:  option.description === '' ? null : option.description,
     recommended:  option.recommended,
     consequences: OptionConsequencesUtil.consequencesOf(option),
   };
@@ -125,13 +118,12 @@ function openQuestionsOf(
     if (decision.document !== document || !decision.ticketIds.includes(ticketId) || decision.anchor === null || asked === undefined) return [];
     const options = asked.options.map(optionOf);
     return [{
-      decisionId:        decision.id,
-      question:          asked.question,
-      context:           decision.context.trim() === '' ? null : decision.context.trim(),
+      decisionId:  decision.id,
+      question:    asked.question,
+      context:     decision.context.trim() === '' ? null : decision.context.trim(),
       options,
-      anchorParts:       anchorPartsOf(decision.id, blocks, decision.anchor.lines, decision.anchor.sectionPath, decision.placement),
-      placement:         decision.placement,
-      recommendedLetter: options.find((option) => option.recommended)?.letter ?? null,
+      anchorParts: anchorPartsOf(decision.id, blocks, decision.anchor.lines, decision.anchor.sectionPath, decision.placement),
+      placement:   decision.placement,
     }];
   }).toSorted((a, b) => decisionNumberOf(a.decisionId) - decisionNumberOf(b.decisionId));
 }

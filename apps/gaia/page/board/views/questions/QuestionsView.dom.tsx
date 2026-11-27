@@ -147,7 +147,10 @@ describe('the Questions inbox', () => {
     expect(answer.disabled).toBe(true);
     fireEvent.click(within(card).getByLabelText('b. Memory'));
     await clickSettled(answer);
-    fireEvent.change(within(card).getByLabelText('Free-text answer to E2'), { target: { value: 'Disk, but bounded' } });
+    const ownWords = within(card).getByRole('textbox', { name: 'Your answer in your own words' });
+    act(() => ownWords.focus());
+    expect(within(card).getByRole<HTMLInputElement>('radio', { name: 'b. Memory' }).checked).toBe(false);
+    fireEvent.change(ownWords, { target: { value: 'Disk, but bounded' } });
     await clickSettled(answer);
     expect(controls.sent).toEqual([
       {

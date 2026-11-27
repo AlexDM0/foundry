@@ -245,7 +245,6 @@ function ChatItem({ item, props }: { readonly item: DocumentChatItem; readonly p
     case 'open-question':
       return (
         <OpenQuestionCard
-          place={props.place}
           question={item.question}
           expanded={item.question.decisionId === (props.expandedQuestionId ?? null)}
           onExpand={props.onExpandQuestion ?? (() => undefined)}
