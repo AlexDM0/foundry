@@ -610,7 +610,7 @@ These sentences come from `cli/` as text and carry no code.
 | Refused by | Where |
 | --- | --- |
 | [Customs](../glossary.md#customs): a report refused, routed to a resume or an incident | `src/services/lifecycle/Customs.ts` |
-| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/hephaestus/Airlocks.ts` |
+| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/hephaestus/AirlockLandings.ts` |
 | The Hatch ladder: which check refuses a relayed command, in order | `src/services/control/Bouncer.ts` |
 | HTTP guards: `forbidden`, `unauthorized`, `not-ready`, `not-found` | [Hephaestus API](hephaestus-api.md) |
 | Argument errors: a missing id, an unknown option, an unknown command | `cli/`. Each prints its own remedy, most with a `Usage:` line, at exit 1. |

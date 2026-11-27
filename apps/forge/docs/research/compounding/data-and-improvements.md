@@ -785,7 +785,7 @@ package from the repository root.
 | The red handoff file | `src/services/hephaestus/RedHandoff.ts` |
 | Gate lines, their confinement and slots | `src/services/lifecycle/GateLineRun.ts`, `src/services/lifecycle/GateRun.ts`, `src/services/hephaestus/GateRunSlots.ts` |
 | Gate profiles and the pipeline check | `src/services/hephaestus/GateProfiling.ts`, `src/services/hephaestus/PipelineChecking.ts` |
-| The Airlock's reading of `gate-ran` | `src/services/hephaestus/Airlocks.ts` |
+| The Airlock's reading of `gate-ran` | `src/services/hephaestus/MergedTreeGating.ts` |
 | The transcript classifier | `src/lib/claude-code/utils/TranscriptUsageUtil.ts`, `docs/cli.md` ("`usage`") |
 | Review figures | `src/domain/tracker-model/ReviewStatistics.ts`, `src/domain/tracker-model/constants/ReviewRecordVocabulary.ts` |
 | Pipeline, roles, entities, billing, approvals | `src/domain/tracker-model/@types/Pipeline.ts`, `src/domain/tracker-model/utils/PipelineUtil.ts` |

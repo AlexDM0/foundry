@@ -73,31 +73,27 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }                                    from '../../shared/constants/LifecycleLimits.ts';
-import { type AgentProgramResolution, AgentPrograms }          from '../control/AgentPrograms.ts';
-import { AgentTools }                                          from '../control/AgentTools.ts';
-import type { ConfinedGateLine, GateConfinement, LineRunner }  from '../lifecycle/GateRun.ts';
-import { Landing }                                             from '../lifecycle/Landing.ts';
-import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
-import type { BoardStore }                                     from '../store/BoardStore.ts';
-import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
-import type { LockTaker }                                      from '../tracker/GenerationLock.ts';
-import { lockTakerOf }                                         from '../tracker/LockHolders.ts';
-import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
-import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
-import type { Workspace }                                      from '../tracker/Workspace.ts';
-import type { PresenceUpdate }                                 from './@types/PresenceRecord.ts';
-import { AbandonedPassReason, type PassThrowReading }          from './AbandonedPassReason.ts';
-import { AgentSlots }                                          from './AgentSlots.ts';
-import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
-import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
-import {
-  type AirlockHoldRunner,
-  createAirlocks,
-  type DeclinedCleanup,
-  type HeldTarget
-} from './Airlocks.ts';
+import { LIFECYCLE_LIMITS }                                                          from '../../shared/constants/LifecycleLimits.ts';
+import { type AgentProgramResolution, AgentPrograms }                                from '../control/AgentPrograms.ts';
+import { AgentTools }                                                                from '../control/AgentTools.ts';
+import type { ConfinedGateLine, GateConfinement, LineRunner }                        from '../lifecycle/GateRun.ts';
+import { Landing }                                                                   from '../lifecycle/Landing.ts';
+import { MergeRun }                                                                  from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                                                             from '../lifecycle/ReviewOutcome.ts';
+import type { BoardStore }                                                           from '../store/BoardStore.ts';
+import type { BoardTransaction }                                                     from '../tracker/BoardTransaction.ts';
+import type { LockTaker }                                                            from '../tracker/GenerationLock.ts';
+import { lockTakerOf }                                                               from '../tracker/LockHolders.ts';
+import { projectLocationOf }                                                         from '../tracker/ProjectLocation.ts';
+import { registeredRepositoryRootsIn }                                               from '../tracker/RegisteredRepositoryRoots.ts';
+import type { Workspace }                                                            from '../tracker/Workspace.ts';
+import type { AirlockHoldRunner, DeclinedCleanup, HeldTarget }                       from './@types/Airlocks.ts';
+import type { PresenceUpdate }                                                       from './@types/PresenceRecord.ts';
+import { AbandonedPassReason, type PassThrowReading }                                from './AbandonedPassReason.ts';
+import { AgentSlots }                                                                from './AgentSlots.ts';
+import { AirlockFactsFile, type AirlockAgentPhase }                                  from './AirlockFactsFile.ts';
+import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot }                       from './AirlockSandboxIncident.ts';
+import { createAirlocks }                                                            from './Airlocks.ts';
 import { AnswerDelivery }                                                            from './AnswerDelivery.ts';
 import { type ApiBilling, ApiBillingStops, type StoppedSession }                     from './ApiBillingStops.ts';
 import { AssistantBoot, type AssistantFacts }                                        from './AssistantBoot.ts';

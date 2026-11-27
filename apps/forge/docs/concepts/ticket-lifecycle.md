@@ -223,6 +223,6 @@ These belong to this story.
 | A build job, Handoff included | `src/services/hephaestus/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/hephaestus/JobLaunch.buildJobFrames.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | The queue mark | `src/domain/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/hephaestus/BoardState.mergeQueue.spec.ts` |
-| Landing | `src/services/lifecycle/Landing.ts`, `src/services/hephaestus/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/hephaestus/Airlocks.spec.ts` |
+| Landing | `src/services/lifecycle/Landing.ts`, `src/services/hephaestus/AirlockLandings.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/hephaestus/Airlocks.spec.ts` |
 | Who may relay what | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Questions | `src/services/hephaestus/QuestionRouting.ts`, `src/domain/tracker-model/AgentQuestions.ts` | `routeOf`, `afterAnswer` | `src/services/hephaestus/QuestionRouting.spec.ts` |

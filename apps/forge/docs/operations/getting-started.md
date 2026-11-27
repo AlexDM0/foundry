@@ -381,7 +381,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 | A new board is paused | `src/domain/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
 | What paused holds | `src/domain/tracker-model/Playbook.ts` | `nextStepsOf` | `src/domain/tracker-model/Playbook.spec.ts` |
 | The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |
-| The constitution commit | `src/services/hephaestus/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
+| The constitution commit | `src/services/hephaestus/ConstitutionCommitAirlock.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
 | Readiness | `src/domain/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/domain/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/hephaestus/HephaestusWording.intake.spec.ts` |
