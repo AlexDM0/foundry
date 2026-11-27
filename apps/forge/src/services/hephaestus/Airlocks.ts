@@ -598,13 +598,14 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * The red handoff the next session of that agent's kind takes over, kept in the ended job's folder. It is one more resume of that job's own
-   * ladder; past the resumes allowed nothing is written, and the answer is false.
+   * ladder; past the resumes allowed, or on a ladder whose facts cannot be read, nothing is written, and the answer is false.
    */
   function writeStaleGreenHandoff(board: Board, ticketId: string, red: StaleGreenRed, takenOverByABuild = false): boolean {
     const jobId = takenOverByABuild ? newestAgentJobIdOf(board, ticketId, 'build') : newestAgentJobIdOf(board, ticketId);
     if (jobId === null) return true;
     const ended = RedHandoff.redHandoffReadingOf(context.jobFolderOfId(jobId));
-    // The facts' job has ended and no job reads them here, so no incident has a job to hold: facts that cannot be read count as none.
+    // No live job holds the facts, so no incident can: a ladder that cannot be counted fails closed as one spent, and the ticket parks.
+    if (ended.verdict === 'unreadable') return false;
     const resume = (ended.verdict === 'readable' ? ended.facts.resume : 0) + 1;
     if (resume > context.redHandoffResumes) return false;
     const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
@@ -1058,7 +1059,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     const worktree      = slotWorktreeOf(job);
     const resolvedFiles = reportFieldOf(reading.report, 'resolvedFiles');
-    const resolvedFileList = Array.isArray(resolvedFiles) ? resolvedFiles.map(String) : [];
+    // An empty path names no file, and the kept facts refuse one.
+    const resolvedFileList = Array.isArray(resolvedFiles) ? resolvedFiles.map(String).filter((path) => path !== '') : [];
     const isResolving = slotOf(job).phase === 'resolving';
     const kept = isResolving ? context.keptAirlockFactsOf(job) : null;
     if (kept?.verdict === 'unreadable') {

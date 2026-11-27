@@ -9,9 +9,9 @@
  * review's catch-up that conflicts in the package's files goes back to its package's build, the ticket left in progress; a red catch-up
  * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
  * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
- * ticket for User. A merge record that cannot be read is never settled or merged again: the review waits on its incident; a conflict kept
- * for the builder that cannot be read is no handover but the unreadable file. The folders are real; git answers from recorded answer sets,
- * one for each state of the worktree, the launcher is fake, and the spec ends each line itself.
+ * ticket for User. A merge record or settlement that cannot be read is never settled over or merged again: the review waits on its
+ * incident; a conflict kept for the builder that cannot be read is no handover but the unreadable file. The folders are real; git answers
+ * from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends each line itself.
  */
 import {
   existsSync,
@@ -353,6 +353,26 @@ testWhenGitIsRecorded('a merge record that cannot be read is never settled or me
   expect(existsSync(join(scene.jobFolder(), 'target-merge-settlement.json'))).toBe(false);
   expect(scene.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
     ['system-file-unreadable', scene.reviewJobId, `jobs/${scene.reviewJobId}/target-merge.json`],
+  ]);
+});
+
+testWhenGitIsRecorded('a merge settlement that cannot be read is never settled over or merged again: the review waits on its incident', async () => {
+  const scene = catchUpScene();
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
+  await scene.pass();
+  endMergeLine(scene, CLEAN_EXIT_CODE);
+  writeFileSync(join(scene.jobFolder(), 'target-merge-settlement.json'), `${JSON.stringify({ version: 1, verdict: 'merged' })}\n`);
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+  await scene.pass();
+
+  expect(scene.reviewJob()?.state).toBe('preparing');
+  expect(readFileSync(join(scene.jobFolder(), 'target-merge-settlement.json'), 'utf8')).toBe(`${JSON.stringify({ version: 1, verdict: 'merged' })}\n`);
+  expect(scene.spawnedFolders()).toEqual([join(scene.jobFolder(), 'target-merge')]);
+  expect(existsSync(join(scene.jobFolder(), 'target-gate-run.json'))).toBe(false);
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+    ['system-file-unreadable', scene.reviewJobId, `jobs/${scene.reviewJobId}/target-merge-settlement.json`],
   ]);
 });
 

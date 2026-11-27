@@ -241,6 +241,19 @@ describeWhenGitIsRecorded('a crossing ticket\'s conflict, routed by owner', () =
     expect(agentScopeOf(harness)).toEqual({ role: 'conflict-re-reviewer', entity: 'tokens', stage: 3 });
   });
 
+  test('an empty path a worker reports resolved is not kept, so the next part\'s worker reads the facts it was handed', async () => {
+    harness = await conflictingHarness([PACKAGE_FILE, HOME_FILE]);
+    const mergeJobId = harness.mergeJob()?.id ?? '';
+
+    recordedGit.answerFrom(AirlockAnswerSets.mergeLeftOpen([HOME_FILE]));
+    finishMergeAgent(harness, {
+      outcome: 'resolved', resolvedFiles: [PACKAGE_FILE, ''], notes: '', reportKind: null
+    });
+    await harness.slots.sweep();
+
+    expect(harness.keptAirlockFacts.get(mergeJobId)).toEqual({ conflictedFiles: [HOME_FILE], leavesTheMergeOpen: false, filesResolvedBefore: [PACKAGE_FILE] });
+  });
+
   test('a package\'s builder that commits the merge while home files still conflict refuses the merge', async () => {
     harness = await conflictingHarness([PACKAGE_FILE, HOME_FILE]);
 

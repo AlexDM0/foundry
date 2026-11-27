@@ -6,7 +6,8 @@
  * the ticket's last worker, as a red handoff; a resolution larger than `airlock.reReview.thresholdLines`, or one git cannot measure, gets a
  * conflict re-reviewer before the gates, one at or below it and a pipeline with no `airlock.reReview` go straight on; a re-review that
  * does not hold fails the job. The crash rows: each round of a job keeps its own files, so a resumed session never reads an earlier round's
- * merge; a merge that ended while Hephaestus was down is settled once, and a settlement that cannot be read never again; a replaced
+ * merge; a merge that ended while Hephaestus was down is settled once, and a settlement that cannot be read never again; a round's merge
+ * record, kept resolution or re-review verdict that cannot be read holds the job in `merging-main` on its incident; a replaced
  * re-reviewer relaunches with the same attempt; and a stop while a re-reviewer works stops it first. The folders are real; git answers from
  * recorded answer sets, the launcher is fake, and the spec ends each line itself.
  */
@@ -469,6 +470,7 @@ testWhenGitIsRecorded('a conflict that cannot be read stops the look: the resolu
 testWhenGitIsRecorded('a resolution kept that cannot be read is never measured again against a later HEAD', async () => {
   const scene = await resolvedScene(RE_REVIEW_PIPELINE, RE_REVIEW_THRESHOLD_LINES);
   writeFileSync(join(scene.jobFolder(), 'main-resolution.json'), '{"conflictRound": ');
+  const spawnedBefore = scene.spawnedFolders().length;
   recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
 
   await scene.pass();
@@ -476,6 +478,57 @@ testWhenGitIsRecorded('a resolution kept that cannot be read is never measured a
   expect(readFileSync(join(scene.jobFolder(), 'main-resolution.json'), 'utf8')).toBe('{"conflictRound": ');
   expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts['file']])).toEqual([
     ['system-file-unreadable', `jobs/${scene.jobId}/main-resolution.json`],
+  ]);
+  expect(scene.job()?.state).toBe('merging-main');
+  expect(scene.reReviewer()).toBeUndefined();
+  expect(scene.spawnedFolders()).toHaveLength(spawnedBefore);
+});
+
+testWhenGitIsRecorded('a round\'s merge record that cannot be read is never merged or settled: the job waits in merging-main on its incident', async () => {
+  const scene = mergingMainScene('review', REVIEW_PIPELINE);
+  mkdirSync(scene.jobFolder(), { recursive: true });
+  writeFileSync(join(scene.jobFolder(), 'main-merge.json'), '{"startTip": ');
+  recordedGit.answerFrom(linkedWorktreeRead(scene.worktree, scene.repository));
+
+  await scene.pass();
+  await scene.pass();
+
+  expect(scene.job()?.state).toBe('merging-main');
+  expect(scene.spawnedFolders()).toEqual([]);
+  expect(existsSync(join(scene.jobFolder(), 'main-merge-settlement.json'))).toBe(false);
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+    ['system-file-unreadable', scene.jobId, `jobs/${scene.jobId}/main-merge.json`],
+  ]);
+});
+
+testWhenGitIsRecorded('a re-reviewer in Customs whose verdict cannot be read is not ended: the job waits on the verdict\'s incident', async () => {
+  const scene = await resolvedScene(RE_REVIEW_PIPELINE, RE_REVIEW_THRESHOLD_LINES + 1);
+  const reReviewer = scene.reReviewer();
+  if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
+  for (const state of ['running', 'in-customs'] as const) scene.board.moveJob(reReviewer.id, state, AT);
+  const verdict = { verdict: 'unreadable-file', file: `jobs/${reReviewer.id}/verdict.json`, reason: 'it is not a JSON object' } as const;
+  const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
+
+  JobLaunch.applyBuildJobObservations(change, scene.context, [{
+    jobId:            scene.jobId,
+    setup:            'installed',
+    installStepRuns:  [],
+    calls:            0,
+    report:           undefined,
+    agentEnd:         null,
+    gate:             { verdict: 'pending' },
+    sandboxRefusal:   null,
+    targetCatchUp:    { verdict: 'not-checked' },
+    mainMerge:        { step: { verdict: 're-reviewing' }, resolution: null },
+    conflictReReview: {
+      jobId: reReviewer.id, calls: 1, sessionEnded: true, verdict
+    },
+  }]);
+
+  expect(scene.reReviewer()).toMatchObject({ id: reReviewer.id, state: 'in-customs' });
+  expect(scene.job()?.state).toBe('merging-main');
+  expect(scene.board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts['file']])).toEqual([
+    ['system-file-unreadable', scene.jobId, verdict.file],
   ]);
 });
 

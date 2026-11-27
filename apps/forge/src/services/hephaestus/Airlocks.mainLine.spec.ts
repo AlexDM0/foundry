@@ -1,16 +1,21 @@
 /**
  * The main line's Airlock (design section 6). What matters: candidates land one at a time in queue order, each on its gated merged tree
  * and by fast-forward alone; the merged tree runs the merge phase's gates, skipped only for a green current in that phase, and a stale green
- * is gated again in the phase it was taken in; a green records the stamp its gate run read at its start, so a pipeline edited while the
- * gates ran never leaves a current green, and the run's gate-ran record carries what its gates reported of their cache, beside one
- * pipeline-step-ran record per step line it ran, a failed prepare step's included; a moved target, a
- * dirty checkout and a refused stamp each map to one outcome that cannot loop; and a job in landing whose commit the main line holds
- * finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left mid-merge, and `Airlocks.spec.ts` a group's slot. The folders
- * are real; git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`, one for each state of the
- * repository, and a by-hand move of a branch is the case entering the set of the state it leaves.
+ * is gated again in the phase it was taken in, its red parking the ticket when the last agent's resumes cannot be counted; a green records
+ * the stamp its gate run read at its start, so a pipeline edited while the gates ran never leaves a current green, and the run's gate-ran
+ * record carries what its gates reported of their cache, beside one pipeline-step-ran record per step line it ran, a failed prepare step's
+ * included; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot loop; and a job in landing whose
+ * commit the main line holds finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left mid-merge, and `Airlocks.spec.ts` a
+ * group's slot. The folders are real; git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`,
+ * one for each state of the repository, and a by-hand move of a branch is the case entering the set of the state it leaves.
  */
-import { existsSync, rmSync } from 'node:fs';
-import { join }               from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -466,6 +471,24 @@ describe('a stale green', () => {
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
     expect(kindsLogged(harness, 'merge-started')).toEqual([]);
     expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', review.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);
+  });
+
+  test('red after a last review whose red handoff facts cannot be read parks the ticket as its resumes spent, writing no handoff', async () => {
+    harness = harnessAnswering(MOVED_BRANCH);
+    const review = harness.board.launchJob({
+      kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, HARNESS_AT);
+    harness.board.endJob(review.job.id, { outcome: 'reviewed' }, HARNESS_AT);
+    const reviewFolder = join(harness.repository, '.example-tracker', 'jobs', review.job.id);
+    mkdirSync(reviewFolder, { recursive: true });
+    writeFileSync(join(reviewFolder, 'red-handoff.json'), '{"resume": ');
+    harness.settings.gateOutcome = 'failed';
+
+    await harness.slots.sweep();
+
+    expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:red-resumes-spent');
+    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+    expect(existsSync(join(reviewFolder, 'stale-green', 'red-handoff.json'))).toBe(false);
   });
 });
 
