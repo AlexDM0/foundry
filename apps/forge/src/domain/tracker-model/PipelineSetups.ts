@@ -27,18 +27,11 @@ import {
   type SetupQuestionStep,
   type SnapshotRefusal
 } from './@types/PipelineSetup.ts';
-import type { BoardRecords }       from './BoardRecords.ts';
-import { BoardRefusal }            from './BoardRefusal.ts';
-import type { Jobs }               from './Jobs.ts';
-import { reanchoredAnnotationsOf } from './PipelineSetupConstitutions.ts';
-import {
-  type PipelineSetupRecord,
-  entityPartsOf,
-  refuseStandingEntityRefusals,
-  stepIndexOf,
-  stepStateOf
-} from './PipelineSetupRecord.ts';
-import type { TrackerChanges }    from './TrackerChanges.ts';
+import type { BoardRecords }        from './BoardRecords.ts';
+import { BoardRefusal }             from './BoardRefusal.ts';
+import type { Jobs }                from './Jobs.ts';
+import type { PipelineSetupRecord } from './PipelineSetupRecord.ts';
+import type { TrackerChanges }      from './TrackerChanges.ts';
 import {
   PENDING_APPLY_REQUEST_STATES,
   DEFAULT_CONSTITUTION_SOURCES,
@@ -52,7 +45,8 @@ import {
   SETUP_QUESTION_ID_PREFIX,
   SETUP_QUESTION_OPTION_LETTERS
 } from './constants/PipelineSetupVocabulary.ts';
-import { PipelineUtil } from './utils/PipelineUtil.ts';
+import { PipelineSetupUtil } from './utils/PipelineSetupUtil.ts';
+import { PipelineUtil }      from './utils/PipelineUtil.ts';
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
 const UPDATE_STEP_STATES: Readonly<PipelineSetupStepStates> = {
@@ -84,10 +78,6 @@ function researchIsCurrent(setup: Readonly<PipelineSetup>): boolean {
   return setup.currentStep === 'agent' || setup.currentStep === 'billing' || setup.currentStep === 'research';
 }
 
-export function agentCopyOf(agent: Readonly<PipelineAgent>): PipelineAgent {
-  return { vendor: agent.vendor, program: 'pinned' in agent.program ? { pinned: agent.program.pinned } : { follows: 'machine' } };
-}
-
 /** The agent's program as a log record names it: `machine`, or the pinned path. */
 function programWordOf(agent: Readonly<PipelineAgent>): string {
   return 'pinned' in agent.program ? agent.program.pinned : 'machine';
@@ -103,13 +93,6 @@ function updateStepStatesOf(stored: Readonly<Pipeline> | null): PipelineSetupSte
   return stored?.entities === undefined ? { ...UPDATE_STEP_STATES } : { ...UPDATE_STEP_STATES, entities: 'done' };
 }
 
-export function billingCopyOf(billing: PipelineBilling): PipelineBilling {
-  if (billing.mode === 'api' && billing.maxBudgetUsd !== undefined && !(billing.maxBudgetUsd > 0)) {
-    throw new BoardRefusal({ reason: 'billing-cap-not-positive', maxBudgetUsd: billing.maxBudgetUsd });
-  }
-  return { ...billing };
-}
-
 /** The billing as the record keeps it: only one of the ways the agent's vendor bills, refused `billing-not-offered` otherwise. */
 function offeredBillingCopyOf(setupId: string | null, billing: PipelineBilling, agent: Readonly<PipelineAgent>, offeredBillingModesOf: OfferedBillingModesOf): PipelineBilling {
   if (!offeredBillingModesOf(agent.vendor).includes(billing.mode)) {
@@ -117,12 +100,7 @@ function offeredBillingCopyOf(setupId: string | null, billing: PipelineBilling, 
       reason: 'billing-not-offered', setupId, vendor: agent.vendor, mode: billing.mode
     });
   }
-  return billingCopyOf(billing);
-}
-
-/** The forge's questions first, then each entity's, in the record's order. */
-export function everyQuestionOf(setup: Readonly<PipelineSetup>): SetupQuestion[] {
-  return [...setup.questions, ...entityPartsOf(setup).flatMap(([, part]) => part.questions)];
+  return PipelineSetupUtil.billingCopyOf(billing);
 }
 
 export class PipelineSetups {
@@ -158,7 +136,7 @@ export class PipelineSetups {
       stepStates,
       currentStep:                isUpdate ? 'design' : opensAtBilling ? 'billing' : 'research',
       billing,
-      agent:                      opening.agent === null ? null : agentCopyOf(opening.agent),
+      agent:                      opening.agent === null ? null : PipelineSetupUtil.agentCopyOf(opening.agent),
       agentJobId:                 null,
       snapshotCommit:             null,
       readyToContinue:            [],
@@ -192,13 +170,19 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-billing-set', setupId, fields }, at)], setup };
   }
 
+  /** The record's agent; every launch its earlier program refused is tried again. */
+  setSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
+    const changed = this.recordSetupAgent(setupId, agent, offeredBillingModesOf, at);
+    return { setup: changed.setup, logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+  }
+
   /**
    * The agent the record's pipeline agent runs on and Apply stores. A change keeps the billing its new vendor also bills by; otherwise the
    * billing is asked again (`billingAskedAgainRecords`).
    */
-  setSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
+  private recordSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
     const setup = this.setupRecord.requireMovableSetup(setupId);
-    setup.agent = agentCopyOf(agent);
+    setup.agent = PipelineSetupUtil.agentCopyOf(agent);
     this.setupRecord.store(setup);
     const fields = { vendor: agent.vendor, program: programWordOf(agent) };
     const agentSet = this.records.logger.log({ kind: 'pipeline-setup-agent-set', setupId, fields }, at);
@@ -229,8 +213,8 @@ export class PipelineSetups {
   followAgentChange(agent: PipelineAgent, billing: PipelineBilling | undefined, offeredBillingModesOf: OfferedBillingModesOf, at: string): LogRecord[] {
     const reading = this.records.pipelineSetupReading;
     if (reading.verdict !== 'readable') return [];
-    reading.setup.agent = agentCopyOf(agent);
-    if (reading.setup.mode !== 'setup' && billing !== undefined) reading.setup.billing = billingCopyOf(billing);
+    reading.setup.agent = PipelineSetupUtil.agentCopyOf(agent);
+    if (reading.setup.mode !== 'setup' && billing !== undefined) reading.setup.billing = PipelineSetupUtil.billingCopyOf(billing);
     this.setupRecord.store(reading.setup);
     return reading.setup.mode === 'setup' ? this.billingAskedAgainRecords(reading.setup, offeredBillingModesOf, at) : [];
   }
@@ -260,7 +244,7 @@ export class PipelineSetups {
     if (setup.currentStep !== step) throw new BoardRefusal({
       reason: 'setup-step-not-current', setupId, step, currentStep: setup.currentStep
     });
-    refuseStandingEntityRefusals(setup);
+    PipelineSetupUtil.refuseStandingEntityRefusals(setup);
     if (step === 'agent' && setup.agent === null) throw new BoardRefusal({ reason: 'setup-agent-not-chosen', setupId });
     if (step === 'billing' && setup.billing === null) throw new BoardRefusal({ reason: 'setup-billing-not-chosen', setupId });
 
@@ -414,7 +398,7 @@ export class PipelineSetups {
    */
   answerSetupQuestion(setupId: string, questionId: string, reply: SetupQuestionReply, at: string): PipelineSetupChanged {
     const setup    = this.setupRecord.requireMovableSetup(setupId);
-    const question = everyQuestionOf(setup).find((candidate) => candidate.questionId === questionId);
+    const question = PipelineSetupUtil.everyQuestionOf(setup).find((candidate) => candidate.questionId === questionId);
     if (question === undefined) throw new BoardRefusal({ reason: 'unknown-setup-question', setupId, questionId });
     const replyIsEmpty = 'letters' in reply ? reply.letters.length === 0 : reply.text.trim() === '';
     if (replyIsEmpty) throw new BoardRefusal({ reason: 'empty-setup-answer', setupId, questionId });
@@ -459,7 +443,7 @@ export class PipelineSetups {
     const setup = this.setupRecord.openSetupRecord();
     if (this.records.pipeline === null && setup !== null) {
       if (billing !== undefined) this.requireSetupBillingOffered(setup.setupId, agent, billing, offeredBillingModesOf);
-      const changed = this.setSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
+      const changed = this.recordSetupAgent(setup.setupId, agent, offeredBillingModesOf, at);
       const billed = billing === undefined ? [] : this.setSetupBilling(setup.setupId, billing, offeredBillingModesOf, at).logged;
       return { logged: [...changed.logged, ...billed, ...this.jobRules.retryNotLaunched(at).logged] };
     }
@@ -491,7 +475,7 @@ export class PipelineSetups {
     const markdown = mainConstitution?.markdown ?? '';
     return {
       markdown,
-      annotations: reanchoredAnnotationsOf(markdown, opening.storedAnnotations),
+      annotations: PipelineSetupUtil.reanchoredAnnotationsOf(markdown, opening.storedAnnotations),
       draftedFrom: { ...DEFAULT_CONSTITUTION_SOURCES },
       baseBlob:    mainConstitution?.blob ?? null,
       revision:    0,
@@ -501,7 +485,7 @@ export class PipelineSetups {
   /** A first setup's billing is one of the ways its agent bills, or none yet; an update or advise record keeps the stored one as it is. */
   private openingBillingOf(setupId: string, opening: PipelineSetupOpening): PipelineBilling | null {
     if (opening.billing === null) return null;
-    if (opening.mode !== 'setup') return billingCopyOf(opening.billing);
+    if (opening.mode !== 'setup') return PipelineSetupUtil.billingCopyOf(opening.billing);
     return offeredBillingCopyOf(setupId, opening.billing, opening.agent, opening.offeredBillingModesOf);
   }
 
@@ -515,8 +499,8 @@ export class PipelineSetups {
     if (agent === null || billing === null || offeredBillingModesOf(agent.vendor).includes(billing.mode)) return [];
     setup.billing = null;
     this.setupRecord.store(setup);
-    const billingState = stepStateOf(setup, 'billing');
-    const standsPastBilling = stepIndexOf(setup.currentStep) > stepIndexOf('billing');
+    const billingState = PipelineSetupUtil.stepStateOf(setup, 'billing');
+    const standsPastBilling = PipelineSetupUtil.stepIndexOf(setup.currentStep) > PipelineSetupUtil.stepIndexOf('billing');
     return standsPastBilling && billingState !== 'not-started' ? this.setupRecord.reopenedStepRecords(setup, 'billing', at) : [];
   }
 

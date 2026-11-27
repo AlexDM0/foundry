@@ -8,13 +8,13 @@ import type {
   ConstitutionSetting,
   ConstitutionSources,
   SetupEditAuthor,
-  SourceAnnotation,
   SourceAnnotationKind
 } from './@types/PipelineSetup.ts';
 import type { BoardRecords }                                           from './BoardRecords.ts';
 import { BoardRefusal }                                                from './BoardRefusal.ts';
 import type { PipelineSetupRecord }                                    from './PipelineSetupRecord.ts';
 import { CONSTITUTION_LIMIT_CHARACTERS, DEFAULT_CONSTITUTION_SOURCES } from './constants/PipelineSetupVocabulary.ts';
+import { PipelineSetupUtil }                                           from './utils/PipelineSetupUtil.ts';
 
 /** The SOURCES tick that selects each kind of source a constitution line may name. */
 const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof ConstitutionSources>> = {
@@ -22,19 +22,6 @@ const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof Constitut
   'research':          'research',
   'installed-default': 'installedDefault',
 };
-
-function linesOf(markdown: string): string[] {
-  return markdown.split(/\r?\n/u);
-}
-
-function occurrencesOf(markdown: string, lineText: string): number {
-  return linesOf(markdown).filter((line) => line === lineText).length;
-}
-
-/** An annotation keeps its line while that line's text still occurs at least `occurrence` times; an edited line loses its tag. */
-export function reanchoredAnnotationsOf(markdown: string, annotations: readonly SourceAnnotation[]): SourceAnnotation[] {
-  return annotations.filter((annotation) => occurrencesOf(markdown, annotation.lineText) >= annotation.occurrence).map((annotation) => ({ ...annotation }));
-}
 
 export class PipelineSetupConstitutions {
   constructor(
@@ -58,7 +45,7 @@ export class PipelineSetupConstitutions {
       if (!ticks[SOURCE_TICK_OF_KIND[kind]]) throw new BoardRefusal({
         reason: 'constitution-source-not-ticked', lineText, occurrence, kind
       });
-      const occurs = !/[\r\n]/u.test(lineText) && Number.isInteger(occurrence) && occurrence >= 1 && occurrencesOf(setting.markdown, lineText) >= occurrence;
+      const occurs = !/[\r\n]/u.test(lineText) && Number.isInteger(occurrence) && occurrence >= 1 && PipelineSetupUtil.occurrencesOf(setting.markdown, lineText) >= occurrence;
       if (!occurs) throw new BoardRefusal({ reason: 'constitution-source-unanchored', lineText, occurrence });
       const lineKey = JSON.stringify([lineText, occurrence]);
       if (anchoredLines.has(lineKey)) throw new BoardRefusal({ reason: 'constitution-source-repeated', lineText, occurrence });
@@ -98,7 +85,7 @@ export class PipelineSetupConstitutions {
     const reopened = this.setupRecord.userEditReopenRecords(setup, 'constitution', at);
     holder.constitution = {
       markdown,
-      annotations: reanchoredAnnotationsOf(markdown, current.annotations),
+      annotations: PipelineSetupUtil.reanchoredAnnotationsOf(markdown, current.annotations),
       draftedFrom: { ...(edit.draftedFrom ?? current.draftedFrom) },
       baseBlob:    current.baseBlob,
       revision:    current.revision + 1,

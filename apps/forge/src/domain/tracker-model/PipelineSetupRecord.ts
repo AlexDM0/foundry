@@ -1,39 +1,16 @@
 /**
  * The open setup record as every part of the setup reaches it: required open or movable, stored, an entity's part, the base pipeline,
- * and the step a User edit or a reopen moves. While an Apply request waits for its commit, every move here refuses but Apply's own.
+ * and the step a User edit or a reopen moves. While an Apply request waits for its commit, the record is not movable: every part's move
+ * refuses but Apply's own.
  */
-import type { LogRecord }           from './@types/LogRecord.ts';
-import type { EntityKey, Pipeline } from './@types/Pipeline.ts';
-import type {
-  PipelineSetup,
-  PipelineSetupEntity,
-  PipelineSetupStep,
-  PipelineSetupStepState
-} from './@types/PipelineSetup.ts';
-import type { BoardRecords }                                  from './BoardRecords.ts';
-import { BoardRefusal }                                       from './BoardRefusal.ts';
-import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS } from './constants/PipelineSetupVocabulary.ts';
-import { EntityValidationUtil }                               from './utils/EntityValidationUtil.ts';
-import { PipelineUtil }                                       from './utils/PipelineUtil.ts';
-
-export function stepIndexOf(step: PipelineSetupStep): number {
-  return PIPELINE_SETUP_STEPS.indexOf(step);
-}
-
-/** A step the record does not walk is never started. */
-export function stepStateOf(setup: Readonly<PipelineSetup>, step: PipelineSetupStep): PipelineSetupStepState {
-  return setup.stepStates[step] ?? 'not-started';
-}
-
-export function entityPartsOf(setup: Readonly<PipelineSetup>): [EntityKey, PipelineSetupEntity][] {
-  return Object.entries(setup.entities ?? {});
-}
-
-/** The draft may hold entities the validator refuses while User works on them; Continue and Apply wait until none stands. */
-export function refuseStandingEntityRefusals(setup: Readonly<PipelineSetup>): void {
-  const reasons = EntityValidationUtil.refusalsOf(setup.draft?.entities ?? {}).map((refusal) => refusal.reason);
-  if (reasons.length > 0) throw new BoardRefusal({ reason: 'entity-refusals-stand', setupId: setup.setupId, reasons });
-}
+import type { LogRecord }                                             from './@types/LogRecord.ts';
+import type { EntityKey, Pipeline }                                   from './@types/Pipeline.ts';
+import type { PipelineSetup, PipelineSetupEntity, PipelineSetupStep } from './@types/PipelineSetup.ts';
+import type { BoardRecords }                                          from './BoardRecords.ts';
+import { BoardRefusal }                                               from './BoardRefusal.ts';
+import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }         from './constants/PipelineSetupVocabulary.ts';
+import { PipelineSetupUtil }                                          from './utils/PipelineSetupUtil.ts';
+import { PipelineUtil }                                               from './utils/PipelineUtil.ts';
 
 export class PipelineSetupRecord {
   constructor(private readonly records: BoardRecords) {}
@@ -91,19 +68,19 @@ export class PipelineSetupRecord {
 
   /** Only User's edit of a step before the current one of a first setup reopens it; the agent's moves never move a step. */
   userEditReopenRecords(setup: PipelineSetup, step: PipelineSetupStep, at: string): LogRecord[] {
-    if (setup.mode !== 'setup' || stepIndexOf(step) >= stepIndexOf(setup.currentStep)) return [];
+    if (setup.mode !== 'setup' || PipelineSetupUtil.stepIndexOf(step) >= PipelineSetupUtil.stepIndexOf(setup.currentStep)) return [];
     return this.reopenedStepRecords(setup, step, at);
   }
 
   /** Only a step at or before the current one reopens, so a later step that needs a recheck still waits for its Continue. */
   reopenedStepRecords(setup: PipelineSetup, step: PipelineSetupStep, at: string): LogRecord[] {
-    const state = stepStateOf(setup, step);
-    if (state === 'not-started' || stepIndexOf(step) > stepIndexOf(setup.currentStep)) {
+    const state = PipelineSetupUtil.stepStateOf(setup, step);
+    if (state === 'not-started' || PipelineSetupUtil.stepIndexOf(step) > PipelineSetupUtil.stepIndexOf(setup.currentStep)) {
       throw new BoardRefusal({ reason: 'setup-step-not-reached', setupId: setup.setupId, step });
     }
     if (state !== 'needs-recheck') setup.stepStates[step] = 'in-progress';
     setup.currentStep = step;
-    const needsRecheck = PIPELINE_SETUP_STEPS.slice(stepIndexOf(step) + 1).filter((laterStep) => setup.stepStates[laterStep] === 'done');
+    const needsRecheck = PIPELINE_SETUP_STEPS.slice(PipelineSetupUtil.stepIndexOf(step) + 1).filter((laterStep) => setup.stepStates[laterStep] === 'done');
     for (const laterStep of needsRecheck) setup.stepStates[laterStep] = 'needs-recheck';
     this.store(setup);
     return [this.stepMovedRecord(setup, step, needsRecheck, at)];
@@ -111,7 +88,7 @@ export class PipelineSetupRecord {
 
   stepMovedRecord(setup: PipelineSetup, step: PipelineSetupStep, needsRecheck: readonly PipelineSetupStep[], at: string): LogRecord {
     const fields = {
-      step, state: stepStateOf(setup, step), currentStep: setup.currentStep, needsRecheck: [...needsRecheck]
+      step, state: PipelineSetupUtil.stepStateOf(setup, step), currentStep: setup.currentStep, needsRecheck: [...needsRecheck]
     };
     return this.records.logger.log({ kind: 'pipeline-setup-step-moved', setupId: setup.setupId, fields }, at);
   }

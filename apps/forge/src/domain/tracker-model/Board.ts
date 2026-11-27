@@ -364,10 +364,10 @@ export class Board {
     this.setupConstitutions = new PipelineSetupConstitutions(this.records, this.setupRecord);
     this.setupDraftEdits    = new PipelineSetupDraftEdits(this.records, this.setupRecord);
     this.setupChecks        = new PipelineSetupChecks(this.records, this.setupRecord);
-    this.setupApplies       = new PipelineSetupApplies(this.records, this.setupRecord, this.trackerChanges, this.decisionRules);
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits, this.ticketDocumentRules);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
+    this.setupApplies       = new PipelineSetupApplies(this.records, this.setupRecord, this.trackerChanges, this.decisionRules, this.jobRules, this.jobControls);
     this.needRules          = new Needs(this.records, this.jobRules);
     this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);
     this.ticketForecasts    = new TicketForecasts(this.records, this.jobRules, this.mergeQueueMarks);
@@ -1087,8 +1087,7 @@ export class Board {
 
   /** The record's agent; every launch its earlier program refused is tried again. */
   setSetupAgent(setupId: string, agent: PipelineAgent, offeredBillingModesOf: OfferedBillingModesOf, at: string): PipelineSetupChanged {
-    const changed = this.pipelineSetups.setSetupAgent(setupId, agent, offeredBillingModesOf, at);
-    return { setup: changed.setup, logged: [...changed.logged, ...this.jobRules.retryNotLaunched(at).logged] };
+    return this.pipelineSetups.setSetupAgent(setupId, agent, offeredBillingModesOf, at);
   }
 
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
@@ -1246,7 +1245,7 @@ export class Board {
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
-    return this.jobControls.withTheAppliedSetupAgentStopped(this.setupApplies.requestApply(setupId, requesting, at), requesting, at);
+    return this.setupApplies.withTheAppliedSetupAgentStopped(this.setupApplies.requestApply(setupId, requesting, at), requesting, at);
   }
 
   /**
@@ -1254,13 +1253,13 @@ export class Board {
    * record's pipeline agent is stopped in the same hold.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
-    return this.jobControls.withTheAppliedSetupAgentStopped(this.setupApplies.finishApply(setupId, finishing, at), finishing, at);
+    return this.setupApplies.withTheAppliedSetupAgentStopped(this.setupApplies.finishApply(setupId, finishing, at), finishing, at);
   }
 
   /** At Hephaestus's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
   finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
     const finished = this.setupApplies.finishHalfAppliedSetup(reading, at);
-    return finished === null ? null : this.jobControls.withTheAppliedSetupAgentStopped(finished, reading, at);
+    return finished === null ? null : this.setupApplies.withTheAppliedSetupAgentStopped(finished, reading, at);
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {

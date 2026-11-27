@@ -1,9 +1,9 @@
 /**
- * User's controls over a live job, User's resumes and the product owner's intake (design sections 7.4, 8.1 and 8.4), and the stop of an
- * applied setup record's pipeline agents: each records in the hold and Hephaestus carries it out, so every one works with Hephaestus down.
+ * User's controls over a live job, User's resumes and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the
+ * hold and Hephaestus carries it out, so every one works with Hephaestus down.
  * A stop or wind-down holds the job's ticket in the same hold.
  */
-import type { JobChanged, Logged, PipelineApplyChanged } from './@types/BoardChanges.ts';
+import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
   Job,
   JobEnding,
@@ -13,7 +13,6 @@ import type {
 import type { LifecycleThresholds } from './@types/LifecycleLimits.ts';
 import type { LogRecord }           from './@types/LogRecord.ts';
 import type { EntityKey }           from './@types/Pipeline.ts';
-import type { ApplyMainReading }    from './@types/PipelineSetup.ts';
 import type { AgentQuestions }      from './AgentQuestions.ts';
 import type { BoardRecords }        from './BoardRecords.ts';
 import { BoardRefusal }             from './BoardRefusal.ts';
@@ -283,26 +282,6 @@ export class JobControls {
     const instructed = jobIds.flatMap((jobId) => this.jobRules.recordJobResumeInstructed(jobId, at).logged);
     const lifted     = holdLifts ? this.ticketSettings.liftInterruptedHold(ticketId, at).logged : [];
     return { logged: [...instructed, ...lifted] };
-  }
-
-  /**
-   * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
-   * over stops them, and Hephaestus removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
-   * nothing. The first Apply over entities starts the product owner that gives the committed tickets without an entity one, in the same hold.
-   */
-  withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
-    const setup = changed.outcome === 'applied' ? changed.setup : null;
-    if (setup === null) return changed;
-    const agentJobIds = [setup.agentJobId, ...Object.values(setup.entities ?? {}).map((entityPart) => entityPart.agentJobId)];
-    const stopped = agentJobIds.flatMap((agentJobId) => {
-      const agent = agentJobId === null ? undefined : this.jobRules.jobById(agentJobId);
-      return agent === undefined || agent.state === 'stopping' ? [] : this.requestJobStop(agent.id, 'stop', at).logged;
-    });
-    const ticketIds = changed.ticketsAwaitingEntity ?? [];
-    const requestOf = reading.entityAssignmentRequestOf;
-    const assignment = ticketIds.length === 0 || requestOf === undefined ? [] : this.startEntityAssignment(requestOf(ticketIds), ticketIds, at).logged;
-    const added = [...stopped, ...assignment];
-    return added.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...added] };
   }
 
   /** An ended job's parent is read from its launch record. */

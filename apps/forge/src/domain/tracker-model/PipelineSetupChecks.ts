@@ -9,9 +9,10 @@ import type {
 import type { PipelineCheckEnding, PipelineCheckStart, PipelineSetup } from './@types/PipelineSetup.ts';
 import type { BoardRecords }                                           from './BoardRecords.ts';
 import { BoardRefusal }                                                from './BoardRefusal.ts';
-import { type PipelineSetupRecord, entityPartsOf }                     from './PipelineSetupRecord.ts';
+import type { PipelineSetupRecord }                                    from './PipelineSetupRecord.ts';
 import { UNFINISHED_PIPELINE_CHECK_STATES }                            from './constants/PipelineSetupVocabulary.ts';
 import { PipelineChangeUtil }                                          from './utils/PipelineChangeUtil.ts';
+import { PipelineSetupUtil }                                           from './utils/PipelineSetupUtil.ts';
 import { PipelineUtil }                                                from './utils/PipelineUtil.ts';
 
 /** Where a check is held: the record itself for the forge's own, an entity's part for that entity's. */
@@ -23,7 +24,7 @@ interface CheckHolder {
 const ROOT_FOLDER = '/';
 
 function checkHoldersOf(setup: PipelineSetup): CheckHolder[] {
-  return [{ entityKey: null, holder: setup }, ...entityPartsOf(setup).map(([entityKey, part]) => ({ entityKey, holder: part }))];
+  return [{ entityKey: null, holder: setup }, ...PipelineSetupUtil.entityPartsOf(setup).map(([entityKey, part]) => ({ entityKey, holder: part }))];
 }
 
 /** The record for the forge's check; an entity's existing part for its check, `undefined` when the record holds no such part. */

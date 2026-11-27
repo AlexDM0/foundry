@@ -19,14 +19,15 @@ import type {
   MainConstitution,
   PipelineSetup
 } from './@types/PipelineSetup.ts';
-import type { TicketStatus }                                      from './@types/Ticket.ts';
-import type { BoardRecords }                                      from './BoardRecords.ts';
-import { BoardRefusal, type BoardRefusalDetail }                  from './BoardRefusal.ts';
-import type { Decisions }                                         from './Decisions.ts';
-import { type PipelineSetupRecord, refuseStandingEntityRefusals } from './PipelineSetupRecord.ts';
-import { agentCopyOf, billingCopyOf, everyQuestionOf }            from './PipelineSetups.ts';
-import type { TrackerChanges }                                    from './TrackerChanges.ts';
-import { PIPELINE_APPLIED_DECISION_REASON }                       from './constants/DecisionAndIncidentVocabulary.ts';
+import type { TicketStatus }                     from './@types/Ticket.ts';
+import type { BoardRecords }                     from './BoardRecords.ts';
+import { BoardRefusal, type BoardRefusalDetail } from './BoardRefusal.ts';
+import type { Decisions }                        from './Decisions.ts';
+import type { JobControls }                      from './JobControls.ts';
+import type { Jobs }                             from './Jobs.ts';
+import type { PipelineSetupRecord }              from './PipelineSetupRecord.ts';
+import type { TrackerChanges }                   from './TrackerChanges.ts';
+import { PIPELINE_APPLIED_DECISION_REASON }      from './constants/DecisionAndIncidentVocabulary.ts';
 import {
   ENTITY_CHANGE_REFUSAL_REASONS,
   INTERRUPTED_APPLY_REASON,
@@ -34,6 +35,7 @@ import {
   PIPELINE_SETUP_STEPS
 } from './constants/PipelineSetupVocabulary.ts';
 import { PipelineChangeUtil } from './utils/PipelineChangeUtil.ts';
+import { PipelineSetupUtil }  from './utils/PipelineSetupUtil.ts';
 import { PipelineUtil }       from './utils/PipelineUtil.ts';
 
 function isEntityChangeRefusalReason(reason: string): reason is EntityChangeRefusalReason {
@@ -98,6 +100,8 @@ export class PipelineSetupApplies {
     private readonly setupRecord: PipelineSetupRecord,
     private readonly trackerChanges: TrackerChanges,
     private readonly decisionRules: Decisions,
+    private readonly jobRules: Jobs,
+    private readonly jobControls: JobControls,
   ) {}
 
   /**
@@ -208,6 +212,26 @@ export class PipelineSetupApplies {
     return this.finishApply(setup.setupId, {
       ...reading, draftRevision: setup.draftRevision, resumesBoard: setup.applyRequest?.resumesBoard ?? false, constitutionCommit: null
     }, at);
+  }
+
+  /**
+   * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
+   * over stops them, and Hephaestus removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
+   * nothing. The first Apply over entities starts the product owner that gives the committed tickets without an entity one, in the same hold.
+   */
+  withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
+    const setup = changed.outcome === 'applied' ? changed.setup : null;
+    if (setup === null) return changed;
+    const agentJobIds = [setup.agentJobId, ...Object.values(setup.entities ?? {}).map((entityPart) => entityPart.agentJobId)];
+    const stopped = agentJobIds.flatMap((agentJobId) => {
+      const agent = agentJobId === null ? undefined : this.jobRules.jobById(agentJobId);
+      return agent === undefined || agent.state === 'stopping' ? [] : this.jobControls.requestJobStop(agent.id, 'stop', at).logged;
+    });
+    const ticketIds = changed.ticketsAwaitingEntity ?? [];
+    const requestOf = reading.entityAssignmentRequestOf;
+    const assignment = ticketIds.length === 0 || requestOf === undefined ? [] : this.jobControls.startEntityAssignment(requestOf(ticketIds), ticketIds, at).logged;
+    const added = [...stopped, ...assignment];
+    return added.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...added] };
   }
 
   /** The constitution commit waits, as the Airlock found main: the request stays, and so does every refusal of the other moves. */
@@ -352,12 +376,12 @@ export class PipelineSetupApplies {
         reason: 'pipeline-draft-stale', setupId, revision: draftRevision, currentRevision: setup.draftRevision
       });
     }
-    const questionIds = everyQuestionOf(setup).filter((question) => question.answer === null).map((question) => question.questionId);
+    const questionIds = PipelineSetupUtil.everyQuestionOf(setup).filter((question) => question.answer === null).map((question) => question.questionId);
     if (questionIds.length > 0) throw new BoardRefusal({ reason: 'setup-question-open', setupId, questionIds });
     const steps = PIPELINE_SETUP_STEPS.filter((step) => step !== 'apply' && setup.stepStates[step] === 'needs-recheck');
     if (steps.length > 0) throw new BoardRefusal({ reason: 'setup-step-needs-recheck', setupId, steps });
     if (this.setupRecord.setupSnapshotIsTouched(setupId)) throw new BoardRefusal({ reason: 'setup-snapshot-touched', setupId });
-    refuseStandingEntityRefusals(setup);
+    PipelineSetupUtil.refuseStandingEntityRefusals(setup);
   }
 
   /**
@@ -440,9 +464,9 @@ export class PipelineSetupApplies {
    */
   private appliedPipelineOf(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): Pipeline {
     const applied = structuredClone(setup.draft ?? this.setupRecord.basePipeline()) as Pipeline;
-    if (setup.agent !== null) applied.agent = agentCopyOf(setup.agent);
+    if (setup.agent !== null) applied.agent = PipelineSetupUtil.agentCopyOf(setup.agent);
     // A record with no billing chosen keeps the draft's, the stored pipeline's for an update, so Apply writes no billing nobody chose.
-    if (setup.billing !== null) applied.billing = billingCopyOf(setup.billing);
+    if (setup.billing !== null) applied.billing = PipelineSetupUtil.billingCopyOf(setup.billing);
     const { mainConstitution } = reading;
     if (!draftHasEntities(setup)) {
       if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };
