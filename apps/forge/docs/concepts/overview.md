@@ -210,7 +210,7 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | The one transaction | `src/services/store/BoardStore.ts`, `src/services/tracker/TrackerPipeline.ts` | the store's transaction face, `transactions.transact`, run by `writeTracker` in the local adapter | `src/services/store/BoardStore.contract.spec.ts`, `src/services/tracker/HoldJournal.spec.ts` |
 | Talos | `talos/Talos.ts` | `runTalos` | `talos/Talos.handshake.integration.spec.ts` |
 | Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
-| Trouble's three kinds | `src/domain/tracker-model/IncidentMoves.ts`, `src/services/hephaestus/DrivePass.ts` | `defaultIncident`, `HephaestusNotice` | `src/domain/tracker-model/IncidentMoves.spec.ts` |
+| Trouble's three kinds | `src/domain/tracker-model/IncidentMoves.ts`, `src/services/hephaestus/@types/HephaestusStateDocument.ts` | `defaultIncident`, `HephaestusNotice` | `src/domain/tracker-model/IncidentMoves.spec.ts` |
 | The eleven names | `architecture/ComponentNames.spec.ts` | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 | Every product name | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `cli/ProductNameIsolation.integration.spec.ts` |
 

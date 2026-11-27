@@ -145,7 +145,7 @@ every line regardless, so a line the mapper ignores stays in the child's event l
 | `result`: `modelUsage` | `result.usageTotals` | Per model, subagents included |
 | `result`: `usage.iterations[-1]` | `result.contextTokens` | Input plus both cache figures of the last call |
 
-What each event does to a job is `applyChildEvents` in `src/services/hephaestus/DrivePass.ts`.
+What each event does to a job is `applyChildEvents` in `src/services/hephaestus/ChildEvents.ts`.
 
 > **As built.** Nothing reads `result.isError`, `result.usageTotals`, `started.vendorVersion` or `started.tools`. See
 > gap-dead-code-and-unused-states.

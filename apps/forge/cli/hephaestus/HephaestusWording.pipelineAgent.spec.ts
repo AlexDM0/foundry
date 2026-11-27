@@ -17,7 +17,7 @@ import type { Job }                                      from '../../src/domain/
 import type { Pipeline }                                 from '../../src/domain/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup }                            from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import type { ShellLineGrammar }                         from '../../src/lib/shell-line/ShellLine.ts';
-import type { JobLaunchFacts }                           from '../../src/services/hephaestus/DrivePass.ts';
+import type { JobLaunchFacts }                           from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
 import type { PipelineAgentFacts }                       from '../../src/services/hephaestus/PipelineAgentSessions.ts';
 import { filledTemplateOf, productNameTemplateValuesOf } from '../../src/shared/FilledTemplate.ts';
 import { PRODUCT_NAMES }                                 from '../../src/shared/constants/ProductNames.ts';

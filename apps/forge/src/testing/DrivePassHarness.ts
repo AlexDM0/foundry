@@ -12,19 +12,20 @@ import { MergeDecisionWording }             from '../adapters/MergeDecisionWordi
 import { PipelineCheckProblemWording }      from '../adapters/pipeline/PipelineCheckProblemWording.ts';
 import { TurboConfigurationProblemWording } from '../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 
-import type { ChildLaunch }                                       from '../domain/talos/ChildLaunch.ts';
-import { TALOS_PROTOCOL_VERSION }                                 from '../domain/talos/constants/TalosProtocol.ts';
-import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
-import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
-import type { GateConfinement }                                   from '../lib/gate-confinement/GateConfinement.ts';
-import type { PlatformPorts }                                     from '../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
-import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/hephaestus/DrivePass.ts';
-import { hephaestusFilesIn }                                      from '../services/hephaestus/HephaestusFiles.ts';
-import { HephaestusLock }                                         from '../services/hephaestus/HephaestusLock.ts';
-import { createTalosChildren }                                    from '../services/hephaestus/TalosChildren.ts';
-import { type TalosConnection, connectToTalos }                   from '../services/hephaestus/TalosConnection.ts';
-import { createLineRunner }                                       from '../services/hephaestus/TalosLines.ts';
+import type { ChildLaunch }                     from '../domain/talos/ChildLaunch.ts';
+import { TALOS_PROTOCOL_VERSION }               from '../domain/talos/constants/TalosProtocol.ts';
+import type { AgentAdapter }                    from '../lib/agent-launch/AgentAdapter.ts';
+import { createDarwinSeatbelt }                 from '../lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                 from '../lib/gate-confinement/GateConfinement.ts';
+import type { PlatformPorts }                   from '../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                 from '../lib/process-identity/ProcessIdentity.ts';
+import type { DrivePassRequest }                from '../services/hephaestus/@types/DrivePassRequest.ts';
+import { createDrivePass, type DrivePass }      from '../services/hephaestus/DrivePass.ts';
+import { hephaestusFilesIn }                    from '../services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                       from '../services/hephaestus/HephaestusLock.ts';
+import { createTalosChildren }                  from '../services/hephaestus/TalosChildren.ts';
+import { type TalosConnection, connectToTalos } from '../services/hephaestus/TalosConnection.ts';
+import { createLineRunner }                     from '../services/hephaestus/TalosLines.ts';
 import {
   createTalosStartHold,
   ensureTalos,

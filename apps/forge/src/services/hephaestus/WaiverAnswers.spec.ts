@@ -11,8 +11,8 @@ import type { PlaybookStep }                              from '../../domain/tra
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
-import { actOnWaiverAnswers }                             from './DrivePass.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
+import { actOnWaiverAnswers }                             from './WaiverAnswers.ts';
 
 const AT = '2026-11-27T10:00:00+01:00';
 const NEXT_PASS_AT = '2026-11-27T10:00:30+01:00';

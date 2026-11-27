@@ -12,7 +12,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { Job }            from '../../src/domain/tracker-model/@types/Job.ts';
 import type { PipelineGate }   from '../../src/domain/tracker-model/@types/Pipeline.ts';
-import type { JobLaunchFacts } from '../../src/services/hephaestus/DrivePass.ts';
+import type { JobLaunchFacts } from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
 import { resourceFilePathOf }  from '../../src/shared/ResourceFilePath.ts';
 import { fakeAgentAdapter }    from '../../src/testing/FakeAgentAdapter.ts';
 import { HephaestusWording }   from './HephaestusWording.ts';

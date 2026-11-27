@@ -684,6 +684,6 @@ its lease ends; [Changing the code](../development/contributing.md) has the full
 | Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |
 | Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |
 | Held landing targets | `src/services/hephaestus/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/hephaestus/Airlocks.spec.ts` |
-| Notices | `src/services/hephaestus/DrivePass.ts` | `HephaestusNotice`, `noticesOf` | `cli/hephaestus/HephaestusDrivePass.spec.ts` |
+| Notices | `src/services/hephaestus/@types/HephaestusStateDocument.ts`, `src/services/hephaestus/PassNotices.ts` | `HephaestusNotice`, `noticesOf` | `cli/hephaestus/HephaestusDrivePass.spec.ts` |
 | Refusal wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf` | `src/adapters/utils/OperationRefusalWordingUtil.boardRefusal.spec.ts` |
 | Restart from `update` | `cli/adoption/update/UpdateCommand.ts` | `handTheLiveHephaestusToTheCodeOnDisk` | `src/services/hephaestus/Restart.spec.ts` |

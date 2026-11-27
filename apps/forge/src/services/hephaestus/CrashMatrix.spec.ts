@@ -82,9 +82,10 @@ import { localStoreLayoutOf }                                               from
 import { writeTracker }                                                     from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                              from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                                from '../tracker/Workspace.ts';
+import type { JobLaunchFacts }                                              from './@types/JobLaunchFacts.ts';
 import { AirlockFactsFile }                                                 from './AirlockFactsFile.ts';
 import type { BoardChildren }                                               from './BoardChildren.ts';
-import type { DrivePass, JobLaunchFacts }                                   from './DrivePass.ts';
+import type { DrivePass }                                                   from './DrivePass.ts';
 import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }                     from './GateProfiling.ts';
 import { jobFolderIn }                                                      from './HephaestusFiles.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }              from './InstructionFiles.ts';

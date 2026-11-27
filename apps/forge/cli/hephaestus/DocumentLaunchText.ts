@@ -6,9 +6,9 @@
 import { readFileSync } from 'node:fs';
 
 import type { Job }                           from '../../src/domain/tracker-model/@types/Job.ts';
+import type { JobLaunchFacts, JobLaunchText } from '../../src/services/hephaestus/@types/JobLaunchFacts.ts';
 import type { DocumentAgentFacts }            from '../../src/services/hephaestus/DocumentAgentSessions.ts';
 import { DocumentAgentWording }               from '../../src/services/hephaestus/DocumentAgentWording.ts';
-import type { JobLaunchFacts, JobLaunchText } from '../../src/services/hephaestus/DrivePass.ts';
 import type { EffectReadingFacts }            from '../../src/services/hephaestus/EffectReadings.ts';
 import { filledTemplateOf }                   from '../../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                 from '../../src/shared/ResourceFilePath.ts';
