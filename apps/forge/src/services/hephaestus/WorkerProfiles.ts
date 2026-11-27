@@ -10,6 +10,7 @@ import {
   relative
 } from 'node:path';
 
+import { PRIVATE_FOLDER_NAME }                        from '../../domain/talos/constants/TalosProtocol.ts';
 import type { JobRole }                               from '../../domain/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineEntity }   from '../../domain/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
@@ -24,7 +25,6 @@ import type {
 import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
 import { GitProcess }                            from '../../lib/git/GitProcess.ts';
 import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
-import { PRIVATE_FOLDER_NAME }                   from '../../lib/talos/constants/TalosProtocol.ts';
 import type { BranchNames }                      from '../../shared/BranchNames.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
 import { GpgDirectories }                        from './GpgDirectories.ts';

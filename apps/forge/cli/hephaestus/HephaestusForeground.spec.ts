@@ -20,9 +20,9 @@ import {
   test
 } from 'bun:test';
 
-import type { DoneFrame } from '../../src/lib/talos/@types/TalosFrame.ts';
+import type { DoneFrame } from '../../src/domain/talos/@types/TalosFrame.ts';
 
-import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                                from '../../src/domain/talos/constants/TalosProtocol.ts';
 import { CrashLog }                                              from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                                     from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                        from '../../src/services/hephaestus/HephaestusLock.ts';

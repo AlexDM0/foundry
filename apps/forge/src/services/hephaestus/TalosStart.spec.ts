@@ -20,21 +20,21 @@ import {
   test
 } from 'bun:test';
 
-import type { PlatformPorts }                  from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ProcessSupervision }             from '../../lib/process-identity/ProcessSupervision.ts';
-import { type ChildRecord, childRecordTextOf } from '../../lib/talos/ChildRecord.ts';
-import { launchRegistryEntryLineOf }           from '../../lib/talos/LaunchRegistry.ts';
+import { type ChildRecord, childRecordTextOf } from '../../domain/talos/ChildRecord.ts';
+import { launchRegistryEntryLineOf }           from '../../domain/talos/LaunchRegistry.ts';
 import {
   childFilesOf,
   launchRegistryPathOf,
   startFilePathOf,
   talosRecordPathOf,
   talosSecretPathOf
-} from '../../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordTextOf }            from '../../lib/talos/TalosRecord.ts';
-import { talosStartFileOf }                               from '../../lib/talos/TalosStartFile.ts';
-import { TALOS_PROTOCOL_VERSION }                         from '../../lib/talos/constants/TalosProtocol.ts';
+} from '../../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordTextOf }            from '../../domain/talos/TalosRecord.ts';
+import { talosStartFileOf }                               from '../../domain/talos/TalosStartFile.ts';
+import { TALOS_PROTOCOL_VERSION }                         from '../../domain/talos/constants/TalosProtocol.ts';
+import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ProcessSupervision }                        from '../../lib/process-identity/ProcessSupervision.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { TalosConnection, TalosConnectionOutcome }   from './TalosConnection.ts';

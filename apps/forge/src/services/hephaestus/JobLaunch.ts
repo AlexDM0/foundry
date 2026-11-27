@@ -35,6 +35,8 @@ import { createStepVerdictWriter }                                              
 import { TargetConflictIngestion }                                                 from '../../adapters/target-conflict/TargetConflictIngestion.ts';
 import { createTargetConflictWriter }                                              from '../../adapters/target-conflict/TargetConflictWriter.ts';
 import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
+import type { ChildInput }                                                         from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                                                           from '../../domain/talos/ChildRecord.ts';
 import type { ReviewBarRequest }                                                   from '../../domain/tracker-model/@types/BoardChanges.ts';
 import type { Decision }                                                           from '../../domain/tracker-model/@types/Decision.ts';
 import type { GatePhase, GateRunStamp }                                            from '../../domain/tracker-model/@types/GatePhase.ts';
@@ -78,8 +80,6 @@ import { GitArgumentsUtil }                               from '../../lib/git/ut
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellExitReport }                           from '../../lib/shell-line/ShellLine.ts';
-import type { ChildInput }                                from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                                  from '../../lib/talos/ChildRecord.ts';
 import type { BranchNames }                               from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';

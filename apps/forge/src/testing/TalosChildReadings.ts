@@ -5,8 +5,8 @@
  */
 import { basename, dirname } from 'node:path';
 
+import { type ChildFiles, childFilesOf }                                  from '../domain/talos/TalosFiles.ts';
 import type { PlatformPorts }                                             from '../lib/platform-ports/PlatformPortsFor.ts';
-import { type ChildFiles, childFilesOf }                                  from '../lib/talos/TalosFiles.ts';
 import type { BoardChildren }                                             from '../services/hephaestus/BoardChildren.ts';
 import { createTalosChildren, recordedTalosLiveness, type TalosLiveness } from '../services/hephaestus/TalosChildren.ts';
 

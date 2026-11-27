@@ -14,27 +14,28 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { TalosChildRecordCopy }                              from '../../adapters/crash-log/TalosChildRecordCopy.ts';
-import { LaunchRegistryIngestion }                           from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
-import type { InterruptionCause }                            from '../../domain/tracker-model/@types/Job.ts';
-import { INTERRUPTION_CAUSES }                               from '../../domain/tracker-model/constants/JobStates.ts';
-import { writeFileAtomically, writeOwnerOnlyFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, sameBoot }                    from '../../lib/process-identity/ProcessIdentity.ts';
-import type { LaunchRegistryEntry }                          from '../../lib/talos/ChildLaunch.ts';
-import { type ChildRecord, childRecordOf }                   from '../../lib/talos/ChildRecord.ts';
+import { TalosChildRecordCopy }            from '../../adapters/crash-log/TalosChildRecordCopy.ts';
+import { LaunchRegistryIngestion }         from '../../adapters/launch-registry/LaunchRegistryIngestion.ts';
+import type { LaunchRegistryEntry }        from '../../domain/talos/ChildLaunch.ts';
+import { type ChildRecord, childRecordOf } from '../../domain/talos/ChildRecord.ts';
 import {
   childFilesOf,
+  endpointFolderOf,
   launchRegistryPathOf,
   startFilePathOf,
   talosFolderOf,
   talosLogPathOf,
   talosRecordPathOf,
   talosSecretPathOf
-} from '../../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordOf }                             from '../../lib/talos/TalosRecord.ts';
-import { type TalosStartFile, talosStartFileOf, talosStartFileTextOf } from '../../lib/talos/TalosStartFile.ts';
-import { TALOS_START_FILE_FORMAT_VERSION }                             from '../../lib/talos/constants/TalosProtocol.ts';
+} from '../../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordOf }                             from '../../domain/talos/TalosRecord.ts';
+import { type TalosStartFile, talosStartFileOf, talosStartFileTextOf } from '../../domain/talos/TalosStartFile.ts';
+import { TALOS_START_FILE_FORMAT_VERSION }                             from '../../domain/talos/constants/TalosProtocol.ts';
+import type { InterruptionCause }                                      from '../../domain/tracker-model/@types/Job.ts';
+import { INTERRUPTION_CAUSES }                                         from '../../domain/tracker-model/constants/JobStates.ts';
+import { writeFileAtomically, writeOwnerOnlyFileAtomically }           from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, sameBoot }                              from '../../lib/process-identity/ProcessIdentity.ts';
 import { outlivingProgramEnvironment }                                 from '../../shared/Environment.ts';
 import { ToolRuntimeUtil }                                             from '../../shared/ToolRuntimeUtil.ts';
 import {
@@ -386,7 +387,7 @@ async function startNextTalos(context: TalosStartContext, startNumber: number, p
     boardFolder, monitorFolder, trackerId, ports
   } = context;
   const endpoint = ports.localEndpoint.endpointOf({
-    monitorFolder, trackerId, name: 'talos', instance: startNumber
+    socketFolder: endpointFolderOf(monitorFolder), scope: trackerId, name: 'talos', instance: startNumber
   });
   if (!ports.localEndpoint.endpointFits(endpoint)) {
     context.log(`Talos ${startNumber} cannot start: its endpoint ${endpoint} does not fit this platform.`);

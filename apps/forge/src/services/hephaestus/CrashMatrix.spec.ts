@@ -33,6 +33,8 @@ import {
   test,
 } from 'bun:test';
 
+import type { ChildRecord }                                     from '../../domain/talos/ChildRecord.ts';
+import { createEventLogWriter, type EventLogEntry }             from '../../domain/talos/EventLog.ts';
 import type { Decision }                                        from '../../domain/tracker-model/@types/Decision.ts';
 import type { Job }                                             from '../../domain/tracker-model/@types/Job.ts';
 import type { Board }                                           from '../../domain/tracker-model/Board.ts';
@@ -40,8 +42,6 @@ import type { AgentAdapter }                                    from '../../lib/
 import type { AgentLaunchRequest }                              from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                   from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { WorkerProfile }                                   from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ChildRecord }                                     from '../../lib/talos/ChildRecord.ts';
-import { createEventLogWriter, type EventLogEntry }             from '../../lib/talos/EventLog.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                            from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                                      from '../../shared/WorktreesFolder.ts';

@@ -51,7 +51,7 @@ names a package the code does not import. A stale allowance fails as loudly as a
 prints a sentence naming the file, the line, the target and the rule, for example:
 
 ```text
-src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: adapters reaches only lib, shared, adapters, not render-service
+src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: adapters reaches only lib, domain, shared, adapters, workspace-package, not render-service
 ```
 
 The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.
@@ -81,7 +81,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `architecture/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `architecture/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (`talos.ts` imports only the Talos program in `talos/`, which reaches `src/domain/` and `src/lib/`), `TESTING_FOLDER_IMPORTERS`, `TALOS_PROGRAM_SPEC_IMPORTERS`, the declared dependencies of a `src/lib/` or `src/domain/` package, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
 | `architecture/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `architecture/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `architecture/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
@@ -207,7 +207,7 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 | text | read by | what breaks it |
 | --- | --- | --- |
-| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `architecture/ImportDirection.spec.ts`, also `architecture/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
+| The `depends on` sentence in a `src/lib/` or `src/domain/` package's main module header | `declaredPackageDependenciesOf` in `architecture/ImportDirection.spec.ts`, also `architecture/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
@@ -291,8 +291,8 @@ A default spec of the DrivePass stands on `useRecordedTalosStages` (`src/testing
 through `src/testing/DrivePassHarness.ts`. It replaces the process starts in `src/services/hephaestus/ProcessStarts.ts`,
 and the process and socket ports with the recorded process table and local endpoint. A session and a gate line are played
 in the spec's own process, and each frame of Hephaestus's connection leaves what the real Talos left in that stage of a
-child. `src/lib/talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
-`bun run record src/lib/talos/Talos.ts`; a stage with no recorded answer fails the case.
+child. `talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
+`bun run record talos/Talos.ts`; a stage with no recorded answer fails the case.
 
 Those specs answer git from recordings, never from an emulator. `useRecordedGit` (`src/testing/RecordedGit.ts`) mocks
 `GitProcess.run` and `resolvedCommitOf` for a spec file, and `createInitializedRecordedGitRepository` builds the

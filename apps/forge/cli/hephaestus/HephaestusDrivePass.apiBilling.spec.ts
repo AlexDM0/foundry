@@ -16,10 +16,10 @@ import {
   test
 } from 'bun:test';
 
+import type { ChildLaunch }                 from '../../src/domain/talos/ChildLaunch.ts';
 import type { PipelineBilling }             from '../../src/domain/tracker-model/@types/Pipeline.ts';
 import type { AgentAdapter }                from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan }             from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
-import type { ChildLaunch }                 from '../../src/lib/talos/ChildLaunch.ts';
 import type { DrivePass, DrivePassRequest } from '../../src/services/hephaestus/DrivePass.ts';
 import { jobFolderIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { localStoreLayoutOf }               from '../../src/services/tracker/LocalStoreLayout.ts';

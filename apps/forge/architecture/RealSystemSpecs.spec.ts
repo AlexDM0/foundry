@@ -799,7 +799,7 @@ describe('what a change runs', () => {
     ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/hephaestus/LineSandbox.integration.spec.ts'],
     ['src/lib/shell-line/PosixShellLine.ts', 'src/lib/shell-line/ShellLine.contract.integration.spec.ts'],
     ['src/lib/executable-resolver/PosixExecutableResolver.ts', 'src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'],
-    ['src/lib/talos/PosixSocketEndpoint.ts', 'src/lib/talos/LocalEndpoint.contract.integration.spec.ts'],
+    ['src/lib/local-endpoint/PosixSocketEndpoint.ts', 'src/lib/local-endpoint/LocalEndpoint.contract.integration.spec.ts'],
   ])('a change to the implementation %s behind a port runs %s', (changedPath, spec) => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });

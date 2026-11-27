@@ -24,6 +24,8 @@ import {
 import type { JsonSchema }                          from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { UsageWindowObservation }              from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { ChildEnd }                            from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                       from '../../domain/talos/EventLog.ts';
 import type { DecisionAnswer }                      from '../../domain/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }  from '../../domain/tracker-model/@types/Incident.ts';
 import type {
@@ -48,11 +50,9 @@ import type { WorkerProfile }                                from '../../lib/age
 import { AgentBillingUtil }                                  from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
 import { type ConfinedLine, confinedLineOf }                 from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import type { RecognisedEnding }                             from '../../lib/line-patterns/EndingPatterns.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEnd }                                     from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                             from '../../lib/talos/EndingPatterns.ts';
-import type { EventLogEntry }                                from '../../lib/talos/EventLog.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';

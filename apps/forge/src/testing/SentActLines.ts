@@ -2,7 +2,7 @@
  * The input and stop frames a spec's recording Talos answered, each as the line of its act: what a planted socket once received. A frame
  * Talos applies as it stands reads as the client entry Talos would log for it; a quit at its turn end reads as itself. Test-only.
  */
-import { clientEntryLineOf }      from '../lib/talos/TalosFrames.ts';
+import { clientEntryLineOf }      from '../domain/talos/TalosFrames.ts';
 import type { TalosFrameRequest } from '../services/hephaestus/TalosConnection.ts';
 
 /** Each input and stop frame as its act's line; a launch, a renewal and the rest are no act. */

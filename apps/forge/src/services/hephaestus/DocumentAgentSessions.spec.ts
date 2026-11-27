@@ -30,13 +30,13 @@ import {
 
 import { HatchFormatUtil }                                                              from '../../adapters/hatch/utils/HatchFormatUtil.ts';
 import { createSnapshotStartWriter }                                                    from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { ChildInput }                                                              from '../../domain/talos/@types/TalosFrame.ts';
 import type { Job }                                                                     from '../../domain/tracker-model/@types/Job.ts';
 import type { TicketStatus }                                                            from '../../domain/tracker-model/@types/Ticket.ts';
 import type { LoadedTicketDocumentRecord }                                              from '../../domain/tracker-model/@types/TicketDocument.ts';
 import type { BoardRefusalDetail }                                                      from '../../domain/tracker-model/BoardRefusal.ts';
 import type { WorkerProfile }                                                           from '../../lib/agent-launch/WorkerProfile.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives }             from '../../lib/git/GitWorktrees.ts';
-import type { ChildInput }                                                              from '../../lib/talos/@types/TalosFrame.ts';
 import { boardFixture, ticketFixture, type BoardFixture }                               from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                                       from '../../testing/EchoedControlContext.ts';
 import { fakeAgentAdapter }                                                             from '../../testing/FakeAgentAdapter.ts';

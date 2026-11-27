@@ -5,7 +5,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import { TALOS_CLIENT_LINE_LIMIT_CHARACTERS }                           from '../../lib/talos/constants/TalosProtocol.ts';
+import { TALOS_CLIENT_LINE_LIMIT_CHARACTERS }                           from '../../domain/talos/constants/TalosProtocol.ts';
 import { PICTURES_PER_MESSAGE_LIMIT, PICTURE_ENCODED_SIZE_LIMIT_BYTES } from './HephaestusLimits.ts';
 
 test('the Talos client line limit is above the base64 of every picture one message may carry', () => {

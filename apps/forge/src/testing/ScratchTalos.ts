@@ -11,19 +11,20 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { DoneFrame, TalosFrame }            from '../lib/talos/@types/TalosFrame.ts';
-import type { ChildLaunch }                      from '../lib/talos/ChildLaunch.ts';
-import { type ChildRecord, childRecordOf }       from '../lib/talos/ChildRecord.ts';
-import { type EventLogEntry, eventLogEntriesOf } from '../lib/talos/EventLog.ts';
+import type { DoneFrame, TalosFrame }            from '../domain/talos/@types/TalosFrame.ts';
+import type { ChildLaunch }                      from '../domain/talos/ChildLaunch.ts';
+import { type ChildRecord, childRecordOf }       from '../domain/talos/ChildRecord.ts';
+import { type EventLogEntry, eventLogEntriesOf } from '../domain/talos/EventLog.ts';
 import {
   childFilesOf,
+  endpointFolderOf,
   startFilePathOf,
   talosLogPathOf,
   talosRecordPathOf
-} from '../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordOf }                         from '../lib/talos/TalosRecord.ts';
-import { type TalosStartFile, talosStartFileTextOf }               from '../lib/talos/TalosStartFile.ts';
-import { TALOS_PROTOCOL_VERSION, TALOS_START_FILE_FORMAT_VERSION } from '../lib/talos/constants/TalosProtocol.ts';
+} from '../domain/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordOf }                         from '../domain/talos/TalosRecord.ts';
+import { type TalosStartFile, talosStartFileTextOf }               from '../domain/talos/TalosStartFile.ts';
+import { TALOS_PROTOCOL_VERSION, TALOS_START_FILE_FORMAT_VERSION } from '../domain/talos/constants/TalosProtocol.ts';
 import { inheritedEnvironment }                                    from './InheritedEnvironment.ts';
 import { nativePlatformPorts }                                     from './NativePlatformPorts.ts';
 import { stopProcessesReachingInto }                               from './ProcessesInFolder.ts';
@@ -100,7 +101,7 @@ export function createScratchTalos(): ScratchTalos {
   // An adapter may draw a new endpoint each call, so one start number keeps the first it was answered, as a start file does.
   const endpointOf = (startNumber: number): string => {
     const endpoint = endpoints.get(startNumber) ?? nativePlatformPorts().localEndpoint.endpointOf({
-      monitorFolder, trackerId: 'tracker-example', name: 'talos', instance: startNumber
+      socketFolder: endpointFolderOf(monitorFolder), scope: 'tracker-example', name: 'talos', instance: startNumber
     });
     endpoints.set(startNumber, endpoint);
     return endpoint;

@@ -14,6 +14,7 @@ import {
 import { dirname } from 'node:path';
 
 import type { CrashedComponent }                                                     from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
+import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/domain/talos/constants/TalosProtocol.ts';
 import type { StartOrigin }                                                          from '../../src/domain/tracker-model/@types/Job.ts';
 import type { LogRecordFieldsOf }                                                    from '../../src/domain/tracker-model/@types/LogRecord.ts';
 import { readingBoardOf }                                                            from '../../src/domain/tracker-model/ReadingBoard.ts';
@@ -23,7 +24,6 @@ import { LocalTimeUtil }                                                        
 import type { PlatformPorts }                                                        from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                                            from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                                                from '../../src/lib/quiet-watch/QuietWatch.ts';
-import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
 import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';

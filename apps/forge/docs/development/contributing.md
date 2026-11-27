@@ -252,7 +252,7 @@ tracked file.
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
 | Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
-| Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `architecture/ImportDirection.spec.ts` |
+| Add a package dependency inside `src/lib/` or `src/domain/` | The "depends on" sentence in the main module's header | The import | `architecture/ImportDirection.spec.ts` |
 | Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 
 ## Seeing a change in a running Hephaestus
@@ -333,7 +333,7 @@ commit rule; the [rule book](../../../../.claude/rules/forge.md)'s sections "Ver
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of Hephaestus's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Scratch path bound | `src/lib/talos/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/talos/PosixSocketEndpoint.spec.ts` |
+| Scratch path bound | `src/lib/local-endpoint/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/local-endpoint/PosixSocketEndpoint.spec.ts` |
 | Outage from crashes | `src/domain/tracker-model/Playbook.ts` | `outageIsDue` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |

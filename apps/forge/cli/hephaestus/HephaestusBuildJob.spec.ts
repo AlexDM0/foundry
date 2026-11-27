@@ -22,6 +22,7 @@ import {
 } from 'bun:test';
 
 
+import type { ChildLaunch }                                    from '../../src/domain/talos/ChildLaunch.ts';
 import type { Job, JobState }                                  from '../../src/domain/tracker-model/@types/Job.ts';
 import type { AgentStepSettings, PipelineReview }              from '../../src/domain/tracker-model/@types/Pipeline.ts';
 import type { Board }                                          from '../../src/domain/tracker-model/Board.ts';
@@ -30,7 +31,6 @@ import type { AgentLaunchRequest }                             from '../../src/l
 import type { NetworkDomainGuard }                             from '../../src/lib/agent-launch/WorkerProfile.ts';
 import { SANDBOX_EXEC_PATH }                                   from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                from '../../src/lib/gate-confinement/GateConfinement.ts';
-import type { ChildLaunch }                                    from '../../src/lib/talos/ChildLaunch.ts';
 import type { BoardChildren }                                  from '../../src/services/hephaestus/BoardChildren.ts';
 import type { DrivePass }                                      from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                          from '../../src/services/hephaestus/HatchInbox.ts';

@@ -21,11 +21,11 @@ import {
   test
 } from 'bun:test';
 
+import { childFilesOf }                                   from '../../src/domain/talos/TalosFiles.ts';
 import { platformPortsFor }                               from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { SupervisedChildKind }                       from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { processSupervisionFor }                          from '../../src/lib/process-identity/ProcessSupervisionFor.ts';
 import { WINDOWS_SUPERVISED_CHILD_SPAWN }                 from '../../src/lib/process-identity/SpawnOptionsFor.ts';
-import { childFilesOf }                                   from '../../src/lib/talos/TalosFiles.ts';
 import { NO_ORPHANS_VARIABLE, environmentCopy }           from '../../src/shared/Environment.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { jsonPrintedByAChildProcess }                     from '../../src/testing/JsonPrintedByAChildProcess.ts';

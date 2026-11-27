@@ -9,7 +9,7 @@ import { join }                      from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { createEndingRecognition, type RecognisedEnding } from '../talos/EndingPatterns.ts';
+import { createEndingRecognition, type RecognisedEnding } from '../line-patterns/EndingPatterns.ts';
 import { CLAUDE_CODE_SESSION_ENDINGS }                    from './ClaudeStreamLines.ts';
 
 type StreamRecord = Readonly<Record<string, unknown>>;

@@ -18,11 +18,11 @@ import {
 } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import { talosSecretPathOf }                              from '../../domain/talos/TalosFiles.ts';
 import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { dataFoldersFor }                                 from '../../lib/data-folders/DataFoldersFor.ts';
 import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
 import { createWindowsCommandLine }                       from '../../lib/shell-line/WindowsCommandLine.ts';
-import { talosSecretPathOf }                              from '../../lib/talos/TalosFiles.ts';
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

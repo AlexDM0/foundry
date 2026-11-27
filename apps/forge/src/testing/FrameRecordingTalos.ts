@@ -5,10 +5,10 @@
  */
 import { join } from 'node:path';
 
+import type { DoneFrame }                          from '../domain/talos/@types/TalosFrame.ts';
+import type { ChildLaunch }                        from '../domain/talos/ChildLaunch.ts';
+import type { ChildEnd }                           from '../domain/talos/ChildRecord.ts';
 import type { PlatformPorts }                      from '../lib/platform-ports/PlatformPortsFor.ts';
-import type { DoneFrame }                          from '../lib/talos/@types/TalosFrame.ts';
-import type { ChildLaunch }                        from '../lib/talos/ChildLaunch.ts';
-import type { ChildEnd }                           from '../lib/talos/ChildRecord.ts';
 import type { BoardChildren }                      from '../services/hephaestus/BoardChildren.ts';
 import { createTalosChildren }                     from '../services/hephaestus/TalosChildren.ts';
 import type { TalosConnection, TalosFrameRequest } from '../services/hephaestus/TalosConnection.ts';

@@ -22,7 +22,7 @@ import {
 }                                                         from 'bun:test';
 import { createInstallManifestWriter }                                    from '../src/adapters/install/InstallManifestWriter.ts';
 import { OperationRefusalWordingUtil }                                    from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { TALOS_PROTOCOL_VERSION }                                         from '../src/lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                                         from '../src/domain/talos/constants/TalosProtocol.ts';
 import { OperationRefusal }                                               from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                  from '../src/shared/constants/ProductNames.ts';
 import { useRecordedGitOutsideAnyRepository }                             from '../src/testing/RecordedGit.ts';

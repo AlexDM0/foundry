@@ -17,18 +17,18 @@ import {
   sep
 } from 'node:path';
 
+import type { ChildInput, DoneFrame }                      from '../../domain/talos/@types/TalosFrame.ts';
+import { type ChildLaunch, type QuitAtTurnEnd, childIdOf } from '../../domain/talos/ChildLaunch.ts';
+import { type ChildRecord, childRecordOf }                 from '../../domain/talos/ChildRecord.ts';
+import { type EventLogEntry, eventLogEntriesOf }           from '../../domain/talos/EventLog.ts';
+import type { StandingReply }                              from '../../domain/talos/StandingReplies.ts';
+import { childFilesOf }                                    from '../../domain/talos/TalosFiles.ts';
+import type { StoredRecordReading }                        from '../../domain/talos/utils/ParsedValueUtil.ts';
 import type { AgentLaunchPlan }                            from '../../lib/agent-launch/AgentLaunchPlan.ts';
 import { writeFileAtomically }                             from '../../lib/atomic-file/AtomicFile.ts';
+import type { EndingPattern }                              from '../../lib/line-patterns/EndingPatterns.ts';
+import type { LineConditions }                             from '../../lib/line-patterns/LineConditions.ts';
 import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ChildInput, DoneFrame }                      from '../../lib/talos/@types/TalosFrame.ts';
-import { type ChildLaunch, type QuitAtTurnEnd, childIdOf } from '../../lib/talos/ChildLaunch.ts';
-import { type ChildRecord, childRecordOf }                 from '../../lib/talos/ChildRecord.ts';
-import type { EndingPattern }                              from '../../lib/talos/EndingPatterns.ts';
-import { type EventLogEntry, eventLogEntriesOf }           from '../../lib/talos/EventLog.ts';
-import type { LineConditions }                             from '../../lib/talos/LineConditions.ts';
-import type { StandingReply }                              from '../../lib/talos/StandingReplies.ts';
-import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
-import type { StoredRecordReading }                        from '../../lib/talos/utils/ParsedValueUtil.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                 from '../../shared/constants/HephaestusLimits.ts';
 import type {
   AgentChildRequest,

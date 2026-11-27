@@ -39,6 +39,7 @@ type ImportViolation =
 type Layer =
   | 'binary'
   | 'talos-binary'
+  | 'talos-program'
   | 'launcher-binary'
   | 'setup-binary'
   | 'lib'
@@ -65,7 +66,8 @@ interface Finding {
 
 const BINARY_PATH = 'agent-progress.ts';
 const TALOS_BINARY_PATH = 'talos.ts';
-const TALOS_PACKAGE_FOLDER = 'src/lib/talos/';
+/** The second entry program, beside `cli/`: what `talos.ts` runs. */
+const TALOS_PROGRAM_FOLDER = 'talos/';
 /** The installed command `setup.ts` compiles, which starts `agent-progress.ts`; it reaches only `src/shared/` for the runtime arguments. */
 const LAUNCHER_BINARY_PATH = 'launcher.ts';
 /** Machine setup, which the bootstrap scripts start; it reaches only its own steps under `cli/setup/`. */
@@ -84,8 +86,9 @@ const SOURCE_LAYERS = [
 /** What each layer may import, a folder in a testing folder aside: those are judged by `TESTING_FOLDER_IMPORTERS` alone. */
 const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   'binary':             ['cli'],
-  // Narrowed further to its own package by directionFinding.
-  'talos-binary':       ['lib'],
+  // Narrowed further to its own program by directionFinding.
+  'talos-binary':       ['talos-program'],
+  'talos-program':      ['lib', 'domain', 'talos-program'],
   'launcher-binary':    ['shared'],
   'setup-binary':       ['cli'],
   'lib':                ['lib'],
@@ -112,7 +115,8 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
  * ways: every `testing/` folder in the tree has an entry, and every importer folder or file is used by at least one import.
  */
 const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
-  'src/testing/':                      ['src/', 'cli/', 'architecture/', VENDOR_ADAPTER_SEAM],
+  'src/testing/':                      ['src/', 'talos/', 'cli/', 'architecture/', VENDOR_ADAPTER_SEAM],
+  'talos/testing/':                    ['src/lib/local-endpoint/', 'src/testing/'],
   'src/domain/tracker-model/testing/': ['src/domain/tracker-model/'],
   'src/adapters/progress/testing/':    ['src/adapters/'],
   'src/services/tracker/testing/':     ['src/services/tracker/'],
@@ -126,6 +130,9 @@ interface ExactReach {
   readonly target:   string;
 }
 
+/** The folders whose specs may import the Talos program, to run its own socket server against Hephaestus's client; exact both ways. */
+const TALOS_PROGRAM_SPEC_IMPORTERS: readonly string[] = ['src/services/hephaestus/'];
+
 /** Imports of a command set by another set or by the `cli/` root that the rules let through, exact both ways; none today. */
 const COMMAND_SET_REACHES: readonly ExactReach[] = [];
 
@@ -133,13 +140,15 @@ const COMMAND_SET_REACHES: readonly ExactReach[] = [];
 const COMMAND_SET_COMPOSER = 'cli/CommandTable.ts';
 
 interface Allowlists {
-  readonly testingFolderImporters: Readonly<Record<string, readonly string[]>>;
-  readonly commandSetReaches:      readonly ExactReach[];
+  readonly testingFolderImporters:    Readonly<Record<string, readonly string[]>>;
+  readonly commandSetReaches:         readonly ExactReach[];
+  readonly talosProgramSpecImporters: readonly string[];
 }
 
 const ALLOWLISTS: Allowlists = {
-  testingFolderImporters: TESTING_FOLDER_IMPORTERS,
-  commandSetReaches:      COMMAND_SET_REACHES,
+  testingFolderImporters:    TESTING_FOLDER_IMPORTERS,
+  commandSetReaches:         COMMAND_SET_REACHES,
+  talosProgramSpecImporters: TALOS_PROGRAM_SPEC_IMPORTERS,
 };
 
 /** Folders inside a `cli/` set that hold what the set's commands share rather than one command. */
@@ -204,6 +213,7 @@ const layerOf = memoisedPerPath((path: string): Layer => {
   if (path === SETUP_BINARY_PATH) return 'setup-binary';
   const [topFolder, layerFolder, unitFolder] = path.split('/');
   if (topFolder === 'cli') return 'cli';
+  if (topFolder === 'talos' && layerFolder !== undefined) return 'talos-program';
   if (topFolder === 'architecture') return isSpec(path) && layerFolder !== undefined ? 'architecture' : 'unplaced';
   if (workspacePackageOf(path) !== null) return 'workspace-package';
   if (topFolder !== 'src' || layerFolder === undefined) return 'unplaced';
@@ -308,11 +318,17 @@ function testingFolderFinding(edge: ImportEdge, targetPath: string, allowlists: 
   return edgeFinding(edge, 'test-helper-imported-outside-its-allowlist', `${targetTestingFolder} is test-only and may be imported by ${allowed}`);
 }
 
-function directionFinding(edge: ImportEdge, targetPath: string): Finding | null {
+function isListedTalosProgramSpecImport(edge: ImportEdge, targetPath: string, allowlists: Allowlists): boolean {
+  return layerOf(targetPath) === 'talos-program' && isTestOnly(edge.fromPath)
+    && allowlists.talosProgramSpecImporters.some((importerFolder) => isInside(edge.fromPath, importerFolder));
+}
+
+function directionFinding(edge: ImportEdge, targetPath: string, allowlists: Allowlists): Finding | null {
   const fromLayer = layerOf(edge.fromPath);
   const targetLayer = layerOf(targetPath);
-  if (fromLayer === 'talos-binary' && !isInside(targetPath, TALOS_PACKAGE_FOLDER)) {
-    return edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PACKAGE_FOLDER}`);
+  if (isListedTalosProgramSpecImport(edge, targetPath, allowlists)) return null;
+  if (fromLayer === 'talos-binary' && !isInside(targetPath, TALOS_PROGRAM_FOLDER)) {
+    return edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PROGRAM_FOLDER}`);
   }
   if (testingFolderOf(targetPath) !== null || LAYER_REACH[fromLayer].includes(targetLayer)) return null;
   if (fromLayer === 'binary') {
@@ -407,7 +423,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
   const packageVerdict = packageFinding(edge, declarations);
   if (edge.target.kind !== 'repository-file') {
     const talosBinaryVerdict = layerOf(edge.fromPath) === 'talos-binary'
-      ? edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PACKAGE_FOLDER}`)
+      ? edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PROGRAM_FOLDER}`)
       : null;
     const unexportedEntryVerdict = edge.target.kind === 'unexported-workspace-entry'
       ? edgeFinding(edge, 'workspace-entry-not-exported', 'the package.json of its workspace package exports no such entry')
@@ -421,7 +437,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
   const programExitVerdict = programExitFinding(edge, targetPath);
   if (programExitVerdict !== null) return [programExitVerdict];
   return [
-    directionFinding(edge, targetPath),
+    directionFinding(edge, targetPath, allowlists),
     commandFinding(edge, targetPath),
     commandSetFinding(edge, targetPath, allowlists),
     commandSetFromTheRootFinding(edge, targetPath, allowlists),
@@ -521,12 +537,17 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
   const unusedDeclarations = [...declaredPackageDependenciesOf(graph)].flatMap(([unitPackage, dependencies]) => dependencies
     .filter((dependency) => !importedPackages.has(`${unitPackage} → ${dependency}`))
     .map((dependency) => `the header of src/${unitPackage}/ names src/${dependency}, which the package does not import`));
+  const unusedTalosProgramSpecImporters = allowlists.talosProgramSpecImporters
+    .filter((importerFolder) => !graph.edges.some((edge) => edge.target.kind === 'repository-file'
+      && isInside(edge.fromPath, importerFolder) && isListedTalosProgramSpecImport(edge, edge.target.path, allowlists)))
+    .map((importerFolder) => `TALOS_PROGRAM_SPEC_IMPORTERS lets the specs of ${importerFolder} import ${TALOS_PROGRAM_FOLDER}, and none does`);
   const unusedCommandSetReaches = allowlists.commandSetReaches
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `COMMAND_SET_REACHES lets ${reach.importer} import ${reach.target}, and it does not`);
   return [
     ...[...testingFoldersInTree].filter((folder) => !listedTestingFolders.includes(folder)).map((folder) => `${folder} has no TESTING_FOLDER_IMPORTERS entry`),
     ...unusedCommandSetReaches,
+    ...unusedTalosProgramSpecImporters,
     ...listedTestingFolders.filter((folder) => !testingFoldersInTree.has(folder)).map((folder) => `TESTING_FOLDER_IMPORTERS lists ${folder}, which holds no file`),
     ...unusedImporters,
     ...unusedDeclarations,
@@ -565,7 +586,7 @@ describe('the scan itself', () => {
     expect(GRAPH.scannedPaths).toContain(TALOS_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(LAUNCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(SETUP_BINARY_PATH);
-    for (const topFolder of ['cli/', 'forge-contracts/', 'src/lib/', 'src/domain/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
+    for (const topFolder of ['cli/', 'talos/', 'forge-contracts/', 'src/lib/', 'src/domain/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
       expect(GRAPH.scannedPaths.filter((path) => isInside(path, topFolder)).length, `files under ${topFolder}`).toBeGreaterThanOrEqual(5);
       expect(repositoryEdges.filter((edge) => isInside(edge.fromPath, topFolder)).length, `imports made under ${topFolder}`).toBeGreaterThanOrEqual(5);
     }
@@ -608,8 +629,8 @@ describe('the scan itself', () => {
     expect(rootShippingFiles.length, 'shipping files at the cli/ root and in its shared folders').toBeGreaterThanOrEqual(20);
     expect([...layerPackages].filter((unitPackage) => unitPackage.startsWith('lib/')).length, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect([...layerPackages].filter((unitPackage) => unitPackage.startsWith('domain/')), 'packages under src/domain/').toContain('domain/tracker-model');
-    expect(declaredPackageDependenciesOf(GRAPH).get('lib/claude-code')).toEqual(['lib/agent-launch', 'lib/atomic-file', 'lib/git', 'lib/json-record', 'lib/talos']);
-    expect(declaredPackageDependenciesOf(GRAPH).get('lib/talos')).toEqual(['lib/atomic-file', 'lib/json-record', 'lib/owner-only-files', 'lib/process-identity']);
+    expect(declaredPackageDependenciesOf(GRAPH).get('lib/claude-code')).toEqual(['lib/agent-launch', 'lib/atomic-file', 'lib/git', 'lib/json-record', 'lib/line-patterns']);
+    expect(declaredPackageDependenciesOf(GRAPH).get('domain/talos')).toEqual(['lib/atomic-file', 'lib/json-record', 'lib/line-patterns', 'lib/process-identity']);
   });
 
   test('it resolves a declared package\'s specifiers through its package.json exports, each source entry exists and forge uses them', () => {
@@ -787,27 +808,44 @@ describe('the test still names each violation, planted in memory', () => {
 
   test('the Talos binary importing anything but its package, another lib package, cli/ and a builtin included, and not its package', () => {
     expect(plantedSentencesOf({ 'talos.ts': importing('./src/lib/claude-code/ClaudeCodeAdapter.ts') })).toEqual([
-      'talos-binary-imports-beyond-its-package — talos.ts:1 imports src/lib/claude-code/ClaudeCodeAdapter.ts: talos.ts imports only src/lib/talos/',
+      'talos-binary-imports-beyond-its-package — talos.ts:1 imports src/lib/claude-code/ClaudeCodeAdapter.ts: talos.ts imports only talos/',
       'vendor-adapter-imported-outside-its-seam — talos.ts:1 imports src/lib/claude-code/ClaudeCodeAdapter.ts: '
         + 'only the agent port\'s seam and its adapters import the vendor\'s adapter',
     ]);
     expect(plantedSentencesOf({ 'talos.ts': importing('./cli/Main.ts') })).toEqual([
-      'talos-binary-imports-beyond-its-package — talos.ts:1 imports cli/Main.ts: talos.ts imports only src/lib/talos/',
+      'talos-binary-imports-beyond-its-package — talos.ts:1 imports cli/Main.ts: talos.ts imports only talos/',
     ]);
     expect(plantedSentencesOf({ 'talos.ts': importing('node:fs') })).toEqual([
-      'talos-binary-imports-beyond-its-package — talos.ts:1 imports node:fs: talos.ts imports only src/lib/talos/',
+      'talos-binary-imports-beyond-its-package — talos.ts:1 imports node:fs: talos.ts imports only talos/',
     ]);
-    expect(plantedSentencesOf({ 'talos.ts': importing('./src/lib/talos/Talos.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'talos.ts': importing('./talos/Talos.ts') })).toEqual([]);
+  });
+
+  test('the Talos program importing above lib and domain, and imported by shipping code or a spec outside its allowlist', () => {
+    expect(plantedSentencesOf({ 'talos/PlantedStep.ts': importing('../src/shared/Environment.ts') })).toEqual([
+      'layer-imports-upward — talos/PlantedStep.ts:1 imports src/shared/Environment.ts: talos-program reaches only lib, domain, talos-program, not shared',
+    ]);
+    expect(plantedSentencesOf({ 'talos/PlantedStep.ts': importing('../src/domain/talos/TalosFrames.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/PlantedPass.ts': importing('../../../talos/Talos.ts') })).toEqual([
+      'layer-imports-upward — src/services/hephaestus/PlantedPass.ts:1 imports talos/Talos.ts: '
+        + 'hephaestus-service reaches only lib, domain, shared, adapters, render-service, tracker-service, lifecycle-service, control-service, '
+        + 'store-service, hephaestus-service, workspace-package, not talos-program',
+    ]);
+    expect(plantedSentencesOf({ 'src/services/tracker/Planted.spec.ts': importing('../../../talos/TalosSocketServer.ts') })).toEqual([
+      'layer-imports-upward — src/services/tracker/Planted.spec.ts:1 imports talos/TalosSocketServer.ts: '
+        + 'tracker-service reaches only lib, domain, shared, adapters, render-service, tracker-service, workspace-package, not talos-program',
+    ]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/Planted.spec.ts': importing('../../../talos/TalosSocketServer.ts') })).toEqual([]);
   });
 
   test('a test-only folder imported by shipped code, by a spec outside its allowlist or with no entry at all, and not by an allowed spec', () => {
     expect(plantedSentencesOf({ 'src/shared/PlantedValue.ts': importing('../testing/ScratchWorkspace.ts') })).toEqual([
       'test-helper-imported-outside-its-allowlist — src/shared/PlantedValue.ts:1 imports src/testing/ScratchWorkspace.ts: '
-        + 'src/testing/ is test-only and may be imported by only the specs of src/, cli/, architecture/ and cli/CommandContext.ts',
+        + 'src/testing/ is test-only and may be imported by only the specs of src/, talos/, cli/, architecture/ and cli/CommandContext.ts',
     ]);
     expect(plantedSentencesOf({ 'cli/PlantedContext.ts': importing('../src/testing/FakeAgentAdapter.ts') })).toEqual([
       'test-helper-imported-outside-its-allowlist — cli/PlantedContext.ts:1 imports src/testing/FakeAgentAdapter.ts: '
-        + 'src/testing/ is test-only and may be imported by only the specs of src/, cli/, architecture/ and cli/CommandContext.ts',
+        + 'src/testing/ is test-only and may be imported by only the specs of src/, talos/, cli/, architecture/ and cli/CommandContext.ts',
     ]);
     expect(plantedSentencesOf({ 'cli/CommandContext.ts': `${GRAPH.sourceTextOf('cli/CommandContext.ts')}${importing('../src/testing/ScratchWorkspace.ts')}` }))
       .toEqual([]);
@@ -907,14 +945,16 @@ describe('the test still names each violation, planted in memory', () => {
 
   test('an allowlist entry or a declared lib dependency nothing uses any more, and a testing folder without an entry', () => {
     const plantedAllowlists: Allowlists = {
-      testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'src/'], 'src/retired/testing/': ['src/'] },
-      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/adoption/update/UpdateCommand.ts', target: 'cli/hephaestus/Retired.ts' }],
+      testingFolderImporters:    { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'src/'], 'src/retired/testing/': ['src/'] },
+      commandSetReaches:         [...COMMAND_SET_REACHES, { importer: 'cli/adoption/update/UpdateCommand.ts', target: 'cli/hephaestus/Retired.ts' }],
+      talosProgramSpecImporters: [...TALOS_PROGRAM_SPEC_IMPORTERS, 'src/services/tracker/'],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
     const plantedGraph = SCANNER.graphWithPlantedFiles({ [mainModulePath]: plantedHeader, 'src/shared/testing/PlantedFixture.ts': 'export const planted = 1;\n' });
     expect(unusedAllowancesOf(plantedGraph, plantedAllowlists)).toEqual([
       'COMMAND_SET_REACHES lets cli/adoption/update/UpdateCommand.ts import cli/hephaestus/Retired.ts, and it does not',
+      'TALOS_PROGRAM_SPEC_IMPORTERS lets the specs of src/services/tracker/ import talos/, and none does',
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',
@@ -958,7 +998,7 @@ describe('the imports of the tree', () => {
     expect(sentencesAbout(FINDINGS, 'binary-imports-beyond-cli')).toEqual([]);
   });
 
-  test('talos.ts imports only src/lib/talos/', () => {
+  test('talos.ts imports only talos/', () => {
     expect(sentencesAbout(FINDINGS, 'talos-binary-imports-beyond-its-package')).toEqual([]);
   });
 

@@ -1,4 +1,4 @@
-import { TALOS_PROTOCOL_VERSION }   from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }   from '../../src/domain/talos/constants/TalosProtocol.ts';
 import { CodeVersion }              from '../../src/services/hephaestus/CodeVersion.ts';
 import { SERVED_CONTRACT_VERSIONS } from '../../src/shared/constants/HephaestusApiContracts.ts';
 import { PRODUCT_NAMES }            from '../../src/shared/constants/ProductNames.ts';

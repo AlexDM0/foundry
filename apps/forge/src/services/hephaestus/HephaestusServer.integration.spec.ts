@@ -19,7 +19,7 @@ import {
 } from 'bun:test';
 import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
-import { TALOS_PROTOCOL_VERSION } from '../../lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION } from '../../domain/talos/constants/TalosProtocol.ts';
 import type { TranscriptEntry }   from '../../shared/@types/TranscriptEntry.ts';
 import { OperationRefusal }       from '../../shared/OperationRefusal.ts';
 import { HEPHAESTUS_PORT_COUNT }  from '../../shared/constants/HephaestusLimits.ts';

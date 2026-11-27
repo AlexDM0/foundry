@@ -18,7 +18,7 @@ import type { EndpointEntry }                                from 'system-versio
 import { CompatibilityRegistryUtil }                         from 'system-versions/CompatibilityRegistryUtil';
 import type { SystemVersion, VersionsDocument }              from 'system-versions/VersionsDocument';
 
-import { TALOS_PROTOCOL_VERSION }                     from '../../lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                     from '../../domain/talos/constants/TalosProtocol.ts';
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
 import { IDENTITY_VERSION, SERVED_CONTRACT_VERSIONS } from '../../shared/constants/HephaestusApiContracts.ts';
 import {

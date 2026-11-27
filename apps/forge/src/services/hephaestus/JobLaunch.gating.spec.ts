@@ -34,11 +34,11 @@ import {
 
 import type { GateRunManifest }                         from '../../adapters/gate-manifest/GateRunManifestIngestion.ts';
 import { createJobStartWriter }                         from '../../adapters/job-start/JobStartWriter.ts';
+import type { ChildEnd }                                from '../../domain/talos/ChildRecord.ts';
 import type { InterruptionCause, Job }                  from '../../domain/tracker-model/@types/Job.ts';
 import type { LogRecord }                               from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                                from '../../domain/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                 from '../../domain/tracker-model/utils/PipelineUtil.ts';
-import type { ChildEnd }                                from '../../lib/talos/ChildRecord.ts';
 import { branchNamesOf }                                from '../../shared/BranchNames.ts';
 import { LINE_TIME_BOUND_MILLISECONDS }                 from '../../shared/constants/HephaestusLimits.ts';
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';

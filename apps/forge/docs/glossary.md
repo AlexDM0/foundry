@@ -1078,7 +1078,7 @@ Hephaestus's timed backstop [wake](#wake) (`HEPHAESTUS_SWEEP_SECONDS`). A job's 
 
 ### Talos
 
-The board's one detached supervisor of children, `talos.ts` and `src/lib/talos/Talos.ts`, with a protocol version of its
+The board's one detached supervisor of children, `talos.ts` and `talos/Talos.ts`, with a protocol version of its
 own (`TALOS_PROTOCOL_VERSION`). Hephaestus starts it once per board and talks to it over a local socket in
 [frames](#frame); it runs every agent session and every install, prepare, gate and merge line, records each in a [child
 record](#child-record) and an event log, and outlives Hephaestus. It holds the [supervision

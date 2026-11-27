@@ -22,8 +22,8 @@ const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.
 const FAKE_AGENT_SPEC = 'src/testing/FakeAgentAdapter.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/owner-only-files/OwnerOnlyFiles.answers.integration.spec.ts',
-  'src/lib/talos/LocalEndpoint.answers.integration.spec.ts',
-  'src/lib/talos/LocalEndpoint.contract.integration.spec.ts',
+  'src/lib/local-endpoint/LocalEndpoint.answers.integration.spec.ts',
+  'src/lib/local-endpoint/LocalEndpoint.contract.integration.spec.ts',
 ];
 
 export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
@@ -85,23 +85,23 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],
   },
-  { boundary: 'src/lib/talos/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/talos/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/talos/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/talos/WindowsPipeEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/talos/SynchronousCallsThread.ts', specs: ['src/lib/talos/SynchronousCallsThread.integration.spec.ts'] },
+  { boundary: 'src/lib/local-endpoint/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/local-endpoint/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/local-endpoint/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/local-endpoint/WindowsPipeEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'talos/SynchronousCallsThread.ts', specs: ['talos/SynchronousCallsThread.integration.spec.ts'] },
   {
-    boundary: 'src/lib/talos/Talos.ts',
+    boundary: 'talos/Talos.ts',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
       DRIVE_PASS_SPEC,
-      'src/lib/talos/SynchronousCallsThread.integration.spec.ts',
-      'src/lib/talos/Talos.agents.integration.spec.ts',
-      'src/lib/talos/Talos.cleanQuit.integration.spec.ts',
-      'src/lib/talos/Talos.handshake.integration.spec.ts',
-      'src/lib/talos/Talos.lease.integration.spec.ts',
-      'src/lib/talos/Talos.lines.integration.spec.ts',
-      'src/lib/talos/Talos.stages.integration.spec.ts',
+      'talos/SynchronousCallsThread.integration.spec.ts',
+      'talos/Talos.agents.integration.spec.ts',
+      'talos/Talos.cleanQuit.integration.spec.ts',
+      'talos/Talos.handshake.integration.spec.ts',
+      'talos/Talos.lease.integration.spec.ts',
+      'talos/Talos.lines.integration.spec.ts',
+      'talos/Talos.stages.integration.spec.ts',
     ],
   },
   { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },

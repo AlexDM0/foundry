@@ -27,5 +27,5 @@
 
     "skipLibCheck": true
   },
-  "include": ["agent-progress.ts", "talos.ts", "launcher.ts", "setup.ts", "cli/**/*.ts", "src/**/*.ts", "architecture/**/*.ts"]
+  "include": ["agent-progress.ts", "talos.ts", "launcher.ts", "setup.ts", "cli/**/*.ts", "talos/**/*.ts", "src/**/*.ts", "architecture/**/*.ts"]
 }

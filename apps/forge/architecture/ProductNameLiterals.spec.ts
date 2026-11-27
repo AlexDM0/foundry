@@ -17,7 +17,7 @@ interface LiteralFinding {
   readonly literal: string;
 }
 
-const SCANNED_FOLDERS = ['src/', 'cli/'];
+const SCANNED_FOLDERS = ['src/', 'talos/', 'cli/'];
 
 const PRODUCT_NAMES_PATH = 'src/shared/constants/ProductNames.ts';
 

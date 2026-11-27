@@ -5,7 +5,6 @@
  */
 import type { Socket } from 'node:net';
 
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type {
   ClientFrame,
   DoneFrame,
@@ -13,11 +12,12 @@ import type {
   HelloFrame,
   RefusedFrame,
   StateFrame
-} from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd, ChildState } from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }     from '../../lib/talos/EndingPatterns.ts';
-import type { LocalEndpoint }        from '../../lib/talos/LocalEndpoint.ts';
-import { TALOS_PROTOCOL_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
+} from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd, ChildState } from '../../domain/talos/ChildRecord.ts';
+import { TALOS_PROTOCOL_VERSION }    from '../../domain/talos/constants/TalosProtocol.ts';
+import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
+import type { RecognisedEnding }     from '../../lib/line-patterns/EndingPatterns.ts';
+import type { LocalEndpoint }        from '../../lib/local-endpoint/LocalEndpoint.ts';
 
 /** A client frame as a caller hands it; the connection gives it its `frameId`. */
 export type TalosFrameRequest = FrameWithoutId<ClientFrame>;

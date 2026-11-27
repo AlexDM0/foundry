@@ -6,8 +6,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
 
+import type { ChildLaunch }                     from '../domain/talos/ChildLaunch.ts';
 import type { AgentLaunchPlan }                 from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { ChildLaunch }                     from '../lib/talos/ChildLaunch.ts';
 import { type FakeAgentStep, fakeAgentAdapter } from './FakeAgentAdapter.ts';
 import { inheritedEnvironment }                 from './InheritedEnvironment.ts';
 
