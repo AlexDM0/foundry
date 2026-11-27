@@ -1,9 +1,7 @@
 /**
- * The registry logic against its own contract, on an example server's registry. What matters: a raise of the minimum lists exactly the
- * entries no client at the new minimum needs, and keeps the rest; the guard names every entry the current minimum already lets go, so it
- * fails from the raise until the entry is removed; a client of a version calls the one endpoint version that serves it; a versioned path
- * names its entry by template, segment for segment, and a template is filled with its values encoded; and each other way a registry can
- * contradict itself or the server's versions is named.
+ * The registry logic on an example server's registry: a raise of the minimum lists exactly the entries no client at the new minimum needs,
+ * the guard fails from the raise until such an entry is removed, a client calls the one endpoint version that serves it, and each way a
+ * registry can contradict itself or the server's versions is named.
  */
 import { describe, expect, test } from 'bun:test';
 
