@@ -18,17 +18,8 @@ import type {
   StaleGreenRegates
 } from './@types/AirlockParts.ts';
 import type { AirlockHold, AirlocksContext } from './@types/Airlocks.ts';
-import {
-  crossingLandingOf,
-  isRefresh,
-  mergeAgentOf,
-  pathsTheFastForwardChangesOf,
-  slotOf,
-  tailOf,
-  ticketIdOf,
-  treeOfCommit
-} from './AirlockReadings.ts';
-import { MERGE_REFUSED_CAUSES } from './constants/AirlockCauses.ts';
+import { AirlockReadings }                   from './AirlockReadings.ts';
+import { MERGE_REFUSED_CAUSES }              from './constants/AirlockCauses.ts';
 
 export function gateRanFieldsOf(tree: string, outcome: GateOutcome, cacheReports: GateRunCacheReports | undefined): LogRecordFieldsOf<'gate-ran'> {
   return {
@@ -47,7 +38,7 @@ export const MERGE_GATE_INCIDENT_KINDS = { 'cannot-run': 'gate-cannot-run', 'set
 /** A ticket's merged tree that is its branch tip's own tree: the merge-in changed nothing. A refresh has no branch of its own. */
 function mergedTreeIsTheBranchTree(worktree: string, job: Readonly<Job>, treeId: string): boolean {
   const branchTip = job.airlock?.branchTip;
-  return job.ticketIds.length > 0 && branchTip !== undefined && treeOfCommit(worktree, branchTip) === treeId;
+  return job.ticketIds.length > 0 && branchTip !== undefined && AirlockReadings.treeOfCommit(worktree, branchTip) === treeId;
 }
 
 /**
@@ -83,7 +74,7 @@ type RedMergedTreeSettlement =
  * paths, or a group's landing changes no entity's paths, every entity's gates run.
  */
 function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string, landsOnTheMainLine: boolean): readonly EntityKey[] {
-  const changedPaths = pathsTheFastForwardChangesOf(worktree, targetTip);
+  const changedPaths = AirlockReadings.pathsTheFastForwardChangesOf(worktree, targetTip);
   if (changedPaths === null) return Object.keys(entities);
   const repositoryPaths = changedPaths.map((gitPath) => `/${gitPath}`);
   if (landsOnTheMainLine) return EntityOwnershipUtil.gatedEntitiesOf(entities, repositoryPaths);
@@ -122,7 +113,7 @@ export function createMergedTreeGating(
     // Only a pipeline with entities asks git which paths the landing changes.
     const gatedEntities = admission.entities === null
       ? undefined
-      : landingGatedEntitiesOf(admission.entities, worktree, slotOf(job).targetTip, slotOf(job).target === mainLine);
+      : landingGatedEntitiesOf(admission.entities, worktree, AirlockReadings.slotOf(job).targetTip, AirlockReadings.slotOf(job).target === mainLine);
     if (gatedEntities !== undefined && isTheBranchTree && await context.hold((hold) => {
       if (!mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree, gatedEntities)) return false;
       setPhase(hold, job, 'landing');
@@ -137,17 +128,17 @@ export function createMergedTreeGating(
     const settled = await context.hold((hold): RedMergedTreeSettlement => {
       recordStepRuns(hold, gate);
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
-      const agent = mergeAgentOf(hold.board, job);
+      const agent = AirlockReadings.mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {
         // Only the branch's own tree is the row's: a merged tree with a merge commit goes back to the branch tip when the slot frees.
-        if (isTheBranchTree) hold.board.recordPipelineJudgedBy(ticketIdOf(job), treeId, stamp, hold.at);
+        if (isTheBranchTree) hold.board.recordPipelineJudgedBy(AirlockReadings.ticketIdOf(job), treeId, stamp, hold.at);
         if (agent !== undefined) hold.board.endJob(agent.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? treeId }, hold.at);
         setPhase(hold, job, 'landing');
         return { verdict: 'settled' };
       }
       if (outcome === 'failed') {
-        if (isRefresh(job)) return { verdict: 'park' };
-        const landing = crossingLandingOf(hold.board, ticketIdOf(job));
+        if (AirlockReadings.isRefresh(job)) return { verdict: 'park' };
+        const landing = AirlockReadings.crossingLandingOf(hold.board, AirlockReadings.ticketIdOf(job));
         if (landing !== null) return { verdict: 'return-to-owner', owner: MergeRun.redGateOwnerOf(landing, entity), homeEntity: landing.homeEntity };
         const resumesSpent = resumeOrSpendTheAgent(hold, job, agent, {
           step: step ?? '', ...(entity === undefined ? {} : { entity }), output, worktree
@@ -164,7 +155,7 @@ export function createMergedTreeGating(
       return { verdict: 'settled' };
     });
     context.mergedTreeGateSettled(worktree, treeId, 'merge', gatedEntities, gate);
-    if (settled.verdict === 'park') await abortAndPark(job, tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+    if (settled.verdict === 'park') await abortAndPark(job, AirlockReadings.tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
     if (settled.verdict === 'return-to-owner') {
       await returnRedMergedTreeToItsOwner(job, settled, {
         treeId, step: step ?? '', ...(entity === undefined ? {} : { entity }), output, commit: MergeRun.headOf(worktree) ?? ''
@@ -177,7 +168,7 @@ export function createMergedTreeGating(
   async function returnRedMergedTreeToItsOwner(
     job: Readonly<Job>, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed
   ): Promise<void> {
-    const ticketId = ticketIdOf(job);
+    const ticketId = AirlockReadings.ticketIdOf(job);
     await freeSlot(job, { outcome: 'failed', cause: RED_GATE_RETURN_CAUSES[route.owner.owner] }, (hold) => {
       hold.board.setTicketMergeQueued(ticketId, false, hold.at);
       returnRedGateToItsOwner(hold, ticketId, route, red);
@@ -187,11 +178,11 @@ export function createMergedTreeGating(
   /** The merge aborts, the slot frees and the ticket is held `parked:merge-gate-red` with a `parked` decision; a refresh asks User. */
   async function abortAndPark(job: Readonly<Job>, notes: string): Promise<boolean> {
     const cause = MERGE_GATE_RED_PARK_CAUSE;
-    if (isRefresh(job)) {
+    if (AirlockReadings.isRefresh(job)) {
       await refuseMerge(job, cause, notes);
       return true;
     }
-    const ticketId = ticketIdOf(job);
+    const ticketId = AirlockReadings.ticketIdOf(job);
     await freeSlot(job, { outcome: 'failed', cause }, (hold) => {
       hold.board.setTicketMergeQueued(ticketId, false, hold.at);
       hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${cause}`, hold.at);

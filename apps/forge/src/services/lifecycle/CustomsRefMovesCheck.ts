@@ -16,12 +16,7 @@ import type {
   SharedRepositoryRefs,
   WatchedRefs
 } from './@types/RefMoves.ts';
-import {
-  gitLines,
-  HOST_PATH_STYLE,
-  PASSED,
-  refused
-} from './CustomsReadings.ts';
+import { CustomsReadings, HOST_PATH_STYLE, PASSED } from './CustomsReadings.ts';
 
 const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], watchedRefs: null };
 
@@ -29,9 +24,9 @@ const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], w
 const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
 /** Each ref's commit and each detached worktree's HEAD, read from the repository the worktree belongs to. */
-export function refsOf(worktreePath: string): Record<string, string> | null {
-  const refLines = gitLines(worktreePath, ['for-each-ref', '--format=%(refname) %(objectname)']);
-  const worktreeLines = gitLines(worktreePath, ['worktree', 'list', '--porcelain']);
+function refsOf(worktreePath: string): Record<string, string> | null {
+  const refLines = CustomsReadings.gitLines(worktreePath, ['for-each-ref', '--format=%(refname) %(objectname)']);
+  const worktreeLines = CustomsReadings.gitLines(worktreePath, ['worktree', 'list', '--porcelain']);
   if (refLines === null || worktreeLines === null) return null;
   const refs: Record<string, string> = {};
   for (const line of refLines) {
@@ -70,7 +65,7 @@ function refIsWatched(style: GitPathStyle, ref: string, watchedRefs: WatchedRefs
 }
 
 /** The refs that moved from `launchRefs` to `nowRefs` past every exemption, named as git spelled them. */
-export function foreignRefsMovedOf(
+function foreignRefsMovedOf(
   style: GitPathStyle,
   snapshots: { launchRefs: Readonly<Record<string, string>>; nowRefs: Readonly<Record<string, string>> },
   refMovesAllowed: RefMovesAllowed,
@@ -98,17 +93,17 @@ export function foreignRefsMovedOf(
   return moved.map((ref) => nowRefs.get(ref)?.ref ?? launchRefs.get(ref)?.ref ?? ref).sort();
 }
 
-export function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
+function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
   const { launchSnapshot, refMovesAllowed } = subject;
-  if (launchSnapshot === undefined || refMovesAllowed === undefined) return refused('foreign-ref-moved', ['no launch snapshot']);
+  if (launchSnapshot === undefined || refMovesAllowed === undefined) return CustomsReadings.refused('foreign-ref-moved', ['no launch snapshot']);
   const nowRefs = refsOf(subject.worktreePath);
-  if (nowRefs === null) return refused('git-failed', ['for-each-ref']);
+  if (nowRefs === null) return CustomsReadings.refused('git-failed', ['for-each-ref']);
   const moved = foreignRefsMovedOf(subject.pathStyle ?? HOST_PATH_STYLE, { launchRefs: launchSnapshot.refs, nowRefs }, refMovesAllowed, subject.worktreePath);
-  return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved);
+  return moved.length === 0 ? PASSED : CustomsReadings.refused('foreign-ref-moved', moved);
 }
 
 /** `null` for a tracker whose branches keep their bare names: it watches every ref, as it always has. */
-export function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktreesRoot: string): WatchedRefs | null {
+function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktreesRoot: string): WatchedRefs | null {
   return branchNames.namespacePrefix === '' ? null : { mainLine, namespacePrefix: branchNames.namespacePrefix, worktreesRoot };
 }
 
@@ -116,7 +111,7 @@ export function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktr
  * What a tracker sharing its repository adds to V14: the journal's landings, none for a tracker with no journal or an unreadable one, and
  * the refs it watches.
  */
-export function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | null, watchedRefs: WatchedRefs | null): SharedRepositoryRefs {
+function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | null, watchedRefs: WatchedRefs | null): SharedRepositoryRefs {
   const journal = landingFiles === null ? null : RepositoryLandings.readLandingJournal(landingFiles);
   return { journaledLandings: journal?.verdict === 'readable' ? journal.landings : [], watchedRefs };
 }
@@ -126,7 +121,7 @@ export function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | nu
  * constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch. A tracker sharing its
  * repository adds each journaled landing, a sibling's among them, and the refs it watches.
  */
-export function refMovesAllowedOf(
+function refMovesAllowedOf(
   logRecords: readonly LogRecord[],
   naming: HephaestusRefNaming,
   sharedRepository: SharedRepositoryRefs = ALONE_IN_ITS_REPOSITORY
@@ -170,3 +165,12 @@ export function refMovesAllowedOf(
     ...(sharedRepository.watchedRefs === null ? {} : { watchedRefs: sharedRepository.watchedRefs }),
   };
 }
+
+export const CustomsRefMovesCheck = Object.freeze({
+  refsOf,
+  foreignRefsMovedOf,
+  onlyOwnRefsMoved,
+  watchedRefsOf,
+  sharedRepositoryRefsOf,
+  refMovesAllowedOf,
+});

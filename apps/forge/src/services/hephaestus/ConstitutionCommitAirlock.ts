@@ -16,7 +16,7 @@ import { LANDING_OUTCOME_OF_REFUSAL, Landing }                         from '../
 import { MergeRun }                                                    from '../lifecycle/MergeRun.ts';
 import type { AirlockSlots, ConstitutionCommitAirlock }                from './@types/AirlockParts.ts';
 import type { AirlockHold, AirlocksContext }                           from './@types/Airlocks.ts';
-import { claimed, currentBranchIn, slotOf }                            from './AirlockReadings.ts';
+import { AirlockReadings }                                             from './AirlockReadings.ts';
 import { ConstitutionCommits, type ConstitutionFileCommit }            from './ConstitutionCommits.ts';
 import { CONSTITUTION_FILE_PATH, InstructionFiles }                    from './InstructionFiles.ts';
 import { REQUEUE_CAUSES }                                              from './constants/AirlockCauses.ts';
@@ -146,7 +146,7 @@ export function createConstitutionCommitAirlock(context: AirlocksContext, slots:
       repositoryRoot: context.repositoryRoot,
       worktreesRoot:  context.worktreesRoot,
       jobId:          job.id,
-      targetTip:      slotOf(job).targetTip,
+      targetTip:      AirlockReadings.slotOf(job).targetTip,
       constitutions:  request.constitutions,
       signsCommits:   context.repositorySignsCommits(),
     });
@@ -170,7 +170,7 @@ export function createConstitutionCommitAirlock(context: AirlocksContext, slots:
    * fast-forward holds the target and the request, which is never refused for it.
    */
   async function runConstitutionLanding(job: Readonly<Job>): Promise<boolean> {
-    const slot     = slotOf(job);
+    const slot     = AirlockReadings.slotOf(job);
     const worktree = ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id);
     const commit   = existsSync(worktree) ? MergeRun.headOf(worktree) : null;
     if (commit === null || commit === slot.targetTip) {
@@ -220,7 +220,7 @@ export function createConstitutionCommitAirlock(context: AirlocksContext, slots:
     const blockingFiles = refusal.facts.blockingFiles ?? [];
     const heldFiles     = refusal.facts.heldFiles ?? [];
     holdTarget({
-      target: mainLine, branch: currentBranchIn(context.repositoryRoot), blockingFiles, heldFiles
+      target: mainLine, branch: AirlockReadings.currentBranchIn(context.repositoryRoot), blockingFiles, heldFiles
     }, commit);
     return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld }, (hold, setupId) => {
       hold.board.holdApply(setupId, { reason: heldReason, blockingFiles: [...blockingFiles, ...heldFiles] }, hold.at);
@@ -303,7 +303,7 @@ export function createConstitutionCommitAirlock(context: AirlocksContext, slots:
     if (targetTip === null) return 'waits';
     const claimedNow = await context.hold((hold) => {
       if (GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${mainLine}`) !== targetTip) return true;
-      return claimed(() => hold.board.claimConstitutionCommitSlot({ setupId: request.setupId, target: mainLine, targetTip }, hold.at));
+      return AirlockReadings.claimed(() => hold.board.claimConstitutionCommitSlot({ setupId: request.setupId, target: mainLine, targetTip }, hold.at));
     });
     return claimedNow ? 'allocated' : 'waits';
   }

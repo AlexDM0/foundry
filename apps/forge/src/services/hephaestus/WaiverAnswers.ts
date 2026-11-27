@@ -10,7 +10,7 @@ import { UnreadableJobFileIncident } from './UnreadableJobFileIncident.ts';
  * tree yet, so it waits for the next pass. Proposals that cannot be read open their incident on the review job, which takes no step while
  * it stands. Answers whether another pass is due: the one that launches what the answer freed, or acts on it.
  */
-export function actOnWaiverAnswers(
+function actOnWaiverAnswers(
   change: BoardTransaction, steps: readonly PlaybookStep[], answeredWaiverTrees: ReadonlyMap<string, string | null>, trackerDirectory: string
 ): boolean {
   const { board, at } = change;
@@ -26,3 +26,5 @@ export function actOnWaiverAnswers(
   }
   return waiverAnswerSteps.some((step) => !UnreadableJobFileIncident.standsOpenFor(board, step.jobId));
 }
+
+export const WaiverAnswers = Object.freeze({ actOnWaiverAnswers });

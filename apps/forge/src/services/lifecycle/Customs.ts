@@ -4,47 +4,34 @@
  */
 import type { CustomsSubject, VerifiedRole }                            from './@types/CustomsSubject.ts';
 import type { CustomsVerdict, VerificationCheck, VerificationCheckRun } from './@types/CustomsVerdict.ts';
-import { agentConfigUntouched }                                         from './CustomsAgentConfigCheck.ts';
-import { dataFolderUntouched }                                          from './CustomsDataFolderCheck.ts';
-import { checksDefinitionUnchanged }                                    from './CustomsDefinitionFilesCheck.ts';
-import {
-  aCommitSinceTheStart,
-  headDescendsFromTheStart,
-  headUnmoved,
-  mergeIsResolved,
-  noAiAttributionInRange,
-  worktreeIsClean
-} from './CustomsHistoryChecks.ts';
-import { onlyOwnRefsMoved }  from './CustomsRefMovesCheck.ts';
-import {
-  everyAcceptanceItemAccountedFor,
-  everyAgentGateClaimedOnHead,
-  filedFindingsWereFiledByThisJob,
-  fixedFindingsNameCommitsInRange,
-  reportIsValidWithItsHead
-} from './CustomsReportChecks.ts';
-import { changesStayInHomeAndReach }                        from './CustomsScopeCheck.ts';
-import { ticketContentUnchanged, ticketDocumentsUnchanged } from './CustomsTicketChecks.ts';
+import { CustomsAgentConfigCheck }                                      from './CustomsAgentConfigCheck.ts';
+import { CustomsDataFolderCheck }                                       from './CustomsDataFolderCheck.ts';
+import { CustomsDefinitionFilesCheck }                                  from './CustomsDefinitionFilesCheck.ts';
+import { CustomsHistoryChecks }                                         from './CustomsHistoryChecks.ts';
+import { CustomsRefMovesCheck }                                         from './CustomsRefMovesCheck.ts';
+import { CustomsReportChecks }                                          from './CustomsReportChecks.ts';
+import { CustomsScopeCheck }                                            from './CustomsScopeCheck.ts';
+import { CustomsTicketChecks }                                          from './CustomsTicketChecks.ts';
 
 export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationCheckRun>> = {
-  V1:  reportIsValidWithItsHead,
-  V2:  headDescendsFromTheStart,
-  V3:  aCommitSinceTheStart,
-  V4:  worktreeIsClean,
-  V5:  dataFolderUntouched,
-  V6:  ticketContentUnchanged,
-  V7:  noAiAttributionInRange,
-  V8:  everyAcceptanceItemAccountedFor,
-  V9:  fixedFindingsNameCommitsInRange,
-  V10: mergeIsResolved,
-  V11: checksDefinitionUnchanged,
-  V12: filedFindingsWereFiledByThisJob,
-  V13: agentConfigUntouched,
-  V14: onlyOwnRefsMoved,
-  V15: everyAgentGateClaimedOnHead,
-  V16: headUnmoved,
-  V17: changesStayInHomeAndReach,
-  V18: ticketDocumentsUnchanged,
+  V1:  CustomsReportChecks.reportIsValidWithItsHead,
+  V2:  CustomsHistoryChecks.headDescendsFromTheStart,
+  V3:  CustomsHistoryChecks.aCommitSinceTheStart,
+  V4:  CustomsHistoryChecks.worktreeIsClean,
+  V5:  CustomsDataFolderCheck.dataFolderUntouched,
+  V6:  CustomsTicketChecks.ticketContentUnchanged,
+  V7:  CustomsHistoryChecks.noAiAttributionInRange,
+  V8:  CustomsReportChecks.everyAcceptanceItemAccountedFor,
+  V9:  CustomsReportChecks.fixedFindingsNameCommitsInRange,
+  V10: CustomsHistoryChecks.mergeIsResolved,
+  V11: CustomsDefinitionFilesCheck.checksDefinitionUnchanged,
+  V12: CustomsReportChecks.filedFindingsWereFiledByThisJob,
+  V13: CustomsAgentConfigCheck.agentConfigUntouched,
+  V14: CustomsRefMovesCheck.onlyOwnRefsMoved,
+  V15: CustomsReportChecks.everyAgentGateClaimedOnHead,
+  V16: CustomsHistoryChecks.headUnmoved,
+  V17: CustomsScopeCheck.changesStayInHomeAndReach,
+  V18: CustomsTicketChecks.ticketDocumentsUnchanged,
 };
 
 /** The design's table, column by column, in check order. */

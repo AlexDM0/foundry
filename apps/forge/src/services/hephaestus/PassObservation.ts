@@ -81,7 +81,7 @@ function fingerprintOf(
 }
 
 /** A refused forced stop is tried again only for the jobs in `forcedStopRetryJobIds`, so a pass's own writes never retry it. */
-export function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, forcedStopRetryJobIds: ReadonlySet<string> = new Set()): Observation {
+function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, forcedStopRetryJobIds: ReadonlySet<string> = new Set()): Observation {
   const { workspace, boardStore } = request;
   const progress      = boardStore.reads.requireProgress();
   const jobs          = progress.jobs ?? [];
@@ -142,3 +142,5 @@ export function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchCo
     trackerId:   progress.trackerId,
   };
 }
+
+export const PassObservation = Object.freeze({ observe });

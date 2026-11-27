@@ -30,9 +30,9 @@ import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot } from '../../testi
 import type { CustomsSubject }                                 from './@types/CustomsSubject.ts';
 import type { VerificationCheck }                              from './@types/CustomsVerdict.ts';
 import { CUSTOMS_CHECKS }                                      from './Customs.ts';
-import { agentConfigTouchedBeforeLaunch }                      from './CustomsAgentConfigCheck.ts';
+import { CustomsAgentConfigCheck }                             from './CustomsAgentConfigCheck.ts';
 import { launchSnapshotOf }                                    from './CustomsLaunchSnapshot.ts';
-import { refMovesAllowedOf }                                   from './CustomsRefMovesCheck.ts';
+import { CustomsRefMovesCheck }                                from './CustomsRefMovesCheck.ts';
 
 const TICKET_BODY = '## Acceptance\nA1. The example holds.\n';
 /** The fake agent's naming, which is Claude Code's. */
@@ -140,7 +140,7 @@ function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = '', 
   return {
     ...reviewerSubject([]),
     role:            'builder',
-    refMovesAllowed: refMovesAllowedOf(logRecords, {
+    refMovesAllowed: CustomsRefMovesCheck.refMovesAllowedOf(logRecords, {
       ownJobId:                     OWN_BUILD_JOB_ID,
       ownBranch,
       otherJobBranches:             [],
@@ -311,9 +311,9 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
 
   test('before a launch, the branch\'s own commits past its target are read: a target holding .claude/ passes, the branch adding it refuses', () => {
     enter(GIT_SCENARIOS.TICKET_BRANCH_MADE);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames).verdict).toBe('passed');
+    expect(CustomsAgentConfigCheck.agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames).verdict).toBe('passed');
     enter(GIT_SCENARIOS.TICKET_BRANCH_ADDS_AGENT_CONFIG);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames))
+    expect(CustomsAgentConfigCheck.agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames))
       .toEqual({ verdict: 'refused', reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
   });
 });

@@ -9,7 +9,7 @@ import type { DrivePassRequest }                      from './@types/DrivePassRe
 import { PipelineAgentSessions }                      from './PipelineAgentSessions.ts';
 
 /** The forge's agent read through this machine's config, kept as the choice names it and checked where it lies. */
-export function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
+function agentProgramResolutionOf(request: DrivePassRequest, board: Board, job: Readonly<Job>): AgentProgramResolution {
   const resolution = chosenProgramResolutionOf(request, board, job);
   return resolution.verdict === 'found' ? billedResolutionOf(request, board, job, resolution.programPath) : resolution;
 }
@@ -39,7 +39,7 @@ function billedResolutionOf(request: DrivePassRequest, board: Board, job: Readon
 }
 
 /** The jobs standing not launched whose program now reads otherwise than at the refusal: it resolves, or names another path or cause. */
-export function notLaunchedJobIdsWhoseProgramChanged(request: DrivePassRequest, board: Board): string[] {
+function notLaunchedJobIdsWhoseProgramChanged(request: DrivePassRequest, board: Board): string[] {
   return board.jobs().flatMap((job) => {
     const { notLaunched } = job;
     if (notLaunched === undefined) return [];
@@ -48,3 +48,8 @@ export function notLaunchedJobIdsWhoseProgramChanged(request: DrivePassRequest, 
     return unchanged ? [] : [job.id];
   });
 }
+
+export const LaunchAgentPrograms = Object.freeze({
+  agentProgramResolutionOf,
+  notLaunchedJobIdsWhoseProgramChanged,
+});

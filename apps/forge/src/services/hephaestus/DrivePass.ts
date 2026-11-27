@@ -23,78 +23,72 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
-import { LIFECYCLE_LIMITS }                                               from '../../shared/constants/LifecycleLimits.ts';
-import type { ConfinedGateLine, GateConfinement }                         from '../lifecycle/GateRun.ts';
-import { Landing }                                                        from '../lifecycle/Landing.ts';
-import { MergeRun }                                                       from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                                                  from '../lifecycle/ReviewOutcome.ts';
-import { lockTakerOf }                                                    from '../tracker/LockHolders.ts';
-import { projectLocationOf }                                              from '../tracker/ProjectLocation.ts';
-import type { AgentProgramRefused, LaunchRefusal }                        from './@types/AgentLaunchRefusal.ts';
-import { type AirlockHoldRunner, type DeclinedCleanup }                   from './@types/Airlocks.ts';
-import type { DrivePassRequest }                                          from './@types/DrivePassRequest.ts';
-import type { AbandonedPass, HephaestusNotice, HephaestusStateDocument }  from './@types/HephaestusStateDocument.ts';
-import { type JobLaunchContext }                                          from './@types/JobLaunchContext.ts';
-import type { PresenceUpdate }                                            from './@types/PresenceRecord.ts';
-import { AbandonedPassReason }                                            from './AbandonedPassReason.ts';
-import { jobsNeedingAChild, launchAgentChild, repositorySignsCommits }    from './AgentChildLaunch.ts';
-import { AgentConfigHits }                                                from './AgentConfigHits.ts';
-import { AgentSlots }                                                     from './AgentSlots.ts';
-import { AirlockFactsFile }                                               from './AirlockFactsFile.ts';
-import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot }            from './AirlockSandboxIncident.ts';
-import { createAirlocks }                                                 from './Airlocks.ts';
-import { AnswerDelivery }                                                 from './AnswerDelivery.ts';
-import { ApiBillingStops }                                                from './ApiBillingStops.ts';
-import { AssistantBoot }                                                  from './AssistantBoot.ts';
-import { AssistantSession }                                               from './AssistantSession.ts';
-import type { ChildLiveness }                                             from './BoardChildren.ts';
-import { BuildJobPass }                                                   from './BuildJobPass.ts';
-import { BuildJobSessions }                                               from './BuildJobSessions.ts';
-import { applyChildEvents }                                               from './ChildEvents.ts';
-import { DocumentAgentSessions }                                          from './DocumentAgentSessions.ts';
-import { EffectReadings }                                                 from './EffectReadings.ts';
-import { EndedJobTokens }                                                 from './EndedJobTokens.ts';
-import { EntityDecisionAnswers }                                          from './EntityDecisionAnswers.ts';
-import { GateProfiling }                                                  from './GateProfiling.ts';
-import { GateRunSlots }                                                   from './GateRunSlots.ts';
-import { GroupWorktrees }                                                 from './GroupWorktrees.ts';
-import { HatchInbox }                                                     from './HatchInbox.ts';
-import { hephaestusFilesIn }                                              from './HephaestusFiles.ts';
-import { HephaestusLock }                                                 from './HephaestusLock.ts';
-import { IncidentRouter }                                                 from './IncidentRouter.ts';
-import { InstructionFiles }                                               from './InstructionFiles.ts';
-import { IntakeSessions }                                                 from './IntakeSessions.ts';
-import { type EndedJobSession, JobControlDelivery }                       from './JobControlDelivery.ts';
-import { JobResumption }                                                  from './JobResumption.ts';
-import { JobSandbox }                                                     from './JobSandbox.ts';
-import { agentProgramResolutionOf, notLaunchedJobIdsWhoseProgramChanged } from './LaunchAgentPrograms.ts';
-import { LineSandbox }                                                    from './LineSandbox.ts';
-import { MachineAgentLimit }                                              from './MachineAgentLimit.ts';
-import { mergedTreeGateStampOf, runMergedTreeGates }                      from './MergedTreeGateRun.ts';
-import { createMergedTreeGateRuns }                                       from './MergedTreeGateRuns.ts';
-import {
-  aBillingMissesItsKey,
-  openApiKeyDecisionIdsOf,
-  openApiKeyDecisionOnce,
-  openLeftoverWorktreeDecisions,
-  withdrawApiKeyDecisions
-} from './PassDecisions.ts';
-import { agentProgramNoticesOf, noticesOf }                  from './PassNotices.ts';
-import { type ChildObservation, type Observation, observe }  from './PassObservation.ts';
-import { PipelineAgentSessions }                             from './PipelineAgentSessions.ts';
-import { PipelineChecking }                                  from './PipelineChecking.ts';
-import { Presence }                                          from './Presence.ts';
-import { REAL_PROCESS_STARTS }                               from './ProcessStarts.ts';
-import { ReconcileCauses }                                   from './ReconcileCauses.ts';
-import { RefusedForcedStops }                                from './RefusedForcedStops.ts';
-import { Regrouping, type RegroupingReport }                 from './Regrouping.ts';
-import { stopLiveLinesUnder as stopLiveLinesUnderAt }        from './TalosLines.ts';
-import { thrownNamedOf }                                     from './ThrownNaming.ts';
-import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
-import { type UsageLimitHit, UsageLimits }                   from './UsageLimits.ts';
-import { actOnWaiverAnswers }                                from './WaiverAnswers.ts';
-import { WorkerProfiles }                                    from './WorkerProfiles.ts';
-import { ABANDONED_PASSES_BEFORE_NOTICE }                    from './constants/PresenceLimits.ts';
+import { LIFECYCLE_LIMITS }                                              from '../../shared/constants/LifecycleLimits.ts';
+import type { ConfinedGateLine, GateConfinement }                        from '../lifecycle/GateRun.ts';
+import { Landing }                                                       from '../lifecycle/Landing.ts';
+import { MergeRun }                                                      from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                                                 from '../lifecycle/ReviewOutcome.ts';
+import { lockTakerOf }                                                   from '../tracker/LockHolders.ts';
+import { projectLocationOf }                                             from '../tracker/ProjectLocation.ts';
+import type { AgentProgramRefused, LaunchRefusal }                       from './@types/AgentLaunchRefusal.ts';
+import { type AirlockHoldRunner, type DeclinedCleanup }                  from './@types/Airlocks.ts';
+import type { DrivePassRequest }                                         from './@types/DrivePassRequest.ts';
+import type { AbandonedPass, HephaestusNotice, HephaestusStateDocument } from './@types/HephaestusStateDocument.ts';
+import { type JobLaunchContext }                                         from './@types/JobLaunchContext.ts';
+import type { PresenceUpdate }                                           from './@types/PresenceRecord.ts';
+import { AbandonedPassReason }                                           from './AbandonedPassReason.ts';
+import { AgentChildLaunch }                                              from './AgentChildLaunch.ts';
+import { AgentConfigHits }                                               from './AgentConfigHits.ts';
+import { AgentSlots }                                                    from './AgentSlots.ts';
+import { AirlockFactsFile }                                              from './AirlockFactsFile.ts';
+import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot }           from './AirlockSandboxIncident.ts';
+import { createAirlocks }                                                from './Airlocks.ts';
+import { AnswerDelivery }                                                from './AnswerDelivery.ts';
+import { ApiBillingStops }                                               from './ApiBillingStops.ts';
+import { AssistantBoot }                                                 from './AssistantBoot.ts';
+import { AssistantSession }                                              from './AssistantSession.ts';
+import type { ChildLiveness }                                            from './BoardChildren.ts';
+import { BuildJobPass }                                                  from './BuildJobPass.ts';
+import { BuildJobSessions }                                              from './BuildJobSessions.ts';
+import { ChildEvents }                                                   from './ChildEvents.ts';
+import { DocumentAgentSessions }                                         from './DocumentAgentSessions.ts';
+import { EffectReadings }                                                from './EffectReadings.ts';
+import { EndedJobTokens }                                                from './EndedJobTokens.ts';
+import { EntityDecisionAnswers }                                         from './EntityDecisionAnswers.ts';
+import { GateProfiling }                                                 from './GateProfiling.ts';
+import { GateRunSlots }                                                  from './GateRunSlots.ts';
+import { GroupWorktrees }                                                from './GroupWorktrees.ts';
+import { HatchInbox }                                                    from './HatchInbox.ts';
+import { hephaestusFilesIn }                                             from './HephaestusFiles.ts';
+import { HephaestusLock }                                                from './HephaestusLock.ts';
+import { IncidentRouter }                                                from './IncidentRouter.ts';
+import { InstructionFiles }                                              from './InstructionFiles.ts';
+import { IntakeSessions }                                                from './IntakeSessions.ts';
+import { type EndedJobSession, JobControlDelivery }                      from './JobControlDelivery.ts';
+import { JobResumption }                                                 from './JobResumption.ts';
+import { JobSandbox }                                                    from './JobSandbox.ts';
+import { LaunchAgentPrograms }                                           from './LaunchAgentPrograms.ts';
+import { LineSandbox }                                                   from './LineSandbox.ts';
+import { MachineAgentLimit }                                             from './MachineAgentLimit.ts';
+import { mergedTreeGateStampOf, runMergedTreeGates }                     from './MergedTreeGateRun.ts';
+import { createMergedTreeGateRuns }                                      from './MergedTreeGateRuns.ts';
+import { PassDecisions }                                                 from './PassDecisions.ts';
+import { PassNotices }                                                   from './PassNotices.ts';
+import { PassObservation, type ChildObservation, type Observation }      from './PassObservation.ts';
+import { PipelineAgentSessions }                                         from './PipelineAgentSessions.ts';
+import { PipelineChecking }                                              from './PipelineChecking.ts';
+import { Presence }                                                      from './Presence.ts';
+import { REAL_PROCESS_STARTS }                                           from './ProcessStarts.ts';
+import { ReconcileCauses }                                               from './ReconcileCauses.ts';
+import { RefusedForcedStops }                                            from './RefusedForcedStops.ts';
+import { Regrouping, type RegroupingReport }                             from './Regrouping.ts';
+import { stopLiveLinesUnder as stopLiveLinesUnderAt }                    from './TalosLines.ts';
+import { thrownNamedOf }                                                 from './ThrownNaming.ts';
+import { UnreadableJobFileIncident, type UnreadableJobFile }             from './UnreadableJobFileIncident.ts';
+import { type UsageLimitHit, UsageLimits }                               from './UsageLimits.ts';
+import { WaiverAnswers }                                                 from './WaiverAnswers.ts';
+import { WorkerProfiles }                                                from './WorkerProfiles.ts';
+import { ABANDONED_PASSES_BEFORE_NOTICE }                                from './constants/PresenceLimits.ts';
 
 export interface DrivePass {
   /** Run once at start, before the first pass, which it then runs forced: its one hold applies everything regrouping found. */
@@ -437,7 +431,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },
     mainConstitutionOf:     (constitutionPath) => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine, constitutionPath),
-    repositorySignsCommits: () => repositorySignsCommits(projectLocation.repositoryRoot),
+    repositorySignsCommits: () => AgentChildLaunch.repositorySignsCommits(projectLocation.repositoryRoot),
   });
 
   /** Rechecked every pass: a notice goes once what git declined to remove is gone. */
@@ -495,7 +489,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   async function runOnePass(forced: boolean): Promise<void> {
     // Before anything is read: a new Talos sweeps the lost one's orphans, so this pass reads their causes as settled.
     await request.ensureTalosIfLost?.();
-    const observation = reconciledWithTheStart(observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0))));
+    const observation = reconciledWithTheStart(PassObservation.observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0))));
     if (!forced && observation.fingerprint === lastFingerprint) return;
     await request.installVersionsKnown?.();
     const at = request.formatStamp(request.now());
@@ -503,14 +497,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const written = await request.boardStore.transactions.transact({
       at,
       mutate: (change) => {
-        openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
+        PassDecisions.openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
         const billing = change.board.pipeline()?.billing;
         const childEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
         const {
           usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, documentAgentSessionEnds, effectReadingResults, effectReadingEnds
-        } = applyChildEvents(
+        } = ChildEvents.applyChildEvents(
           change,
           request.agentAdapter,
           observation.childObservations,
@@ -582,7 +576,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
           throw thrown;
         }
-        const waiverAnswersAwaitAPass = actOnWaiverAnswers(change, steps, observation.answeredWaiverTrees, request.workspace.trackerDirectory);
+        const waiverAnswersAwaitAPass = WaiverAnswers.actOnWaiverAnswers(change, steps, observation.answeredWaiverTrees, request.workspace.trackerDirectory);
         const slotJobIdsAfter = LaunchSlotUtil.slotJobIdsOf(change.board.jobs());
         agentSlots.assignReservations(observation.trackerId, slotJobIdsAfter.filter((jobId) => !slotJobIdsBefore.includes(jobId)));
         agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
@@ -668,10 +662,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
       ? []
-      : jobsNeedingAChild(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
+      : AgentChildLaunch.jobsNeedingAChild(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
     for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
-      const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job, effectReadings);
+      const refusal = await AgentChildLaunch.launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job, effectReadings);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
@@ -682,10 +676,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
     }
-    const apiKeyDecisionIsDue = apiBillingKeyIsMissing && openApiKeyDecisionIdsOf(written.board).length === 0;
-    const apiKeyDecisionIsStale = !apiBillingKeyIsMissing && !aBillingMissesItsKey(request, written.board)
-      && openApiKeyDecisionIdsOf(written.board).length > 0;
-    const notLaunchedJobIdsToRetry = notLaunchedJobIdsWhoseProgramChanged(request, written.board);
+    const apiKeyDecisionIsDue = apiBillingKeyIsMissing && PassDecisions.openApiKeyDecisionIdsOf(written.board).length === 0;
+    const apiKeyDecisionIsStale = !apiBillingKeyIsMissing && !PassDecisions.aBillingMissesItsKey(request, written.board)
+      && PassDecisions.openApiKeyDecisionIdsOf(written.board).length > 0;
+    const notLaunchedJobIdsToRetry = LaunchAgentPrograms.notLaunchedJobIdsWhoseProgramChanged(request, written.board);
     const holdIsDue = unmadeAirlockAgentRoots.length > 0 || launchedAirlockAgentJobIds.length > 0 || apiKeyDecisionIsDue || apiKeyDecisionIsStale
       || agentProgramRefusals.length > 0 || notLaunchedJobIdsToRetry.length > 0 || unreadableJobFiles.length > 0;
     let refusalResolvedSinceItsLaunch = false;
@@ -694,7 +688,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const job = hold.board.jobById(refused.notLaunchedJobId);
         if (job === undefined) continue;
         // The agent setting may have changed between the launch and this hold; only a refusal that still stands is recorded.
-        const resolutionNow = agentProgramResolutionOf(request, hold.board, job);
+        const resolutionNow = LaunchAgentPrograms.agentProgramResolutionOf(request, hold.board, job);
         if (resolutionNow.verdict === 'not-launched') hold.board.recordNotLaunched(job.id, resolutionNow.notLaunched, hold.at);
         else refusalResolvedSinceItsLaunch = true;
       }
@@ -702,8 +696,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       for (const unmadeRoot of unmadeAirlockAgentRoots) AirlockSandboxIncident.openOnce(hold.board, unmadeRoot, hold.at);
       for (const unreadableJobFile of unreadableJobFiles) UnreadableJobFileIncident.openOnce(hold.board, unreadableJobFile, hold.at);
       for (const jobId of launchedAirlockAgentJobIds) AirlockSandboxIncident.closeOnLaunch(hold.board, jobId, hold.at);
-      if (apiKeyDecisionIsDue) openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
-      if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
+      if (apiKeyDecisionIsDue) PassDecisions.openApiKeyDecisionOnce(hold.board, request.decisionWordingOf, hold.at);
+      if (apiKeyDecisionIsStale) PassDecisions.withdrawApiKeyDecisions(hold.board, hold.at);
     });
     const { trackerDirectory } = request.workspace;
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job)
@@ -728,7 +722,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       generation:   request.generation,
       passes:       state.passes + 1,
       runtimeState: installVersionChanged ? 'held-by-install-change' : 'serving',
-      notices:      noticesOf(
+      notices:      PassNotices.noticesOf(
         request,
         installVersionChanged,
         written.result.attributionTicketIds,
@@ -736,11 +730,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         heldTargets,
         stillDeclinedCleanups(),
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
-        [...launchRefusals, ...agentProgramNoticesOf(request, written.board, agentProgramRefusals)],
+        [...launchRefusals, ...PassNotices.agentProgramNoticesOf(request, written.board, agentProgramRefusals)],
       ),
       ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
-    const settled = observe(request, jobLaunchContext);
+    const settled = PassObservation.observe(request, jobLaunchContext);
     // An event Talos logged after this pass read its events is unapplied work, never a settled state an unforced wake may skip.
     lastFingerprint = settled.childObservations.some((childObservation) => childObservation.events.length > 0) ? null : settled.fingerprint;
     // A job the merge sweep launched after this pass launched children needs one more pass, which its settled fingerprint would skip.

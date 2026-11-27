@@ -9,7 +9,7 @@ import { GitProcess }                                                      from 
 import { predictMerge, predictMerges }                                     from '../../lib/git/MergeTree.ts';
 import type { AirlockAllocation, AirlockSlots, ConstitutionCommitAirlock } from './@types/AirlockParts.ts';
 import type { AirlocksContext }                                            from './@types/Airlocks.ts';
-import { claimed }                                                         from './AirlockReadings.ts';
+import { AirlockReadings }                                                 from './AirlockReadings.ts';
 import { REFRESH_REFUSAL_SEPARATOR }                                       from './AirlockSlots.ts';
 
 function forecastOf(prediction: ReturnType<typeof predictMerge>): MergeForecast {
@@ -80,7 +80,7 @@ export function createAirlockAllocation(
     return context.hold((hold) => {
       const tipsMoved = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`) !== targetTip
         || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${mainLine}`) !== mainTip;
-      return tipsMoved || claimed(() => hold.board.claimRefreshSlot({
+      return tipsMoved || AirlockReadings.claimed(() => hold.board.claimRefreshSlot({
         group: groupOf(target), target, targetTip, mainTip
       }, hold.at));
     });
@@ -114,7 +114,7 @@ export function createAirlockAllocation(
     return context.hold((hold) => {
       const tipsMoved = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`) !== targetTip
         || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(first.candidate.ticketId)}`) !== branchTip;
-      return tipsMoved || claimed(() => hold.board.claimAirlock({
+      return tipsMoved || AirlockReadings.claimed(() => hold.board.claimAirlock({
         ticketId: first.candidate.ticketId, target, targetTip, branchTip, predictedConflictFiles: first.conflictedFiles ?? [],
       }, targetOf, branchTreeOf, hold.at));
     });

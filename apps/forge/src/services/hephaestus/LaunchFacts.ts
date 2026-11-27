@@ -30,7 +30,7 @@ import { TargetCatchUps }                                         from './Target
  * The Airlock phase an agent is launched or resumed in, read from its merge job's slot. Under a build or review job in `merging-main`, the
  * agent is the conflict re-reviewer of the merge before User's code review.
  */
-export function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhase {
+function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhase {
   const parent = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   if (parent?.state === 'merging-main') return 're-reviewing';
   const phase = parent?.airlock?.phase;
@@ -41,7 +41,7 @@ export function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAg
  * `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict; a file of
  * the merge job the agent is told of that cannot be read stops the launch, and its incident opens on the merge job that owns it.
  */
-export function airlockFactsOf(
+function airlockFactsOf(
   board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string
 ): AirlockFacts | null | 'conflicts-unknown' | UnreadableJobFileRefusal {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
@@ -115,7 +115,7 @@ function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine
 type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine' | 'agentAdapter'>;
 
 /** What a job's launch text is filled from, read off the board and the tracker's job folders; a job file it reads that cannot be read stops the launch. */
-export function launchFactsOf(
+function launchFactsOf(
   board: Board, request: LaunchFactsSource, job: Readonly<Job>, launch: { instructions: string; airlock: AirlockFacts | null; place: SessionPlace }
 ): JobLaunchFacts | StoredFileUnreadable {
   const { trackerDirectory } = request.workspace;
@@ -165,3 +165,9 @@ export function launchFactsOf(
     documentAgent:          DocumentAgentSessions.documentAgentFactsOf(board, job),
   };
 }
+
+export const LaunchFacts = Object.freeze({
+  airlockAgentPhaseOf,
+  airlockFactsOf,
+  launchFactsOf,
+});

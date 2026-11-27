@@ -2,21 +2,21 @@
  * How a gated job of a crossing ticket moves the ticket between stages: stage 1 into a package build, a package review's seal, and on to
  * `adapt` or the home review.
  */
-import type { JobStart }                     from '../../adapters/job-start/JobStartIngestion.ts';
-import type { Job }                          from '../../domain/tracker-model/@types/Job.ts';
-import type { LogRecord }                    from '../../domain/tracker-model/@types/LogRecord.ts';
-import type { EntityKey }                    from '../../domain/tracker-model/@types/Pipeline.ts';
-import { TicketStageUtil }                   from '../../domain/tracker-model/utils/TicketStageUtil.ts';
-import { pathsTheBranchChangedPastTargetOf } from '../lifecycle/CustomsReadings.ts';
-import { reachPathsChangedSinceOf, sealOf }  from '../lifecycle/CustomsScopeCheck.ts';
-import type { PackageReviewSettlement }      from '../lifecycle/ReviewOutcome.ts';
-import type { HoldContext }                  from './@types/HoldContext.ts';
-import { BuildJobHold }                      from './BuildJobHold.ts';
-import { BuildReport }                       from './BuildReport.ts';
-import { CrossingStages }                    from './CrossingStages.ts';
-import { JobLaunch }                         from './JobLaunch.ts';
-import { StoredFileUnreadable }              from './StoredFileUnreadable.ts';
-import { WorktreeJobs }                      from './WorktreeJobs.ts';
+import type { JobStart }                from '../../adapters/job-start/JobStartIngestion.ts';
+import type { Job }                     from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }               from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { EntityKey }               from '../../domain/tracker-model/@types/Pipeline.ts';
+import { TicketStageUtil }              from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import { CustomsReadings }              from '../lifecycle/CustomsReadings.ts';
+import { CustomsScopeCheck }            from '../lifecycle/CustomsScopeCheck.ts';
+import type { PackageReviewSettlement } from '../lifecycle/ReviewOutcome.ts';
+import type { HoldContext }             from './@types/HoldContext.ts';
+import { BuildJobHold }                 from './BuildJobHold.ts';
+import { BuildReport }                  from './BuildReport.ts';
+import { CrossingStages }               from './CrossingStages.ts';
+import { JobLaunch }                    from './JobLaunch.ts';
+import { StoredFileUnreadable }         from './StoredFileUnreadable.ts';
+import { WorktreeJobs }                 from './WorktreeJobs.ts';
 
 /**
  * What a gated job's settlement reads of the job files, all read before its run is recorded: its own start, and for a package review the
@@ -47,7 +47,7 @@ function settlementReadingsOf(hold: HoldContext, job: Readonly<Job>): Settlement
 /** The paths the job's branch changed past its target, as git spells them; `null` when git cannot tell, or the job kept no start. */
 function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>, start: Readonly<JobStart> | null): string[] | null {
   if (start === null) return null;
-  return pathsTheBranchChangedPastTargetOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), start.startCommit, job.target ?? hold.context.mainLine);
+  return CustomsReadings.pathsTheBranchChangedPastTargetOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), start.startCommit, job.target ?? hold.context.mainLine);
 }
 
 /**
@@ -139,7 +139,7 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
   const { packageRunStart } = readings;
   if (packageRunStart === null) return null;
   const reach = CrossingStages.reachOf(hold.change.board.pipeline(), packageKey);
-  const changed = reachPathsChangedSinceOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), packageRunStart.startCommit, target, reach);
+  const changed = CustomsScopeCheck.reachPathsChangedSinceOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), packageRunStart.startCommit, target, reach);
   if (changed === null) return null;
   return [...new Set([...readings.sealedReachPathsBefore, ...changed])];
 }
@@ -167,7 +167,7 @@ function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report
       const target = job.target ?? hold.context.mainLine;
       const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target, readings);
       const pathspecs = sealedReachPaths === null ? null : CrossingStages.sealPathspecsOf(board.pipeline(), packageKey, sealedReachPaths);
-      const seal = pathspecs === null ? null : sealOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), target, pathspecs);
+      const seal = pathspecs === null ? null : CustomsScopeCheck.sealOf(WorktreeJobs.worktreeOf(hold.context.workspace, job), target, pathspecs);
       const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job, readings.own);
       const crossedPackages = changedPaths === null ? null : CrossingStages.packagesCrossedAfterAPackageReviewOf(board, ticketId, homeEntity, changedPaths);
       if (sealedReachPaths === null || seal === null || crossedPackages === null) {

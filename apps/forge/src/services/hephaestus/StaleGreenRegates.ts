@@ -15,7 +15,7 @@ import { RED_HANDOFF_RESUME_CALL_BUDGET }                             from '../.
 import { MergeRun, type RedGateOwner }                                from '../lifecycle/MergeRun.ts';
 import type { AirlockSlots, StaleGreenRed, StaleGreenRegates }        from './@types/AirlockParts.ts';
 import type { AirlockHold, AirlocksContext }                          from './@types/Airlocks.ts';
-import { crossingLandingOf, redGateOf, tailOf }                       from './AirlockReadings.ts';
+import { AirlockReadings }                                            from './AirlockReadings.ts';
 import { gateRanFieldsOf, MERGE_GATE_INCIDENT_KINDS, recordStepRuns } from './MergedTreeGating.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                              from './RedHandoff.ts';
 import { RED_RESUMES_SPENT_CAUSE }                                    from './constants/AirlockCauses.ts';
@@ -69,7 +69,7 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
     const resume = (ended.verdict === 'readable' ? ended.facts.resume : 0) + 1;
     if (resume > context.redHandoffResumes) return false;
     const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
-    const pipelineGate = redGateOf(board.pipeline(), red.entity, red.step);
+    const pipelineGate = AirlockReadings.redGateOf(board.pipeline(), red.entity, red.step);
     mkdirSync(folder, { recursive: true });
     writeFileSync(join(folder, STALE_GREEN_LOG_FILE), `${red.step}\n${red.output}`);
     RedHandoff.writeRedHandoff(folder, {
@@ -93,7 +93,7 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
   function returnStaleGreenRed(hold: AirlockHold, ticketId: string, red: StaleGreenRed): void {
     if (!writeStaleGreenHandoff(hold.board, ticketId, red)) {
       hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${RED_RESUMES_SPENT_CAUSE}`, hold.at);
-      openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+      openDecision(hold, 'parked', [ticketId], AirlockReadings.tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
       return;
     }
     // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
@@ -125,7 +125,7 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
         output: gate.output,
         commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? '',
       };
-      const landing = crossingLandingOf(hold.board, ticketId);
+      const landing = AirlockReadings.crossingLandingOf(hold.board, ticketId);
       if (landing === null) returnStaleGreenRed(hold, ticketId, red);
       else returnRedGateToItsOwner(hold, ticketId, { owner: MergeRun.redGateOwnerOf(landing, gate.entity), homeEntity: landing.homeEntity }, red);
       return;
@@ -199,7 +199,7 @@ export function createStaleGreenRegates(context: AirlocksContext, slots: Airlock
     }
     if (!writeStaleGreenHandoff(hold.board, ticketId, red, true)) {
       hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${RED_RESUMES_SPENT_CAUSE}`, hold.at);
-      openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+      openDecision(hold, 'parked', [ticketId], AirlockReadings.tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
       return;
     }
     if (owner.owner === 'package') hold.board.returnTicketToThePackage(ticketId, owner.packageEntity, context.decisionWordingOf, hold.at);

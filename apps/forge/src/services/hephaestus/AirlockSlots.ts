@@ -9,17 +9,8 @@ import type { BranchTreeOf, MergeTargetOf }              from '../../domain/trac
 import { MergeRun }                                      from '../lifecycle/MergeRun.ts';
 import type { AirlockSlots }                             from './@types/AirlockParts.ts';
 import type { AirlockHold, AirlocksContext, HeldTarget } from './@types/Airlocks.ts';
-import {
-  currentBranchIn,
-  isRefresh,
-  mergeAgentOf,
-  pathsTheFastForwardChangesOf,
-  slotOf,
-  ticketIdOf,
-  treeOfCommit,
-  uncommittedPathsOf
-} from './AirlockReadings.ts';
-import { GroupWorktrees } from './GroupWorktrees.ts';
+import { AirlockReadings }                               from './AirlockReadings.ts';
+import { GroupWorktrees }                                from './GroupWorktrees.ts';
 
 /** A refused refresh names no ticket: its `merge-refused` context starts with the group's target, which keeps the next refresh waiting. */
 export const REFRESH_REFUSAL_SEPARATOR = ': ';
@@ -30,7 +21,7 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
     ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${groupTargetPrefix}${ticket.group}`
   );
   const groupOf = (target: string): string => target.slice(groupTargetPrefix.length);
-  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`);
+  const branchTreeOf: BranchTreeOf = (ticketId) => AirlockReadings.treeOfCommit(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`);
   const heldTargets = new Map<string, HeldTarget>();
   /** The commit a held main line of a project tracker could not land: only the paths its fast-forward changes keep the line held. */
   const commitsAHeldMainLineWaitsToLand = new Map<string, string>();
@@ -42,7 +33,7 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
   }
 
   function slotWorktreeOf(job: Readonly<Job>): string {
-    return isRefresh(job) ? GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, job.target ?? '') : context.worktreeOf(ticketIdOf(job));
+    return AirlockReadings.isRefresh(job) ? GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, job.target ?? '') : context.worktreeOf(AirlockReadings.ticketIdOf(job));
   }
 
   function openDecision(hold: AirlockHold, kind: DecisionKind, ticketIds: readonly string[], decisionContext: string): void {
@@ -53,7 +44,7 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
   }
 
   function setPhase(hold: AirlockHold, job: Readonly<Job>, phase: AirlockPhase): void {
-    hold.board.setJobSlot(job.id, { ...slotOf(job), phase });
+    hold.board.setJobSlot(job.id, { ...AirlockReadings.slotOf(job), phase });
   }
 
   function removeRefreshWorktree(job: Readonly<Job>): void {
@@ -65,10 +56,10 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
   async function freeSlot(job: Readonly<Job>, ending: JobEnding, inHold: (hold: AirlockHold) => void = () => undefined): Promise<void> {
     const worktree = slotWorktreeOf(job);
     await context.stopMergedTreeGatesIn(worktree);
-    MergeRun.restoreBranchTip(worktree, MergeRun.sidesOf(job, slotOf(job)).startTip);
-    if (isRefresh(job)) removeRefreshWorktree(job);
+    MergeRun.restoreBranchTip(worktree, MergeRun.sidesOf(job, AirlockReadings.slotOf(job)).startTip);
+    if (AirlockReadings.isRefresh(job)) removeRefreshWorktree(job);
     await context.hold((hold) => {
-      const agent = mergeAgentOf(hold.board, job);
+      const agent = AirlockReadings.mergeAgentOf(hold.board, job);
       if (agent !== undefined) hold.board.endJob(agent.id, { outcome: 'stopped', cause: ending.cause ?? 'merge-ended' }, hold.at);
       hold.board.endJob(job.id, ending, hold.at);
       inHold(hold);
@@ -77,10 +68,10 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
 
   /** The merge aborts, the slot frees and User is asked; a `reportKind` also opens the Assistant's incident, with no job waiting. */
   async function refuseMerge(job: Readonly<Job>, cause: string, notes: string, reportKind: unknown = null): Promise<void> {
-    const ticketIds = isRefresh(job) ? [] : [ticketIdOf(job)];
+    const ticketIds = AirlockReadings.isRefresh(job) ? [] : [AirlockReadings.ticketIdOf(job)];
     await freeSlot(job, { outcome: 'failed', cause }, (hold) => {
       ticketIds.forEach((ticketId) => hold.board.setTicketMergeQueued(ticketId, false, hold.at));
-      openDecision(hold, 'merge-refused', ticketIds, isRefresh(job) ? `${job.target ?? ''}${REFRESH_REFUSAL_SEPARATOR}${notes}` : notes);
+      openDecision(hold, 'merge-refused', ticketIds, AirlockReadings.isRefresh(job) ? `${job.target ?? ''}${REFRESH_REFUSAL_SEPARATOR}${notes}` : notes);
       if (reportKind !== 'malformed-ticket' && reportKind !== 'system-blocker') return;
       hold.board.openIncident({
         kind:        reportKind === 'malformed-ticket' ? 'malformed-ticket' : 'system-question',
@@ -97,12 +88,12 @@ export function createAirlockSlots(context: AirlocksContext): AirlockSlots {
    * change never holds it; any other target waits for nothing uncommitted at all. A question git cannot answer keeps the target held.
    */
   function heldTargetIsClear(target: string, directory: string): boolean {
-    if (currentBranchIn(directory) !== target) return false;
-    const uncommittedPaths = uncommittedPathsOf(directory);
+    if (AirlockReadings.currentBranchIn(directory) !== target) return false;
+    const uncommittedPaths = AirlockReadings.uncommittedPathsOf(directory);
     if (uncommittedPaths === null) return false;
     const commitItWaitsToLand = commitsAHeldMainLineWaitsToLand.get(target);
     if (commitItWaitsToLand === undefined) return uncommittedPaths.length === 0;
-    const changedPaths = pathsTheFastForwardChangesOf(directory, commitItWaitsToLand);
+    const changedPaths = AirlockReadings.pathsTheFastForwardChangesOf(directory, commitItWaitsToLand);
     return changedPaths !== null && !uncommittedPaths.some((path) => changedPaths.includes(path));
   }
 

@@ -4,7 +4,7 @@ import type { EntityKey }                    from '../../../domain/tracker-model
 import type { BranchTreeOf, MergeTargetOf }  from '../../../domain/tracker-model/AirlockClaims.ts';
 import type { SharedRepositoryLanding }      from '../../lifecycle/Landing.ts';
 import type { RedGateOwner }                 from '../../lifecycle/MergeRun.ts';
-import type { AirlockAgentScope }            from './AirlockAgents.ts';
+import type { AirlockAgentScope }            from './AirlockAgentScope.ts';
 import type { AirlockHold, HeldTarget }      from './Airlocks.ts';
 
 export interface StaleGreenRed {

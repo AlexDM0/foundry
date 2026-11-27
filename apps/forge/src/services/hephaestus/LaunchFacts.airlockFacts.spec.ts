@@ -10,7 +10,7 @@ import { boardFixture, ticketFixture }                    from '../../testing/Bo
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { AirlockFactsFile }                               from './AirlockFactsFile.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { airlockFactsOf }                                 from './LaunchFacts.ts';
+import { LaunchFacts }                                    from './LaunchFacts.ts';
 
 const AT = '2026-11-27T10:00:00+01:00';
 
@@ -35,7 +35,7 @@ test('a red handoff in the merge job\'s folder that cannot be read stops the age
   AirlockFactsFile.keep(mergeJobFolder, { conflictedFiles: ['shared.txt'], leavesTheMergeOpen: false, filesResolvedBefore: [] });
   writeFileSync(join(mergeJobFolder, 'red-handoff.json'), '{"resume": ');
 
-  const facts = airlockFactsOf(board, trackerDirectory, mergeAgent, join(trackerDirectory, 'example-airlock-worktree'));
+  const facts = LaunchFacts.airlockFactsOf(board, trackerDirectory, mergeAgent, join(trackerDirectory, 'example-airlock-worktree'));
 
   const problem = { code: 'not-json', parserError: expect.any(String) as string } as const;
   expect(facts).toEqual({ unreadableJobFile: { jobId: mergeJob.id, file: `jobs/${mergeJob.id}/red-handoff.json`, problem } });

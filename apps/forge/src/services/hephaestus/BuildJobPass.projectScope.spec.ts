@@ -39,7 +39,7 @@ import { useRecordedGit }                                    from '../../testing
 import { GIT_SCENARIOS }                                     from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                             from '../../testing/ToolGuard.ts';
-import { definitionFileMatcherOf }                           from '../lifecycle/CustomsDefinitionFilesCheck.ts';
+import { CustomsDefinitionFilesCheck }                       from '../lifecycle/CustomsDefinitionFilesCheck.ts';
 import { launchSnapshotOf }                                  from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
@@ -236,7 +236,7 @@ describe('a job of an entity with a gate', () => {
 
   test('protects the definition files of its entity\'s home, not the root\'s files of the same name', () => {
     const [gate] = JobPipelines.sessionGatesOf(pipeline, { entity: 'example' });
-    const definitionFileMatchers = (gate?.definedBy ?? []).map((pattern) => definitionFileMatcherOf(pattern, ''));
+    const definitionFileMatchers = (gate?.definedBy ?? []).map((pattern) => CustomsDefinitionFilesCheck.definitionFileMatcherOf(pattern, ''));
     const protectedPaths = [`${PROJECT_PREFIX}/package.json`, `${PROJECT_PREFIX}/tools/package.json`, 'package.json', 'config/unit.json', 'bunfig.toml']
       .filter((repositoryPath) => definitionFileMatchers.some((matches) => matches(repositoryPath)));
     expect(protectedPaths).toEqual([`${PROJECT_PREFIX}/package.json`, `${PROJECT_PREFIX}/tools/package.json`, 'bunfig.toml']);

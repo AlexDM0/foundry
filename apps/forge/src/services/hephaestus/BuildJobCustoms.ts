@@ -2,37 +2,37 @@
  * A worktree job in Customs: its report and branch judged against the start it kept, then sent on to its gates, back to its session, or
  * ended with what its refusal opens.
  */
-import type { Job }                                                 from '../../domain/tracker-model/@types/Job.ts';
-import type { EntityKey }                                           from '../../domain/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft }                                       from '../../domain/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                               from '../../domain/tracker-model/Board.ts';
-import { EntityOwnershipUtil }                                      from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketStageUtil }                                          from '../../domain/tracker-model/utils/TicketStageUtil.ts';
-import { WorktreesFolder }                                          from '../../shared/WorktreesFolder.ts';
-import { type CrossingStageScope, type CustomsSubject }             from '../lifecycle/@types/CustomsSubject.ts';
-import { type CustomsVerdict, type VerificationCheck }              from '../lifecycle/@types/CustomsVerdict.ts';
-import { type RefMovesAllowed }                                     from '../lifecycle/@types/RefMoves.ts';
-import { clearCustoms, CUSTOMS_CHECKS }                             from '../lifecycle/Customs.ts';
-import { retriedFailedBuildJobIdOf }                                from '../lifecycle/CustomsHistoryChecks.ts';
-import { refMovesAllowedOf, sharedRepositoryRefsOf, watchedRefsOf } from '../lifecycle/CustomsRefMovesCheck.ts';
-import type { BuildJobObservation }                                 from './@types/BuildJobObservation.ts';
-import type { HoldContext }                                         from './@types/HoldContext.ts';
-import type { JobLaunchContext }                                    from './@types/JobLaunchContext.ts';
-import { AgentConfigHits }                                          from './AgentConfigHits.ts';
-import { BuildJobHold }                                             from './BuildJobHold.ts';
-import { BuildReport }                                              from './BuildReport.ts';
-import { ConstitutionCommits }                                      from './ConstitutionCommits.ts';
-import { CrossingStages }                                           from './CrossingStages.ts';
-import { GroupWorktrees }                                           from './GroupWorktrees.ts';
-import { InstructionFiles }                                         from './InstructionFiles.ts';
-import { JobLaunch }                                                from './JobLaunch.ts';
-import { JobPipelines, REPOSITORY_ROOT_FOLDER }                     from './JobPipelines.ts';
-import { JobTicketDocuments }                                       from './JobTicketDocuments.ts';
-import { NeedTickets }                                              from './NeedTickets.ts';
-import { PipelineAgentSessions }                                    from './PipelineAgentSessions.ts';
-import { StoredFileUnreadable }                                     from './StoredFileUnreadable.ts';
-import { REVIEW_JOB_KIND, WorktreeJobs }                            from './WorktreeJobs.ts';
-import { BUILD_JOB_CAUSES }                                         from './constants/BuildJobCauses.ts';
+import type { Job }                                     from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey }                               from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft }                           from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                   from '../../domain/tracker-model/Board.ts';
+import { EntityOwnershipUtil }                          from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketStageUtil }                              from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import { WorktreesFolder }                              from '../../shared/WorktreesFolder.ts';
+import { type CrossingStageScope, type CustomsSubject } from '../lifecycle/@types/CustomsSubject.ts';
+import { type CustomsVerdict, type VerificationCheck }  from '../lifecycle/@types/CustomsVerdict.ts';
+import { type RefMovesAllowed }                         from '../lifecycle/@types/RefMoves.ts';
+import { clearCustoms, CUSTOMS_CHECKS }                 from '../lifecycle/Customs.ts';
+import { CustomsHistoryChecks }                         from '../lifecycle/CustomsHistoryChecks.ts';
+import { CustomsRefMovesCheck }                         from '../lifecycle/CustomsRefMovesCheck.ts';
+import type { BuildJobObservation }                     from './@types/BuildJobObservation.ts';
+import type { HoldContext }                             from './@types/HoldContext.ts';
+import type { JobLaunchContext }                        from './@types/JobLaunchContext.ts';
+import { AgentConfigHits }                              from './AgentConfigHits.ts';
+import { BuildJobHold }                                 from './BuildJobHold.ts';
+import { BuildReport }                                  from './BuildReport.ts';
+import { ConstitutionCommits }                          from './ConstitutionCommits.ts';
+import { CrossingStages }                               from './CrossingStages.ts';
+import { GroupWorktrees }                               from './GroupWorktrees.ts';
+import { InstructionFiles }                             from './InstructionFiles.ts';
+import { JobLaunch }                                    from './JobLaunch.ts';
+import { JobPipelines, REPOSITORY_ROOT_FOLDER }         from './JobPipelines.ts';
+import { JobTicketDocuments }                           from './JobTicketDocuments.ts';
+import { NeedTickets }                                  from './NeedTickets.ts';
+import { PipelineAgentSessions }                        from './PipelineAgentSessions.ts';
+import { StoredFileUnreadable }                         from './StoredFileUnreadable.ts';
+import { REVIEW_JOB_KIND, WorktreeJobs }                from './WorktreeJobs.ts';
+import { BUILD_JOB_CAUSES }                             from './constants/BuildJobCauses.ts';
 
 const WORK_IN_OTHER_ENTITY_DECISION = 'work-in-other-entity';
 
@@ -65,7 +65,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const { trackerDirectory } = hold.context.workspace;
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === WorktreeJobs.ticketIdOf(job));
   const start = JobLaunch.jobStartOf(trackerDirectory, job.id);
-  const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
+  const retriedJobId = CustomsHistoryChecks.retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
   const retriedStart = retriedJobId === null ? null : JobLaunch.jobStartOf(trackerDirectory, retriedJobId);
   const crossingStage = crossingStageScopeOfJob(hold, job);
   const unreadable = [start, retriedStart, crossingStage].find(StoredFileUnreadable.isUnreadableFile);
@@ -257,7 +257,7 @@ function openWorkInOtherEntityDecision(hold: HoldContext, job: Readonly<Job>, pa
 function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const worktreesRoot = WorktreesFolder.worktreesRootOf(context.workspace.rootDirectory);
   const tickets       = board.tickets();
-  return refMovesAllowedOf(board.logRecordsSoFar(), {
+  return CustomsRefMovesCheck.refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             WorktreeJobs.branchOf(context, job),
     otherJobBranches:      board.jobs().filter((other) => other.id !== job.id && WorktreeJobs.isWorktreeJob(other)).map((other) => WorktreeJobs.branchOf(context, other)),
@@ -269,7 +269,9 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, jobId),
     snapshotFolders:              PipelineAgentSessions.readerSnapshotFoldersOf(worktreesRoot),
-  }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, worktreesRoot)));
+  }, CustomsRefMovesCheck.sharedRepositoryRefsOf(
+    context.sharedRepository?.files ?? null, CustomsRefMovesCheck.watchedRefsOf(context.branchNames, context.mainLine, worktreesRoot),
+  ));
 }
 
 /** The Customs checks a resumed session can put right in its own worktree: a dirty worktree, no commit, missing or stale gate claims. */
@@ -288,4 +290,4 @@ function customsOutputOf(verdict: Readonly<Extract<CustomsVerdict, { verdict: 'r
   return verdict.check === SCOPE_CHECK ? [verdict.reason, ...verdict.facts].join('\n') : verdict.reason;
 }
 
-export const BuildJobCustoms = Object.freeze({ verifyAndRoute, });
+export const BuildJobCustoms = Object.freeze({ verifyAndRoute });

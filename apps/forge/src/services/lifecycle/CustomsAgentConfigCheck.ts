@@ -20,18 +20,10 @@ import { GitProcess }                   from '../../lib/git/GitProcess.ts';
 import type { CustomsSubject, MergeUnderVerification } from './@types/CustomsSubject.ts';
 import type { CheckVerdict }                           from './@types/CustomsVerdict.ts';
 import {
-  entityHomesOf,
+  CustomsReadings,
   GIT_SEPARATOR,
-  gitFields,
   HOST_PATH_STYLE,
-  PASSED,
-  pathsChangedInRange,
-  projectPrefixOf,
-  protectedFormOf,
-  protectedHomeFoldersOf,
-  rangeOf,
-  refused,
-  worktreeGitRun
+  PASSED
 } from './CustomsReadings.ts';
 
 interface AgentConfigurationPatterns {
@@ -42,7 +34,7 @@ interface AgentConfigurationPatterns {
 
 /** A name as the literal text of a pattern, in its protected form. */
 function literalPatternTextOf(name: string): string {
-  return protectedFormOf(name).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return CustomsReadings.protectedFormOf(name).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 /** Matched against a protected form: each folder name with everything below it, each file name exactly. */
@@ -63,9 +55,9 @@ const GIT_FOLDER_NAME = '.git';
 /** `core.hooksPath` read from git, relative paths against the worktree's root; `.git/hooks` of the common folder otherwise. */
 function hooksFolderOf(worktreePath: string): string | null {
   // Read with the repository's own setting in force: the hooks-off override would answer its own path, and reading config runs no hook.
-  const configured = worktreeGitRun(worktreePath, ['config', '--get', 'core.hooksPath'], 'repository-hooks');
+  const configured = CustomsReadings.worktreeGitRun(worktreePath, ['config', '--get', 'core.hooksPath'], 'repository-hooks');
   if (GitProcess.succeeded(configured) && configured.standardOutput.trim() !== '') return resolve(worktreePath, configured.standardOutput.trim());
-  const commonFolder = worktreeGitRun(worktreePath, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  const commonFolder = CustomsReadings.worktreeGitRun(worktreePath, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
   return GitProcess.succeeded(commonFolder) ? join(commonFolder.standardOutput.trim(), DEFAULT_HOOKS_FOLDER) : null;
 }
 
@@ -74,7 +66,7 @@ function hooksFolderInsideWorktree(style: GitPathStyle, worktreePath: string): s
   const hooksFolder = hooksFolderOf(worktreePath);
   const gitPath = hooksFolder === null ? null : GitPaths.relativeInsideOf(style, worktreePath, hooksFolder);
   // git lists no path under the main checkout's `.git`, so a hooks folder there is judged by the digest alone.
-  return gitPath === null || protectedFormOf(gitPath).split('/')[0] === GIT_FOLDER_NAME ? null : gitPath;
+  return gitPath === null || CustomsReadings.protectedFormOf(gitPath).split('/')[0] === GIT_FOLDER_NAME ? null : gitPath;
 }
 
 /** Any of the owner, group and other execute bits: git runs a hook only when it is executable. */
@@ -87,7 +79,7 @@ type HooksFolderReading = { verdict: 'read'; digest: string | null } | { verdict
  * its content and whether it is executable. `null` when the folder is missing; an entry that cannot be read, or that went between the list
  * and the read, makes the folder unreadable, which no snapshot matches.
  */
-export function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
+function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
   const hooksFolder = hooksFolderOf(worktreePath);
   try {
     // A hooks path that is no folder, such as the hooks-off path below the git program, holds no hook.
@@ -120,15 +112,15 @@ function agentConfigInAnEntityHome(protectedForm: string, protectedHomeFolders: 
  * spells it inside the worktree; any case matches. The agent's configuration is protected at the root for a tracker at the root, as always,
  * and also in each of `entityHomes` on a pipeline with entities; at any depth for a project tracker.
  */
-export function agentConfigPathsAmong(
+function agentConfigPathsAmong(
   gitPaths: readonly string[], configurationNames: AgentConfigurationNames, hooksFolderGitPath: string | null, projectPrefix = '', entityHomes: readonly string[] = []
 ): string[] {
-  const hooksFolder = hooksFolderGitPath === null ? null : protectedFormOf(hooksFolderGitPath);
+  const hooksFolder = hooksFolderGitPath === null ? null : CustomsReadings.protectedFormOf(hooksFolderGitPath);
   const configurationPatterns = agentConfigurationPatternsOf(configurationNames);
   const patterns = projectPrefix === '' ? configurationPatterns.atTheRoot : configurationPatterns.atAnyDepth;
-  const protectedHomeFolders = projectPrefix === '' ? protectedHomeFoldersOf(entityHomes) : [];
+  const protectedHomeFolders = projectPrefix === '' ? CustomsReadings.protectedHomeFoldersOf(entityHomes) : [];
   return gitPaths.filter((gitPath) => {
-    const protectedForm = protectedFormOf(gitPath);
+    const protectedForm = CustomsReadings.protectedFormOf(gitPath);
     if (patterns.some((pattern) => pattern.test(protectedForm))) return true;
     if (agentConfigInAnEntityHome(protectedForm, protectedHomeFolders, configurationPatterns.atTheRoot)) return true;
     return hooksFolder !== null && (protectedForm === hooksFolder || protectedForm.startsWith(`${hooksFolder}/`));
@@ -145,38 +137,38 @@ interface AgentConfigurationScope {
 
 /** Every path a commit since `since.commit` or the worktree itself changes in the agent's configuration or an in-tree hooks folder. */
 function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, since: AgentConfigurationScope): string[] | null {
-  const paths = pathsChangedInRange({ worktreePath, startCommit: since.commit, ...(since.merge === undefined ? {} : { merge: since.merge }) });
-  const status = gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
+  const paths = CustomsReadings.pathsChangedInRange({ worktreePath, startCommit: since.commit, ...(since.merge === undefined ? {} : { merge: since.merge }) });
+  const status = CustomsReadings.gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
   if (paths === null || status === null) return null;
   const worktreePaths = status.map((entry) => entry.slice('XY '.length));
   const hooksFolder = hooksFolderInsideWorktree(style, worktreePath);
   return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], since.configurationNames, hooksFolder, since.projectPrefix, since.entityHomes).sort();
 }
 
-export function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
+function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
   const style = subject.pathStyle ?? HOST_PATH_STYLE;
   const touched = agentConfigPathsTouched(style, subject.worktreePath, {
     commit:             subject.startCommit,
     configurationNames: subject.agentNaming.configurationNames,
-    projectPrefix:      projectPrefixOf(subject),
-    entityHomes:        entityHomesOf(subject),
+    projectPrefix:      CustomsReadings.projectPrefixOf(subject),
+    entityHomes:        CustomsReadings.entityHomesOf(subject),
     merge:              subject.merge,
   });
-  if (touched === null) return refused('git-failed', [rangeOf(subject)]);
+  if (touched === null) return CustomsReadings.refused('git-failed', [CustomsReadings.rangeOf(subject)]);
   const hooksFolderReading = subject.launchSnapshot === undefined || hooksFolderInsideWorktree(style, subject.worktreePath) !== null
     ? null
     : hooksFolderReadingOf(subject.worktreePath);
   const hooksFolderChanged = hooksFolderReading !== null
     && (hooksFolderReading.verdict === 'unreadable' || hooksFolderReading.digest !== subject.launchSnapshot?.hooksFolderDigest);
   const facts = [...touched, ...(hooksFolderChanged ? [hooksFolderOf(subject.worktreePath) ?? DEFAULT_HOOKS_FOLDER] : [])];
-  return facts.length === 0 ? PASSED : refused('branch-touches-agent-config', facts);
+  return facts.length === 0 ? PASSED : CustomsReadings.refused('branch-touches-agent-config', facts);
 }
 
 /**
  * V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. On a
  * pipeline with entities, `entityHomes` names every entity home.
  */
-export function agentConfigTouchedBeforeLaunch(
+function agentConfigTouchedBeforeLaunch(
   worktreePath: string,
   target: string,
   configurationNames: AgentConfigurationNames,
@@ -184,11 +176,18 @@ export function agentConfigTouchedBeforeLaunch(
   projectPrefix = '',
   entityHomes: readonly string[] = []
 ): CheckVerdict {
-  const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
-  if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
+  const base = CustomsReadings.worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
+  if (!GitProcess.succeeded(base)) return CustomsReadings.refused('git-failed', [target]);
   const touched = agentConfigPathsTouched(style, worktreePath, {
     commit: base.standardOutput.trim(), configurationNames, projectPrefix, entityHomes
   });
-  if (touched === null) return refused('git-failed', [target]);
-  return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
+  if (touched === null) return CustomsReadings.refused('git-failed', [target]);
+  return touched.length === 0 ? PASSED : CustomsReadings.refused('branch-touches-agent-config', touched);
 }
+
+export const CustomsAgentConfigCheck = Object.freeze({
+  hooksFolderReadingOf,
+  agentConfigPathsAmong,
+  agentConfigUntouched,
+  agentConfigTouchedBeforeLaunch,
+});

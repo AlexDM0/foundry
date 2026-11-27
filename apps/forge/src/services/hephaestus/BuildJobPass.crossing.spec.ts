@@ -63,7 +63,7 @@ import { GIT_CALL_SHAPES, useRecordedGit }                  from '../../testing/
 import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                           from '../../testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
-import { sealOf }                                           from '../lifecycle/CustomsScopeCheck.ts';
+import { CustomsScopeCheck }                                from '../lifecycle/CustomsScopeCheck.ts';
 import type { JobLaunchContext }                            from './@types/JobLaunchContext.ts';
 import { BuildJobPass }                                     from './BuildJobPass.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
@@ -494,7 +494,7 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
 
     expect(reviewedPackageOf(ticket, false, { exposedSurfaceConfirmed: true })).toBe('reviewed: ');
-    const seal = sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(CROSSING_PIPELINE, UI_KIT.key));
+    const seal = CustomsScopeCheck.sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(CROSSING_PIPELINE, UI_KIT.key));
     expect(seal).not.toBeNull();
     expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: seal ?? '' });
     expect(reviewsRecordedOf(ticket.board)).toEqual([1]);
@@ -517,7 +517,7 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
 
     const pathspecs = CrossingStages.sealPathspecsOf(ticket.board.pipeline(), UI_KIT.key, [ENTITY_FORGE_LOCK_FILE]);
     expect(pathspecs).toEqual([UI_KIT.homeFolder, ENTITY_FORGE_LOCK_FILE]);
-    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, pathspecs) ?? '' });
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: CustomsScopeCheck.sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, pathspecs) ?? '' });
     expect(CrossingStages.stageStatementOf(ticket.context.workspace.trackerDirectory, job.id)).toMatchObject({ sealedReachPaths: [ENTITY_FORGE_LOCK_FILE] });
 
     const homeReview = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<stage tip>', reviewedReportOf()));
@@ -606,7 +606,7 @@ function sealIn(scenario: EntityForgeScenario): string {
   enterScenario(scenario, { repositoryDirectory: ticket.repository, commits: commitsOf(scenario) });
   const worktree = ticketWorktreeOf(ticket);
   mkdirSync(worktree, { recursive: true });
-  return sealOf(worktree, ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(CROSSING_PIPELINE, UI_KIT.key)) ?? '';
+  return CustomsScopeCheck.sealOf(worktree, ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(CROSSING_PIPELINE, UI_KIT.key)) ?? '';
 }
 
 describeWhenGitIsRecorded('a stage after the seal', () => {
@@ -663,7 +663,7 @@ describeWhenGitIsRecorded('a package without gates (E27)', () => {
 
     const review = runStage(ticket, PACKAGE_REVIEWER, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<shop ticket tip>', reviewedReportOf({ exposedSurfaceConfirmed: true })));
 
-    const seal = sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(PACKAGE_WITHOUT_GATES, UI_KIT.key));
+    const seal = CustomsScopeCheck.sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(PACKAGE_WITHOUT_GATES, UI_KIT.key));
     expect(review.whereTheJobWent).toBe('reviewed: ');
     expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: seal ?? '' });
   });

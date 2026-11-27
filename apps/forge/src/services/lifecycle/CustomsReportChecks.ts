@@ -14,18 +14,7 @@ import type { TicketStageName }             from '../../domain/tracker-model/@ty
 
 import type { CustomsSubject, ReportingRole } from './@types/CustomsSubject.ts';
 import type { CheckVerdict }                  from './@types/CustomsVerdict.ts';
-import {
-  crossingStageNameOf,
-  inAPackageStage,
-  gitLines,
-  PASSED,
-  rangeArgumentsOf,
-  rangeOf,
-  refused,
-  reportFieldOf,
-  reportListOf,
-  worktreeCommitOf
-} from './CustomsReadings.ts';
+import { CustomsReadings, PASSED }            from './CustomsReadings.ts';
 
 const REPORT_SCHEMA_OF_ROLE: Readonly<Record<ReportingRole, JsonSchema>> = {
   'builder':       BUILDER_REPORT_SCHEMA,
@@ -44,53 +33,53 @@ function reportSchemaOf(role: ReportingRole, stageName: TicketStageName | null):
   return REPORT_SCHEMA_OF_ROLE[role];
 }
 
-export function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
-  if (subject.role === 'pipeline-agent' || subject.role === 'document-agent') return refused('report-invalid', ['no report']);
-  const verdict = reportVerdictOf(reportSchemaOf(subject.role, crossingStageNameOf(subject)), subject.report);
+function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
+  if (subject.role === 'pipeline-agent' || subject.role === 'document-agent') return CustomsReadings.refused('report-invalid', ['no report']);
+  const verdict = reportVerdictOf(reportSchemaOf(subject.role, CustomsReadings.crossingStageNameOf(subject)), subject.report);
   if (verdict.verdict === 'invalid') return {
     verdict: 'refused', reason: 'report-invalid', facts: [], reportProblems: verdict.problems
   };
-  const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
-  if (headCommit === null) return refused('git-failed', ['HEAD']);
-  const reportedHead = String(reportFieldOf(subject.report, 'headCommit'));
-  return reportedHead === headCommit ? PASSED : refused('head-not-reported', [reportedHead, headCommit]);
+  const headCommit = CustomsReadings.worktreeCommitOf(subject.worktreePath, 'HEAD');
+  if (headCommit === null) return CustomsReadings.refused('git-failed', ['HEAD']);
+  const reportedHead = String(CustomsReadings.reportFieldOf(subject.report, 'headCommit'));
+  return reportedHead === headCommit ? PASSED : CustomsReadings.refused('head-not-reported', [reportedHead, headCommit]);
 }
 
 /**
  * A builder accounts for each item with evidence or a waiver proposal; a reviewer with a claim. An item the Acceptance waives needs neither,
  * and a package stage accounts for none: the home stages own the evidence for the ticket's Acceptance.
  */
-export function everyAcceptanceItemAccountedFor(subject: CustomsSubject): CheckVerdict {
-  if (inAPackageStage(subject)) return PASSED;
+function everyAcceptanceItemAccountedFor(subject: CustomsSubject): CheckVerdict {
+  if (CustomsReadings.inAPackageStage(subject)) return PASSED;
   const labels  = TicketAcceptanceUtil.acceptanceItemsOf(subject.acceptanceText ?? subject.ticketBody)
     .filter(({ waivedReason }) => waivedReason === null)
     .map(({ label }) => label);
   const covered = subject.role === 'reviewer'
-    ? reportListOf(subject.report, 'claims').map((claim) => String(claim['item']).trim())
-    : reportListOf(subject.report, 'acceptance')
+    ? CustomsReadings.reportListOf(subject.report, 'claims').map((claim) => String(claim['item']).trim())
+    : CustomsReadings.reportListOf(subject.report, 'acceptance')
       .filter((entry) => entry['state'] === 'waiver-proposed' || String(entry['evidence'] ?? '').trim() !== '')
       .map((entry) => String(entry['item']).trim());
   const missing = labels.filter((label) => !covered.includes(label));
-  return missing.length === 0 ? PASSED : refused('acceptance-without-evidence', missing);
+  return missing.length === 0 ? PASSED : CustomsReadings.refused('acceptance-without-evidence', missing);
 }
 
-export function fixedFindingsNameCommitsInRange(subject: CustomsSubject): CheckVerdict {
-  const commits = gitLines(subject.worktreePath, ['rev-list', ...rangeArgumentsOf(subject)]);
-  if (commits === null) return refused('git-failed', [rangeOf(subject)]);
-  const outside = reportListOf(subject.report, 'findings')
+function fixedFindingsNameCommitsInRange(subject: CustomsSubject): CheckVerdict {
+  const commits = CustomsReadings.gitLines(subject.worktreePath, ['rev-list', ...CustomsReadings.rangeArgumentsOf(subject)]);
+  if (commits === null) return CustomsReadings.refused('git-failed', [CustomsReadings.rangeOf(subject)]);
+  const outside = CustomsReadings.reportListOf(subject.report, 'findings')
     .filter((finding) => finding['outcome'] === 'fixed')
     .map((finding) => String(finding['commit']))
     .filter((commit) => !commits.includes(commit));
-  return outside.length === 0 ? PASSED : refused('fixed-finding-outside-range', outside);
+  return outside.length === 0 ? PASSED : CustomsReadings.refused('fixed-finding-outside-range', outside);
 }
 
 /** Every gate but a `forgeOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */
-export function everyAgentGateClaimedOnHead(subject: CustomsSubject): CheckVerdict {
-  const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
-  if (headCommit === null) return refused('git-failed', ['HEAD']);
-  const claimedOnHead = reportListOf(subject.report, 'gates').filter((claim) => claim['commit'] === headCommit).map((claim) => String(claim['name']));
+function everyAgentGateClaimedOnHead(subject: CustomsSubject): CheckVerdict {
+  const headCommit = CustomsReadings.worktreeCommitOf(subject.worktreePath, 'HEAD');
+  if (headCommit === null) return CustomsReadings.refused('git-failed', ['HEAD']);
+  const claimedOnHead = CustomsReadings.reportListOf(subject.report, 'gates').filter((claim) => claim['commit'] === headCommit).map((claim) => String(claim['name']));
   const unclaimed = (subject.gates ?? []).filter((gate) => gate.forgeOnly !== true && !claimedOnHead.includes(gate.name)).map((gate) => gate.name);
-  return unclaimed.length === 0 ? PASSED : refused('gate-unclaimed', unclaimed);
+  return unclaimed.length === 0 ? PASSED : CustomsReadings.refused('gate-unclaimed', unclaimed);
 }
 
 function ticketNumberOf(ticketReference: string): number {
@@ -98,7 +87,7 @@ function ticketNumberOf(ticketReference: string): number {
 }
 
 /** The ticket a relayed request filed: the nearest `ticket-filed` this job logged before the request's `hatch-applied`, in the same application. */
-export function ticketIdFiledByRequest(records: readonly LogRecord[], jobId: string, requestId: string): string | null {
+function ticketIdFiledByRequest(records: readonly LogRecord[], jobId: string, requestId: string): string | null {
   const appliedIndex = records.findIndex((record) => record.kind === 'hatch-applied' && record.jobId === jobId && record.fields.requestId === requestId);
   for (let i = appliedIndex - 1; i >= 0; i -= 1) {
     const record = records[i];
@@ -118,10 +107,10 @@ function filingIsThisJobsLowFinding(records: readonly LogRecord[], jobId: string
 }
 
 /** A reviewer's filed findings, each a draft low ticket this job filed through its Hatch. */
-export function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict {
+function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict {
   const records = subject.logRecords ?? [];
   const jobId = subject.jobId ?? '';
-  const filed = reportListOf(subject.report, 'findings').filter((finding) => finding['outcome'] === 'filed');
+  const filed = CustomsReadings.reportListOf(subject.report, 'findings').filter((finding) => finding['outcome'] === 'filed');
   const unproven = filed.flatMap((finding) => {
     const namedTicketId = typeof finding['filedTicketId'] === 'string' ? finding['filedTicketId'] : null;
     const requestId = typeof finding['hatchRequestId'] === 'string' ? finding['hatchRequestId'] : null;
@@ -129,5 +118,14 @@ export function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckV
     if (ticketId !== null && filingIsThisJobsLowFinding(records, jobId, ticketId)) return [];
     return [namedTicketId ?? requestId ?? 'unnamed'];
   });
-  return unproven.length === 0 ? PASSED : refused('finding-not-filed-by-job', unproven);
+  return unproven.length === 0 ? PASSED : CustomsReadings.refused('finding-not-filed-by-job', unproven);
 }
+
+export const CustomsReportChecks = Object.freeze({
+  reportIsValidWithItsHead,
+  everyAcceptanceItemAccountedFor,
+  fixedFindingsNameCommitsInRange,
+  everyAgentGateClaimedOnHead,
+  ticketIdFiledByRequest,
+  filedFindingsWereFiledByThisJob,
+});

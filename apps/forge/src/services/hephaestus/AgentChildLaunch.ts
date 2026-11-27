@@ -44,9 +44,9 @@ import { InstructionFiles }                                    from './Instructi
 import { JobLaunch }                                           from './JobLaunch.ts';
 import { JobResumption }                                       from './JobResumption.ts';
 import { JobSandbox }                                          from './JobSandbox.ts';
-import { agentProgramResolutionOf }                            from './LaunchAgentPrograms.ts';
-import { airlockAgentPhaseOf, airlockFactsOf, launchFactsOf }  from './LaunchFacts.ts';
-import { launchProfileOf }                                     from './LaunchProfile.ts';
+import { LaunchAgentPrograms }                                 from './LaunchAgentPrograms.ts';
+import { LaunchFacts }                                         from './LaunchFacts.ts';
+import { LaunchProfile }                                       from './LaunchProfile.ts';
 import { LaunchSettings, type SessionLaunchSettings }          from './LaunchSettings.ts';
 import { PipelineAgentSessions }                               from './PipelineAgentSessions.ts';
 import { RedHandoff }                                          from './RedHandoff.ts';
@@ -73,7 +73,7 @@ const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
  * adapt build's report may send the ticket back to a sealed package (E41).
  */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
-  if (job.kind === 'merge-agent' && airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
+  if (job.kind === 'merge-agent' && LaunchFacts.airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
   const stageName = TicketStageUtil.stageOfJob(job)?.name;
   if (job.kind === 'build' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
   if (job.kind === 'review' && stageName === 'package-review') return PACKAGE_REVIEWER_REPORT_SCHEMA;
@@ -81,7 +81,7 @@ function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   return REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null;
 }
 
-export function repositorySignsCommits(repositoryRoot: string): boolean {
+function repositorySignsCommits(repositoryRoot: string): boolean {
   const run = GitProcess.run(repositoryRoot, ['config', '--bool', 'commit.gpgsign']);
   return run !== null && GitProcess.succeeded(run) && run.standardOutput.trim() === 'true';
 }
@@ -138,7 +138,7 @@ function unreadableJobFileRefusalOf(
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
  * marks its instance spawned, so the next pass tries it again. A job file the launch needs that cannot be read answers that file.
  */
-export async function launchAgentChild(
+async function launchAgentChild(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
   board: Board,
@@ -160,7 +160,7 @@ export async function launchAgentChild(
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job, board.pipelineSetup());
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
   const location = projectLocationOf(workspace.rootDirectory);
-  const program = agentProgramResolutionOf(request, board, job);
+  const program = LaunchAgentPrograms.agentProgramResolutionOf(request, board, job);
   if (program.verdict === 'not-launched') return { notLaunchedJobId: job.id, notLaunched: program.notLaunched };
   const children         = request.boardChildren;
   const jobFolder        = children.jobFolderOf(job.id);
@@ -188,14 +188,14 @@ export async function launchAgentChild(
       return unmadeRoot;
     }
   }
-  const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
+  const airlock = LaunchFacts.airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
   if (airlock !== null && airlock !== 'conflicts-unknown' && 'unreadableJobFile' in airlock) return unreadableJobFileRefusalOf(request, job, airlock.unreadableJobFile);
   if (airlock === 'conflicts-unknown') {
     request.log({ kind: 'airlock-agent-conflicts-unknown', jobId: job.id });
     return { airlockConflictsUnknownFor: job.id };
   }
   const effectReading    = effectReadings.factsOf(board, job, location.repositoryRoot, request.mainLine);
-  const factsRead = launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
+  const factsRead = LaunchFacts.launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
   if (StoredFileUnreadable.isUnreadableFile(factsRead)) return unreadableJobFileRefusalOf(request, job, factsRead);
   const launchFacts      = { ...factsRead, effectReading };
   const text             = request.launchTextOf(job, launchFacts);
@@ -241,7 +241,7 @@ export async function launchAgentChild(
       ),
       agentSearchFoldersOf(request, board, job, program.programPath),
     ),
-    profile:              launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
+    profile:              LaunchProfile.launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
     confinement:          launchFacts.confinement,
     launchFilesDirectory: jobFolder,
     reportSchema:         reportSchemaOf(board, job),
@@ -306,7 +306,7 @@ function waitsOnAnUnreadableFileIncident(board: Board, job: Readonly<Job>): bool
  * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`. A job that waits on an
  * unreadable file's incident is not tried again until a move on it.
  */
-export function jobsNeedingAChild(
+function jobsNeedingAChild(
   children: BoardChildren,
   board: Board,
   spawnedInstances: ReadonlySet<string>,
@@ -320,3 +320,9 @@ export function jobsNeedingAChild(
     && !spawnedInstances.has(`${job.id}:${job.childInstance}`)
     && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
 }
+
+export const AgentChildLaunch = Object.freeze({
+  repositorySignsCommits,
+  launchAgentChild,
+  jobsNeedingAChild,
+});

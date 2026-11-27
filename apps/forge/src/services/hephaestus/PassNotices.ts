@@ -6,7 +6,7 @@ import type { HephaestusNotice }            from './@types/HephaestusStateDocume
 import type { DefaultedIncident }           from './IncidentRouter.ts';
 
 /** One notice for each job that stands not launched, read from its stored fact so it outlasts a restart, this pass's refusals included. */
-export function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedThisPass: readonly AgentProgramRefused[]): HephaestusNotice[] {
+function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedThisPass: readonly AgentProgramRefused[]): HephaestusNotice[] {
   const standing = board.jobs().flatMap((job) => (job.notLaunched === undefined ? [] : [{ notLaunchedJobId: job.id, notLaunched: job.notLaunched }]));
   const refusals = [...standing, ...refusedThisPass.filter((refused) => !standing.some((stood) => stood.notLaunchedJobId === refused.notLaunchedJobId))];
   return refusals.map(({ notLaunchedJobId, notLaunched }) => ({
@@ -19,7 +19,7 @@ export function agentProgramNoticesOf(request: DrivePassRequest, board: Board, r
   }));
 }
 
-export function noticesOf(
+function noticesOf(
   request: DrivePassRequest,
   installVersionChanged: boolean,
   attributionTicketIds: readonly string[],
@@ -48,3 +48,8 @@ export function noticesOf(
     ...launchRefusals,
   ];
 }
+
+export const PassNotices = Object.freeze({
+  agentProgramNoticesOf,
+  noticesOf,
+});

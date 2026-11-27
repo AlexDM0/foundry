@@ -38,7 +38,7 @@ import type { CustomsVerdict }                                                  
 import type { RefMovesAllowed }                                                           from '../lifecycle/@types/RefMoves.ts';
 import { clearCustoms }                                                                   from '../lifecycle/Customs.ts';
 import { launchSnapshotOf }                                                               from '../lifecycle/CustomsLaunchSnapshot.ts';
-import { refMovesAllowedOf, sharedRepositoryRefsOf, watchedRefsOf }                       from '../lifecycle/CustomsRefMovesCheck.ts';
+import { CustomsRefMovesCheck }                                                           from '../lifecycle/CustomsRefMovesCheck.ts';
 import type { SharedRepositoryLanding }                                                   from '../lifecycle/Landing.ts';
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
@@ -258,7 +258,7 @@ function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: s
 function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const tickets = board.tickets();
   const { ticketBranchOf } = context.branchNames;
-  return refMovesAllowedOf(board.logRecordsSoFar(), {
+  return CustomsRefMovesCheck.refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             '',
     otherJobBranches:      board.jobs().flatMap((other) => (other.id === job.id || other.ticketIds[0] === undefined ? [] : [ticketBranchOf(other.ticketIds[0])])),
@@ -270,7 +270,9 @@ function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Re
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),
     snapshotFolders:              readerSnapshotFoldersOf(context.worktreesRoot),
-  }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot)));
+  }, CustomsRefMovesCheck.sharedRepositoryRefsOf(
+    context.sharedRepository?.files ?? null, CustomsRefMovesCheck.watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot),
+  ));
 }
 
 /** With no snapshot start, the launch could not take one, so the check fails closed. */

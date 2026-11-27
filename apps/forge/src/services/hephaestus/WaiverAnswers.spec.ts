@@ -12,7 +12,7 @@ import { boardFixture, ticketFixture }                    from '../../testing/Bo
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { actOnWaiverAnswers }                             from './WaiverAnswers.ts';
+import { WaiverAnswers }                                  from './WaiverAnswers.ts';
 
 const AT = '2026-11-27T10:00:00+01:00';
 const NEXT_PASS_AT = '2026-11-27T10:00:30+01:00';
@@ -44,7 +44,7 @@ test('a grant whose proposals cannot be read opens the incident on the review on
   writeFileSync(join(reviewFolder, 'waiver-proposals.json'), '[{"item": "A2", "reason": "The export was retired"}]');
   const steps: PlaybookStep[] = [{ kind: 'act-on-waiver-answer', jobId: review.id, answers: ['Grant'] }];
   const answeredWaiverTrees = new Map([[review.id, EXAMPLE_TREE]]);
-  const passAt = (at: string): boolean => actOnWaiverAnswers({ board, at } as unknown as BoardTransaction, steps, answeredWaiverTrees, trackerDirectory);
+  const passAt = (at: string): boolean => WaiverAnswers.actOnWaiverAnswers({ board, at } as unknown as BoardTransaction, steps, answeredWaiverTrees, trackerDirectory);
 
   expect(passAt(AT)).toBe(false);
   expect(passAt(NEXT_PASS_AT)).toBe(false);

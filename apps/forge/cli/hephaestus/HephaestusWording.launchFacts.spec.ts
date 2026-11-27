@@ -23,7 +23,7 @@ import type { TicketStage }                         from '../../src/domain/track
 import type { Board }                               from '../../src/domain/tracker-model/Board.ts';
 import type { DrivePassRequest }                    from '../../src/services/hephaestus/@types/DrivePassRequest.ts';
 import { CrossingStages }                           from '../../src/services/hephaestus/CrossingStages.ts';
-import { launchFactsOf }                            from '../../src/services/hephaestus/LaunchFacts.ts';
+import { LaunchFacts }                              from '../../src/services/hephaestus/LaunchFacts.ts';
 import { StoredFileUnreadable }                     from '../../src/services/hephaestus/StoredFileUnreadable.ts';
 import { branchNamesOf }                            from '../../src/shared/BranchNames.ts';
 import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';
@@ -146,7 +146,7 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
   const place = {
     checkout: '', workingDirectory: '', holdsRepository: true, projectFolderFromStart: ''
   };
-  const facts = launchFactsOf(crossing.board, request, job, { instructions: BUILD_PROMPT, airlock: null, place });
+  const facts = LaunchFacts.launchFactsOf(crossing.board, request, job, { instructions: BUILD_PROMPT, airlock: null, place });
   if (StoredFileUnreadable.isUnreadableFile(facts)) {
     throw new Error(`The launch read ${facts.file}, which cannot be read: ${UnreadableFileProblemWordingUtil.sentenceOf(facts.problem)}`);
   }

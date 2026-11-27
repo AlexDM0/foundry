@@ -19,18 +19,13 @@ import { createAirlockAgents }                                                 f
 import { createAirlockAllocation }                                             from './AirlockAllocation.ts';
 import { createAirlockLandings }                                               from './AirlockLandings.ts';
 import { createAirlockMergeIn }                                                from './AirlockMergeIn.ts';
-import {
-  isConstitutionCommit,
-  isRefresh,
-  mergeAgentOf,
-  slotOf
-} from './AirlockReadings.ts';
-import { createAirlockSlots }              from './AirlockSlots.ts';
-import { createConstitutionCommitAirlock } from './ConstitutionCommitAirlock.ts';
-import { ConstitutionCommits }             from './ConstitutionCommits.ts';
-import { createMergedTreeGating }          from './MergedTreeGating.ts';
-import { createStaleGreenRegates }         from './StaleGreenRegates.ts';
-import { REQUEUE_CAUSES }                  from './constants/AirlockCauses.ts';
+import { AirlockReadings }                                                     from './AirlockReadings.ts';
+import { createAirlockSlots }                                                  from './AirlockSlots.ts';
+import { createConstitutionCommitAirlock }                                     from './ConstitutionCommitAirlock.ts';
+import { ConstitutionCommits }                                                 from './ConstitutionCommits.ts';
+import { createMergedTreeGating }                                              from './MergedTreeGating.ts';
+import { createStaleGreenRegates }                                             from './StaleGreenRegates.ts';
+import { REQUEUE_CAUSES }                                                      from './constants/AirlockCauses.ts';
 
 /** A sweep stops after this many rounds of advancing and allocating, so a slot that keeps moving waits for the next pass. */
 const ROUNDS_PER_SWEEP = 8;
@@ -56,7 +51,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   let startOrphansWereLookedAt = false;
 
   async function advance(job: Readonly<Job>, hasOpenIncident: boolean): Promise<boolean> {
-    switch (slotOf(job).phase) {
+    switch (AirlockReadings.slotOf(job).phase) {
       case 'merge-in':
         return runMergeIn(job);
       case 'resolving':
@@ -68,7 +63,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       case 'committing':
         return runConstitutionCommit(job);
       case 'landing':
-        return isConstitutionCommit(job) ? runConstitutionLanding(job) : runLanding(job);
+        return AirlockReadings.isConstitutionCommit(job) ? runConstitutionLanding(job) : runLanding(job);
     }
   }
 
@@ -88,9 +83,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /** The target's tip moved past the start tip the slot recorded and holds the commit the slot was landing: only its board side is left. */
   function landingWasMade(job: Readonly<Job>): boolean {
-    const slot = slotOf(job);
+    const slot = AirlockReadings.slotOf(job);
     if (slot.phase !== 'landing') return false;
-    const landingWorktree = isConstitutionCommit(job) ? ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id) : slotWorktreeOf(job);
+    const landingWorktree = AirlockReadings.isConstitutionCommit(job) ? ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id) : slotWorktreeOf(job);
     const landingCommit   = existsSync(landingWorktree) ? MergeRun.headOf(landingWorktree) : null;
     const targetTip       = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${slot.target}`);
     if (landingCommit === null || targetTip === null || targetTip === slot.targetTip) return false;
@@ -103,7 +98,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * no request, is only freed: the next allocation derives it again from the branches.
    */
   async function holdOrphanedSlot(job: Readonly<Job>): Promise<boolean> {
-    if (isConstitutionCommit(job)) {
+    if (AirlockReadings.isConstitutionCommit(job)) {
       return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned }, (hold, setupId) => {
         hold.board.holdApply(setupId, { reason: INTERRUPTED_APPLY_REASON, blockingFiles: [] }, hold.at);
       });
@@ -124,7 +119,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const holdOf = (ticketId: string): string | undefined => hold.board.ticketByReference(ticketId)?.frontmatter.hold;
       return {
         job,
-        agent:           mergeAgentOf(hold.board, job),
+        agent:           AirlockReadings.mergeAgentOf(hold.board, job),
         parked:          job.ticketIds.some((ticketId) => holdOf(ticketId)?.startsWith(PARKED_HOLD_PREFIX) === true),
         waitsForResume:  job.ticketIds.some((ticketId) => holdOf(ticketId)?.startsWith(INTERRUPTED_HOLD_PREFIX) === true),
         hasOpenIncident: hold.board.incidents().some((incident) => incident.jobId === job.id),
@@ -147,7 +142,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       for (const { frontmatter } of hold.board.tickets()) {
         if (frontmatter.group !== undefined && frontmatter.status !== 'delivered' && frontmatter.status !== 'abandoned') targets.add(`${groupTargetPrefix}${frontmatter.group}`);
       }
-      for (const job of hold.board.jobs()) if ((job.kind === 'merge' || isRefresh(job) || isConstitutionCommit(job)) && job.target !== null) targets.add(job.target);
+      for (const job of hold.board.jobs()) {
+        if ((job.kind === 'merge' || AirlockReadings.isRefresh(job) || AirlockReadings.isConstitutionCommit(job)) && job.target !== null) targets.add(job.target);
+      }
       return [...targets];
     });
   }

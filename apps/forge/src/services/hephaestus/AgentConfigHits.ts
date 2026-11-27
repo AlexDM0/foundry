@@ -2,18 +2,18 @@
  * V13 before each launch: the tickets whose branch or worktree changes agent configuration, each hit opening its decision once and holding
  * the ticket until User answers.
  */
-import { existsSync }                     from 'node:fs';
-import type { Job }                       from '../../domain/tracker-model/@types/Job.ts';
-import type { LogRecord }                 from '../../domain/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                  from '../../domain/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft }             from '../../domain/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                     from '../../domain/tracker-model/Board.ts';
-import { agentConfigTouchedBeforeLaunch } from '../lifecycle/CustomsAgentConfigCheck.ts';
-import type { BoardTransaction }          from '../tracker/BoardTransaction.ts';
-import type { HoldContext }               from './@types/HoldContext.ts';
-import type { JobLaunchContext }          from './@types/JobLaunchContext.ts';
-import { JobPipelines }                   from './JobPipelines.ts';
-import { WorktreeJobs }                   from './WorktreeJobs.ts';
+import { existsSync }              from 'node:fs';
+import type { Job }                from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }          from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }           from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft }      from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }              from '../../domain/tracker-model/Board.ts';
+import { CustomsAgentConfigCheck } from '../lifecycle/CustomsAgentConfigCheck.ts';
+import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
+import type { HoldContext }        from './@types/HoldContext.ts';
+import type { JobLaunchContext }   from './@types/JobLaunchContext.ts';
+import { JobPipelines }            from './JobPipelines.ts';
+import { WorktreeJobs }            from './WorktreeJobs.ts';
 
 const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
 
@@ -56,7 +56,9 @@ function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonl
     if (!existsSync(worktree)) return false;
     const target = job.target ?? context.mainLine;
     const { configurationNames } = context.agentAdapter;
-    return agentConfigTouchedBeforeLaunch(worktree, target, configurationNames, context.platformPorts.dataFolders, projectPrefix, entityHomes).verdict === 'refused';
+    return CustomsAgentConfigCheck.agentConfigTouchedBeforeLaunch(
+      worktree, target, configurationNames, context.platformPorts.dataFolders, projectPrefix, entityHomes,
+    ).verdict === 'refused';
   }).map(WorktreeJobs.ticketIdOf);
 }
 

@@ -56,7 +56,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, place: Session
  * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
  * a product owner and a pipeline agent get their own profile, and every other role the session profile.
  */
-export function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {
+function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory));
   if (PipelineAgentSessions.isPipelineAgentJob(job)) {
     return PipelineAgentSessions.pipelineAgentProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), hatchDirectory);
@@ -80,3 +80,5 @@ export function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
+
+export const LaunchProfile = Object.freeze({ launchProfileOf });

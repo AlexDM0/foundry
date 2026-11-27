@@ -77,7 +77,7 @@ function recognisedEndingCauseAt(childObservation: ChildObservation, sequence: n
  * A top-level usage refusal interrupts the job instead, and the error result after it is no closing result; under API billing so do a 429
  * result, a refused key and a budget stop. A result Talos recognised as an ending interrupts the job with its cause and stops its session.
  */
-export function applyChildEvents(
+function applyChildEvents(
   change: BoardTransaction,
   adapter: AgentAdapter,
   childObservations: readonly ChildObservation[],
@@ -192,3 +192,5 @@ export function applyChildEvents(
     usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds, documentAgentTurnEnds, documentAgentSessionEnds, effectReadingResults, effectReadingEnds
   };
 }
+
+export const ChildEvents = Object.freeze({ applyChildEvents });
