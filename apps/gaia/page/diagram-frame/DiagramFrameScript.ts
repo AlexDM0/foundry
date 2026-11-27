@@ -1,8 +1,7 @@
 /**
- * The diagram frame's one script, served as a classic bundle with mermaid: it draws the mermaid source its page sends, answers with the
- * drawing's height and nodes, and tells the page which node the pointer is on. It runs sandboxed with no origin of its own, takes a message
- * only from its parent and only of its own protocol and version, and holds no colour: each reaches it as a theme variable from the board's
- * tokens. The theme variable `darkMode` set to `true` draws for a dark page.
+ * The diagram frame's one script, served as a classic bundle with mermaid: it draws the source its page sends, answers with the drawing's height
+ * and nodes, and reports the node under the pointer. It runs sandboxed, takes messages only from its parent and of its own protocol and version,
+ * and holds no colour: each arrives as a theme variable.
  */
 import mermaid from 'mermaid';
 

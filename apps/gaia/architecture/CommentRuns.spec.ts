@@ -39,7 +39,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'architecture/RealProgramRuns.spec.ts':                                         1,
   'architecture/StyleContract.spec.ts':                                           1,
   'architecture/WorkspaceDependencies.spec.ts':                                   1,
-  'page/diagram-frame/DiagramFrameScript.ts':                                     1,
   'page/lib/brand/architecture/PackageIsolation.spec.ts':                         1,
   'page/lib/brand/architecture/StyleChecks.spec.ts':                              1,
   'page/lib/brand/architecture/StyleContract.spec.ts':                            1,
