@@ -1,6 +1,6 @@
 /**
- * A small line drawing on a 16 by 16 grid, stroked in the colour of what holds it; the holder sets its size, and its stroke through
- * `--icon-stroke-width`. Each name says what is drawn, never what it stands for.
+ * A small line drawing on a 16 by 16 grid, stroked in the colour of what holds it. It fills its holder, which may instead set its size
+ * through `--icon-size` and its stroke through `--icon-stroke-width`. Each name says what is drawn, never what it stands for.
  * With a label it is an image of that name; with `null` it is hidden from the accessibility tree, for a drawing whose meaning is printed
  * beside it.
  */

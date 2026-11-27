@@ -9,9 +9,6 @@
 
 /* ── Design system: the parts the package does not have ────────────────────────────────────────────────────────────────────── */
 
-/* A package icon as a button's glyph, at the boards' 13 px */
-.gaia-button-glyph { display: inline-flex; flex: none; width: var(--space-13); height: var(--space-13); }
-
 /* A label a screen reader reads where the layout already says what it is, such as a group's */
 .gaia-visually-hidden {
   position: absolute;
