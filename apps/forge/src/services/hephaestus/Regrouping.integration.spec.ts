@@ -1,9 +1,11 @@
 /**
  * Settling a lost child's cause against real process groups. What matters is that the recorded child group is killed whenever it is still
  * the recorded one, including once its leader has exited while members live on (its Talos is then the one lost), and that a group whose
- * recorded leader id now belongs to an unrelated process, alive or as the members of a reused group, is never signalled.
+ * recorded leader id now belongs to an unrelated process, alive or as the members of a reused group, is never signalled. A stored cause that
+ * names no interruption cause is logged and settled again, so it never reaches the board.
  */
-import { join } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 import {
   afterEach,
   describe,
@@ -67,8 +69,8 @@ function lostChildRecording(childProcess: ProcessIdentity): LostChild {
   return { boardFolder, jobFolder: join(boardFolder, 'jobs', 'J1') };
 }
 
-function settled(lost: LostChild): ReturnType<typeof Regrouping.settleLostChildIn> {
-  return Regrouping.settleLostChildIn(lost.boardFolder, ports, createUnreadableBoardFiles(() => undefined), lost.jobFolder, CHILD_INSTANCE);
+function settled(lost: LostChild, log: (line: string) => void = () => undefined): ReturnType<typeof Regrouping.settleLostChildIn> {
+  return Regrouping.settleLostChildIn(lost.boardFolder, ports, createUnreadableBoardFiles(() => undefined), log, lost.jobFolder, CHILD_INSTANCE);
 }
 
 describe('settling a lost child', () => {
@@ -107,5 +109,16 @@ describe('settling a lost child', () => {
     await leader.exited;
     expect(settled(lost)).toBe('agent-crashed');
     expect(processIsGone(childProcessId)).toBe(false);
+  });
+
+  test('a stored cause that names no interruption cause is logged and settled again, and the settled cause is stored over it', () => {
+    const lost = lostChildRecording({ ...identityOrThrow(process.pid), startStamp: '1' });
+    const lostCausePath = join(lost.jobFolder, `child-${CHILD_INSTANCE}.lost-cause`);
+    writeFileSync(lostCausePath, 'garbage\n');
+    const loggedLines: string[] = [];
+    expect(settled(lost, (line) => loggedLines.push(line))).toBe('agent-crashed');
+    expect(loggedLines).toEqual([`The lost cause ${lostCausePath} names no interruption cause ("garbage"); it is settled again.`]);
+    expect(readFileSync(lostCausePath, 'utf8')).toBe('agent-crashed\n');
+    expect(settled(lost)).toBe('agent-crashed');
   });
 });

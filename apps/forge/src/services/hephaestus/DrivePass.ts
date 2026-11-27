@@ -544,7 +544,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.childInstance}, is malformed; its events wait.`);
     const lostCause = liveness.verdict === 'lost' && job.role !== null
       ? Regrouping.settleLostChildIn(
-        workspace.trackerDirectory, request.platformPorts, request.unreadableBoardFiles, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id),
+        workspace.trackerDirectory, request.platformPorts, request.unreadableBoardFiles, request.log, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id),
       )
       : null;
     return {
@@ -1996,7 +1996,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function regroup(): Promise<RegroupingReport> {
-    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace, request.boardStore.reads, request.unreadableBoardFiles);
+    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace, request.boardStore.reads, request.unreadableBoardFiles, request.log);
     await mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
