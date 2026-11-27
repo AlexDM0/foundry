@@ -12,6 +12,14 @@
 .design-system-icon-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-icon-button:disabled { color: var(--ink-disabled); cursor: not-allowed; }
 
+/* The accent block: the primary action beside a text box, orange, 48px wide and as tall as its row, its drawing at 18px. */
+.design-system-icon-button[data-accent] {
+  align-self: stretch; width: 48px; height: auto; min-height: 30px;
+  color: var(--accent-ink-on); background: var(--button); border-color: var(--button); border-radius: var(--r-3);
+}
+.design-system-icon-button[data-accent] .design-system-icon-button-drawing { display: block; width: 18px; height: 18px; }
+.design-system-icon-button[data-accent]:disabled { color: var(--ink-4); background: var(--wash); border-color: var(--line); }
+
 @media (prefers-reduced-motion: reduce) {
   .design-system-icon-button:not(:disabled):active { transform: none; }
 }
