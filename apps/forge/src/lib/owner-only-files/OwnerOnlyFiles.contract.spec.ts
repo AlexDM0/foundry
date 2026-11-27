@@ -84,8 +84,12 @@ runPortContract('OwnerOnlyFiles', [
 
 test('a platform with no adapter refuses a restriction and reads nothing as owner-only', () => {
   const ownerOnlyFiles = ownerOnlyFilesFor('example-os');
-  expect(ownerOnlyFiles.restrictFolder(scratch)).toEqual({ verdict: 'refused', cause: 'no-adapter', path: scratch });
-  expect(ownerOnlyFiles.restrictFile(scratch)).toEqual({ verdict: 'refused', cause: 'no-adapter', path: scratch });
+  expect(ownerOnlyFiles.restrictFolder(scratch)).toEqual({
+    verdict: 'refused', cause: 'no-adapter', platformName: 'example-os', path: scratch
+  });
+  expect(ownerOnlyFiles.restrictFile(scratch)).toEqual({
+    verdict: 'refused', cause: 'no-adapter', platformName: 'example-os', path: scratch
+  });
   expect(ownerOnlyFiles.isOwnerOnly(scratch)).toBe(false);
 });
 

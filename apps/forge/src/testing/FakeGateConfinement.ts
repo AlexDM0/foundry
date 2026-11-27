@@ -4,6 +4,7 @@ import type {
   ConfinementVerdict,
   GateConfinement
 } from '../lib/gate-confinement/GateConfinement.ts';
+import type { LineRefusal } from '../shared/@types/LineRefusal.ts';
 
 /** The wrapper a planted `confined` adapter puts before an argv: harmless and runnable, so a child still starts. */
 export const FAKE_CONFINER_ARGV: readonly string[] = ['/usr/bin/env'];
@@ -12,6 +13,9 @@ export const FAKE_UNAVAILABILITY: ConfinementUnavailability = { cause: 'bubblewr
 
 /** The words of `FAKE_UNAVAILABILITY`, as a refusal, an incident or the start's refusal names it. */
 export const FAKE_MISSING_TOOLS_REASON = 'bwrap (bubblewrap) is not on the search path';
+
+/** A line refused for `FAKE_UNAVAILABILITY`, worded as `FAKE_MISSING_TOOLS_REASON`. */
+export const FAKE_LINE_REFUSAL: LineRefusal = { code: 'confinement-refused', confinementRefusal: { cause: 'confinement-unavailable', unavailability: FAKE_UNAVAILABILITY } };
 
 export interface FakeGateConfinement extends GateConfinement {
   /** Each plan the adapter was asked to confine a line under. */

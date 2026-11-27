@@ -10,6 +10,7 @@ import type { PresenceUpdate }                               from './@types/Pres
 import { CrashLog }                                          from './CrashLog.ts';
 import type { HephaestusFiles }                              from './HephaestusFiles.ts';
 import { Presence }                                          from './Presence.ts';
+import { thrownNamedOf }                                     from './ThrownNaming.ts';
 import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
 import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
 
@@ -44,10 +45,6 @@ export interface CrashPathOutcome {
   crashLog:     CrashLogWrite['verdict'] | 'not-written';
   presence:     PresenceUpdate['verdict'] | 'not-written';
   registry:     'written' | 'cut-off' | 'failed';
-}
-
-function describedFailureOf(thrown: unknown): string {
-  return thrown instanceof Error ? thrown.message : String(thrown);
 }
 
 function readingOrNull<Value>(read: () => Value | null): Value | null {
@@ -85,7 +82,7 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   try {
     return CrashLog.writeOnce(files, record, context.unreadableBoardFiles);
   } catch (thrown) {
-    context.log({ kind: 'crash-log-unwritten', generation, thrownMessage: describedFailureOf(thrown) });
+    context.log({ kind: 'crash-log-unwritten', generation, ...thrownNamedOf(thrown) });
     return 'not-written';
   }
 }
@@ -95,7 +92,7 @@ function writeTheCrashedEnding(context: CrashPathContext, crash: Crash, crashLog
     const ending = { kind: 'crashed', component: crash.component, crashLogNumber } as const;
     return Presence.writeEnding(context.files, context.generation, ending, at).verdict;
   } catch (thrown) {
-    context.log({ kind: 'crashed-ending-unwritten', generation: context.generation, thrownMessage: describedFailureOf(thrown) });
+    context.log({ kind: 'crashed-ending-unwritten', generation: context.generation, ...thrownNamedOf(thrown) });
     return 'not-written';
   }
 }
@@ -104,7 +101,7 @@ function stopTheLeaseRenewal(context: CrashPathContext): void {
   try {
     context.stopLeaseRenewal();
   } catch (thrown) {
-    context.log({ kind: 'lease-renewal-unstoppable', thrownMessage: describedFailureOf(thrown) });
+    context.log({ kind: 'lease-renewal-unstoppable', ...thrownNamedOf(thrown) });
   }
 }
 
@@ -119,7 +116,7 @@ async function boundedRegistryWrite(context: CrashPathContext, report: RegistryC
       await context.writeRegistryCrash(report);
       return 'written';
     } catch (thrown) {
-      context.log({ kind: 'registry-crash-unwritten', thrownMessage: describedFailureOf(thrown) });
+      context.log({ kind: 'registry-crash-unwritten', ...thrownNamedOf(thrown) });
       return 'failed';
     }
   })();

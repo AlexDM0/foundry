@@ -33,6 +33,7 @@ import {
   test,
 } from 'bun:test';
 
+import { TurboConfigurationProblemWording }                     from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import type { AgentAdapter }                                    from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                              from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                   from '../../lib/agent-launch/AgentSessionEvent.ts';
@@ -218,9 +219,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
         now,
         mutate:    (change) => mutate({ board: change.board, at: change.at })
       })).result,
-      wake:         () => undefined,
-      log:          () => undefined,
-      runGateLines: (request) => {
+      wake:              () => undefined,
+      log:               () => undefined,
+      findingSentenceOf: TurboConfigurationProblemWording.sentenceOf,
+      runGateLines:      (request) => {
         lineRequests.push(request);
         return Promise.resolve({ failedStep: null, prepareOutput: '', gates: [] });
       },

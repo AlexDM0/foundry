@@ -59,7 +59,7 @@ testWhenGitIsRecorded('a red gate\'s output reaches the listener, its line runs 
     { onOutputLine: (line) => outputLines.push(line) },
   )));
 
-  if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
+  if ('verdict' in run) throw new Error(`the run was refused: ${run.refusal.code}`);
   expect(run.gates).toEqual([{
     outcome:            'failed',
     milliseconds:       RECORDED_LINE_RUN_MILLISECONDS,
@@ -101,7 +101,7 @@ testWhenGitIsRecorded('a gate that changed the checkout fails, and the checkout 
     { gitArguments: ['checkout', '-q', '--', '.'], answeredAs: GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE },
   ], () => GateLineRun.runOnce(requestOf([{ name: 'formats', run: RECORDED_GATE_LINES.GREEN }])));
 
-  if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
+  if ('verdict' in run) throw new Error(`the run was refused: ${run.refusal.code}`);
   expect(run.gates[0]?.outcome).toBe('failed');
 });
 
@@ -111,7 +111,7 @@ testWhenGitIsRecorded('a prepare step that changed the checkout fails the prepar
     { gitArguments: ['checkout', '-q', '--', '.'], answeredAs: GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE },
   ], () => GateLineRun.runOnce(requestOf([{ name: 'tests', run: RECORDED_GATE_LINES.GREEN }], { prepare: [{ name: 'install', run: RECORDED_GATE_LINES.GREEN }] })));
 
-  if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
+  if ('verdict' in run) throw new Error(`the run was refused: ${run.refusal.code}`);
   expect(run.failedStep).toBe('install');
   expect(run.prepareOutput).toContain('source.txt');
   expect(run.gates.map((gate) => gate.outcome)).toEqual(['cannot-run']);

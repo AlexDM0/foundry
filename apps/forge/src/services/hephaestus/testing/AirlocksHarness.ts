@@ -6,10 +6,10 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { GitProblemWording }                              from '../../../adapters/GitProblemWording.ts';
+import { ConstitutionCommitProblemWording }               from '../../../adapters/ConstitutionCommitProblemWording.ts';
+import { MergeDecisionWording }                           from '../../../adapters/MergeDecisionWording.ts';
 import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import { ReportProblemWording }                           from '../../../adapters/reports/ReportProblemWording.ts';
 import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                                 from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../lib/tracker-model/@types/Job.ts';
@@ -238,8 +238,8 @@ export function createRecordedAirlocksHarness(
     worktreeOf,
     limits:                  { ...AIRLOCK_LIMITS, ...limits },
     agentNaming:             fakeAgentAdapter(),
-    reportProblemSentenceOf: ReportProblemWording.sentenceOf,
-    gitProblemSentenceOf:    GitProblemWording.sentenceOf,
+    mergeDecisionSentenceOf: MergeDecisionWording.sentenceOf,
+    applyRefusalSentenceOf:  ConstitutionCommitProblemWording.sentenceOf,
     get refDeniesHold() {
       return settings.refDeniesHold;
     },

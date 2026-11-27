@@ -22,6 +22,7 @@ import { SnapshotStartProblemWording }          from '../snapshot-start/Snapshot
 import { StageStatementProblemWording }         from '../stage-statement/StageStatementProblemWording.ts';
 import { WaiverProposalsProblemWording }        from '../waiver-proposals/WaiverProposalsProblemWording.ts';
 import { JobFileShapeUtil }                     from './JobFileShapeUtil.ts';
+import { StepIncidentFactsWordingUtil }         from './StepIncidentFactsWordingUtil.ts';
 
 const FILE_FACT = 'file';
 
@@ -81,10 +82,13 @@ function sentenceOfCarried(problem: StoredFileProblem): string {
   return sentenceOf(problem as UnreadableFileProblem);
 }
 
-/** An incident's facts as served and printed: an unreadable file's are `file` and `reason`, any other incident's as they are stored. */
+/**
+ * An incident's facts as served and printed: an unreadable file's are `file` and `reason`, a step's problem `step` and `reason`, any other
+ * incident's as they are stored.
+ */
 function wordedIncidentFactsOf(incident: Pick<Incident, 'kind' | 'facts'>): Record<string, string> {
   const problem = incident.kind === UNREADABLE_FILE_INCIDENT_KIND ? StoredFileProblemFactsUtil.problemOf(incident.facts, [FILE_FACT]) : null;
-  if (problem === null) return { ...incident.facts };
+  if (problem === null) return StepIncidentFactsWordingUtil.wordedFactsOf(incident) ?? { ...incident.facts };
   return { [FILE_FACT]: incident.facts[FILE_FACT] ?? '', reason: sentenceOfCarried(problem) };
 }
 

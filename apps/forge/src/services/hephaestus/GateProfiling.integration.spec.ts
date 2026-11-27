@@ -9,6 +9,7 @@ import { join }                     from 'node:path';
 
 import { afterEach, beforeEach, expect } from 'bun:test';
 
+import { TurboConfigurationProblemWording }                                       from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import type { Board }                                                             from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                                                    from '../../shared/@types/ControlCommand.ts';
 import { environmentCopy }                                                        from '../../shared/Environment.ts';
@@ -106,6 +107,7 @@ function realProfiling(): ReturnType<typeof GateProfiling.createGateProfiling> {
     runGateLines:       (request) => GateLineRun.runOnce(request),
     runLine:            spawnedLineRunner,
     stopLiveLinesUnder: () => Promise.resolve(),
+    findingSentenceOf:  TurboConfigurationProblemWording.sentenceOf,
   });
 }
 

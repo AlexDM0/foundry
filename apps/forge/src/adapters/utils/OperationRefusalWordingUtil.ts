@@ -14,7 +14,6 @@ import type { EntityRefusal }                                from '../../lib/tra
 import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
 import type { HoldJournalProblem }                           from '../../shared/@types/HoldJournalProblem.ts';
-import type { MergeUpdateProblem }                           from '../../shared/@types/MergeUpdateProblem.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
 import { type BranchNamespaceRefusal, branchNamesOf }        from '../../shared/BranchNames.ts';
@@ -26,6 +25,7 @@ import { AgentProgramWordingUtil }                           from '../../shared/
 import { ConfinementRefusalWording }                         from '../ConfinementRefusalWording.ts';
 import { ExecutableRefusalWording }                          from '../ExecutableRefusalWording.ts';
 import { GitProblemWording }                                 from '../GitProblemWording.ts';
+import { MergeUpdateProblemWording }                         from '../MergeUpdateProblemWording.ts';
 import { UnreadableRecordProblemWording }                    from '../UnreadableRecordProblemWording.ts';
 import { HoldJournalProblemWording }                         from '../hold-journal/HoldJournalProblemWording.ts';
 import { InstallManifestProblemWording }                     from '../install/InstallManifestProblemWording.ts';
@@ -78,15 +78,6 @@ function backIntoDraftPastCommittedAdviceOf(ticketId: string, channel: RefusalCh
 }
 
 /** The sentences joined by a space, an empty one left out. */
-function mergeUpdateClauseOf(problem: MergeUpdateProblem, target: string): string {
-  switch (problem.code) {
-    case 'worktree-head-unreadable': return `${problem.worktree} has no readable HEAD`;
-    case 'target-unresolved':        return `${target} does not resolve`;
-    case 'unknown-commit':           return 'unknown commit';
-    default:                         return GitProblemWording.sentenceOf(problem);
-  }
-}
-
 function sentencesOf(...sentences: readonly string[]): string {
   return sentences.filter((sentence) => sentence !== '').join(' ');
 }
@@ -1012,8 +1003,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'path-not-owner-only':
       return detail.cause === 'no-adapter'
-        ? `This platform has no way to keep ${detail.path} to its owner alone, so nothing that needs it was done.`
-        : `${detail.path} lets another user than its owner reach it, so nothing that needs it was done; keep it to its owner alone and try again.`;
+        ? `no owner-only files exist for the platform ${detail.platformName}`
+        : `the ACL of ${detail.path} is not proved owner-only`;
     case 'hephaestus-owns-the-lifecycle':
       return `A Hephaestus drives this board at ${detail.url} (${detail.hephaestusLockFilePath}), so only it delivers tickets. `
         + 'Ask Hephaestus to record the ticket as delivered by hand'
@@ -1046,7 +1037,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `Ticket #${detail.ticketId} was not accepted: git could not predict its merge into ${detail.target} (${GitProblemWording.sentenceOf(detail.problem)}). `
         + `${NOTHING_WAS_WRITTEN}`;
     case 'merge-update-failed':
-      return `The merge of ${detail.target} into ticket #${detail.ticketId}'s worktree failed: ${mergeUpdateClauseOf(detail.problem, detail.target)}. ${NOTHING_WAS_WRITTEN}`;
+      return `The merge of ${detail.target} into ticket #${detail.ticketId}'s worktree failed: `
+        + `${MergeUpdateProblemWording.sentenceOf(detail.problem, detail.target)}. ${NOTHING_WAS_WRITTEN}`;
     case 'no-open-incident':
       return `${detail.subject} has no open incident that allows ${detail.move}; it is legal only as an incident's move. ${NOTHING_WAS_WRITTEN}`;
     case 'several-open-incidents':

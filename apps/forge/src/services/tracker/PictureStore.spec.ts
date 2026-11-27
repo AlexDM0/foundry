@@ -129,7 +129,7 @@ describe('storing a picture', () => {
       isOwnerOnly:    () => false,
     };
     expect(() => PictureStore.storePicture(refusingOwnerOnlyFiles, trackerDirectory, PNG_BYTES))
-      .toThrow(new OperationRefusal('refused', { kind: 'path-not-owner-only', path: folder, cause: 'not-proved-owner-only' }));
+      .toThrow(new OperationRefusal('unrepaired', { kind: 'path-not-owner-only', path: folder, cause: 'not-proved-owner-only' }));
     expect(existsSync(folder)).toBe(false);
   });
 });

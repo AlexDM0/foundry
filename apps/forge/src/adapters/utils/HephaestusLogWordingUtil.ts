@@ -2,18 +2,21 @@
  * The words of Hephaestus's log records, the sentence standard error shows and `hephaestus.log` keeps as `details`, and the stored line itself.
  * `FrozenHephaestusLogDetails.json` holds the sentence of each kind as the code before the records wrote it.
  */
-import { basename }        from 'node:path';
+import { basename }         from 'node:path';
+import { OperationRefusal } from '../../shared/OperationRefusal.ts';
 import type {
   HephaestusLogRecord,
   StaleAgentSlotReason,
   StaleGateRunSlotReason,
   StaleHoldingReason,
+  ThrownNamed,
   UnstartableGuardReason
 } from '../@types/HephaestusLogRecord.ts';
 
 import { ConfinementRefusalWording }           from '../ConfinementRefusalWording.ts';
 import { ExecutableRefusalWording }            from '../ExecutableRefusalWording.ts';
 import { GitProblemWording }                   from '../GitProblemWording.ts';
+import { LineRefusalWording }                  from '../LineRefusalWording.ts';
 import { AgentSlotProblemWording }             from '../agent-slot/AgentSlotProblemWording.ts';
 import { MergedTreeGateOutcomeProblemWording } from '../gate-outcome/MergedTreeGateOutcomeProblemWording.ts';
 import { GateProfileOutputProblemWording }     from '../gate-profile-output/GateProfileOutputProblemWording.ts';
@@ -25,7 +28,14 @@ import { PresenceProblemWording }              from '../presence/PresenceProblem
 import { SeenHeadProblemWording }              from '../seen-head/SeenHeadProblemWording.ts';
 import { UsageMarkerProblemWording }           from '../usage-marker/UsageMarkerProblemWording.ts';
 import { WorktreeFailureWording }              from '../worktree-failure/WorktreeFailureWording.ts';
+import { OperationRefusalWordingUtil }         from './OperationRefusalWordingUtil.ts';
 import { UnreadableFileProblemWordingUtil }    from './UnreadableFileProblemWordingUtil.ts';
+
+function thrownWordsOf(thrown: ThrownNamed): string {
+  return thrown.thrownRefusal === undefined
+    ? thrown.thrownMessage
+    : OperationRefusalWordingUtil.messageOf(new OperationRefusal('unrepaired', thrown.thrownRefusal));
+}
 
 function staleHoldingReasonOf<Problem>(reason: StaleHoldingReason<Problem>, sentenceOf: (problem: Problem) => string): string {
   return reason.kind === 'holder-gone' ? `the process ${reason.processId} it names is gone` : `it could not be read (${sentenceOf(reason.problem)})`;
@@ -126,10 +136,10 @@ function detailsOf(record: HephaestusLogRecord): string {
       return `Crashed (${record.component}) under Hephaestus lock ${record.generation}; the crash log is ${record.crashLogPath ?? 'not written'} (${record.crashLog}).`;
     case 'crash-log-leaves-out-presence':  return leftOutLineOf(record.generation, 'presence.json', PresenceProblemWording.sentenceOf(record.problem));
     case 'crash-log-leaves-out-heartbeat': return leftOutLineOf(record.generation, 'heartbeat.json', HeartbeatProblemWording.sentenceOf(record.problem));
-    case 'crash-log-unwritten':            return `The crash log of Hephaestus lock ${record.generation} could not be written: ${record.thrownMessage}`;
-    case 'crashed-ending-unwritten':       return `The crashed ending of Hephaestus lock ${record.generation} could not be written: ${record.thrownMessage}`;
-    case 'lease-renewal-unstoppable':      return `The lease renewal could not be stopped: ${record.thrownMessage}`;
-    case 'registry-crash-unwritten':       return `The registry could not be told of the crash: ${record.thrownMessage}`;
+    case 'crash-log-unwritten':            return `The crash log of Hephaestus lock ${record.generation} could not be written: ${thrownWordsOf(record)}`;
+    case 'crashed-ending-unwritten':       return `The crashed ending of Hephaestus lock ${record.generation} could not be written: ${thrownWordsOf(record)}`;
+    case 'lease-renewal-unstoppable':      return `The lease renewal could not be stopped: ${thrownWordsOf(record)}`;
+    case 'registry-crash-unwritten':       return `The registry could not be told of the crash: ${thrownWordsOf(record)}`;
     case 'board-file-unreadable':
       return `Hephaestus cannot read the board file ${record.file} (${UnreadableFileProblemWordingUtil.sentenceOf(record.problem)}); `
         + 'the board header warns until Hephaestus restarts.';
@@ -186,7 +196,7 @@ function detailsOf(record: HephaestusLogRecord): string {
       return `Job ${record.jobId} did not launch: its launch reads ${record.file}, which cannot be read (${UnreadableFileProblemWordingUtil.sentenceOf(record.problem)}).`;
     case 'pipeline-agent-awaits-billing':
       return `The pipeline agent of job ${record.jobId} did not launch: its setup has no billing yet, and it launches once one is chosen.`;
-    case 'airlock-agent-root-unmade':       return `The Airlock agent of job ${record.jobId} did not launch: ${record.sandboxRefusal}.`;
+    case 'airlock-agent-root-unmade':       return `The Airlock agent of job ${record.jobId} did not launch: ${LineRefusalWording.sentenceOf(record.lineRefusal)}.`;
     case 'airlock-agent-conflicts-unknown':
       return `The Airlock agent of job ${record.jobId} did not launch: neither its kept facts nor git tell which files conflict.`;
     case 'commits-unsigned-despite-signing':
@@ -198,10 +208,10 @@ function detailsOf(record: HephaestusLogRecord): string {
     case 'child-instance-launched':
       return `Launched child instance ${record.childInstance} of job ${record.jobId} (${launchedJobWordsOf(record)}) under Talos.`;
     case 'cleanup-declined':                return `Git declined the ${record.cleanup} cleanup of ${record.groupBranch}: ${GitProblemWording.sentenceOf(record.problem)}`;
-    case 'presence-unrecorded':             return `Presence could not record the pass: ${record.thrownMessage}`;
+    case 'presence-unrecorded':             return `Presence could not record the pass: ${thrownWordsOf(record)}`;
     case 'pass-abandoned':                  return `Drive pass abandoned (${record.reason}); it waits for the next wake-up: ${record.refusalMessage}`;
-    case 'pass-crashed':                    return `Drive pass crashed: ${record.thrownMessage}; the crash path runs and no further pass runs.`;
-    case 'pass-crash-path-threw':           return `The crash path of the drive pass threw: ${record.thrownMessage}`;
+    case 'pass-crashed':                    return `Drive pass crashed: ${thrownWordsOf(record)}; the crash path runs and no further pass runs.`;
+    case 'pass-crash-path-threw':           return `The crash path of the drive pass threw: ${thrownWordsOf(record)}`;
     case 'child-instance-lost':             return `Child instance ${record.childInstance} of job ${record.jobId} is lost (${record.cause}).`;
     case 'gate-red':
       return `The ${record.gate} gate of job ${record.jobId} (#${record.ticketId}) is red on ${record.treeId}; its output is in ${record.outputFile}.`;
@@ -209,7 +219,8 @@ function detailsOf(record: HephaestusLogRecord): string {
       const { guard, calls } = UNSTARTABLE_GUARD_WORDS[record.guard];
       return `The ${guard} of job ${record.jobId} (#${record.ticketId}) cannot start, so its ${calls} are denied: ${unstartableGuardReasonOf(record.reason)}.`;
     }
-    case 'line-refused': return `The ${record.step} line of job ${record.jobId} (#${record.ticketId}) did not run: ${record.sandboxRefusal}.`;
+    case 'line-refused':
+      return `The ${record.step} line of job ${record.jobId} (#${record.ticketId}) did not run: ${LineRefusalWording.sentenceOf(record.lineRefusal)}.`;
     case 'line-launched': {
       const confinementWords = record.confinement === null ? ', unconfined by design' : ` under ${record.confinement}`;
       return `Launched the ${record.step} line of job ${record.jobId} (#${record.ticketId}), instance ${record.instance}, under Talos${confinementWords}.`;

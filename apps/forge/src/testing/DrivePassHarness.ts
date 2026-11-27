@@ -4,12 +4,13 @@
  * `src/testing/RecordedTalosStages.ts` and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`; a real-system spec
  * starts a scratch Talos with `startScratchBoardTalos`.
  */
-import { mkdirSync, writeFileSync }  from 'node:fs';
-import { dirname, join }             from 'node:path';
-import type { HephaestusLog }        from '../adapters/@types/HephaestusLogRecord.ts';
-import { ConfinementRefusalWording } from '../adapters/ConfinementRefusalWording.ts';
-import { GitProblemWording }         from '../adapters/GitProblemWording.ts';
-import { ReportProblemWording }      from '../adapters/reports/ReportProblemWording.ts';
+import { mkdirSync, writeFileSync }         from 'node:fs';
+import { dirname, join }                    from 'node:path';
+import type { HephaestusLog }               from '../adapters/@types/HephaestusLogRecord.ts';
+import { ConstitutionCommitProblemWording } from '../adapters/ConstitutionCommitProblemWording.ts';
+import { MergeDecisionWording }             from '../adapters/MergeDecisionWording.ts';
+import { PipelineCheckProblemWording }      from '../adapters/pipeline/PipelineCheckProblemWording.ts';
+import { TurboConfigurationProblemWording } from '../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 
 import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
 import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
@@ -96,9 +97,10 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     installVersionChanged:        () => false,
     agentVariableIsSet:           () => false,
     decisionWordingOf:            () => ({ questions: [], context: '' }),
-    reportProblemSentenceOf:      ReportProblemWording.sentenceOf,
-    gitProblemSentenceOf:         GitProblemWording.sentenceOf,
-    confinementRefusalSentenceOf: ConfinementRefusalWording.sentenceOf,
+    mergeDecisionSentenceOf:      MergeDecisionWording.sentenceOf,
+    applyRefusalSentenceOf:       ConstitutionCommitProblemWording.sentenceOf,
+    checkReasonSentenceOf:        PipelineCheckProblemWording.sentenceOf,
+    findingSentenceOf:            TurboConfigurationProblemWording.sentenceOf,
     packageNeedWordingOf:         () => ({ title: 'Example need', body: '' }),
     dependentFixWordingOf:        () => ({ title: 'Example fix', body: '' }),
     launchTextOf:                 () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),

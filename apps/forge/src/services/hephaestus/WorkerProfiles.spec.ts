@@ -348,10 +348,9 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
       const worktree = join(scratch, 'ticket-007');
       mkdirSync(worktree);
       const mountPointFacts = { worktree, sandboxDenyShape: 'mount-points', agentConfigurationFolderNames: ['.claude'] } as const;
-      expect(WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts)).toBeNull();
+      expect(WorkerProfiles.unmadeDeniedRootOf(mountPointFacts)).toBeNull();
       expect(existsSync(join(worktree, '.claude'))).toBe(true);
-      const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts, { makeFolder: () => false });
-      expect(refusal).toBe(`the denied folder ${join(worktree, '.claude')} could not be made, so it would get no read-only mount`);
+      expect(WorkerProfiles.unmadeDeniedRootOf(mountPointFacts, { makeFolder: () => false })).toBe(join(worktree, '.claude'));
     } finally {
       removeScratchDirectory(scratch);
     }
@@ -372,7 +371,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
   test('makes nothing under path-rules, where a deny names an absent path by its rule', () => {
     const neverMade = { makeFolder: () => false };
     expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(FACTS)).toEqual([]);
-    expect(WorkerProfiles.unmadeDeniedRootRefusalOf(FACTS, neverMade)).toBeNull();
+    expect(WorkerProfiles.unmadeDeniedRootOf(FACTS, neverMade)).toBeNull();
   });
 
   test('leaves each fixed denied writable root either outside every writable bind or made before launch', () => {

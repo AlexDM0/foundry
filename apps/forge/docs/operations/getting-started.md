@@ -353,8 +353,8 @@ Each row is one stage; stop at the first that does not match.
 | Install | `forge version` | `code <hash>, install version <number>` | Follow the check under [Install the program](#install-the-program) |
 | Adopt | `git status --short` | `?? .claude/` and `?? .gitignore`; once `.gitignore` is committed, `?? .claude/` alone. A global ignore covering the settings file drops the `.claude/` line | A skill folder listed: run `init` again. `<data>` listed: add `.forge/` to `.gitignore` by hand; `init` adds that entry only when it creates the tracker |
 | Tracker | `forge status` | `Next:` line ending `Hephaestus paused: wait for the user's go` | Rerun `init` |
-| Hephaestus | `forge status` | `hephaestus: serving at http://127.0.0.1:<port>/`, then `paused` | `start`, then read `<data>/hephaestus.log` |
-| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before Hephaestus started | Wait one Pass, then reread `<data>/hephaestus.log` |
+| Hephaestus | `forge status` | `hephaestus: serving at http://127.0.0.1:<port>/`, then `paused` | `start`, then run `forge hephaestus-log` |
+| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before Hephaestus started | Wait one Pass, then run `forge hephaestus-log` again |
 | Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
 | Setup | `forge jobs` | A `pipeline-agent` job while the setup runs | `forge pipeline resume S1`: it opens the agent again, or starts a new one from the record |
 | Apply | `git log --oneline -1` on the main line | `Add the repository constitution` | Read the reason in `applyRequest` in `<data>/pipeline-setup.json`; clean the main checkout, or commit the text yourself |

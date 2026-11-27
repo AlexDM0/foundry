@@ -1,7 +1,7 @@
 /**
- * A job's sandbox refusal both ways. What matters: what the writer stores reads back as the same refusal; a missing file is absent, the
- * job confinement refused nothing; and a file that is not JSON, of another version or none, or with the step or the reason of the wrong
- * shape is unreadable, never a refusal ignored, and never a throw.
+ * A job's sandbox refusal both ways. What matters: what the writer stores reads back as the same step with its refusal worded; a missing
+ * file is absent, the job confinement refused nothing; and a file that is not JSON, of another version or none, or with the step or the
+ * reason of the wrong shape is unreadable, never a refusal ignored, and never a throw.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -37,9 +37,9 @@ test('no file is absent', () => {
   expect(reading()).toEqual({ verdict: 'absent' });
 });
 
-test('what the writer stores reads back as the same refusal, with its version', () => {
-  createSandboxRefusalWriter(refusalFilePath()).write(REFUSAL);
-  expect(reading()).toEqual({ verdict: 'readable', refusal: REFUSAL });
+test('what the writer stores reads back as the same step, its refusal worded, with its version', () => {
+  createSandboxRefusalWriter(refusalFilePath()).write({ step: 'gate-1', refusal: { code: 'denied-root-unmade', deniedRoot: '/example/root' } });
+  expect(reading()).toEqual({ verdict: 'readable', refusal: { step: 'gate-1', reason: 'the denied folder /example/root could not be made, so it would get no read-only mount' } });
 });
 
 test('a file that is not JSON is unreadable', () => {

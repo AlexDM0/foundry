@@ -155,7 +155,7 @@ describe('E7: the .claude folder of every entity home', () => {
     };
     expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(facts)).toEqual([`${WORKTREE}/.claude`, `${WORKTREE}/apps/gaia/.claude`]);
     const unmakable = `${WORKTREE}/apps/gaia/.claude`;
-    expect(WorkerProfiles.unmadeDeniedRootRefusalOf(facts, { makeFolder: (path) => path !== unmakable })).toContain(unmakable);
+    expect(WorkerProfiles.unmadeDeniedRootOf(facts, { makeFolder: (path) => path !== unmakable })).toBe(unmakable);
   });
 });
 

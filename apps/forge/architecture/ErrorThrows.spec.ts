@@ -30,14 +30,19 @@ const ALLOWED_THROWS: readonly string[] = [
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`the event log at ${request.eventLogPath} is already open`);',
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`the event log at ${request.eventLogPath} appends sequence ${nextSequence} next, not ${request.entry.sequence}`);',
   'src/lib/talos/SynchronousCallsThread.ts: throw new Error(`the event-log entry of sequence ${request.entry.sequence} carries no stamp`);',
+  // A caller hands in a ticket id it resolved itself, so a miss is a programming error, not a refusal to word.
   'src/lib/tracker-model/BoardRecords.ts: throw new Error(`The board holds no ticket #${ticketId}.`);',
   // `groupsBy` opens a group only with a member, so an empty builder group is a programming error.
   'src/lib/tracker-model/ReviewStatistics.ts: throw new Error(\'A builder group is never empty.\');',
+  // A version is written together with its text, so a recorded hash that names no text is a programming error.
   'src/lib/tracker-model/TicketDocuments.ts: throw new Error(`The documents record of #${loadedRecord.record.ticketId} names no text for ${contentHash}.`);',
+  // Every caller refuses an unreleasable ticket before it asks for the release, so reaching it is a programming error.
   'src/lib/tracker-model/TicketMoves.ts: throw new Error(`Ticket #${unreleasable.frontmatter.id} is ${unreleasable.frontmatter.status}; '
     + 'a caller refuses such a release before asking for it.`);',
+  // Hephaestus moves a ticket only along the stage table, and a second package return goes through `returnTicketToThePackage`.
   'src/lib/tracker-model/TicketStageRows.ts: throw new Error(`Ticket #${ticketId} cannot move from the stage ${currentStageName} to ${stage.name}.`);',
   'src/lib/tracker-model/TicketStageRows.ts: throw new Error(`Ticket #${ticketId} returned to a package once; a second return opens the decision second-return.`);',
+  // The setup payload reading admits only known draft fields, so a field no base edit restores is a programming error.
   'src/lib/tracker-model/utils/PipelineDraftEditUtil.ts: throw new Error(`${field} is not a draft field.`);',
   'src/lib/tracker-model/utils/PipelineDraftEditUtil.ts: throw new Error(`${field} is not a field of an entity.`);',
 ];

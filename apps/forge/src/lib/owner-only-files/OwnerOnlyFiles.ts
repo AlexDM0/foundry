@@ -1,10 +1,14 @@
 /** The `OwnerOnlyFiles` port: files and folders only their owner may reach. It depends on no other lib package. */
 /** `no-adapter`: the platform has no way to restrict a path; `not-proved-owner-only`: its access list was read back granting another. */
-export type OwnerOnlyRefusalCause = 'no-adapter' | 'not-proved-owner-only';
+export type OwnerOnlyRefusal =
+  | { readonly cause: 'no-adapter'; readonly platformName: string; readonly path: string }
+  | { readonly cause: 'not-proved-owner-only'; readonly path: string };
+
+export type OwnerOnlyRefusalCause = OwnerOnlyRefusal['cause'];
 
 export type OwnerOnlyRestriction =
   | { readonly verdict: 'restricted' }
-  | { readonly verdict: 'refused'; readonly cause: OwnerOnlyRefusalCause; readonly path: string };
+  | ({ readonly verdict: 'refused' } & OwnerOnlyRefusal);
 
 export interface OwnerOnlyFiles {
   /** Creates the folder when it is absent. Refused when the folder cannot be proved owner-only; a system error still throws. */

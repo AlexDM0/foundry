@@ -3310,11 +3310,13 @@ Hephaestus's own log, appended in place one line per record and never rewritten.
 `{"at": "<local stamp>", "kind": "<kind>", ...the kind's keys, "details": "<sentence>"}`. The keys carry values only:
 ids, numbers, codes, paths, and a stored file's problem as `{code, ...its values}` (for example
 `{"code": "heartbeat-field-malformed", "field": "sequence"}`), never a sentence; a message from outside forge, such as
-an error a write threw, is a fact under a key that says whose it is (`thrownMessage`). `details` is the sentence
+an error a write threw, is a fact under a key that says whose it is (`thrownMessage`); a refusal forge threw keeps
+its detail beside it (`thrownRefusal`), and `details` words it as the refusal's sentence. `details` is the sentence
 standard error shows after the same stamp. The kinds and their keys are the union `HephaestusLogRecord` in
-`src/adapters/@types/HephaestusLogRecord.ts`. A line that is no record, such as what a successor or a
-restart preflight printed before it had its logger, is skipped by every reader. `hephaestus-log` prints the file, and
-a crash log's `logTail` keeps each record as `<at> <details>`.
+`src/adapters/@types/HephaestusLogRecord.ts`. A successor and a restart preflight are started with this file as their
+standard error, so they write each record only as its line; a line that is no record, such as the refusal one of them
+printed as it ended, is skipped by every reader. `hephaestus-log` prints the file, and a crash log's `logTail` keeps
+each record as `<at> <details>`.
 
 ### Lock and slot records
 

@@ -86,6 +86,8 @@ import type { DocumentReading }                           from '../../lib/tracke
 import { TicketStageUtil }                                from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { ConfinementRefusal }                        from '../../shared/@types/ConfinementRefusal.ts';
+import type { RefusedStep }                               from '../../shared/@types/LineRefusal.ts';
+import type { MergeStepProblem }                          from '../../shared/@types/MergeStepProblem.ts';
 import type { BranchNames }                               from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';
@@ -98,6 +100,7 @@ import {
 import { LIFECYCLE_LIMITS }                 from '../../shared/constants/LifecycleLimits.ts';
 import { EntityFoldersUtil }                from '../../shared/utils/EntityFoldersUtil.ts';
 import { ProjectPathsUtil }                 from '../../shared/utils/ProjectPathsUtil.ts';
+import { StepProblemFactsUtil }             from '../../shared/utils/StepProblemFactsUtil.ts';
 import { AgentTools, type ToolNamingSteps } from '../control/AgentTools.ts';
 import {
   agentConfigTouchedBeforeLaunch,
@@ -145,33 +148,31 @@ import { StoredFileUnreadable }                                                 
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest }           from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
-  platformPorts:                PlatformPorts;
-  workspace:                    Workspace;
-  agentAdapter:                 AgentAdapter;
-  monitorFolder:                string;
-  homeDirectory:                string;
-  inheritedEnvironment:         Readonly<Record<string, string | undefined>>;
-  mainLine:                     string;
-  branchNames:                  BranchNames;
-  boardChildren:                BoardChildren;
+  platformPorts:        PlatformPorts;
+  workspace:            Workspace;
+  agentAdapter:         AgentAdapter;
+  monitorFolder:        string;
+  homeDirectory:        string;
+  inheritedEnvironment: Readonly<Record<string, string | undefined>>;
+  mainLine:             string;
+  branchNames:          BranchNames;
+  boardChildren:        BoardChildren;
   /** Hephaestus's own runtime, isolating arguments and entry script, which a job's network guard hook runs. */
-  programCommand:               readonly string[];
-  codeVersion:                  string;
-  gateSlots:                    GateRunSlots;
-  windDownMessage:              string;
-  decisionWordingOf:            (draft: DecisionDraft) => DecisionWording;
-  /** A line forge's confinement refuses, as its sandbox refusal names it. */
-  confinementRefusalSentenceOf: (refusal: ConfinementRefusal) => string;
-  log:                          HephaestusLog;
+  programCommand:       readonly string[];
+  codeVersion:          string;
+  gateSlots:            GateRunSlots;
+  windDownMessage:      string;
+  decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
+  log:                  HephaestusLog;
   /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
-  resolutionLinesOf:            (worktreePath: string) => number | null;
+  resolutionLinesOf:    (worktreePath: string) => number | null;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
-  sharedRepository?:            SharedRepositoryLanding;
+  sharedRepository?:    SharedRepositoryLanding;
   /**
    * The cause an install or gate line found lost in this pass is logged with, so its job waits for User's resume: the start's, while a
    * start that leaves work waiting reconciles; `null` or absent otherwise, and a lost line then runs again by itself.
    */
-  lostLineCause?:               () => InterruptionCause | null;
+  lostLineCause?:       () => InterruptionCause | null;
 }
 
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
@@ -251,7 +252,7 @@ export type TargetCatchUp =
   | { verdict: 'behind'; targetTip: string; branchTip: string }
   | { verdict: 'merging' }
   | { verdict: 'merge-ended' }
-  | { verdict: 'merge-failed'; reason: string }
+  | { verdict: 'merge-failed'; problem: MergeStepProblem }
   | { verdict: 'conflicted'; targetTip: string; conflictedFiles: string[] }
   | { verdict: 'gating'; stepIndex: number }
   | { verdict: 'gated'; targetTip: string; gate: Extract<GateProgress, { verdict: 'judged' }> }
@@ -277,7 +278,7 @@ export type MainMergeStep =
   | { verdict: 'behind'; targetTip: string; branchTip: string }
   | { verdict: 'merging' }
   | { verdict: 'merge-ended' }
-  | { verdict: 'merge-failed'; reason: string }
+  | { verdict: 'merge-failed'; problem: MergeStepProblem }
   | { verdict: 'conflicted'; targetTip: string; branchTip: string; conflictedFiles: string[] }
   | { verdict: 'merged'; treeId: string }
   | { verdict: 'gating'; stepIndex: number }
@@ -1030,11 +1031,18 @@ function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): Targ
   const target    = job.target ?? context.mainLine;
   const targetTip = GitProcess.resolvedCommitOf(projectLocationOfContext(context).repositoryRoot, `refs/heads/${target}`);
   const branchTip = MergeRun.headOf(worktree);
-  if (targetTip === null || branchTip === null) return { verdict: 'merge-failed', reason: `The tip of ${targetTip === null ? target : branchOf(context, job)} cannot be read.` };
+  if (targetTip === null || branchTip === null) {
+    return { verdict: 'merge-failed', problem: { code: 'tip-unreadable', branch: targetTip === null ? target : branchOf(context, job) } };
+  }
   const holds = MergeRun.headHoldsCommit(worktree, targetTip);
   if (holds === 'holds') return { verdict: 'up-to-date' };
   if (holds === 'lacks') return { verdict: 'behind', targetTip, branchTip };
-  return { verdict: 'merge-failed', reason: `git cannot tell whether ${branchOf(context, job)} holds ${target}'s tip ${targetTip}.` };
+  return {
+    verdict: 'merge-failed',
+    problem: {
+      code: 'holding-unknown', branch: branchOf(context, job), target, targetTip
+    }
+  };
 }
 
 /** Read from the job folder and the worktree alone, so a restart reads the same step again. */
@@ -1050,10 +1058,10 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolder, TARGET_MERGE_CHILD_FOLDER));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
-  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.storedReason };
+  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', problem: { code: 'merge-settled-failed', storedReason: settlement.storedReason } };
   if (settlement.verdict === 'conflicted') return { verdict: 'conflicted', targetTip: record.mergedTip, conflictedFiles: settlement.conflictedFiles };
   const treeId = treeOf(worktreeOf(context.workspace, job));
-  if (treeId === null) return { verdict: 'merge-failed', reason: `The tree of the merge commit ${settlement.mergeCommit} cannot be read.` };
+  if (treeId === null) return { verdict: 'merge-failed', problem: { code: 'merge-tree-unreadable', mergeCommit: settlement.mergeCommit } };
   const progress = gateRunProgressOf(context, job, treeId, TARGET_GATE_RUN, pipeline);
   if (progress.verdict === 'running') return { verdict: 'gating', stepIndex: progress.stepIndex };
   if (progress.verdict === 'unreadable-file') return progress;
@@ -1104,7 +1112,7 @@ function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): M
 function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>): MainMergeStep {
   const round    = job.childInstance;
   const worktree = worktreeOf(context.workspace, job);
-  const unreadableTree: MainMergeStep = { verdict: 'merge-failed', reason: `The tree of ${branchOf(context, job)}'s HEAD cannot be read.` };
+  const unreadableTree: MainMergeStep = { verdict: 'merge-failed', problem: { code: 'head-tree-unreadable', branch: branchOf(context, job) } };
   if (existsSync(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.gateRequired, round))) {
     const treeId = treeOf(worktree);
     if (treeId === null) return unreadableTree;
@@ -1127,7 +1135,7 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolderOf(context.workspace, job), files.childFolder));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
-  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.storedReason };
+  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', problem: { code: 'merge-settled-failed', storedReason: settlement.storedReason } };
   if (settlement.verdict === 'conflicted') return {
     verdict: 'conflicted', targetTip: record.mergedTip, branchTip: record.startTip, conflictedFiles: settlement.conflictedFiles
   };
@@ -2094,7 +2102,7 @@ function settleMainMerge(hold: HoldContext, job: Readonly<Job>, observation: Bui
   const { step } = reading;
   switch (step.verdict) {
     case 'merge-failed':
-      openIncidentFor(hold, job, 'setup-failed', { step: MAIN_MERGE_CHILD_FOLDER, reason: step.reason });
+      openIncidentFor(hold, job, 'setup-failed', { step: MAIN_MERGE_CHILD_FOLDER, ...StepProblemFactsUtil.factsOf(step.problem) });
       endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
       return;
     case 'conflicted':
@@ -2203,7 +2211,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
       hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
       return;
     case 'merge-failed':
-      openIncidentFor(hold, job, 'setup-failed', { step: TARGET_MERGE_CHILD_FOLDER, reason: catchUp.reason });
+      openIncidentFor(hold, job, 'setup-failed', { step: TARGET_MERGE_CHILD_FOLDER, ...StepProblemFactsUtil.factsOf(catchUp.problem) });
       endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
       return;
     case 'conflicted': {
@@ -2563,12 +2571,12 @@ type LineChildSpawn =
   | { verdict: 'spawned'; supervisor: ProcessIdentity | null };
 
 /** Kept in the job folder for the next pass's hold, which opens the incident; the refused line never started. */
-function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refusal: SandboxRefusal): void {
+function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refused: RefusedStep): void {
   const jobFolder = jobFolderOf(context.workspace, job);
   mkdirSync(jobFolder, { recursive: true });
-  createSandboxRefusalWriter(join(jobFolder, JOB_FILES.sandboxRefusal)).write(refusal);
+  createSandboxRefusalWriter(join(jobFolder, JOB_FILES.sandboxRefusal)).write(refused);
   context.log({
-    kind: 'line-refused', jobId: job.id, ticketId: ticketIdOf(job), step: refusal.step, sandboxRefusal: refusal.reason
+    kind: 'line-refused', jobId: job.id, ticketId: ticketIdOf(job), step: refused.step, lineRefusal: refused.refusal
   });
 }
 
@@ -2578,15 +2586,15 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
  */
 function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string, entityFacts: Pick<SandboxFacts, 'entityHomes'> = {}): boolean {
   const { projectPrefix } = projectLocationOfContext(context);
-  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({
+  const deniedRoot = WorkerProfiles.unmadeDeniedRootOf({
     worktree:                      worktreeOf(context.workspace, job),
     sandboxDenyShape:              context.agentAdapter.sandboxDenyShape,
     agentConfigurationFolderNames: context.agentAdapter.configurationNames.folderNames,
     projectPrefix,
     ...entityFacts,
   });
-  if (reason === null) return false;
-  recordSandboxRefusal(context, job, { step, reason });
+  if (deniedRoot === null) return false;
+  recordSandboxRefusal(context, job, { step, refusal: { code: 'denied-root-unmade', deniedRoot } });
   return true;
 }
 
@@ -2613,21 +2621,21 @@ async function spawnLineChild(
   const { gateConfinement, shellLine } = context.platformPorts;
   const runRefusal = shellLine.runRefusalOf(workingDirectory);
   if (runRefusal !== null) {
-    recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(runRefusal, workingDirectory) });
+    recordSandboxRefusal(context, job, { step: folderName, refusal: { code: 'shell-run-refused', refusal: runRefusal, directory: workingDirectory } });
     return { verdict: 'refused' };
   }
   if (deniedRootRefusalRecorded(context, job, folderName, WorkerProfiles.entityFactsOf(pipeline))) return { verdict: 'refused' };
   const spawnRequest = shellLine.spawnRequestOf(step.line, lineStatusFileOf(jobFolder, folderName));
   if (spawnRequest.verdict === 'refused') {
-    recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(spawnRequest.refusal, workingDirectory) });
+    recordSandboxRefusal(context, job, { step: folderName, refusal: { code: 'shell-run-refused', refusal: spawnRequest.refusal, directory: workingDirectory } });
     return { verdict: 'refused' };
   }
   const sandboxRequestOf = () => processSandboxRequestOf(context, sandboxFactsFor(context, job, pipeline), confinement);
   const planOf = () => LineSandbox.planOf(sandboxRequestOf(), join(lineFolder, JOB_FILES.profile));
   const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
   if (line.verdict === 'refused') {
-    const reason = context.confinementRefusalSentenceOf({ cause: 'confinement-unavailable', unavailability: line.unavailability });
-    recordSandboxRefusal(context, job, { step: folderName, reason });
+    const confinementRefusal: ConfinementRefusal = { cause: 'confinement-unavailable', unavailability: line.unavailability };
+    recordSandboxRefusal(context, job, { step: folderName, refusal: { code: 'confinement-refused', confinementRefusal } });
     return { verdict: 'refused' };
   }
   // A report or a status left at the path before this instance ran is never this run's; a re-run's first instance left them too.

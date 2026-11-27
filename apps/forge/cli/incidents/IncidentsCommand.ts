@@ -13,7 +13,7 @@ function incidentTextOf(incident: Readonly<Incident>): string {
   const tickets   = incident.ticketIds.length === 0 ? '' : ` on #${incident.ticketIds.join(', #')}`;
   const job       = incident.jobId === null ? '' : `, job ${incident.jobId}`;
   const delivered = incident.deliveredInTurn === null ? 'undelivered' : `delivered to ${incident.deliveredInTurn.jobId}`;
-  const facts     = Object.entries(UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident)).map(([fact, value]) => `  ${fact}: ${value}`);
+  const facts     = Object.entries(incident.facts).map(([fact, value]) => `  ${fact}: ${value}`);
   return [
     `${incident.id} ${incident.kind}${tickets} (${delivered}${job}, ${incident.openedAt})`,
     ...facts,
@@ -24,7 +24,8 @@ function incidentTextOf(incident: Readonly<Incident>): string {
 export const incidentsCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const incidents = boardReadsOf(context).requireProgress().incidents ?? [];
+  const storedIncidents = boardReadsOf(context).requireProgress().incidents ?? [];
+  const incidents = storedIncidents.map((incident) => ({ ...incident, facts: UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident) }));
   const text = incidents.length === 0 ? 'No incident is open.' : incidents.map(incidentTextOf).join('\n\n');
   OutputUtil.printEntity(commandArguments, context, { incidents }, text);
   return Promise.resolve();

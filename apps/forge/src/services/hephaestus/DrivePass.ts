@@ -9,12 +9,13 @@ import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import type { HephaestusLog }      from '../../adapters/@types/HephaestusLogRecord.ts';
 
+import type { MergeDecisionProblem }       from '../../adapters/MergeDecisionWording.ts';
 import { unreadablePipelineGateOf }        from '../../adapters/gate-outcome/UnreadablePipelineGate.ts';
 import { MachineConfigFile }               from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { PipelineCheckProblem }       from '../../adapters/pipeline/PipelineCheckProblemWording.ts';
 import type { StartClassificationVerdict } from '../../adapters/presence/@types/StartClassificationVerdict.ts';
 import type { RedHandoffFacts }            from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import type { ForcedStopRefusals }         from '../../adapters/refused-forced-stops/@types/ForcedStopRefusals.ts';
-import type { ReportProblem }              from '../../adapters/reports/@types/ReportProblem.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -25,6 +26,7 @@ import {
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
+import type { TurboConfigurationProblem }            from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
 import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
@@ -58,9 +60,9 @@ import { LaunchSlotUtil }                                    from '../../lib/tra
 import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { ConfinementRefusal }                           from '../../shared/@types/ConfinementRefusal.ts';
+import type { ConstitutionCommitProblem }                    from '../../shared/@types/ConstitutionCommitProblem.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
-import type { GroupWorktreeProblem }                         from '../../shared/@types/GroupWorktreeProblem.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
 import { WorktreesFolder }                                   from '../../shared/WorktreesFolder.ts';
@@ -72,7 +74,6 @@ import {
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/HephaestusLimits.ts';
 import { LIFECYCLE_LIMITS }                                    from '../../shared/constants/LifecycleLimits.ts';
-import { AgentProgramWordingUtil }                             from '../../shared/utils/AgentProgramWordingUtil.ts';
 import { type AgentProgramResolution, AgentPrograms }          from '../control/AgentPrograms.ts';
 import { AgentTools }                                          from '../control/AgentTools.ts';
 import type { ConfinedGateLine, GateConfinement, LineRunner }  from '../lifecycle/GateRun.ts';
@@ -146,6 +147,7 @@ import { SessionConfinement }                                from './SessionConf
 import { SessionPlaces, type SessionPlace }                  from './SessionPlace.ts';
 import { StoredFileUnreadable }                              from './StoredFileUnreadable.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }        from './TalosLines.ts';
+import { thrownNamedOf }                                     from './ThrownNaming.ts';
 import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
 import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
 import { type UsageLimitHit, UsageLimits }                   from './UsageLimits.ts';
@@ -303,11 +305,14 @@ export interface DrivePassRequest {
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                () => boolean;
   decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
-  /** An invalid report's problem as a refused merge names it. */
-  reportProblemSentenceOf:       (problem: ReportProblem) => string;
-  gitProblemSentenceOf:          (problem: GitProblem | GroupWorktreeProblem) => string;
-  /** A session or line forge's confinement refuses, as the sandbox refusal, the Airlock's incident or a step's output names it. */
-  confinementRefusalSentenceOf:  (refusal: ConfinementRefusal) => string;
+  /** A git or report problem as the stored note of a merge-refused decision names it. */
+  mergeDecisionSentenceOf:       (problem: MergeDecisionProblem) => string;
+  /** A constitution commit's git problem as the stored Apply refusal's `gitFailure` names it. */
+  applyRefusalSentenceOf:        (problem: ConstitutionCommitProblem) => string;
+  /** Why a pipeline check could not run, as its stored `cannot-run` reason names it. */
+  checkReasonSentenceOf:         (problem: PipelineCheckProblem) => string;
+  /** An unreadable turbo configuration as the stored value of a gate profile's research finding names it. */
+  findingSentenceOf:             (problem: TurboConfigurationProblem) => string;
   /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
   packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
   /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
@@ -372,11 +377,11 @@ export type HephaestusNotice =
   // An incident took its default since Hephaestus started: shown as a warning.
   | { kind: 'incident-defaulted'; incidentId: string; move: IncidentMove; cause: IncidentDefaultCause }
   // Git declined a removal after a refresh or a release; shown while what it would have removed stands.
-  | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; reason: string }
+  | { kind: 'cleanup-declined'; cleanup: DeclinedCleanup['cleanup']; groupBranch: string; problem: GitProblem }
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job stands not launched, nothing spawned, because its agent's program does not run; read each pass from the job's stored fact.
-  | { kind: 'agent-program-refused'; jobId: string; cause: JobNotLaunchedCause; reason: string; repair: string | null }
+  | { kind: 'agent-program-refused'; jobId: string; cause: JobNotLaunchedCause; agentName: string; programPath: string | null; repair: string | null }
   // Passes in a row abandoned on one of the tracker lock's expected conditions; the forge keeps running and tries at each wake-up.
   | { kind: 'passes-abandoned'; inARow: number; reason: AbandonedPass['reason'] };
 
@@ -1030,10 +1035,10 @@ function sessionConfinementRefusalOf(
   request: DrivePassRequest, jobLaunchContext: JobLaunchContext, job: Readonly<Job>, refusal: ConfinementRefusal,
 ): UnmadeAirlockAgentRoot | SessionConfinementRefused | null {
   if (JobLaunch.isWorktreeJob(job)) {
-    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, reason: request.confinementRefusalSentenceOf(refusal) });
+    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, refusal: { code: 'confinement-refused', confinementRefusal: refusal } });
     return null;
   }
-  if (job.kind === 'merge-agent') return { jobId: job.id, reason: request.confinementRefusalSentenceOf(refusal) };
+  if (job.kind === 'merge-agent') return { jobId: job.id, refusal: { code: 'confinement-refused', confinementRefusal: refusal } };
   request.log({ kind: 'session-confinement-refused', jobId: job.id, confinementRefusal: refusal });
   return { sessionConfinementRefusedFor: job.id };
 }
@@ -1150,7 +1155,7 @@ async function launchAgentChild(
       request.folderMaker,
     );
     if (unmadeRoot !== null) {
-      request.log({ kind: 'airlock-agent-root-unmade', jobId: job.id, sandboxRefusal: unmadeRoot.reason });
+      request.log({ kind: 'airlock-agent-root-unmade', jobId: job.id, lineRefusal: unmadeRoot.refusal });
       return unmadeRoot;
     }
   }
@@ -1274,11 +1279,12 @@ function agentProgramNoticesOf(request: DrivePassRequest, board: Board, refusedT
   const standing = board.jobs().flatMap((job) => (job.notLaunched === undefined ? [] : [{ notLaunchedJobId: job.id, notLaunched: job.notLaunched }]));
   const refusals = [...standing, ...refusedThisPass.filter((refused) => !standing.some((stood) => stood.notLaunchedJobId === refused.notLaunchedJobId))];
   return refusals.map(({ notLaunchedJobId, notLaunched }) => ({
-    kind:   'agent-program-refused',
-    jobId:  notLaunchedJobId,
-    cause:  notLaunched.cause,
-    reason: AgentProgramWordingUtil.notLaunchedClauseOf(notLaunched.cause, request.agentAdapter.displayName, notLaunched.programPath),
-    repair: notLaunched.cause === 'batch-target' ? request.agentAdapter.programRepairOf('batch-target') : null,
+    kind:        'agent-program-refused',
+    jobId:       notLaunchedJobId,
+    cause:       notLaunched.cause,
+    agentName:   request.agentAdapter.displayName,
+    programPath: notLaunched.programPath,
+    repair:      notLaunched.cause === 'batch-target' ? request.agentAdapter.programRepairOf('batch-target') : null,
   }));
 }
 
@@ -1311,10 +1317,6 @@ function jobsNeedingAChild(
     && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
 }
 
-function describedThrowOf(thrown: unknown): string {
-  return thrown instanceof Error ? thrown.message : String(thrown);
-}
-
 function noticesOf(
   request: DrivePassRequest,
   installVersionChanged: boolean,
@@ -1332,7 +1334,7 @@ function noticesOf(
         kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
       })),
     ...declinedCleanups.map(({ cleanup, groupBranch, problem }) => ({
-      kind: 'cleanup-declined', cleanup, groupBranch, reason: request.gitProblemSentenceOf(problem)
+      kind: 'cleanup-declined', cleanup, groupBranch, problem
     }) as const),
     ...(installVersionChanged ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),
@@ -1413,24 +1415,23 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
   const jobLaunchContext: JobLaunchContext = {
     platformPorts,
-    workspace:                    request.workspace,
-    agentAdapter:                 request.agentAdapter,
-    monitorFolder:                request.monitorFolder,
-    homeDirectory:                request.homeDirectory,
-    inheritedEnvironment:         request.inheritedEnvironment,
-    mainLine:                     request.mainLine,
-    branchNames:                  request.branchNames,
-    boardChildren:                request.boardChildren,
-    programCommand:               request.programCommand,
-    codeVersion:                  request.codeVersion,
+    workspace:            request.workspace,
+    agentAdapter:         request.agentAdapter,
+    monitorFolder:        request.monitorFolder,
+    homeDirectory:        request.homeDirectory,
+    inheritedEnvironment: request.inheritedEnvironment,
+    mainLine:             request.mainLine,
+    branchNames:          request.branchNames,
+    boardChildren:        request.boardChildren,
+    programCommand:       request.programCommand,
+    codeVersion:          request.codeVersion,
     gateSlots,
-    windDownMessage:              request.windDownMessage,
-    decisionWordingOf:            request.decisionWordingOf,
-    confinementRefusalSentenceOf: request.confinementRefusalSentenceOf,
-    log:                          request.log,
-    resolutionLinesOf:            MergeRun.resolutionLinesOf,
+    windDownMessage:      request.windDownMessage,
+    decisionWordingOf:    request.decisionWordingOf,
+    log:                  request.log,
+    resolutionLinesOf:    MergeRun.resolutionLinesOf,
     ...(sharedRepository === null ? {} : { sharedRepository }),
-    lostLineCause:                () => (startIsBeingReconciled ? causeOfAChildGoneAtTheStart : null),
+    lostLineCause:        () => (startIsBeingReconciled ? causeOfAChildGoneAtTheStart : null),
   };
   const endedJobTokensContext = { boardChildren: request.boardChildren, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
@@ -1465,11 +1466,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     });
     const facts = { ...sandboxFacts, ...WorkerProfiles.entityFactsOf(pipeline) };
     const planOf = () => LineSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
-    const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
-    if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
+    const deniedRoot = WorkerProfiles.unmadeDeniedRootOf(facts);
+    if (deniedRoot !== null) return { verdict: 'refused', refusal: { code: 'denied-root-unmade', deniedRoot } };
     const line = confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
     if (line.verdict === 'runs') return line;
-    return { verdict: 'refused', reason: request.confinementRefusalSentenceOf({ cause: 'confinement-unavailable', unavailability: line.unavailability }) };
+    return { verdict: 'refused', refusal: { code: 'confinement-refused', confinementRefusal: { cause: 'confinement-unavailable', unavailability: line.unavailability } } };
   }
 
   /** A merge gate step in the slot's worktree; one profile file per worktree. */
@@ -1523,12 +1524,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
       return hephaestusGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), storedPipeline(), commandArguments, confinement);
     },
-    hold:         holdTracker,
-    wake:         () => wake(true),
-    log:          request.log,
-    runGateLines: processStarts.runGateLines,
-    runLine:      request.lineRunner,
+    hold:              holdTracker,
+    wake:              () => wake(true),
+    log:               request.log,
+    runGateLines:      processStarts.runGateLines,
+    runLine:           request.lineRunner,
     stopLiveLinesUnder,
+    findingSentenceOf: request.findingSentenceOf,
   });
 
   const pipelineChecking = PipelineChecking.createPipelineChecking({
@@ -1549,6 +1551,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     runLine:               request.lineRunner,
     stopLiveLinesUnder,
     setupMessageWordingOf: request.setupMessageWordingOf,
+    checkReasonSentenceOf: request.checkReasonSentenceOf,
   });
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
@@ -1630,8 +1633,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     stopMergeAgent:          async (job) => { await stopSession(job.id, job.childInstance); },
     startHoldsOrphans:       startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
     decisionWordingOf:       request.decisionWordingOf,
-    reportProblemSentenceOf: request.reportProblemSentenceOf,
-    gitProblemSentenceOf:    request.gitProblemSentenceOf,
+    mergeDecisionSentenceOf: request.mergeDecisionSentenceOf,
+    applyRefusalSentenceOf:  request.applyRefusalSentenceOf,
     keepAirlockFacts:        (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
     keptAirlockFactsOf:      (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
     jobFolderOf:             (job) => request.boardChildren.jobFolderOf(job.id),
@@ -1967,7 +1970,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const update = write();
       if (update.verdict === 'no-record') Presence.reportUnreadablePresence(update.reading, request.unreadableBoardFiles);
     } catch (thrown) {
-      request.log({ kind: 'presence-unrecorded', thrownMessage: describedThrowOf(thrown) });
+      request.log({ kind: 'presence-unrecorded', ...thrownNamedOf(thrown) });
     }
   }
 
@@ -1990,11 +1993,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   async function crashOnPassThrow(thrown: unknown): Promise<void> {
     stopped = true;
-    request.log({ kind: 'pass-crashed', thrownMessage: describedThrowOf(thrown) });
+    request.log({ kind: 'pass-crashed', ...thrownNamedOf(thrown) });
     try {
       await request.onPassCrashed(thrown);
     } catch (crashPathThrow) {
-      request.log({ kind: 'pass-crash-path-threw', thrownMessage: describedThrowOf(crashPathThrow) });
+      request.log({ kind: 'pass-crash-path-threw', ...thrownNamedOf(crashPathThrow) });
     }
   }
 

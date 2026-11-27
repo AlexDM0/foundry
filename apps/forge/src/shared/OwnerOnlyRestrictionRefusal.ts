@@ -3,5 +3,11 @@ import type { OwnerOnlyRestriction } from '../lib/owner-only-files/OwnerOnlyFile
 import { OperationRefusal }          from './OperationRefusal.ts';
 
 export function refuseUnlessOwnerOnly(restriction: OwnerOnlyRestriction): void {
-  if (restriction.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'path-not-owner-only', path: restriction.path, cause: restriction.cause });
+  if (restriction.verdict === 'restricted') return;
+  // Unrepaired, so a command exits 2 as it did when the restriction threw a plain error.
+  throw new OperationRefusal('unrepaired', restriction.cause === 'no-adapter'
+    ? {
+      kind: 'path-not-owner-only', cause: restriction.cause, platformName: restriction.platformName, path: restriction.path
+    }
+    : { kind: 'path-not-owner-only', cause: restriction.cause, path: restriction.path });
 }

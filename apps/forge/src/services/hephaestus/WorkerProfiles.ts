@@ -190,12 +190,11 @@ function deniedRootsMadeBeforeLaunchOf(facts: DeniedRootFacts): string[] {
   return facts.sandboxDenyShape === 'mount-points' ? agentConfigurationFoldersOf(facts) : [];
 }
 
-/** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
-function unmadeDeniedRootRefusalOf(
+/** Makes each denied root a launch makes; the first that cannot be made refuses the launch, otherwise `null`. */
+function unmadeDeniedRootOf(
   facts: DeniedRootFacts, folderMaker: FolderMaker = REAL_FOLDER_MAKER
 ): string | null {
-  const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
-  return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
+  return deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root)) ?? null;
 }
 
 /** The roots every job of the worktree is denied writing, whatever other jobs run. */
@@ -589,7 +588,7 @@ export const WorkerProfiles = Object.freeze({
   fixedDeniedWritableRootsOf,
   deniedWritableRootsOf,
   deniedRootsMadeBeforeLaunchOf,
-  unmadeDeniedRootRefusalOf,
+  unmadeDeniedRootOf,
   nestedCheckoutAncestorsOf,
   nestedCheckoutProfileOf,
   deniedReadableRootsOf,

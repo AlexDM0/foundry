@@ -12,7 +12,7 @@ import type { HephaestusLog }                 from '../../adapters/@types/Hephae
 
 import { GateProfileOutputIngestion }                                                     from '../../adapters/gate-profile-output/GateProfileOutputIngestion.ts';
 import { createGateProfileOutputWriter }                                                  from '../../adapters/gate-profile-output/GateProfileOutputWriter.ts';
-import { TurboConfigurationProblemWording }                                               from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
+import type { TurboConfigurationProblem }                                                 from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -75,6 +75,8 @@ export interface GateProfilingContext {
   /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
   stopLiveLinesUnder: (folder: string) => Promise<void>;
   removalPrimitives?: WorktreeRemovalPrimitives;
+  /** An unreadable turbo configuration as the stored value of its research finding names it. */
+  findingSentenceOf:  (problem: TurboConfigurationProblem) => string;
 }
 
 export interface GateProfiling {
@@ -95,7 +97,7 @@ interface RunInThisProcess {
 }
 
 /** One finding of topic `note` per caching suggestion: the kind is its label, and it names values, never words. */
-function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecording {
+function cachingFindingOf(suggestion: CachingSuggestion, findingSentenceOf: GateProfilingContext['findingSentenceOf']): ResearchFindingRecording {
   const note = { topic: 'note', label: suggestion.kind, script: null } as const;
   switch (suggestion.kind) {
     case 'no-caching-tool':
@@ -107,7 +109,7 @@ function cachingFindingOf(suggestion: CachingSuggestion): ResearchFindingRecordi
     case 'gate-not-through-turbo':
       return { ...note, value: suggestion.gate, sourcePaths: [] };
     case 'turbo-configuration-unreadable':
-      return { ...note, value: TurboConfigurationProblemWording.sentenceOf(suggestion.problem), sourcePaths: [suggestion.file] };
+      return { ...note, value: findingSentenceOf(suggestion.problem), sourcePaths: [suggestion.file] };
   }
 }
 
@@ -136,7 +138,9 @@ function recordedFindingsOf(setup: Readonly<PipelineSetup> | null, entityKey: En
  * the record, in the entity's part for an entity's run. A record that takes no move now, such as one whose Apply waits, gets none: the
  * profile's end is recorded all the same.
  */
-function recordCachingFindings(board: Board, repositoryRoot: string, run: Readonly<GateProfileRun>, at: string): void {
+function recordCachingFindings(
+  board: Board, repositoryRoot: string, run: Readonly<GateProfileRun>, at: string, findingSentenceOf: GateProfilingContext['findingSentenceOf'],
+): void {
   const setup = board.pipelineSetup();
   if (setup === null || run.setupId !== setup.setupId) return;
   const recordedTimes: RecordedGateTime[] = board.gateProfileRuns()
@@ -144,7 +148,7 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
     .map((profiled) => ({ name: profiled.gate.name, milliseconds: profiled.elapsedMilliseconds ?? 0 }));
   const gates = draftGatesOf(setup.draft, run);
   for (const suggestion of CachingChecks.cachingSuggestionsOf(repositoryRoot, gates, recordedTimes)) {
-    const recording = cachingFindingOf(suggestion);
+    const recording = cachingFindingOf(suggestion, findingSentenceOf);
     const recorded = recordedFindingsOf(board.pipelineSetup(), run.entity);
     if (recorded.some((finding) => sameFinding(recording, finding))) continue;
     try {
@@ -156,10 +160,10 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
   }
 }
 
-/** A gate Talos stopped at its time bound timed out; its time is the line's run time, a sleep not counted. */
-function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
+/** A gate Talos stopped at its time bound timed out; its time is the line's run time, a sleep not counted. `null`: no line ran. */
+function endingOf(run: GateLinesRun | GateLineRefusal | null): GateProfileRunEnd {
   const cannotRun: GateProfileRunEnd = { ending: 'cannot-run', elapsedMilliseconds: 0, cacheReport: null };
-  if ('verdict' in run) return cannotRun;
+  if (run === null || 'verdict' in run) return cannotRun;
   const [gate] = run.gates;
   if (gate === undefined) return cannotRun;
   return {
@@ -170,8 +174,8 @@ function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
 }
 
 /** The profiled gate's line, with its run time, when it ran; a profile's prepare steps are not the pipeline's runs and record none. */
-function profiledStepRunsOf(run: GateLinesRun | GateLineRefusal, entity: EntityKey | undefined): PipelineStepRun[] {
-  const stepRun = 'verdict' in run ? null : run.gates[0]?.stepRun ?? null;
+function profiledStepRunsOf(run: GateLinesRun | GateLineRefusal | null, entity: EntityKey | undefined): PipelineStepRun[] {
+  const stepRun = run === null || 'verdict' in run ? null : run.gates[0]?.stepRun ?? null;
   if (stepRun === null) return [];
   return [entity === undefined ? stepRun : { ...stepRun, entity }];
 }
@@ -222,15 +226,17 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
           grantsWrites:   false,
           onOutputLine:   (line) => appendOutput(run.profileRunId, `${line}\n`),
         })
-        : { verdict: 'sandbox-unavailable', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) } as const;
-      if ('verdict' in lines) appendOutput(run.profileRunId, lines.reason);
+        : null;
+      const outputWriter = createGateProfileOutputWriter(outputFilePathOf(workspace.trackerDirectory, run.profileRunId));
+      if (lines === null) outputWriter.appendGitFailure(GitProcess.failureOf(added, ['worktree', 'add']));
+      else if ('verdict' in lines) outputWriter.appendRefusal(lines.refusal);
       const end = endingOf(lines);
       await context.hold(({ board, at }) => {
         // A run this Hephaestus ended as it stopped has no result, as one User stopped has none.
         if (stopSignal.aborted) board.stopGateProfile(run.profileRunId, at);
         const ended = board.endGateProfile(run.profileRunId, end, at);
         if (ended.run.state === 'stopped') return;
-        recordCachingFindings(board, repositoryRoot, ended.run, at);
+        recordCachingFindings(board, repositoryRoot, ended.run, at, context.findingSentenceOf);
         board.recordPipelineStepsRan(profiledStepRunsOf(lines, run.entity), run.phase, at);
       });
     } catch (failure) {

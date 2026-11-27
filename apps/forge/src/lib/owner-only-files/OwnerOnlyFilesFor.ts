@@ -6,6 +6,8 @@ import { createWindowsOwnerOnlyFiles, REAL_WINDOWS_OWNER_ONLY_PRIMITIVES } from 
 export function ownerOnlyFilesFor(platform: string): OwnerOnlyFiles {
   if (platform === 'darwin' || platform === 'linux') return createPosixOwnerOnlyFiles(REAL_POSIX_OWNER_ONLY_PRIMITIVES);
   if (platform === 'win32') return createWindowsOwnerOnlyFiles(REAL_WINDOWS_OWNER_ONLY_PRIMITIVES);
-  const refuse = (path: string): OwnerOnlyRestriction => ({ verdict: 'refused', cause: 'no-adapter', path });
+  const refuse = (path: string): OwnerOnlyRestriction => ({
+    verdict: 'refused', cause: 'no-adapter', platformName: platform, path
+  });
   return Object.freeze<OwnerOnlyFiles>({ restrictFolder: refuse, restrictFile: refuse, isOwnerOnly: () => false });
 }

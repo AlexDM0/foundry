@@ -14,7 +14,7 @@ import {
 import { join }               from 'node:path';
 import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
-import type { MergedTreeGate }                                               from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import type { MergedTreeGate, MergedTreeGateRunEnd }                         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MergedTreeGateOutcomeIngestion, type MergedTreeGateOutcomeReading } from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
 import { createMergedTreeGateOutcomeWriter }                                 from '../../adapters/gate-outcome/MergedTreeGateOutcomeWriter.ts';
 import type { GatePhase, GateRunStamp }                                      from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -39,7 +39,7 @@ export interface MergedTreeGateRunRequest {
    * Starts the run with its lines in `runFolder`; called once per run folder. A run that throws keeps no outcome, and so does one whose
    * `stopSignal` was aborted.
    */
-  run:           (runFolder: string, stopSignal: AbortSignal) => Promise<MergedTreeGate>;
+  run:           (runFolder: string, stopSignal: AbortSignal) => Promise<MergedTreeGateRunEnd>;
 }
 
 export type MergedTreeGateRunKey = Pick<MergedTreeGateRunRequest, 'worktreePath' | 'treeId' | 'phase' | 'gatedEntities' | 'stamp'>;
@@ -121,7 +121,7 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
   async function runToItsEnd(runRequest: MergedTreeGateRunRequest, runFolder: string, run: RunInFlight): Promise<void> {
     const runNamed = runNamedOf(runRequest);
     const stopSignal = run.stopController.signal;
-    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'stopped' } | { verdict: 'not-kept'; failureMessage: string; paused: boolean };
+    let ending: { verdict: 'kept'; gate: MergedTreeGateRunEnd } | { verdict: 'stopped' } | { verdict: 'not-kept'; failureMessage: string; paused: boolean };
     try {
       const gate = await runRequest.run(runFolder, stopSignal);
       if (stopSignal.aborted) {

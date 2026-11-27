@@ -8,6 +8,8 @@ import type { TalosState }                              from '../../lib/talos/Ta
 import type { GatePhase }                               from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { InterruptionCause, JobKind, StartOrigin } from '../../lib/tracker-model/@types/Job.ts';
 import type { ConfinementRefusal }                      from '../../shared/@types/ConfinementRefusal.ts';
+import type { LineRefusal }                             from '../../shared/@types/LineRefusal.ts';
+import type { OperationRefusalDetail }                  from '../../shared/OperationRefusal.ts';
 import type { AgentSlotProblem }                        from '../agent-slot/@types/AgentSlotProblem.ts';
 import type { CrashedComponent }                        from '../crash-log/@types/CrashLogRecord.ts';
 import type { MergedTreeGate }                          from '../gate-outcome/@types/MergedTreeGate.ts';
@@ -50,6 +52,9 @@ export type UnstartableGuardReason =
   | { readonly kind: 'not-an-absolute-runtime-path' };
 
 type TalosNumbered = { readonly talosStartNumber: number };
+
+/** A thrown value by its message, and a refusal's detail when it was one, which is worded as the refusal is: its message is only a code. */
+export type ThrownNamed = { readonly thrownMessage: string; readonly thrownRefusal?: OperationRefusalDetail };
 
 /** The job a launch record is about, by its id and its ticket. */
 type JobNamed = { readonly jobId: string; readonly ticketId: string };
@@ -108,10 +113,10 @@ export type HephaestusLogRecord =
     readonly crashLog:     'written' | 'already-written' | 'not-written' }
   | { readonly kind: 'crash-log-leaves-out-presence'; readonly generation: number; readonly problem: PresenceProblem }
   | { readonly kind: 'crash-log-leaves-out-heartbeat'; readonly generation: number; readonly problem: HeartbeatProblem }
-  | { readonly kind: 'crash-log-unwritten'; readonly generation: number; readonly thrownMessage: string }
-  | { readonly kind: 'crashed-ending-unwritten'; readonly generation: number; readonly thrownMessage: string }
-  | { readonly kind: 'lease-renewal-unstoppable'; readonly thrownMessage: string }
-  | { readonly kind: 'registry-crash-unwritten'; readonly thrownMessage: string }
+  | { readonly kind: 'crash-log-unwritten'; readonly generation: number } & ThrownNamed
+  | { readonly kind: 'crashed-ending-unwritten'; readonly generation: number } & ThrownNamed
+  | { readonly kind: 'lease-renewal-unstoppable' } & ThrownNamed
+  | { readonly kind: 'registry-crash-unwritten' } & ThrownNamed
   // Files Hephaestus reads, and the locks and slots it takes over.
   | { readonly kind: 'board-file-unreadable'; readonly file: string; readonly problem: UnreadableFileProblem }
   | { readonly kind: 'heartbeat-unreadable-rewritten'; readonly problem: HeartbeatProblem }
@@ -150,23 +155,23 @@ export type HephaestusLogRecord =
   | { readonly kind: 'tool-left-off-search-path'; readonly toolName: string; readonly jobId: string; readonly toolPath: string; readonly forbiddenRoot: string }
   | { readonly kind: 'job-file-unreadable-at-launch'; readonly jobId: string; readonly file: string; readonly problem: UnreadableFileProblem }
   | { readonly kind: 'pipeline-agent-awaits-billing'; readonly jobId: string }
-  | { readonly kind: 'airlock-agent-root-unmade'; readonly jobId: string; readonly sandboxRefusal: string }
+  | { readonly kind: 'airlock-agent-root-unmade'; readonly jobId: string; readonly lineRefusal: LineRefusal }
   | { readonly kind: 'airlock-agent-conflicts-unknown'; readonly jobId: string }
   | { readonly kind: 'commits-unsigned-despite-signing'; readonly jobId: string }
   /** A `null` Talos refusal is a launch no Talos took. */
   | { readonly kind: 'child-instance-not-launched'; readonly talosRefusal: FrameRefusalReason | null } & LaunchedChildNamed
   | { readonly kind: 'child-instance-launched' } & LaunchedChildNamed
   | { readonly kind: 'cleanup-declined'; readonly cleanup: 'refresh' | 'release'; readonly groupBranch: string; readonly problem: GitProblem }
-  | { readonly kind: 'presence-unrecorded'; readonly thrownMessage: string }
+  | { readonly kind: 'presence-unrecorded' } & ThrownNamed
   | { readonly kind: 'pass-abandoned'; readonly reason: AbandonedPassReason; readonly refusalMessage: string }
-  | { readonly kind: 'pass-crashed'; readonly thrownMessage: string }
-  | { readonly kind: 'pass-crash-path-threw'; readonly thrownMessage: string }
+  | { readonly kind: 'pass-crashed' } & ThrownNamed
+  | { readonly kind: 'pass-crash-path-threw' } & ThrownNamed
   | { readonly kind: 'child-instance-lost'; readonly jobId: string; readonly childInstance: number; readonly cause: InterruptionCause }
   // A job's launch, its lines and its worktree, and the document and pipeline agent sessions.
   | { readonly kind: 'gate-red'; readonly gate: string; readonly treeId: string; readonly outputFile: string } & JobNamed
   | { readonly kind: 'guard-cannot-start'; readonly guard: 'network' | 'stage-edits'; readonly reason: UnstartableGuardReason } & JobNamed
-  /** `sandboxRefusal` is the reason the job's `sandbox-refusal.json` keeps. */
-  | { readonly kind: 'line-refused'; readonly step: string; readonly sandboxRefusal: string } & JobNamed
+  /** `lineRefusal` is what the job's `sandbox-refusal.json` keeps, worded. */
+  | { readonly kind: 'line-refused'; readonly step: string; readonly lineRefusal: LineRefusal } & JobNamed
   /** A `null` confinement is a line unconfined by design. */
   | { readonly kind: 'line-launched'; readonly step: string; readonly instance: number; readonly confinement: string | null } & JobNamed
   /** A `null` Talos refusal is a launch no Talos took. */

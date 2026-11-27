@@ -26,6 +26,7 @@ import {
   test
 } from 'bun:test';
 
+import { TurboConfigurationProblemWording }               from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import type { PipelineStepRun }                           from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ResearchFinding }                           from '../../lib/tracker-model/@types/PipelineSetup.ts';
@@ -213,6 +214,7 @@ function profilingWith(
       leftoverLineStops.push({ folder, worktreesThen: existsSync(join(WorktreesFolder.worktreesRootOf(repository), GATE_PROFILE_WORKTREES_FOLDER)) });
       return Promise.resolve();
     },
+    findingSentenceOf: TurboConfigurationProblemWording.sentenceOf,
   });
 }
 

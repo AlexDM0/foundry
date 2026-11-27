@@ -109,12 +109,6 @@ function failureOf(finishedRun: GitRun | null, gitArguments: readonly string[]):
   };
 }
 
-function failureReasonOf(finishedRun: GitRun | null, gitArguments: readonly string[]): string {
-  const command = `git ${gitArguments.join(' ')}`;
-  if (finishedRun === null) return `${command} could not be started.`;
-  return `${command} exited with ${finishedRun.exitCode}: ${finishedRun.standardError}`;
-}
-
 /** `--end-of-options`, so a revision written as `--output=x` is looked up rather than obeyed. */
 function resolvedCommitOf(directory: string, revision: string, ceilingDirectory?: string): string | null {
   const finishedRun = run(directory, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${revision}^{commit}`], 'hooks-off', undefined, ceilingDirectory);
@@ -126,7 +120,6 @@ export const GitProcess = {
   commandOf,
   directoryExists,
   failureOf,
-  failureReasonOf,
   resolvedCommitOf,
   run,
   succeeded,

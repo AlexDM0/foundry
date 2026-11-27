@@ -13,6 +13,7 @@ import type {
   TicketRowEntry,
   TicketRowsEntry
 }                             from '../@types/StatusDocumentFields.ts';
+import { UnreadableFileProblemWordingUtil } from './UnreadableFileProblemWordingUtil.ts';
 
 function inProgressIdsOf(board: Board): InProgressIds {
   return { inProgressTicketIds: board.inProgressTicketIds(), inProgressReviewOfIds: board.inProgressReviewOfIds() };
@@ -63,9 +64,12 @@ function jobsOf(board: Board): StatusJobs {
   return { jobs: board.jobs() };
 }
 
-/** Carried by both documents, each empty when none is open, as `jobsOf`. */
+/** Carried by both documents, each empty when none is open, as `jobsOf`; an unreadable file's incident facts are served worded. */
 function decisionsAndIncidentsOf(board: Board): StatusDecisionsAndIncidents {
-  return { decisions: board.decisions(), incidents: board.incidents() };
+  return {
+    decisions: board.decisions(),
+    incidents: board.incidents().map((incident) => ({ ...incident, facts: UnreadableFileProblemWordingUtil.wordedIncidentFactsOf(incident) })),
+  };
 }
 
 export const StatusDocumentUtil = {

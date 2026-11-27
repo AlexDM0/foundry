@@ -20,6 +20,7 @@ import type {
 } from '../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }                                                            from '../../adapters/@types/StatusDocument.ts';
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
+import { StatusDocumentUtil }                                                                 from '../../adapters/utils/StatusDocumentUtil.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
 import type { Decision }                                                                      from '../../lib/tracker-model/@types/Decision.ts';
 import type { Draft }                                                                         from '../../lib/tracker-model/@types/Draft.ts';
@@ -296,7 +297,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
       ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job), lostLine: lostLineOf(board, job, reading.logRecords)
     })),
     decisions:       [...board.decisions()],
-    incidents:       [...board.incidents()],
+    incidents:       [...StatusDocumentUtil.decisionsAndIncidentsOf(board).incidents],
     notices:         [...reading.notices],
     mergeQueue:      mergeQueueOf(board, reading.mergeForecasting),
     hephaestus:      reading.hephaestus,

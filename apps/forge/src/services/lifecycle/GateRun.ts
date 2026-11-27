@@ -11,12 +11,12 @@ import { readFileSync, rmSync }    from 'node:fs';
 import { tmpdir }                  from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
-import { GateReportFile }                                   from '../../adapters/pipeline/GateReportFile.ts';
-import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
-import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEndReason }                              from '../../lib/talos/ChildRecord.ts';
-import type { GatePhase }                                   from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GateReportFile }                  from '../../adapters/pipeline/GateReportFile.ts';
+import { GitProcess }                      from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                    from '../../lib/git/GitWorktrees.ts';
+import type { ShellExitReport, ShellLine } from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEndReason }             from '../../lib/talos/ChildRecord.ts';
+import type { GatePhase }                  from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateCacheReport,
   GateCacheReportOfGate,
@@ -32,6 +32,7 @@ import type {
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { LineRefusal }                                                from '../../shared/@types/LineRefusal.ts';
 import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
 import { LINE_TIME_BOUND_MILLISECONDS }                                    from '../../shared/constants/HephaestusLimits.ts';
 import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
@@ -105,7 +106,7 @@ export interface GateProcessRun {
 /** A line ready to spawn, or the reason it never starts: its shell cannot run in the folder, or the confinement port refused it. */
 export type RunnableLine =
   | { verdict: 'runs'; argv: readonly string[]; verbatimArguments: boolean }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; refusal: LineRefusal };
 
 /** What one step may reach besides its tree and temp: the network when it names domains (a prepare step always), and the folders it writes. */
 export interface GateConfinement {
@@ -135,10 +136,9 @@ export interface PipelineRunRequest {
 }
 
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
-/** `reason` is the sentence the step's output then records, as its confiner worded the refusal. */
 export type ConfinedGateLine =
   | { readonly verdict: 'runs'; readonly argv: readonly string[] }
-  | { readonly verdict: 'refused'; readonly reason: string };
+  | { readonly verdict: 'refused'; readonly refusal: LineRefusal };
 
 export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedGateLine;
 
@@ -151,8 +151,8 @@ interface PipelineRunRecords {
 
 export type PipelineVerdict =
   | { outcome: 'setup-failed'; step: string; output: string } & PipelineRunRecords
-  /** `output` is the port's reason; the step never started. */
-  | { outcome: 'sandbox-unavailable'; step: string; output: string } & PipelineRunRecords
+  /** The step never started; its stored output words `refusal`. */
+  | { outcome: 'sandbox-unavailable'; step: string; refusal: LineRefusal } & PipelineRunRecords
   | { outcome: 'passed' } & PipelineRunRecords
   | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string } & PipelineRunRecords;
 
@@ -220,16 +220,6 @@ function recordedStatusOf(statusFile: string): string | null {
   }
 }
 
-const RUN_REFUSAL_WORDING: Readonly<Record<ShellRunRefusal, (directory: string) => string>> = {
-  'network-share-folder':    (directory) => `cmd.exe runs no line in the network share folder ${directory}; move the repository to a drive letter`,
-  'no-absolute-interpreter': () => 'no absolute cmd.exe path is known: ComSpec and SystemRoot are both unset or relative',
-  'no-shell-grammar':        () => 'this platform has no shell to run a line in',
-};
-
-function runRefusalReasonOf(refusal: ShellRunRefusal, directory: string): string {
-  return RUN_REFUSAL_WORDING[refusal](directory);
-}
-
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 const PREPARE_STEP_FOLDER_PREFIX = 'prepare-';
@@ -266,9 +256,11 @@ function runnableLineOf(
   confinement: GateConfinement,
 ): RunnableLine {
   const refusal = shellLine.runRefusalOf(place.directory);
-  if (refusal !== null) return { verdict: 'refused', reason: runRefusalReasonOf(refusal, place.directory) };
+  if (refusal !== null) return { verdict: 'refused', refusal: { code: 'shell-run-refused', refusal, directory: place.directory } };
   const spawnRequest = shellLine.spawnRequestOf(line, place.statusFile);
-  if (spawnRequest.verdict === 'refused') return { verdict: 'refused', reason: runRefusalReasonOf(spawnRequest.refusal, place.directory) };
+  if (spawnRequest.verdict === 'refused') {
+    return { verdict: 'refused', refusal: { code: 'shell-run-refused', refusal: spawnRequest.refusal, directory: place.directory } };
+  }
   const confined = confinedLineOf(spawnRequest.argv, confinement);
   return confined.verdict === 'refused' ? confined : { verdict: 'runs', argv: confined.argv, verbatimArguments: spawnRequest.verbatimArguments };
 }
@@ -424,7 +416,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     const stepDirectory = gateDirectoryOf(request.directory, step, request.projectPrefix);
     const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: [], cacheReports: [], stepRuns
+      outcome: 'sandbox-unavailable', step: step.name, refusal: line.refusal, gatesRun: [], cacheReports: [], stepRuns
     };
     const run = await runGate({
       argv:              line.argv,
@@ -449,7 +441,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     const directory = gateDirectoryOf(request.directory, gate, request.projectPrefix);
     const line = runnableLineOf(request, gate.run, { directory, statusFile }, gateConfinementOf(gate));
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun, cacheReports, stepRuns
+      outcome: 'sandbox-unavailable', step: gate.name, refusal: line.refusal, gatesRun, cacheReports, stepRuns
     };
     const gateFolder = stepFolderOf(request.childFolder, 'gate', gateIndex);
     const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot(gateFolder);
@@ -530,7 +522,6 @@ export const GateRun = Object.freeze({
   gateReportFileFor,
   takeCacheReport,
   recordedStatusOf,
-  runRefusalReasonOf,
   timeBoundLineOf,
   stepRunsOf,
   stepFolderOf,

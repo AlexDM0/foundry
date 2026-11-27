@@ -53,6 +53,16 @@ const RETYPED_KINDS: Partial<Record<HephaestusLogKind, RetypedKind>> = {
     typedKeys: { failure: { code: 'worktree-add-refused', gitMessage: 'fatal: invalid reference: main' } },
     clause:    'fatal: invalid reference: main',
   },
+  'line-refused': {
+    legacyKey: 'sandboxRefusal',
+    typedKeys: { lineRefusal: { code: 'shell-run-refused', refusal: 'no-shell-grammar', directory: '/example/repository/app' } },
+    clause:    'this platform has no shell to run a line in',
+  },
+  'airlock-agent-root-unmade': {
+    legacyKey: 'sandboxRefusal',
+    typedKeys: { lineRefusal: { code: 'denied-root-unmade', deniedRoot: '/example/root' } },
+    clause:    'the denied folder /example/root could not be made, so it would get no read-only mount',
+  },
   'gate-profile-worktree-left-over':   WORKTREE_REMOVAL_RETYPED,
   'pipeline-check-worktree-left-over': WORKTREE_REMOVAL_RETYPED,
   'document-agent-snapshot-left-over': WORKTREE_REMOVAL_RETYPED,

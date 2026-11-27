@@ -224,7 +224,8 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     expect(refused?.applyRefusal?.sentence).not.toBe('');
     const problem = { code: 'main-line-unresolved', mainLine: 'main' } as const;
     const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', problem } });
-    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { problem }]);
+    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields])
+      .toEqual(['main-constitution-unreadable', { reason: 'the main line main does not resolve to a commit' }]);
     expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.applyRefusal).toBeNull();
   });
 

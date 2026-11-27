@@ -19,6 +19,7 @@ import {
   test
 } from 'bun:test';
 
+import { PipelineCheckProblemWording }                            from '../../adapters/pipeline/PipelineCheckProblemWording.ts';
 import type { PipelineCheck, PipelineSetup }                      from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                             from '../../lib/tracker-model/Board.ts';
 import { CHECK_OUTPUT_LIMIT_CHARACTERS }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
@@ -187,6 +188,7 @@ function checkingWith(
     wake:                  () => undefined,
     log:                   () => undefined,
     setupMessageWordingOf: (message) => JSON.stringify(message),
+    checkReasonSentenceOf: PipelineCheckProblemWording.sentenceOf,
     runProposalTwice:      (request) => {
       runRequests.push(request);
       return runProposalTwice(request);
@@ -286,7 +288,7 @@ test('waits queued while no slot is free after the real gates, and starts nothin
 
 testWhenGitIsRecorded('a line the confinement refused ends the check cannot-run with the reason, and the agent hears it', async () => {
   await checkRequestedOnAnUpdate();
-  const checking = checkingWith(() => Promise.resolve({ verdict: 'sandbox-unavailable', reason: 'example sandbox tool missing' }));
+  const checking = checkingWith(() => Promise.resolve({ verdict: 'sandbox-unavailable', refusal: { code: 'denied-root-unmade', deniedRoot: '/example/denied' } }));
 
   await recordedGit.playStage(worktreeOfMainTipAddedAndRemoved('S1'), async () => {
     checking.followChecks(await storedBoard());
@@ -294,7 +296,7 @@ testWhenGitIsRecorded('a line the confinement refused ends the check cannot-run 
   });
 
   const check = await storedCheck();
-  expect(check).toMatchObject({ state: 'cannot-run', result: null, reason: 'example sandbox tool missing' });
+  expect(check).toMatchObject({ state: 'cannot-run', result: null, reason: 'the denied folder /example/denied could not be made, so it would get no read-only mount' });
   expect(messagesTo('J1').at(-1)).toEqual({ kind: 'check-ended', setupId: 'S1', check });
 });
 

@@ -1,7 +1,7 @@
 /**
  * `<data>/hephaestus.log`, appended in place one JSON line per record (`HephaestusLogWordingUtil.storedLineOf`). Each read takes only the
- * whole lines appended since the last one; an unterminated last line waits for its line feed. A line that is no record, such as what a
- * successor printed before it had its logger, is a reading of its own, so a reader skips it and goes on.
+ * whole lines appended since the last one; an unterminated last line waits for its line feed. A line that is no record, such as the
+ * refusal a successor printed to it as it ended, is a reading of its own, so a reader skips it and goes on.
  */
 import {
   closeSync,

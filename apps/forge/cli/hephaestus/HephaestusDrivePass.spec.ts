@@ -250,7 +250,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
       kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
     }));
-    const noticeTexts = drivePass.state().notices.map(HephaestusNoticeWording.noticeTextOf);
+    const noticeTexts = drivePass.state().notices.map(HephaestusNoticeWording.servedNoticeOf).map(HephaestusNoticeWording.noticeTextOf);
     expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
     const notLaunchedLines = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"job-not-launched"'));

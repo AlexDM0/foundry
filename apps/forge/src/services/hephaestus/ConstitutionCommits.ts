@@ -3,17 +3,18 @@
  * entity's, made in Hephaestus's own process in a detached worktree of the main line's tip that its constitution commit job owns: main's
  * blob of each file is checked against the one the record opened on, each draft's text is written byte for byte, and the commit, with hooks
  * off and the repository's own signing configuration, must change only the listed paths. Every refusal is a wordless verdict; git's own
- * text goes with it.
+ * message goes with it as a fact of its problem.
  */
 import { mkdirSync }     from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { writeFileAtomically }                      from '../../lib/atomic-file/AtomicFile.ts';
-import type { WorktreeRemovalProblem }              from '../../lib/git/@types/GitProblem.ts';
-import { GitProcess }                               from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                             from '../../lib/git/GitWorktrees.ts';
-import { projectLocationOf }                        from '../tracker/ProjectLocation.ts';
-import { CONSTITUTION_FILE_PATH, InstructionFiles } from './InstructionFiles.ts';
+import { writeFileAtomically }                        from '../../lib/atomic-file/AtomicFile.ts';
+import type { GitRunFailure, WorktreeRemovalProblem } from '../../lib/git/@types/GitProblem.ts';
+import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                               from '../../lib/git/GitWorktrees.ts';
+import type { ConstitutionCommitProblem }             from '../../shared/@types/ConstitutionCommitProblem.ts';
+import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
+import { CONSTITUTION_FILE_PATH, InstructionFiles }   from './InstructionFiles.ts';
 
 /** The folder under the worktrees root that holds one commit worktree per constitution commit job. */
 export const CONSTITUTION_COMMITS_FOLDER = 'constitution-commits';
@@ -56,10 +57,10 @@ export type ConstitutionCommitRefusalReason =
 
 export type ConstitutionCommitVerdict =
   | { verdict: 'committed'; commit: string }
-  | { verdict: 'refused'; reason: ConstitutionCommitRefusalReason; gitFailure: string | null };
+  | { verdict: 'refused'; reason: ConstitutionCommitRefusalReason; problem: ConstitutionCommitProblem | null };
 
 /** The blob of a constitution in a commit: its id, `null` when the commit holds no such file, or `unreadable` when git cannot answer. */
-export type ConstitutionBlobReading = { verdict: 'read'; blob: string | null } | { verdict: 'unreadable'; gitFailure: string };
+export type ConstitutionBlobReading = { verdict: 'read'; blob: string | null } | { verdict: 'unreadable'; problem: GitRunFailure };
 
 function commitWorktreeOf(worktreesRoot: string, jobId: string): string {
   return join(worktreesRoot, CONSTITUTION_COMMITS_FOLDER, jobId);
@@ -81,11 +82,11 @@ function constitutionBlobOf(projectDirectory: string, commit: string, constituti
   const run = GitProcess.run(constitution.repositoryRoot, blobArguments);
   if (GitProcess.succeeded(run)) return { verdict: 'read', blob: run.standardOutput.trim() };
   if (run?.exitCode === PATH_NOT_ON_THE_COMMIT_EXIT_CODE) return { verdict: 'read', blob: null };
-  return { verdict: 'unreadable', gitFailure: GitProcess.failureReasonOf(run, blobArguments) };
+  return { verdict: 'unreadable', problem: GitProcess.failureOf(run, blobArguments) };
 }
 
-function refused(reason: ConstitutionCommitRefusalReason, gitFailure: string | null = null): ConstitutionCommitVerdict {
-  return { verdict: 'refused', reason, gitFailure };
+function refused(reason: ConstitutionCommitRefusalReason, problem: ConstitutionCommitProblem | null = null): ConstitutionCommitVerdict {
+  return { verdict: 'refused', reason, problem };
 }
 
 /** The paths the commit changes against the tip it was made on, `null` when git cannot tell. */
@@ -112,14 +113,14 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   const mainBlobs: (string | null)[] = [];
   for (const constitution of constitutions) {
     const mainBlob = constitutionBlobOf(request.repositoryRoot, targetTip, constitution.path);
-    if (mainBlob.verdict === 'unreadable') return refused('git-failed', mainBlob.gitFailure);
+    if (mainBlob.verdict === 'unreadable') return refused('git-failed', mainBlob.problem);
     if (mainBlob.blob !== constitution.baseBlob) return refused('constitution-moved');
     mainBlobs.push(mainBlob.blob);
   }
   const worktree = commitWorktreeOf(request.worktreesRoot, request.jobId);
   const addArguments = ['worktree', 'add', '--quiet', '--detach', worktree, targetTip];
   const added = GitProcess.run(repositoryRoot, addArguments);
-  if (!GitProcess.succeeded(added)) return refused('git-failed', GitProcess.failureReasonOf(added, addArguments));
+  if (!GitProcess.succeeded(added)) return refused('git-failed', GitProcess.failureOf(added, addArguments));
   const ceiling = GitWorktrees.ceilingOf(worktree);
   for (const { constitution, file } of files) {
     const constitutionInWorktree = join(worktree, file.repositoryPath);
@@ -129,14 +130,14 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   }
   const stageArguments = ['add', '--', ...listedPaths];
   const staged = GitProcess.run(worktree, stageArguments, 'hooks-off', undefined, ceiling);
-  if (!GitProcess.succeeded(staged)) return refused('git-failed', GitProcess.failureReasonOf(staged, stageArguments));
+  if (!GitProcess.succeeded(staged)) return refused('git-failed', GitProcess.failureOf(staged, stageArguments));
   const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOfFiles(constitutions, mainBlobs)];
   const committed = GitProcess.run(worktree, commitArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(committed)) {
-    return refused(request.signsCommits ? 'constitution-commit-unsigned' : 'git-failed', GitProcess.failureReasonOf(committed, commitArguments));
+    return refused(request.signsCommits ? 'constitution-commit-unsigned' : 'git-failed', GitProcess.failureOf(committed, commitArguments));
   }
   const commit = GitProcess.resolvedCommitOf(worktree, 'HEAD', ceiling);
-  if (commit === null || commit === targetTip) return refused('git-failed', `git ${commitArguments.join(' ')} exited 0, yet HEAD holds no new commit.`);
+  if (commit === null || commit === targetTip) return refused('git-failed', { code: 'commit-not-made', gitArguments: commitArguments });
   // Fail closed: this check is what lets the commit land with no gate.
   if (!changesOnlyListedPaths(pathsChangedBy(worktree, targetTip, commit), listedPaths)) return refused('constitution-commit-unexpected-paths');
   return { verdict: 'committed', commit };

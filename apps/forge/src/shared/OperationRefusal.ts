@@ -11,7 +11,7 @@ import type {
   WorktreeRemovalProblem,
   WorktreeStepProblem
 } from '../lib/git/@types/GitProblem.ts';
-import type { OwnerOnlyRefusalCause }          from '../lib/owner-only-files/OwnerOnlyFiles.ts';
+import type { OwnerOnlyRefusal }               from '../lib/owner-only-files/OwnerOnlyFiles.ts';
 import type { PipelineProblem }                from '../lib/tracker-model/@types/PipelineProblem.ts';
 import type { MainConstitutionProblem }        from '../lib/tracker-model/@types/PipelineSetup.ts';
 import type { TicketDocumentKind }             from '../lib/tracker-model/@types/TicketDocument.ts';
@@ -93,7 +93,7 @@ export type OperationRefusalDetail =
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }
   | { kind: 'picture-type-unsupported'; mediaTypes: readonly string[] }
-  | { kind: 'path-not-owner-only'; path: string; cause: OwnerOnlyRefusalCause }
+  | ({ kind: 'path-not-owner-only' } & OwnerOnlyRefusal)
   | { kind: 'hephaestus-owns-the-lifecycle'; url: string; hephaestusLockFilePath: string }
   /** The Talos this Hephaestus started answers another protocol version, so no Talos starts again while it lives. */
   | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }

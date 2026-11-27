@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
 import type { HephaestusLog }                 from '../../adapters/@types/HephaestusLogRecord.ts';
 
+import type { PipelineCheckProblem }                                                      from '../../adapters/pipeline/PipelineCheckProblemWording.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -60,6 +61,8 @@ export interface PipelineCheckingContext {
   stopLiveLinesUnder:    (folder: string) => Promise<void>;
   /** Words the check's end for the pipeline agent, since only `cli/` holds words. */
   setupMessageWordingOf: (message: SetupMessage) => string;
+  /** Why the check could not run, as its stored `cannot-run` reason names it. */
+  checkReasonSentenceOf: (problem: PipelineCheckProblem) => string;
   removalPrimitives?:    WorktreeRemovalPrimitives;
 }
 
@@ -150,7 +153,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
     const snapshotCommit = GitProcess.resolvedCommitOf(repositoryRoot, context.mainLine);
     if (snapshotCommit === null) return { state: 'cannot-run', reason: MAIN_LINE_UNRESOLVED_REASON };
     const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
-    if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) };
+    if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: context.checkReasonSentenceOf(GitProcess.failureOf(added, ['worktree', 'add'])) };
     const { signal: stopSignal } = running.stopController;
     const checkedSteps = rootedStartOf(started);
     const record = await context.runProposalTwice({
@@ -165,7 +168,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
       snapshotCommit,
       grantsWrites:   false,
     });
-    return 'verdict' in record ? { state: 'cannot-run', reason: record.reason } : { state: 'checked', result: checkResultOf(record) };
+    return 'verdict' in record ? { state: 'cannot-run', reason: context.checkReasonSentenceOf(record.refusal) } : { state: 'checked', result: checkResultOf(record) };
   }
 
   /** Never throws: a failure is logged, and the check reads `stopped` at the next start. */

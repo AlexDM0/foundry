@@ -9,9 +9,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
 
+import type { MergeDecisionProblem }   from '../../adapters/MergeDecisionWording.ts';
 import type { KeptAirlockFacts }       from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import type { ReportProblem }          from '../../adapters/reports/@types/ReportProblem.ts';
 import type { GitProblem }             from '../../lib/git/@types/GitProblem.ts';
 import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                  from '../../lib/git/GitProcess.ts';
@@ -48,7 +48,7 @@ import { EntityOwnershipUtil, type PipelineEntities }                          f
 import { MergeQueueUtil, type MergeForecast }                                  from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
 import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketStageUtil }                                                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { GroupWorktreeProblem }                                           from '../../shared/@types/GroupWorktreeProblem.ts';
+import type { ConstitutionCommitProblem }                                      from '../../shared/@types/ConstitutionCommitProblem.ts';
 import type { BranchNames }                                                    from '../../shared/BranchNames.ts';
 import { OperationRefusal }                                                    from '../../shared/OperationRefusal.ts';
 import type { AirlockLimits }                                                  from '../../shared/constants/AirlockLimits.ts';
@@ -137,9 +137,10 @@ export interface AirlocksContext {
    */
   startHoldsOrphans?:      boolean;
   decisionWordingOf:       (draft: DecisionDraft) => DecisionWording;
-  /** An invalid report's problem as the merge-refused decision names it. */
-  reportProblemSentenceOf: (problem: ReportProblem) => string;
-  gitProblemSentenceOf:    (problem: GitProblem | GroupWorktreeProblem) => string;
+  /** A problem as the merge-refused decision's stored note names it. */
+  mergeDecisionSentenceOf: (problem: MergeDecisionProblem) => string;
+  /** A constitution commit's git problem as the stored Apply refusal's `gitFailure` names it. */
+  applyRefusalSentenceOf:  (problem: ConstitutionCommitProblem) => string;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
   keepAirlockFacts:        (mergeJob: Readonly<Job>, facts: KeptAirlockFacts) => void;
   /** The facts kept beside the merge job: `absent` when none were kept, `unreadable` when the merge job's file cannot be read. */
@@ -812,7 +813,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (isRefresh(job)) {
       const prepared = GroupWorktrees.prepareRefreshWorktree(context.repositoryRoot, context.worktreesRoot, slot.target, slot.targetTip);
       if (prepared.verdict === 'git-failed') {
-        await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, context.gitProblemSentenceOf(prepared.problem));
+        await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, context.mergeDecisionSentenceOf(prepared.problem));
         return true;
       }
     }
@@ -848,7 +849,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       });
       return true;
     }
-    await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, merge.verdict === 'git-failed' ? context.gitProblemSentenceOf(merge.problem) : 'unknown commit');
+    await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, merge.verdict === 'git-failed' ? context.mergeDecisionSentenceOf(merge.problem) : 'unknown commit');
     return true;
   }
 
@@ -1165,7 +1166,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const verdict = MergeRun.reReviewVerdictOf(worktree, resolutionCommit, report, context.agentNaming);
     if (verdict.verdict === 'customs-refused') {
       const cause = verdict.reason === 'report-invalid' ? MERGE_REFUSED_CAUSES.noReport : MERGE_REFUSED_CAUSES.reReviewFailed;
-      const facts = [...verdict.facts, ...(verdict.reportProblems ?? []).map(context.reportProblemSentenceOf)];
+      const facts = [...verdict.facts, ...(verdict.reportProblems ?? []).map(context.mergeDecisionSentenceOf)];
       await refuseMerge(job, cause, `The conflict re-review of job ${agent.id} was refused: ${verdict.reason} ${facts.join(', ')}`.trim());
       return true;
     }
@@ -1568,7 +1569,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (verdict.verdict === 'refused') {
       return endConstitutionCommit(job, { outcome: 'failed', cause: verdict.reason }, (hold, setupId) => {
-        hold.board.refuseApply(setupId, { reason: verdict.reason, gitFailure: verdict.gitFailure }, hold.at);
+        const gitFailure = verdict.problem === null ? null : context.applyRefusalSentenceOf(verdict.problem);
+        hold.board.refuseApply(setupId, { reason: verdict.reason, gitFailure }, hold.at);
       });
     }
     const stillNamed = await context.hold((hold) => {

@@ -16,7 +16,7 @@ forge jobs             # live jobs, then a footer, then defaulted-incident warni
 forge decisions        # what waits on you
 forge incidents        # what waits on the Assistant
 forge merges           # Airlock holders and the merge queue
-tail -n 40 .forge/hephaestus.log
+forge hephaestus-log | tail -n 40
 ```
 
 `status` reports [Hephaestus](../glossary.md#hephaestus) and any [notice](../glossary.md#notice). `status` shows
@@ -425,7 +425,7 @@ A forge never starts at login: after a login or a reboot the board stays stopped
 | `hephaestus-already-running` | One is live; the message has its URL. | Use it, or run `forge stop` first. |
 | `hephaestus-contended` | Another start won the race. | `forge status` |
 | `hephaestus-port-in-use` | The derived range or your `--port` is taken. | `forge start --port 0` |
-| `hephaestus-did-not-start` | The detached process exited. | Run `forge start --foreground` to see why; read `hephaestus.log`. |
+| `hephaestus-did-not-start` | The detached process exited. | Run `forge start --foreground` to see why; run `forge hephaestus-log`. |
 | `hephaestus-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
 | `hephaestus-lock-taken` | A newer Hephaestus took the board over from this one's [Hephaestus lock](../glossary.md#hephaestus-lock) while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |
@@ -447,7 +447,7 @@ A forge never starts at login: after a login or a reboot the board stays stopped
 This block is a list: pick one line.
 
 ```bash
-tail -n 40 .forge/hephaestus.log                                # what Hephaestus did and why a Pass failed
+forge hephaestus-log | tail -n 40                              # what Hephaestus did and why a Pass failed
 jq -c 'select(.ticketId == "003" or (.fields.ticketIds? // [] | index("003")))' .forge/log.jsonl | tail -n 20
 jq -r 'select(.kind == "job-ended") | [.at, .jobId, .fields.outcome, .fields.cause] | @tsv' .forge/log.jsonl | tail
 tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at          # the job's last sign of life
@@ -456,7 +456,7 @@ ls -t .forge/jobs/J7/child-*.log | head -n 1 | xargs tail -n 20   # the same, fo
 tail -n 20 "$(ls -t .forge/talos/talos-*.log | head -n 1)"    # Talos's own log; `talos failed:` says why it died
 jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .forge/log.jsonl | tail -n 1   # the newest Assistant job
 cat .forge/jobs/J7/gate.log                                   # red gate output
-grep -E 'restart|preflight|successor' .forge/hephaestus.log | tail -n 10   # how the last restart went
+forge hephaestus-log | grep -E 'restart|preflight|successor' | tail -n 10   # how the last restart went
 ```
 
 `jobs` prints the child instance of a live job. Each resume starts the next instance, so `-1` then goes stale; the
@@ -574,13 +574,13 @@ URL stays and Talos is not touched. With no live Hephaestus the step is skipped.
 
 **A failed preflight:** `update` or `restart` exits 1 with `restart-failed`, and the sentence says the old Hephaestus
 keeps driving. What `update` installed stands, and the old Hephaestus keeps driving with a `warning:` line in
-`status`. Read the step in that line and `hephaestus.log`, fix it, and run `forge restart`. If the install version
-moved, the old Hephaestus stays held until a restart succeeds.
+`status`. Read the step in that line and `forge hephaestus-log`, fix it, and run `forge restart`. If the install
+version moved, the old Hephaestus stays held until a restart succeeds.
 
 **No successor:** nothing takes the board back. If the successor fails after the old Hephaestus let go, for example
 refused by its install check or its start gate, `update` or `restart` exits 1 with `restart-failed` at step `serve`,
-and no Hephaestus drives the board. The successor's refusal is in `hephaestus.log`. Talos runs on, until its lease
-ends. Start one:
+and no Hephaestus drives the board. `forge hephaestus-log` shows the successor's refusal. Talos runs on, until its
+lease ends. Start one:
 
 ```bash
 forge start

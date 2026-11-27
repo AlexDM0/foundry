@@ -465,7 +465,7 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [Hephaestus lock](../glossa
 | `needs git <version> or newer` | `git-below-floor` | `init` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `hephaestus-lock-not-created-whole` | The Hephaestus lock claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
 | `A Hephaestus already serves this board` | `hephaestus-already-running` | A live Hephaestus lock names another Hephaestus. | Use it, or run `stop`. | |
-| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Hephaestus lock. | Run `start` again, or read `hephaestus.log`. | |
+| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Hephaestus lock. | Run `start` again, or run `forge hephaestus-log`. | |
 | `at the same moment and holds the newer Hephaestus lock` | `hephaestus-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
 | `took this board over from the Hephaestus lock` | `hephaestus-lock-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Hephaestus drives. | |
 | `is in use, so Hephaestus did not start` | `hephaestus-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |

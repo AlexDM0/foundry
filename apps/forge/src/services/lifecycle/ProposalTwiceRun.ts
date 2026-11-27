@@ -6,6 +6,7 @@
 import { join } from 'node:path';
 
 import type { GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import type { LineRefusal } from '../../shared/@types/LineRefusal.ts';
 import {
   GateLineRun,
   type GateLineRunRequest,
@@ -44,7 +45,7 @@ export interface ProposalRunRequest extends GateLineRunRequest {
 /** A line the confinement port refused: nothing of the proposal judged the snapshot, so no record exists. */
 export interface ProposalRunRefusal {
   verdict: 'sandbox-unavailable';
-  reason:  string;
+  refusal: LineRefusal;
 }
 
 export const PROPOSAL_RUN_COUNT = 2;
