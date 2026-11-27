@@ -1,8 +1,7 @@
 /**
- * Gaia's mark, the constellation: a tile holding a rounded hexagon ring, opened around three nodes, about a hexagon core, drawn on a
- * 64-unit grid in the mark's tokens of each theme. Small, it draws a thicker ring and solid nodes with no halo or glow. It is decoration;
- * the name beside it carries the meaning. Every mark of one drawing draws the same gradient, mask and filter, so one id for each serves
- * them all, and each drawing keeps ids of its own.
+ * Gaia's mark, the constellation: a rounded hexagon ring opened around three nodes about a hexagon core, on a 64-unit grid in the mark's theme
+ * tokens; small, it draws a thicker ring and solid nodes. It is decoration; the name beside it carries the meaning. Every mark of one drawing
+ * shares one id per gradient, mask and filter, and each drawing keeps ids of its own.
  */
 import { Fragment }      from 'react';
 import { MARK_GEOMETRY } from '../lib/brand/BrandInterface.ts';

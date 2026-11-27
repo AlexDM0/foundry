@@ -1,8 +1,7 @@
 /**
- * A forge-level condition, composed from the design-system package's callout: a title line with the forge's dot, its name and its word, one
- * sentence, one mono line or a versions line, and the actions at the end. Warn (held) is the tinted warn callout and error (unreachable) the
- * error one, each with the 4 px left edge; neutral, for what is only incomplete or only explains, is the dashed one. The section is named
- * by its title and word.
+ * A forge-level condition built on the design system's callout: a title line with the forge's dot, name and word, one sentence, a mono or
+ * versions line, and the actions. Warn (held) is the tinted warn callout, error (unreachable) the error one, and neutral, for what is only
+ * incomplete or only explains, the dashed one.
  */
 import type { ReactNode }            from 'react';
 import { Callout as PackageCallout } from '../lib/design-system/DesignSystemInterface.ts';

@@ -1,9 +1,7 @@
 /**
- * Gaia's mark, the constellation. What matters: below the threshold it is the small drawing and from it on the large one; each is drawn on
- * the 64-unit grid in the order its source draws it, the large one with a halo around each node and a glow on the top left one, the small
- * one with solid nodes, a thicker ring and a larger core; each drawing names its gradient, mask and filter with ids of its own, so two marks
- * on a page never fight; every colour is a class whose rule reads the mark's own token, so it follows the theme; it is hidden from the
- * accessibility tree, 28 px by default and at the size asked.
+ * Gaia's mark: below the threshold the small drawing and from it on the large one, each drawn in its source's order on the 64-unit grid; each
+ * drawing's gradient, mask and filter ids are its own, so two marks on a page never fight; every colour is a class reading the mark's token; and
+ * it is hidden from the accessibility tree, 28 px unless sized.
  */
 import { describe, expect, test } from 'bun:test';
 

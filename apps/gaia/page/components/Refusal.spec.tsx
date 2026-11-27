@@ -1,8 +1,7 @@
 /**
- * The refusal. What matters: it is the package's failed action, led by which command the forge refused, or which one Gaia could not carry
- * out when Gaia refused or nothing answered, so no forge is blamed for what it was never asked; it hands on the code and the sentence
- * unedited; "Try again" is handed on only when the command can be sent again, and calls onTryAgain; the dismissal is named and calls
- * onDismiss. How the failed action draws them (an alert, the code in mono, a compact secondary button) is the package's to hold.
+ * The refusal: the package's failed action, led by the command the forge refused or that Gaia could not carry out, so no forge is blamed for what
+ * it was never asked; it hands on the code and the sentence unedited, offers "Try again" only when the command can be sent again, and names its
+ * dismissal.
  */
 import { describe, expect, test } from 'bun:test';
 import { FailedAction }           from '../lib/design-system/DesignSystemInterface.ts';

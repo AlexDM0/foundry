@@ -39,13 +39,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'architecture/RealProgramRuns.spec.ts':                                         1,
   'architecture/StyleContract.spec.ts':                                           1,
   'architecture/WorkspaceDependencies.spec.ts':                                   1,
-  'page/components/BrandBar.spec.tsx':                                            1,
-  'page/components/BrandBar.tsx':                                                 1,
-  'page/components/Callout.tsx':                                                  1,
-  'page/components/GaiaMark.spec.tsx':                                            1,
-  'page/components/GaiaMark.tsx':                                                 1,
-  'page/components/Refusal.spec.tsx':                                             1,
-  'page/components/VersionsVerdictMark.tsx':                                      1,
   'page/diagram-frame/DiagramFrameScript.ts':                                     1,
   'page/lib/brand/architecture/PackageIsolation.spec.ts':                         1,
   'page/lib/brand/architecture/StyleChecks.spec.ts':                              1,
@@ -285,7 +278,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */
 const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'page/components/BrandBar.spec.tsx':                       1,
   'page/shared/MachineLoadModel.ts':                         2,
   'page/shared/add-repository/AddRepositoryFields.spec.tsx': 1,
   'page/shared/add-repository/AddRepositoryFields.tsx':      1,

@@ -1,8 +1,7 @@
 /**
- * A forge's verdict against the forge version this Gaia is built for, as its mark: a check for current, a half-filled dot for ahead, a
- * dashed faded dot for newer, which waits on a newer Gaia, and a dashed orange dot for older, which waits on User's Update forge. The one
- * place a verdict reaches the package's state tone; the check and the half dot are Gaia's own. The mark is decoration, so the label pairs
- * it with its word, in orange only for older.
+ * A forge's verdict against the forge version this Gaia is built for, as a mark: a check for current, a half-filled dot for ahead, a dashed faded
+ * dot for newer (waiting on a newer Gaia) and a dashed orange dot for older (waiting on User's Update forge). Only the dots take the package's state
+ * tone; the check and the half dot are Gaia's own. The mark is decoration, so the label pairs it with its word.
  */
 import { StateDot } from '../lib/design-system/DesignSystemInterface.ts';
 

@@ -1,9 +1,7 @@
 /**
- * The brand bar. What matters: the mark and the wordmark are one link to Attention, named "Gaia, Attention" (`docs/design/screens.md`, the shell), the
- * mark hidden; a running fleet's pill is the package's orange badge with a pulsing dot, a dormant one the neutral badge with a ring; the
- * sentence follows the pill; before Gaia knows the fleet there is neither; the package's theme button is at the far end only when the bar
- * is given one, as B1's bar is not; and its name says the current choice and the next, and the next choice it hands on reaches the bar's
- * handler.
+ * The brand bar: the mark and the wordmark are one link named "Gaia, Attention"; the fleet's pill is the orange pulsing badge while a forge runs
+ * and the neutral ringed one when dormant, followed by its sentence, and neither shows before Gaia knows the fleet; the theme button, only when
+ * given, names the current and next choice and hands the next on.
  */
 import { describe, expect, test }       from 'bun:test';
 import { StateBadge, ThemeCycleButton } from '../lib/design-system/DesignSystemInterface.ts';
