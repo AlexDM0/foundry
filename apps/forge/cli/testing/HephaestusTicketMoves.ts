@@ -1,8 +1,7 @@
 /**
- * The ticket moves Hephaestus's lifecycle service makes (a claim, a finish into review, an approval, a delivery), and the board's own record
- * in a ticket's body (`ticket board-record <id> [--append] --body <text>`, as a review writes its section), applied to a scratch board for
- * specs that need a ticket in that state: the CLI has no such verbs. A spec's command lines pass through here in the shape
- * the retired verbs took; every other line reaches `runCommandLine` unchanged.
+ * The ticket moves Hephaestus's lifecycle service makes, and the board's own record in a ticket's body, applied to a scratch board for specs that
+ * need a ticket in that state, since the CLI has no such verbs. A spec writes such a move in the shape the retired verb took; every other line
+ * reaches `runCommandLine` unchanged.
  */
 import { OperationRefusalWordingUtil }               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { TicketJsonUtil }                            from '../../src/adapters/utils/TicketJsonUtil.ts';

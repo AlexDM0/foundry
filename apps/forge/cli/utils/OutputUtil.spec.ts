@@ -1,8 +1,6 @@
 /**
- * What `reportIgnoredTicketFiles` prints after a store write, byte for byte: the words are the command line's, a script may match them,
- * and none of them fails the command, so nothing goes to standard output and every line goes to standard error.
- * Beside it, the column padding every table relies on, the ignored-ticket line with and without a line number, and the logged records
- * worded one per line as every writing command prints them.
+ * What `reportIgnoredTicketFiles` prints after a store write, byte for byte, all to standard error, since none of it fails the command; beside it
+ * the column padding and the logged records as every writing command prints them.
  */
 import {
   afterEach,

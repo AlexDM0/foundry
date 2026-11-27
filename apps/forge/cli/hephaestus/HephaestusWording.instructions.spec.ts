@@ -1,9 +1,6 @@
 /**
- * What a session is told comes from the pipeline's instruction files, read by Hephaestus at launch. What matters: a builder's first
- * message holds the files of its instruction list in list order, each asked of git as the main line holds it; the
- * data-folder default is read from disk and filled; each file read leaves its content hash; an empty list gives the role's built-in brief,
- * filled like a default; and one missing file, named or default, refuses the launch naming it. Git answers from the recorded answers of
- * `src/testing/RecordedGit.ts`, and a git call with no recorded answer fails the case.
+ * What a session is told from the pipeline's instruction files, read at launch as the main line holds them: list order, a content hash per file,
+ * the role's built-in brief for an empty list, and a refused launch for a missing file. A git call with no recorded answer fails the case.
  */
 import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';

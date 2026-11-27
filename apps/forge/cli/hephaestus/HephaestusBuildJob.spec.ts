@@ -1,11 +1,7 @@
 /**
- * A build job's code on a scratch tracker behind the Talos boundary: `src/testing/RecordedTalosStages.ts` plays the session and scripts each gate
- * line, so no Talos, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
- * install line, through the closing report, verification and a gate, to the Handoff code writes, the finished ticket and the review job the
- * policy launches; and each operational failure opens its own incident or decision rather than a failed pass, while a missing report or an
- * attribution trailer is a failed pass with its cause. A tracker at its repository's root whose pipeline has no entities asks git exactly the
- * calls it asked before a tracker could sit in a folder or hold entities, on a clean run to the landing, a conflict an Airlock agent resolves, a
- * red handoff that parks the ticket and a review round. `cli/hephaestus/HephaestusBuildJob.integration.spec.ts` holds the real-system claims.
+ * A build job's code behind the Talos boundary, `src/testing/RecordedTalosStages.ts` playing the session and gates: each step is a job state,
+ * each operational failure opens its own incident or decision rather than a failed pass, and a root tracker without entities asks git exactly the
+ * frozen calls.
  */
 import {
   existsSync,
@@ -345,10 +341,9 @@ function airlockAgentResolvingTheConflict(): FakeAgentStep[] {
 }
 
 /**
- * Each flow the frozen replay runs, under its name in `FrozenRootTrackerGitCalls.json`. The first two were taken from forge at 7210f3c1, the
- * last commit before Part B; the conflict, the red handoff and the review round from ede42a12, the last commit before entities. Each was taken
- * by running its case there with the distinct calls written out. Retake one the same way from the commit before a change meant to move a root
- * tracker's git, never from this run. A review round stops at the reviewer's running session: its pass commits, which no flow stage records.
+ * Each flow the frozen replay runs, under its name in `FrozenRootTrackerGitCalls.json`, taken by running its case at 7210f3c1 (the first two)
+ * or ede42a12, the last commit before entities. Retake one the same way from the commit before a change meant to move a root tracker's git,
+ * never from this run. A review round stops at the reviewer's running session: its pass commits, which no flow stage records.
  */
 const FROZEN_ROOT_TRACKER_FLOWS = {
   'no gate':                             async () => await passUntilLanded(['gate', 'none']),

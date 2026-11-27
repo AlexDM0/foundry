@@ -1,8 +1,6 @@
 /**
- * The ids a recorded move reads from its command line. What matters: an `--incident` value is checked as `I<n>` exactly as a positional
- * incident id is, with the same wording, so a mistyped one is refused before anything is recorded rather than stored and never matched;
- * either id is accepted in lower case and stored upper-cased, and neither accepts the number 0 or a leading zero, which the Board never writes.
- * Under a job the move is relayed through the Hatch before the store is reached, so `resume` and every incident move reach the Bouncer.
+ * The ids a recorded move reads: an `--incident` value is checked as `I<n>` exactly as a positional one, so a mistyped one is refused rather than
+ * stored and never matched; both accept lower case, neither 0 nor a leading zero. Under a job the move is relayed through the Hatch.
  */
 import { readdirSync } from 'node:fs';
 import { join }        from 'node:path';

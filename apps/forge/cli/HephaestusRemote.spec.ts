@@ -1,8 +1,7 @@
 /**
- * What the CLI asks a live Hephaestus over HTTP, against the recorded Hephaestus API in place of the global `fetch`. What matters: the identity
- * answers with no token; the state needs the Hephaestus lock's token, so another token or an unreadable token file gives `null`;
- * a Hephaestus gone answers nothing, never a throw; and a detached start whose child lost the Hephaestus lock to a Hephaestus started at the same time
- * answers that Hephaestus's URL, not a refusal. Its child is a recorded spawn that has exited, and its rival a process of the recorded table.
+ * What the CLI asks a live Hephaestus over HTTP, against the recorded API. The identity needs no token, the state needs the lock's token; a
+ * Hephaestus gone answers nothing, never a throw; and a detached start whose child lost the lock to a rival started at the same time answers the
+ * rival's URL.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

@@ -1,8 +1,6 @@
 /**
- * A `pipeline.json` an earlier release wrote, with no `version` or one below the one format's, is refused, never rewritten: no release
- * converts a pipeline, so the refusal does not carry the update sentence of `OLDER_FORMAT_ADVICE`, which would send the reader to a release
- * that cannot help. It tells the reader to set the pipeline up again. What matters: every `gate` verb that writes, and `gate list`, refuses
- * it at exit 1 with that wording, and the file stays byte for byte; a file of version 2, 3 or 4, which earlier releases read, is as old.
+ * A `pipeline.json` an earlier release wrote is refused, never rewritten: no release converts a pipeline, so the refusal tells the reader to set
+ * it up again rather than to update. Every writing `gate` verb and `gate list` refuses it at exit 1, the file byte for byte.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import {

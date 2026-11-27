@@ -1,7 +1,6 @@
 /**
- * The install version decision against its own contract, with arbitrary numbers: with one install version so far, a valid older manifest cannot
- * exist on disk, so only this spec reaches `older`. What matters: equal is current, lower is older and higher is newer with the recorded number,
- * an unreadable manifest fails closed, a directory at its path is a mismatch of its own, and a missing one is a mismatch only while
+ * The install version decision against its own contract, with arbitrary numbers, since with one install version so far only this spec reaches
+ * `older`. An unreadable manifest fails closed, a directory at its path is a mismatch of its own, and a missing one is a mismatch only while
  * installed files are present.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';

@@ -1,8 +1,6 @@
 /**
- * The texts `init` and `update` install, computed before anything is written. The cases that matter: the product's names are filled and
- * only the instruction defaults keep placeholders, the ones Hephaestus fills at each launch; the session instructions and the Assistant
- * brief name no retired verb, hook or file; the brief whose presence marks the install is the session instructions; neither skill
- * names a Claude-only tool; and a bundle's invocation is the adapter's line, which with Claude Code's gives the frozen install's texts.
+ * The texts `init` and `update` install, computed before anything is written: names filled, only the instruction defaults keep placeholders for
+ * Hephaestus to fill, no retired verb, hook, file or Claude-only tool named, and with Claude Code's adapter the frozen install's texts.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

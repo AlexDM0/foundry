@@ -1,8 +1,6 @@
 /**
- * What each command prints, byte for byte, when the tracker's progress.json or log.jsonl cannot be read, and what a Board refusal prints.
- * The words are pinned whole because they are the contract with main; the cases that matter are the refusal Main prints, the render's two
- * reasons, the `detail` of `release --json`, the hook's one sentence at exit 0, and `concurrency` and `dispatcher` reading progress.json
- * alone, so a broken log does not stop them.
+ * What each command prints, byte for byte, when progress.json or log.jsonl cannot be read, and what a Board refusal prints; the words are the
+ * contract with main. `concurrency` and `dispatcher` read progress.json alone, so a broken log does not stop them.
  */
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                      from 'node:path';

@@ -1,10 +1,6 @@
 /**
- * What `agent-progress usage` reports from the rows the agent port answers, driven in process against a scratch tracker with the fake
- * agent's planted rows. The cases that matter are the ones a reader acts on: that the rows are oldest first, that `--since` splits the
- * cohort where it was told to and labels both sides, that the `--json` document carries the folder the adapter read and a cohort for each
- * side, that the breach figures reach the row and the cohort line, that the request hands the adapter the `--transcripts` folder, the
- * project root and the context's home, and that a project with no rows is an answer rather than a refusal. How the adapter reads its
- * transcripts is the adapter's own spec's.
+ * What `usage` reports from the rows the fake agent plants: oldest first, `--since` splitting and labelling the cohorts, the breach figures, what
+ * the request hands the adapter, and no rows as an answer, not a refusal. How the adapter reads transcripts is its own spec's.
  */
 import { join } from 'node:path';
 

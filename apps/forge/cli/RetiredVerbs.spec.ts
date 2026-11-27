@@ -1,8 +1,6 @@
 /**
- * The Workflow dispatcher, its hook verbs and the by-hand lifecycle verbs are retired: Hephaestus makes those moves now (owner answer Q41).
- * `open` is retired too: no command opens a page.
- * What matters is that each is refused at exit 1 as unknown, writing nothing, on a tracked repository where the verb would otherwise have
- * had a ticket to act on; `ticket deliver --by-hand`, the one record-only lifecycle verb kept, still delivers.
+ * The Workflow dispatcher, its hook verbs, the by-hand lifecycle verbs and `open` are retired, since Hephaestus makes those moves: each is
+ * refused at exit 1 as unknown, writing nothing, where it would have had a ticket to act on. `ticket deliver --by-hand` still delivers.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

@@ -1,8 +1,6 @@
 /**
- * A ticket's `network` line as the command surface sees it. The cases that matter: `ticket add --network` and `ticket network` set it and
- * `--clear` removes it, each with a log line; a domain that is not public is refused at exit 1 with nothing written, each form planted;
- * the line is legal only while the ticket is a draft or committed; `status --json` and `ticket show --json` carry it once set; and a ticket
- * whose line is cleared is the same bytes as one that never had it.
+ * A ticket's `network` line: set, cleared and logged, a domain that is not public refused, legal only while draft or committed, carried in
+ * `--json`, and a cleared ticket byte-identical to one that never had it.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join }                      from 'node:path';

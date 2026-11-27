@@ -1,9 +1,7 @@
 /**
- * A build named beside the released program reaches none of the released program's files, and the released program none of the side-by-side
- * build's. The cases that matter: the other program's root variable is ignored by the binary; `init` and `update` work beside the other
- * program's data folder and leave it untouched; an `update` leaves the other program's installed files byte for byte and installs its own
- * skills under its own names; and the skill folders of the two are their own. Every expected name derives from the constant, and each case
- * runs the binary once as built and once preloaded to be the other program, so flipping the constant edits no case here.
+ * A build named beside the released program reaches none of its files, and the released program none of the build's: root variables, data
+ * folders, installed files and skill folders stay apart. Each case runs the binary as built and preloaded as the other program, so flipping the
+ * name constant edits no case here.
  */
 import {
   existsSync,

@@ -1,9 +1,6 @@
 /**
- * Every option a command's parser accepts is named in its `agent-progress help` entry and in its `docs/cli.md` row, and
- * neither names one the parser refuses. The accepted names are read off the handlers themselves: each runs with a parser
- * that stops at `rejectUnknownOptions` and keeps the list it was handed, so no list is copied here. `--json` is held
- * apart, against the one sentence in each text naming the commands that refuse it. The scans prove they found entries,
- * and the comparison is watched failing on a planted missing and a planted extra option in each text.
+ * Every option a command's parser accepts is named in its help entry and its `docs/cli.md` row, and neither names one it refuses. The names are
+ * read off the handlers themselves, so no list is copied here; `--json` is held against the one sentence naming the commands that refuse it.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

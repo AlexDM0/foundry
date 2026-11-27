@@ -1,9 +1,6 @@
 /**
- * The Next line each of the ten commands an orchestrator runs between dispatches ends its human output
- * with, driven in process against one scratch tracker per case. What matters is that the line describes the
- * board after the move rather than before it — a claim takes its ticket off the ready list — and that no
- * `--json` document carries it, since a script parses that output whole. The wordings themselves are
- * pinned in `cli/utils/NextLineUtil.spec.ts`.
+ * The Next line the ten commands an orchestrator runs between dispatches end with: it describes the board after the move, and no `--json`
+ * document carries it, since a script parses that output whole. The wordings are pinned in `cli/utils/NextLineUtil.spec.ts`.
  */
 import {
   afterEach,

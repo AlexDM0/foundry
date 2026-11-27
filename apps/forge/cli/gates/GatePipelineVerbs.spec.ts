@@ -1,14 +1,6 @@
 /**
- * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
- * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write the one format, a gate in every
- * phase unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per
- * phase, the content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate
- * that runs in only some, since a line with none reads as every phase; a step or gate folder stays in the repository, `/` leading for its
- * root; the reach holds repository paths and needs a stored pipeline; a malformed file is refused, never overwritten, and a refused write
- * leaves the progress file, the pipeline and the log as they were, a pipeline with entities byte for byte, since each entity's steps, gates
- * and reach are set in the pipeline builder; the Assistant's switch is the board's own, off until `gate assistant on`, and needs a stored
- * pipeline; `gate approval` switches ticket, merge, spec and plan review, the last two listed only in the spec-then-plan route; a gate the
- * forge alone runs is `--forge-only`, and the flag's earlier name is an unknown option. An older file is
+ * The `gate` verbs over a scratch tracker: no pipeline and `gate none` are told apart, the verbs are the file's only writers, the hashes move
+ * with their phase, and a malformed file is refused, never overwritten, a refused write leaving every file as it was. An older file is
  * `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {

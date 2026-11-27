@@ -1,9 +1,7 @@
 /**
- * The compiled launcher `setup.ts` installs, run in a scratch repository that plants a bunfig preload and a `.env`. The cases that matter:
- * the planted preload stays unrun and the planted variable unset, for a command and for the hook; a missing preload path leaves the exit
- * code alone; the exit code and both streams match the direct run; and the program command Hephaestus, its successor and the
- * install-change watch start from (`cli/CommandContext.ts`) is isolated the same way. Each claim is first watched failing without the
- * isolation, so the planting is proved to work.
+ * The compiled launcher `setup.ts` installs, run in a scratch repository that plants a bunfig preload and a `.env`: neither takes effect for a
+ * command, the hook or the program command Hephaestus starts from, and exit code and streams match the direct run. Each claim is first watched
+ * failing without the isolation, so the planting is proved to work.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';

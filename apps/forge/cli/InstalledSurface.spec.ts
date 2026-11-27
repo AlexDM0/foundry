@@ -1,12 +1,7 @@
 /**
- * The surface of the CLI the installed files name, frozen per `INSTALL_VERSION` in `cli/FrozenInstalledSurface.json`: the commands and flags the
- * session instructions, the reference, the Assistant brief and the skills name, and the `status --json` and Hephaestus state fields they read. A
- * version's surface only grows, since a file installed at that version may name any of it; so a frozen name the CLI no longer has means an
- * installed file became wrong, and fails until `INSTALL_VERSION` is bumped. Prose and numbers are not surface, so rewording a template or
- * changing a `DISPATCH_PROTOCOL` number trips nothing. This spec compares the commands and flags, the CLI's side being the help screen;
- * `cli/InstalledSurface.status.spec.ts` compares the status fields, read from a tracker. To retake: add the names a failure lists
- * under the current version, or, after a bump, a new key holding the surface the failures of both specs print; never delete a name from a
- * version already frozen.
+ * The commands and flags the installed files name, frozen per `INSTALL_VERSION` in `cli/FrozenInstalledSurface.json`. A file installed at a
+ * version may name any of its surface, so a frozen name the CLI lost fails until the version is bumped; prose and numbers are not surface. To
+ * retake, add the names a failure lists, or after a bump a new key; never delete a name from a frozen version.
  */
 import { expect, test, describe } from 'bun:test';
 
@@ -85,7 +80,7 @@ describe('the frozen surface', () => {
   });
 });
 
-/** Owner answer Q41: the by-hand lifecycle verbs, the hook verbs and the Workflow dispatcher retire without a bump, since 17 names none. */
+/** The by-hand lifecycle verbs, the hook verbs and the Workflow dispatcher retire without a bump, since version 17 names none. */
 describe('the retired verbs', () => {
   const RETIRED_COMMANDS = ['dispatcher', 'release', 'review record', 'rework', 'ticket approve', 'ticket claim', 'ticket finish', 'ticket start'];
   const RETIRED_HOOK_EVENTS = ['hook subagent-stop', 'hook pre-tool-use', 'hook post-tool-use'];

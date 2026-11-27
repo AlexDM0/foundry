@@ -1,8 +1,7 @@
 /**
- * The install version check on real directories. What matters: no tracker and a tracker with nothing installed pass, so the commands' own
- * refusals and hand-made fixtures are unchanged; a brief without a manifest is a tracker from before versioning; an equal manifest passes,
- * a newer or unreadable one refuses with the mismatch as its detail; and the check `init` and `update` run refuses only a newer manifest and
- * a directory at the manifest's path, which they could not replace.
+ * The install version check on real directories: no tracker or nothing installed passes, a brief without a manifest predates versioning, an equal
+ * manifest passes and a newer or unreadable one refuses; the check of `init` and `update` refuses only a newer manifest and a directory at its
+ * path, which they could not replace.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

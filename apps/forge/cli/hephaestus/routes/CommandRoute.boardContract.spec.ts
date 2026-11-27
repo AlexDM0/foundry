@@ -1,12 +1,6 @@
 /**
- * The board's command kinds of the contract a view sends to `POST /api/v3/commands`, under `controlVersion` 3. What matters:
- * `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` and `ForgeTicketDocumentCommand` kinds, both ways, which
- * the typecheck and a runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route answers 200
- * `{controlVersion: 3, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit inside an
- * entity lands, a role edit keeps the document reading rules it sends, and an edit written as a field string is malformed; a ticket
- * document command whose anchor holds a key it does not name answers 400 and writes nothing; a save on a ticket with no documents record
- * answers 409 `ticket-has-no-documents` and writes nothing, and once the record is open the same save answers 200 and stores version 1 with
- * its text.
+ * The board's command kinds of the contract a view sends to `POST /api/v3/commands`: `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's
+ * kinds both ways, an applied kind answers 200, and a malformed body 400, writing nothing.
  */
 import { readFileSync } from 'node:fs';
 

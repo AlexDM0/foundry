@@ -1,14 +1,6 @@
 /**
- * `agent-progress review-stats` on an initialised scratch tracker filed through the CLI: tickets of two types and two agent pairs, their
- * rows' and review bars' tokens, `review-recorded` lines written into the log, bugs naming their cause and a ticket a review filed. What
- * matters: every figure in the text and in `--json`, for every recorded ticket and for each of the three splits, equals the value worked
- * out by hand below; a ticket with two passes is one ticket; an unrecorded ticket is only counted; a tracker without records says so at
- * exit 0; and the command leaves the whole `.agent-progress/` folder, the lock folder included, byte for byte as it found it.
- *
- * The board by hand. Alpha: a ticket, opus/medium, builder row 1000 tokens, bars 300 and 200, two passes (rounds 1 and 2), 30+10 changed
- * lines, delivered, one bug and one filed ticket name it. Beta: a bug, haiku/low, row 500, bar 100, one pass, 150+50 lines, delivered,
- * two bugs name it. Delta: a ticket, haiku/low, row 2000, a bar with no tokens, one pass, 600+300 lines, pending. Gamma and the four
- * tickets naming Alpha or Beta have no record.
+ * `review-stats` on a scratch tracker filed through the CLI: every figure in text and `--json` equals the value worked out by hand on
+ * `fileTheBoard`, an unrecorded ticket is only counted, and the `.agent-progress/` folder stays byte for byte.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -103,6 +95,11 @@ async function expectSucceeds(commandArguments: readonly string[]): Promise<void
   expect(exitCode, error).toBe(0);
 }
 
+/**
+ * The board by hand. Alpha: a ticket, opus/medium, row 1000 tokens, bars 300 and 200, rounds 1 and 2, 30+10 changed lines, delivered, named by
+ * one bug and one filed ticket. Beta: a bug, haiku/low, row 500, bar 100, one pass, 150+50 lines, delivered, named by two bugs. Delta: a ticket,
+ * haiku/low, row 2000, a bar with no tokens, one pass, 600+300 lines, pending. Gamma and the rest have no record.
+ */
 async function fileTheBoard(): Promise<void> {
   const alpha = await fileTicket('Example alpha', ['--type', 'ticket']);
   const beta  = await fileTicket('Example beta', ['--type', 'bug', '--model', 'haiku', '--effort', 'low']);

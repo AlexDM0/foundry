@@ -1,9 +1,7 @@
 /**
- * `init` beside `AGENT_PROGRESS_ROOT`, through the real binary because no spec may set the environment in-process. The case that
- * matters is an override naming a folder without a tracker while `init` runs in a tracked repository: it must leave that repository's rows
- * and log untouched, not write an empty store over them. Every case compares the bytes of the tracker's progress.json and log.jsonl
- * together, since an exit code alone cannot show nothing was lost. Git plays recorded answers in the binary, and in this process, whose
- * isolation check asks git for the root of a folder that holds no tracker.
+ * `init` beside `AGENT_PROGRESS_ROOT`, through the real binary because no spec may set the environment in-process. An override naming a folder
+ * without a tracker, run in a tracked repository, must leave that repository's rows and log untouched; each case compares the bytes, since an
+ * exit code alone cannot show nothing was lost.
  */
 import { createHash }                             from 'node:crypto';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';

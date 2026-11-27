@@ -1,8 +1,6 @@
 /**
- * `question options`, run on a scratch tracker with a running build job written in. What matters: the notes land on the named job as the
- * Board read them, trimmed, and nothing is logged, since they only wait for the question; text that is not JSON, notes that are not well
- * formed, a missing job and an unknown subcommand are refused at exit 1 and write nothing, a malformed note worded by the one refusal
- * wording, naming its field. The verb under the asking job, which names no job and relays, is held by `cli/HatchUnderJob.spec.ts`.
+ * `question options` on a scratch tracker with a running build job: the notes land on the job trimmed and nothing is logged, since they only wait
+ * for the question; malformed input is refused at exit 1, writing nothing. The verb under the asking job is in `cli/HatchUnderJob.spec.ts`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 

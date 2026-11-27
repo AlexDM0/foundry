@@ -1,8 +1,7 @@
 /**
- * What the CLI does to a Hephaestus it is not: start one detached, ask the live one to stop, and wait for its Hephaestus lock to go. A stop goes to the
- * API with the token; when the API does not answer, the Hephaestus lock's process is ended, its identity checked first. Talos and its children are
- * never touched. A Hephaestus lock left naming a dead process says Hephaestus's own stop never finished, which the outcome reports for the caller
- * to repair. A clean restart of Talos is only asked of the live Hephaestus, which sends Talos its quit.
+ * What the CLI does to a Hephaestus it is not: start one detached, ask the live one to stop, and wait for its lock to go. When the API does not
+ * answer, the lock's process is ended, its identity checked first; Talos is never touched, its clean restart asked only of the live Hephaestus.
+ * A lock left naming a dead process means Hephaestus's own stop never finished, which the outcome reports for the caller to repair.
  */
 import { readFileSync } from 'node:fs';
 

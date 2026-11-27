@@ -1,11 +1,6 @@
 /**
- * The control contract a monitor sends to `POST /api/v3/commands`: the nine kinds, each body and each answer, under `controlVersion` 3,
- * forge 3.0's. What matters: the list of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's
- * `ForgeControlCommand` and forge's own command, which the typecheck holds; every applied kind answers 200
- * `{controlVersion: 3, outcome, result}` with the outcome `done` or `nothing-to-do`; a body of a contract kind with a field of the wrong
- * type, or none, answers 400 and writes nothing, also where the applier would not check the field; a refused command answers 409 and the
- * install hold 423, each `{controlVersion: 3, refusal, fields, text}` with the refusal's code, its facts (none for 400 and 423) and the
- * sentence the command line prints, also where the API's sentence differs. A change here raises the system version in `forge-contracts`.
+ * The control contract a monitor sends to `POST /api/v3/commands`: the kinds exact both ways against `CONTROL_CONTRACT_KINDS`, each body and
+ * answer under `controlVersion` 3, refusals with code, facts and sentence. A change here raises the system version in `forge-contracts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 

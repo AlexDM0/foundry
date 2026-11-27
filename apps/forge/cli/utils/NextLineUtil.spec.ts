@@ -1,8 +1,7 @@
 /**
- * The three wordings an orchestrator reads after every move — a slot free, none free, nothing ready —
- * the cap that keeps a long queue to one line: five ids, then how many more — and the paused Hephaestus's
- * advice, which is what survives a compaction of the orchestrator's context — and that a Board's line is composed from its own
- * dispatch capacity, a board that never set a Hephaestus state reading as paused there.
+ * The wordings an orchestrator reads after every move: a slot free, none free, nothing ready, capped at five ids, and the paused Hephaestus's
+ * advice, which is what survives a compaction of its context. A Board's line uses its own dispatch capacity, and a board that never set a
+ * Hephaestus state reads as paused there.
  */
 import { expect, test } from 'bun:test';
 

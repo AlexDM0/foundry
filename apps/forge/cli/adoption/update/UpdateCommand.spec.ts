@@ -1,8 +1,6 @@
 /**
- * What `agent-progress update` refreshes, what it reports about each of those files, that it leaves what an earlier install version wrote
- * where it is, and that it leaves a current tracker's progress file, tickets and log byte for byte; and that it refuses, writing nothing,
- * files a newer agent-progress installed and a directory at the manifest's path, which it could not replace. Git plays recorded answers:
- * each case names the calls `update` makes in its state.
+ * What `update` refreshes and reports, leaving earlier installs' files and the tracker's progress file, tickets and log byte for byte; it
+ * refuses, writing nothing, files a newer release installed and a directory at the manifest's path. Git plays recorded answers per state.
  */
 import {
   chmodSync,

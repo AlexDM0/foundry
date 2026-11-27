@@ -1,8 +1,6 @@
 /**
- * Hephaestus's process facts `status` prints above the board, over the recorded process table: a forge down after a crash names the crashed
- * Hephaestus lock and its crash log's path above the board, `--json` carries the facts under `hephaestus` with the presence block, and a board no forge
- * ran on is down with no crash line. A live Hephaestus whose lock has no version, as one of older code holds, is live to status and to the
- * command line's control context alike.
+ * Hephaestus's process facts `status` prints above the board, over the recorded process table: a crashed forge names its lock and crash log,
+ * `--json` carries them under `hephaestus`, and a lock without a version, as older code wrote, is still live.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 

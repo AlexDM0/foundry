@@ -1,8 +1,6 @@
 /**
- * `start` in its forms. Bare, it starts the board's Hephaestus detached after the start gate, starts nothing with one live, and returns
- * only once Hephaestus's API answers, so a program that runs it may use the API at once. `--foreground` is the serving process itself, which
- * the detached child runs; `--successor-of <generation>` is the start a restarting Hephaestus makes once it let go, and `--preflight` is the
- * code on disk proving itself to a Hephaestus about to restart, serving nothing.
+ * `start` in its forms. Bare, it starts Hephaestus detached after the start gate and returns only once the API answers, so a caller may use it at
+ * once; `--foreground` is the serving process, `--successor-of` a restart's successor, and `--preflight` the code on disk proving itself.
  */
 import { hephaestusFilesIn }                                                    from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                                       from '../../src/services/hephaestus/HephaestusLock.ts';

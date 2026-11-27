@@ -1,8 +1,6 @@
 /**
- * The two option values every writing command reads: `--at`, which defaults to now and resolves a signed offset against the now handed in,
- * and `--tokens`, which is absent unless written and reads a `k` suffix. An unreadable value of either is refused with its exact words,
- * since a default in its place would store something nobody asked for. Every time option and every task id is refused in one wording,
- * whichever command reads it.
+ * The `--at` and `--tokens` values every writing command reads. An unreadable value is refused with its exact words, since a default in its place
+ * would store something nobody asked for.
  */
 import { describe, expect, test } from 'bun:test';
 

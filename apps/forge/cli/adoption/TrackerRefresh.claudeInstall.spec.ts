@@ -1,10 +1,7 @@
 /**
- * A Claude `init` and the `update` after it write exactly the files `cli/adoption/FrozenClaudeInstall.json` holds, taken from the
- * install version 19 implementation: every opt-out flag is its own scenario, since each one decides which files exist, and the report
- * lines are compared too, because the table walk produces them. Each skill file is compared against its source in `skills/`, since those
- * change on their own. To
- * retake, only in a commit meant to change an installed text: write the table this spec gathers (`frozenTableFromTheCurrentImplementation`)
- * to the JSON file, and check its diff shows only that change.
+ * A Claude `init` and the `update` after it write exactly the files and report lines `cli/adoption/FrozenClaudeInstall.json` holds, one scenario
+ * per opt-out flag. To retake, only in a commit meant to change an installed text, write `frozenTableFromTheCurrentImplementation` to that file
+ * and check its diff shows only that change.
  */
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join }                                   from 'node:path';

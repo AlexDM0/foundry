@@ -1,9 +1,6 @@
 /**
- * The versioned JSON answers of the verbs a program outside the board runs: for each of `version`, `init`, `update`, `stop`, `start`,
- * `machine limit`, the answer of a success and of one refusal. What matters: every answer is one document on standard output
- * carrying `answerVersion: 3`, and a refusal under `--json` is `{answerVersion, refusal, text}` at exit 1, the code beside the sentence
- * standard error carries. `init`, `update` and `stop` on a tracker are in `ProgramAnswerUtil.trackerVerbs.spec.ts`; `start` twice against a
- * real Hephaestus is pinned by `cli/hephaestus/StartCommand.integration.spec.ts`.
+ * The versioned JSON answers of the verbs a program outside the board runs: one document carrying `answerVersion: 3`, a refusal
+ * `{answerVersion, refusal, text}` at exit 1. Tracker verbs are in `ProgramAnswerUtil.trackerVerbs.spec.ts`.
  */
 import { afterEach, expect, test } from 'bun:test';
 

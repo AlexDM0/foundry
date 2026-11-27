@@ -1,12 +1,7 @@
 /**
- * The monitor registry `~/.agent-progress-monitor/projects.json` as the commands write it, under a scratch home and with the temp-folder
- * rule pointed at a scratch folder the repositories lie outside, so they count as real ones. What matters: exactly a call that wrote the
- * tracker registers, though nothing renders, one entry per `trackerId` carrying every field with its value; a read-only call,
- * `update` and a tracker under any temp folder (`/tmp`, `/var/tmp`, the system one) register nothing; the file's version, unknown keys
- * and malformed entries are handled as `docs/cli.md` says; a registry that cannot be written never changes the exit code; and concurrent
- * processes all land in the file. A case needing a registered tracker outside `/tmp` and `/var/tmp` is skipped where the scratch root lies
- * under either (Linux), since neither a child's `TMPDIR` nor the case can move those. Git plays recorded answers, in this process and in
- * each spawned binary: a registering write asks only for the origin.
+ * The monitor registry as the commands write it, under a scratch home that the temp-folder rule counts as real: exactly a call that wrote the
+ * tracker registers, one entry per `trackerId`; read-only calls, `update` and temp-folder trackers register nothing; an unwritable registry
+ * never changes the exit code; concurrent processes all land. A case needing a tracker outside `/tmp` is skipped where the scratch root is in it.
  */
 import {
   existsSync,

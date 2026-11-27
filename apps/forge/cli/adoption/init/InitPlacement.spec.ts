@@ -1,8 +1,7 @@
 /**
- * Where `init` may put a tracker, judged before it writes anything ([PB §8] spec 11). What matters: a tracker in a folder of its
- * repository needs a namespace; a listed tracker above or below, a namespace another tracker lists, and a branch that leaves the
- * namespace no room are each refused, naming what holds the place; a bare tracker at the root asks git nothing and stays out of the list,
- * as before trackers shared a repository. Git plays recorded answers, so a case also fails when the placement asks git otherwise.
+ * Where `init` may put a tracker, judged before it writes anything: a folder tracker needs a namespace, overlapping trackers and namespaces are
+ * refused naming what holds the place, and a bare root tracker asks git nothing. Git plays recorded answers, so a case also fails when the
+ * placement asks git otherwise.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

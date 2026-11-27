@@ -1,8 +1,7 @@
 /**
- * A session under a job, driven in-process with the job carried on its context (never the environment): every relayed verb writes one
- * request of its own kind and prints `queued` when no reply comes; every read-only verb runs directly and relays nothing; every other verb
- * is refused before it runs. The three lists are exact both ways over the verbs the table answers. A reply, once Hephaestus writes one, is
- * printed: a done reply as done, a refusal worded as a direct run would word it, at its exit code.
+ * A session under a job, the job carried on its context (never the environment): every relayed verb writes one request and prints `queued` with
+ * no reply, every read-only verb runs directly, every other verb is refused; the three lists are exact both ways. A reply Hephaestus writes is
+ * printed as a direct run would word it, at its exit code.
  */
 import {
   existsSync,

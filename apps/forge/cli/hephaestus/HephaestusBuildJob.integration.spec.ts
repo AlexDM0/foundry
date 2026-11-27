@@ -1,10 +1,7 @@
 /**
- * A build job end to end on the real system: the board's Talos started from its binary, the fake agent child and real gate processes under
- * the real sandbox. Git plays the recorded flow stages of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`,
- * in each process Talos starts: the session's own commit moves the flow on for every process. What matters: the whole chain from the worktree
- * to the review job runs once on real processes, each line launched bounded and ended; a gate killed by a signal or exiting 126 or 127 opens
- * gate-cannot-run; a worktree git refuses, or one dirty straight after checkout, opens setup-failed; and a merge gate runs in Hephaestus's
- * narrowed environment. `cli/hephaestus/HephaestusBuildJob.spec.ts` holds the job's code behind the recorded Talos stages.
+ * A build job end to end on the real system: the board's Talos from its binary, the fake agent and real gate processes under the real sandbox,
+ * git playing recorded flow stages in every process. `cli/hephaestus/HephaestusBuildJob.spec.ts` holds the job's code behind recorded Talos
+ * stages.
  */
 import {
   existsSync,
@@ -265,7 +262,7 @@ const COMMIT_IN_TICKET_WORKTREE = [
 
 /**
  * Commits a file, reports, then waits for its input to close, as a builder whose session Hephaestus ends after the report. Only in a
- * ticket's worktree: the Assistant session plays the same steps in the main checkout, where a commit would move the target, which V14
+ * ticket's worktree: the Assistant session plays the same steps in the main checkout, where a commit would move the target, which Customs
  * fails as a foreign ref.
  */
 function buildingSession(report = builderReport()): FakeAgentStep[] {

@@ -1,8 +1,6 @@
 /**
- * The `status --json` and Hephaestus state fields of the installed surface, which `cli/InstalledSurface.spec.ts` cannot read from the help
- * screen: the CLI's side is the keys of both `status --json` documents over a real tracker holding every kind of entry, with the top-level
- * keys of Hephaestus's state document built on them. The frozen surface is compared whole here, so after an `INSTALL_VERSION` bump the
- * failure prints every kind to freeze.
+ * The `status --json` and Hephaestus state fields of the installed surface, read from a real tracker holding every kind of entry, since the help
+ * screen cannot show them. The frozen surface is compared whole, so after an `INSTALL_VERSION` bump the failure prints every kind to freeze.
  */
 import {
   afterAll,

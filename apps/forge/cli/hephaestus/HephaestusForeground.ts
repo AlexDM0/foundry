@@ -1,8 +1,6 @@
 /**
- * `start --foreground`: wins the Hephaestus lock, serves the board's API and lives until a stop signal, a `hephaestus-stop` command, a
- * `hephaestus-restart`, or a newer generation taking the board over, which ends it `hephaestus-lock-taken` (exit 2) without touching what the
- * new Hephaestus holds. A restart proves the code on disk in a preflight, ends this generation `handed-over` and starts the successor, which
- * `start --successor-of <generation>` runs as a start like any other.
+ * `start --foreground`: wins the Hephaestus lock, serves the board's API and lives until a stop, a restart, or a newer generation taking over,
+ * which ends it `hephaestus-lock-taken` (exit 2) without touching what the new one holds. A restart proves the code on disk first.
  */
 import { randomBytes } from 'node:crypto';
 import {

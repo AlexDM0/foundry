@@ -1,13 +1,6 @@
 /**
- * The pipeline agent's first message. What matters: it carries the current step's block and the record's facts (findings, questions with
- * their answers, the constitution with its sources, the draft and the edits), so a fresh session in place of a replaced one starts from
- * the record alone and gets the same message after its note; the research block also while billing is open; the advise block with the
- * design rules and the gate history on a stored pipeline; the confinement claims as the platform holds them; and the grammar its lines run
- * in, filled from the shell line port's `lineGrammar`. The constitution block asks for one whole document whose sources travel only in
- * the `sources` list. An entity's session reads that it works on its entity only, and its entity's findings, questions and constitution
- * in place of the forge's; the forge's session reads no such line. The entities block turns the layout findings into `entity:<key>`
- * proposals, leaves the root, the whitelist and the reach to User, and asks and suggests a Continue at the `entities` step. The first line
- * runs the pipeline setup skill by its installed name, as the agent adapter writes the line, and the step rules live in that skill.
+ * The pipeline agent's first message: the current step's block and the record's facts, so a fresh session starts from the record alone, plus the
+ * confinement claims and the line grammar. An entity's session reads its own entity's part; the first line runs the setup skill.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

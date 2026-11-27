@@ -1,10 +1,6 @@
 /**
- * A build job's code for a tracker in a folder of its repository with a branch namespace, on the recorded folder flow of
- * `src/testing/RecordedGitFlow.ts` behind the Talos boundary, as `cli/hephaestus/HephaestusBuildJob.spec.ts` runs a root tracker's. What
- * matters: a folder tracker's git calls are frozen, so no change moves them unnoticed. Each flow asks
- * git exactly the calls in `cli/hephaestus/FrozenFolderTrackerGitCalls.json`: a clean run to the landing, a conflict an Airlock agent
- * resolves, whose resolution V5, V17 and V13 then judge against git's own merge, a red merged tree whose fix by the resumed Airlock agent
- * they judge again before the landing, and a red handoff that parks the ticket.
+ * A folder tracker's build job on the recorded folder flow, behind the Talos boundary: each flow asks git exactly the calls frozen in
+ * `cli/hephaestus/FrozenFolderTrackerGitCalls.json`, so no change moves them unnoticed.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

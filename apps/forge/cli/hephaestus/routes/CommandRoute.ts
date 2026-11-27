@@ -1,10 +1,7 @@
 /**
- * `POST /api/commands` behind the token, the control contract: a `ControlCommand` applied in a hold of its own, answered 200
- * `{controlVersion, outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an
- * install change, each `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints.
- * `hephaestus-stop`, `hephaestus-restart` and `talos-restart` are runtime only and go to Hephaestus itself, held or not;
- * `machine-agent-limit-set` writes the machine's limit, and `machine-agent-program-set` the machine's agent program once it ran, in no hold.
- * A command about the forge's agent runs its program, or finds its tools, before the hold, and is refused when they do not.
+ * `POST /api/commands` behind the token: a `ControlCommand` applied in a hold of its own, answered 200, or 400, 409 or 423 with the refusal and
+ * the sentence the command line prints. Runtime commands go to Hephaestus itself, held or not; a command about the forge's agent runs its program
+ * before the hold.
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 

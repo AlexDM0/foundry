@@ -1,8 +1,7 @@
 /**
- * The ticket command's argument readers, pinned against their contract: an absent option reads as undefined, a known word passes through,
- * and an unknown one is refused with its exact words naming the vocabulary, since a script matches them. The dependency list splits on
- * spaces and commas and keeps each id once, padded, because every other command compares padded ids. The texts are frozen from
- * `cli/ticket/TicketCommand.ts` at 6284cab; retake them with `git show 6284cab:cli/ticket/TicketCommand.ts`.
+ * The ticket command's argument readers against their contract; refusals keep their exact words, since a script matches them. Dependency ids
+ * are kept once and padded, because every other command compares padded ids. The texts are frozen from `cli/ticket/TicketCommand.ts` at
+ * 6284cab; retake them with `git show 6284cab:cli/ticket/TicketCommand.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 

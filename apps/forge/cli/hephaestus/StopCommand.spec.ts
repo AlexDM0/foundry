@@ -1,12 +1,7 @@
 /**
- * `stop`, answered in this process: it finds nothing to do with no Hephaestus live or, over a fake process table, never reports a clean stop
- * after an end that skipped Hephaestus's own stop, and repairs only once the process is gone, also when an earlier close was refused and left
- * a dead Hephaestus lock; a live one whose lock has no version, as older code wrote, is still ended, and one whose lock cannot be read keeps
- * that lock for the next start to take over, so a Hephaestus still driving under it finds its generation taken. The stop waits of a stopping
- * Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past what Windows gives. The registry's
- * presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and a release `handed-over`, each
- * also in the registry, the handover's ending written before the crash path lets go of the generation. A stale store lock record the close
- * takes over is logged in the Hephaestus log.
+ * `stop` over a fake process table: no clean stop reported after an end that skipped Hephaestus's own stop, a repair only once the process is
+ * gone, and an unreadable lock kept for the next start to take over, so a Hephaestus still driving under it finds its generation taken. A stopping
+ * Hephaestus's waits share one bound, so a drive pass that never ends cannot hold back the stop record past what Windows gives.
  */
 import {
   existsSync,

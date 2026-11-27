@@ -1,10 +1,6 @@
 /**
- * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
- * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
- * endings and all, while `--file -` in a terminal is refused rather than read as empty text; a draft edit sets several fields in one
- * move; a setup over a record of an older format starts that record over first; outside a job the pipeline agent's verbs name the record
- * and apply its moves; under a job a setup naming its agent is refused;
- * and a usage mistake or a Board refusal exits 1 with the record, the progress file and the log as they were.
+ * The `pipeline` verbs over a scratch tracker: each builds its command and writes the setup record through the lock, the constitution arrives
+ * byte for byte, and a usage mistake or a Board refusal exits 1 with every file as it was.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';

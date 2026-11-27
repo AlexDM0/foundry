@@ -1,11 +1,6 @@
 /**
- * The DrivePass on the real system: the board's Talos started from its binary and the fake agent child. Git plays the recorded flow stages
- * of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each process Talos starts. What matters: a
- * readied ticket gets a child of Talos running the fake agent; a builder file the pipeline names waits until it is committed, and a launch records
- * its hash; an Airlock agent the merge sweep launches gets its child in the same wake and, ended in a merge-slot hold, its tokens credited
- * in that hold; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live
- * Hephaestus lock over HTTP, and `ticket deliver --by-hand` is refused while it is live. `cli/hephaestus/HephaestusDrivePass.spec.ts` holds the same
- * code behind the recorded Talos stages.
+ * The DrivePass on the real system: the board's Talos from its binary and the fake agent child, git playing recorded flow stages in every
+ * process. `cli/hephaestus/HephaestusDrivePass.spec.ts` holds the same code behind the recorded Talos stages.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -262,7 +257,7 @@ describe('one pass', () => {
 /** A session that starts and then waits on its stdin past Hephaestus's first message, so its child stays live until the spec ends it. */
 const WAITING_SESSION = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }, { kind: 'await-line' }]);
 
-/** Ticket 001 finished, its branch conflicting with the moved main line and queued on its green tree, as a builder and a later commit leave it. */
+/** The first ticket finished, its branch conflicting with the moved main line, queued on its green tree as a builder and a later commit leave it. */
 async function queueTheConflictingBranch(): Promise<void> {
   await run(['ticket', 'start', '001']);
   await run(['ticket', 'finish', '001']);

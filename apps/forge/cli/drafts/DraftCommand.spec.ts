@@ -1,9 +1,6 @@
 /**
- * `draft` as the command surface sees it. What matters: an open writes the draft file with the request byte for byte and stores the id
- * counter, which is never wound back, and `--request-file -` in a terminal is refused rather than read as an empty request; a claim
- * another owner holds is refused with every stored file as it was, and taken with `--force`; a close needs every ticket to exist; a
- * tracker that never opens a draft keeps `progress.json` byte for byte and gains no folder; and a malformed draft file is reported,
- * never thrown, while every other command keeps working.
+ * `draft` as the command surface sees it: the request stored byte for byte and the id counter never wound back, a claim held by another refused
+ * unless `--force`, a close needing every ticket, a tracker without drafts untouched, and a malformed draft file reported, never thrown.
  */
 import {
   existsSync,

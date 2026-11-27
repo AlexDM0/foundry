@@ -1,12 +1,7 @@
 /**
- * The first message of a ticket's last worker resumed into its Airlock, and of a conflict re-reviewer. What matters: a conflict names the
- * target tip, the branch tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the
- * agent cannot ask and states its call budget; a fresh agent in place of a session that could not resume first reads the instruction
- * files of the role it stands in for, and is also given the ticket with its Handoff and Review, and its role's full budget; a conflict
- * re-reviewer reads its instruction files, filled as a first review round's, before the re-review the Airlock asks of it, or the merge
- * before User's code review, which never names the Airlock; and a session resumed on a conflicted merge before User's code review is told
- * the tip to merge again and where the conflicted files are named. A package's builder that resolves its part of a crossing ticket's
- * conflict is told to stage its files only and to leave the merge open, never to commit it (E64).
+ * The first message of a ticket's last worker resumed into its Airlock, and of a conflict re-reviewer: the conflict or red tree it must fix, that
+ * it cannot ask, its call budget, and for a fresh agent its role's instruction files and the ticket. A package builder resolving its part is told
+ * to stage only and leave the merge open.
  */
 import { describe, expect, test } from 'bun:test';
 

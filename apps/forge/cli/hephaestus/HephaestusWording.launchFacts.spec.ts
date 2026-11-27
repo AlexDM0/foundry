@@ -1,10 +1,6 @@
 /**
- * What a crossing ticket's builder is told, from the launch facts the DrivePass reads off the board and the job folders, worded as
- * Hephaestus words them. What matters: `adapt` that takes up the stage 1 session after the package stages gets the adapt message, with the
- * sealed packages, their reviews, `package-return` and the Acceptance evidence, and is never told a review did not hold (E43); after a home
- * review that did not hold, `adapt` resumes with that review's findings, followed by the rules of the adapt stage, both when `adapt` was
- * skipped, so the session never heard them, and when it ran (E51); a package build that its package review sent back is told that review,
- * which the ticket does not hold, in a resumed session and in a fresh one (E34).
+ * What a crossing ticket's builder is told from the launch facts: the adapt message with the sealed packages and their reviews, a home review's
+ * findings before the adapt rules, and a package build's sending-back review, resumed or fresh.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';

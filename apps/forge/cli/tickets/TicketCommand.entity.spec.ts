@@ -1,9 +1,6 @@
 /**
- * A ticket's entity as the command surface of a forge without entities sees it. The cases that matter: `ticket entity` and
- * `ticket add --entity` are refused at exit 1 with nothing written, since the pipeline names no entity; `ticket entity` without its
- * reason, its key or its ticket is refused by its usage; and `ticket ready` readies a draft with no entity exactly as before, the ticket
- * file and the log gaining no entity. What a forge with entities does is held where the pipeline can name them, in
- * `src/services/control/TicketControls.spec.ts` and `src/lib/tracker-model/Board.ticketSettings.spec.ts`.
+ * A ticket's entity in a forge without entities: `ticket entity` and `ticket add --entity` are refused writing nothing, and `ticket ready`
+ * readies as before. Forges with entities are held in `src/services/control/TicketControls.spec.ts`.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join }                      from 'node:path';

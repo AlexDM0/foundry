@@ -1,12 +1,6 @@
 /**
- * `ticket edit`, as the command surface sees it. The byte-for-byte guarantee of a ticket body is what the cases are about: a CRLF body stays
- * CRLF throughout, a body holding a `---` line round-trips, an append puts exactly one line ending before its text where the body ends
- * without one, an empty append writes nothing, `--body-file -` in a terminal is refused rather than read as empty text, and the frontmatter's
- * bytes (unknown keys, comments, a hand-written layout) survive an edit while `updated` is not stamped and nothing is logged. A rename
- * touches the title line, the ticket's own row and a generated heading only, keeping the file path, a review bar's name and a hand-changed
- * heading, and logs one line. A committed ticket's content is fixed: from `committed` onward an edit exits 1 with its sentence and changes
- * nothing, nothing overrides it (`--force` is an unknown option), the status is read inside the same lock hold as the write, and the content
- * hash readying keeps is the hash of the content as readied.
+ * `ticket edit` keeps a ticket body byte for byte: line endings, `---` lines, appends and the frontmatter's own bytes. A rename touches only the
+ * title line, row and generated heading. From `committed` onward an edit exits 1 and nothing overrides it.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';

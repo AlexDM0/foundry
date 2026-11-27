@@ -1,8 +1,6 @@
 /**
- * Design section 9.1's rule over the control contract: every kind but a client-only one names a verb `cli/CommandTable.ts` has, every
- * mutating verb is either a kind's or on the exact list of verbs User runs by hand, and every verb of the table is placed once. What
- * matters: a kind without a verb and a relayable verb without a kind are both named, and each list is exact both ways, so a stale entry
- * fails as loudly as a missing one.
+ * The control contract's rule: every kind but a client-only one names a verb of `cli/CommandTable.ts`, every mutating verb is a kind's or on the
+ * exact list User runs by hand, and every verb is placed once. Each list is exact both ways, so a stale entry fails as loudly as a missing one.
  */
 import { describe, expect, test } from 'bun:test';
 import type { ForgeResumeTarget } from 'forge-contracts/ForgeControlCommand';
@@ -60,7 +58,7 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
  */
 const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'crash-log'];
 
-/** Verbs design section 9.2 retires, which no command replaces; T26 retired `ticket claim` and the measurement hook events, T26b `render`. */
+/** Verbs retired with no command in their place. */
 const RETIRING_VERBS = ['hook'];
 
 interface ControlContract {
@@ -78,7 +76,7 @@ function subcommandVerbsOf(command: string, subcommandNames: readonly string[]):
 /** Every verb `agent-progress` answers: a command, or a command and its subcommand where the command has several. */
 function tableVerbsOf(commandNames: readonly string[]): string[] {
   return commandNames.flatMap((command) => {
-    // `ticket deliver` answers only with --by-hand, the one record-only lifecycle verb (owner answer Q41).
+    // `ticket deliver` answers only with --by-hand, the one record-only lifecycle verb.
     if (command === 'ticket') return subcommandVerbsOf(command, TICKET_SUBCOMMAND_NAMES).map((verb) => (verb === 'ticket deliver' ? 'ticket deliver --by-hand' : verb));
     if (command === 'epic') return subcommandVerbsOf(command, EPIC_SUBCOMMAND_NAMES);
     if (command === 'draft') return subcommandVerbsOf(command, DRAFT_SUBCOMMAND_NAMES);
@@ -135,7 +133,7 @@ const CONTRACT: ControlContract = {
 };
 
 describe('the control contract', () => {
-  // Owner answer Q41: Hephaestus makes every lifecycle move, and User records only a ticket landed outside it, which no job relays.
+  // Hephaestus makes every lifecycle move, and User records only a ticket landed outside it, which no job relays.
   test('`ticket deliver --by-hand` is the only lifecycle verb, the verb of an unrelayed kind, and no lifecycle verb is on the not-relayable list', () => {
     const LIFECYCLE_VERB_PATTERN = /^(?:release|rework|review record|dispatcher|ticket (?:claim|start|finish|approve|deliver))\b/;
     expect(LIFECYCLE_VERB_PATTERN.test('ticket finish'), 'the pattern finds a lifecycle verb').toBe(true);

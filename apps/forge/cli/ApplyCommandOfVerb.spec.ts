@@ -1,9 +1,7 @@
 /**
- * A verb's command applied through the store's command face, the nudge against the recorded Hephaestus API in place of the global `fetch`.
- * What matters: under a job the verb is refused `verb-not-relayable` before the store is reached; an unreadable ticket file is named on
- * standard error after the write, at exit 0; after the write, a live Hephaestus lock gets one body-less `POST api/nudge` with no token, sent once the
- * lock is released; no live Hephaestus lock gets no request; and a Hephaestus gone leaves the write done and the command at exit 0, since
- * Hephaestus's watch notices the write anyway.
+ * A verb's command applied through the store's command face, against the recorded Hephaestus API. Under a job the verb is refused
+ * `verb-not-relayable` before the store; after a write, a live Hephaestus lock gets one body-less `POST api/nudge` once the lock is released, and
+ * a Hephaestus gone leaves the write done at exit 0, since its watch notices the write anyway.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

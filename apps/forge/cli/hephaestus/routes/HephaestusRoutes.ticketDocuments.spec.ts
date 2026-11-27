@@ -1,9 +1,6 @@
 /**
- * A ticket's documents as the routes read them from a stored board. What matters: a reference that names no ticket, and a ticket with no
- * documents record, each answer 404 worded, and one whose record cannot be read answers that, never that it has none; a ticket whose record
- * holds a saved spec answers 200 with that version's text and the effect readings the source holds for that ticket alone; and a save
- * through the command route changes the ticket's fingerprint, so the next publish sends `documents` for it before `board`; and an effect
- * read through the command route asks the serving pass's readings, and is refused while no pass serves.
+ * A ticket's documents as the routes read them: an unknown ticket or record answers 404, an unreadable record says so, a saved spec answers its
+ * text and effect readings, and a save changes the fingerprint so the next publish sends `documents` before `board`.
  */
 import { readdirSync, rmSync } from 'node:fs';
 import { join }                from 'node:path';
@@ -115,7 +112,7 @@ function routesOf(effectReadings?: EffectReadingSource | null): { routes: Hephae
   return { routes, boardStore };
 }
 
-/** Files ticket 1 and opens its documents record, as a draft in the spec-then-plan route has; answers its id. */
+/** Files the first ticket and opens its documents record, as a draft in the spec-then-plan route has; answers its id. */
 async function ticketWithOpenRecord(routes: HephaestusRoutes, boardStore: BoardStore): Promise<string> {
   const filed = await routes.command({
     kind: 'ticket-add', title: 'Example ticket', type: 'ticket', dependsOn: [], epics: [], network: [], introducedBy: null, foundInReview: null, bodyText: null

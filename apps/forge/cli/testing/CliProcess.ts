@@ -1,8 +1,7 @@
 /**
- * Spawns the real binary for the one claim an in-process `runCommandLine` cannot make: that `agent-progress.ts` itself works, shebang, executable
- * bit and exit code included, for a spec that must set the child's environment, which no spec may set in-process, and for one whose
- * command must run in its own process beside another. `src/testing/BoundarySpecs.ts` lists its callers, and
- * `cli/hephaestus/StartCommand.integration.spec.ts` starts Hephaestus processes through it that run until stopped.
+ * Spawns the real binary for the claims an in-process `runCommandLine` cannot make: `agent-progress.ts` itself works (shebang, executable bit and
+ * exit code), a child's environment is set, which no spec may set in-process, or a command runs in its own process beside another.
+ * `src/testing/BoundarySpecs.ts` lists its callers.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { delimiter, dirname, join }                from 'node:path';

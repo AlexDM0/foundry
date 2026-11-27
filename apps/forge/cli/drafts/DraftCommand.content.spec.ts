@@ -1,8 +1,6 @@
 /**
- * What a draft holds besides its request, as the command surface sees it. What matters: notes and questions are numbered per kind and a
- * number is never reused, not after a drop; every refusal (option count, letters, a missing question, an open question at close) leaves
- * every stored file byte for byte; an answer is option letters or free text and the log keeps each one; and the derived state, the
- * open-question count and the question tree read the same in `draft show --json`, `status --json` and the page's `boardFacts`.
+ * What a draft holds besides its request: notes and questions are numbered per kind and a number is never reused; every refusal leaves every
+ * stored file byte for byte; and the derived state reads the same in `draft show --json`, `status --json` and the page's `boardFacts`.
  */
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join }                                    from 'node:path';

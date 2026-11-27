@@ -1,9 +1,6 @@
 /**
- * `job attach` following a job to its end. What matters: an entry Talos writes after attach's last print, with the job leaving the
- * board before the next poll, is still printed before the command returns, and every entry prints exactly once. The entry is written and
- * the job removed from inside the output callback, so the race against the poll is decided by the code, never by a clock. A live job whose
- * instance jumps by two between polls still prints the instance between. A finished job names its newest instance only in the log records
- * that raised it, so its replay reads them, and `job show` gives its last ending.
+ * `job attach` following a job to its end: an entry written after the last print, the job gone before the next poll, still prints, and each entry
+ * prints once. The race is decided from inside the output callback, never by a clock.
  */
 import {
   appendFileSync,

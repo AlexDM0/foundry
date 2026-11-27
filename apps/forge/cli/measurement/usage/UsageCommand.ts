@@ -1,8 +1,6 @@
 /**
- * What every subagent of this project cost, as the agent port reads it from the agent's transcripts; `cli/measurement/hook/HookCommand.ts`
- * records one agent as it stops, this compares them all. The transcripts are those of sessions started in the project's folder, where the
- * orchestrator starts, which is the repository root only for a tracker there. Read-only, and finding no transcripts is one sentence at exit
- * 0, not a refusal.
+ * What every subagent of this project cost, read by the agent port from the transcripts of sessions started in the project's folder, which is the
+ * repository root only for a tracker there. Read-only; no transcripts is one sentence at exit 0, not a refusal.
  */
 import { LocalTimeUtil }                 from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { requireWorkspace }              from '../../../src/services/tracker/Workspace.ts';

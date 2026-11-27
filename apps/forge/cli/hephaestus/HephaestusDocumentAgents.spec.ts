@@ -1,9 +1,6 @@
 /**
- * A spec agent run by the DrivePass, in-process, under the fake agent, `src/testing/RecordedTalosStages.ts` playing each session. What
- * matters: a draft whose documents open gets a spec agent on the ticket's snapshot, which takes its first message; its request is held
- * until its turn ends and applies after Customs found the snapshot untouched; with nothing queued its input closes and it waits with no
- * session; User's comment resumes it in its next instance, which opens with that message, marked sent; and User's stop of a running turn
- * ends the turn and keeps the job, which waits again. Git answers from the recorded flow of `src/testing/RecordedGitFlow.ts`.
+ * A spec agent run by the DrivePass under the fake agent: its request applies only after its turn ends and Customs found the snapshot untouched;
+ * with nothing queued it waits with no session; User's comment resumes it, and User's stop ends the turn but keeps the job.
  */
 import { readFileSync } from 'node:fs';
 

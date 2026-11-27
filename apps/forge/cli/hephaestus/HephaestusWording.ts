@@ -316,7 +316,7 @@ function placeholderBulletsOf(lines: readonly string[]): string {
   return lines.map((line) => `\n- ${line}`).join('');
 }
 
-/** The entities a need may name, by stage: not the stage 1 whitelist, not the home entity in stage 2 (E24), not the sealed packages in stage 4. */
+/** The entities a need may name, by stage: not the stage 1 whitelist, not the home entity in stage 2, not the sealed packages in stage 4. */
 function needEntityPhraseOf(crossingStage: CrossingStageFacts | null): string {
   if (crossingStage?.stage === 'build' && crossingStage.whitelistedPackages.length > 0) return 'a different entity that the whitelist does not name';
   if (crossingStage?.stage === 'package-build') return `an entity that is not this package and not \`${crossingStage.homeEntity}\``;
@@ -333,7 +333,7 @@ function needDeclarationLineOf(crossingStage: CrossingStageFacts | null): string
     + 'and end with the outcome `needs-declared`. When each need is settled, Hephaestus starts this stage again.';
 }
 
-/** A package whose builder refused the ticket's change (E22): stage 1 takes the change back out of the package. */
+/** A package whose builder refused the ticket's change: stage 1 takes the change back out of the package. */
 function refusedPackageChangeLineOf(refused: Readonly<RefusedPackageChange>): string {
   const reason = refused.refusedReason.trim();
   const reasonText = reason === '' ? 'It gave no reason.' : `Its reason:\n\n${reason.split('\n').map((line) => (line === '' ? '' : `  ${line}`)).join('\n')}\n`;
@@ -343,7 +343,7 @@ function refusedPackageChangeLineOf(refused: Readonly<RefusedPackageChange>): st
 
 /**
  * A builder of an entity: where it writes, the proposal its whitelist permits in stage 1, and how it declares a need for another entity. A
- * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle (E13).
+ * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle.
  */
 function builderEntityScopeOf(job: Readonly<Job>, facts: JobLaunchFacts): string {
   if (job.entity === undefined) return '';
@@ -365,7 +365,7 @@ function builderEntityScopeOf(job: Readonly<Job>, facts: JobLaunchFacts): string
   ]);
 }
 
-/** The package reviewer confirms or corrects the package builder's statement, which decides whether the adapt stage runs (E40). */
+/** The package reviewer confirms or corrects the package builder's statement, which decides whether the adapt stage runs. */
 function exposedSurfaceConfirmationLineOf(packageEntity: string, exposedSurfaceChanged: boolean): string {
   return `The builder of \`${packageEntity}\` stated that what the package exposes ${exposedSurfaceChanged ? 'changed' : 'did not change'} `
     + `from the proposal of stage 1. ${EXPOSED_SURFACE_DEFINITION} Compare the proposal with the branch at your HEAD, with your own fixes. `
@@ -373,7 +373,7 @@ function exposedSurfaceConfirmationLineOf(packageEntity: string, exposedSurfaceC
     + 'is false, write in your `reviewText` what changed.';
 }
 
-/** The package reviewer's text, which can name problems in the home's files (E32), indented under its bullet. */
+/** The package reviewer's text, which can name problems in the home's files, indented under its bullet. */
 function packageReviewLineOf(homeEntity: string, packageReview: Readonly<SealedPackageReview>): string {
   const reviewText = packageReview.reviewText.trim();
   if (reviewText === '') return `The reviewer of \`${packageReview.entity}\` wrote no review text.`;
@@ -418,7 +418,7 @@ function crossedPackageResultOf(result: Readonly<CrossedPackageResult>): string 
 }
 
 /**
- * Stage 4: the resumed session of stage 1 gets the adapt message alone; a fresh one, since that session cannot continue (E43), gets it
+ * Stage 4: the resumed session of stage 1 gets the adapt message alone; a fresh one, since that session cannot continue, gets it
  * before its build prompt, whose ticket holds the handoff of stage 1.
  */
 function adaptMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {
@@ -446,7 +446,7 @@ function adaptStageRulesOf(homeEntity: string, adapt: Extract<CrossingStageFacts
 }
 
 /**
- * A home review that did not hold sends the ticket back to stage 4 (E51). The session it resumes may not have run stage 4, since `adapt` was
+ * A home review that did not hold sends the ticket back to stage 4. The session it resumes may not have run stage 4, since `adapt` was
  * skipped, so it is told the stage's rules after the findings.
  */
 function adaptAfterTheHomeReviewOf(ticketId: string, homeEntity: string, findingsMessage: string, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {
@@ -459,7 +459,7 @@ function adaptAfterTheHomeReviewOf(ticketId: string, homeEntity: string, finding
   ].join('\n');
 }
 
-/** What the package review wrote when it did not hold, which the package build it sent back fixes (E34). */
+/** What the package review wrote when it did not hold, which the package build it sent back fixes. */
 function packageReviewFindingsSectionOf(packageEntity: string, packageReviewFindings: string): string {
   return [
     `## Why the package build of \`${packageEntity}\` runs again`,
@@ -470,7 +470,7 @@ function packageReviewFindingsSectionOf(packageEntity: string, packageReviewFind
   ].join('\n');
 }
 
-/** What the adapt builder wrote the package must give, when it sent the ticket back to this package build (E41, E42). */
+/** What the adapt builder wrote the package must give, when it sent the ticket back to this package build. */
 function packageReturnSectionOf(homeEntity: string, packageEntity: string, packageReturnReason: string): string {
   const indentedReason = packageReturnReason.trim().split('\n').map((line) => (line === '' ? '' : `  ${line}`)).join('\n');
   return [
@@ -573,10 +573,9 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
 }
 
 /**
- * The ticket's builder or reviewer resumed into the Airlock is told the conflict, with the target tip and the conflicted files, or the
- * red gate on the merged tree; a package's builder that resolves its part of a crossing ticket's conflict is told to leave the merge open.
- * A fresh agent in place of a session that could not resume first reads the instruction files of the role it stands in for, then the
- * ticket, its Handoff and Review; a resumed session read them at its own launch.
+ * The ticket's builder or reviewer resumed into the Airlock is told the conflict or the red gate on the merged tree; a package's builder
+ * resolving its part of a crossing ticket's conflict is told to leave the merge open. A fresh agent in place of a session that could not
+ * resume first reads its role's instruction files, the ticket, its Handoff and Review; a resumed session read them at its own launch.
  */
 function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts, promptFills: PromptFills): string {
   const role = job.role ?? job.kind;
@@ -860,7 +859,7 @@ function launchTextOf(job: Readonly<Job>, unfilledFacts: JobLaunchFacts, promptF
     return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock, promptFills), roleBrief };
   }
   if (job.kind === 'review' && ticket !== undefined) {
-    // Merge approval is once per ticket, at its end (E36): a package review of stage 3 does not merge the target in.
+    // Merge approval is once per ticket, at its end: a package review of stage 3 does not merge the target in.
     const approvesTheMerge = facts.mergeApprovalIsOn === true && facts.crossingStage?.stage !== 'package-review';
     const mergeApprovalStep = approvesTheMerge && job.target !== null ? mergeApprovalStepOf(job.target, ticket.branch) : '';
     return { firstMessage: reviewerInstructionsOf(job, ticket, facts, mergeApprovalStep), roleBrief };
@@ -952,7 +951,7 @@ function proposalBlockOf(proposal: string): string {
   return ['~~~~diff', proposal.trimEnd(), '~~~~'].join('\n');
 }
 
-/** The need's ticket of a package change that User turned into a need (E19, E22): what the package must hold, why, and the proposal. */
+/** The need's ticket of a package change that User turned into a need: what the package must hold, why, and the proposal. */
 function packageNeedWordingOf(facts: PackageNeedFacts): PackageNeedWording {
   const cause = facts.cause === 'package-refused'
     ? `The builder of \`${facts.packageEntity}\` refused this change, because the constitution of the package forbids it. Its reason:\n\n`
@@ -978,7 +977,7 @@ function packageNeedWordingOf(facts: PackageNeedFacts): PackageNeedWording {
   };
 }
 
-/** The fix ticket of a dependent that a crossing ticket's package change breaks (E26): bring the dependent in line with the change. */
+/** The fix ticket of a dependent that a crossing ticket's package change breaks: bring the dependent in line with the change. */
 function dependentFixWordingOf(facts: DependentFixFacts): DependentFixWording {
   return {
     title: `Fix ${facts.dependentEntity} for the change of ${facts.packageEntity} in #${facts.ticketId}`,

@@ -1,14 +1,7 @@
 /**
- * Hephaestus's start, Hephaestus lock and stop, end to end through real child processes, since a Hephaestus holds its process until it is stopped.
- * What matters: two starters at once leave exactly one Hephaestus serving; a Hephaestus lock naming a dead process is taken over as after a crash; a
- * Hephaestus whose generation was overtaken stops at exit 2 touching nothing; `start`, `status`, `restart` and `stop`
- * agree with the Hephaestus lock; a started Hephaestus has its board's Talos serving under a lease it renewed, and `talos-restart` has it
- * quit that Talos cleanly and follow the next, as no crash;
- * `stop --now` stops a live line of Talos, which a plain stop leaves running; `pause` and `unpause` write the
- * drain flag with no Hephaestus up, which the served board state and `status` read alike, held in-process by
- * the specs beside each verb's module; and a spec-spawned Hephaestus resolves the fake agent, never the vendor's adapter. Every Hephaestus binds
- * `--port 0`. Every binary, and every Hephaestus it starts, answers git from one recorded answer set an idle board needs. A Hephaestus whose data
- * folder watch fails to start writes its URL to no page stub and no output: a move of these writes before the watch start makes it fail.
+ * Hephaestus's start, lock and stop through real child processes, since a Hephaestus holds its process until stopped: two starters leave one
+ * serving, a dead lock is taken over, an overtaken generation exits 2, and the verbs agree with the lock. Every Hephaestus binds `--port 0` and
+ * answers git from one recorded set.
  */
 import {
   appendFileSync,

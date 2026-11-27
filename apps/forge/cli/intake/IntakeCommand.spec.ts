@@ -1,8 +1,6 @@
 /**
- * `intake title`, run by User on a scratch tracker. What matters: the title lands on the product owner's job and in the log as
- * `intake-titled`, beside the request its launch logged as `intakeText`, so a closed session keeps both; a later title replaces the earlier
- * one; and the refusals (no job named, no title, a job of another kind) write nothing. The verb under the product owner's own job, which
- * names no job, is held by `cli/HatchUnderJob.spec.ts`.
+ * `intake title` on a scratch tracker: the title lands on the product owner's job and in the log beside the launch's request, so a closed session
+ * keeps both; a later title replaces it; refusals write nothing. The verb under the job is in `cli/HatchUnderJob.spec.ts`.
  */
 import { writeFileSync } from 'node:fs';
 

@@ -1,9 +1,6 @@
 /**
- * `gate agent`, `gate tools` and `gate look-again`, and `machine agent`, on a scratch board, the program check answered by its recording:
- * the runtime answers its version, any other program has no answer. What matters: a program is kept as its path names it only once it
- * ran, and one that is not there is refused at exit 1 with nothing written; `machine` follows the machine's program, which `machine agent`
- * stores in the monitor folder's config, and with none set the choice is refused; `machine agent` refuses a program inside any registered
- * forge; a tool named alone is found or refused, `pipeline` removes the list; and look again writes nothing while no job stands not launched.
+ * `gate agent`, `gate tools`, `gate look-again` and `machine agent` on a scratch board, the program check answered by its recording: a program is
+ * kept only once it ran, one not there is refused writing nothing, and `machine agent` refuses a program inside a registered forge.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

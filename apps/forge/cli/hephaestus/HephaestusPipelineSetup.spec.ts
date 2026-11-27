@@ -1,13 +1,6 @@
 /**
- * One pipeline setup end to end, in-process: User's `pipeline` verbs on the command line, a DrivePass launching the record's pipeline
- * agent under the fake agent, and the agent's own verbs relayed under its job the way `cli/HatchUnderJob.spec.ts` relays them, each applied
- * by the next pass. What matters: the setup start launches the agent on setup S1's snapshot; its finding, question, constitution with its
- * sources, and proposal reach the record; User's answer and Continues bring the record to the apply step; and Apply, with main holding no
- * `CONSTITUTION.md`, stores only the request, waiting for the constitution commit, with no `pipeline.json` written. An advise at an
- * entity of the stored pipeline launches that entity's own session alone, stamped with its entity, and Hephaestus stamps the entity on
- * what it relays, so its finding lands in that entity's part alone; an advise at an entity the stored pipeline does not hold launches
- * nothing. Git answers from the recorded flow of `src/testing/RecordedGitFlow.ts`; the session plays
- * `src/testing/RecordedTalosStages.ts`.
+ * One pipeline setup end to end, in-process: User's `pipeline` verbs, a DrivePass launching the pipeline agent under the fake agent, and the
+ * agent's verbs relayed under its job, from the first snapshot to Apply. An advise at an entity launches that entity's own session alone.
  */
 import { existsSync } from 'node:fs';
 import {

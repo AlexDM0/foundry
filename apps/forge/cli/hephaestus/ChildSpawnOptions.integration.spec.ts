@@ -1,8 +1,6 @@
 /**
- * What each child starts under, through the real spawn sites; a gate line is a child of Talos, so it starts as a supervised child. The
- * Windows answer per child kind is a table, since a detached gate line can report green unrun; POSIX stays equal to the frozen table; a
- * line child of Talos cannot be stalled by its stderr, nor held back by a descendant that keeps it open; and Talos, a Hephaestus and a
- * successor run from the root, without Bun's flag that ends a process with its parent, whatever the process that started them had.
+ * What each child starts under, through the real spawn sites: the Windows answer per child kind is a table, since a detached gate line can report
+ * green unrun; a line child cannot be stalled by its stderr; and Talos, Hephaestus and a successor run without Bun's parent-death flag.
  */
 import {
   chmodSync,

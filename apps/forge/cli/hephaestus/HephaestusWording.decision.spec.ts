@@ -1,12 +1,7 @@
 /**
- * The questions Hephaestus itself opens, as User reads them in the question panel. What matters: `checks-not-set` says in its own words
- * that no pipeline is set and how one gets set, never the generic sentence that names only its kind; a kind with no wording of its own
- * still gets that generic sentence. Each entity decision has its own question with the choices `docs/cli.md` gives it, naming what it is
- * about: `work-in-other-entity` offers a move to each entity that owns the work and abandoning (E15), `package-refused` its three answers
- * (E22), `whitelist-removed-mid-crossing` its two (E19) and `dependent-broken` a fix ticket for the dependent in the ticket's group and
- * abandoning (E26), each option labelled as Hephaestus reads the answer back and naming no command; the need decisions name the need, and
- * `second-return` the package. The fix ticket of a dependent carries a numbered Acceptance and a Brief, so it can be readied. The two API
- * billing decisions name the variable of the adapter's API way to bill and the check of its credentials, never a vendor's own.
+ * The questions Hephaestus itself opens, as User reads them: `checks-not-set` in its own words, and each entity decision with the choices
+ * `docs/cli.md` gives it, labelled as Hephaestus reads the answer back and naming no command. API billing decisions name the adapter's variable,
+ * never a vendor's.
  */
 import { expect, test } from 'bun:test';
 

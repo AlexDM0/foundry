@@ -1,21 +1,7 @@
 /**
- * The DrivePass's code on a scratch tracker behind the Talos boundary, `src/testing/RecordedTalosStages.ts` playing each session. What matters: a
- * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
- * are applied request first; a build's launch asks Talos to stop the groups its session left and the Assistant's does not; a launch is a
- * `launch` frame; a recognised outage interrupts its job `network-outage` and stops its session, and the job never moves to `in-customs`;
- * an end `paused` interrupts `talos-paused` and resumes on the next pass, and an end `lease-ended` interrupts `lease-ended` and nothing resumes it; a
- * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a reply lost after its hold committed is
- * written again from its `hatch-applied` record, unapplied, and a record carrying no reply leaves it unanswered; a pass with nothing changed does not run,
- * however late, and a write by another client of the store between two wakes is seen by the next one; one pass reads the install version
- * once, so its runtime state and notices never disagree; a launched job's Hatch folder watch closes once the job has left the board; and a
- * job the pass hold ends has its session's tokens on its ticket's row by the end of that hold. At a start after a reboot, a stop or a crash,
- * a job whose child is gone with no end of its own takes the start's cause and waits for User's resume, a child that ended keeps the cause
- * of its end, and new work still launches. An Assistant switched off and on again while live ends `closed`, also when its turn never ends,
- * and a fresh one boots; one switched off ends `closed` also while a usage limit holds; the `assistant` key taken out of the pipeline by
- * hand winds a live one down; an install change after that holds the board. A job not launched for its agent's program launches at a sweep
- * once the program resolves, which no wake reports, and a refusal that resolved before its hold is never recorded.
- * Beside Hephaestus, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/hephaestus/HephaestusDrivePass.integration.spec.ts`
- * holds the real-system claims.
+ * The DrivePass's code behind the Talos boundary, `src/testing/RecordedTalosStages.ts` playing each session: launches, Hatch requests,
+ * interruptions and their resumes, starts after a reboot or crash, and the Assistant switched off and on.
+ * `cli/hephaestus/HephaestusDrivePass.integration.spec.ts` holds the real-system claims.
  */
 import {
   appendFileSync,

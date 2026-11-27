@@ -1,11 +1,7 @@
 /**
- * Machine setup runs in-process here under an injected host, so every platform's run is checked on one machine. Bun is a recorder: it
- * answers `--version` and writes what `build` would, and nothing else runs; git is a recorder of the one `core.hooksPath` key, which is
- * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all three steps
- * run in order on macOS and on Windows; the Windows run puts Bun's bin folder on the User PATH through PowerShell and never names bash;
- * a launcher the rename cannot replace is a reported failure that leaves no partial file and stops no later step; a Bun below
- * `.bun-version` stops setup before anything is installed, and a checkout inside a Bun workspace is held to the workspace root's pin;
- * --instruct-only writes nothing.
+ * Machine setup in-process under an injected host, so every platform's run is checked on one machine, Bun and git recorders answering; git's
+ * one key, `core.hooksPath`, is what makes the tracked pre-commit hook gate every worktree. The steps run in order on macOS and Windows, a failed
+ * launcher rename leaves no partial file, and a Bun below `.bun-version` stops setup.
  */
 import {
   mkdirSync,

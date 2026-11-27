@@ -1,9 +1,6 @@
 /**
- * The real programs that machine setup runs on this OS, recorded for `cli/setup/Setup.spec.ts` and
- * `src/testing/RecordedCommand.spec.ts`: Bun's `--version`, and git's
- * `core.hooksPath` key read unset, written and read again in a scratch repository. What matters: each answer is what the process host of
- * setup reads, and a missing program fails to start with `ENOENT`. `bun install`, `link`, `build` and `upgrade` are not run, since they
- * change the user's Bun.
+ * The real programs machine setup runs, recorded for `cli/setup/Setup.spec.ts`: Bun's `--version` and git's `core.hooksPath` read and written in
+ * a scratch repository. `bun install`, `link`, `build` and `upgrade` are not run, since they change the user's Bun.
  */
 import { join } from 'node:path';
 

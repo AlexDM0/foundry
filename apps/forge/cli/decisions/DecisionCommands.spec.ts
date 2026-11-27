@@ -1,8 +1,6 @@
 /**
- * `decisions`, `decide` and `await` on an initialised scratch repository with no Hephaestus. What matters: `decisions` letters each option
- * as `decide` takes it and writes nothing; `decide` answers through the write pipeline with Hephaestus down, storing `{question: answer}`
- * and logging it with its request, and the second answer is refused because the first wins; free text is refused on a decision of several
- * questions; and `await` wakes on a `decision-opened` past its position, waiting for one opened after it started.
+ * `decisions`, `decide` and `await` on a scratch repository with no Hephaestus: `decide` answers through the write pipeline and the first answer
+ * wins; free text is refused on a decision of several questions; `await` wakes only on a `decision-opened` after it started.
  */
 import { readFileSync } from 'node:fs';
 

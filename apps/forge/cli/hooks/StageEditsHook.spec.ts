@@ -1,11 +1,6 @@
 /**
- * `hook stage-edits`, the edit guard of a stage of a job of an entity (E18), over neutral calls a planted adapter reads from the hook
- * input. What matters: a file change of a path outside every `--allow` folder is denied through the adapter's denial line, a new name
- * directly in a folder on the way to a stage folder (the worktree root, '/apps') above all, which no deny rule of the launch names, and a
- * path that leaves a folder by `..`; a path inside a folder, or a stage file itself, passes silently, granting nothing, a relative one
- * placed by the call's working directory; and every failure (an input the adapter cannot read, any call but a file change, no or a
- * relative path with no working directory, no `--allow`, a relative folder, an unknown option) answers deny, always at exit 0. The
- * vendor's own hook input is `ClaudeHookInput.spec.ts`'s.
+ * `hook stage-edits`, the edit guard of an entity's stage, over calls a planted adapter reads: a change outside every `--allow` folder, a new
+ * name on the way to a stage folder and a `..` escape are denied; a path inside passes silently; every failure answers deny at exit 0.
  */
 import {
   afterEach,

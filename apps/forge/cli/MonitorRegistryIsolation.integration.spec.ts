@@ -1,8 +1,6 @@
 /**
- * No spec reaches the real home's `~/.agent-progress-monitor`. Three doors lead there: a spawned CLI inheriting `HOME`, an in-process context
- * given the real home, and a spec reading `homedir()` itself. The spawned home is observed through `usage --json`, which prints a folder under
- * the home without writing anything; the in-process doors are refused by the context helper; and the `homedir` scan first proves it finds
- * its one allowed reader, then names a planted one.
+ * No spec reaches the real home's `~/.agent-progress-monitor` through any of its three doors: a spawned CLI inheriting `HOME`, an in-process
+ * context given the real home, or a spec reading `homedir()`. The `homedir` scan first proves it finds its one allowed reader.
  */
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * The control contexts commands apply with: the pipeline agent's setup messages, filled with this process's agent adapter's names of
- * its tools and files, main's `CONSTITUTION.md` read on the repository's main line, and the ways a vendor bills as that adapter names them.
- * They differ in the live Hephaestus: the command line reads it from the newest Hephaestus lock, while inside Hephaestus no other Hephaestus
- * owns the board.
+ * The control contexts commands apply with: the pipeline agent's setup messages filled with this agent adapter's names, main's `CONSTITUTION.md`
+ * and the adapter's billing ways. The command line reads the live Hephaestus from the newest lock; inside Hephaestus no other Hephaestus owns the
+ * board.
  */
 import type { AgentAdapter }                   from '../src/lib/agent-launch/AgentAdapter.ts';
 import { AgentBillingUtil }                    from '../src/lib/agent-launch/utils/AgentBillingUtil.ts';

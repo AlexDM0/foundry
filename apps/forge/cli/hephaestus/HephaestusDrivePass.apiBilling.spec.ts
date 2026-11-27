@@ -1,11 +1,6 @@
 /**
- * The pipeline's `billing` on a scratch tracker behind the Talos boundary, the Claude Code adapter's environment and arguments on a fake
- * session. What matters: with subscription billing, or none set, a session gets neither API variable of Hephaestus; with API billing the
- * launch names `ANTHROPIC_API_KEY` for Talos to copy and holds no key; a planted key is in no file of the data or monitor folder;
- * a budget reaches the launch arguments; and API billing with no key starts no session and opens one decision naming the variable and the
- * set-up section, which a Hephaestus started again with the key set, or with billing no longer `api`, withdraws, and which a first setup's
- * record billed `api` keeps open pass after pass; API billing on an agent that bills only by its login starts no session and stands not
- * launched `billing-not-offered`. No case calls the API or holds a real key.
+ * The pipeline's `billing` behind the Talos boundary: subscription billing gives a session no API variable; API billing names the key variable
+ * for Talos to copy, holds no key in any file, and with no key opens one decision instead of a session. No case calls the API.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';

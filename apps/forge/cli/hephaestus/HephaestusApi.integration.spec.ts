@@ -1,14 +1,6 @@
 /**
- * Hephaestus's API end to end against a spawned Hephaestus on a scratch board, the fake agent playing every session. What matters: the
- * Hephaestus lock names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
- * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
- * and Hephaestus; `/api/summary` and `/api/monitor` have their fixtures' shapes, the monitor's only with the token and its stream starting
- * with the whole snapshot; `GET /` and every other path outside the API is a 404, and an answer lets no origin
- * frame it, whatever frame-ancestor record a monitor folder still holds; an event-stream client sees a `board` event for a ticket move and a `job`
- * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
- * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
- * gate profile the board holds streams its output lines after the cursor, while a run it does not hold and a cursor that is no line number
- * are 404; and no forge runs Flint's brain: its two commands are malformed, its ask path is a 404 and the monitor holds no brain.
+ * Hephaestus's API end to end against a spawned Hephaestus on a scratch board, the fake agent playing every session: the token, each route's
+ * answers and shapes, the event stream, picture uploads and gate output, and that every path outside the API is a 404 that no origin may frame.
  */
 import { createHash } from 'node:crypto';
 import {

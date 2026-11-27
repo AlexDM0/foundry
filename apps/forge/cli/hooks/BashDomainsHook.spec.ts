@@ -1,9 +1,6 @@
 /**
- * `hook bash-domains`, the network guard, over neutral calls a planted adapter reads from the hook input. What matters: a shell command
- * asking for a domain outside `--allow`, a web fetch of a host outside it, or a tool the adapter does not know, is denied through the
- * adapter's denial line; a call inside the list, a shell command naming no domain, a file change and a call that reaches nothing pass
- * silently, granting nothing; and every failure (an input the adapter cannot read, an adapter that throws, no `--allow`, a url with no
- * host, unreadable domains) answers deny, always at exit 0. The vendor's own hook input is `ClaudeHookInput.spec.ts`'s.
+ * `hook bash-domains`, the network guard, over calls a planted adapter reads: a domain outside `--allow` is denied, a call inside passes
+ * silently, and every failure answers deny, always at exit 0. The vendor's own hook input is `ClaudeHookInput.spec.ts`'s.
  */
 import {
   afterEach,

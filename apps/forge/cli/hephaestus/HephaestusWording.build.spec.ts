@@ -1,11 +1,6 @@
 /**
- * The build prompt's gates section. What matters: each gate the builder runs is listed by name with its exact command and its fix, in the
- * pipeline's order, under the rule to pass every gate on the final commit; a gate with a fix says to run it before fixing by hand; an
- * `forgeOnly` gate is named as Hephaestus's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
- * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare. A builder
- * or reviewer at the root of a folder tracker's worktree is told the project's folder first, since its ticket names paths from there. A
- * build that runs its stage again after its needs are settled is told each need with its ticket and status and to merge the main line in,
- * where the needs landed, even on a group target: a resumed session gets that alone, a fresh one gets it before the build prompt.
+ * The build prompt's gates section: each gate the builder runs with its command and fix in the pipeline's order, `forgeOnly` gates never listed,
+ * and no gates said when none are set. Also the branch as the board names it, a folder tracker's project folder, and settled needs.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';

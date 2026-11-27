@@ -1,10 +1,7 @@
 /**
- * `resources/templates/Reference.md`, installed as `.agent-progress/reference.md`, carries three sections of `docs/cli.md` for agents that
- * cannot read the docs: a ticket, the ticket moves and the exit codes. Each copy must hold its source's body byte for byte, so an edit
- * to either side alone fails here. The Reference section may add lines of its own around the copy (a paragraph after the moves), never
- * inside it. The scan is fence-aware, because a ticket's example holds markdown headings that would
- * otherwise end its section early. Both sides name the program and the data folder through the same `{{program}}` and `{{dataFolder}}`
- * placeholders the install fills, so the raw texts are compared and a rename of either name touches neither file.
+ * `resources/templates/Reference.md` carries three sections of `docs/cli.md` for agents that cannot read the docs; each copy must hold its
+ * source's body byte for byte, extra lines only around it. The scan is fence-aware, since a ticket's example holds markdown headings. Both sides
+ * name the program and data folder through the install's `{{program}}` and `{{dataFolder}}`, so raw texts are compared and a rename edits neither.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

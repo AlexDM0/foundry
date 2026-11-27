@@ -1,10 +1,7 @@
 /**
- * The message a User setup move sends the pipeline agent. What matters: every kind is worded, an answer carries the letters or the free
- * text as given, and an edit names the fields and the revision and carries what changed: the constitution's whole new text and ticks, each
- * draft field with its value now, since the agent has no read of the record and would otherwise lose User's change. A Continue
- * carries the next step's block, since the session works on in the same conversation, unless that block is the one it already works
- * under; a resume names how far main moved, in the singular for one commit, and the paths that changed. A check's request names the gates
- * it runs, and its end gives the agent each gate's verdict, its runs and the end of its output, or why the check could not run.
+ * The message a User setup move sends the pipeline agent. An edit carries what changed, since the agent has no read of the record; a Continue
+ * carries the next step's block unless the session already works under it; a resume names how far main moved; and a check's end gives each gate's
+ * verdict, or why it could not run.
  */
 import { expect, test } from 'bun:test';
 

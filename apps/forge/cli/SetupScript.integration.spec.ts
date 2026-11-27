@@ -1,10 +1,7 @@
 /**
- * `setup.ts`, started through the Bun running this suite as the bootstrap scripts start it, so no case needs bash. `--instruct-only`
- * promises to change nothing, and its `bun link` would repoint the machine-wide command at whichever checkout ran it. The entry runs with a
- * scratch `HOME` and a fake `bun` first on a minimal `PATH` that records every call, so neither the real `bun link` nor the real home is
- * ever reached. The cases hold that no install, link or build call happens and each is announced instead, that the home is unchanged and that
- * a Bun below `.bun-version` is refused. The steps' writes are held in-process by `cli/setup/Setup.spec.ts`, since here they would reach
- * this checkout's git config.
+ * `setup.ts --instruct-only` changes nothing, run with a scratch `HOME` and a recording fake `bun`, since a real `bun link` would repoint the
+ * machine-wide command at this checkout. No install, link or build runs, each is announced, and a Bun below `.bun-version` is refused. The
+ * steps' writes are held in `cli/setup/Setup.spec.ts`, since here they would reach this checkout's git config.
  */
 import {
   chmodSync,
