@@ -2,8 +2,8 @@
  * An epic's chip on a card, a row or the detail panel: a rounded chip with the colour square of the epic's stored slot, linking to that
  * epic on the Epics tab. A link inside a clickable card or row is its own click, never the card's.
  */
-import { useBoardHrefOf }              from '../shell/BoardRouteLinks.ts';
-import { DetailRoute }                 from '../shell/DetailRoute.ts';
+import { useBoardHrefOf }              from '../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                 from '../shared/routing/DetailRoute.ts';
 import { EpicChipUtil, type EpicMark } from './EpicChipUtil.ts';
 
 export function EpicChip({ epic }: { readonly epic: EpicMark }) {

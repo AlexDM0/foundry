@@ -1,22 +1,14 @@
 /**
- * The Tickets segments' rules. What matters: every status stands in exactly one segment; a route item names a segment only by its own
- * word, so a detail item never moves the view; the view opens on the routed segment first, then In draft while something there waits on
- * User, then the stored choice, an unknown stored word reading as In draft; and a digits query looks for an id alone while any other
- * looks through the row's words.
+ * The Tickets segments' rules. What matters: a route item names a segment only by its own word, so a detail item never moves the view;
+ * the view opens on the routed segment first, then In draft while something there waits on User, then the stored choice, an unknown
+ * stored word reading as In draft; and a digits query looks for an id alone while any other looks through the row's words.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardTicketStatus } from '../../../@types/board/BoardVocabulary.ts';
-import { exampleTicketsTicket }   from '../../testing/TicketsBoardFixture.ts';
-import { TicketsModel }           from './TicketsModel.ts';
-
-const STATUSES: readonly BoardTicketStatus[] = ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'];
+import { exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
+import { TicketsModel }         from './TicketsModel.ts';
 
 describe('segments', () => {
-  test('drafts and tickets for review are In draft, committed to merged are Active, delivered and abandoned are Finished', () => {
-    expect(STATUSES.map(TicketsModel.segmentOfStatus)).toEqual(['in-draft', 'in-draft', 'active', 'active', 'active', 'active', 'finished', 'finished']);
-  });
-
   test('a route item names a segment only by its own word', () => {
     expect(['in-draft', 'active', 'finished', 'ticket/12', 'draft/D7', null].map(TicketsModel.segmentOfRouteItem))
       .toEqual(['in-draft', 'active', 'finished', null, null, null]);

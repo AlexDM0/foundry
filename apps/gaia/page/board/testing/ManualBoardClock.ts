@@ -1,7 +1,7 @@
 /** A board clock whose timers fire only when a spec says that time passed, for the DOM specs of what waits on the clock. */
 import { act } from '@testing-library/react';
 
-import type { BoardClock } from '../shell/BoardClock.ts';
+import type { BoardClock } from '../shared/BoardClock.ts';
 
 interface PendingTimer {
   readonly milliseconds: number;

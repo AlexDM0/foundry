@@ -1,5 +1,5 @@
 /**
- * The control contexts commands apply with: the setup messages in Hephaestus's words, filled with this process's agent adapter's names of
+ * The control contexts commands apply with: the pipeline agent's setup messages, filled with this process's agent adapter's names of
  * its tools and files, main's `CONSTITUTION.md` read on the repository's main line, and the ways a vendor bills as that adapter names them.
  * They differ in the live Hephaestus: the command line reads it from the newest Hephaestus lock, while inside Hephaestus no other Hephaestus
  * owns the board.
@@ -13,11 +13,11 @@ import { InstructionFiles }                    from '../src/services/hephaestus/
 import { mainLineOf }                          from '../src/services/lifecycle/MergeTargets.ts';
 import type { ControlContext, LiveHephaestus } from '../src/shared/@types/ControlContext.ts';
 import { agentAdapterOfThisProcess }           from './CommandContext.ts';
-import { HephaestusWording }                   from './hephaestus/HephaestusWording.ts';
+import { PipelineAgentWording }                from './PipelineAgentWording.ts';
 
 function controlContextWith(liveHephaestusOf: ControlContext['liveHephaestusOf'], agentAdapter: AgentAdapter): ControlContext {
   return Object.freeze<ControlContext>({
-    setupMessageWordingOf: (message) => HephaestusWording.setupMessageWordingOf(message, agentAdapterOfThisProcess().promptFills),
+    setupMessageWordingOf: (message) => PipelineAgentWording.setupMessageWordingOf(message, agentAdapterOfThisProcess().promptFills),
     mainConstitutionOf:    (rootDirectory: string, constitutionPath?: string) => InstructionFiles.mainConstitutionOf(rootDirectory, mainLineOf(rootDirectory), constitutionPath),
     liveHephaestusOf,
     offeredBillingModesOf: (vendor: string) => AgentBillingUtil.offeredModesOf(agentAdapter, vendor),

@@ -1,11 +1,12 @@
 /** The Intake list: every product-owner session, the selected one marked, under a head that counts them and opens a new chat. */
 import { Button, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
-import { ChatTurnWordingUtil }                      from '../../conversation/ChatTurnWordingUtil.ts';
-import { useBoardHrefOf }                           from '../../shell/BoardRouteLinks.ts';
-import { INTAKE_NEW_CHAT_ITEM, type IntakeSession } from './IntakeModel.ts';
-import { IntakePane }                               from './IntakePane.tsx';
-import { IntakeSessionRow, NewChatRow }             from './IntakeSessionRow.tsx';
+import { ChatTurnWordingUtil }          from '../../conversation/ChatTurnWordingUtil.ts';
+import { useBoardHrefOf }               from '../../shared/routing/BoardRouteLinks.ts';
+import type { IntakeSession }           from '../../shared/tickets/IntakeSessionsModel.ts';
+import { INTAKE_NEW_CHAT_ITEM }         from './IntakeModel.ts';
+import { IntakePane }                   from './IntakePane.tsx';
+import { IntakeSessionRow, NewChatRow } from './IntakeSessionRow.tsx';
 
 export interface IntakeSessionListProps {
   readonly sessions:      readonly IntakeSession[];

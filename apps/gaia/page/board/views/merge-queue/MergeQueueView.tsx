@@ -12,8 +12,8 @@ import {
 
 import { PriorityMark }                               from '../../chips/TicketMarks.tsx';
 import { useHabitatCues }                             from '../../flint/UseHabitatHappenings.ts';
-import { useBoardHrefOf }                             from '../../shell/BoardRouteLinks.ts';
-import { DetailRoute }                                from '../../shell/DetailRoute.ts';
+import { useBoardHrefOf }                             from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                from '../../shared/routing/DetailRoute.ts';
 import { StateToneUtil }                              from '../../utils/StateToneUtil.ts';
 import type { MergeQueueTarget, WaitingForMergeLine } from './MergeQueueModel.ts';
 import { MERGE_QUEUE_SPRITE_HABITAT }                 from './MergeQueueSpriteHabitat.ts';

@@ -13,7 +13,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                                 from '../../../shell/CommandButton.tsx';
+import { CommandButton }                                                 from '../../../shared/commands/CommandButton.tsx';
 import type { DraftEditTarget }                                          from '../flow/PipelineFlowModel.ts';
 import { COPIED_PARTS, CopyBetweenEntitiesDialogModel, type CopiedPart } from './CopyBetweenEntitiesDialogModel.ts';
 

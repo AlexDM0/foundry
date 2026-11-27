@@ -14,7 +14,7 @@ import {
 import { PAGE_CONTRACT_VERSIONS }     from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }  from '../../../@types/board/BoardCommandDocument.ts';
 import { Button }                     from '../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }              from '../../shell/CommandButton.tsx';
+import { CommandButton }              from '../../shared/commands/CommandButton.tsx';
 import { DetailControlsModelUtil }    from './DetailControlsModel.ts';
 import { TextParts }                  from './DetailParts.tsx';
 import type { MoveModel, TicketMove } from './TicketOverviewModel.ts';

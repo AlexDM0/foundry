@@ -12,12 +12,12 @@ import type { BoardNoticeDocument }                                        from 
 import type { BoardSetupRecordDocument }                                   from '../../@types/board/BoardPipelineDocuments.ts';
 import type { StepperStep }                                                from '../../lib/design-system/DesignSystemInterface.ts';
 import type { SetupProgress }                                              from '../../shared/@types/SetupProgress.ts';
+import type { BoardRoute, BoardTab }                                       from '../../shared/BoardRouter.ts';
 import { CountTextUtil }                                                   from '../../shared/utils/CountTextUtil.ts';
 import type { ConnectionState }                                            from '../api/BoardEventStreamClient.ts';
 import { TimeUtil }                                                        from '../utils/TimeUtil.ts';
 import { PipelineViewModel, SETUP_STEP_LABELS }                            from '../views/pipeline/PipelineViewModel.ts';
 import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }        from './ActivityStripModel.ts';
-import type { BoardRoute, BoardTab }                                       from './BoardRouter.ts';
 
 /** The state pill's state: `live` only while serving, unpaused, with the event stream up; the pill is orange and its dot pulses only then. */
 export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'restarting' | 'down';

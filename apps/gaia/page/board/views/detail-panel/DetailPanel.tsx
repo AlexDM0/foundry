@@ -7,7 +7,7 @@ import type { RefObject } from 'react';
 
 import type { BoardDocument }                          from '../../../@types/board/BoardDocument.ts';
 import { SidePanel, SidePanelBody, SidePanelHead }     from '../../../lib/design-system/DesignSystemInterface.ts';
-import { DetailRoute, type DetailItem }                from '../../shell/DetailRoute.ts';
+import { DetailRoute, type DetailItem }                from '../../shared/routing/DetailRoute.ts';
 import type { DetailFormat }                           from './DetailFactsModel.ts';
 import { DetailPanelModel, type DetailPanelViewModel } from './DetailPanelModel.ts';
 import { DetailNote }                                  from './DetailParts.tsx';

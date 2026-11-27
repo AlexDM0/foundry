@@ -4,7 +4,7 @@ import { Row, StateBadge, Text } from '../../../lib/design-system/DesignSystemIn
 import { FLINT_SLOT_CUES }                   from '../../flint/FlintSlotCues.ts';
 import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }               from '../../flint/FlintSlotHabitats.ts';
-import { useCoveringPanelHoldsTheFlintSlot } from '../../shell/CoveringPanel.ts';
+import { useCoveringPanelHoldsTheFlintSlot } from '../../shared/CoveringPanel.ts';
 import { StateToneUtil }                     from '../../utils/StateToneUtil.ts';
 import type { ProductOwnerAtWorkFacts }      from './IntakeModel.ts';
 

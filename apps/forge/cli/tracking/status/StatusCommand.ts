@@ -6,10 +6,10 @@ import { PRODUCT_NAMES }                                from '../../../src/share
 import { boardStoreOf }                                 from '../../BoardStoreOf.ts';
 import type { CommandHandler }                          from '../../CommandHandler.ts';
 import { fullDocumentOf, workingDocumentOf }            from '../../StatusDocuments.ts';
-import { hephaestusStatusTextOf, readHephaestusStatus } from '../../hephaestus/HephaestusStatusReading.ts';
 import { NextLineUtil }                                 from '../../utils/NextLineUtil.ts';
 import { OutputUtil }                                   from '../../utils/OutputUtil.ts';
 import { confinementInForceOf, readConfinementInForce } from './ConfinementInForceReading.ts';
+import { hephaestusStatusTextOf, readHephaestusStatus } from './HephaestusStatusReading.ts';
 import { humanStatusTextOf }                            from './StatusText.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} status [--json] [--full] [--tickets-only]`;

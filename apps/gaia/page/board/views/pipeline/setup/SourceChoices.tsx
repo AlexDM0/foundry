@@ -5,7 +5,7 @@
  */
 import type { BoardPipelineSetupDocument }                          from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { ChoiceInput, ChoiceOption, Text }                          from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }                                        from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }                                        from '../../../shared/commands/ControlCommandSender.ts';
 import { ConstitutionStepModel, SOURCE_CHOICES, type SourceChoice } from './ConstitutionStepModel.ts';
 
 export interface SourceChoicesProps {

@@ -27,9 +27,9 @@ import {
 
 import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
 import { SANDBOX_PERMISSIONS }        from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
-import type { ControlAvailability }   from '../../shell/ControlAvailability.ts';
-import type { DetailItem }            from '../../shell/DetailRoute.ts';
+import { ControlSurroundingsContext } from '../../shared/commands/ControlAvailability.ts';
+import type { ControlAvailability }   from '../../shared/commands/ControlAvailability.ts';
+import type { DetailItem }            from '../../shared/routing/DetailRoute.ts';
 import { boardHrefOf }                from '../../testing/BoardRouteSurroundings.tsx';
 import {
   EXAMPLE_DETAIL_FORMAT,

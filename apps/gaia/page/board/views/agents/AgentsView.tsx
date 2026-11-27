@@ -14,9 +14,9 @@ import {
 
 import type { BoardDocument }             from '../../../@types/board/BoardDocument.ts';
 import type { TranscriptFollower }        from '../../@types/BoardServices.ts';
-import { useBoardClock, type BoardClock } from '../../shell/BoardClock.ts';
-import { useBoardNavigation }             from '../../shell/BoardRouteLinks.ts';
-import { IncidentNoticeModelUtil }        from '../../shell/IncidentNoticeModel.ts';
+import { useBoardClock, type BoardClock } from '../../shared/BoardClock.ts';
+import { useBoardNavigation }             from '../../shared/routing/BoardRouteLinks.ts';
+import { TimeUtil }                       from '../../utils/TimeUtil.ts';
 import { ViewTitle }                      from '../ViewTitle.tsx';
 import type { AgentJobDocument }          from './AgentJobDocument.ts';
 import type { PanelConcurrency }          from './AgentPanelSpriteModel.ts';
@@ -73,7 +73,7 @@ export function AgentsView({ board, selectedJobId, followTranscript }: AgentsVie
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const ticketTitles = useMemo(() => new Map(page.tickets.map((ticket) => [ticket.id, ticket.title])), [page.tickets]);
   const ticketTitleOf = (ticketId: string): string | null => ticketTitles.get(ticketId) ?? null;
-  const timestampSlices = IncidentNoticeModelUtil.timestampSlicesOf({ limits });
+  const timestampSlices = TimeUtil.timestampSlicesOf({ limits });
   const workerJobs = jobs.filter((job) => AgentsModel.groupOf(job) === 'workers');
   const sessionJobs = jobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? null;

@@ -20,9 +20,9 @@ import {
 
 import { PriorityMark, TypeMark }             from '../../chips/TicketMarks.tsx';
 import { SandboxedHtmlFrame }                 from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { useBoardHrefOf, useBoardNavigation } from '../../shell/BoardRouteLinks.ts';
-import { DetailRoute, type TicketSection }    from '../../shell/DetailRoute.ts';
-import { useDetailRouting }                   from '../../shell/DetailRouting.ts';
+import { useBoardHrefOf, useBoardNavigation } from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute, type TicketSection }    from '../../shared/routing/DetailRoute.ts';
+import { useDetailRouting }                   from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }                      from '../../utils/StateToneUtil.ts';
 import { LogLines }                           from './DetailParts.tsx';
 import type { TicketDetailModel }             from './TicketDetailModel.ts';

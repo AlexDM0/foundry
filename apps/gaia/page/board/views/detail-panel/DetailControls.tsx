@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }                                                 from '../../../../src/shared/constants/PageContractVersions.ts';
 import { TitledBlock }                                                            from '../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                                          from '../../shell/CommandButton.tsx';
+import { CommandButton }                                                          from '../../shared/commands/CommandButton.tsx';
 import { DetailControlsModelUtil, type DetailControlsModel, type MergeWaitModel } from './DetailControlsModel.ts';
 
 const COMMAND_VERSION = PAGE_CONTRACT_VERSIONS.gaiaBoardCommand;

@@ -17,7 +17,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }         from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }         from '../../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }          from '../../../utils/StateToneUtil.ts';
 import { EntityAssignmentLine }   from '../apply/EntityAssignmentProgress.tsx';
 import { ForgeLevelPageModel }    from '../entities/ForgeLevelPageModel.ts';

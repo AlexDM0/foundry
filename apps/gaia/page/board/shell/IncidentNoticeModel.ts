@@ -238,14 +238,4 @@ function seenIdsAfterMarking(board: Pick<IncidentNoticeBoard, 'notices'>): strin
   return defaultNoticesOf(board).map((notice) => notice.incidentId);
 }
 
-/** The board's stamp slices, which every stamp is sliced by. */
-function timestampSlicesOf(board: Pick<BoardDocument, 'limits'>): TimestampSlices {
-  const {
-    dateAndClockLength, calendarDateLength, monthAndDaySliceStart, clockSliceStart, clockSliceEnd
-  } = board.limits;
-  return {
-    dateAndClockLength, calendarDateLength, monthAndDaySliceStart, clockSliceStart, clockSliceEnd
-  };
-}
-
-export const IncidentNoticeModelUtil = Object.freeze({ incidentNoticeModelOf, seenIdsAfterMarking, timestampSlicesOf });
+export const IncidentNoticeModelUtil = Object.freeze({ incidentNoticeModelOf, seenIdsAfterMarking });

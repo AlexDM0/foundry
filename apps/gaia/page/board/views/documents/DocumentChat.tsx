@@ -12,7 +12,7 @@ import type { BoardProposalMode }                                               
 import type { BoardLineRangeDocument }                                                      from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button, SegmentedControl, type SegmentOption }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
 import { FLINT_SLOT_CUES }                                                                  from '../../flint/FlintSlotCues.ts';
-import { useControlCommand }                                                                from '../../shell/ControlCommandSender.ts';
+import { useControlCommand }                                                                from '../../shared/commands/ControlCommandSender.ts';
 import { sendKeyIsPressed }                                                                 from './CommentPopover.tsx';
 import type { AnchorLineParts }                                                             from './CommentPopoverModel.ts';
 import { DocumentAgentStrip }                                                               from './DocumentAgentStrip.tsx';

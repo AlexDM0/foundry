@@ -1,6 +1,6 @@
 /** Which form a routed detail opens and what fills it: the ticket form, the row form or the draft form, or the line naming what the board lacks. */
 import type { BoardDocument }                            from '../../../@types/board/BoardDocument.ts';
-import { DEFAULT_TICKET_SECTION, type DetailItem }       from '../../shell/DetailRoute.ts';
+import { DEFAULT_TICKET_SECTION, type DetailItem }       from '../../shared/routing/DetailRoute.ts';
 import type { DetailFormat }                             from './DetailFactsModel.ts';
 import { DraftDetailModelUtil, type DraftDetailModel }   from './DraftDetailModel.ts';
 import { RowDetailModelUtil, type RowDetailModel }       from './RowDetailModel.ts';

@@ -3,8 +3,8 @@ import { hephaestusFilesIn }                                 from '../../src/ser
 import { requireWorkspace }                                  from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                     from '../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler }                               from '../CommandHandler.ts';
+import { HephaestusRemote, type TalosRestartRequestOutcome } from '../HephaestusRemote.ts';
 import { OutputUtil }                                        from '../utils/OutputUtil.ts';
-import { HephaestusRemote, type TalosRestartRequestOutcome } from './HephaestusRemote.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} talos-restart [--json]`;
 

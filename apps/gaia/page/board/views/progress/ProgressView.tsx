@@ -27,15 +27,15 @@ import {
   Row,
   StateBadge
 } from '../../../lib/design-system/DesignSystemInterface.ts';
+import type { BoardRoute }                                             from '../../../shared/BoardRouter.ts';
 import { EpicChips }                                                   from '../../chips/EpicChips.tsx';
 import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
-import { useBoardHrefOf }                                              from '../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                                             from '../../shell/BoardRouter.ts';
-import { useChangedKeys }                                              from '../../shell/ChangeHighlight.ts';
-import { useCoveringPanelWidthProperty }                               from '../../shell/CoveringPanel.ts';
-import { DetailRoute }                                                 from '../../shell/DetailRoute.ts';
-import { useDetailRouting }                                            from '../../shell/DetailRouting.ts';
-import { useFinishedWorkWindow }                                       from '../../shell/FinishedWorkWindow.ts';
+import { useChangedKeys }                                              from '../../shared/ChangeHighlight.ts';
+import { useCoveringPanelWidthProperty }                               from '../../shared/CoveringPanel.ts';
+import { useFinishedWorkWindow }                                       from '../../shared/FinishedWorkWindow.ts';
+import { useBoardHrefOf }                                              from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                                 from '../../shared/routing/DetailRoute.ts';
+import { useDetailRouting }                                            from '../../shared/routing/DetailRouting.ts';
 import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
 import { StateToneUtil }                                               from '../../utils/StateToneUtil.ts';
 import { ViewTitle }                                                   from '../ViewTitle.tsx';

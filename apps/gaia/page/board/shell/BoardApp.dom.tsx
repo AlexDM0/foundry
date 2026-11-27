@@ -29,10 +29,14 @@ import {
 import type { BoardDocument }                        from '../../@types/board/BoardDocument.ts';
 import { FLINT_OVERLAY_ATTRIBUTE, type FlintHandle } from '../../lib/flint/FlintInterface.ts';
 
-import type { BoardServices }       from '../@types/BoardServices.ts';
-import { Board }                    from '../Board.tsx';
-import type { EventStreamHandlers } from '../api/BoardEventStreamClient.ts';
-import { boardHrefOf }              from '../testing/BoardRouteSurroundings.tsx';
+import { BOARD_TABS, type BoardRoute } from '../../shared/BoardRouter.ts';
+import type { BoardServices }          from '../@types/BoardServices.ts';
+import type { BoardTabViewTable }      from '../@types/BoardTabViewProps.ts';
+import { Board }                       from '../Board.tsx';
+import type { EventStreamHandlers }    from '../api/BoardEventStreamClient.ts';
+import { useBoardSetupHead }           from '../shared/BoardSetupHead.ts';
+import { CommandButton }               from '../shared/commands/CommandButton.tsx';
+import { boardHrefOf }                 from '../testing/BoardRouteSurroundings.tsx';
 import {
   boardStateFixture,
   exampleAgentJob,
@@ -40,16 +44,13 @@ import {
   FIXTURE_NOW,
   FIXTURE_TRACKER_ID
 } from '../testing/BoardStateFixture.ts';
-import { entitiesStepBoardOf }                     from '../testing/EntitiesStepFixture.ts';
-import { createManualFlintFrames }                 from '../testing/ManualFlintFrames.ts';
-import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
-import { STUB_TAB_VIEW_TEXT, stubTabViewsWith }    from '../testing/StubTabViews.tsx';
-import { WAITING_ATTENTION }                       from '../testing/WaitingOnUserFixture.ts';
-import { BoardApp }                                from './BoardApp.tsx';
-import { BOARD_TABS, type BoardRoute }             from './BoardRouter.ts';
-import { useBoardSetupHead }                       from './BoardSetupHead.ts';
-import { BOARD_TAB_VIEWS, type BoardTabViewTable } from './BoardTabViews.tsx';
-import { CommandButton }                           from './CommandButton.tsx';
+import { entitiesStepBoardOf }                  from '../testing/EntitiesStepFixture.ts';
+import { createManualFlintFrames }              from '../testing/ManualFlintFrames.ts';
+import { pipelineBoardStateOf }                 from '../testing/PipelineFixture.ts';
+import { STUB_TAB_VIEW_TEXT, stubTabViewsWith } from '../testing/StubTabViews.tsx';
+import { WAITING_ATTENTION }                    from '../testing/WaitingOnUserFixture.ts';
+import { BoardApp }                             from './BoardApp.tsx';
+import { BOARD_TAB_VIEWS }                      from './BoardTabViews.tsx';
 
 const OTHER_TRACKER_ID = 'other-tracker';
 

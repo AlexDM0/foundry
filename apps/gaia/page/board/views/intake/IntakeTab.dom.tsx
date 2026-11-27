@@ -11,9 +11,9 @@ import {
 import { afterEach, expect, test } from 'bun:test';
 
 import type { BoardDocument }                                 from '../../../@types/board/BoardDocument.ts';
+import type { BoardRoute }                                    from '../../../shared/BoardRouter.ts';
 import type { BoardServices }                                 from '../../@types/BoardServices.ts';
 import { BoardApp }                                           from '../../shell/BoardApp.tsx';
-import type { BoardRoute }                                    from '../../shell/BoardRouter.ts';
 import { boardStateFixture, FIXTURE_NOW, FIXTURE_TRACKER_ID } from '../../testing/BoardStateFixture.ts';
 import { fakeTranscripts }                                    from '../../testing/FakeControls.ts';
 import { productOwnerJob, sessionRecord }                     from '../../testing/IntakeBoardFixture.ts';

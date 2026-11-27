@@ -12,12 +12,12 @@ import { PRODUCT_NAMES }                                                        
 import { boardStoreOf }                                                         from '../BoardStoreOf.ts';
 import type { CommandContext }                                                  from '../CommandContext.ts';
 import type { CommandHandler }                                                  from '../CommandHandler.ts';
+import { HephaestusRemote }                                                     from '../HephaestusRemote.ts';
 import { requireCurrentInstall }                                                from '../InstallVersionCheck.ts';
 import type { ArgumentParser }                                                  from '../arguments/ArgumentParser.ts';
 import { ProgramAnswerUtil }                                                    from '../utils/ProgramAnswerUtil.ts';
 import { requireHephaestusCanStartIn, startContextOf, startHephaestusDetached } from './DetachedHephaestusStart.ts';
 import { runHephaestusInTheForeground, runTheRestartPreflight }                 from './HephaestusForeground.ts';
-import { HephaestusRemote }                                                     from './HephaestusRemote.ts';
 import { startOriginIn }                                                        from './StartGateAdmission.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;

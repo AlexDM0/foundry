@@ -14,7 +14,7 @@ import {
 import type { MarkdownBlock }              from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import type { BoardCommentAnchorDocument } from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button }                          from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }               from '../../shell/ControlCommandSender.ts';
+import { useControlCommand }               from '../../shared/commands/ControlCommandSender.ts';
 import { CommentPopoverModel }             from './CommentPopoverModel.ts';
 import { AGENT_NAMES }                     from './ProposalModel.ts';
 import type { DocumentPlace }              from './TicketDocumentCommands.ts';

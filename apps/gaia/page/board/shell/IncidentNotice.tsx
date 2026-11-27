@@ -25,8 +25,8 @@ import {
 } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { IncidentStepText, JobLink, TicketLinks } from '../conversation/ConversationParts.tsx';
+import { useBoardHrefOf }                         from '../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                          from '../utils/StateToneUtil.ts';
-import { useBoardHrefOf }                         from './BoardRouteLinks.ts';
 import type {
   IncidentBannerModel,
   IncidentDrawerModel,

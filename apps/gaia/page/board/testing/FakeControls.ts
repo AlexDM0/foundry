@@ -12,7 +12,7 @@ import type { BoardTranscriptEntryDocument }       from '../../@types/board/Conv
 import type { BoardCommandClient, CommandOutcome } from '../api/BoardCommandClient.ts';
 import type { PictureUpload, PictureUploadClient } from '../api/PictureUploadClient.ts';
 import type { TranscriptStreamHandlers }           from '../api/TranscriptStreamClient.ts';
-import { ControlSurroundingsContext }              from '../shell/ControlAvailability.ts';
+import { ControlSurroundingsContext }              from '../shared/commands/ControlAvailability.ts';
 
 /** The version every command the board sends carries, for a spec to spread into the commands it expects sent. */
 export const SENT_COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;

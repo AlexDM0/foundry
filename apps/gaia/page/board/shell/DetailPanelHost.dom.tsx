@@ -19,15 +19,15 @@ import {
 } from 'bun:test';
 import { useEffect, useState, type KeyboardEvent } from 'react';
 
+import { BoardRouter, type BoardRoute }            from '../../shared/BoardRouter.ts';
+import { ControlSurroundingsContext }              from '../shared/commands/ControlAvailability.ts';
+import { BoardGoToContext, BoardTrackerContext }   from '../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute, type DetailItem }            from '../shared/routing/DetailRoute.ts';
+import { DetailRoutingContext, detailRoutingOf }   from '../shared/routing/DetailRouting.ts';
 import { FIXTURE_TRACKER_ID }                      from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket } from '../testing/DetailBoardFixture.ts';
 import { fakeControlSurroundingsOf }               from '../testing/FakeControlSurroundings.ts';
-import { BoardGoToContext, BoardTrackerContext }   from './BoardRouteLinks.ts';
-import { BoardRouter, type BoardRoute }            from './BoardRouter.ts';
-import { ControlSurroundingsContext }              from './ControlAvailability.ts';
 import { DetailPanelHost }                         from './DetailPanelHost.tsx';
-import { DetailRoute, type DetailItem }            from './DetailRoute.ts';
-import { DetailRoutingContext, detailRoutingOf }   from './DetailRouting.ts';
 
 const BOARD = exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true });
 

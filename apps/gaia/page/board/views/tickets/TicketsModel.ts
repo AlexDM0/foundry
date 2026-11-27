@@ -1,39 +1,16 @@
 /**
- * Tickets in three segments: In draft (every ticket being written, the tickets for User's review and the filing drafts), Active (committed
- * up to merged) and Finished (delivered or abandoned). Which segment a ticket stands in, the segment a route item names, the segment the
- * view opens on, and the search each segment narrows its rows by: a digits query looks for an id alone, any other for the words of a row.
+ * The Tickets view's segments: the segment a route item names, the segment the view opens on, and the search each segment narrows its rows
+ * by: a digits query looks for an id alone, any other for the words of a row.
  */
-import type { BoardDocument }       from '../../../@types/board/BoardDocument.ts';
-import type { BoardTicketDocument } from '../../../@types/board/BoardTicketDocuments.ts';
-import type { BoardTicketStatus }   from '../../../@types/board/BoardVocabulary.ts';
-import type { CuedTicket }          from '../../flint/TicketsSpriteModel.ts';
-import { SearchMatchUtil }          from '../../utils/SearchMatchUtil.ts';
-
-export const TICKET_SEGMENTS = ['in-draft', 'active', 'finished'] as const;
-
-export type TicketSegment = typeof TICKET_SEGMENTS[number];
+import type { BoardTicketDocument }            from '../../../@types/board/BoardTicketDocuments.ts';
+import type { CuedTicket }                     from '../../flint/TicketsSpriteModel.ts';
+import { TICKET_SEGMENTS, type TicketSegment } from '../../shared/tickets/TicketSegmentUtil.ts';
+import { SearchMatchUtil }                     from '../../utils/SearchMatchUtil.ts';
 
 export const [DEFAULT_TICKET_SEGMENT] = TICKET_SEGMENTS;
 
 /** The board's preference holding the segment this viewer chose last. */
 export const TICKET_SEGMENT_CHOICE_NAME = 'tickets-segment';
-
-export const TICKET_SEGMENT_LABELS: Readonly<Record<TicketSegment, string>> = {
-  'in-draft': 'In draft',
-  'active':   'Active',
-  'finished': 'Finished',
-};
-
-const SEGMENT_OF_STATUS: Readonly<Record<BoardTicketStatus, TicketSegment>> = {
-  'draft':            'in-draft',
-  'ready-for-review': 'in-draft',
-  'committed':        'active',
-  'in-progress':      'active',
-  'in-review':        'active',
-  'reviewed':         'active',
-  'delivered':        'finished',
-  'abandoned':        'finished',
-};
 
 /** A query of digits, with or without its `#`, looks for a ticket id and nothing else, so "12" does not match every title naming a twelve. */
 const TICKET_ID_QUERY_PATTERN = /^#?\d+$/;
@@ -42,14 +19,6 @@ const TICKET_ID_QUERY_PATTERN = /^#?\d+$/;
 export interface SearchableRow {
   readonly idText: string;
   readonly words:  readonly string[];
-}
-
-function segmentOfStatus(status: BoardTicketStatus): TicketSegment {
-  return SEGMENT_OF_STATUS[status];
-}
-
-function ticketsInSegment(board: Pick<BoardDocument, 'page'>, segment: TicketSegment): BoardTicketDocument[] {
-  return board.page.tickets.filter((ticket) => segmentOfStatus(ticket.status) === segment);
 }
 
 function isTicketSegment(text: string | null): text is TicketSegment {
@@ -90,8 +59,6 @@ function cuedTicketsOf(tickets: readonly BoardTicketDocument[]): CuedTicket[] {
 
 export const TicketsModel = Object.freeze({
   cuedTicketsOf,
-  segmentOfStatus,
-  ticketsInSegment,
   segmentOfRouteItem,
   openingSegmentOf,
   rowMatches,

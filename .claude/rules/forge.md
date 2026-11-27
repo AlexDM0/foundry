@@ -60,7 +60,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set isolation, the bin
   shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on" packages and
   the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
-  structurally typed parameter.
+  structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports
+  another, and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them, and in test code.
 - A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when

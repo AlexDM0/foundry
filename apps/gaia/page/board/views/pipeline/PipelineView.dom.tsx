@@ -34,8 +34,8 @@ import {
 import { useState } from 'react';
 
 import type { BoardDocument }                                              from '../../../@types/board/BoardDocument.ts';
+import type { BoardRoute }                                                 from '../../../shared/BoardRouter.ts';
 import { ProfileStreamClient, type ProfileOutputLine }                     from '../../api/ProfileStreamClient.ts';
-import type { BoardRoute }                                                 from '../../shell/BoardRouter.ts';
 import { FIXTURE_TRACKER_ID }                                              from '../../testing/BoardStateFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                from '../../testing/FakeControls.ts';
 import { fakeRelayStreams }                                                from '../../testing/FakeRelay.ts';

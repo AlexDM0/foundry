@@ -10,7 +10,7 @@ import {
   Tag,
   Text
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                   from '../../../shell/CommandButton.tsx';
+import { CommandButton }                                   from '../../../shared/commands/CommandButton.tsx';
 import { StateToneUtil }                                   from '../../../utils/StateToneUtil.ts';
 import { PipelineLevelModel, type PipelineLevel }          from '../entities/PipelineLevelModel.ts';
 import type { EntitySessionRowView, ResearchSessionState } from './EntitySessionListModel.ts';

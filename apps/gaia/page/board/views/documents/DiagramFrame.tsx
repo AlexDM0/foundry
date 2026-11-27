@@ -21,7 +21,7 @@ import {
   type DiagramFrameRequest,
   type DiagramNode
 } from '../../../shared/@types/DiagramFrameMessages.ts';
-import { useBoardClock } from '../../shell/BoardClock.ts';
+import { useBoardClock } from '../../shared/BoardClock.ts';
 
 export const DIAGRAM_FRAME_ADDRESS = '/diagram-frame/';
 

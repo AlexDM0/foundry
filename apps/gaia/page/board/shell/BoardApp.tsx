@@ -17,24 +17,8 @@ import {
   type ReactNode
 } from 'react';
 
-import type { BoardDocument }                                      from '../../@types/board/BoardDocument.ts';
-import { EmptyState }                                              from '../../lib/design-system/DesignSystemInterface.ts';
-import type { BoardServices }                                      from '../@types/BoardServices.ts';
-import type { ConnectionState }                                    from '../api/BoardEventStreamClient.ts';
-import { BoardFlint }                                              from '../flint/BoardFlint.tsx';
-import type { BoardReading }                                       from '../flint/BoardOccasionModel.ts';
-import { boardPreferenceStoreOf }                                  from '../preferences/PreferenceStore.ts';
-import { TimeUtil }                                                from '../utils/TimeUtil.ts';
-import { KanbanTabSurroundingsContext }                            from '../views/kanban/KanbanTabSurroundings.ts';
-import { PipelineViewModel }                                       from '../views/pipeline/PipelineViewModel.ts';
-import { QuestionPanel }                                           from '../views/question-panel/QuestionPanel.tsx';
-import { QuestionPanelModel }                                      from '../views/question-panel/QuestionPanelModel.ts';
-import { ShownQuestionContext, useQuestionPanelState }             from '../views/question-panel/QuestionPanelState.ts';
-import { QuestionsModelUtil }                                      from '../views/questions/QuestionsModel.ts';
-import { AgentNotice }                                             from './AgentNotice.tsx';
-import { AgentNoticeModel }                                        from './AgentNoticeModel.ts';
-import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from './BoardClock.ts';
-import { BoardGoToContext, BoardTrackerContext }                   from './BoardRouteLinks.ts';
+import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
+import { EmptyState }         from '../../lib/design-system/DesignSystemInterface.ts';
 import {
   BoardRouter,
   DEFAULT_PROGRESS_VIEW,
@@ -43,25 +27,42 @@ import {
   TAB_CHOICE_NAME,
   type BoardRoute,
   type BoardTab
-} from './BoardRouter.ts';
-import { type BoardSetupHead, BoardSetupHeadContext }                                    from './BoardSetupHead.ts';
+} from '../../shared/BoardRouter.ts';
+import type { BoardServices }                                                            from '../@types/BoardServices.ts';
+import type { BoardTabViewTable }                                                        from '../@types/BoardTabViewProps.ts';
+import type { ConnectionState }                                                          from '../api/BoardEventStreamClient.ts';
+import { BoardFlint }                                                                    from '../flint/BoardFlint.tsx';
+import type { BoardReading }                                                             from '../flint/BoardOccasionModel.ts';
+import { boardPreferenceStoreOf }                                                        from '../preferences/PreferenceStore.ts';
+import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock }                       from '../shared/BoardClock.ts';
+import { type BoardSetupHead, BoardSetupHeadContext }                                    from '../shared/BoardSetupHead.ts';
+import { QuestionPanelShownContext }                                                     from '../shared/CoveringPanel.ts';
+import { FinishedWorkWindowContext }                                                     from '../shared/FinishedWorkWindow.ts';
+import { HomeFolderContext }                                                             from '../shared/HomeFolder.ts';
+import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from '../shared/commands/ControlAvailability.ts';
+import { ProgramFileChooserContext }                                                     from '../shared/commands/ProgramFileChooser.ts';
+import { BoardGoToContext, BoardTrackerContext }                                         from '../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                                                   from '../shared/routing/DetailRoute.ts';
+import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from '../shared/routing/DetailRouting.ts';
+import { QuestionPanelOpenerContext }                                                    from '../shared/routing/QuestionPanelOpener.ts';
+import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
+import { KanbanTabSurroundingsContext }                                                  from '../views/kanban/KanbanTabSurroundings.ts';
+import { PipelineViewModel }                                                             from '../views/pipeline/PipelineViewModel.ts';
+import { QuestionsModelUtil }                                                            from '../views/questions/QuestionsModel.ts';
+import { QuestionPanel }                                                                 from '../views/questions/panel/QuestionPanel.tsx';
+import { QuestionPanelModel }                                                            from '../views/questions/panel/QuestionPanelModel.ts';
+import { ShownQuestionContext, useQuestionPanelState }                                   from '../views/questions/panel/QuestionPanelState.ts';
+import { AgentNotice }                                                                   from './AgentNotice.tsx';
+import { AgentNoticeModel }                                                              from './AgentNoticeModel.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
 import { useBoardTabFilters }                                                            from './BoardTabFilters.tsx';
-import { BOARD_TAB_VIEWS, type BoardTabViewTable }                                       from './BoardTabViews.tsx';
+import { BOARD_TAB_VIEWS }                                                               from './BoardTabViews.tsx';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
-import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
-import { QuestionPanelShownContext }                                                     from './CoveringPanel.ts';
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
-import { DetailRoute }                                                                   from './DetailRoute.ts';
-import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from './DetailRouting.ts';
-import { FinishedWorkWindowContext }                                                     from './FinishedWorkWindow.ts';
 import { Header }                                                                        from './Header.tsx';
 import { type HeaderModel, headerModelOf, setupProgressOnStartingStepOf }                from './HeaderModel.ts';
-import { HomeFolderContext }                                                             from './HomeFolder.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                                                       from './IncidentNoticeModel.ts';
-import { ProgramFileChooserContext }                                                     from './ProgramFileChooser.ts';
-import { QuestionPanelOpenerContext }                                                    from './QuestionPanelOpener.ts';
 import { SetupStepBar }                                                                  from './SetupStepBar.tsx';
 import { WaitingOnUserModel }                                                            from './WaitingOnUserModel.ts';
 
@@ -205,7 +206,7 @@ export function BoardApp({
   const incidentNotice = useMemo(() => (board === null ? null : IncidentNoticeModelUtil.incidentNoticeModelOf(
     board,
     seenIncidentIds,
-    { todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(board) },
+    { todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: TimeUtil.timestampSlicesOf(board) },
   )), [board, seenIncidentIds, boardNow]);
   const markIncidentDefaultsSeen = (): void => {
     if (board === null) return;
@@ -300,7 +301,7 @@ export function BoardApp({
                       waitingOnUser={waitingOnUser}
                       tabCounts={tabCounts}
                       questionNotifier={services.questionNotifier}
-                      timestampSlices={board === null ? null : IncidentNoticeModelUtil.timestampSlicesOf(board)}
+                      timestampSlices={board === null ? null : TimeUtil.timestampSlicesOf(board)}
                     />
                     <main
                       ref={mainPanelRef}
@@ -322,7 +323,7 @@ export function BoardApp({
                           queue={questionQueue}
                           shownDecision={shownQuestion}
                           isHiddenBehindDetail={DetailRoute.openDetailOf(shownRoute) !== null}
-                          format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(board) }}
+                          format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: TimeUtil.timestampSlicesOf(board) }}
                           followTranscript={services.followTranscript}
                           onFold={questionPanel.fold}
                           onClose={questionPanel.close}

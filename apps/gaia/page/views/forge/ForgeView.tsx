@@ -19,12 +19,11 @@ import type { CrashLogDocument }                               from '../../@type
 import type { FleetDocument, FleetDocumentForge }              from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandResult, useCommandSender } from '../../api/CommandSender.ts';
 import { Board, type BoardServicesOf }                         from '../../board/Board.tsx';
-import type { BoardRoute }                                     from '../../board/shell/BoardRouter.ts';
-import { useBoardSetupHead }                                   from '../../board/shell/BoardSetupHead.ts';
-import type { BoardTabViewTable }                              from '../../board/shell/BoardTabViews.tsx';
+import { useBoardSetupHead }                                   from '../../board/shared/BoardSetupHead.ts';
 import type { ClockReading }                                   from '../../shared/@types/ClockReading.ts';
 import type { SetupProgress }                                  from '../../shared/@types/SetupProgress.ts';
 import type { ViewParts }                                      from '../../shared/@types/ViewParts.ts';
+import type { BoardRoute }                                     from '../../shared/BoardRouter.ts';
 import { HashRouter }                                          from '../../shared/HashRouter.ts';
 import type { CrashLogResult }                                 from './CrashLogRequest.ts';
 import {
@@ -41,13 +40,11 @@ import { type ForgeBar, type ForgeContent, ForgeModel } from './ForgeModel.ts';
 import { type CrashLogOpening, ForgePresenceLayout }    from './ForgePresenceLayout.tsx';
 import { ForgePresenceModel }                           from './ForgePresenceModel.ts';
 
-/** What the page around a forge's board hands it: the server's crash logs, the board's services and views, and a tab of its own. */
+/** What the page around a forge's board hands it: the server's crash logs, the board's services, and a tab of its own. */
 export interface ForgeViewSurroundings {
   /** One crash log of a forge that serves again, read through Gaia's server when User opens it. */
   readonly requestCrashLog:       (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
   readonly boardServicesOf:       BoardServicesOf;
-  /** The view of every board tab; `BOARD_TAB_VIEWS` unless a spec hands its own. */
-  readonly boardTabViews:         BoardTabViewTable;
   /** Opens Gaia's own address at a fragment in a browser tab of its own. */
   readonly openInNewTab:          (fragment: string) => void;
   /** Crash logs already read when the view mounts, shown open; a page painted without effects, such as a screen of the visual pass, hands them. */
@@ -229,7 +226,6 @@ function ForgeContentView({
         route={route.boardRoute}
         project={area.project}
         servicesOf={(trackerId) => ({ ...surroundings.boardServicesOf(trackerId), homeFolder, chooseProgramFile: () => chosenProgramPathOf(send) })}
-        tabViews={surroundings.boardTabViews}
       >
         {children}
       </Board>

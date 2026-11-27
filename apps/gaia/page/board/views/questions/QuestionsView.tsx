@@ -18,26 +18,26 @@ import {
   StateBadge,
   Text
 } from '../../../lib/design-system/DesignSystemInterface.ts';
+import { BoardRouter }                          from '../../../shared/BoardRouter.ts';
+import type { BoardTabViewProps }               from '../../@types/BoardTabViewProps.ts';
+import type { QuestionNotifier }                from '../../@types/QuestionNotifier.ts';
 import { DecisionCard }                         from '../../conversation/DecisionCard.tsx';
 import type { QuestionsFacts }                  from '../../flint/QuestionsSpriteModel.ts';
 import { useQuestionsHabitat }                  from '../../flint/UseQuestionsHabitat.ts';
-import { useBoardHrefOf }                       from '../../shell/BoardRouteLinks.ts';
-import { BoardRouter }                          from '../../shell/BoardRouter.ts';
-import type { BoardTabViewProps }               from '../../shell/BoardTabViews.tsx';
+import { useBoardHrefOf }                       from '../../shared/routing/BoardRouteLinks.ts';
+import { useQuestionPanelOpener }               from '../../shared/routing/QuestionPanelOpener.ts';
 import { presenceAttributeOf, useItemPresence } from '../../shell/ItemPresence.ts';
-import { useQuestionPanelOpener }               from '../../shell/QuestionPanelOpener.ts';
 import type { ItemPresence }                    from '../../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                        from '../../utils/StateToneUtil.ts';
 import { ViewTitle }                            from '../ViewTitle.tsx';
-import { ShownQuestionContext }                 from '../question-panel/QuestionPanelState.ts';
 import { NotificationAllowanceControl }         from './NotificationAllowanceControl.tsx';
-import type { QuestionNotifier }                from './QuestionAlerts.ts';
 import {
   QuestionsModelUtil,
   type AnsweredDecision,
   type NoticeEntry,
   type QuestionsBoard
 } from './QuestionsModel.ts';
+import { ShownQuestionContext } from './panel/QuestionPanelState.ts';
 
 export interface QuestionsViewProps {
   readonly board:               QuestionsBoard & Pick<BoardDocument, 'incidents'>;

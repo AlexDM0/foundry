@@ -16,20 +16,20 @@ import {
   Text
 } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { StateToneUtil }                      from '../utils/StateToneUtil.ts';
-import type { TimestampSlices }               from '../utils/TimeUtil.ts';
-import type { QuestionNotifier }              from '../views/questions/QuestionAlerts.ts';
-import { ActivityStrip }                      from './ActivityStrip.tsx';
-import type { BoardClock }                    from './BoardClock.ts';
-import { useBoardHrefOf, useBoardNavigation } from './BoardRouteLinks.ts';
 import {
   BoardRouter,
   type BoardMenuEntry,
   type BoardRoute,
   type BoardTab,
   type ProgressView
-} from './BoardRouter.ts';
-import { useChangedSinceMount }                                from './ChangedSinceMount.ts';
+} from '../../shared/BoardRouter.ts';
+import type { QuestionNotifier }                               from '../@types/QuestionNotifier.ts';
+import type { BoardClock }                                     from '../shared/BoardClock.ts';
+import { useChangedSinceMount }                                from '../shared/ChangedSinceMount.ts';
+import { useBoardHrefOf, useBoardNavigation }                  from '../shared/routing/BoardRouteLinks.ts';
+import { StateToneUtil }                                       from '../utils/StateToneUtil.ts';
+import type { TimestampSlices }                                from '../utils/TimeUtil.ts';
+import { ActivityStrip }                                       from './ActivityStrip.tsx';
 import type { HeaderFigureLane, HeaderModel, HeaderStatistic } from './HeaderModel.ts';
 import {
   WaitingOnUserModel,

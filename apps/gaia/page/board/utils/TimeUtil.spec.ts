@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test }                        from 'bun:test';
+import { EXAMPLE_BOARD_LIMITS }                          from '../testing/PageLimitsFixture.ts';
 import { EXAMPLE_PAGE_LIMITS, EXAMPLE_TIMESTAMP_SLICES } from '../testing/TimestampSlicesFixture.ts';
 import { TimeUtil }                                      from './TimeUtil.ts';
 
@@ -21,6 +22,7 @@ const {
   shortInstantText,
   shortStampText,
   stampIsFromDay,
+  timestampSlicesOf,
 } = TimeUtil;
 
 const EXAMPLE_TODAY = '2026-09-18';
@@ -150,5 +152,11 @@ describe('formatDuration', () => {
   test('names no duration for a span that runs backwards', () => {
     expect(formatDuration(-180_000, EXAMPLE_PAGE_LIMITS)).toBeNull();
     expect(formatDuration(-1, EXAMPLE_PAGE_LIMITS)).toBeNull();
+  });
+});
+
+describe('timestampSlicesOf', () => {
+  test('the stamp slices are the board\'s limits\' own', () => {
+    expect(timestampSlicesOf({ limits: EXAMPLE_BOARD_LIMITS })).toEqual(EXAMPLE_TIMESTAMP_SLICES);
   });
 });

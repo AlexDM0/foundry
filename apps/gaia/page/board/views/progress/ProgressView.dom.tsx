@@ -29,8 +29,8 @@ import {
 import { PAGE_CONTRACT_VERSIONS }     from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardDocument }         from '../../../@types/board/BoardDocument.ts';
 import { boardPreferenceStoreOf }     from '../../preferences/PreferenceStore.ts';
-import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
-import { FinishedWorkWindowContext }  from '../../shell/FinishedWorkWindow.ts';
+import { FinishedWorkWindowContext }  from '../../shared/FinishedWorkWindow.ts';
+import { ControlSurroundingsContext } from '../../shared/commands/ControlAvailability.ts';
 import { ticketCountByStatusOf }      from '../../testing/BoardStateFixture.ts';
 import { routedOnTab }                from '../../testing/DetailRoutingFixture.ts';
 import { fakeControlSurroundingsOf }  from '../../testing/FakeControlSurroundings.ts';

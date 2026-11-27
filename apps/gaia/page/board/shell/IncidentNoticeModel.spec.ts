@@ -18,7 +18,6 @@ import {
   exampleOpenIncident,
   incidentRecordOf
 } from '../testing/IncidentNoticeFixture.ts';
-import { EXAMPLE_BOARD_LIMITS } from '../testing/PageLimitsFixture.ts';
 import {
   IncidentNoticeModelUtil,
   type IncidentMetaPart,
@@ -149,12 +148,6 @@ describe('the drawer', () => {
     const model = IncidentNoticeModelUtil.incidentNoticeModelOf(BOARD, [], null);
     expect(model.banner?.newest.at).toBeNull();
     expect(metaText(model.drawer.defaultedRows[0]?.meta ?? [])).toBe('job-fresh: its delivery turn closed');
-  });
-});
-
-describe('IncidentNoticeModelUtil.timestampSlicesOf', () => {
-  test('the stamp slices are the board\'s limits\' own', () => {
-    expect(IncidentNoticeModelUtil.timestampSlicesOf({ limits: EXAMPLE_BOARD_LIMITS })).toEqual(EXAMPLE_INCIDENT_SLICES);
   });
 });
 

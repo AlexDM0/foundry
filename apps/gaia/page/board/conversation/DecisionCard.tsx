@@ -9,7 +9,7 @@ import { useState, type ReactNode } from 'react';
 import { PAGE_CONTRACT_VERSIONS }                from '../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardDecisionDocument }            from '../../@types/board/BoardDecisionDocuments.ts';
 import { ChoiceInput, ChoiceMark, ChoiceOption } from '../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                         from '../shell/CommandButton.tsx';
+import { CommandButton }                         from '../shared/commands/CommandButton.tsx';
 import { presenceAttributeOf }                   from '../shell/ItemPresence.ts';
 import type { ItemPresence }                     from '../utils/ItemPresenceUtil.ts';
 import {

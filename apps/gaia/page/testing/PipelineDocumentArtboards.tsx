@@ -8,14 +8,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { BoardDocument }                    from '../@types/board/BoardDocument.ts';
 import type { BoardTranscriptEntryDocument }     from '../@types/board/ConversationDocument.ts';
-import { BoardGoToContext, BoardTrackerContext } from '../board/shell/BoardRouteLinks.ts';
-import type { BoardRoute }                       from '../board/shell/BoardRouter.ts';
-import { ControlSurroundingsContext }            from '../board/shell/ControlAvailability.ts';
+import { ControlSurroundingsContext }            from '../board/shared/commands/ControlAvailability.ts';
+import { BoardGoToContext, BoardTrackerContext } from '../board/shared/routing/BoardRouteLinks.ts';
 import { fakeControlSurroundingsOf }             from '../board/testing/FakeControlSurroundings.ts';
 import { pipelineBoardStateOf }                  from '../board/testing/PipelineFixture.ts';
 import { exampleTranscriptEntry }                from '../board/testing/TranscriptEntryFixture.ts';
 import { PipelineDialogs }                       from '../board/views/pipeline/dialogs/PipelineDialogs.tsx';
 import type { FlowOpenRequest }                  from '../board/views/pipeline/flow/PipelineFlowModel.ts';
+import type { BoardRoute }                       from '../shared/BoardRouter.ts';
 
 export type PipelineDocumentArtboard = '9' | '10';
 

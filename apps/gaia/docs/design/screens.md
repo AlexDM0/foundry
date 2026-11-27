@@ -531,7 +531,7 @@ which is Gaia's own. It is the one way a board opens, at `#forge/<trackerId>[/<t
 
 Built in: `page/views/forge/` (`ForgeView.tsx`, `ForgeModel.ts`, `ForgeLayout.tsx`, `ForgePresenceModel.ts`,
 `ForgePresenceLayout.tsx`, `CrashLogRequest.ts`), the board under `page/board/` (mounted through `page/board/Board.tsx`), the
-route in `page/shared/HashRouter.ts` and `page/board/shell/BoardRouter.ts`, the bar's words in
+route in `page/shared/HashRouter.ts` and `page/shared/BoardRouter.ts`, the bar's words in
 `page/shared/utils/ForgeCommandTextUtil.ts`.
 Held by: `page/views/forge/ForgeView.spec.tsx`, `ForgeModel.spec.ts`, `ForgeLayout.spec.tsx`,
 `ForgeModel.runningVersions.spec.tsx`, `ForgePresenceModel.spec.ts`, `ForgePresenceLayout.spec.tsx`, the forge-in-place specs at

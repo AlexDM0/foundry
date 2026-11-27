@@ -30,17 +30,17 @@ import {
 
 import type { BoardCommandDocument }          from '../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDocument }                 from '../../../@types/board/BoardDocument.ts';
+import type { BoardRoute }                    from '../../../shared/BoardRouter.ts';
 import type { CommandOutcome }                from '../../api/BoardCommandClient.ts';
 import { boardPreferenceStoreOf }             from '../../preferences/PreferenceStore.ts';
-import { BoardClockContext, type BoardClock } from '../../shell/BoardClock.ts';
-import type { BoardRoute }                    from '../../shell/BoardRouter.ts';
-import { ControlSurroundingsContext }         from '../../shell/ControlAvailability.ts';
-import type { ControlAvailability }           from '../../shell/ControlAvailability.ts';
-import { QuestionPanelShownContext }          from '../../shell/CoveringPanel.ts';
-import type { DetailItem }                    from '../../shell/DetailRoute.ts';
-import { FinishedWorkWindowContext }          from '../../shell/FinishedWorkWindow.ts';
-import type { FinishedWorkWindow }            from '../../shell/FinishedWorkWindow.ts';
-import { QuestionPanelOpenerContext }         from '../../shell/QuestionPanelOpener.ts';
+import { BoardClockContext, type BoardClock } from '../../shared/BoardClock.ts';
+import { QuestionPanelShownContext }          from '../../shared/CoveringPanel.ts';
+import { FinishedWorkWindowContext }          from '../../shared/FinishedWorkWindow.ts';
+import type { FinishedWorkWindow }            from '../../shared/FinishedWorkWindow.ts';
+import { ControlSurroundingsContext }         from '../../shared/commands/ControlAvailability.ts';
+import type { ControlAvailability }           from '../../shared/commands/ControlAvailability.ts';
+import type { DetailItem }                    from '../../shared/routing/DetailRoute.ts';
+import { QuestionPanelOpenerContext }         from '../../shared/routing/QuestionPanelOpener.ts';
 import { routedOnTab }                        from '../../testing/DetailRoutingFixture.ts';
 import { fakeControlSurroundingsOf }          from '../../testing/FakeControlSurroundings.ts';
 import { EXAMPLE_NOW_EPOCH_MILLISECONDS }     from '../../testing/KanbanBoardFixture.ts';

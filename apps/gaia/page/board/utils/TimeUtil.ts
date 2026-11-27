@@ -5,6 +5,7 @@
  * durations and parses stamps.
  */
 
+import type { BoardDocument }      from '../../@types/board/BoardDocument.ts';
 import { MILLISECONDS_PER_MINUTE } from '../../shared/constants/TimeUnits.ts';
 
 const SHORTEST_NAMED_DURATION = 'under a minute';
@@ -131,6 +132,16 @@ function epochMillisecondsOf(stamp: string | null | undefined): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+/** The board's stamp slices, which every stamp is sliced by. */
+function timestampSlicesOf(board: Pick<BoardDocument, 'limits'>): TimestampSlices {
+  const {
+    dateAndClockLength, calendarDateLength, monthAndDaySliceStart, clockSliceStart, clockSliceEnd
+  } = board.limits;
+  return {
+    dateAndClockLength, calendarDateLength, monthAndDaySliceStart, clockSliceStart, clockSliceEnd
+  };
+}
+
 export const TimeUtil = {
   calendarDateOf,
   clockOf,
@@ -144,4 +155,5 @@ export const TimeUtil = {
   monthDayAndClockText,
   formatDuration,
   epochMillisecondsOf,
+  timestampSlicesOf,
 } as const;

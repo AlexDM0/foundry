@@ -26,8 +26,8 @@ import {
 import { useEffect, useState, type ReactElement } from 'react';
 
 import type { BoardDocument }                                       from '../../../@types/board/BoardDocument.ts';
-import { BoardGoToContext, BoardTrackerContext }                    from '../../shell/BoardRouteLinks.ts';
-import { BoardRouter }                                              from '../../shell/BoardRouter.ts';
+import { BoardRouter }                                              from '../../../shared/BoardRouter.ts';
+import { BoardGoToContext, BoardTrackerContext }                    from '../../shared/routing/BoardRouteLinks.ts';
 import { boardHrefOf, boardRouteSurroundings }                      from '../../testing/BoardRouteSurroundings.tsx';
 import { exampleAskingDecision, exampleTicket, FIXTURE_TRACKER_ID } from '../../testing/BoardStateFixture.ts';
 import { clickSettled, fakeControls, fakeTranscripts }              from '../../testing/FakeControls.ts';

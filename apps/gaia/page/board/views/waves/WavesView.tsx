@@ -13,10 +13,10 @@ import {
 } from 'react';
 import { StateBadge, Text, View } from '../../../lib/design-system/DesignSystemInterface.ts';
 
+import type { BoardTabViewProps } from '../../@types/BoardTabViewProps.ts';
 import type { ConnectionState }   from '../../api/BoardEventStreamClient.ts';
 import { TicketIdMark }           from '../../chips/TicketMarks.tsx';
-import type { BoardTabViewProps } from '../../shell/BoardTabViews.tsx';
-import { useDetailRouting }       from '../../shell/DetailRouting.ts';
+import { useDetailRouting }       from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
 import { ViewTitle }              from '../ViewTitle.tsx';
 import type {

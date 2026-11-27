@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardRoute }                 from '../../shell/BoardRouter.ts';
+import type { BoardRoute }                 from '../../../shared/BoardRouter.ts';
 import { pipelineBoardStateOf }            from '../../testing/PipelineFixture.ts';
 import { PipelineViewModel }               from './PipelineViewModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel } from './entities/PipelineLevelModel.ts';

@@ -18,9 +18,9 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandWaitShown }                                             from '../../../shell/CommandWaitPanel.tsx';
-import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shell/ControlCommandSender.ts';
-import { ProgramFileChooserContext }                                    from '../../../shell/ProgramFileChooser.ts';
+import { CommandWaitShown }                                             from '../../../shared/commands/CommandWaitPanel.tsx';
+import { useControlCommandSequence, type ControlCommandSequenceSender } from '../../../shared/commands/ControlCommandSender.ts';
+import { ProgramFileChooserContext }                                    from '../../../shared/commands/ProgramFileChooser.ts';
 import {
   AgentChoiceModel,
   type AgentChoiceTarget,

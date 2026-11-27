@@ -28,11 +28,11 @@ import {
 import type { BoardDocument }                               from '../../../@types/board/BoardDocument.ts';
 import type { BoardEventDocument }                          from '../../../@types/board/BoardEventDocument.ts';
 import type { GaiaTicketDocumentsDocument }                 from '../../../@types/board/TicketDocumentsDocument.ts';
+import { BoardRouter, type BoardRoute }                     from '../../../shared/BoardRouter.ts';
 import { silentBoardServicesOf }                            from '../../../testing/ShellSurroundingsAt.ts';
 import type { BoardServices }                               from '../../@types/BoardServices.ts';
 import type { EventStreamHandlers }                         from '../../api/BoardEventStreamClient.ts';
 import type { TicketDocumentsRead }                         from '../../api/TicketDocumentsClient.ts';
-import { BoardRouter, type BoardRoute }                     from '../../shell/BoardRouter.ts';
 import { exampleTicket, FIXTURE_TRACKER_ID }                from '../../testing/BoardStateFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../testing/FakeControls.ts';
 import { onBoard }                                          from '../../testing/OnBoard.ts';

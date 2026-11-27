@@ -7,11 +7,12 @@ import { PAGE_CONTRACT_VERSIONS }              from '../../../../src/shared/cons
 import type { BoardTicketDocument }            from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptPictureDocument } from '../../../@types/board/ConversationDocument.ts';
 import { MonoId, StateBadge, Text }            from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }                      from '../../shell/BoardRouteLinks.ts';
-import { CommandButton }                       from '../../shell/CommandButton.tsx';
-import { DetailRoute }                         from '../../shell/DetailRoute.ts';
+import { CommandButton }                       from '../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf }                      from '../../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                         from '../../shared/routing/DetailRoute.ts';
+import type { IntakeSession }                  from '../../shared/tickets/IntakeSessionsModel.ts';
 import { StateToneUtil }                       from '../../utils/StateToneUtil.ts';
-import { IntakeModelUtil, type IntakeSession } from './IntakeModel.ts';
+import { IntakeModelUtil }                     from './IntakeModel.ts';
 import { usePictureAddressOf }                 from './PictureAttachments.ts';
 import { PictureAttachmentsModelUtil }         from './PictureAttachmentsModel.ts';
 

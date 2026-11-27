@@ -28,11 +28,11 @@ import {
   TextButton,
   Toast
 } from '../../../lib/design-system/DesignSystemInterface.ts';
+import type { BoardRoute }                             from '../../../shared/BoardRouter.ts';
 import type { ProfileLogFollower, TranscriptFollower } from '../../@types/BoardServices.ts';
-import { type BoardClock, useTickingNow }              from '../../shell/BoardClock.ts';
-import { useBoardHrefOf, useBoardNavigation }          from '../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                             from '../../shell/BoardRouter.ts';
-import { CommandButton }                               from '../../shell/CommandButton.tsx';
+import { type BoardClock, useTickingNow }              from '../../shared/BoardClock.ts';
+import { CommandButton }                               from '../../shared/commands/CommandButton.tsx';
+import { useBoardHrefOf, useBoardNavigation }          from '../../shared/routing/BoardRouteLinks.ts';
 import { TimeUtil }                                    from '../../utils/TimeUtil.ts';
 
 import { FlowWorkspace }                                                  from './FlowWorkspace.tsx';

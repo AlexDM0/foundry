@@ -11,7 +11,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }                                                     from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                                                     from '../../../shared/routing/BoardRouteLinks.ts';
 import { ViewTitle }                                                          from '../../ViewTitle.tsx';
 import { PipelineViewModel, type PipelineViewFacts, type UnreadablePipeline } from '../PipelineViewModel.ts';
 import { ProgramPathText }                                                    from '../agent/ProgramPathText.tsx';

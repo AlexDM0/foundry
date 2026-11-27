@@ -187,19 +187,3 @@
 .board-waiting-on-link:hover {
   color: var(--ink);
 }
-
-.board-toolbar-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.board-toolbar-group-label {
-  display: flex;
-  margin-right: 4px;
-}
-
-.board-toolbar-group > .board-chips {
-  gap: 6px;
-}

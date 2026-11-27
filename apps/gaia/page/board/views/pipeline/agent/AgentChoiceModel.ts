@@ -7,7 +7,7 @@
 import { PAGE_CONTRACT_VERSIONS }                                                               from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardAgentDocument, BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument } from '../../../../@types/board/BoardAgentDocuments.ts';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';
-import type { CommandWaitExplanation }                                                          from '../../../shell/CommandWait.ts';
+import type { CommandWaitExplanation }                                                          from '../../../shared/commands/CommandWait.ts';
 
 const COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 

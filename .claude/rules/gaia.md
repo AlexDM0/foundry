@@ -142,7 +142,8 @@ Gaia's folders under `apps/gaia/`. Beside them Gaia depends on two workspace pac
 `forge-contracts` for forge's documents, system versions and compatibility registry, which only the server imports, and
 `system-versions` for the version model both systems share (rule 3). The page imports no `forge-contracts` and reads its
 own contract versions from `apps/gaia/src/shared/constants/PageContractVersions.ts`
-(`apps/gaia/page/PageImportDirection.spec.ts`, with no exception).
+(`apps/gaia/page/PageImportDirection.spec.ts`, with no exception); it reaches its own modules by relative path, never by
+Gaia's package name `gaia`.
 
 ```
 docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS and PAGE_CONTRACT_VERSIONS by a spec), what Gaia asks of forge, the backlog,
@@ -161,11 +162,20 @@ src/testing/       the scratch root, the test run preload, the leak check, the r
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system library (rule 11)
 page/lib/          the page's libraries, each behind its interface file: design-system, flint, brand (rule 11)
 page/components/   Gaia's own parts that no library has, composed from the libraries (rule 10)
-page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
+page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it, the board's hash
+                   routes (`BoardRouter`) among them; it imports nothing of the board
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
-page/board/        the board's views, Gaia's own; a view may draw the board, the board imports no view and no shell (rule 10)
+page/board/        the board's views, Gaia's own; a page view may draw the board, the board imports no page view (`page/views/`) and
+                   not the page shell (`page/shell/`) (rule 10)
+page/board/shell/  the board's frame, which composes every tab's view; only `page/board/Board.tsx` and `page/board/testing/` import it,
+                   but `ItemPresence`, which others import until the design-system package replaces it
+page/board/views/  one folder per tab or panel; no view imports another
+page/board/shared/ what the board's views and its shell read alike, hoisted once a second of them needs it; imports no view and no
+                   shell
 ```
+
+`apps/gaia/page/PageImportDirection.spec.ts` holds the board's folders to these lines.
 
 ## Boundaries
 

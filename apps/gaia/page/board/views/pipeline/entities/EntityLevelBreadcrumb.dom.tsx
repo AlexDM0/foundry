@@ -10,7 +10,7 @@ import {
   test
 } from 'bun:test';
 
-import { BoardRouter }                     from '../../../shell/BoardRouter.ts';
+import { BoardRouter }                     from '../../../../shared/BoardRouter.ts';
 import { FIXTURE_TRACKER_ID }              from '../../../testing/BoardStateFixture.ts';
 import { renderOnBoard }                   from '../../../testing/OnBoard.ts';
 import { EntityLevelBreadcrumb }           from './EntityLevelBreadcrumb.tsx';

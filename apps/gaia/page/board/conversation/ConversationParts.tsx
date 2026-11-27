@@ -8,8 +8,8 @@ import { Fragment, type ReactNode } from 'react';
 
 import type { BoardDisplayState }     from '../../@types/board/BoardVocabulary.ts';
 import { IdLink, MonoId, StateBadge } from '../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }             from '../shell/BoardRouteLinks.ts';
-import { DetailRoute }                from '../shell/DetailRoute.ts';
+import { useBoardHrefOf }             from '../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                from '../shared/routing/DetailRoute.ts';
 import type { IncidentStep }          from '../utils/IncidentTrailUtil.ts';
 import { StateToneUtil }              from '../utils/StateToneUtil.ts';
 

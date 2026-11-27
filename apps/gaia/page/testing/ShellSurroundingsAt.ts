@@ -4,7 +4,6 @@
  * clock times in UTC, the fixtures' own zone.
  */
 import type { BoardServices }         from '../board/@types/BoardServices.ts';
-import { BOARD_TAB_VIEWS }            from '../board/shell/BoardTabViews.tsx';
 import type { ShellSurroundings }     from '../shell/GaiaApp.tsx';
 import type { PageClock }             from '../shell/PageClock.ts';
 import type { CrashLogResult }        from '../views/forge/CrashLogRequest.ts';
@@ -71,7 +70,6 @@ export function forgeViewSurroundingsAt(): ForgeViewSurroundings {
   return {
     requestCrashLog: noCrashLog,
     boardServicesOf: silentBoardServicesOf,
-    boardTabViews:   BOARD_TAB_VIEWS,
     openInNewTab:    () => undefined,
   };
 }

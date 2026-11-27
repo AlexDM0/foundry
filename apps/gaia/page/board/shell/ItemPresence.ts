@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 
+import { useBoardClock } from '../shared/BoardClock.ts';
 import {
   ItemPresenceUtil,
   type ItemPresence,
@@ -11,7 +12,6 @@ import {
   type LeavingItem,
   type PresentItem
 } from '../utils/ItemPresenceUtil.ts';
-import { useBoardClock } from './BoardClock.ts';
 
 /** As long as `--motion-leave` in the board's tokens; reduced motion hides a leaving item at once. */
 export const LEAVING_MILLISECONDS = 220;

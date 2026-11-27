@@ -7,7 +7,7 @@
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 import type { BoardCommandDocument }          from '../../../../@types/board/BoardCommandDocument.ts';
 import { Tag, Text }                          from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }                  from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }                  from '../../../shared/commands/ControlCommandSender.ts';
 
 import {
   GatesAreaModel,

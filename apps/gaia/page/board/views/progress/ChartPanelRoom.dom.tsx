@@ -12,8 +12,8 @@ import {
 } from 'bun:test';
 import { useRef } from 'react';
 
-import { BoardClockContext, type BoardClock } from '../../shell/BoardClock.ts';
-import type { CoveringPanelWidthProperty }    from '../../shell/CoveringPanel.ts';
+import { BoardClockContext, type BoardClock } from '../../shared/BoardClock.ts';
+import type { CoveringPanelWidthProperty }    from '../../shared/CoveringPanel.ts';
 import { useChartPanelRoom }                  from './ChartPanelRoom.ts';
 
 afterEach(cleanup);

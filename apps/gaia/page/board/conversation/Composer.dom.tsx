@@ -25,8 +25,8 @@ import {
 
 import type { BoardCommandDocument }                            from '../../@types/board/BoardCommandDocument.ts';
 import type { BoardCommandResult, CommandOutcome }              from '../api/BoardCommandClient.ts';
-import { BoardTrackerContext }                                  from '../shell/BoardRouteLinks.ts';
-import { ControlSurroundingsContext, type ControlAvailability } from '../shell/ControlAvailability.ts';
+import { ControlSurroundingsContext, type ControlAvailability } from '../shared/commands/ControlAvailability.ts';
+import { BoardTrackerContext }                                  from '../shared/routing/BoardRouteLinks.ts';
 import { fakeControlSurroundingsOf }                            from '../testing/FakeControlSurroundings.ts';
 import { Composer, type ComposerProps }                         from './Composer.tsx';
 

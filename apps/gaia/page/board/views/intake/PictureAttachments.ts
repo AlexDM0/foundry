@@ -6,9 +6,9 @@ import { useContext, useRef, useState } from 'react';
 
 import type { BoardPictureLimitsDocument }                                           from '../../../@types/board/BoardFactDocuments.ts';
 import type { PictureUpload }                                                        from '../../api/PictureUploadClient.ts';
-import { BoardTrackerContext }                                                       from '../../shell/BoardRouteLinks.ts';
-import { ControlAvailabilityUtil, ControlSurroundingsContext }                       from '../../shell/ControlAvailability.ts';
-import { UNREACHABLE_WORDING }                                                       from '../../shell/ControlCommandSender.ts';
+import { ControlAvailabilityUtil, ControlSurroundingsContext }                       from '../../shared/commands/ControlAvailability.ts';
+import { UNREACHABLE_WORDING }                                                       from '../../shared/commands/ControlCommandSender.ts';
+import { BoardTrackerContext }                                                       from '../../shared/routing/BoardRouteLinks.ts';
 import { PictureAttachmentsModelUtil, type PendingPicture, type PictureUploadState } from './PictureAttachmentsModel.ts';
 
 export interface PictureAttachments {

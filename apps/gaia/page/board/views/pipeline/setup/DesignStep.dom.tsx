@@ -29,7 +29,7 @@ import {
 import { useState } from 'react';
 
 import type { BoardDocument }                               from '../../../../@types/board/BoardDocument.ts';
-import type { BoardRoute }                                  from '../../../shell/BoardRouter.ts';
+import type { BoardRoute }                                  from '../../../../shared/BoardRouter.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
 import { onBoard }                                          from '../../../testing/OnBoard.ts';
 import {

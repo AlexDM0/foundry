@@ -38,9 +38,9 @@ import {
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';
 import { Composer }                                        from '../conversation/Composer.tsx';
 import { boardPreferenceStoreOf, type PreferenceStore }    from '../preferences/PreferenceStore.ts';
-import { BoardClockContext, type BoardClock }              from '../shell/BoardClock.ts';
-import { BoardTrackerContext }                             from '../shell/BoardRouteLinks.ts';
-import { ControlSurroundingsContext }                      from '../shell/ControlAvailability.ts';
+import { BoardClockContext, type BoardClock }              from '../shared/BoardClock.ts';
+import { ControlSurroundingsContext }                      from '../shared/commands/ControlAvailability.ts';
+import { BoardTrackerContext }                             from '../shared/routing/BoardRouteLinks.ts';
 import { boardStateFixture, exampleAgentJob }              from '../testing/BoardStateFixture.ts';
 import { fakeControlSurroundingsOf }                       from '../testing/FakeControlSurroundings.ts';
 import { createManualFlintFrames, type ManualFlintFrames } from '../testing/ManualFlintFrames.ts';

@@ -10,7 +10,7 @@ import type { BoardJobDocument }                                          from '
 import type { BoardAppliedPipelineDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardTicketStageFactsDocument }                             from '../../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState }                                         from '../../../../@types/board/BoardVocabulary.ts';
-import type { BoardRoute }                                                from '../../../shell/BoardRouter.ts';
+import type { BoardRoute }                                                from '../../../../shared/BoardRouter.ts';
 import { PipelinePhaseModel }                                             from '../flow/PipelinePhaseModel.ts';
 import { FlowActivityPanelModel, type OccupantChipView }                  from './FlowActivityPanelModel.ts';
 

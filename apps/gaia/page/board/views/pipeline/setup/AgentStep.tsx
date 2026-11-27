@@ -18,9 +18,9 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf, useBoardNavigation }                           from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
-import type { CommandWaitExplanation }                                  from '../../../shell/CommandWait.ts';
+import { CommandButton }                                                from '../../../shared/commands/CommandButton.tsx';
+import type { CommandWaitExplanation }                                  from '../../../shared/commands/CommandWait.ts';
+import { useBoardHrefOf, useBoardNavigation }                           from '../../../shared/routing/BoardRouteLinks.ts';
 import { ViewTitle }                                                    from '../../ViewTitle.tsx';
 import { PipelinePage }                                                 from '../PipelinePage.tsx';
 import { PipelineViewModel, SETUP_STEP_LABELS, type PipelineViewFacts } from '../PipelineViewModel.ts';

@@ -749,7 +749,7 @@ Forge 4.0 serves the summary, the monitor, its stream, the board and the board's
 carries the board's state, at their next version and the older one no more: `/api/v2/summary`, `/api/v4/monitor`,
 `/api/v3/board` and `/api/v3/events` are 404. The unversioned paths are no compatibility path: they are the routes
 themselves, which a versioned path is turned into, and forge's own command line reaches its Hephaestus through them
-(`cli/hephaestus/HephaestusRemote.ts`, and the nudge after a write). `GET /api/state` is the command line's own reading and
+(`cli/HephaestusRemote.ts`, and the nudge after a write). `GET /api/state` is the command line's own reading and
 has no versioned path.
 
 ### Contract versions

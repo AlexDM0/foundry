@@ -6,7 +6,7 @@
 import { PAGE_CONTRACT_VERSIONS }          from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardPictureLimitsDocument } from '../../../@types/board/BoardFactDocuments.ts';
 import { Tag, Text }                       from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardNavigation }              from '../../shell/BoardRouteLinks.ts';
+import { useBoardNavigation }              from '../../shared/routing/BoardRouteLinks.ts';
 import { IntakeChat }                      from './IntakeChat.tsx';
 import { IntakeModelUtil }                 from './IntakeModel.ts';
 import { IntakePane }                      from './IntakePane.tsx';

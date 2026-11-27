@@ -3,7 +3,7 @@ import type { BoardTicketDocumentKind }      from '../../../@types/board/BoardVo
 import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }               from '../../flint/FlintSlotHabitats.ts';
 import { STRIP_FLINT_SLOT }                  from '../../flint/FlintStripSlot.ts';
-import { useCoveringPanelHoldsTheFlintSlot } from '../../shell/CoveringPanel.ts';
+import { useCoveringPanelHoldsTheFlintSlot } from '../../shared/CoveringPanel.ts';
 import type { DocumentAgentStripModel }      from './DocumentAgentStripModel.ts';
 
 const HABITAT_OF_DOCUMENT = { spec: FLINT_SLOT_HABITATS.specAgent, plan: FLINT_SLOT_HABITATS.planAgent } as const;

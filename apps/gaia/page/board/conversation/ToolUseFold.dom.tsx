@@ -18,7 +18,7 @@ import {
   test
 } from 'bun:test';
 
-import { BoardClockContext, type BoardClock }           from '../shell/BoardClock.ts';
+import { BoardClockContext, type BoardClock }           from '../shared/BoardClock.ts';
 import { ToolUseFold, type ToolCallLine, type ToolUse } from './ToolUseFold.tsx';
 
 afterEach(() => {

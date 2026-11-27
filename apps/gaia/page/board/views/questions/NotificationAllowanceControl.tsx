@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button }   from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { NotificationAllowance } from '../../../notifications/NotificationBoundary.ts';
-import type { QuestionNotifier }      from './QuestionAlerts.ts';
+import type { QuestionNotifier }      from '../../@types/QuestionNotifier.ts';
 
 export interface NotificationAllowanceControlProps {
   readonly notifier: QuestionNotifier;

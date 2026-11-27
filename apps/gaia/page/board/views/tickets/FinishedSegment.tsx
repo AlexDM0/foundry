@@ -3,7 +3,7 @@
  * opening its ticket's detail in place; under it "N earlier tickets · show all", which widens the board's window to all.
  */
 import { StateBadge, TextButton }                            from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useDetailRouting }                                  from '../../shell/DetailRouting.ts';
+import { useDetailRouting }                                  from '../../shared/routing/DetailRouting.ts';
 import { StateToneUtil }                                     from '../../utils/StateToneUtil.ts';
 import type { FinishedTicketRowModel, FinishedTicketsModel } from './FinishedTicketsModel.ts';
 import { RowEpicMark, SegmentEmptyLine, TicketDetailRow }    from './TicketRowParts.tsx';

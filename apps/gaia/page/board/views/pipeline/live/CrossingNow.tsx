@@ -4,7 +4,7 @@
  */
 import { MicroCapsLabel, MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardHrefOf }       from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }       from '../../../shared/routing/BoardRouteLinks.ts';
 import type { CrossingNowView } from './EntityWorkModel.ts';
 
 export function CrossingNow({ crossings }: { readonly crossings: readonly CrossingNowView[] }) {

@@ -27,7 +27,7 @@ import {
 import { useState } from 'react';
 
 import type { BoardDocument }                               from '../../../../@types/board/BoardDocument.ts';
-import { BoardRouter, type BoardRoute }                     from '../../../shell/BoardRouter.ts';
+import { BoardRouter, type BoardRoute }                     from '../../../../shared/BoardRouter.ts';
 import { FIXTURE_TRACKER_ID }                               from '../../../testing/BoardStateFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION } from '../../../testing/FakeControls.ts';
 import { onBoard }                                          from '../../../testing/OnBoard.ts';

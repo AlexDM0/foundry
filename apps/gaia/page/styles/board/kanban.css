@@ -218,7 +218,7 @@
   .board-kanban-arrow-head { animation: none; opacity: 1; }
 }
 
-/* A lane's count ticks up into its place once it changed (`page/board/shell/ChangedSinceMount.ts`). */
+/* A lane's count ticks up into its place once it changed (`page/board/shared/ChangedSinceMount.ts`). */
 .board-lane-count[data-value-changed] { animation: board-figure-tick var(--motion-tick) var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) {
   .board-lane-count[data-value-changed] { animation: none; }

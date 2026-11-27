@@ -15,7 +15,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }                          from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                          from '../../../shared/routing/BoardRouteLinks.ts';
 import type { ApprovalDefaults }                   from '../entities/ForgeLevelPageModel.ts';
 import { ApplyDialogModel, type ApplyRefusalView } from './ApplyDialogModel.ts';
 import { ApplyFoot, ApplyPendingState }            from './ApplyPendingState.tsx';

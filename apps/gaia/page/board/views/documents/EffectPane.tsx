@@ -7,7 +7,7 @@ import type { CSSProperties } from 'react';
 
 import type { BoardEffectReadingDocument }            from '../../../@types/board/TicketDocumentsDocument.ts';
 import { Button, IconButton, MicroCapsLabel }         from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }                          from '../../shell/ControlCommandSender.ts';
+import { useControlCommand }                          from '../../shared/commands/ControlCommandSender.ts';
 import { EffectTreeModel }                            from './EffectTreeModel.ts';
 import { TicketDocumentCommands, type DocumentPlace } from './TicketDocumentCommands.ts';
 

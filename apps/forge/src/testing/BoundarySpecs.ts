@@ -114,7 +114,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
   { boundary: 'cli/ApplyCommandOfVerb.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
   { boundary: 'cli/hephaestus/HephaestusForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, HEPHAESTUS_API_SPEC, HEPHAESTUS_COMMAND_SPEC] },
-  { boundary: 'cli/hephaestus/HephaestusRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, HEPHAESTUS_COMMAND_SPEC] },
+  { boundary: 'cli/HephaestusRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, HEPHAESTUS_COMMAND_SPEC] },
   { boundary: 'agent-progress.ts', specs: ['cli/BinarySmoke.integration.spec.ts'] },
   {
     boundary: 'cli/testing/CliProcess.ts',

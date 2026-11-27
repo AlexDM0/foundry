@@ -16,7 +16,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useBoardHrefOf }                                              from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                                              from '../../../shared/routing/BoardRouteLinks.ts';
 import { EntityAssignmentProgressModel, type EntityAssignmentRowView } from './EntityAssignmentProgressModel.ts';
 
 type AssignmentColumn = 'ticket' | 'title' | 'entity';

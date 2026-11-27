@@ -4,7 +4,7 @@ The board's menu over every board view, the Progress entry that groups the Kanba
 without drafts. The menu's look is taken from the "Tickets, one segment at a time" artboard (its board nav); the behaviour is the
 owner's.
 
-Built in: `page/board/shell/BoardRouter.ts`, `page/board/shell/Header.tsx`, `page/board/shell/BoardApp.tsx`,
+Built in: `page/shared/BoardRouter.ts`, `page/board/shell/Header.tsx`, `page/board/shell/BoardApp.tsx`,
 `page/shared/HashRouter.ts`, `page/board/views/kanban/KanbanModel.ts` and `KanbanView.tsx`, and the design system's `Tabs` and `Menu`.
 Held by: their specs beside them.
 

@@ -6,7 +6,7 @@ import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterfac
 
 import { FlintSlotHabitat }                  from '../../../flint/FlintSlotHabitat.tsx';
 import { STRIP_FLINT_SLOT }                  from '../../../flint/FlintStripSlot.ts';
-import { useCoveringPanelHoldsTheFlintSlot } from '../../../shell/CoveringPanel.ts';
+import { useCoveringPanelHoldsTheFlintSlot } from '../../../shared/CoveringPanel.ts';
 import type { AgentStripView }               from './PipelineAgentPanelModel.ts';
 
 export const PIPELINE_AGENT_FLINT_LABEL = 'Flint, the pipeline agent';

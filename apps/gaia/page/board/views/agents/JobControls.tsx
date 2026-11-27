@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }                     from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardJobStopMode }                      from '../../../@types/board/BoardVocabulary.ts';
-import { CommandButton }                              from '../../shell/CommandButton.tsx';
+import { CommandButton }                              from '../../shared/commands/CommandButton.tsx';
 import type { AgentJobDocument, JobDecisionDocument } from './AgentJobDocument.ts';
 import { AgentsModel }                                from './AgentsModel.ts';
 

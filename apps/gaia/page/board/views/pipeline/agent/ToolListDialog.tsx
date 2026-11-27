@@ -17,8 +17,8 @@ import {
   TextField,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommandSequence } from '../../../shell/ControlCommandSender.ts';
-import { ProgramFileChooserContext } from '../../../shell/ProgramFileChooser.ts';
+import { useControlCommandSequence } from '../../../shared/commands/ControlCommandSender.ts';
+import { ProgramFileChooserContext } from '../../../shared/commands/ProgramFileChooser.ts';
 import {
   SANDBOX_NOTE,
   ToolListModel,

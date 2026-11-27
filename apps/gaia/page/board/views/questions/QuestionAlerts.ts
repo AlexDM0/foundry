@@ -5,18 +5,10 @@
  */
 import { useEffect, useRef } from 'react';
 
-import type { BoardDecisionDocument }                       from '../../../@types/board/BoardDecisionDocuments.ts';
-import { NotificationBoundary, type NotificationAllowance } from '../../../notifications/NotificationBoundary.ts';
-import { QuestionsModelUtil }                               from './QuestionsModel.ts';
-
-export interface QuestionNotifier {
-  readonly allowance:         () => NotificationAllowance;
-  /** Asks the browser, from a click of User's; resolves to what User chose. */
-  readonly askAllowance:      () => Promise<NotificationAllowance>;
-  readonly notify:            (title: string, body: string) => void;
-  readonly setDocumentTitle:  (title: string) => void;
-  readonly baseDocumentTitle: string;
-}
+import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
+import { NotificationBoundary }       from '../../../notifications/NotificationBoundary.ts';
+import type { QuestionNotifier }      from '../../@types/QuestionNotifier.ts';
+import { QuestionsModelUtil }         from './QuestionsModel.ts';
 
 /** The notifier of the browser's page: its notifications through `NotificationBoundary`, its tab title through the document. */
 function browserQuestionNotifier(): QuestionNotifier {

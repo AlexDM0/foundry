@@ -5,7 +5,7 @@
  * is Attention.
  */
 import type { FleetDocumentBoardRoute } from '../@types/FleetDocument.ts';
-import { BoardRouter, type BoardRoute } from '../board/shell/BoardRouter.ts';
+import { BoardRouter, type BoardRoute } from './BoardRouter.ts';
 
 export type GaiaRoute =
   | { readonly view: 'attention' }

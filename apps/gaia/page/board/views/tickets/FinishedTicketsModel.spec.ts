@@ -5,11 +5,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { RowMoment }                            from '../../shared/tickets/TicketRowFactsUtil.ts';
 import { FIXTURE_NOW }                               from '../../testing/BoardStateFixture.ts';
 import { EXAMPLE_BOARD_LIMITS }                      from '../../testing/PageLimitsFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket } from '../../testing/TicketsBoardFixture.ts';
 import { FinishedTicketsModelUtil }                  from './FinishedTicketsModel.ts';
-import type { RowMoment }                            from './TicketRowFactsUtil.ts';
 
 const MOMENT: RowMoment = { nowEpochMilliseconds: FIXTURE_NOW.getTime(), slices: EXAMPLE_BOARD_LIMITS };
 

@@ -20,9 +20,9 @@ import {
   test
 } from 'bun:test';
 
-import { BoardClockContext }                                                      from '../../../shell/BoardClock.ts';
-import { COMMAND_WAIT_PANEL_DELAY_MILLISECONDS }                                  from '../../../shell/CommandWait.ts';
-import { ProgramFileChooserContext }                                              from '../../../shell/ProgramFileChooser.ts';
+import { BoardClockContext }                                                      from '../../../shared/BoardClock.ts';
+import { COMMAND_WAIT_PANEL_DELAY_MILLISECONDS }                                  from '../../../shared/commands/CommandWait.ts';
+import { ProgramFileChooserContext }                                              from '../../../shared/commands/ProgramFileChooser.ts';
 import { EXAMPLE_AGENT_PROGRAM_PATH, EXAMPLE_AGENT_VENDOR }                       from '../../../testing/AgentFixture.ts';
 import { clickSettled, fakeControls, SENT_COMMAND_VERSION }                       from '../../../testing/FakeControls.ts';
 import { manualBoardClock }                                                       from '../../../testing/ManualBoardClock.ts';

@@ -6,9 +6,9 @@
  */
 import { useLayoutEffect, type RefObject } from 'react';
 
-import { useBoardClock, type BoardClock }  from '../../shell/BoardClock.ts';
-import type { CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
-import type { DetailItem }                 from '../../shell/DetailRoute.ts';
+import { useBoardClock, type BoardClock }  from '../../shared/BoardClock.ts';
+import type { CoveringPanelWidthProperty } from '../../shared/CoveringPanel.ts';
+import type { DetailItem }                 from '../../shared/routing/DetailRoute.ts';
 import { PANEL_GUTTER_PIXELS }             from './constants/ProgressChart.ts';
 import { PanelRoomUtil }                   from './utils/PanelRoomUtil.ts';
 

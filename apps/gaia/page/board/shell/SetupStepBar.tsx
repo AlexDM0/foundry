@@ -5,8 +5,8 @@
  */
 import { Stepper, type StepperStep } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardHrefOf }     from './BoardRouteLinks.ts';
-import type { BoardRoute }    from './BoardRouter.ts';
+import type { BoardRoute }    from '../../shared/BoardRouter.ts';
+import { useBoardHrefOf }     from '../shared/routing/BoardRouteLinks.ts';
 import type { SetupStepView } from './HeaderModel.ts';
 
 export interface SetupStepBarProps {

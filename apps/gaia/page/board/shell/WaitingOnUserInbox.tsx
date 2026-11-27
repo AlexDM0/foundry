@@ -18,16 +18,16 @@ import {
   Stamp
 } from '../../lib/design-system/DesignSystemInterface.ts';
 
+import type { BoardRoute }                                                from '../../shared/BoardRouter.ts';
+import type { QuestionNotifier }                                          from '../@types/QuestionNotifier.ts';
 import { AskItem, type AskAge }                                           from '../conversation/AskItem.tsx';
 import { JobLink }                                                        from '../conversation/ConversationParts.tsx';
+import { useTickingNow, type BoardClock }                                 from '../shared/BoardClock.ts';
+import { useBoardHrefOf }                                                 from '../shared/routing/BoardRouteLinks.ts';
+import { DetailRoute }                                                    from '../shared/routing/DetailRoute.ts';
 import { ElapsedTimeUtil }                                                from '../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                                 from '../utils/TimeUtil.ts';
 import { NotificationAllowanceControl }                                   from '../views/questions/NotificationAllowanceControl.tsx';
-import type { QuestionNotifier }                                          from '../views/questions/QuestionAlerts.ts';
-import { useTickingNow, type BoardClock }                                 from './BoardClock.ts';
-import { useBoardHrefOf }                                                 from './BoardRouteLinks.ts';
-import type { BoardRoute }                                                from './BoardRouter.ts';
-import { DetailRoute }                                                    from './DetailRoute.ts';
 import { ATTENTION_KIND_WORDING, type AttentionItem, type WaitingOnUser } from './WaitingOnUserModel.ts';
 
 export interface WaitingOnUserInboxProps {

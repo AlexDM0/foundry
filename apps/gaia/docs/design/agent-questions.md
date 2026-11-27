@@ -7,7 +7,7 @@ owner's. A question is an open `agent-question` decision whose `document`, `anch
 document's message naming the decision (`docs/forge-requirements.md` V15).
 
 Built in: `page/board/views/documents/` (`DocumentQuestionsModel.ts`, `DocumentQuestionCard.tsx`, and the page, Preview, chat, strip and
-head they feed), `page/board/shell/BoardRouter.ts` (the line of a documents route), the Questions view's link, styled by
+head they feed), `page/shared/BoardRouter.ts` (the line of a documents route), the Questions view's link, styled by
 `page/styles/board/documents.css`. Held by: their specs beside them, and `page/Screens.visual.spec.ts`, which paints artboard 11 from
 `SPEC_ASKS_DOCUMENTS` and `SAVED_CHOICE_QUESTION` (`page/board/testing/TicketDocumentsFixture.ts`): E7 open, E8 answered.
 

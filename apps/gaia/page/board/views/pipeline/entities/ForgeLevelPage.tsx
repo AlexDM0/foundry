@@ -16,7 +16,7 @@ import {
   Text,
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
-import { CommandButton }                                          from '../../../shell/CommandButton.tsx';
+import { CommandButton }                                          from '../../../shared/commands/CommandButton.tsx';
 import type { PipelineViewFacts }                                 from '../PipelineViewModel.ts';
 import type { FlowSelection }                                     from '../flow/FlowSelection.ts';
 import { usePipelineFlowEditSender, type PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';

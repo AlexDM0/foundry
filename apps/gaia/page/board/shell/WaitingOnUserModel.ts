@@ -6,7 +6,7 @@
 import type { BoardDocument }                                                    from '../../@types/board/BoardDocument.ts';
 import type { BoardAttentionEntryDocument }                                      from '../../@types/board/BoardFactDocuments.ts';
 import type { BoardAttentionActionLabel, BoardAttentionKind, BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
-import { BoardRouter, type BoardMenuEntry, type BoardRoute }                     from './BoardRouter.ts';
+import { BoardRouter, type BoardMenuEntry, type BoardRoute }                     from '../../shared/BoardRouter.ts';
 
 export type TabCountTone = 'waiting' | 'escalated' | 'neutral';
 

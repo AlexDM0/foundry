@@ -5,7 +5,7 @@
  */
 import type { BoardDocument }                                           from '../../../@types/board/BoardDocument.ts';
 import type { BoardDisplayState, BoardTicketPriority, BoardTicketType } from '../../../@types/board/BoardVocabulary.ts';
-import { TICKET_SECTIONS, type TicketSection }                          from '../../shell/DetailRoute.ts';
+import { TICKET_SECTIONS, type TicketSection }                          from '../../shared/routing/DetailRoute.ts';
 import { DisplayStateWordingUtil }                                      from '../../utils/DisplayStateWordingUtil.ts';
 import { TimeUtil }                                                     from '../../utils/TimeUtil.ts';
 import { DetailControlsModelUtil }                                      from './DetailControlsModel.ts';

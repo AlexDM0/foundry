@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { MarkdownBlocks }                        from '../../../../src/lib/markdown-render/MarkdownBlocks.ts';
 import { Button }                                from '../../../lib/design-system/DesignSystemInterface.ts';
-import { useControlCommand }                     from '../../shell/ControlCommandSender.ts';
+import { useControlCommand }                     from '../../shared/commands/ControlCommandSender.ts';
 import { DocumentBlocks }                        from './DocumentBlocks.tsx';
 import { ProposalModel, type OpenProposalModel } from './ProposalModel.ts';
 import type { DocumentPlace }                    from './TicketDocumentCommands.ts';

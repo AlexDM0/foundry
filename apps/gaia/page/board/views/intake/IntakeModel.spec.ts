@@ -1,113 +1,23 @@
 /**
- * The Intake view's model. What matters: live product-owner sessions come from the board and ended ones from the log, a session reopened by
- * a message shows once, as live, and an intake that ended stopped or failed is listed with its outcome, read only, so a route naming it
- * keeps its chat; sessions that wait on User sort first, then the live ones and the ended ones, each newest first by the log's order; a
- * title falls back from the product owner's to the request's first line to the job id, the request read from the launch record, since a
- * reopening message replaces the job's text; a session names each open decision by id, never a count; the route picks the session or the new
- * chat, and a started job stops starting once a `job-ended` record names it; the composer's tag follows the session's turn and closed state;
- * an open session's live turn, where Flint works, carries its pill and calls; and the chat places User's request after the line that started
- * the session and each open decision where it was asked.
+ * The Intake view's model. What matters: an intake that ended stopped or failed is read only, so a route naming it keeps its chat; a
+ * session names each open decision by id, never a count; the route picks the session or the new chat, and a started job stops starting
+ * once a `job-ended` record names it; the composer's tag follows the session's turn and closed state; an open session's live turn, where
+ * Flint works, carries its pill and calls; and the chat places User's request after the line that started the session and each open
+ * decision where it was asked.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardDecisionDocument }                                from '../../../@types/board/BoardDecisionDocuments.ts';
-import type { BoardTicketStatus }                                    from '../../../@types/board/BoardVocabulary.ts';
-import type { BoardTranscriptEntryDocument }                         from '../../../@types/board/ConversationDocument.ts';
-import { exampleTicket }                                             from '../../testing/BoardStateFixture.ts';
-import { EXAMPLE_SESSION_RECORD_AT, productOwnerJob, sessionRecord } from '../../testing/IntakeBoardFixture.ts';
-import { exampleTranscriptEntry }                                    from '../../testing/TranscriptEntryFixture.ts';
-import { TimeUtil }                                                  from '../../utils/TimeUtil.ts';
-import { IntakeModelUtil, INTAKE_NEW_CHAT_ITEM, type IntakeBoard }   from './IntakeModel.ts';
-
-const AT = EXAMPLE_SESSION_RECORD_AT;
-
-function decision(id: string, jobId: string, openedAt = AT): BoardDecisionDocument {
-  return {
-    id, kind: 'agent-question', ticketIds: [], jobId, askedBy: 'product-owner', questions: [], context: '', openedAt, document: null, anchor: null, placement: null,
-  };
-}
-
-const BOARD: IntakeBoard = {
-  jobs: [
-    productOwnerJob({ id: 'J7', state: 'running', intake: { text: 'Also JSON', title: null } }, {
-      calls:    7,
-      turn:     'mid-turn',
-      lastLine: { role: 'assistant', text: 'Read src/export.ts', at: null },
-    }),
-    productOwnerJob({ id: 'J9', state: 'waiting-for-answer', intake: { text: 'Saved baskets', title: 'Baskets across devices' } }),
-    productOwnerJob({ id: 'J8', state: 'running', intake: { text: 'Size guide', title: null } }),
-  ],
-  decisions: [decision('E5', 'J9')],
-  page:      {
-    tickets: [
-      exampleTicket({
-        id: '060', title: 'Export as CSV', status: 'draft', filedByJob: 'J7'
-      }),
-      exampleTicket({
-        id: '061', title: 'Older', status: 'committed', filedByJob: 'J2'
-      }),
-      exampleTicket({
-        id: '062', title: 'Older still', status: 'draft', filedByJob: 'J2'
-      }),
-    ]
-  },
-  questionHistory: [
-    sessionRecord('job-launched', 'J2', { kind: 'product-owner', ticketIds: [], intakeText: 'Reorder button' }),
-    sessionRecord('intake-titled', 'J2', { title: 'Reorder' }),
-    sessionRecord('intake-titled', 'J2', { title: 'Reorder requests' }),
-    sessionRecord('job-ended', 'J2', { outcome: 'closed' }),
-    sessionRecord('job-launched', 'J3', { kind: 'product-owner', ticketIds: [] }),
-    sessionRecord('job-ended', 'J3', { outcome: 'closed' }),
-    sessionRecord('job-launched', 'J5', { kind: 'product-owner', ticketIds: [] }),
-    sessionRecord('job-ended', 'J5', { outcome: 'stopped' }),
-    sessionRecord('job-launched', 'J7', { kind: 'product-owner', ticketIds: [], intakeText: 'Add an export\nas CSV' }),
-    sessionRecord('job-ended', 'J7', { outcome: 'closed' }),
-    sessionRecord('job-launched', 'J8', { kind: 'product-owner', ticketIds: [] }),
-    sessionRecord('job-launched', 'J9', { kind: 'product-owner', ticketIds: [] }),
-    sessionRecord('job-launched', 'J10', { kind: 'assistant', ticketIds: [] }),
-    sessionRecord('job-ended', 'J10', { outcome: 'closed' }),
-    sessionRecord('job-launched', 'J11', { kind: 'product-owner', ticketIds: [], intakeText: 'Gift wrap' }),
-    sessionRecord('job-ended', 'J11', { outcome: 'failed' }),
-  ],
-};
-
-describe('IntakeModelUtil.intakeSessionsOf', () => {
-  const sessions = IntakeModelUtil.intakeSessionsOf(BOARD);
-
-  test('sessions that wait on User come first, then the live ones newest first, then the ended ones newest first with their outcome', () => {
-    expect(sessions.map((session) => [session.jobId, session.state, session.ended, session.closed])).toEqual([
-      ['J9', 'waiting-for-answer', false, false],
-      ['J8', 'running', false, false],
-      ['J7', 'running', false, false],
-      ['J11', 'failed', true, false],
-      ['J5', 'stopped', true, false],
-      ['J3', 'closed', true, true],
-      ['J2', 'closed', true, true],
-    ]);
-  });
-
-  test('a session carries its drafts, open decisions and last line; an ended one shows no last line and no calls', () => {
-    const [j9, , j7, , , , j2] = sessions;
-    expect(j9?.questions.map((question) => question.id)).toEqual(['E5']);
-    expect([j7?.drafts.map((ticket) => ticket.id), j7?.lastLine, j7?.calls, j7?.turn]).toEqual([['060'], 'Read src/export.ts', 7, 'mid-turn']);
-    expect([j2?.drafts.map((ticket) => ticket.id), j2?.lastLine, j2?.calls, j2?.closed]).toEqual([['061', '062'], null, null, true]);
-  });
-
-  test('a title falls back from the product owner\'s to the request\'s first line to the job id, the request read from the launch record', () => {
-    expect(sessions.map((session) => [session.jobId, session.title, session.requestText])).toEqual([
-      ['J9', 'Baskets across devices', 'Saved baskets'],
-      ['J8', 'Size guide', 'Size guide'],
-      ['J7', 'Add an export', 'Add an export\nas CSV'],
-      ['J11', 'Gift wrap', 'Gift wrap'],
-      ['J5', 'J5', null],
-      ['J3', 'J3', null],
-      ['J2', 'Reorder requests', 'Reorder button'],
-    ]);
-  });
-});
+import type { BoardTicketStatus }                              from '../../../@types/board/BoardVocabulary.ts';
+import type { BoardTranscriptEntryDocument }                   from '../../../@types/board/ConversationDocument.ts';
+import { IntakeSessionsModel }                                 from '../../shared/tickets/IntakeSessionsModel.ts';
+import { exampleTicket }                                       from '../../testing/BoardStateFixture.ts';
+import { EXAMPLE_INTAKE_BOARD, intakeDecision, sessionRecord } from '../../testing/IntakeBoardFixture.ts';
+import { exampleTranscriptEntry }                              from '../../testing/TranscriptEntryFixture.ts';
+import { TimeUtil }                                            from '../../utils/TimeUtil.ts';
+import { IntakeModelUtil, INTAKE_NEW_CHAT_ITEM }               from './IntakeModel.ts';
 
 describe('IntakeModelUtil.sessionFactsOf', () => {
-  const [j9, , j7, j11, , , j2] = IntakeModelUtil.intakeSessionsOf(BOARD);
+  const [j9, , j7, j11, , , j2] = IntakeSessionsModel.intakeSessionsOf(EXAMPLE_INTAKE_BOARD);
 
   test('a session names each open decision of its job by id, never a question count, and counts its drafts', () => {
     expect(j9 === undefined ? null : IntakeModelUtil.sessionFactsOf(j9)).toEqual({
@@ -140,7 +50,7 @@ describe('IntakeModelUtil.readOnlyTagOf', () => {
 });
 
 describe('IntakeModelUtil.selectedOf', () => {
-  const sessions = IntakeModelUtil.intakeSessionsOf(BOARD);
+  const sessions = IntakeSessionsModel.intakeSessionsOf(EXAMPLE_INTAKE_BOARD);
 
   test('the item new opens the new chat, a known job selects it, and an unknown or absent item the first session', () => {
     expect(IntakeModelUtil.selectedOf(sessions, INTAKE_NEW_CHAT_ITEM)).toEqual({ form: 'new-chat' });
@@ -161,8 +71,8 @@ describe('IntakeModelUtil.selectedOf', () => {
   });
 
   test('a job-ended record names a job that ended, so a start that failed before any board listed it stops starting', () => {
-    const failedFirst = { ...BOARD, questionHistory: [sessionRecord('job-ended', 'J12', { outcome: 'failed' })] };
-    expect([IntakeModelUtil.jobHasEnded(failedFirst, 'J12'), IntakeModelUtil.jobHasEnded(BOARD, 'J12')]).toEqual([true, false]);
+    const failedFirst = { ...EXAMPLE_INTAKE_BOARD, questionHistory: [sessionRecord('job-ended', 'J12', { outcome: 'failed' })] };
+    expect([IntakeModelUtil.jobHasEnded(failedFirst, 'J12'), IntakeModelUtil.jobHasEnded(EXAMPLE_INTAKE_BOARD, 'J12')]).toEqual([true, false]);
   });
 });
 
@@ -263,7 +173,7 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
   });
 
   test('an open decision sits after the last entry stamped at or before it was asked, and at the end with no stamps', () => {
-    const asked = [decision('E5', 'J7', minute(4)), decision('E6', 'J7', minute(4))];
+    const asked = [intakeDecision('E5', 'J7', minute(4)), intakeDecision('E6', 'J7', minute(4))];
     expect(IntakeModelUtil.chatTurnsOf(entries, asked, facts).map(shapeOf)).toEqual([
       'system: Hephaestus started J7 from User\'s first message · product-owner',
       'user: Saved baskets across devices (1 picture)',
@@ -280,7 +190,7 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
     const working: BoardTranscriptEntryDocument[] = [entries[0] as BoardTranscriptEntryDocument, exampleTranscriptEntry({
       cursor: '1.2', role: 'tool-call', text: 'Which format?', toolName: 'example-ask', toolUseId: 't9', at: minute(2)
     })];
-    const turns = IntakeModelUtil.chatTurnsOf(working, [decision('E5', 'J7', minute(3))], facts);
+    const turns = IntakeModelUtil.chatTurnsOf(working, [intakeDecision('E5', 'J7', minute(3))], facts);
     expect(turns.map((turn) => turn.kind)).toEqual(['system', 'user', 'agent', 'decision']);
   });
 

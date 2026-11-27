@@ -6,10 +6,10 @@
 import { useRef, useState }              from 'react';
 import { type DismissalReason, Popover } from '../../lib/design-system/DesignSystemInterface.ts';
 
+import type { QuestionNotifier }                  from '../@types/QuestionNotifier.ts';
+import type { BoardClock }                        from '../shared/BoardClock.ts';
 import { StateToneUtil }                          from '../utils/StateToneUtil.ts';
 import type { TimestampSlices }                   from '../utils/TimeUtil.ts';
-import type { QuestionNotifier }                  from '../views/questions/QuestionAlerts.ts';
-import type { BoardClock }                        from './BoardClock.ts';
 import { useEndPlacementOrStartWhenNarrow }       from './NarrowWindowPlacement.ts';
 import { WaitingOnUserInbox }                     from './WaitingOnUserInbox.tsx';
 import { WaitingOnUserModel, type WaitingOnUser } from './WaitingOnUserModel.ts';

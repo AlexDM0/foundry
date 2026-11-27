@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { StateDot }            from '../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardClock }   from '../shell/BoardClock.ts';
+import { useBoardClock }   from '../shared/BoardClock.ts';
 import { ElapsedTimeUtil } from '../utils/ElapsedTimeUtil.ts';
 import { StateToneUtil }   from '../utils/StateToneUtil.ts';
 

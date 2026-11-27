@@ -12,7 +12,7 @@ import {
   View
 } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
-import { useBoardHrefOf }                                from '../../../shell/BoardRouteLinks.ts';
+import { useBoardHrefOf }                                from '../../../shared/routing/BoardRouteLinks.ts';
 import { StateToneUtil }                                 from '../../../utils/StateToneUtil.ts';
 import type { InFlightGroupView }                        from '../live/EntityWorkModel.ts';
 import { FlowActivityPanelModel, type OccupantChipView } from '../live/FlowActivityPanelModel.ts';

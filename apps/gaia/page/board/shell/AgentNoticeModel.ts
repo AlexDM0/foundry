@@ -5,8 +5,8 @@
  * job not launched for want of an agent says nothing: the setup on screen is where the agent is chosen.
  */
 import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
+import type { BoardRoute }    from '../../shared/BoardRouter.ts';
 import { PipelineViewModel }  from '../views/pipeline/PipelineViewModel.ts';
-import type { BoardRoute }    from './BoardRouter.ts';
 
 export interface AgentNoticeView {
   readonly tone:            'error' | 'warn';

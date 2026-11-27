@@ -11,7 +11,7 @@ import {
   test
 } from 'bun:test';
 
-import { BoardRouter }                     from '../../shell/BoardRouter.ts';
+import { BoardRouter }                     from '../../../shared/BoardRouter.ts';
 import { FIXTURE_TRACKER_ID }              from '../../testing/BoardStateFixture.ts';
 import { fakeControls }                    from '../../testing/FakeControls.ts';
 import { onBoard }                         from '../../testing/OnBoard.ts';

@@ -11,17 +11,17 @@ import {
 } from 'react';
 
 import type { BoardDocument }                                                from '../../@types/board/BoardDocument.ts';
+import type { BoardTab }                                                     from '../../shared/BoardRouter.ts';
 import type { PreferenceStore }                                              from '../preferences/PreferenceStore.ts';
+import type { FinishedWorkWindow }                                           from '../shared/FinishedWorkWindow.ts';
+import { DetailRoute }                                                       from '../shared/routing/DetailRoute.ts';
 import { FinishedWorkUtil }                                                  from '../utils/FinishedWorkUtil.ts';
 import { useKanbanFilterChoices }                                            from '../views/kanban/KanbanFilterChoices.ts';
 import { KanbanFilterSections }                                              from '../views/kanban/KanbanFilterSections.tsx';
 import { KanbanModel }                                                       from '../views/kanban/KanbanModel.ts';
 import type { KanbanTabSurroundings }                                        from '../views/kanban/KanbanTabSurroundings.ts';
 import type { KanbanLaneHighlightRequest }                                   from '../views/kanban/KanbanView.tsx';
-import type { BoardTab }                                                     from './BoardRouter.ts';
-import { DetailRoute }                                                       from './DetailRoute.ts';
 import { FinishedWorkFilter, useFinishedWorkChoice, type FinishedWorkCount } from './FinishedWorkFilter.tsx';
-import type { FinishedWorkWindow }                                           from './FinishedWorkWindow.ts';
 import type { HeaderFigureLane }                                             from './HeaderModel.ts';
 
 export interface BoardTabFilters {
