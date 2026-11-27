@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, type RefObject } from 'react';
 
-const MILLISECONDS_PER_SECOND = 1000;
+import { CssDurationUtil } from './CssDurationUtil.ts';
 
 export interface Presence {
   readonly isShown:   boolean;
@@ -14,8 +14,7 @@ export interface Presence {
 function leavingMillisecondsOf(element: Element): number {
   const style = getComputedStyle(element);
   if (style.animationName === '' || style.animationName === 'none') return 0;
-  const seconds = (Number.parseFloat(style.animationDuration) || 0) + (Number.parseFloat(style.animationDelay) || 0);
-  return seconds * MILLISECONDS_PER_SECOND;
+  return (CssDurationUtil.millisecondsOf(style.animationDuration) ?? 0) + (CssDurationUtil.millisecondsOf(style.animationDelay) ?? 0);
 }
 
 export function usePresence(isOpen: boolean, element: RefObject<Element | null>): Presence {

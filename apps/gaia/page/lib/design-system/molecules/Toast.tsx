@@ -11,6 +11,8 @@ import {
   type FocusEvent
 } from 'react';
 
+import { CssDurationUtil } from '../utils/CssDurationUtil.ts';
+
 /** Calls `onEnd` once after `milliseconds`, unless the returned function is called first. */
 export type ToastExpiryTimer = (milliseconds: number, onEnd: () => void) => () => void;
 
@@ -23,18 +25,14 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const TOAST_DURATION_PROPERTY = '--toast-duration';
 /** The value of `--toast-duration` in `tokens.css`, for a document without the stylesheet. */
 const TOAST_DURATION_FALLBACK_MILLISECONDS = 5000;
-const MILLISECONDS_PER_SECOND = 1000;
-const DURATION_PATTERN = /^(\d+(?:\.\d+)?)(ms|s)$/;
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
 function toastDurationMillisecondsOf(element: HTMLElement | null): number {
-  const match = element === null ? null : DURATION_PATTERN.exec(getComputedStyle(element).getPropertyValue(TOAST_DURATION_PROPERTY).trim());
-  if (match === null) return TOAST_DURATION_FALLBACK_MILLISECONDS;
-  const amount = Number(match[1]);
-  return match[2] === 's' ? amount * MILLISECONDS_PER_SECOND : amount;
+  if (element === null) return TOAST_DURATION_FALLBACK_MILLISECONDS;
+  return CssDurationUtil.millisecondsOf(getComputedStyle(element).getPropertyValue(TOAST_DURATION_PROPERTY)) ?? TOAST_DURATION_FALLBACK_MILLISECONDS;
 }
 
 export interface ToastProps {
