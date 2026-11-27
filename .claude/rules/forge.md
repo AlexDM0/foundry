@@ -69,7 +69,8 @@ talos.ts  →  talos/ (the Talos program)  →  src/domain/talos/ (its contract 
   shared folders) imports another, and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them,
   and in test code.
 - A `src/lib/` package is a building block and knows nothing about its callers: no forge names, file names, wording
-  or exit codes. App values arrive as parameters; a refusal leaves as a verdict.
+  or exit codes. App values arrive as parameters; a refusal leaves as a verdict. `architecture/LibNamesNoCaller.spec.ts`
+  holds that no shipping file of it names Hephaestus, a job, a ticket or a tracker.
 - `src/domain/` holds forge's own models: the tracker model (`src/domain/tracker-model/`, the `Board`) and Talos's
   contract with Hephaestus (`src/domain/talos/`: its frames, records, launches, event log and files). A domain package
   imports `src/lib/` and the domain packages its main module declares.
