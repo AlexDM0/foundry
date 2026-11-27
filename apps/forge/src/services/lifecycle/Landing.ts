@@ -149,7 +149,7 @@ function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: ()
     const acquired = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, LockGenerationSteps.lockPayloadOf(holder, now()), lockTaker.holderIsGone);
     if (acquired.verdict === 'held') return null;
     if (acquired.verdict === 'contended') continue;
-    if (acquired.staleTakenOver !== undefined) lockTaker.log(LockGenerationSteps.staleTakeOverLineOf(acquired.staleTakenOver));
+    if (acquired.staleTakenOver !== undefined) lockTaker.onStaleTakenOver(acquired.staleTakenOver);
     try {
       return land();
     } finally {

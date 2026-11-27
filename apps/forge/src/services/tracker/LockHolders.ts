@@ -35,11 +35,11 @@ export function lockHolderIsGoneOf(supervision: ProcessSupervision): LockHolderI
   };
 }
 
-/** This process as a lock's taker on this platform: the holder it writes and the judgement it passes, from one supervision, and its log. */
-export function lockTakerOf(supervision: ProcessSupervision, log: (line: string) => void): LockTaker {
+/** This process as a lock's taker on this platform: the holder it writes and the judgement it passes, from one supervision, and its take-overs' sink. */
+export function lockTakerOf(supervision: ProcessSupervision, onStaleTakenOver: LockTaker['onStaleTakenOver']): LockTaker {
   return {
     holderOfThisProcess: () => lockHolderOf(supervision),
     holderIsGone:        lockHolderIsGoneOf(supervision),
-    log,
+    onStaleTakenOver,
   };
 }

@@ -6,7 +6,6 @@
 import { readingBoardOf }                                           from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { hephaestusFilesIn }                                        from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                           from '../../../src/services/hephaestus/HephaestusLock.ts';
-import { lockTakerOf }                                              from '../../../src/services/tracker/LockHolders.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { requireWorkspace }                                         from '../../../src/services/tracker/Workspace.ts';
@@ -18,6 +17,7 @@ import { applyCommandOfVerb }                                       from '../../
 import { boardReadsOf, boardStoreIn }                               from '../../BoardStoreOf.ts';
 import type { CommandContext }                                      from '../../CommandContext.ts';
 import type { CommandHandler }                                      from '../../CommandHandler.ts';
+import { loggingLockTakerOf }                                       from '../../StaleLockWording.ts';
 import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                                               from '../../utils/OutputUtil.ts';
 
@@ -73,7 +73,7 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
   if (list === null) return;
   const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
-  const listing = await listTracker(list, tracker, context.now, lockTakerOf(context.platformPorts.processSupervision, context.standardError));
+  const listing = await listTracker(list, tracker, context.now, loggingLockTakerOf(context.platformPorts.processSupervision, context.standardError));
   if (listing.verdict === 'not-listed') {
     context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${listing.reason}); another tracker could take this namespace.`);
   }

@@ -1,7 +1,7 @@
 /**
  * `<monitor>/gate-slots/slot-<n>`, one machine-wide gate run slot: its holder's folder on the first line, then a versioned JSON document
- * naming the process answering for it. Read, validate, map; the text read is handed back beside the verdict, so a taker that moves the slot
- * aside can tell whether it moved what it judged. A slot is a holding judged by its holder, so the forms older code wrote read too: a
+ * naming the process answering for it. Read, validate, map; the text read is handed back beside the verdict, so a taker removes the slot
+ * only while it still holds what it judged. A slot is a holding judged by its holder, so the forms older code wrote read too: a
  * document of any version, the process identity itself as the line, or the holder line alone, which names no process.
  */
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';

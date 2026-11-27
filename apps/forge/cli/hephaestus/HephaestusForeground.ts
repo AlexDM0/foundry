@@ -67,7 +67,6 @@ import { createUnreadableBoardFiles } from '../../src/services/hephaestus/Unread
 import { mainLineOf }                 from '../../src/services/lifecycle/MergeTargets.ts';
 import type { BoardStore }            from '../../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore } from '../../src/services/store/LocalFilesBoardStore.ts';
-import { lockTakerOf }                from '../../src/services/tracker/LockHolders.ts';
 import { PictureStore }               from '../../src/services/tracker/PictureStore.ts';
 import { projectLocationOf }          from '../../src/services/tracker/ProjectLocation.ts';
 import type { Workspace }             from '../../src/services/tracker/Workspace.ts';
@@ -87,22 +86,23 @@ import {
   HEPHAESTUS_STOP_WAIT_MILLISECONDS,
   RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
-import { agentCommandPreparationContextOf, preparedForgeAt }            from '../AgentCommandContext.ts';
-import type { CommandContext }                                          from '../CommandContext.ts';
-import { insideHephaestusControlContextOf }                             from '../CommandControlContext.ts';
-import { hephaestusPollScheduleOf }                                     from '../HephaestusPollSchedule.ts';
-import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
-import { PipelineAgentWording }                                         from '../PipelineAgentWording.ts';
-import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
-import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
-import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
-import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
-import { writeAsHephaestus }                                            from './HephaestusBoardWrites.ts';
-import { HephaestusWording }                                            from './HephaestusWording.ts';
-import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
-import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
-import type { RuntimeCommandOutcome, RuntimeHephaestusCommand }         from './routes/CommandRoute.ts';
-import { hephaestusRoutesOf }                                           from './routes/HephaestusRoutes.ts';
+import { agentCommandPreparationContextOf, preparedForgeAt }                    from '../AgentCommandContext.ts';
+import type { CommandContext }                                                  from '../CommandContext.ts';
+import { insideHephaestusControlContextOf }                                     from '../CommandControlContext.ts';
+import { hephaestusPollScheduleOf }                                             from '../HephaestusPollSchedule.ts';
+import { requireCurrentInstall }                                                from '../InstallVersionCheck.ts';
+import { PipelineAgentWording }                                                 from '../PipelineAgentWording.ts';
+import { loggingLockTakerOf, staleHephaestusLockLineOf, staleLockRecordLineOf } from '../StaleLockWording.ts';
+import type { ArgumentParser }                                                  from '../arguments/ArgumentParser.ts';
+import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
+import { OutputUtil }                                                           from '../utils/OutputUtil.ts';
+import { type BoardRegistration, registerTheBoard }                             from './BoardRegistration.ts';
+import { writeAsHephaestus }                                                    from './HephaestusBoardWrites.ts';
+import { HephaestusWording }                                                    from './HephaestusWording.ts';
+import { type ServingAdmission, type StartOriginByHand, admitTheStart }         from './StartGateAdmission.ts';
+import { createMergeForecastCache, readBoardState }                             from './routes/BoardStateReader.ts';
+import type { RuntimeCommandOutcome, RuntimeHephaestusCommand }                 from './routes/CommandRoute.ts';
+import { hephaestusRoutesOf }                                                   from './routes/HephaestusRoutes.ts';
 
 export interface ForegroundRunRequest {
   commandArguments: ArgumentParser;
@@ -171,12 +171,21 @@ export function requireNoLiveHephaestus(ports: PlatformPorts, files: HephaestusF
 /** Hephaestus's own store of its board, built from its workspace: the context of a start names no current directory. */
 function hephaestusBoardStoreOf(request: StoppedHephaestusRequest): BoardStore {
   const { context, workspace } = request;
-  const lockTaker = lockTakerOf(context.platformPorts.processSupervision, hephaestusLoggerOf(context, hephaestusFilesIn(workspace.trackerDirectory)));
+  const lockTaker = loggingLockTakerOf(context.platformPorts.processSupervision, hephaestusLoggerOf(context, hephaestusFilesIn(workspace.trackerDirectory)));
   return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker });
 }
 
 async function registerHephaestus(request: StoppedHephaestusRequest, registration: BoardRegistration): Promise<void> {
   await registerTheBoard(request.context, request.workspace, registration);
+}
+
+/**
+ * The generation a stop closes. `releaseLock` is false for a Hephaestus lock that could not be read: it may still be a live Hephaestus's, so it
+ * stays for the next start to take over as a newer generation, which trips that Hephaestus's fence.
+ */
+export interface StoppedGeneration {
+  generation:  number;
+  releaseLock: boolean;
 }
 
 /**
@@ -186,7 +195,7 @@ async function registerHephaestus(request: StoppedHephaestusRequest, registratio
 export async function closeTheStoppedHephaestus(
   request: StoppedHephaestusRequest,
   files: HephaestusFiles,
-  generation: number,
+  { generation, releaseLock }: StoppedGeneration,
   boardStore: BoardStore = hephaestusBoardStoreOf(request),
 ): Promise<void> {
   const { context, workspace } = request;
@@ -195,7 +204,7 @@ export async function closeTheStoppedHephaestus(
   const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
   await registerHephaestus(request, { hephaestus: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
   Presence.writeEnding(files, generation, { kind: 'stopped' }, stoppedAt);
-  HephaestusLock.release(files.hephaestusDirectory, generation);
+  if (releaseLock) HephaestusLock.release(files.hephaestusDirectory, generation);
 }
 
 /**
@@ -772,7 +781,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     }
     const { generation, staleTakenOver } = acquisition;
     if (staleTakenOver !== undefined) {
-      log(`Generation ${generation} took over the stale Hephaestus lock ${staleTakenOver.hephaestusLockFilePath}: ${staleTakenOver.reason}.`);
+      log(staleHephaestusLockLineOf(generation, staleTakenOver));
     }
     const ownBroker = EventBroker.createEventBroker(generation);
     const ownMonitorStream = MonitorStream.createMonitorStream();
@@ -868,6 +877,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         setupMessageWordingOf:     (message) => PipelineAgentWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
         homeDirectory:             context.homeDirectory,
         log,
+        onStaleLockTakenOver:      (staleTakenOver) => log(staleLockRecordLineOf(staleTakenOver)),
         onHephaestusLockTakenOver: (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
         onPassCrashed:             (thrown) => recordThePassCrash(generation, thrown),
         watchHatchFolder:          (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
@@ -1038,7 +1048,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       log('A newer Hephaestus took the board over; stopping without acting.');
       throw end.refusal;
     }
-    await closeTheStoppedHephaestus(request, files, serving.generation, boardStore);
+    await closeTheStoppedHephaestus(request, files, { generation: serving.generation, releaseLock: true }, boardStore);
     crashableGeneration = null;
     log('Hephaestus stopped; its Hephaestus lock is released.');
   } finally {

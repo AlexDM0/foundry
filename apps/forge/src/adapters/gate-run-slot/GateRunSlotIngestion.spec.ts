@@ -2,10 +2,10 @@
  * A gate run slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, its holder
  * line and its versioned process document both; a missing slot is absent; the forms older code wrote, a document without the version, the
  * process identity itself as the line and the holder line alone, read as their holding, so the holder is judged; any other file is
- * unreadable and never thrown, with the text it holds, since a taker compares that text after moving it aside.
+ * unreadable and never thrown, with the text it holds, since a taker compares that text before it removes the slot.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -13,6 +13,7 @@ import {
   test
 } from 'bun:test';
 
+import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks }                   from '../../testing/FileReplaceWithoutLinks.ts';
 import { createScratchDirectory, removeScratchDirectory }                          from '../../testing/ScratchWorkspace.ts';
 import { GATE_RUN_SLOT_FORMAT_VERSION, GateRunSlotIngestion, type GateRunHolding } from './GateRunSlotIngestion.ts';
 import { createGateRunSlotWriter }                                                 from './GateRunSlotWriter.ts';
@@ -68,4 +69,9 @@ test.each([
 ])('%s is unreadable, with the text it holds', (_case, text) => {
   writeFileSync(slotFilePath(), text);
   expect(reading()).toMatchObject({ verdict: 'unreadable', storedText: text });
+});
+
+test('where hard links fail the writer throws the link failure and leaves no partial file, since a taker reads a partial one as stale', () => {
+  expect(() => createGateRunSlotWriter(slotFilePath(), fileReplaceWithoutLinks()).create(HOLDING)).toThrow(EXAMPLE_LINK_REFUSAL_MESSAGE);
+  expect(existsSync(slotFilePath())).toBe(false);
 });

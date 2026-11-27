@@ -3,13 +3,13 @@
  * error and never changes the command's exit code.
  */
 import type { StoreReadFace }                                                                        from '../src/services/store/BoardStore.ts';
-import { lockTakerOf }                                                                               from '../src/services/tracker/LockHolders.ts';
 import { type MonitorRegistrationRequest, type ProgressRegistrationReading, registerWithTheMonitor } from '../src/services/tracker/MonitorRegistration.ts';
 import type { Workspace }                                                                            from '../src/services/tracker/Workspace.ts';
 import { refusalIsOperationRefusal }                                                                 from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                             from '../src/shared/constants/ProductNames.ts';
 import { boardStoreIn }                                                                              from './BoardStoreOf.ts';
 import type { CommandContext }                                                                       from './CommandContext.ts';
+import { loggingLockTakerOf }                                                                        from './StaleLockWording.ts';
 
 /** A board the store cannot read is still a verdict, never a throw: the registry only says it could not name the board. */
 function progressRegistrationReadingOf(reads: StoreReadFace): ProgressRegistrationReading {
@@ -33,7 +33,7 @@ export function monitorRegistrationRequestOf(context: CommandContext, workspace:
     command:              context.commandVerb,
     program:              context.programPath,
     now:                  context.now,
-    lockTaker:            lockTakerOf(context.platformPorts.processSupervision, context.standardError),
+    lockTaker:            loggingLockTakerOf(context.platformPorts.processSupervision, context.standardError),
   };
 }
 

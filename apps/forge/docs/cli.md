@@ -3318,7 +3318,16 @@ every start, which all read the Hephaestus lock one way, and nothing takes it ov
 wrote as its holder line alone, or with the process identity itself as the second line, reads the same way. A record
 whose process is gone, or that cannot be read at all, is stale: the next claim takes it over and logs one line, to the
 Hephaestus log or to the command's standard error, with no refusal and nothing for User to remove. A slot whose bytes
-cannot be read is left in place and logged once.
+cannot be read is left in place and logged once, and a lock generation whose bytes cannot be read now, as on a
+permission or open-file failure, holds the lock, since that failure says nothing of its holder. A slot is freed under
+an exclusive `slot-<n>.taking` marker naming its taker, and only while it still holds what was judged, so a slot
+claimed meanwhile is never removed; a marker whose taker is gone is taken over the same way. `stop` leaves a Hephaestus
+lock that cannot be read in place, as its process may still run: the next start takes it over as a newer generation,
+which that process's fence sees.
+
+Every one of these records is created exclusively and whole, so a taker never reads a half-written record as stale.
+Where the filesystem has no hard links, as on exFAT or some network shares, the create fails rather than leave a
+partial record.
 
 Before 1.0 an older stored format is refused, not migrated. This is no migration: nothing of an older record is
 converted or kept, the record ends with the process that holds it, and the next holder writes the current version.

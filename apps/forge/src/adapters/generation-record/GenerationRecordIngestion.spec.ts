@@ -4,8 +4,8 @@
  * fields without that version, as older code wrote, reads as the same record, so its holder is judged; and any other record is
  * unreadable, never thrown, the record from before process identity among them, which a lock takes over.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -13,6 +13,7 @@ import {
   test
 } from 'bun:test';
 
+import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks }                              from '../../testing/FileReplaceWithoutLinks.ts';
 import { createScratchDirectory, removeScratchDirectory }                                     from '../../testing/ScratchWorkspace.ts';
 import { GENERATION_RECORD_FORMAT_VERSION, GenerationRecordIngestion, type GenerationRecord } from './GenerationRecordIngestion.ts';
 import { createGenerationRecordWriter }                                                       from './GenerationRecordWriter.ts';
@@ -68,4 +69,9 @@ test.each([
 ])('%s is unreadable', (_case, text) => {
   writeFileSync(generationFilePath(), text);
   expect(reading().verdict).toBe('unreadable');
+});
+
+test('where hard links fail the writer throws the link failure and leaves no partial file, since a taker reads a partial one as stale', () => {
+  expect(() => createGenerationRecordWriter(generationFilePath(), fileReplaceWithoutLinks()).create(RECORD)).toThrow(EXAMPLE_LINK_REFUSAL_MESSAGE);
+  expect(existsSync(generationFilePath())).toBe(false);
 });

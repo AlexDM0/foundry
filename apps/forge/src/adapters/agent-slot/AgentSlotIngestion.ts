@@ -1,6 +1,6 @@
 /**
  * `<monitor>/agent-slots/slot-<n>`, one machine-wide agent slot: read, validate, map. The text read is handed back beside the verdict, so a
- * taker that moves the slot aside can tell whether it moved what it judged. A slot is a holding judged by its Hephaestus, so a slot of
+ * taker removes the slot only while it still holds what it judged. A slot is a holding judged by its Hephaestus, so a slot of
  * today's fields reads whatever its version.
  */
 import { type ProcessIdentity, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';

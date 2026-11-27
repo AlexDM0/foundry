@@ -297,9 +297,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.13: the Bridge's pipeline dialog is titled "Stored pipeline" and its footer button reads "View stored pipeline"
   (was `pipeline.json`). Confirm the wording; Gaia's view replaces it in stage 6.
 
-- WP5.15: an unreadable lock record can only be damage, because the tool creates each record whole. Not so where hard
-  links fail: `PosixFileReplace.createExclusively` falls back to `createNew`, and a racing reader is then refused
-  `lock-record-unreadable` where it used to wait. Confirm with two writers on exFAT or an SMB share.
+- WP5.15: an unreadable lock record can only be damage, because the tool creates each record whole: lock generations,
+  agent slots and gate run slots go through `createWholeFileAtomically`, so where hard links fail the create throws
+  instead of leaving a partial record a taker would take over as stale. Confirm on exFAT or an SMB share that a lock
+  there fails loudly rather than letting two holders in.
 
 - WP5.15: a held lock record from forge 1.21 (`{processId, acquiredAt, state}`) is judged by its pid alone
   (`GenerationLock.holderOfRecordBeforeProcessIdentity`). Confirm by updating a forge whose lock was left by a crashed

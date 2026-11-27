@@ -13,6 +13,7 @@ import { fileReplaceOfThisProcess }                               from '../../li
 import type { PlatformPorts }                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
+import type { StaleLockReason }                                   from '../tracker/GenerationLock.ts';
 
 /** What a Hephaestus lock names, as its ingestion reads it; the CLI's readers name it from here. */
 export type HephaestusLockRecord = HephaestusLockFileRecord;
@@ -28,10 +29,10 @@ export type HephaestusLockReading =
   | { verdict: 'live'; generation: number; record: HephaestusLockRecord }
   | { verdict: 'dead'; generation: number; record: HephaestusLockRecord | null; unreadableReason?: string };
 
-/** A stale newest generation this acquisition took over, its process gone or the file unreadable, so the taker can log it. */
+/** A stale newest generation this acquisition took over, its process gone or the file unreadable, as a typed record the taker's log words. */
 export interface StaleHephaestusLockTakenOver {
   hephaestusLockFilePath: string;
-  reason:                 string;
+  reason:                 StaleLockReason;
 }
 
 export type HephaestusLockAcquisition =
@@ -111,8 +112,8 @@ function createHephaestusLockWhole(hephaestusDirectory: string, generation: numb
 
 function staleTakenOverOf(hephaestusDirectory: string, dead: Extract<HephaestusLockReading, { verdict: 'dead' }>): StaleHephaestusLockTakenOver {
   const hephaestusLockFilePath = filePathFor(hephaestusDirectory, dead.generation);
-  if (dead.record === null) return { hephaestusLockFilePath, reason: `it could not be read (${dead.unreadableReason ?? 'unknown'})` };
-  return { hephaestusLockFilePath, reason: `the process ${dead.record.processId} it names is gone` };
+  if (dead.record === null) return { hephaestusLockFilePath, reason: { kind: 'unreadable', reason: dead.unreadableReason ?? 'unknown' } };
+  return { hephaestusLockFilePath, reason: { kind: 'holder-gone', processId: dead.record.processId } };
 }
 
 /**

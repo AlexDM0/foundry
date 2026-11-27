@@ -2,10 +2,10 @@
  * An agent slot's stored format both ways. What matters: what the writer creates or rewrites reads back as the same holding, with the
  * current version; a missing slot is absent; a slot of today's fields without that version, as older code wrote, reads as the same
  * holding, so its Hephaestus is judged; any other file is unreadable and never thrown, with the text it holds, since a taker compares that
- * text after moving it aside.
+ * text before it removes the slot.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join }                        from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -13,6 +13,7 @@ import {
   test
 } from 'bun:test';
 
+import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks }                from '../../testing/FileReplaceWithoutLinks.ts';
 import { createScratchDirectory, removeScratchDirectory }                       from '../../testing/ScratchWorkspace.ts';
 import { AGENT_SLOT_FORMAT_VERSION, AgentSlotIngestion, type AgentSlotHolding } from './AgentSlotIngestion.ts';
 import { createAgentSlotWriter }                                                from './AgentSlotWriter.ts';
@@ -64,4 +65,9 @@ test.each([
 ])('%s is unreadable, with the text it holds', (_case, text) => {
   writeFileSync(slotFilePath(), text);
   expect(reading()).toMatchObject({ verdict: 'unreadable', storedText: text });
+});
+
+test('where hard links fail the writer throws the link failure and leaves no partial file, since a taker reads a partial one as stale', () => {
+  expect(() => createAgentSlotWriter(slotFilePath(), fileReplaceWithoutLinks()).create(HOLDING)).toThrow(EXAMPLE_LINK_REFUSAL_MESSAGE);
+  expect(existsSync(slotFilePath())).toBe(false);
 });

@@ -2,8 +2,8 @@
  * `<lock folder>/generation-<n>`, one generation of a lock folder (the store's, the monitor registry's, the tracker list's, a landing's). It
  * is a holding judged by its process, so a record of today's fields reads whatever its version.
  */
-import { storedFileTextOf }       from '../StoredFileText.ts';
-import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
+import { NOT_UTF8_TEXT_REASON, storedFileTextOf } from '../StoredFileText.ts';
+import { StoredJsonDocumentUtil }                 from '../utils/StoredJsonDocumentUtil.ts';
 
 /** A lock record's holder by process identity: `null` where the platform cannot read the process's start or boot. */
 export interface GenerationRecordHolder {
@@ -25,6 +25,7 @@ export interface GenerationRecord {
 export type GenerationRecordReading =
   | { verdict: 'readable'; record: GenerationRecord }
   | { verdict: 'absent' }
+  | { verdict: 'bytes-unreadable'; reason: string }
   | { verdict: 'unreadable'; reason: string };
 
 export const GENERATION_RECORD_FORMAT_VERSION = 1;
@@ -49,9 +50,13 @@ function stateOfStored(stored: unknown): GenerationState | null {
 export class GenerationRecordIngestion {
   constructor(private readonly generationFilePath: string) {}
 
-  /** Never throws. `absent` is a record another holder removed after it moved past it, between a listing and this read. */
+  /**
+   * Never throws. `absent` is a record another holder removed after it moved past it, between a listing and this read. `bytes-unreadable` is
+   * a read that failed now, as on EACCES or EMFILE, which says nothing of the record's shape; `unreadable` is a record whose shape cannot be read.
+   */
   read(): GenerationRecordReading {
     const storedText = storedFileTextOf(this.generationFilePath);
+    if (storedText.verdict === 'unreadable' && storedText.reason !== NOT_UTF8_TEXT_REASON) return { verdict: 'bytes-unreadable', reason: storedText.reason };
     if (storedText.verdict !== 'readable') return storedText;
     const stored = StoredJsonDocumentUtil.holdingDocumentOfText(storedText.text);
     if (stored.verdict === 'unreadable') return stored;

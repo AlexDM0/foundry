@@ -10,12 +10,14 @@ export interface StopReport {
 
 /**
  * An ending other than `clean` means the process is gone, by a dead Hephaestus lock or a landed force, so what Hephaestus left undone runs without it. A
- * newest Hephaestus lock found dead is closed the same way, so a close that was refused before is repaired by the next stop.
+ * newest Hephaestus lock found dead is closed the same way, so a close that was refused before is repaired by the next stop; one that could not be
+ * read names no process that is surely gone, so it is left for the next start to take over.
  */
 export async function stopAndCloseTheLiveHephaestus(request: StoppedHephaestusRequest, files: HephaestusFiles, now: boolean): Promise<StopOutcome> {
   const stopped = await HephaestusRemote.stopTheLiveHephaestus(request.context.platformPorts, files, 'hephaestus-stop', now);
   const leftUnclosed = stopped.verdict === 'found-dead' || (stopped.verdict === 'stopped' && stopped.ending !== 'clean');
-  if (leftUnclosed) await closeTheStoppedHephaestus(request, files, stopped.generation);
+  const releaseLock = !(stopped.verdict === 'found-dead' && stopped.record === null);
+  if (leftUnclosed) await closeTheStoppedHephaestus(request, files, { generation: stopped.generation, releaseLock });
   return stopped;
 }
 

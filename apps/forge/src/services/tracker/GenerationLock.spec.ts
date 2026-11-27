@@ -2,10 +2,16 @@
  * Whether a held record frees the lock rests on the taker's judgement of its holder alone, never on the record's age: a holder judged
  * gone, such as a Linux zombie that a signal probe still reaches, frees it at once, and a holder judged alive keeps it however old its
  * stamp. A record of today's fields without a version, as older code wrote, is judged by its holder the same way. A stale record, its
- * holder gone or the record unreadable, is taken over at once and logged, with no refusal. A holder that waited for the lock is stamped
- * when it takes it, and writes the current version.
+ * holder gone or the record unreadable, is taken over at once and logged, with no refusal; a record whose bytes cannot be read now is held,
+ * since that read failure says nothing of its holder. A holder that waited for the lock is stamped when it takes it, and writes the
+ * current version.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
 import {
   afterAll,
   describe,
@@ -23,6 +29,7 @@ import {
   type LockHolder,
   LockGenerationSteps,
   type LockHolderIsGone,
+  type StaleLockRecordTakenOver,
   withLockAt
 } from './GenerationLock.ts';
 
@@ -31,6 +38,8 @@ const HELD_AT = '2026-09-24T15:00:00+02:00';
 const ONE_SECOND_LATER_MILLISECONDS = Date.parse('2026-09-24T15:00:01+02:00');
 const ONE_HOUR_LATER = new Date(Date.parse('2026-09-24T16:00:00+02:00'));
 const THIS_HOLDER: LockHolder = { processId: 4343, startStamp: '1763370100', bootIdentity: 'example-boot' };
+const NO_ACCESS_MODE = 0o000;
+const OWNER_READ_WRITE_MODE = 0o600;
 
 const scratchDirectories: string[] = [];
 
@@ -104,14 +113,15 @@ describe('a record without a version, as older code wrote', () => {
 
   test('is taken over once its holder is gone, logged, and the next generation is written with the current version', async () => {
     const lockDirectoryPath = lockFolderHolding(versionlessHeldRecord);
-    const loggedLines: string[] = [];
+    const takenOver: StaleLockRecordTakenOver[] = [];
     const readTakenRecord = (): unknown => JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(lockDirectoryPath, 2), 'utf8'));
 
-    const heldRecord = await withLockAt(lockDirectoryPath, readTakenRecord, () => ONE_HOUR_LATER, lockTakerJudgingHoldersBy(() => true, (line) => loggedLines.push(line)));
+    const takerJudgingEveryHolderGone = lockTakerJudgingHoldersBy(() => true, (staleTakenOver) => takenOver.push(staleTakenOver));
+    const heldRecord = await withLockAt(lockDirectoryPath, readTakenRecord, () => ONE_HOUR_LATER, takerJudgingEveryHolderGone);
 
     expect(heldRecord).toMatchObject({ version: GENERATION_RECORD_FORMAT_VERSION, state: 'held' });
     const recordPath = LockGenerationSteps.generationPathFor(lockDirectoryPath, 1);
-    expect(loggedLines).toEqual([`The lock record ${recordPath} was stale and is taken over: the process ${ZOMBIE_HOLDER.processId} it names is gone.`]);
+    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'holder-gone', processId: ZOMBIE_HOLDER.processId } }]);
   });
 });
 
@@ -128,22 +138,36 @@ describe('an unreadable record', () => {
   ] as const) {
     test(`is taken over at the first attempt, with no refusal, and logged: ${title}`, async () => {
       const lockDirectoryPath = lockFolderHolding(recordText);
-      const loggedLines: string[] = [];
-      const takerJudgingEveryHolderAlive = lockTakerJudgingHoldersBy(() => false, (line) => loggedLines.push(line));
+      const takenOver: StaleLockRecordTakenOver[] = [];
+      const takerJudgingEveryHolderAlive = lockTakerJudgingHoldersBy(() => false, (staleTakenOver) => takenOver.push(staleTakenOver));
       const { outcome, sleepMilliseconds } = await lockRetryWaitsDuring(() => withLockAt(lockDirectoryPath, () => 'taken', () => ONE_HOUR_LATER, takerJudgingEveryHolderAlive));
 
       expect(outcome).toEqual({ settled: 'fulfilled', value: 'taken' });
       expect(sleepMilliseconds).toEqual([]);
       const recordPath = LockGenerationSteps.generationPathFor(lockDirectoryPath, 1);
-      expect(loggedLines).toEqual([expect.stringContaining(`The lock record ${recordPath} was stale and is taken over: it could not be read (`)]);
+      expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', reason: expect.any(String) as unknown as string } }]);
     });
   }
+});
+
+describe('a record whose bytes cannot be read now', () => {
+  test('fails closed, as a read failure says nothing of its holder: the acquisition is held and nothing is taken over', () => {
+    const lockDirectoryPath = lockHeldByTheZombie();
+    const recordPath = LockGenerationSteps.generationPathFor(lockDirectoryPath, 1);
+    chmodSync(recordPath, NO_ACCESS_MODE);
+    try {
+      expect(LockGenerationSteps.attemptedAcquire(lockDirectoryPath, { holder: THIS_HOLDER, acquiredAt: HELD_AT }, () => true)).toEqual({ verdict: 'held' });
+    } finally {
+      chmodSync(recordPath, OWNER_READ_WRITE_MODE);
+    }
+    expect(LockGenerationSteps.generationsIn(lockDirectoryPath)).toEqual([1]);
+  });
 });
 
 describe('a holder that takes the lock', () => {
   test('records the taker\'s holder by its process identity', async () => {
     const lockDirectoryPath = lockHeldByTheZombie();
-    const taker = { holderOfThisProcess: () => THIS_HOLDER, holderIsGone: () => true, log: () => {} };
+    const taker = { holderOfThisProcess: () => THIS_HOLDER, holderIsGone: () => true, onStaleTakenOver: () => {} };
 
     const readTakenRecord = (): unknown => JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(lockDirectoryPath, 2), 'utf8'));
 

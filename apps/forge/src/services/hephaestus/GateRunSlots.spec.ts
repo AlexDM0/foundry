@@ -3,14 +3,19 @@
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. Every holder is a child
  * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
  * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
- * fault elsewhere, and a held move aside leaves a stale slot in place. A slot older code wrote, with no version, is judged by its holder: held
+ * fault elsewhere, and a held removal leaves a stale slot in place. A slot older code wrote, with no version, is judged by its holder: held
  * while it is live, taken over and logged once it is not. A slot that cannot be read names no holder, so it is taken over and logged; one
  * whose bytes cannot be read at all is left in place and logged once. A gate profile comes after every real gate: it takes no
  * slot while a real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once,
  * holding no slot and holding no profile back.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join }                          from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import {
   afterEach,
@@ -31,6 +36,7 @@ import { createScratchDirectory, removeScratchDirectory }     from '../../testin
 import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }        from '../../testing/TalosChildReadings.ts';
 import { GateRunSlots, GateSlotWaitStoppedError }             from './GateRunSlots.ts';
 import { heldSlotCreateMeansTakenFor }                        from './HeldSlotCreateFor.ts';
+import { TAKING_MARKER_SUFFIX }                               from './StaleSlotTakeOver.ts';
 
 
 /** The holder's liveness as the drive pass judges it, a gate line's read through Talos's adapter of the board's children. */
@@ -162,42 +168,47 @@ describe('a slot file that the platform refuses to create or move', () => {
   }
 
   test.each(['EPERM', 'EACCES', 'EBUSY'])('on win32, a create failing %s reads as a taken slot and throws nothing', (code) => {
-    const refusingCreate: FileReplace = { ...POSIX_MOVES, createExclusively: () => { throw failureWithCode(code); } };
+    const refusingCreate: FileReplace = { ...POSIX_MOVES, createWholeExclusively: () => { throw failureWithCode(code); } };
     const { slots } = slotsWithMoves(refusingCreate, 'win32');
     expect(slots.tryAcquire('example-holder')).toBe(false);
   });
 
   test('on POSIX, a create failing EACCES is a permission fault and still throws', () => {
-    const refusingCreate: FileReplace = { ...POSIX_MOVES, createExclusively: () => { throw failureWithCode('EACCES'); } };
+    const refusingCreate: FileReplace = { ...POSIX_MOVES, createWholeExclusively: () => { throw failureWithCode('EACCES'); } };
     const { slots } = slotsWithMoves(refusingCreate, 'linux');
     expect(() => slots.tryAcquire('example-holder')).toThrow('example EACCES failure');
   });
 
-  test('a stale slot whose move aside answers held stays in place, and nothing throws', () => {
-    const movedAside: string[] = [];
-    const heldMove: FileReplace = {
+  test('a stale slot whose removal answers held stays in place, its taking marker is removed, and nothing throws', () => {
+    let heldSlotPath = '';
+    const removalsTried: string[] = [];
+    const heldSlotRemoval: FileReplace = {
       ...POSIX_MOVES,
-      replaceFile: (fromPath) => {
-        movedAside.push(fromPath);
+      removeHeldFile: (path) => {
+        if (path !== heldSlotPath) return POSIX_MOVES.removeHeldFile(path);
+        removalsTried.push(path);
         return { verdict: 'held', failure: failureWithCode('EBUSY') };
       },
     };
-    const { slots, slotPath } = slotsWithMoves(heldMove, 'win32', () => false);
+    const { slots, slotPath } = slotsWithMoves(heldSlotRemoval, 'win32', () => false);
+    heldSlotPath = slotPath;
     plantDeadHolder(slotPath);
     const plantedText = readFileSync(slotPath, 'utf8');
 
     expect(slots.tryAcquire('example-holder')).toBe(false);
 
-    expect(movedAside).toEqual([slotPath]);
+    expect(removalsTried).toEqual([slotPath]);
     expect(readFileSync(slotPath, 'utf8')).toBe(plantedText);
+    expect(existsSync(`${slotPath}${TAKING_MARKER_SUFFIX}`)).toBe(false);
   });
 
-  test('a stale slot whose move aside succeeds is taken over through the same moves', () => {
+  test('a stale slot is taken over through the injected moves, leaving no taking marker behind', () => {
     const { slots, slotPath } = slotsWithMoves(POSIX_MOVES, 'win32', () => false);
     plantDeadHolder(slotPath);
 
     expect(slots.tryAcquire('example-holder')).toBe(true);
     expect(new GateRunSlotIngestion(slotPath).read()).toMatchObject({ verdict: 'readable', holding: { holder: 'example-holder' } });
+    expect(existsSync(`${slotPath}${TAKING_MARKER_SUFFIX}`)).toBe(false);
   });
 
   function slotsOverOnePlantedSlot(slotText: string, holderIsLive: boolean, loggedLines: string[]) {

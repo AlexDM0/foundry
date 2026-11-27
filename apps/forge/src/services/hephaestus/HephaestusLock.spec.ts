@@ -14,16 +14,15 @@ import {
   test
 } from 'bun:test';
 
-import { HEPHAESTUS_LOCK_FORMAT_VERSION }                 from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
-import { createHephaestusLockWriter }                     from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
-import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
-import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { useRecordedProcessTable }                        from '../../testing/RecordedProcessTable.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWhenRecorded }                           from '../../testing/ToolGuard.ts';
-import { HephaestusLock, type HephaestusLockRecord }      from './HephaestusLock.ts';
+import { HEPHAESTUS_LOCK_FORMAT_VERSION }                        from '../../adapters/hephaestus-lock/HephaestusLockIngestion.ts';
+import { createHephaestusLockWriter }                            from '../../adapters/hephaestus-lock/HephaestusLockWriter.ts';
+import { OperationRefusal }                                      from '../../shared/OperationRefusal.ts';
+import { EXAMPLE_LINK_REFUSAL_MESSAGE, fileReplaceWithoutLinks } from '../../testing/FileReplaceWithoutLinks.ts';
+import { nativePlatformPorts }                                   from '../../testing/NativePlatformPorts.ts';
+import { useRecordedProcessTable }                               from '../../testing/RecordedProcessTable.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
+import { describeWhenRecorded }                                  from '../../testing/ToolGuard.ts';
+import { HephaestusLock, type HephaestusLockRecord }             from './HephaestusLock.ts';
 
 const processTable = useRecordedProcessTable(nativePlatformPorts());
 const { ports } = processTable;
@@ -66,17 +65,9 @@ afterEach(() => {
   removeScratchDirectory(hephaestusDirectory);
 });
 
-/** Hard links fail here, while the exclusive open that would leave a partial file still works. */
-const fileReplaceWithoutLinks: FileReplace = {
-  ...fileReplaceOfThisProcess(),
-  createWholeExclusively: () => {
-    throw Object.assign(new Error('EPERM: example link refusal'), { code: 'EPERM' });
-  },
-};
-
 describeWhenRecorded(['process-table-recording'], 'a claim where hard links fail', () => {
   test.each([
-    ['acquire', () => HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord(), fileReplaceWithoutLinks)],
+    ['acquire', () => HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord(), fileReplaceWithoutLinks())],
   ])('Hephaestus lock.%s creates its record whole, so where hard links fail it is refused in words and no Hephaestus lock exists', (_claim, claim) => {
     let refusal: unknown = null;
     try {
@@ -86,7 +77,7 @@ describeWhenRecorded(['process-table-recording'], 'a claim where hard links fail
     }
     expect(refusal instanceof OperationRefusal ? refusal.status : null).toBe('refused');
     const hephaestusLockFilePath = HephaestusLock.filePathFor(hephaestusDirectory, 1);
-    const detail = { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, reason: 'Error: EPERM: example link refusal' } as const;
+    const detail = { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, reason: `Error: ${EXAMPLE_LINK_REFUSAL_MESSAGE}` } as const;
     expect(refusal instanceof OperationRefusal ? refusal.detail : null).toEqual(detail);
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([]);
   });
@@ -105,16 +96,18 @@ describeWhenRecorded(['process-table-recording'], 'HephaestusLock.acquire', () =
     expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toMatchObject({ verdict: 'dead', generation: 5, record: null });
     const acquisition = HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord());
     expect(acquisition).toMatchObject({ verdict: 'acquired', generation: 6, staleTakenOver: { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 5) } });
-    expect(acquisition.verdict === 'acquired' ? acquisition.staleTakenOver?.reason : null).toStartWith('it could not be read (it is not valid JSON');
+    const unreadableReason = acquisition.verdict === 'acquired' ? acquisition.staleTakenOver?.reason : null;
+    expect(unreadableReason).toMatchObject({ kind: 'unreadable' });
+    expect(unreadableReason?.kind === 'unreadable' ? unreadableReason.reason : null).toStartWith('it is not valid JSON');
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([6]);
     writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 7), JSON.stringify({ ...liveRecord(), port: 'not a port' }));
-    const unreadableTakenOver = { reason: 'it could not be read (its "port" is not a number)' };
+    const unreadableTakenOver = { reason: { kind: 'unreadable', reason: 'its "port" is not a number' } };
     expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toMatchObject({ verdict: 'acquired', generation: 8, staleTakenOver: unreadableTakenOver });
   });
 
   test('a dead newest generation that reads whole is taken over, named for the log by its gone process', () => {
     plant(3, deadRecord());
-    const staleTakenOver = { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 3), reason: `the process ${process.pid} it names is gone` };
+    const staleTakenOver = { hephaestusLockFilePath: HephaestusLock.filePathFor(hephaestusDirectory, 3), reason: { kind: 'holder-gone' as const, processId: process.pid } };
     expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 4, staleTakenOver });
   });
 
@@ -126,7 +119,7 @@ describeWhenRecorded(['process-table-recording'], 'HephaestusLock.acquire', () =
 
     writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 5), JSON.stringify(deadRecord()));
     expect(HephaestusLock.newestOf(ports, hephaestusDirectory)).toEqual({ verdict: 'dead', generation: 5, record: deadRecord() });
-    const deadTakenOver = { reason: `the process ${process.pid} it names is gone` };
+    const deadTakenOver = { reason: { kind: 'holder-gone' as const, processId: process.pid } };
     expect(HephaestusLock.acquire(ports, hephaestusDirectory, liveRecord())).toMatchObject({ verdict: 'acquired', generation: 6, staleTakenOver: deadTakenOver });
     expect(JSON.parse(readFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 6), 'utf8'))).toEqual({ version: HEPHAESTUS_LOCK_FORMAT_VERSION, ...liveRecord() });
   });

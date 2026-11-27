@@ -75,6 +75,7 @@ import { MergeRun }                                            from '../lifecycl
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
 import type { BoardStore }                                     from '../store/BoardStore.ts';
 import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
+import type { LockTaker }                                      from '../tracker/GenerationLock.ts';
 import { lockTakerOf }                                         from '../tracker/LockHolders.ts';
 import { projectLocationOf }                                   from '../tracker/ProjectLocation.ts';
 import { registeredRepositoryRootsIn }                         from '../tracker/RegisteredRepositoryRoots.ts';
@@ -316,6 +317,8 @@ export interface DrivePassRequest {
   setupMessageWordingOf:         (message: SetupMessage) => string;
   homeDirectory:                 string;
   log:                           (line: string) => void;
+  /** Where a stale landing lock record the pass took over goes, so the caller words it into its log. */
+  onStaleLockTakenOver:          LockTaker['onStaleTakenOver'];
   /** The pass stops acting at once; the caller ends Hephaestus `hephaestus-lock-taken`. */
   onHephaestusLockTakenOver:     (refusal: unknown) => void;
   /** A pass threw what no abandoned pass names: the caller runs the crash path and ends Hephaestus `crashed`; no pass runs after it. */
@@ -1362,7 +1365,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   // Read once for Hephaestus's life: a project moved in its repository moves only while no Hephaestus runs.
   const projectLocation = projectLocationOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
-  const landingLockTaker = lockTakerOf(platformPorts.processSupervision, request.log);
+  const landingLockTaker = lockTakerOf(platformPorts.processSupervision, request.onStaleLockTakenOver);
   const sharedRepository = projectLocation.projectPrefix === ''
     ? null
     : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, landingLockTaker);

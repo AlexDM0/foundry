@@ -6,13 +6,13 @@ export function specLockHolder(): LockHolder {
   return { processId: process.pid, startStamp: null, bootIdentity: null };
 }
 
-/** A spec that reads what was logged passes its own `log`. */
-export function lockTakerJudgingHoldersBy(holderIsGone: LockHolderIsGone, log: (line: string) => void = () => {}): LockTaker {
-  return { holderOfThisProcess: specLockHolder, holderIsGone, log };
+/** A spec that reads what was taken over passes its own `onStaleTakenOver`. */
+export function lockTakerJudgingHoldersBy(holderIsGone: LockHolderIsGone, onStaleTakenOver: LockTaker['onStaleTakenOver'] = () => {}): LockTaker {
+  return { holderOfThisProcess: specLockHolder, holderIsGone, onStaleTakenOver };
 }
 
 /** Every holder it finds reads as alive, so only a released record frees the lock. */
-export const LIVE_HOLDERS_LOCK_TAKER: LockTaker = Object.freeze({ holderOfThisProcess: specLockHolder, holderIsGone: () => false, log: () => {} });
+export const LIVE_HOLDERS_LOCK_TAKER: LockTaker = Object.freeze({ holderOfThisProcess: specLockHolder, holderIsGone: () => false, onStaleTakenOver: () => {} });
 
 /** Every holder it finds reads as gone, as a platform that misjudged a running holder would. */
-export const GONE_HOLDERS_LOCK_TAKER: LockTaker = Object.freeze({ holderOfThisProcess: specLockHolder, holderIsGone: () => true, log: () => {} });
+export const GONE_HOLDERS_LOCK_TAKER: LockTaker = Object.freeze({ holderOfThisProcess: specLockHolder, holderIsGone: () => true, onStaleTakenOver: () => {} });

@@ -1,10 +1,12 @@
 /**
  * `stop`, answered in this process: it finds nothing to do with no Hephaestus live or, over a fake process table, never reports a clean stop
  * after an end that skipped Hephaestus's own stop, and repairs only once the process is gone, also when an earlier close was refused and left
- * a dead Hephaestus lock; a live one whose lock has no version, as older code wrote, is still ended. The stop waits of a stopping
+ * a dead Hephaestus lock; a live one whose lock has no version, as older code wrote, is still ended, and one whose lock cannot be read keeps
+ * that lock for the next start to take over, so a Hephaestus still driving under it finds its generation taken. The stop waits of a stopping
  * Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past what Windows gives. The registry's
  * presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and a release `handed-over`, each
- * also in the registry, the handover's ending written before the crash path lets go of the generation.
+ * also in the registry, the handover's ending written before the crash path lets go of the generation. A stale store lock record the close
+ * takes over is logged in the Hephaestus log.
  */
 import {
   existsSync,
@@ -21,12 +23,14 @@ import {
   test
 } from 'bun:test';
 
+import { GENERATION_RECORD_FORMAT_VERSION }                                         from '../../src/adapters/generation-record/GenerationRecordIngestion.ts';
 import { createHephaestusLockWriter }                                               from '../../src/adapters/hephaestus-lock/HephaestusLockWriter.ts';
 import type { PlatformPorts }                                                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessStopStage }                                                    from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { hephaestusFilesIn }                                                        from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                                           from '../../src/services/hephaestus/HephaestusLock.ts';
 import { Presence }                                                                 from '../../src/services/hephaestus/Presence.ts';
+import { localStoreLayoutOf }                                                       from '../../src/services/tracker/LocalStoreLayout.ts';
 import { registerWithTheMonitor }                                                   from '../../src/services/tracker/MonitorRegistration.ts';
 import { withLock }                                                                 from '../../src/services/tracker/TrackerLock.ts';
 import { requireWorkspace }                                                         from '../../src/services/tracker/Workspace.ts';
@@ -347,6 +351,34 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(stopped.outputText()).not.toContain('nothing to stop');
     expect(HephaestusLock.newestOf(goneAtOnce, wedged.hephaestusDirectory).verdict).toBe('none');
   });
+
+  test('a newest Hephaestus lock that cannot be read is left in place, so the next start takes it over as a newer generation', async () => {
+    const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    const unreadableGeneration = 7;
+    const ownIdentity = processTable.callerProcess();
+    mkdirSync(hephaestusDirectory, { recursive: true });
+    writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, unreadableGeneration), '{ not a Hephaestus lock');
+    const stopped = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'unreadable-lock-home'), temporaryDirectories: [], platformPorts: processTable.ports
+    });
+
+    expect(await runCommandLine(['stop'], stopped), stopped.errorText()).toBe(0);
+
+    expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+    expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([unreadableGeneration]);
+    const successor = HephaestusLock.acquire(processTable.ports, hephaestusDirectory, {
+      processId:            ownIdentity.processId,
+      processStartStamp:    ownIdentity.startStamp,
+      bootIdentity:         ownIdentity.bootIdentity,
+      port:                 2,
+      url:                  SUCCESSOR_URL,
+      tokenFile:            join(hephaestusDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
+    });
+    expect(successor).toMatchObject({ verdict: 'acquired', generation: unreadableGeneration + 1, staleTakenOver: { reason: { kind: 'unreadable' } } });
+  });
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded stop waits', () => {
@@ -390,7 +422,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
       { name: 'the drive pass', run: () => new Promise<void>(() => undefined) },
       { name: 'the server stop', run: async () => { laterWaitsStarted.push('the server stop'); } },
     ], (line) => logLines.push(line), SHORT_STOP_WAIT_MILLISECONDS);
-    await closeTheStoppedHephaestus(request, hephaestusFilesIn(request.workspace.trackerDirectory), generation);
+    await closeTheStoppedHephaestus(request, hephaestusFilesIn(request.workspace.trackerDirectory), { generation, releaseLock: true });
 
     expect(performance.now() - startedAt).toBeLessThan(SHORT_STOP_WAIT_MILLISECONDS + ONE_SECOND_MILLISECONDS);
     expect(logLines).toEqual([`The stop went on without the drive pass, which did not end within ${SHORT_STOP_WAIT_MILLISECONDS} ms.`]);
@@ -422,13 +454,32 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {})[0]?.presence;
   }
 
+  test('a stale store lock record the close of a stop takes over is logged in the Hephaestus log', async () => {
+    const goneHolder = { processId: WEDGED_PROCESS_ID, startStamp: '2', bootIdentity: 'example-boot' };
+    const platformPorts: PlatformPorts = {
+      ...processTable.ports,
+      processSupervision: { ...processTable.ports.processSupervision, processIsGone: (processId) => processId === goneHolder.processId },
+    };
+    const { generation } = plantOwnHephaestusLock(platformPorts);
+    const request = stopRequestIn(platformPorts);
+    const recordPath = join(localStoreLayoutOf(request.workspace).storeLockFolder, 'generation-99');
+    writeFileSync(recordPath, JSON.stringify({
+      version: GENERATION_RECORD_FORMAT_VERSION, holder: goneHolder, acquiredAt: '2026-09-18T20:00:00+00:00', state: 'held'
+    }));
+    const files = hephaestusFilesIn(request.workspace.trackerDirectory);
+
+    await closeTheStoppedHephaestus(request, files, { generation, releaseLock: true });
+
+    expect(readFileSync(files.logFilePath, 'utf8')).toContain(`The lock record ${recordPath} was stale and is taken over: the process ${goneHolder.processId} it names is gone.`);
+  });
+
   test('a stop writes the presence ending stopped and the registry presence stopped, then releases the Hephaestus lock', async () => {
     const platformPorts = processTable.ports;
     const { hephaestusDirectory, generation } = plantOwnHephaestusLock(platformPorts);
     writeOwnPresence(generation);
     const request = stopRequestIn(platformPorts);
 
-    await closeTheStoppedHephaestus(request, hephaestusFilesIn(request.workspace.trackerDirectory), generation);
+    await closeTheStoppedHephaestus(request, hephaestusFilesIn(request.workspace.trackerDirectory), { generation, releaseLock: true });
 
     expect(storedEnding()).toEqual({ kind: 'stopped', at: expect.any(String) as unknown });
     expect(registeredPresenceUnder(request)).toEqual({ state: 'stopped', generation, at: expect.any(String) as unknown });

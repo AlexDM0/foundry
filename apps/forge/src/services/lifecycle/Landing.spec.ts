@@ -38,7 +38,7 @@ import {
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { loadedRecordFixture }                                      from '../../testing/TicketDocumentRecordFixtures.ts';
 import { describeWhenGitIsRecorded }                                from '../../testing/ToolGuard.ts';
-import { LockGenerationSteps }                                      from '../tracker/GenerationLock.ts';
+import { LockGenerationSteps, type StaleLockRecordTakenOver }       from '../tracker/GenerationLock.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
 
 const MAIN_TIP = '1'.repeat(40);
@@ -277,9 +277,9 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     mkdirSync(files.lockDirectoryPath, { recursive: true });
     const recordPath = LockGenerationSteps.generationPathFor(files.lockDirectoryPath, 1);
     writeFileSync(recordPath, '{"state": "held", "hol');
-    const loggedLines: string[] = [];
+    const takenOver: StaleLockRecordTakenOver[] = [];
     const sharedRepository = {
-      trackerId: 'tracker-example', files, now, lockTaker: lockTakerJudgingHoldersBy(() => false, (line) => loggedLines.push(line))
+      trackerId: 'tracker-example', files, now, lockTaker: lockTakerJudgingHoldersBy(() => false, (staleTakenOver) => takenOver.push(staleTakenOver))
     };
     const alreadyLandedRerun: RecordedGitStage = [
       ...onBranch('main'),
@@ -288,7 +288,7 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     ];
 
     expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
-    expect(loggedLines).toEqual([expect.stringContaining(`The lock record ${recordPath} was stale and is taken over: it could not be read (`)]);
+    expect(takenOver).toEqual([{ recordPath, reason: { kind: 'unreadable', reason: expect.any(String) as unknown as string } }]);
   });
 
   test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {

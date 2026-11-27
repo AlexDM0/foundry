@@ -1044,10 +1044,11 @@ text not found exactly once fails the build. Home: [Guards and testing](developm
 
 ### stale lock
 
-A held lock record whose process is gone, or whose process id now names another process: its start stamp or boot differs
-from the one the record names. The next taker takes it over. Its age frees nothing: a live holder keeps the lock however
-long it holds, and where the platform cannot read a process's identity the holder reads as alive. If a platform misjudges a
-running holder as gone, the [fence](#fence) stops that holder's writes.
+A lock or slot record whose process is gone, or whose process id now names another process (its start stamp or boot
+differs from the one the record names), or that cannot be read at all. The next taker takes it over and logs one line.
+Its age frees nothing: a live holder keeps the lock however long it holds, and where the platform cannot read a
+process's identity the holder reads as alive. If a platform misjudges a running holder as gone, the [fence](#fence)
+stops that holder's writes.
 
 ### standing reply
 

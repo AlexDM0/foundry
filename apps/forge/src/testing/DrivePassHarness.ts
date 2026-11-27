@@ -104,6 +104,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     homeDirectory:                request.monitorFolder,
     branchNames:                  branchNamesOf(null),
     unreadableBoardFiles:         createUnreadableBoardFiles(request.log),
+    onStaleLockTakenOver:         () => {},
     onHephaestusLockTakenOver:    () => request.log('taken over'),
     onPassCrashed:                () => {
       request.log('crashed');
