@@ -10,16 +10,18 @@ import {
   test
 } from 'bun:test';
 
-import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET, WIND_DOWN_GRACE_CALLS }      from '../../shared/constants/HephaestusLimits.ts';
-import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
-import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
-import { jobFolderIn }                                                from './HephaestusFiles.ts';
-import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { RedHandoff }                                                 from './RedHandoff.ts';
-import { keptRedHandoffOf }                                           from './testing/KeptRedHandoff.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET, WIND_DOWN_GRACE_CALLS }  from '../../shared/constants/HephaestusLimits.ts';
+import { boardFixture, ticketFixture }                            from '../../testing/BoardFixtures.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import type { BoardTransaction }                                  from '../tracker/BoardTransaction.ts';
+import type { BuildJobObservation }                               from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                                  from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                           from './BuildJobPass.ts';
+import { jobFolderIn }                                            from './HephaestusFiles.ts';
+import { RedHandoff }                                             from './RedHandoff.ts';
+import { keptRedHandoffOf }                                       from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 
@@ -71,7 +73,7 @@ function resumedScene(): ResumedScene {
   const context = { workspace: { rootDirectory, trackerDirectory }, log: () => undefined } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as BoardTransaction;
   const observe = (overrides: Partial<BuildJobObservation>): void => {
-    JobLaunch.applyBuildJobObservations(change, context, [{
+    BuildJobPass.applyBuildJobObservations(change, context, [{
       jobId:            job.id,
       setup:            'installed',
       installStepRuns:  [],

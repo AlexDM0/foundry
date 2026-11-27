@@ -17,9 +17,13 @@ import type { RecordedGit }                                                     
 import { launchSnapshotOf }                                                                from '../../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                                                           from '../../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                     from '../../tracker/LocalRecordAllocation.ts';
+import type { JobLaunchContext }                                                           from '../@types/JobLaunchContext.ts';
+import { BuildJobPass }                                                                    from '../BuildJobPass.ts';
 import { jobFolderIn }                                                                     from '../HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                                                from '../JobLaunch.ts';
+import { JobGateRuns }                                                                     from '../JobGateRuns.ts';
+import { JobLaunch }                                                                       from '../JobLaunch.ts';
 import { RedHandoff }                                                                      from '../RedHandoff.ts';
+import { WorktreeJobs }                                                                    from '../WorktreeJobs.ts';
 
 const OBJECT_ID_LENGTH = 40;
 
@@ -61,7 +65,7 @@ export interface StageRunEnding {
   readonly whereTheJobWent: string;
 }
 
-type GateObservation = Parameters<typeof JobLaunch.applyBuildJobObservations>[2][number]['gate'];
+type GateObservation = Parameters<typeof BuildJobPass.applyBuildJobObservations>[2][number]['gate'];
 
 /** Each commit placeholder of the scenario as an object id of its own. */
 function commitsOf(scenario: EntityForgeScenario): Record<string, string> {
@@ -154,7 +158,7 @@ function writeJobStart(place: CrossingStagePlace, job: Readonly<Job>, jobFolder:
   const jobStart = {
     startCommit,
     contentHashAtLaunch: ticketOf(place)?.frontmatter.contentHash ?? '',
-    launchSnapshot:      launchSnapshotOf(JobLaunch.worktreeOf(place.context.workspace, job)),
+    launchSnapshot:      launchSnapshotOf(WorktreeJobs.worktreeOf(place.context.workspace, job)),
     ...JobLaunch.packageBuildStartOf(place.board, job),
   };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
@@ -168,7 +172,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   const { board, context, at } = place;
   const commits = commitsOf(run.scenario);
   place.enterScenario(run.scenario, { repositoryDirectory: place.repository, commits });
-  mkdirSync(JobLaunch.worktreeOf(context.workspace, job), { recursive: true });
+  mkdirSync(WorktreeJobs.worktreeOf(context.workspace, job), { recursive: true });
   const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   writeEarlierRedHandoffs(jobFolder, run);
@@ -176,19 +180,19 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   const change = {
     board, at, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction;
-  JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, null, { verdict: 'pending' })]);
+  BuildJobPass.applyBuildJobObservations(change, context, [observationOf(job.id, null, { verdict: 'pending' })]);
   for (const state of ['running', 'in-customs'] as const) board.moveJob(job.id, state, at);
-  const report = run.reportOf(GitProcess.resolvedCommitOf(JobLaunch.worktreeOf(context.workspace, job), 'HEAD') ?? '');
-  JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, report, { verdict: 'pending' })]);
+  const report = run.reportOf(GitProcess.resolvedCommitOf(WorktreeJobs.worktreeOf(context.workspace, job), 'HEAD') ?? '');
+  BuildJobPass.applyBuildJobObservations(change, context, [observationOf(job.id, report, { verdict: 'pending' })]);
   const pipeline = board.pipeline();
   if (board.jobById(job.id)?.state === 'gating' && pipeline !== null) {
-    const manifest = JobLaunch.manifestOf(pipeline, job, job.kind === 'review' ? 'review' : 'build', JobLaunch.packageBuildStartOf(place.board, job));
+    const manifest = JobGateRuns.manifestOf(pipeline, job, job.kind === 'review' ? 'review' : 'build', JobLaunch.packageBuildStartOf(place.board, job));
     const verdict = run.redGate === undefined
       ? { outcome: 'passed' as const, step: null, output: '' }
       : {
         outcome: 'failed' as const, step: run.redGate, output: 'Example red gate.', exitCode: 1
       };
-    JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, report, {
+    BuildJobPass.applyBuildJobObservations(change, context, [observationOf(job.id, report, {
       verdict: 'judged', treeId: place.gatedTreeId, ...verdict, ran: true, manifest, cacheReports: [], stepRuns: []
     })]);
   }

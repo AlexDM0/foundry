@@ -9,15 +9,17 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 import { afterEach, expect, test }  from 'bun:test';
 
-import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
-import type { Pipeline }                                              from '../../domain/tracker-model/@types/Pipeline.ts';
-import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
-import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
-import { jobFolderIn }                                                from './HephaestusFiles.ts';
-import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { UnreadableJobFileIncident }                                  from './UnreadableJobFileIncident.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
+import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import type { BuildJobObservation }                       from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                          from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                   from './BuildJobPass.ts';
+import { jobFolderIn }                                    from './HephaestusFiles.ts';
+import { UnreadableJobFileIncident }                      from './UnreadableJobFileIncident.ts';
 
 const AT = '2026-11-26T10:00:00+01:00';
 const NEXT_PASS_AT = '2026-11-26T10:00:30+01:00';
@@ -96,7 +98,7 @@ function observationOf(scene: UnreadableFileScene, reading: Partial<BuildJobObse
 }
 
 function applyPass(scene: UnreadableFileScene, observation: BuildJobObservation, at = AT): void {
-  JobLaunch.applyBuildJobObservations({ board: scene.board, at } as unknown as BoardTransaction, scene.context, [observation]);
+  BuildJobPass.applyBuildJobObservations({ board: scene.board, at } as unknown as BoardTransaction, scene.context, [observation]);
 }
 
 /** The facts a field of the wrong shape opens its incident with: the field and what it must hold, stored as text. */
@@ -174,7 +176,7 @@ test('a reading of the observation that met an unreadable file opens its inciden
 
   expect(unreadableFileIncidentsOf(scene.board)).toEqual([[scene.job.id, { file: gate.file, problem: 'not-a-json-object' }]]);
   expect(scene.board.jobById(scene.job.id)?.state).toBe('gating');
-  expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observationOf(scene, { gate })])).toBe(false);
+  expect(BuildJobPass.someBuildJobAwaitsAPass(scene.board, [observationOf(scene, { gate })])).toBe(false);
 });
 
 test('a job whose own red handoff facts cannot be read takes no step on its calls: it is neither stopped nor wound down past any budget', () => {

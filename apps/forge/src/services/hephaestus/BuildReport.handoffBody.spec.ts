@@ -4,7 +4,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import { JobLaunch } from './JobLaunch.ts';
+import { BuildReport } from './BuildReport.ts';
 
 const HANDOFF_SECTION = '## Handoff\n\nExample handoff by Alex Example.\n';
 const BODY_WITH_HANDOFF = '## Report\nExample report.\n\n## Handoff\nThe filing guidance.\n\n## Review 1\nExample review.\n';
@@ -15,18 +15,18 @@ function crlfOf(text: string): string {
 }
 
 test('an LF body with a Handoff gets it replaced and keeps the sections after it', () => {
-  expect(JobLaunch.bodyWithHandoffOf(BODY_WITH_HANDOFF, HANDOFF_SECTION))
+  expect(BuildReport.bodyWithHandoffOf(BODY_WITH_HANDOFF, HANDOFF_SECTION))
     .toBe('## Report\nExample report.\n\n## Handoff\n\nExample handoff by Alex Example.\n\n## Review 1\nExample review.\n');
 });
 
 test('a CRLF body with a Handoff gets one Handoff, in CRLF on every line', () => {
-  const written = JobLaunch.bodyWithHandoffOf(crlfOf(BODY_WITH_HANDOFF), HANDOFF_SECTION);
+  const written = BuildReport.bodyWithHandoffOf(crlfOf(BODY_WITH_HANDOFF), HANDOFF_SECTION);
 
   expect(written).toBe(crlfOf('## Report\nExample report.\n\n## Handoff\n\nExample handoff by Alex Example.\n\n## Review 1\nExample review.\n'));
   expect(written.match(/## Handoff/g)).toHaveLength(1);
 });
 
 test('a CRLF body without a Handoff gets one appended in CRLF', () => {
-  expect(JobLaunch.bodyWithHandoffOf(crlfOf(BODY_WITHOUT_HANDOFF), HANDOFF_SECTION))
+  expect(BuildReport.bodyWithHandoffOf(crlfOf(BODY_WITHOUT_HANDOFF), HANDOFF_SECTION))
     .toBe(crlfOf('## Report\nExample report.\n\n## Handoff\n\nExample handoff by Alex Example.\n'));
 });

@@ -53,11 +53,13 @@ import { createScratchDirectory, removeScratchDirectory }                       
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                    from '../tracker/LocalRecordAllocation.ts';
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
+import type { JobLaunchContext }                                                          from './@types/JobLaunchContext.ts';
 import { CrossingStages }                                                                 from './CrossingStages.ts';
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { jobFolderIn }                                                                    from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
+import { JobPreparation }                                                                 from './JobPreparation.ts';
 import { type NeedsSettledFacts, NeedTickets }                                            from './NeedTickets.ts';
+import { WorktreeJobs }                                                                   from './WorktreeJobs.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
 const { SHOP, ADMIN, UI_KIT } = ENTITY_FORGE_ENTITIES;
@@ -284,12 +286,12 @@ describe('work-in-other-entity, answered', () => {
     const context = {
       workspace, branchNames: BRANCH_NAMES, mainLine: ENTITY_FORGE_MAIN_LINE, log: () => undefined, platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
     } as unknown as JobLaunchContext;
-    const worktree = JobLaunch.worktreeOf(workspace, job);
+    const worktree = WorktreeJobs.worktreeOf(workspace, job);
     mkdirSync(worktree, { recursive: true });
     const jobFolder = jobFolderIn(workspace.trackerDirectory, job.id);
 
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
 
     expect(gitCalls).toEqual([['worktree', 'remove', '--force', worktree], ['rev-parse', `refs/heads/${SHOP_BRANCH}`], ['branch', '-D', SHOP_BRANCH]]);
   });
@@ -301,7 +303,7 @@ describe('work-in-other-entity, answered', () => {
     const job = shopJobOf(forge.board);
     const context = { workspace: forge.change.workspace, branchNames: BRANCH_NAMES } as unknown as JobLaunchContext;
 
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolderIn(forge.change.workspace.trackerDirectory, job.id));
+    JobPreparation.startAfreshInTheNewEntity(context, forge.board, job, jobFolderIn(forge.change.workspace.trackerDirectory, job.id));
 
     expect(gitCalls).toEqual([]);
   });

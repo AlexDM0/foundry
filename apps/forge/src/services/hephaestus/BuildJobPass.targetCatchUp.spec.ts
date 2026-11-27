@@ -48,9 +48,12 @@ import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../tes
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
 import type { BoardTransaction }                                 from '../tracker/BoardTransaction.ts';
+import type { JobLaunchContext }                                 from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                          from './BuildJobPass.ts';
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { jobFolderIn }                                           from './HephaestusFiles.ts';
-import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
+import { TargetCatchUps }                                        from './TargetCatchUps.ts';
+import { BUILD_JOB_CAUSES }                                      from './constants/BuildJobCauses.ts';
 import { keptRedHandoffOf }                                      from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
@@ -173,9 +176,9 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as BoardTransaction;
   const pass = async (): Promise<void> => {
-    const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
-    JobLaunch.applyBuildJobObservations(change, context, observations);
-    await JobLaunch.runBuildJobEffects(context, board, observations);
+    const observations = BuildJobPass.observeBuildJobs(context, board.jobs(), board.pipeline());
+    BuildJobPass.applyBuildJobObservations(change, context, observations);
+    await BuildJobPass.runBuildJobEffects(context, board, observations);
   };
   return {
     board,
@@ -284,7 +287,7 @@ testWhenGitIsRecorded('a branch behind the target gets the tip merged in by a li
 testWhenGitIsRecorded('after a clean merge the reviewer starts only once the gates on the merged tree are green', async () => {
   const scene = await cleanlyMergedScene();
   expect(scene.reviewJob()?.state).toBe('preparing');
-  expect(JobLaunch.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
+  expect(BuildJobPass.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
   expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'target-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'build' });
 
   endLine(join(scene.jobFolder(), 'target-gate-1'), 0);
@@ -304,10 +307,10 @@ testWhenGitIsRecorded('a red gate on the merged tree sends the builder the red h
   expect(keptRedHandoffOf(scene.jobFolder())).toMatchObject({
     kind: 'gate', name: 'tests', command: 'bun test', exitCode: 1
   });
-  expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
+  expect(TargetCatchUps.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toMatchObject({ kind: 'gate-red' });
 
   writeFileSync(join(scene.jobFolder(), 'red-handoff.json'), '{"kind": ');
-  const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
+  const handover = TargetCatchUps.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
   expect(handover).toMatchObject({ verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/red-handoff.json` });
 });
 
@@ -330,13 +333,13 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   expect(reviewEnding).toMatchObject({ fields: { outcome: 'does-not-hold', cause: BUILD_JOB_CAUSES.targetConflict } });
   expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
   expect(handoffCycleResumes(scene)).toBe(1);
-  const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
+  const handover = TargetCatchUps.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
   expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
 
   writeFileSync(join(scene.jobFolder(), 'target-conflict.json'), `${JSON.stringify({ targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] })}\n`);
   const versionDiffers = { code: 'version-differs', field: 'version', expectedVersion: 1 } as const;
   const unreadable = { verdict: 'unreadable-file', file: `jobs/${scene.reviewJobId}/target-conflict.json`, problem: versionDiffers } as const;
-  expect(JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toEqual(unreadable);
+  expect(TargetCatchUps.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001')).toEqual(unreadable);
 });
 
 testWhenGitIsRecorded('a merge record that cannot be read is never settled or merged again: the review waits on the record\'s incident', async () => {

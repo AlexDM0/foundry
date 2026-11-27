@@ -64,12 +64,16 @@ import { createScratchDirectory, removeScratchDirectory }   from '../../testing/
 import { talosChildReadingsWith }                           from '../../testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
 import { sealOf }                                           from '../lifecycle/CustomsScopeCheck.ts';
+import type { JobLaunchContext }                            from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                     from './BuildJobPass.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
 import { DependentFixTickets }                              from './DependentFixTickets.ts';
 import { EntityDecisionAnswers }                            from './EntityDecisionAnswers.ts';
 import { jobFolderIn }                                      from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                 from './JobLaunch.ts';
+import { JobGateRuns }                                      from './JobGateRuns.ts';
+import { JobLaunch }                                        from './JobLaunch.ts';
 import { RedHandoff }                                       from './RedHandoff.ts';
+import { WorktreeJobs }                                     from './WorktreeJobs.ts';
 import {
   CrossingStageRun,
   type CrossingStagePlace,
@@ -161,7 +165,7 @@ function restartOf(ticket: CrossingTicket, job: Readonly<Job>): string {
 }
 
 function ticketWorktreeOf(ticket: CrossingTicket): string {
-  return JobLaunch.worktreeOf(ticket.context.workspace, { ticketIds: [SHOP_TICKET.id] } as unknown as Job);
+  return WorktreeJobs.worktreeOf(ticket.context.workspace, { ticketIds: [SHOP_TICKET.id] } as unknown as Job);
 }
 
 const SHOP_BUILD: StageJob     = { kind: 'build', entity: SHOP.key, stage: 1 };
@@ -231,7 +235,7 @@ describeWhenGitIsRecorded('stage 1 with the proposal, whose home gate is red', (
     const { job, whereTheJobWent } = runStage(ticket, SHOP_BUILD, run);
 
     expect(whereTheJobWent).toBe('interrupted: verify');
-    expect(JobLaunch.manifestOf(CROSSING_PIPELINE, job, 'build', {})?.gates.map((gate) => gate.name)).toEqual(['verify']);
+    expect(JobGateRuns.manifestOf(CROSSING_PIPELINE, job, 'build', {})?.gates.map((gate) => gate.name)).toEqual(['verify']);
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toBeNull();
     expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id, instructed: false }]);
     expect(ticket.board.jobs().filter((launched) => launched.entity === UI_KIT.key)).toEqual([]);
@@ -291,13 +295,13 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
 
   test('runs the package\'s gates, then those of its dependents but the home, each from its own home (E25, E26)', () => {
     const job = { entity: UI_KIT.key, stage: 2 } as unknown as Job;
-    const manifest = JobLaunch.manifestOf(CROSSING_PIPELINE, job, 'build', { homeEntity: SHOP.key });
+    const manifest = JobGateRuns.manifestOf(CROSSING_PIPELINE, job, 'build', { homeEntity: SHOP.key });
 
     expect(manifest?.gates.map((gate) => gate.name)).toEqual(['verify', `${ADMIN.key}: verify`]);
     expect(Object.keys(manifest?.entityPhaseHashes ?? {}).sort()).toEqual([ADMIN.key, UI_KIT.key].sort());
     // A dependent's step names its entity, so its run time is kept by that entity, not the package's.
     expect(manifest?.gates.map((gate) => gate.entity ?? null)).toEqual([null, ADMIN.key]);
-    expect(JobLaunch.manifestOf(CROSSING_PIPELINE, { entity: UI_KIT.key, stage: 3 } as unknown as Job, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name))
+    expect(JobGateRuns.manifestOf(CROSSING_PIPELINE, { entity: UI_KIT.key, stage: 3 } as unknown as Job, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name))
       .toEqual(['verify']);
   });
 
@@ -342,9 +346,9 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
   test('of a grouped ticket leaves out the gates of the dependents whose fix tickets are in its group: the group\'s release runs them (E26)', () => {
     const packageBuild = { entity: UI_KIT.key, stage: 2 } as unknown as Job;
 
-    expect(JobLaunch.manifestOf(CROSSING_PIPELINE, packageBuild, 'build', { homeEntity: SHOP.key, dependentsFixedInGroup: [ADMIN.key] })?.gates.map((gate) => gate.name))
+    expect(JobGateRuns.manifestOf(CROSSING_PIPELINE, packageBuild, 'build', { homeEntity: SHOP.key, dependentsFixedInGroup: [ADMIN.key] })?.gates.map((gate) => gate.name))
       .toEqual(['verify']);
-    expect(JobLaunch.manifestOf(CROSSING_PIPELINE, packageBuild, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name))
+    expect(JobGateRuns.manifestOf(CROSSING_PIPELINE, packageBuild, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name))
       .toEqual(['verify', `${ADMIN.key}: verify`]);
   });
 
@@ -378,7 +382,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
       kind: 'build', role: 'builder', ticketIds: [SHOP_TICKET.id], parentJobId: null, attempt: 2, target: ENTITY_FORGE_MAIN_LINE, entity: UI_KIT.key, stage: 2
     }, AT);
     enterScenario(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, { repositoryDirectory: ticket.repository, commits: commitsOf(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT) });
-    mkdirSync(JobLaunch.worktreeOf(ticket.context.workspace, job), { recursive: true });
+    mkdirSync(WorktreeJobs.worktreeOf(ticket.context.workspace, job), { recursive: true });
     const jobFolder = jobFolderIn(ticket.context.workspace.trackerDirectory, job.id);
 
     JobLaunch.recordJobStart(ticket.context, ticket.board, job);
@@ -386,7 +390,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
 
     const headTree = { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_AN_EMPTY_COMMIT };
     const gating = { ...job, state: 'gating', childInstance: 1 } as Job;
-    await playStage([headTree], () => Promise.resolve(JobLaunch.observeBuildJobs(ticket.context, [gating], CROSSING_PIPELINE)));
+    await playStage([headTree], () => Promise.resolve(BuildJobPass.observeBuildJobs(ticket.context, [gating], CROSSING_PIPELINE)));
     const manifest = JSON.parse(readFileSync(join(jobFolder, 'gate-run.json'), 'utf8')) as { gates: { name: string }[] };
     expect(manifest.gates.map((gate) => gate.name)).toEqual(['verify']);
   });
@@ -647,8 +651,8 @@ describeWhenGitIsRecorded('a package without gates (E27)', () => {
     const packageBuild = { entity: UI_KIT.key, stage: 2 } as unknown as Job;
     const packageReview = { entity: UI_KIT.key, stage: 3 } as unknown as Job;
 
-    expect(JobLaunch.manifestOf(PACKAGE_WITHOUT_GATES, packageBuild, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name)).toEqual([`${ADMIN.key}: verify`]);
-    expect(JobLaunch.manifestOf(PACKAGE_WITHOUT_GATES, packageReview, 'review', { homeEntity: SHOP.key })?.gates).toEqual([]);
+    expect(JobGateRuns.manifestOf(PACKAGE_WITHOUT_GATES, packageBuild, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name)).toEqual([`${ADMIN.key}: verify`]);
+    expect(JobGateRuns.manifestOf(PACKAGE_WITHOUT_GATES, packageReview, 'review', { homeEntity: SHOP.key })?.gates).toEqual([]);
   });
 
   test('E27: the package build and the package review settle with no gate of the package, and the review seals the change', () => {

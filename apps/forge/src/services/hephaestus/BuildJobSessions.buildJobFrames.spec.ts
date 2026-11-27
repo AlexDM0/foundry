@@ -24,8 +24,8 @@ import { nativePlatformPorts }                                             from 
 import { PlantedChild }                                                    from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }                  from '../../testing/ScratchWorkspace.ts';
 import { sentActLinesOf }                                                  from '../../testing/SentActLines.ts';
+import { type BuildJobFrameRequest, BuildJobSessions }                     from './BuildJobSessions.ts';
 import { jobFolderIn }                                                     from './HephaestusFiles.ts';
-import { type BuildJobFrameRequest, JobLaunch }                            from './JobLaunch.ts';
 import { RedHandoff }                                                      from './RedHandoff.ts';
 
 function buildJob(overrides: Partial<Job> = {}): Job {
@@ -101,12 +101,12 @@ describe('a build job\'s frames to its session', () => {
     plantLiveSession(job);
     const markerPath = join(jobFolderIn(trackerDirectory, job.id), marker);
     talos.answers(false);
-    await JobLaunch.deliverBuildJobFrames(request, job, 0);
+    await BuildJobSessions.deliverBuildJobFrames(request, job, 0);
     talos.answers(true);
     const markedWhileRefusing = existsSync(markerPath);
     const frames = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(request, job, 0);
-      await JobLaunch.deliverBuildJobFrames(request, job, 0);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, 0);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, 0);
     });
     return { markedWhileRefusing, frames, marked: existsSync(markerPath) };
   }
@@ -126,10 +126,10 @@ describe('a build job\'s frames to its session', () => {
     plantLiveSession(job);
     const calls = DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
     talos.answers(false);
-    await JobLaunch.deliverBuildJobFrames(request, job, calls);
+    await BuildJobSessions.deliverBuildJobFrames(request, job, calls);
     talos.answers(true);
     const frames = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(request, job, calls);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, calls);
     });
     expect(frames).toEqual([JSON.stringify({ act: 'write-line', line: 'chat:Example wind-down' })]);
   });
@@ -141,8 +141,8 @@ describe('a build job\'s frames to its session', () => {
     writeFileSync(join(jobFolder, 'wind-down-sent'), '');
     plantLiveSession(job, 2);
     const frames = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(request, job, RED_HANDOFF_RESUME_CALL_BUDGET - 1);
-      await JobLaunch.deliverBuildJobFrames(request, job, RED_HANDOFF_RESUME_CALL_BUDGET);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, RED_HANDOFF_RESUME_CALL_BUDGET - 1);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, RED_HANDOFF_RESUME_CALL_BUDGET);
     });
     expect(frames).toEqual([JSON.stringify({ act: 'write-line', line: 'chat:Example wind-down' })]);
     expect(existsSync(join(jobFolder, 'wind-down-sent-2'))).toBe(true);
@@ -152,11 +152,11 @@ describe('a build job\'s frames to its session', () => {
     const job = buildJob({ state: 'stopping' });
     plantLiveSession(job);
     const beforeRestart = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(request, job, 0);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, 0);
     });
     const restartedRequest: BuildJobFrameRequest = { ...request };
     const afterRestart = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(restartedRequest, buildJob({ state: 'stopping' }), 0);
+      await BuildJobSessions.deliverBuildJobFrames(restartedRequest, buildJob({ state: 'stopping' }), 0);
     });
     expect([beforeRestart.length, afterRestart]).toEqual([1, []]);
   });
@@ -166,7 +166,7 @@ describe('a build job\'s frames to its session', () => {
     // A record that reads ended with no end is a child whose Talos was lost.
     PlantedChild.plantChildRecord({ boardFolder: trackerDirectory, childFolder: `jobs/${job.id}`, instance: 1 }, { state: 'ended', end: null });
     const frames = await framesSentWhile(async () => {
-      await JobLaunch.deliverBuildJobFrames(request, job, 0);
+      await BuildJobSessions.deliverBuildJobFrames(request, job, 0);
     });
     expect([frames, existsSync(join(jobFolderIn(trackerDirectory, job.id), 'stop-sent'))]).toEqual([[], false]);
   });

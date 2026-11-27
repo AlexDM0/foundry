@@ -13,19 +13,24 @@ import {
   test
 } from 'bun:test';
 
-import { SandboxRefusalIngestion }                                    from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
-import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
-import type { Pipeline }                                              from '../../domain/tracker-model/@types/Pipeline.ts';
-import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
-import type { SandboxDenyShape }                                      from '../../lib/agent-launch/WorkerProfile.ts';
-import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
-import { fakeAgentAdapter }                                           from '../../testing/FakeAgentAdapter.ts';
-import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { talosChildReadingsWith }                                     from '../../testing/TalosChildReadings.ts';
-import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
-import { jobFolderIn }                                                from './HephaestusFiles.ts';
-import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
+import { SandboxRefusalIngestion }                        from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
+import type { SandboxDenyShape }                          from '../../lib/agent-launch/WorkerProfile.ts';
+import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                         from '../../testing/TalosChildReadings.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import type { BuildJobObservation }                       from './@types/BuildJobObservation.ts';
+import type { JobLaunchContext }                          from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                   from './BuildJobPass.ts';
+import { jobFolderIn }                                    from './HephaestusFiles.ts';
+import { JobPreparation }                                 from './JobPreparation.ts';
+import { JobSandbox }                                     from './JobSandbox.ts';
+import { WorktreeJobs }                                   from './WorktreeJobs.ts';
 
 const AT = '2026-11-03T10:00:00+01:00';
 
@@ -59,7 +64,7 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
     agentAdapter:  { ...fakeAgentAdapter(), sandboxDenyShape },
     log:           () => undefined,
   } as unknown as JobLaunchContext;
-  const worktree = JobLaunch.worktreeOf(context.workspace, job);
+  const worktree = WorktreeJobs.worktreeOf(context.workspace, job);
   mkdirSync(worktree, { recursive: true });
   return {
     board, job, context, worktree
@@ -88,26 +93,26 @@ function observationOf(context: JobLaunchContext, job: Readonly<Job>): BuildJobO
 describe('the denied roots a launch makes', () => {
   test('under mount-points a worktree with no .claude folder gets one, and the launch goes on', () => {
     const scene = runningScene('mount-points');
-    expect(JobLaunch.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(false);
+    expect(JobSandbox.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(false);
     expect(existsSync(join(scene.worktree, '.claude'))).toBe(true);
     expect(observationOf(scene.context, scene.job).sandboxRefusal).toBeNull();
   });
 
   test('under path-rules nothing is made, since a rule denies an absent path', () => {
     const scene = runningScene('path-rules');
-    expect(JobLaunch.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(false);
+    expect(JobSandbox.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(false);
     expect(existsSync(join(scene.worktree, '.claude'))).toBe(false);
   });
 
   test('a .claude folder that cannot be made refuses the worker launch, and the hold opens sandbox-unavailable and ends the job', () => {
     const scene = runningScene('mount-points');
     symlinkSync(join(scene.worktree, 'example-missing', 'target'), join(scene.worktree, '.claude'));
-    expect(JobLaunch.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(true);
+    expect(JobSandbox.deniedRootRefusalRecorded(scene.context, scene.job, 'worker')).toBe(true);
     const observation = observationOf(scene.context, scene.job);
     const refusal = { step: 'worker', reason: `the denied folder ${join(scene.worktree, '.claude')} could not be made, so it would get no read-only mount` };
     expect(observation.sandboxRefusal).toEqual(refusal);
-    expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observation])).toBe(true);
-    JobLaunch.applyBuildJobObservations({ board: scene.board, at: AT } as unknown as BoardTransaction, scene.context, [observation]);
+    expect(BuildJobPass.someBuildJobAwaitsAPass(scene.board, [observation])).toBe(true);
+    BuildJobPass.applyBuildJobObservations({ board: scene.board, at: AT } as unknown as BoardTransaction, scene.context, [observation]);
     expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts])).toEqual([['sandbox-unavailable', refusal]]);
     expect(scene.board.jobById(scene.job.id)).toBeUndefined();
   });
@@ -133,7 +138,7 @@ describe('the denied roots a prepare step makes on a forge with entities', () =>
     const entityClaudeFolder = join(scene.worktree, 'apps', 'gaia', '.claude');
     mkdirSync(join(scene.worktree, 'apps', 'gaia'), { recursive: true });
     symlinkSync(join(scene.worktree, 'example-missing', 'target'), entityClaudeFolder);
-    await JobLaunch.spawnNextInstallStep(scene.context, scene.job, PIPELINE_WITH_ENTITIES);
+    await JobPreparation.spawnNextInstallStep(scene.context, scene.job, PIPELINE_WITH_ENTITIES);
     expect(existsSync(join(scene.worktree, '.claude'))).toBe(true);
     const reason = `the denied folder ${entityClaudeFolder} could not be made, so it would get no read-only mount`;
     expect(observationOf(scene.context, scene.job).sandboxRefusal).toEqual({ step: 'install', reason });

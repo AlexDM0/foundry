@@ -43,9 +43,13 @@ import { definitionFileMatcherOf }                           from '../lifecycle/
 import { launchSnapshotOf }                                  from '../lifecycle/CustomsLaunchSnapshot.ts';
 import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
+import type { JobLaunchContext }                             from './@types/JobLaunchContext.ts';
+import { AgentConfigHits }                                   from './AgentConfigHits.ts';
+import { BuildJobPass }                                      from './BuildJobPass.ts';
 import { jobFolderIn }                                       from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }                  from './JobLaunch.ts';
+import { JobPipelines }                                      from './JobPipelines.ts';
 import { RedHandoff }                                        from './RedHandoff.ts';
+import { WorktreeJobs }                                      from './WorktreeJobs.ts';
 import { keptRedHandoffOf }                                  from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-11-16T10:00:00+01:00';
@@ -101,7 +105,7 @@ function launchedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: stri
       context: ''
     }),
   } as unknown as JobLaunchContext;
-  const worktree = JobLaunch.worktreeOf(context.workspace, job);
+  const worktree = WorktreeJobs.worktreeOf(context.workspace, job);
   mkdirSync(worktree, { recursive: true });
   return {
     board, job, ticket, context, trackerDirectory, worktree
@@ -130,7 +134,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ version: JOB_START_FORMAT_VERSION, ...jobStart }));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({
+  BuildJobPass.applyBuildJobObservations({
     board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
@@ -186,13 +190,13 @@ testWhenGitIsRecorded('a tracker at its repository\'s root passes the same build
 testWhenGitIsRecorded('before a launch, a folder tracker\'s branch that committed .claude/ inside the project\'s folder holds its ticket', () => {
   const { job, context, worktree } = launchedBuildOf('in a folder');
   enterScenario(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
-  expect(JobLaunch.ticketIdsTouchingAgentConfigOf(context, [job])).toEqual(['001']);
+  expect(AgentConfigHits.ticketIdsTouchingAgentConfigOf(context, [job])).toEqual(['001']);
 });
 
 testWhenGitIsRecorded('before a launch, a root tracker launches the same branch, its .claude/ protected only at the repository\'s root', () => {
   const { job, context, worktree } = launchedBuildOf('at the root');
   enterScenario(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
-  expect(JobLaunch.ticketIdsTouchingAgentConfigOf(context, [job])).toEqual([]);
+  expect(AgentConfigHits.ticketIdsTouchingAgentConfigOf(context, [job])).toEqual([]);
 });
 
 /** An entity with no steps or gates of its own, at `home`. */
@@ -227,11 +231,11 @@ describe('a job of an entity with a gate', () => {
 
   test('is told its entity\'s gate, its folder the entity\'s home from the project\'s folder', () => {
     const definedBy = [`/${PROJECT_PREFIX}/**/package.json`, `/${PROJECT_PREFIX}/config/unit.json`, '/bunfig.toml'];
-    expect(JobLaunch.sessionGatesOf(pipeline, { entity: 'example' })).toEqual([{ ...unitGate, in: PROJECT_PREFIX, definedBy }]);
+    expect(JobPipelines.sessionGatesOf(pipeline, { entity: 'example' })).toEqual([{ ...unitGate, in: PROJECT_PREFIX, definedBy }]);
   });
 
   test('protects the definition files of its entity\'s home, not the root\'s files of the same name', () => {
-    const [gate] = JobLaunch.sessionGatesOf(pipeline, { entity: 'example' });
+    const [gate] = JobPipelines.sessionGatesOf(pipeline, { entity: 'example' });
     const definitionFileMatchers = (gate?.definedBy ?? []).map((pattern) => definitionFileMatcherOf(pattern, ''));
     const protectedPaths = [`${PROJECT_PREFIX}/package.json`, `${PROJECT_PREFIX}/tools/package.json`, 'package.json', 'config/unit.json', 'bunfig.toml']
       .filter((repositoryPath) => definitionFileMatchers.some((matches) => matches(repositoryPath)));
@@ -241,11 +245,11 @@ describe('a job of an entity with a gate', () => {
   test('of the root entity keeps the gate as stored, its folder the project\'s', () => {
     const rootEntity: PipelineEntity = { ...entityAt('root', '/'), gates: [unitGate], phases: { build: [unitGate.name], review: [], merge: [] } };
     const rootPipeline: Pipeline = { ...pipeline, entities: { ...pipeline.entities, root: rootEntity } };
-    expect(JobLaunch.sessionGatesOf(rootPipeline, { entity: 'root' })).toEqual([unitGate]);
+    expect(JobPipelines.sessionGatesOf(rootPipeline, { entity: 'root' })).toEqual([unitGate]);
   });
 
   test('without an entity is told the pipeline\'s own gates, as stored', () => {
-    expect(JobLaunch.sessionGatesOf(pipeline, {})).toBe(pipeline.gates);
+    expect(JobPipelines.sessionGatesOf(pipeline, {})).toBe(pipeline.gates);
   });
 
   testWhenGitIsRecorded('fails Customs V15 with the gate unclaimed and is sent back on a red handoff', () => {
@@ -272,7 +276,7 @@ testWhenGitIsRecorded('a job without an entity on a pipeline with entities keeps
 testWhenGitIsRecorded('before a launch, a root tracker with entities holds a branch that committed .claude/ in an entity home', () => {
   const { job, context, worktree } = launchedBuildOf('at the root', pipelineWithEntities(), 'example');
   enterScenario(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
-  expect(JobLaunch.ticketIdsTouchingAgentConfigOf(context, [job], pipelineWithEntities())).toEqual(['001']);
+  expect(AgentConfigHits.ticketIdsTouchingAgentConfigOf(context, [job], pipelineWithEntities())).toEqual(['001']);
 });
 
 const NEED_BODY = '## Acceptance\n\nA1. The example app reads the basket total.\n\n## Brief\n\nAlex Example needs the total.\n';

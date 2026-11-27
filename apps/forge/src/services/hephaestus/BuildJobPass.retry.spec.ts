@@ -21,8 +21,10 @@ import { RECORDED_FLOW_TICKET_BRANCH }                    from '../../testing/Re
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import type { JobLaunchContext }                          from './@types/JobLaunchContext.ts';
+import { BuildJobPass }                                   from './BuildJobPass.ts';
 import { jobFolderIn }                                    from './HephaestusFiles.ts';
-import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
+import { JobLaunch }                                      from './JobLaunch.ts';
 import { keptRedHandoffOf }                               from './testing/KeptRedHandoff.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
@@ -85,7 +87,7 @@ function retryScene(): RetryScene {
       blockedReason:     null,
       cannotBuildReason: null,
     };
-    JobLaunch.applyBuildJobObservations(change, context, [{
+    BuildJobPass.applyBuildJobObservations(change, context, [{
       jobId:            job.id,
       setup:            'installed',
       installStepRuns:  [],

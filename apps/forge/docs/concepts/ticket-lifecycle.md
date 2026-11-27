@@ -220,7 +220,7 @@ These belong to this story.
 | What launches next, and held | `src/domain/tracker-model/Playbook.ts` | `nextStepsOf`, `candidateOf`, `ticketIsHeld` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Counts toward parking | `src/domain/tracker-model/Playbook.ts` | `handoffCycleResumesOf`, `redHandoffStepsOf` | `src/domain/tracker-model/Playbook.redHandoff.spec.ts` |
 | Failed passes | `src/domain/tracker-model/utils/FailedPassUtil.ts` | `failedPassesOf` | `src/domain/tracker-model/utils/FailedPassUtil.spec.ts` |
-| A build job, Handoff included | `src/services/hephaestus/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/hephaestus/JobLaunch.buildJobFrames.spec.ts` |
+| A build job, Handoff included | `src/services/hephaestus/BuildJobPass.ts`, `src/services/hephaestus/BuildJobCustoms.ts`, `src/services/hephaestus/GateSettlement.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/hephaestus/BuildJobSessions.buildJobFrames.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | The queue mark | `src/domain/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/hephaestus/BoardState.mergeQueue.spec.ts` |
 | Landing | `src/services/lifecycle/Landing.ts`, `src/services/hephaestus/AirlockLandings.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/hephaestus/Airlocks.spec.ts` |
