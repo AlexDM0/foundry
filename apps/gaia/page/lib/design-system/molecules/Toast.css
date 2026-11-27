@@ -18,8 +18,9 @@
   color: var(--toast-check); background: var(--done-edge); border-radius: 50%;
   animation: design-system-pop var(--motion-pop) var(--ease-out) both;
 }
-.design-system-toast-check svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
-.design-system-toast-check path { stroke-dasharray: 14; animation: design-system-draw var(--motion-draw) var(--ease-out) calc(var(--motion-follow) * 2.5) both; }
+/* The check is drawn on the icon's 16 grid, so a 2px stroke at 12px is 2.67 of its units. */
+.design-system-toast-check .design-system-icon { width: 12px; height: 12px; --icon-stroke-width: 2.67; }
+.design-system-toast-check path { stroke-dasharray: 16; animation: design-system-draw var(--motion-draw) var(--ease-out) calc(var(--motion-follow) * 2.5) both; }
 .design-system-toast-text { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .design-system-toast-title { font-weight: 600; }
 .design-system-toast-message { color: var(--done-ink); }
@@ -35,7 +36,7 @@
   .design-system-toast-timer { animation: none; }
   .design-system-toast-check path { stroke-dasharray: none; }
 }
-@keyframes design-system-draw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+@keyframes design-system-draw { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
 @keyframes design-system-toast {
   0% { opacity: 0; transform: translateY(-12px); }
   12%, 85% { opacity: 1; transform: none; }

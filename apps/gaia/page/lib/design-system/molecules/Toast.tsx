@@ -11,6 +11,7 @@ import {
   type FocusEvent
 } from 'react';
 
+import { Icon }            from '../atoms/Icon.tsx';
 import { CssDurationUtil } from '../utils/CssDurationUtil.ts';
 
 /** Calls `onEnd` once after `milliseconds`, unless the returned function is called first. */
@@ -78,7 +79,7 @@ export function Toast({
         {glyph === 'check'
           ? (
             <span className="design-system-toast-check" aria-hidden="true">
-              <svg viewBox="0 0 12 12"><path d="M2 6.5L5 9L10 3" /></svg>
+              <Icon name="check" label={null} />
             </span>
           )
           : null}

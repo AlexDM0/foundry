@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { Button } from '../atoms/Button.tsx';
+import { Icon }   from '../atoms/Icon.tsx';
 import {
   ChoiceFreeText,
   ChoiceInput,
@@ -84,9 +85,7 @@ export function MultipleChoiceQuestion({
       {isAnswered
         ? (
           <p className="design-system-question-card-answered" role="status">
-            <svg className="design-system-question-card-answered-glyph" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M2 6.5L5 9l5-6" />
-            </svg>
+            <span className="design-system-question-card-answered-glyph"><Icon name="check" label={null} /></span>
             {answeredText}
           </p>
         )

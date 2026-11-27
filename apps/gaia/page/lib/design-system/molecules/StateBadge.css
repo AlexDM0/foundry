@@ -27,9 +27,7 @@
 .design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: design-system-pulse var(--pulse-status) var(--ease-in-out) infinite; }
 .design-system-state-badge-label { overflow: hidden; text-overflow: ellipsis; }
 .design-system-state-badge[data-struck] .design-system-state-badge-label { text-decoration: line-through; }
-.design-system-state-badge-check {
-  flex: none; width: 12px; height: 12px; fill: none; stroke: var(--tone-success); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
-}
+.design-system-state-badge-check { flex: none; width: 12px; height: 12px; color: var(--tone-success); --icon-stroke-width: 2; }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: none; }

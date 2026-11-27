@@ -21,7 +21,8 @@
   font-weight: 500; color: var(--pass-ink); background: var(--pass-tint); border-radius: var(--r-2);
   animation: design-system-pop var(--motion-pop) var(--ease-out) both;
 }
-.design-system-question-card-answered-glyph { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+/* The check is drawn on the icon's 16 grid: 2.67 of its units is a 2px stroke at 12px. */
+.design-system-question-card-answered-glyph { flex: none; width: 12px; height: 12px; --icon-stroke-width: 2.67; }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-question-card-answered { animation: none; }

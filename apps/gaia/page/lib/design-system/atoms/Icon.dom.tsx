@@ -37,6 +37,10 @@ describe('the icon', () => {
       'caret-down',
       'chevron-down',
       'chevron-up',
+      'check',
+      'plus',
+      'exclamation-triangle',
+      'stopwatch',
     ]);
     for (const name of EVERY_ICON_NAME) {
       const { container } = render(<Icon name={name} label={null} />);

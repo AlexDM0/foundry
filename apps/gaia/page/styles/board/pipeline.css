@@ -239,6 +239,9 @@ body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home {
 
 .board-pipeline-glyph:is([data-glyph="plus"], [data-glyph="check"]) { width: 12px; height: 12px; stroke-width: 1.5; }
 
+/* The check is the design system's icon on its 16 grid, where 2 is the stroke 1.5 was on a 12 grid. */
+.board-pipeline-glyph[data-glyph="check"] { display: inline-block; --icon-stroke-width: 2; }
+
 .board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--ink-muted); }
 
 .board-pipeline-glyph[data-glyph="chevron"] { width: 18px; stroke-width: 1.5; }
