@@ -1,7 +1,7 @@
 /**
  * A Hatch request as Hephaestus reads it from a job's Hatch folder. What matters: what a session writes reads back as its command; a missing
- * request is absent; a request that is not JSON, or names no format, is read as refused, since it is answered with that refusal; and one
- * naming another Hatch format waits for a Hephaestus that reads it. Nothing throws.
+ * request is absent; a request that is not UTF-8, not JSON, or names no format, is read as refused, since it is answered with that refusal;
+ * and one naming another Hatch format waits for a Hephaestus that reads it. Nothing throws.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname }                  from 'node:path';
@@ -25,10 +25,10 @@ let hatchDirectory = '';
 
 const reading = (): ReturnType<HatchRequestIngestion['read']> => new HatchRequestIngestion(hatchRequestFilePathOf(hatchDirectory, 'R1')).read();
 
-function storeRequestText(text: string): void {
+function storeRequestFile(contents: string | Uint8Array): void {
   const requestFilePath = hatchRequestFilePathOf(hatchDirectory, 'R1');
   mkdirSync(dirname(requestFilePath), { recursive: true });
-  writeFileSync(requestFilePath, text);
+  writeFileSync(requestFilePath, contents);
 }
 
 beforeEach(() => {
@@ -53,11 +53,16 @@ test.each([
   ['not an object', '[]'],
   ['of no format', JSON.stringify({ requestId: 'R1', command: COMMAND })],
 ])('a request that is %s is read as refused malformed-hatch-request, to be answered', (_case, text) => {
-  storeRequestText(text);
+  storeRequestFile(text);
+  expect(reading()).toEqual({ verdict: 'readable', reading: { verdict: 'refused', reason: 'malformed-hatch-request' } });
+});
+
+test('a request whose bytes are not UTF-8 never heals, so it is read as refused malformed-hatch-request, to be answered', () => {
+  storeRequestFile(new Uint8Array([0x7b, 0xff, 0x7d]));
   expect(reading()).toEqual({ verdict: 'readable', reading: { verdict: 'refused', reason: 'malformed-hatch-request' } });
 });
 
 test('a request naming another Hatch format waits for a Hephaestus that reads it', () => {
-  storeRequestText(JSON.stringify({ hatchFormatVersion: HATCH_FORMAT_VERSION + 1, requestId: 'R1', command: COMMAND }));
+  storeRequestFile(JSON.stringify({ hatchFormatVersion: HATCH_FORMAT_VERSION + 1, requestId: 'R1', command: COMMAND }));
   expect(reading()).toEqual({ verdict: 'another-version', hatchFormatVersion: HATCH_FORMAT_VERSION + 1 });
 });
