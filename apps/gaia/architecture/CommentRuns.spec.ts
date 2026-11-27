@@ -39,7 +39,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'architecture/RealProgramRuns.spec.ts':                                         1,
   'architecture/StyleContract.spec.ts':                                           1,
   'architecture/WorkspaceDependencies.spec.ts':                                   1,
-  'page/@types/board/BoardPipelineDocuments.ts':                                  1,
   'page/api/CommandSender.spec.tsx':                                              1,
   'page/api/CommandSender.ts':                                                    1,
   'page/api/FleetStreamClient.spec.ts':                                           1,
@@ -594,8 +593,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */
 const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'page/@types/CommandDocument.ts':                                 1,
-  'page/@types/FleetDocument.ts':                                   1,
   'page/api/CommandSender.spec.tsx':                                2,
   'page/api/FleetStreamClient.spec.ts':                             1,
   'page/board/shared/tickets/DraftRowsModel.ts':                    1,

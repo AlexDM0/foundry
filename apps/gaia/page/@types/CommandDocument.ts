@@ -68,7 +68,7 @@ export interface CommandAnswerForgeDocument {
 
 /**
  * `refusal` is the forge's own code, passed through unchanged, and `text` its sentence, in Gaia's words where the forge's names a command
- * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`. `forges` holds one answer per registered forge
+ * and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`. `forges` holds one answer per registered forge
  * for `fleet-outage-resume`, `done` or, when every forge held nothing, `nothing-to-do`; it is empty for every other command.
  */
 export interface CommandAnswerDocument {

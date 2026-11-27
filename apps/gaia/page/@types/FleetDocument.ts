@@ -44,7 +44,7 @@ export interface FleetDocumentConcurrency {
   ticketsWaitingForMachineSlot: number | null;
 }
 
-/** `text` is the forge's sentence, in Gaia's words where the forge's names a command (D10). */
+/** `text` is the forge's sentence, in Gaia's words where the forge's names a command. */
 export interface FleetDocumentNotice {
   kind: string;
   text: string;

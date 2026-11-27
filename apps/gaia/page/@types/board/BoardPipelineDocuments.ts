@@ -1,8 +1,6 @@
 /**
- * A forge's pipeline facts as the page reads them: the stored pipeline as read with each entity's effective pipeline, the open setup record with
- * its entities draft, the entity refusals and the Apply refusal the forge serves, the flow a view draws, the gates' profile runs, cache
- * marks and step run times, the pipeline history, and the choices a step may take. Values only: the forge words only its refusals and the
- * label of a refusal's fix.
+ * A forge's pipeline facts as the page reads them: the stored pipeline, the open setup record, the refusals, the flow, the gates' runs and
+ * the pipeline history. Values only: the forge words only its refusals and the label of a refusal's fix.
  */
 import type {
   BoardAgentToolDocument,
