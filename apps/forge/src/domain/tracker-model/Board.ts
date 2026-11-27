@@ -198,6 +198,11 @@ import type { Logger }                                                          
 import { MergeQueueMarks }                                                      from './MergeQueueMarks.ts';
 import { MoveOffers, type JobOffers, type TicketOffers }                        from './MoveOffers.ts';
 import { Needs }                                                                from './Needs.ts';
+import { PipelineSetupApplies }                                                 from './PipelineSetupApplies.ts';
+import { PipelineSetupChecks }                                                  from './PipelineSetupChecks.ts';
+import { PipelineSetupConstitutions }                                           from './PipelineSetupConstitutions.ts';
+import { PipelineSetupDraftEdits }                                              from './PipelineSetupDraftEdits.ts';
+import { PipelineSetupRecord }                                                  from './PipelineSetupRecord.ts';
 import { PipelineSetups }                                                       from './PipelineSetups.ts';
 import type { PlaybookFacts, PlaybookTicket }                                   from './Playbook.ts';
 import { Playbook }                                                             from './Playbook.ts';
@@ -306,7 +311,17 @@ export class Board {
 
   private readonly draftContents: DraftContents;
 
+  private readonly setupRecord: PipelineSetupRecord;
+
   private readonly pipelineSetups: PipelineSetups;
+
+  private readonly setupConstitutions: PipelineSetupConstitutions;
+
+  private readonly setupDraftEdits: PipelineSetupDraftEdits;
+
+  private readonly setupChecks: PipelineSetupChecks;
+
+  private readonly setupApplies: PipelineSetupApplies;
 
   private readonly gateProfiles: GateProfiles;
 
@@ -368,7 +383,12 @@ export class Board {
     this.ticketStageRows    = new TicketStageRows(this.records, this.reviewBars);
     this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
     this.decisionRules      = new Decisions(this.records);
-    this.pipelineSetups     = new PipelineSetups(this.records, this.trackerChanges, this.decisionRules);
+    this.setupRecord        = new PipelineSetupRecord(this.records);
+    this.pipelineSetups     = new PipelineSetups(this.records, this.setupRecord);
+    this.setupConstitutions = new PipelineSetupConstitutions(this.records, this.setupRecord);
+    this.setupDraftEdits    = new PipelineSetupDraftEdits(this.records, this.setupRecord);
+    this.setupChecks        = new PipelineSetupChecks(this.records, this.setupRecord);
+    this.setupApplies       = new PipelineSetupApplies(this.records, this.setupRecord, this.trackerChanges, this.decisionRules);
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits, this.ticketDocumentRules);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
@@ -793,16 +813,16 @@ export class Board {
    * committing under it. Refuses `no-setup-open` or `no-apply-pending` without a waiting request, and `airlock-held` while a job holds the slot.
    */
   claimConstitutionCommitSlot(claim: ConstitutionCommitSlotClaim, at: string): JobChanged {
-    this.pipelineSetups.requirePendingApply(claim.setupId);
+    this.setupApplies.requirePendingApply(claim.setupId);
     const claimed = this.airlockClaims.claimConstitutionCommitSlot(claim, at);
-    this.pipelineSetups.attachApplyCommitJob(claim.setupId, claimed.job.id);
+    this.setupApplies.attachApplyCommitJob(claim.setupId, claimed.job.id);
     return claimed;
   }
 
   /** Ends a constitution commit job; a request it was committing waits for the next job, unless the same hold holds or refuses it. */
   endConstitutionCommitJob(jobId: string, ending: JobEnding, at: string): JobChanged {
     const ended = this.endJob(jobId, ending, at);
-    this.pipelineSetups.detachApplyCommitJob(jobId);
+    this.setupApplies.detachApplyCommitJob(jobId);
     return ended;
   }
 
@@ -1317,7 +1337,7 @@ export class Board {
   }
 
   setupSnapshotIsTouched(setupId: string): boolean {
-    return this.pipelineSetups.setupSnapshotIsTouched(setupId);
+    return this.setupRecord.setupSnapshotIsTouched(setupId);
   }
 
   recordFinding(setupId: string, recording: ResearchFindingRecording, at: string, entityKey?: EntityKey): PipelineSetupChanged {
@@ -1338,42 +1358,42 @@ export class Board {
   }
 
   setConstitution(setupId: string, setting: ConstitutionSetting, at: string, entityKey?: EntityKey): PipelineSetupChanged {
-    return this.pipelineSetups.setConstitution(setupId, setting, at, entityKey);
+    return this.setupConstitutions.setConstitution(setupId, setting, at, entityKey);
   }
 
   editConstitution(setupId: string, edit: ConstitutionEdit, at: string, entityKey?: EntityKey): PipelineSetupChanged {
-    return this.pipelineSetups.editConstitution(setupId, edit, at, entityKey);
+    return this.setupConstitutions.editConstitution(setupId, edit, at, entityKey);
   }
 
   /** The draft the edits would leave, with nothing stored; refused as `editDraft` refuses them. */
   draftAfterEdits(setupId: string, request: DraftEditRequest): Pipeline {
-    return this.pipelineSetups.draftAfterEdits(setupId, request);
+    return this.setupDraftEdits.draftAfterEdits(setupId, request);
   }
 
   editDraft(setupId: string, request: DraftEditRequest, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.editDraft(setupId, request, at);
+    return this.setupDraftEdits.editDraft(setupId, request, at);
   }
 
   /** The draft the Undo would leave, with nothing stored; refused as `undoDraftEdit` refuses it. */
   draftAfterUndo(setupId: string, editId: string): Pipeline {
-    return this.pipelineSetups.draftAfterUndo(setupId, editId);
+    return this.setupDraftEdits.draftAfterUndo(setupId, editId);
   }
 
   undoDraftEdit(setupId: string, editId: string, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.undoDraftEdit(setupId, editId, at);
+    return this.setupDraftEdits.undoDraftEdit(setupId, editId, at);
   }
 
   /** The draft the set's Undo would leave, with nothing stored; refused as `undoDraftBatch` refuses it. */
   draftAfterBatchUndo(setupId: string, editId: string): Pipeline {
-    return this.pipelineSetups.draftAfterBatchUndo(setupId, editId);
+    return this.setupDraftEdits.draftAfterBatchUndo(setupId, editId);
   }
 
   undoDraftBatch(setupId: string, editId: string, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.undoDraftBatch(setupId, editId, at);
+    return this.setupDraftEdits.undoDraftBatch(setupId, editId, at);
   }
 
   discardDraft(setupId: string, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.discardDraft(setupId, at);
+    return this.setupDraftEdits.discardDraft(setupId, at);
   }
 
   startOverSetup(setupId: string, at: string): PipelineSetupStartedOver {
@@ -1386,24 +1406,24 @@ export class Board {
 
   /** Refuses `no-gate-to-check` and `pipeline-check-running`; Hephaestus runs the check, one per entity the draft touched. */
   requestPipelineCheck(setupId: string, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.requestCheck(setupId, at);
+    return this.setupChecks.requestCheck(setupId, at);
   }
 
   /** The record's queued checks: the forge's own as `null`, else each entity's key. */
   queuedPipelineCheckLevels(): (EntityKey | null)[] {
-    return this.pipelineSetups.queuedCheckLevels();
+    return this.setupChecks.queuedCheckLevels();
   }
 
   startPipelineCheck(setupId: string, entityKey?: EntityKey): PipelineCheckStart | null {
-    return this.pipelineSetups.startCheck(setupId, entityKey);
+    return this.setupChecks.startCheck(setupId, entityKey);
   }
 
   endPipelineCheck(setupId: string, ending: PipelineCheckEnding, entityKey?: EntityKey): PipelineSetupChanged | null {
-    return this.pipelineSetups.endCheck(setupId, ending, entityKey);
+    return this.setupChecks.endCheck(setupId, ending, entityKey);
   }
 
   stopRunningPipelineCheck(): PipelineSetupChanged | null {
-    return this.pipelineSetups.stopRunningCheck();
+    return this.setupChecks.stopRunningCheck();
   }
 
   /** Refuses `gate-profile-running` while the gate and phase have a run queued or running. */
@@ -1440,12 +1460,12 @@ export class Board {
 
   /** The refusal `requestApply` would give the open record's current draft now against main's texts as read; `null` when it would proceed. */
   applyRefusalOf(setupId: string, reading: ApplyMainReading): BoardRefusalDetail | null {
-    return this.pipelineSetups.applyRefusalOf(setupId, reading);
+    return this.setupApplies.applyRefusalOf(setupId, reading);
   }
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.requestApply(setupId, requesting, at), requesting, at);
+    return this.withTheAppliedSetupAgentStopped(this.setupApplies.requestApply(setupId, requesting, at), requesting, at);
   }
 
   /**
@@ -1453,12 +1473,12 @@ export class Board {
    * record's pipeline agent is stopped in the same hold.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.finishApply(setupId, finishing, at), finishing, at);
+    return this.withTheAppliedSetupAgentStopped(this.setupApplies.finishApply(setupId, finishing, at), finishing, at);
   }
 
   /** At Hephaestus's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
   finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
-    const finished = this.pipelineSetups.finishHalfAppliedSetup(reading, at);
+    const finished = this.setupApplies.finishHalfAppliedSetup(reading, at);
     return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, reading, at);
   }
 
@@ -1483,26 +1503,26 @@ export class Board {
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.holdApply(setupId, holding, at);
+    return this.setupApplies.holdApply(setupId, holding, at);
   }
 
   refuseApply(setupId: string, refusal: ApplyRefusal, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.refuseApply(setupId, refusal, at);
+    return this.setupApplies.refuseApply(setupId, refusal, at);
   }
 
   /** Whether stage 2 would refuse `pipeline-moved`: the stored pipeline is neither the record's base nor its draft as applied. */
   storedPipelineMovedSince(setupId: string, reading: ApplyMainReading): boolean {
-    return this.pipelineSetups.storedPipelineMovedSince(setupId, reading);
+    return this.setupApplies.storedPipelineMovedSince(setupId, reading);
   }
 
   /** The E91 or E94 refusal stage 2 would give: a ticket started, or took an entity the draft removes, while the request waited. */
   entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
-    return this.pipelineSetups.entityChangeRefusalOf(setupId);
+    return this.setupApplies.entityChangeRefusalOf(setupId);
   }
 
   /** Clears the record's Apply request, which leaves it editable at the design step; refused `no-apply-pending` with none. */
   cancelApply(setupId: string, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.cancelApply(setupId, at);
+    return this.setupApplies.cancelApply(setupId, at);
   }
 
   /** The stored sources of the constitution main holds; `null` when none are stored or the file could not be read. */
@@ -1662,7 +1682,7 @@ export class Board {
   }
 
   liftInterruptedApply(at: string): Logged {
-    return this.pipelineSetups.liftInterruptedApply(at);
+    return this.setupApplies.liftInterruptedApply(at);
   }
 
   markReleaseTicket(ticketId: string, at: string): TicketChanged {
@@ -1760,7 +1780,7 @@ export class Board {
 
   /** The open setup record; `null` when none is open or the stored one could not be read. */
   pipelineSetup(): Readonly<PipelineSetup> | null {
-    return this.pipelineSetups.openSetupRecord();
+    return this.setupRecord.openSetupRecord();
   }
 
   /** The readable record when it is `setupId`'s, refused `no-setup-open` for another record or none. */
