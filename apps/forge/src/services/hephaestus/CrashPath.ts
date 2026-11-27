@@ -2,17 +2,22 @@
  * The one path every crash a live forge process sees runs: it writes the crash log once, ends the generation's presence `crashed` and stops the
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
-import type { HephaestusLog }                                from '../../adapters/@types/HephaestusLogRecord.ts';
-import type { CrashedComponent, CrashLogError, CrashLogJob } from '../../adapters/crash-log/@types/CrashLogRecord.ts';
-import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
-import type { CrashLogWrite }                                from './@types/CrashLogRecord.ts';
-import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
-import { CrashLog }                                          from './CrashLog.ts';
-import type { HephaestusFiles }                              from './HephaestusFiles.ts';
-import { Presence }                                          from './Presence.ts';
-import { thrownNamedOf }                                     from './ThrownNaming.ts';
-import type { UnreadableBoardFiles }                         from './UnreadableBoardFiles.ts';
-import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
+import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
+import type {
+  CrashedComponent,
+  CrashErrorOrigin,
+  CrashLogError,
+  CrashLogJob
+} from '../../adapters/crash-log/@types/CrashLogRecord.ts';
+import type { PresenceRegistration }              from '../tracker/MonitorRegistration.ts';
+import type { CrashLogWrite }                     from './@types/CrashLogRecord.ts';
+import type { PresenceUpdate }                    from './@types/PresenceRecord.ts';
+import { CrashLog }                               from './CrashLog.ts';
+import type { HephaestusFiles }                   from './HephaestusFiles.ts';
+import { Presence }                               from './Presence.ts';
+import { thrownNamedOf }                          from './ThrownNaming.ts';
+import type { UnreadableBoardFiles }              from './UnreadableBoardFiles.ts';
+import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS } from './constants/PresenceLimits.ts';
 
 /** The registry's presence key of a crash, which the crash path's registry step writes. */
 export type RegistryCrashReport = Extract<PresenceRegistration, { state: 'crashed' }>;
@@ -161,9 +166,12 @@ function record(context: CrashPathContext, crash: Crash): Promise<CrashPathOutco
 /**
  * Listens for an uncaught exception and an unhandled rejection. Each runs the crash path, removes both listeners and rethrows in a microtask,
  * so the process still dies as an uncaught error does; the bound rethrows if the registry step has not settled. A process that serves no
- * generation yet has nothing to record and only rethrows. Answers the removal of both listeners.
+ * generation yet has nothing to record and only rethrows. `crashErrorOf` is the edge's, which words a refusal for the crash log. Answers the
+ * removal of both listeners.
  */
-function listenForProcessCrashes(contextNow: () => CrashPathContext | null): () => void {
+function listenForProcessCrashes(
+  contextNow: () => CrashPathContext | null, crashErrorOf: (origin: CrashErrorOrigin, thrown: unknown) => CrashLogError
+): () => void {
   const removeListeners = (): void => {
     process.off('uncaughtException', onUncaughtException);
     process.off('unhandledRejection', onUnhandledRejection);
@@ -187,7 +195,7 @@ function listenForProcessCrashes(contextNow: () => CrashPathContext | null): () 
       return;
     }
     boundTimer = setTimeout(rethrow, context.registryBoundMilliseconds ?? CRASH_PATH_REGISTRY_BOUND_MILLISECONDS);
-    void record(context, { component: 'hephaestus', error: CrashLog.errorOf(origin, thrown) }).then(rethrow, rethrow);
+    void record(context, { component: 'hephaestus', error: crashErrorOf(origin, thrown) }).then(rethrow, rethrow);
   }
 
   function onUncaughtException(thrown: unknown): void {

@@ -16,11 +16,10 @@ import { dirname } from 'node:path';
 import type { HephaestusLog }                                                        from '../../src/adapters/@types/HephaestusLogRecord.ts';
 import { ConstitutionCommitProblemWording }                                          from '../../src/adapters/ConstitutionCommitProblemWording.ts';
 import { MergeDecisionWording }                                                      from '../../src/adapters/MergeDecisionWording.ts';
-import type { CrashedComponent, CrashLogError }                                      from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
+import type { CrashedComponent }                                                     from '../../src/adapters/crash-log/@types/CrashLogRecord.ts';
 import { PipelineCheckProblemWording }                                               from '../../src/adapters/pipeline/PipelineCheckProblemWording.ts';
 import { TurboConfigurationProblemWording }                                          from '../../src/adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import { HephaestusLogWordingUtil }                                                  from '../../src/adapters/utils/HephaestusLogWordingUtil.ts';
-import { OperationRefusalWordingUtil }                                               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/domain/talos/constants/TalosProtocol.ts';
 import type { StartOrigin }                                                          from '../../src/domain/tracker-model/@types/Job.ts';
 import type { LogRecordFieldsOf }                                                    from '../../src/domain/tracker-model/@types/LogRecord.ts';
@@ -106,6 +105,7 @@ import type { ArgumentParser }                                          from '..
 import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
+import { crashLogErrorOf }                                              from './CrashLogErrorWording.ts';
 import { writeAsHephaestus }                                            from './HephaestusBoardWrites.ts';
 import { HephaestusWording }                                            from './HephaestusWording.ts';
 import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
@@ -171,12 +171,6 @@ export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFil
       // The log is a convenience: a full disk never stops a Hephaestus that is otherwise serving.
     }
   };
-}
-
-/** A refusal's message is only its code, so the crash log keeps the refusal's sentence in its place. */
-function crashLogErrorOf(thrown: unknown): CrashLogError {
-  const error = CrashLog.errorOf('pass', thrown);
-  return thrown instanceof OperationRefusal ? { ...error, message: OperationRefusalWordingUtil.messageOf(thrown) } : error;
 }
 
 function alreadyRunningRefusal(files: HephaestusFiles, generation: number, record: HephaestusLockRecord): OperationRefusal {
@@ -487,7 +481,7 @@ function startClassifiedFieldsOf({ classification, crashLogNumber }: ServingAdmi
 
 export async function runHephaestusInTheForeground(request: ForegroundRunRequest): Promise<void> {
   const crashPathReach: CrashPathReach = { contextNow: () => null };
-  const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow());
+  const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow(), crashLogErrorOf);
   try {
     await serveInTheForeground(request, crashPathReach);
   } finally {
@@ -630,7 +624,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   /** A pass that threw after a crash was recorded, a crash of Talos included, is passed over, so the first crash keeps its component. */
   async function recordThePassCrash(generation: number, thrown: unknown): Promise<void> {
     if (recordedCrashNow() !== null) return;
-    await recordTheCrash(generation, 'hephaestus', crashLogErrorOf(thrown));
+    await recordTheCrash(generation, 'hephaestus', crashLogErrorOf('pass', thrown));
   }
 
   /** The refusal a stop or a release ends with once a crash is recorded, so no `stopped` or `handed-over` ending overwrites `crashed`. */
@@ -1023,7 +1017,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
 
   /** A successor that cannot serve leaves the board with no Hephaestus after a restart, which the registry then says, so a monitor alerts. */
   async function registerTheFailedSuccessor(predecessorGeneration: number, thrown: unknown): Promise<void> {
-    const error = crashLogErrorOf(thrown);
+    const error = crashLogErrorOf('pass', thrown);
     await registerHephaestus(request, {
       presence: {
         state:      'crashed',

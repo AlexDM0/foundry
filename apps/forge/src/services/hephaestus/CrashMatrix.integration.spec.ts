@@ -1548,12 +1548,13 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       // The crash path's listeners in a process of their own, as the foreground installs them, serving this generation.
       const hephaestusCode = [
         `import { CrashPath } from ${moduleOf('CrashPath.ts')};`,
+        `import { CrashLog } from ${moduleOf('CrashLog.ts')};`,
         `import { hephaestusFilesIn } from ${moduleOf('HephaestusFiles.ts')};`,
         `const files = hephaestusFilesIn(${JSON.stringify(sessionWorkspace.trackerDirectory)});`,
         'CrashPath.listenForProcessCrashes(() => ({',
         `  files, generation: ${serving.generation}, activeJobs: () => [], talosChildren: () => null, stopLeaseRenewal: () => undefined,`,
         `  writeRegistryCrash: () => Promise.resolve(), stampNow: () => ${JSON.stringify(SESSION_STAMP)}, log: () => undefined,`,
-        '}));',
+        '}), CrashLog.errorOf);',
         'process.nextTick(() => { throw new RangeError(\'Example uncaught error\'); });',
       ].join('\n');
 
