@@ -1,9 +1,7 @@
 /**
- * Every import edge of the program's TypeScript, over the files the root program and each workspace package the program declares
- * compile, read syntactically with the compiler API so no type checking is paid for. A declared package's files sit under a virtual folder
- * named after it (`forge-contracts/constants/ForgeSystemVersions.ts`), and a specifier naming it resolves through its `exports`, as Bun
- * and TypeScript resolve it. Planted sources add or replace files in memory, so an architecture test can prove it still fires. The tree is read once
- * per run and shared frozen: `bun test` runs every spec file in one process.
+ * Every import edge of the program's TypeScript, over the files the root program and each declared workspace package compile, read with
+ * the compiler API so no type checking is paid for; a declared package sits under a virtual folder named after it. Planted sources replace
+ * files in memory, so an architecture test can prove it fires. The tree is read once and shared frozen: `bun test` runs every spec in one process.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import {

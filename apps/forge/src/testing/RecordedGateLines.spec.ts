@@ -1,8 +1,7 @@
 /**
- * The recorded gate lines may give only what real gate lines gave. What matters: each recorded line ends as it really ended, read through
- * the real `GateRun.runGate`; a write outside the allowed folders under the recorded confinement ends red, as the real sandbox makes it;
- * and a line the recording does not hold fails, whether its line, its confinement or its argv is the unknown part, since `runGate`
- * catches the throw and the case must still fail.
+ * The recorded gate lines give only what real gate lines gave: each ends as it really ended, read through the real `GateRun.runGate`; a write
+ * outside the allowed folders under the recorded confinement ends red; and a line the recording does not hold fails the case, whichever part
+ * is unknown, even though `runGate` catches the throw.
  */
 import { describe, expect, test } from 'bun:test';
 

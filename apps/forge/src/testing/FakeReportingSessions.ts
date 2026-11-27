@@ -1,9 +1,7 @@
 /**
- * The fake sessions of a scratch board that runs a ticket to its landing: a builder appends a line to `fake-agent-work.md` in each folder its
- * stage may change that the Brief's `Work belongs in:` line names (in each of them when it names none), commits it and reports `built`; a
- * reviewer reports every Acceptance item as holding. Each report follows the schema its
- * launch hands it, a crossing ticket's package and adapt stages included: a package build states that what the package exposes did not
- * change, its review confirms it, so the adapt stage is skipped. It claims no gate, so only a gate Hephaestus alone runs passes V15.
+ * The fake sessions of a scratch board that lands a ticket: a builder commits a line to `fake-agent-work.md` in each folder its stage may
+ * change that the Brief's `Work belongs in:` line names (each, when it names none) and reports `built`; a reviewer reports every Acceptance
+ * item holding; a package build states its surface unchanged, skipping the adapt stage. It claims no gate: only Hephaestus's own gates pass.
  */
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,

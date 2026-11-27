@@ -1,8 +1,7 @@
 /**
- * The two-tracker answer set is whole: the recording answers every call `TwoTrackerScenarios` names at its place in each scenario, so a
- * spec of Part B can lean on any of them, and a scenario replays through today's code. The claims below are the facts the fixture exists
- * to show: a prefix per project and none at a toplevel, one common directory from every checkout, both namespaces' tickets beside a
- * person's checkout, and a sibling's or a person's work visible where a tracker must scope it away.
+ * The two-tracker answer set is whole: the recording answers every call `TwoTrackerScenarios` names in each scenario, which replays through
+ * today's code. The claims are the fixture's facts: a prefix per project and none at a toplevel, one common directory from every checkout,
+ * both namespaces' tickets beside a person's checkout, and a sibling's or a person's work visible where a tracker must scope it away.
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { join }                       from 'node:path';

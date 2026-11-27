@@ -1,9 +1,7 @@
 /**
- * Records the end of each gate line the mock of `src/testing/RecordedGateLines.ts` answers: a green line, a red line and a line that is
- * stopped, unconfined and under the native confinement, and a line that writes outside the allowed folders, under the confinement only.
- * What matters is the exit code, the signal, the status file text and the output a real `GateRun.runGate` reads of a line spawned as Talos
- * spawns it, and that the sandbox
- * really refuses the outside write: the file is never made and the line ends red.
+ * Records the end of each gate line `src/testing/RecordedGateLines.ts` answers: green, red and stopped, unconfined and confined, and a write
+ * outside the allowed folders under the confinement. What matters is the exit code, signal, status file text and output a real
+ * `GateRun.runGate` reads of a line spawned as Talos spawns it, and that the sandbox really refuses the outside write.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir }                from 'node:os';

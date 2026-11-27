@@ -1,8 +1,7 @@
 /**
- * The fixture repository of a top-level forge with entities: one tracker at the repository's root over two apps, `apps/shop` and
- * `apps/admin`, a shared package `packages/ui-kit` that both consume, and the root entity, which owns every other path. It names the
- * entities, their pipeline and each place a tracker asks git from, and writes the tracked files; `src/lib/git/EntityForgeFixture.integration.spec.ts`
- * builds its git states.
+ * The fixture repository of a top-level forge with entities: one tracker at the root over `apps/shop` and `apps/admin`, a shared package
+ * `packages/ui-kit` both consume, and the root entity, which owns every other path. It names the entities, their pipeline and each place a
+ * tracker asks git from, and writes its tracked files; `src/lib/git/EntityForgeFixture.integration.spec.ts` builds the git states.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

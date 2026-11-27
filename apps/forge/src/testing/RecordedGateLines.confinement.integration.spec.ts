@@ -1,8 +1,7 @@
 /**
- * Records the argv the native gate confinement wraps a gate argv in, for a plan with no network and no extra writes. What matters is the
- * prefix before the wrapped argv, which the mock of `src/testing/RecordedGateLines.ts` reads as the mark of a confined spawn, and that a
- * line under it still runs; a platform that confines nothing records an empty prefix. It also records what the native confinement says
- * of the machine, which `src/testing/RecordedGateConfinement.ts` answers a default spec with.
+ * Records the prefix the native gate confinement wraps a gate argv in, for a plan with no network and no extra writes, which
+ * `src/testing/RecordedGateLines.ts` reads as the mark of a confined spawn, and that a line under it still runs; a platform that confines
+ * nothing records an empty prefix. It also records what the confinement says of the machine, for `src/testing/RecordedGateConfinement.ts`.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

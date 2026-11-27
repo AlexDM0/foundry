@@ -1,8 +1,7 @@
 /**
- * The two suites and the recordings, run for real: a scratch folder takes the repository's own `verify` and `record` lines,
- * `bunfig.toml` ignore and recording tools, with the other steps stubbed, and plants a `*.integration.spec.ts` under a listed boundary.
- * `verify` never reaches the planted spec, also with its boundary touched; `record` runs it and writes its answer under a stamp; and a
- * planted stale stamp fails `verify`, which names the record command.
+ * The two suites and the recordings, run for real in a scratch folder holding the repository's `verify` and `record` lines and a planted
+ * `*.integration.spec.ts` under a listed boundary: `verify` never reaches the planted spec, even with its boundary touched; `record` runs it
+ * and writes its answer under a stamp; and a stale stamp fails `verify`, which names the record command.
  */
 import {
   existsSync,

@@ -1,11 +1,7 @@
 /**
- * A scratch board runs a ticket to its landing only when every fake session reports what its stage's Customs checks: a report its schema
- * takes, every Acceptance item accounted for where the stage answers for it, and a commit in each folder the stage may change, so a stage 1
- * that may write a package's proposal crosses into it. A Brief whose `Work belongs in:` line names folders keeps the commit to those, so a
- * ticket of an app with several whitelisted packages crosses only into the ones it names, a resumed session too. A package build states no
- * change of what the package exposes and its review confirms it, so the adapt stage is skipped. A resumed session, told no ticket, still
- * names the items. Each line it prints must be a recorded `claude` line, and a session no reporting role answers plays the adapter's own
- * steps.
+ * A scratch board lands a ticket only when every fake session reports what its stage's Customs checks: a report its schema takes, every
+ * Acceptance item accounted for, and a commit in each folder the stage may change, kept to those a Brief's `Work belongs in:` line names.
+ * A package build stating no change of what the package exposes skips the adapt stage, and each printed line is a recorded `claude` line.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * The one way a spec makes a DrivePass on a scratch tracker: a Hephaestus lock of this process, the board's children through Talos's adapter over the
- * connection the spec hands, and the example wording, every other request field the spec's to set. A default spec hands the connection of
- * `src/testing/RecordedTalosStages.ts` and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`; a real-system spec
- * starts a scratch Talos with `startScratchBoardTalos`.
+ * The one way a spec makes a DrivePass on a scratch tracker: a Hephaestus lock of this process, the board's children through Talos's adapter
+ * over the connection the spec hands, and the example wording. A default spec hands `src/testing/RecordedTalosStages.ts`'s connection and runs
+ * on `src/testing/RecordedGitFlow.ts`'s stages; a real-system spec starts a scratch Talos with `startScratchBoardTalos`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

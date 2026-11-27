@@ -1,9 +1,7 @@
 /**
- * The Hephaestus HTTP API of a default spec: `createRecordedHephaestusFetch` gives a `fetch` that answers only with what the real
- * `HephaestusServer` answered, which its real-system specs record under `bun run record src/services/hephaestus/HephaestusServer.ts`. A request
- * with no recorded answer fails the case. It refuses what the real server refuses: a Host that is not loopback, an Origin that is not its
- * own, a data route with no token, another token, and a request when nothing listens.
- * `src/testing/RecordedHephaestusAnswers.ts` reads the recording.
+ * The Hephaestus HTTP API of a default spec: `createRecordedHephaestusFetch` answers only with what the real `HephaestusServer` answered, as
+ * `src/testing/RecordedHephaestusAnswers.ts` reads it, and fails a request with no recorded answer. It refuses what the real server refuses:
+ * a non-loopback Host, a foreign Origin, a data route with no token, another token, and a request when nothing listens.
  */
 export const HEPHAESTUS_BOUNDARY = 'src/services/hephaestus/HephaestusServer.ts';
 

@@ -1,8 +1,7 @@
 /**
- * The recorded Hephaestus `fetch` against this OS's recording. What matters: it answers only with a recorded response, its run values filled
- * in; a request with no recorded answer fails; and it refuses what the real server refuses, a data route with no token above all,
- * then a foreign Host, a foreign Origin, another token, a taken port, and any request once nothing listens. A picture upload
- * answers the verdict the spec chose with the token, as a command does.
+ * The recorded Hephaestus `fetch` against this OS's recording answers only with a recorded response, its run values filled in, and fails a
+ * request with none; it refuses what the real server refuses, a data route with no token above all, then a foreign Host or Origin, another
+ * token, a taken port, and any request once nothing listens. A picture upload answers the verdict the spec chose with the token.
  */
 import { describe, expect, test } from 'bun:test';
 

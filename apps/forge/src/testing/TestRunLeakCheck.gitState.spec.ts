@@ -1,10 +1,7 @@
 /**
- * The git side of the leak check of `src/testing/TestRunLeakCheck.ts`: the repository under test read at the baseline and again after the
- * run. What matters: an unchanged repository fails nothing; a worktree added in a temp folder, a branch named as the scratch helpers name
- * one and a new file in the repository each fail the run and are named, the worktree with the branch it holds; a branch another
- * process makes with no worktree fails nothing; and git status is asked only of the run's program folder, so in a workspace a file
- * another member's run adds is not this run's. The folders are real; git answers from recorded answer sets, one
- * for the repository before the run and one for it after. `TestRunLeakCheck.integration.spec.ts` holds the rest of the check, on a real run.
+ * The git side of `src/testing/TestRunLeakCheck.ts`, read at the baseline and after the run: an unchanged repository passes; a worktree in a
+ * temp folder, a scratch-named branch and a new file each fail the run, named; a branch made with no worktree, or a file another workspace
+ * member's run adds, fails nothing. Git answers from recorded sets; `TestRunLeakCheck.integration.spec.ts` holds the check on a real run.
  */
 import { mkdirSync } from 'node:fs';
 

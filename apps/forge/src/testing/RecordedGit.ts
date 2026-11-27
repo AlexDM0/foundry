@@ -1,12 +1,7 @@
 /**
- * The git of a default spec: `useRecordedGit` mocks `GitProcess` for a spec file with the answers real git gave, which
- * `src/lib/git/RecordedGitAnswers.integration.spec.ts` records under `bun run record src/lib/git/GitProcess.ts`. A spec plays a stage, the
- * calls one flow makes in order, each answered by its recorded call shape. A call outside a stage, or out of the stage's order, fails the case.
- * A spawned binary plays a stage the same way through `playRecordedGitInThisProcess`, which `cli/testing/CliProcess.ts` preloads into it;
- * a long-running one answers from a set through `answerRecordedGitInThisProcess`.
- * A spec of a ticket's flow, whose passes ask git as often as they run, enters a flow stage of `src/testing/RecordedGitFlow.ts` instead: one
- * answer set, asked in any order; a call it does not hold fails the case too. A spec whose passes ask git as often as they run, outside a
- * ticket's flow, gives its own answer set through `answerFrom`, one for each state the repository is in.
+ * The git of a default spec: `useRecordedGit` mocks `GitProcess` with the answers `src/lib/git/RecordedGitAnswers.integration.spec.ts` recorded.
+ * A spec, or a spawned binary through `playRecordedGitInThisProcess`, plays a stage's calls in order; a spec whose passes ask git as often as
+ * they run answers from a set in any order (`src/testing/RecordedGitFlow.ts`, or `answerFrom`). A call out of order or in no set fails.
  */
 import {
   appendFileSync,
@@ -253,10 +248,9 @@ export interface RecordedGit {
    */
   enterScenario:          (scenario: string, values: ScenarioValues) => void;
   /**
-   * Until the case ends or the next call of it, answers each call outside a played stage by the step of `answerSet` with its arguments, in
-   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names is answered by the
-   * scenario entered, if any, and otherwise fails the case. A step with `directory` answers only a call asked there, and a step with
-   * `movesTo` hands the answering on to that set.
+   * Until the case ends or the next call, answers each call outside a played stage by the step of `answerSet` with its arguments, in any
+   * order and as often as asked; a call no step names falls to the entered scenario, else fails. A step with `directory` answers only a call
+   * asked there, and a step with `movesTo` hands the answering on to that set.
    */
   answerFrom:             (answerSet: RecordedGitStage) => void;
 }

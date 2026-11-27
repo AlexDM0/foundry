@@ -1,8 +1,7 @@
 /**
- * The fake agent, an adapter of the agent port as the Claude Code adapter is: its session is the fake child
- * `src/testing/fake-agent/FakeAgentChild.ts`, which plays a scripted list of steps, printing recorded `claude` stream-json lines
- * (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting or crashing, so Hephaestus, Talos and crash specs drive
- * a session without a vendor. It replays that adapter's recorded wire, so it keeps its line mapping, capabilities and plan values.
+ * The fake agent, an adapter of the agent port as the Claude Code adapter is: its session, `src/testing/fake-agent/FakeAgentChild.ts`, plays
+ * scripted steps of recorded `claude` stream-json lines, stdin waits, exits and crashes, so Hephaestus, Talos and crash specs drive a session
+ * without a vendor. It replays that adapter's recorded wire, so it keeps its line mapping, capabilities and plan values.
  */
 import { basename, join } from 'node:path';
 
@@ -102,11 +101,11 @@ export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze(
   { kind: 'await-line' },
 ]);
 
-/** As many as `CLAUDE_CODE_MAX_RETRIES=2` gave the recorded outage session B of P23. */
+/** As many as `CLAUDE_CODE_MAX_RETRIES=2` gave the recorded outage session. */
 const FAKE_NETWORK_OUTAGE_RETRIES = 2;
 
 /**
- * A session that starts, sees its requests fail until its retries are spent, and ends its turn on the outage result P23 recorded; then it
+ * A session that starts, sees its requests fail until its retries are spent, and ends its turn on the recorded outage result; then it
  * waits, as a session does, until its stdin closes. Its retry lines need the recording's `network-outage` session.
  */
 export const NETWORK_OUTAGE_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([

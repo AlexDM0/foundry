@@ -1,12 +1,7 @@
 /**
- * The leak check of `src/testing/TestRunReport.ts`, watched failing on one planted leak of each kind. Each case runs `bun test` in a child
- * whose working directory is a scratch folder, never this checkout. What matters: a run that leaves nothing passes; an entry left in the
- * run's temp folder, an entry put straight in the shared scratch root and a process still working in a run folder (a Hephaestus successor
- * among them) each fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor
- * it started in its own teardown. A parallel run's planted shared-root entry may join a report, so a case counts only its own line.
- * The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
- * `TestRunLeakCheck.gitState.spec.ts` holds the git side of the check: a worktree, a branch and a new file in the repository, and a
- * branch another process makes with no worktree.
+ * The leak check of `src/testing/TestRunReport.ts` in a `bun test` child in a scratch folder: a left temp entry, a shared scratch root entry
+ * and a process left in a run folder each fail the run, named, and a case cut short stops its successor. A parallel run's planted entry may
+ * join a report, so a case looks only for its own line. The child finds no git; `TestRunLeakCheck.gitState.spec.ts` holds the git side.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join }     from 'node:path';

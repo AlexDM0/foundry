@@ -274,7 +274,7 @@ export function testWhenProcessesCanBeSuspended(claim: string, body: SpecBody, t
   testWhenRequirementIsMet('process-suspension', claim, body, timeoutMilliseconds);
 }
 
-/** For a row that plays the fake agent's network outage, whose session only the owner records (gate G1). */
+/** For a row that plays the fake agent's network outage, whose session only the owner records. */
 export function testWhenTheFakeAgentOutageIsRecorded(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('fake-agent-outage-recording', claim, body, timeoutMilliseconds);
 }

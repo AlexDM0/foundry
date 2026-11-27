@@ -1,9 +1,7 @@
 /**
- * The recorded local endpoint may give only what the real socket or pipe answered. What matters most is that the end of a connection
- * reaches no client that did not read it, as on a real socket, since a mock that closed it hid a real stall; then that a call with no
- * recorded answer fails, that a write after `end` and a connect to a removed endpoint are refused, and that a Talos socket answers each
- * `hello` over the mock with the frames the real one sent. A destroy gives its peer the recorded end and close, also a peer that does not
- * read, unlike an end; a peer that holds unread data gets the recorded events in the recorded order, so no data comes after its end.
+ * The recorded local endpoint gives only what the real socket or pipe answered: above all a connection's end reaches no client that did not
+ * read it, since a mock that closed it hid a real stall; a call with no recorded answer fails; a write after `end` and a connect to a removed
+ * endpoint are refused; a Talos socket answers each `hello` with the real frames; and a destroy and unread data reach a peer in recorded order.
  */
 import type { Socket }              from 'node:net';
 import { beforeEach, expect, test } from 'bun:test';

@@ -1,8 +1,7 @@
 /**
- * The real `claude` stream-json lines the fake agent plays, read from this OS's recording, which `bun run record src/testing/fake-agent/`
- * writes from the Claude probes. A scenario gives a line as a selector: its `type`, its `subtype` and the values it sets. The fake prints
- * the recorded line of that kind which holds every key the selector names, with the selector's values put in. A selector naming a kind or
- * a key no recording holds is refused, so no line the fake prints has a shape a person wrote.
+ * The real `claude` stream-json lines the fake agent plays, from this OS's recording. A scenario gives a line as a selector, its `type`,
+ * `subtype` and the values it sets; the fake prints the recorded line of that kind holding every key the selector names, its values put in.
+ * A selector no recording holds is refused, so no line the fake prints has a shape a person wrote.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -25,7 +24,7 @@ export const CLAUDE_WIRE_SCENARIOS = [
 
 export type ClaudeWireScenario = typeof CLAUDE_WIRE_SCENARIOS[number];
 
-/** Whether the recording holds `scenario`: one the owner records later, as gate G1's network outage, is not listed until then. */
+/** Whether the recording holds `scenario`: one the owner records later, as the network outage, is not listed until then. */
 export function wireScenarioIsRecorded(scenario: string): boolean {
   return CLAUDE_WIRE_SCENARIOS.some((recorded) => recorded === scenario);
 }

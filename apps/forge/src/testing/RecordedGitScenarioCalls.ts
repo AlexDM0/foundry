@@ -92,7 +92,7 @@ const CUSTOMS_CALLS: readonly RecordedScenarioCall[] = [
 /** What the Customs checks ask a worktree of the repository: its state, the work since each named commit, and a merge against each target. */
 export const CUSTOMS_SCENARIO_CALLS: RecordedScenarioCalls = { folder: SCENARIO_REPOSITORY_PLACEHOLDER, calls: CUSTOMS_CALLS };
 
-/** The same, and what V11 asks of a branch that merged the main line in: its own commits past main, and its change against `<main tip>`. */
+/** The same, and what Customs asks of a branch that merged the main line in: its own commits past main, and its change against `<main tip>`. */
 export const CUSTOMS_MAIN_MERGE_SCENARIO_CALLS: RecordedScenarioCalls = {
   folder: SCENARIO_REPOSITORY_PLACEHOLDER,
   calls:  [
@@ -102,7 +102,7 @@ export const CUSTOMS_MAIN_MERGE_SCENARIO_CALLS: RecordedScenarioCalls = {
   ],
 };
 
-/** The folder of a pipeline agent's detached snapshot, inside the repository, which a spec takes as its worktrees root: setup S1's. */
+/** The folder of a pipeline agent's detached snapshot, inside the repository, which a spec takes as its worktrees root: the first setup's. */
 export const PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME = join('pipeline-agent', 'S1');
 
 /** The same calls, asked in the pipeline agent's snapshot. */
@@ -111,7 +111,7 @@ export const PIPELINE_AGENT_SCENARIO_CALLS: RecordedScenarioCalls = {
   calls:  CUSTOMS_CALLS,
 };
 
-/** The folder of ticket 004's detached spec agent snapshot, inside the repository, which a spec takes as its worktrees root. */
+/** The folder of a ticket's detached spec agent snapshot, inside the repository, which a spec takes as its worktrees root. */
 export const DOCUMENT_AGENT_SNAPSHOT_FOLDER_NAME = join('document-agent', '004-spec');
 
 /** The same calls, asked in the document agent's snapshot. */
@@ -157,7 +157,7 @@ export function reviewPassScenarioCalls(reviewStart: string, reviewHead: string)
   return { folder: SCENARIO_REPOSITORY_PLACEHOLDER, calls: reviewPassReads(reviewStart, reviewHead) };
 }
 
-/** The commit code makes for a first-round pass on ticket 001 that changed nothing, then what the pass asks up to it. */
+/** The commit code makes for a first-round pass on the first ticket that changed nothing, then what the pass asks up to it. */
 export const REVIEW_PASS_WITHOUT_CHANGES_CALLS: RecordedScenarioCalls = {
   folder: SCENARIO_REPOSITORY_PLACEHOLDER,
   calls:  [

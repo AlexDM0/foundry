@@ -1,8 +1,7 @@
 /**
- * Runs a case around a held tracker lock without the wall time. `lockRetryWaitsDuring` waits out the whole retry budget: every `Bun.sleep`
- * inside it resolves at once and is recorded, so the case asserts the waits the lock asked for instead of sitting through them.
- * `parkingLockRetries` shows a holder that its rivals have queued: each rival's first retry stays parked, counted, until the action ends, so
- * a hold ends on that state, however long the rivals took to arrive, and no retry budget runs out meanwhile.
+ * Runs a case around a held tracker lock without the wall time. `lockRetryWaitsDuring` resolves and records every `Bun.sleep` at once, so
+ * the case asserts the waits instead of sitting through them. `parkingLockRetries` parks each rival's first retry, counted, until the action
+ * ends, so a hold ends on a queued state however late the rivals arrive, and no retry budget runs out meanwhile.
  */
 import { spyOn } from 'bun:test';
 

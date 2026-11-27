@@ -1,8 +1,7 @@
 /**
- * The stop of `src/testing/ProcessesInFolder.ts`. What matters: a process that ignores SIGTERM, so only the SIGKILL ends it, no longer
- * answers signal 0 once the stop returns. A killed process answers signal 0 until the kernel has torn it down, so a stop that returned at
- * the SIGKILL let a spec's check after it see the process still running. The process is real, spawned through a spawner that ends at
- * once, so it belongs to no parent that would reap it.
+ * The stop of `src/testing/ProcessesInFolder.ts`: a process that ignores SIGTERM no longer answers signal 0 once the stop returns, since a
+ * killed process answers it until the kernel tears it down. The process is real, spawned through a spawner that ends at once, so it belongs
+ * to no parent that would reap it.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

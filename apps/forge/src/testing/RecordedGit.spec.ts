@@ -1,8 +1,7 @@
 /**
- * What matters: no process that answers git from recordings reaches the real gpgconf, in the spec's own process through `useRecordedGit`
- * or in a spawned binary through each exported `*InThisProcess` player its preload calls. The table of players is exact both ways, so a
- * new player fails here until it is listed and shown to answer gpgconf as missing. A replaced `read` is checked before it is called, so a
- * failing case never starts gpgconf itself.
+ * No process that answers git from recordings reaches the real gpgconf, through `useRecordedGit` in the spec's process or through each
+ * exported `*InThisProcess` player in a spawned binary. The table of players is exact both ways, so a new player fails here until listed;
+ * a replaced `read` is checked before it is called, so a failing case never starts gpgconf itself.
  */
 import { join } from 'node:path';
 

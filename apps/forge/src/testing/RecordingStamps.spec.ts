@@ -1,9 +1,7 @@
 /**
- * The stamp check without a real call: the recordings are texts and the installed versions a function, so each verdict is planted.
- * What matters: a stamp that agrees passes, a claude stamp on its major and minor version alone; a stale version, a stamp of another
- * boundary, OS or system, an unreadable recording and a recording of no boundary each fail with the boundary and its record command;
- * a boundary with no recording for this OS is listed as not finished and fails nothing; and every boundary of `BOUNDARY_SPECS` names
- * the system that stamps it, both lists exact.
+ * The stamp check with planted recordings and installed versions: an agreeing stamp passes, claude's on its major and minor alone; a stale or
+ * foreign stamp, an unreadable recording and a recording of no boundary fail, naming the record command; a boundary with no recording for
+ * this OS is listed as not finished; and every boundary of `BOUNDARY_SPECS` names the system that stamps it, both lists exact.
  */
 import { describe, expect, test } from 'bun:test';
 

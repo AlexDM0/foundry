@@ -1,9 +1,7 @@
 /**
  * A scenario is one named git state of a repository, such as "a commit under .claude/ undone by a later one".
- * `src/lib/git/RecordedGitScenarios.integration.spec.ts` builds the state with real git and records under the scenario's name each call
- * `src/testing/RecordedGitScenarioCalls.ts` names; a default spec enters the scenario through `useRecordedGit().enterScenario` and is
- * answered from that recording, in any order. The repository folder and each named commit are placeholders in the recording, which the
- * replay fills with the spec's own values.
+ * `src/lib/git/RecordedGitScenarios.integration.spec.ts` builds it with real git and records each call `src/testing/RecordedGitScenarioCalls.ts`
+ * names; a default spec enters it through `useRecordedGit().enterScenario`, answered in any order, the placeholders filled with its own values.
  */
 import { realpathSync } from 'node:fs';
 

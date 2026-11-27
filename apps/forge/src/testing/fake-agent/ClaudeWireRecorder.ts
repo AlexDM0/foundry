@@ -14,10 +14,7 @@ import { join }   from 'node:path';
 import type { RecordedAnswer }                               from '../BoundaryRecordings.ts';
 import { CLAUDE_WIRE_SCENARIOS, type RecordedClaudeSession } from './RecordedClaudeLines.ts';
 
-/**
- * P10 the rate-limit sessions, P18 the refused input line, P19 the other scenarios, each reaching only a local stand-in API; P22 one turn
- * of Flint's brain, the one real model call of a recording.
- */
+/** The rate-limit sessions, the refused input line and the other scenarios against a local stand-in API, then one real turn of Flint's brain. */
 const RECORDING_PROBES = [
   'claude-p10-rate-limit-events',
   'claude-p18-unreadable-input-line',

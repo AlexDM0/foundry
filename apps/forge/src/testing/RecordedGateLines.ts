@@ -1,8 +1,7 @@
 /**
- * The gate line of a default spec: `useRecordedGateLines` answers a spec file's line runner with the ends real gate lines gave, which the
- * `RecordedGateLines.*.integration.spec.ts` specs record under `bun run record` of the shell line, the executable lookup, the gate
- * confinement and the gate run. A line is answered only when its argv is the recorded shell argv of a recorded line, alone or after the
- * recorded confinement prefix. Any other line fails the case, and so does a write outside the allowed folders that no sandbox confines.
+ * The gate line of a default spec: `useRecordedGateLines` answers a spec file's line runner with the ends real gate lines gave, recorded by
+ * the `RecordedGateLines.*.integration.spec.ts` specs. A line is answered only when its argv is a recorded line's shell argv, alone or after
+ * the recorded confinement prefix; any other line fails the case, and so does a write outside the allowed folders that no sandbox confines.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir }                   from 'node:os';

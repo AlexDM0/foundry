@@ -1,8 +1,7 @@
 /**
- * The process table of a default spec: `useRecordedProcessTable` mocks `ProcessSupervision` with the answers the real table gave, which
- * `src/lib/process-identity/ProcessIdentity.integration.spec.ts` records under `bun run record src/lib/process-identity/`. A process here
- * is in one recorded stage, and each call is answered by the call shape of that stage. A call no stage holds fails the case, and so does
- * a call the real table refuses: a stop of a process after its end, or of an identity whose start stamp does not match.
+ * The process table of a default spec: `useRecordedProcessTable` mocks `ProcessSupervision` with the answers
+ * `src/lib/process-identity/ProcessIdentity.integration.spec.ts` recorded, each call answered by its shape in the process's recorded stage. A
+ * call no stage holds fails the case, and so does one the real table refuses: a stop after the end, or of an identity whose start stamp differs.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

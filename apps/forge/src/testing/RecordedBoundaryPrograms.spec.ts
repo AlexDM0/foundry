@@ -1,8 +1,7 @@
 /**
- * What matters: a default spec that starts git, or a program of the native process-identity or gate-confinement adapter, is caught in
- * both `Bun.spawn` forms, an argv and a `cmd` option, by the path the adapter names or by the name of a resolved path, and is told what
- * to reach the answers through instead; any other program, a program of another platform and a real-system spec are not judged. Each
- * form is planted here.
+ * A default spec that starts git, or a program of the native process-identity or gate-confinement adapter, is caught in both `Bun.spawn`
+ * forms, by the adapter's path or a resolved path's name, and told what to reach the answers through; any other program, another platform's
+ * program and a real-system spec are not judged. Each form is planted here.
  */
 import { describe, expect, test } from 'bun:test';
 

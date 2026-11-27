@@ -1,8 +1,7 @@
 /**
- * Preloaded by `bunfig.toml`: gives the run a temp folder of its own and takes the leak check's baseline when it loads; after the whole
- * run, fails it on whatever it left behind (`src/testing/TestRunLeakCheck.ts`), removes its scratch and temp folders, and prints every spec
- * the tool guard skipped, by name and unmet requirement, with the count, so a skip is never silent. Its statements are its own
- * registration, the reason it may do work at load.
+ * Preloaded by `bunfig.toml`: gives the run its own temp folder and takes the leak check's baseline at load; after the run, fails it on what
+ * it left behind (`src/testing/TestRunLeakCheck.ts`), removes its scratch and temp folders, and prints every spec the tool guard skipped, so
+ * a skip is never silent. Its statements are its own registration, the reason it may do work at load.
  */
 import { tmpdir }   from 'node:os';
 import { join }     from 'node:path';

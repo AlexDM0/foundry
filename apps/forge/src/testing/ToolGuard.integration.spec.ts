@@ -1,10 +1,7 @@
 /**
- * What a run on a machine without git does with a guarded spec: skips it by name, counts it in the preloaded report, and fails it instead
- * when `EVERY_TOOL_REQUIRED_VARIABLE` is set. Each case runs `bun test` in a child whose PATH holds only `bun` (and, for the control,
- * `git`), since hiding git from this process would change every other spec in the run. The temp-folder guard is held the same way, its
- * child's `TMPDIR` putting the scratch root under `/tmp` or outside it, and its child has no git, since the guard asks for none. The
- * merge-prediction guard is held by the feature, not a version: a planted `git` that refuses `merge-tree` skips its suite under the
- * feature's name.
+ * A run on a machine without git skips a guarded spec by name, counts it in the report, and fails it with `EVERY_TOOL_REQUIRED_VARIABLE` set.
+ * Each case runs `bun test` in a child with a narrowed PATH, since hiding git here would change every other spec; the temp-folder guard is
+ * held through the child's `TMPDIR`, and the merge-prediction guard by a planted `git` that refuses `merge-tree`.
  */
 import {
   chmodSync,

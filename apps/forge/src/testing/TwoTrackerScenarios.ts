@@ -1,8 +1,7 @@
 /**
- * The two-tracker answer set: each git state of the fixture repository in `src/testing/TwoTrackerFixture.ts` as a scenario, and the calls
- * recorded in it at each place. A spec replays one through `useRecordedGit().enterScenario`, like any scenario of
- * `src/testing/RecordedGitScenarios.ts`; `bun run record src/lib/git/GitProcess.ts` records them. A call naming a commit the scenario does
- * not name is not one of its calls.
+ * The two-tracker answer set: each git state of `src/testing/TwoTrackerFixture.ts`'s repository as a scenario, with the calls recorded at
+ * each place, replayed through `useRecordedGit().enterScenario` and recorded by `bun run record src/lib/git/GitProcess.ts`. A call naming a
+ * commit the scenario does not name is not one of its calls.
  */
 import { join } from 'node:path';
 

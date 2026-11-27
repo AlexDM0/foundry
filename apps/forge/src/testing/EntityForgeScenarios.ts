@@ -1,8 +1,7 @@
 /**
- * The entity-forge answer set: each git state of the fixture repository in `src/testing/EntityForgeFixture.ts` as a scenario, and the calls
- * recorded in it at each place. A spec replays one through `useRecordedGit().enterScenario`, like any scenario of
- * `src/testing/RecordedGitScenarios.ts`; `bun run record src/lib/git/GitProcess.ts` records them. A call naming a commit the scenario does
- * not name is not one of its calls, and a ticket's places exist only in the scenarios that made its worktree.
+ * The entity-forge answer set: each git state of `src/testing/EntityForgeFixture.ts`'s repository as a scenario, with the calls recorded at
+ * each place, replayed through `useRecordedGit().enterScenario` and recorded by `bun run record src/lib/git/GitProcess.ts`. A call naming a
+ * commit the scenario does not name is not one of its calls, and a ticket's places exist only in the scenarios that made its worktree.
  */
 import { join } from 'node:path';
 
@@ -111,7 +110,7 @@ const TICKET_WORK_READS: readonly EntityForgeCall[] = [
   { gitArguments: ['merge-base', '--is-ancestor', ENTITY_FORGE_MAIN_LINE, 'HEAD'] },
 ];
 
-/** Each commit a ticket worktree's branch may hold, whose message V7 reads. */
+/** Each commit a ticket worktree's branch may hold, whose message the attribution check reads. */
 const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>', '<main tip>', '<catch-up tip>'];
 
 /**

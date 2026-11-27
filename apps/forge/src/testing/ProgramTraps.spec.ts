@@ -1,10 +1,7 @@
 /**
- * What matters: a trapped program reached in the spec's own process, or by a binary it spawns, runs the recording stub, never the real
- * program, and the attempt fails the case naming the program. `Bun.which` and a spawn without `env` read the environment from process
- * start, so the guard hands both the current one; each form is planted here against gpgconf, which a case may run, and claude only
- * resolved, never run. The release is derived from `BOUNDARY_SPECS`: it lets the gpg boundary's real-system spec through and nothing else,
- * and the specs that call it are exactly the released ones. A resolution is checked before gpgconf runs, so a failing case never starts
- * the real one.
+ * A trapped program reached in the spec's process or by a binary it spawns runs the recording stub and fails the case; `Bun.which` and a spawn
+ * without `env` read the environment from process start, so the guard hands both the current one. Only the gpg boundary's real-system spec
+ * is released, and a resolution is checked before gpgconf runs, so a failing case never starts the real one; claude is only resolved.
  */
 import { delimiter, join } from 'node:path';
 

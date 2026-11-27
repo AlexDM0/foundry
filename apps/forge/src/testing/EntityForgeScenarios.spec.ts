@@ -1,10 +1,7 @@
 /**
- * The entity-forge fixture is whole and says what the step 3 and step 4 claims lean on. What matters: the recording answers every call
- * `EntityForgeScenarios` names at its place in each scenario, and a scenario replays through today's code; the pipeline passes the one
- * entity check in both its forms, is stored as version 4 and is read whole in both, the step 4 form the only one that whitelists the
- * package; one tracker at the root has no prefix while each home has its own; and each scenario's recorded change falls to the owners
- * its claims need: the shop alone, the shop and the admin app (E11), the admin app alone (E15), the shop with the package and a root file
- * (a crossing), and a delivered need on main.
+ * The entity-forge fixture is whole: the recording answers every call `EntityForgeScenarios` names in each scenario, which replays through
+ * today's code; the pipeline passes the entity check in both its forms, only the later form whitelisting the package; each home has its own
+ * prefix; and each scenario's recorded change falls to the owners its claims need, a crossing and a delivered need on main included.
  */
 import { readFileSync, realpathSync } from 'node:fs';
 import { join }                       from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * The shared read of the checkout. What matters: every architecture test of a run gets the same read, frozen, so none can plant into another's
- * input; the walk leaves out the folders git ignores, a tracker's data and ticket worktrees and turbo's cache at any depth; the program's
- * read holds every package it declares under the package's name, each with files; and a per-source answer is computed once for a shared
- * source and anew for a planted one.
+ * The shared read of the checkout: every architecture test of a run gets the same frozen read, so none can plant into another's input; the
+ * walk leaves out ignored folders, tracker data, ticket worktrees and turbo's cache at any depth; each declared package is read under its
+ * name; and a per-source answer is computed once for a shared source and anew for a planted one.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

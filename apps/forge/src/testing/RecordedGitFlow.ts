@@ -1,8 +1,7 @@
 /**
- * The stages of a ticket's flow through git, each one answer set: the calls Hephaestus makes while the repository stands in that stage,
- * with the place each is asked in. `src/lib/git/RecordedGitAnswers.integration.spec.ts` walks a real repository through the stages and
- * records every answer; `src/testing/RecordedGit.ts` answers a default spec's calls from the stage it is in, in any order and as often as asked.
- * A recorded answer holds placeholders for the repository folder and the commit and tree ids, which a replay fills with fixed example ids.
+ * The stages of a ticket's flow through git, each one answer set of the calls Hephaestus makes in that stage, with the place each is asked in.
+ * `src/lib/git/RecordedGitAnswers.integration.spec.ts` records them on a real repository; `src/testing/RecordedGit.ts` answers from them in
+ * any order and as often as asked. Placeholders for the folder and the commit and tree ids are filled with fixed example ids on replay.
  */
 import { join } from 'node:path';
 
@@ -67,9 +66,9 @@ export type RecordedFlowPlace = typeof RECORDED_FLOW_PLACES[keyof typeof RECORDE
 
 const WORKTREES = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, PRODUCT_NAMES.WORKTREES_FOLDER);
 const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
-/** Setup S1's snapshot, which its pipeline agent reads. */
+/** The first setup's snapshot, which its pipeline agent reads. */
 const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'S1');
-/** Ticket 001's spec snapshot, which its spec agent reads. */
+/** The first ticket's spec snapshot, which its spec agent reads. */
 const DOCUMENT_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'document-agent', '001-spec');
 
 /** The tracker of the folder flow: its project folder below the repository and its branch namespace. */
@@ -578,7 +577,7 @@ const FOLDER_CONFLICTED_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TI
   { gitArguments: ['merge-base', '--is-ancestor', FOLDER_MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
 ]);
 
-/** For a tracker in a folder, V5, V17 and V13 on what the commits since the branch tip changed against git's own merge of the two tips. */
+/** For a tracker in a folder, the scope checks on what the commits since the branch tip changed against git's own merge of the two tips. */
 const FOLDER_SCOPE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
   ['rev-list', '--merges', `${TICKET_TIP}..HEAD`, `^${FOLDER_MOVED_MAIN_TIP}`],
   { gitArguments: ['merge-tree', '--write-tree', '--no-messages', TICKET_TIP, FOLDER_MOVED_MAIN_TIP], exitCode: NEGATIVE },
@@ -586,7 +585,7 @@ const FOLDER_SCOPE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE,
   ['diff', '--name-only', '--no-renames', '-z', AUTOMATIC_MERGE_TREE, 'HEAD', '--'],
 ]);
 
-/** What the Airlock checks of the committed resolution before the landing: V10, then the scope reads. */
+/** What the Airlock checks of the committed resolution before the landing: the resolution check, then the scope reads. */
 const FOLDER_RESOLUTION_READS = [
   ...callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
     resolved(FOLDER_MOVED_MAIN_TIP),
@@ -622,7 +621,7 @@ const FOLDER_FLOW_STAGES: Readonly<Record<RecordedFolderFlowStageName, readonly 
     ...FOLDER_COMMITTED_STAGE_CALLS, ...FOLDER_RESOLUTION_READS, ...folderLandingReadsOf(FOLDER_MERGED_TIP), ...FOLDER_RESOLVED_FAST_FORWARD,
   ],
   'folder resolved branch landed': FOLDER_MAIN_CHECKOUT_READS,
-  // The fix is not a resolution, so V10 asks nothing of it; the scope reads judge it before its merged tree is gated again.
+  // The fix is not a resolution, so the resolution check asks nothing of it; the scope reads judge it before its merged tree is gated again.
   'folder merged tree fixed':      [...FOLDER_COMMITTED_STAGE_CALLS, ...FOLDER_SCOPE_READS, ...folderLandingReadsOf(FIXED_TIP), ...FOLDER_FIXED_FAST_FORWARD],
   'folder fixed branch landed':    FOLDER_MAIN_CHECKOUT_READS,
 };
