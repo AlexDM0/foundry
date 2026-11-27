@@ -6,26 +6,25 @@
  */
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState
 } from 'react';
 
-import type { BoardDocument }             from '../../../@types/board/BoardDocument.ts';
-import type { TranscriptFollower }        from '../../@types/BoardServices.ts';
-import { useBoardClock, type BoardClock } from '../../shared/BoardClock.ts';
-import { useBoardNavigation }             from '../../shared/routing/BoardRouteLinks.ts';
-import { TimeUtil }                       from '../../utils/TimeUtil.ts';
-import { ViewTitle }                      from '../ViewTitle.tsx';
-import type { AgentJobDocument }          from './AgentJobDocument.ts';
-import type { PanelConcurrency }          from './AgentPanelSpriteModel.ts';
-import { AgentsModel }                    from './AgentsModel.ts';
-import { JobPanel }                       from './JobPanel.tsx';
-import { SessionCard }                    from './SessionCard.tsx';
-import type { TranscriptMemory }          from './TranscriptPanel.tsx';
-import { useAgentPanelHabitat }           from './UseAgentPanelHabitat.ts';
-import { WorkerCard }                     from './WorkerCard.tsx';
+import type { BoardDocument }           from '../../../@types/board/BoardDocument.ts';
+import type { TranscriptFollower }      from '../../@types/BoardServices.ts';
+import { useBoardClock, useTickingNow } from '../../shared/BoardClock.ts';
+import { useBoardNavigation }           from '../../shared/routing/BoardRouteLinks.ts';
+import { TimeUtil }                     from '../../utils/TimeUtil.ts';
+import { ViewTitle }                    from '../ViewTitle.tsx';
+import type { AgentJobDocument }        from './AgentJobDocument.ts';
+import type { PanelConcurrency }        from './AgentPanelSpriteModel.ts';
+import { AgentsModel }                  from './AgentsModel.ts';
+import { JobPanel }                     from './JobPanel.tsx';
+import { SessionCard }                  from './SessionCard.tsx';
+import type { TranscriptMemory }        from './TranscriptPanel.tsx';
+import { useAgentPanelHabitat }         from './UseAgentPanelHabitat.ts';
+import { WorkerCard }                   from './WorkerCard.tsx';
 
 export type AgentsBoard = Pick<
   BoardDocument,
@@ -36,12 +35,6 @@ export interface AgentsViewProps {
   readonly board:            AgentsBoard;
   readonly selectedJobId:    string | null;
   readonly followTranscript: TranscriptFollower;
-}
-
-function useNowEverySecond(clock: BoardClock): Date {
-  const [now, setNow] = useState(() => clock.now());
-  useEffect(() => clock.everySecond(() => setNow(clock.now())), [clock]);
-  return now;
 }
 
 /** The job the panel shows: the routed one, else the last one shown while the panel slides out, until it is gone. */
@@ -67,7 +60,7 @@ export function AgentsView({ board, selectedJobId, followTranscript }: AgentsVie
   const {
     project, jobs, decisions, incidents, launchSlots, concurrency, page, endedJobs, hephaestus, limits
   } = board;
-  const now = useNowEverySecond(useBoardClock());
+  const now = useTickingNow(useBoardClock(), true);
   const navigateTo = useBoardNavigation();
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
   const [showDiagnostics, setShowDiagnostics] = useState(false);

@@ -33,7 +33,7 @@ import { PriorityMark, TypeMark, WaitingOnMark }                          from '
 import type { CuedTicket }                                                from '../../flint/TicketsSpriteModel.ts';
 import { useTicketsHabitat }                                              from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
-import { useBoardClock }                                                  from '../../shared/BoardClock.ts';
+import { useBoardClock, useTickingNow }                                   from '../../shared/BoardClock.ts';
 import { useChangedSinceMount }                                           from '../../shared/ChangedSinceMount.ts';
 import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shared/CoveringPanel.ts';
 import { useFinishedWorkWindow }                                          from '../../shared/FinishedWorkWindow.ts';
@@ -546,7 +546,8 @@ export function KanbanView({
   useTicketsHabitat(viewElement, cuedTickets);
   const [shownBoard, setShownBoard] = useState(board);
   const [shownFilters, setShownFilters] = useState(filters);
-  const [shownNow, setShownNow] = useState(() => clock.now().getTime());
+  const [showsTickingStamp, setShowsTickingStamp] = useState(false);
+  const shownNow = useTickingNow(clock, streamIsLive && showsTickingStamp, board).getTime();
   const [changedCardKeys, setChangedCardKeys] = useState<ReadonlySet<string>>(NOTHING_CHANGED);
   const [abandonedLaneIsOpenChoice, setAbandonedLaneIsOpenChoice] = useState<boolean | null>(null);
   const [shownCountChoice, setShownCountChoice] = useState<Partial<Record<KanbanClosedLaneKey, number>>>({});
@@ -561,7 +562,6 @@ export function KanbanView({
   if (board !== shownBoard) {
     setChangedCardKeys(KanbanChangeHighlightModel.changedCardKeysBetween(shownBoard, board));
     setShownBoard(board);
-    setShownNow(clock.now().getTime());
     setShownArrows(null);
   }
   if (filters !== shownFilters) {
@@ -584,11 +584,10 @@ export function KanbanView({
   });
   const hoveredLinks = shownArrows === null ? [] : KanbanModel.dependencyArrowLinksOf(model, shownArrows.hoveredTicketId);
   const neededFirstCardKeys = new Set(hoveredLinks.map((link) => link.dependencyCardKey));
-  const ticksNow = streamIsLive && model.hasTickingStamp;
+  if (model.hasTickingStamp !== showsTickingStamp) setShowsTickingStamp(model.hasTickingStamp);
   const coveringWidthProperty = useCoveringPanelWidthProperty();
   const openItemText = routing.openItem === null ? null : DetailRoute.itemTextOf(routing.openItem);
 
-  useEffect(() => (ticksNow ? clock.everySecond(() => setShownNow(clock.now().getTime())) : undefined), [clock, ticksNow]);
   useEffect(() => (changedCardKeys.size === 0 ? undefined : clock.after(CHANGE_HIGHLIGHT_MILLISECONDS, () => setChangedCardKeys(NOTHING_CHANGED))), [changedCardKeys, clock]);
   useEffect(() => () => cancelLaneHighlight.current?.(), []);
 
