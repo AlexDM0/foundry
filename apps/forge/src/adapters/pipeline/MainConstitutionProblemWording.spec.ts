@@ -1,7 +1,7 @@
 /** Each problem of main's constitution reads as the sentence its reason was before the problem was typed. */
 import { expect, test } from 'bun:test';
 
-import type { MainConstitutionProblem }   from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { MainConstitutionProblem }   from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { MainConstitutionProblemWording } from './MainConstitutionProblemWording.ts';
 
 test.each<[MainConstitutionProblem, string]>([

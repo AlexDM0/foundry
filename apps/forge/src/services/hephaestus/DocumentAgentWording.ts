@@ -3,7 +3,7 @@
  * the head the agent sees, and after it the head with line numbers when the head changed since the agent last saw it. The object is data
  * the agent reads, so it carries the record's values, never prose.
  */
-import type { DocumentMessage, LineRange, TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { DocumentMessage, LineRange, TicketDocumentKind } from '../../domain/tracker-model/@types/TicketDocument.ts';
 
 /** The head the agent sees: its version number, and its text when the agent has not seen it yet. */
 export interface SeenHead {

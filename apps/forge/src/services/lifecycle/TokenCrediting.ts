@@ -2,8 +2,8 @@
  * What a session's tokens credit, design section 4.5, as pure functions: turns are keyed by message id, so the live stream and a transcript
  * replay of the same session count each API call once, and a subagent's turns are grouped under the tool call that started it.
  */
+import type { AgentUsage, LogRecord } from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { AgentTurnUsage }        from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { AgentUsage, LogRecord } from '../../lib/tracker-model/@types/LogRecord.ts';
 
 /** One assistant turn as the live stream or a transcript replay reports it. */
 export interface CreditedTurn {

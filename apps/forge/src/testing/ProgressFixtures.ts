@@ -2,10 +2,10 @@
  * A new tracker's progress and a row filed the way the Board files one, for the adapter and service specs that read or write progress.json.
  * Test-only: nothing that ships may import `src/testing/`.
  */
-import type { Task }                       from '../lib/tracker-model/@types/Task.ts';
-import type { TrackerProgress }            from '../lib/tracker-model/@types/TrackerProgress.ts';
-import { emptyProgressFor }                from '../lib/tracker-model/EmptyProgress.ts';
-import { TaskRecordUtil, type TaskFiling } from '../lib/tracker-model/utils/TaskRecordUtil.ts';
+import type { Task }                       from '../domain/tracker-model/@types/Task.ts';
+import type { TrackerProgress }            from '../domain/tracker-model/@types/TrackerProgress.ts';
+import { emptyProgressFor }                from '../domain/tracker-model/EmptyProgress.ts';
+import { TaskRecordUtil, type TaskFiling } from '../domain/tracker-model/utils/TaskRecordUtil.ts';
 
 const FILED_AT = '2026-09-18T20:11:03+02:00';
 

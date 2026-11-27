@@ -1,6 +1,6 @@
-import { readingBoardOf }                   from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { CONCURRENCY_LIMIT_CEILING_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { BoardSettingsUtil }                from '../../../src/lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { readingBoardOf }                   from '../../../src/domain/tracker-model/ReadingBoard.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS } from '../../../src/domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { BoardSettingsUtil }                from '../../../src/domain/tracker-model/utils/BoardSettingsUtil.ts';
 import type { ControlCommandOf }            from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';

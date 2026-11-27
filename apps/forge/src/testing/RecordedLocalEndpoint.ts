@@ -1,7 +1,7 @@
 /**
  * The Talos socket of a default spec: `useRecordedLocalEndpoint` gives a `LocalEndpoint` whose servers and connections live in memory and
- * answer with what the real socket or pipe answered, which `src/lib/talos/LocalEndpoint.answers.integration.spec.ts` records under
- * `bun run record src/lib/talos/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
+ * answer with what the real socket or pipe answered, which `src/lib/local-endpoint/LocalEndpoint.answers.integration.spec.ts` records under
+ * `bun run record src/lib/local-endpoint/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
  * refuses: the end of a connection reaches no client that did not read it, a write after `end` is an error, and a removed path refuses a
  * connect. A destroy gives its peer the recorded end and close, also when the peer does not read; a peer that holds unread data gets the
  * recorded events in the recorded order, before and after it starts to read, which differ when it listens for errors.
@@ -13,12 +13,12 @@ import { join }                     from 'node:path';
 
 import { afterEach } from 'bun:test';
 
-import type { LocalEndpoint }               from '../lib/talos/LocalEndpoint.ts';
-import { localEndpointFor }                 from '../lib/talos/LocalEndpointFor.ts';
+import type { LocalEndpoint }               from '../lib/local-endpoint/LocalEndpoint.ts';
+import { localEndpointFor }                 from '../lib/local-endpoint/LocalEndpointFor.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
 
-const LOCAL_ENDPOINT_BOUNDARY = 'src/lib/talos/LocalEndpointFor.ts';
+const LOCAL_ENDPOINT_BOUNDARY = 'src/lib/local-endpoint/LocalEndpointFor.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 const PIPE_NAME_PREFIX = 'example-product';
 /** A real answer that takes longer than this is recorded as one given after a wait. */

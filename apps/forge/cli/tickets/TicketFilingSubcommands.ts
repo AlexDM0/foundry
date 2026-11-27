@@ -1,5 +1,5 @@
 import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { TICKET_TYPES }                       from '../../src/lib/tracker-model/constants/TicketFields.ts';
+import { TICKET_TYPES }                       from '../../src/domain/tracker-model/constants/TicketFields.ts';
 import { requireWorkspace }                   from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }              from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';

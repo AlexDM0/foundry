@@ -10,7 +10,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
+import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, WIND_DOWN_GRACE_CALLS }      from '../../shared/constants/HephaestusLimits.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';

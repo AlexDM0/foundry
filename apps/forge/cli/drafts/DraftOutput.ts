@@ -1,5 +1,5 @@
 /** How a draft prints: its one-line listing entry and its `draft show` summary; `--json` prints the stored document itself. */
-import type { Draft, DraftQuestion, DraftState } from '../../src/lib/tracker-model/@types/Draft.ts';
+import type { Draft, DraftQuestion, DraftState } from '../../src/domain/tracker-model/@types/Draft.ts';
 
 function claimText(draft: Readonly<Draft>): string {
   return draft.claim === null ? 'unclaimed' : `claimed by ${draft.claim.owner}`;

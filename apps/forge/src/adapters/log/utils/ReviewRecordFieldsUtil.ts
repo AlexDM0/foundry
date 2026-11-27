@@ -2,8 +2,7 @@
  * The check and the copy of a recorded review's verdict, claims and findings, shared by the stored log's validation and its mapping
  * back, so a stored line is copied by exactly the rules it was checked with.
  */
-import { JsonRecordUtil }                  from '../../../lib/json-record/JsonRecordUtil.ts';
-import type { ReviewClaim, ReviewFinding } from '../../../lib/tracker-model/@types/ReviewRecord.ts';
+import type { ReviewClaim, ReviewFinding } from '../../../domain/tracker-model/@types/ReviewRecord.ts';
 import {
   REVIEW_CLAIM_RESULTS,
   REVIEW_FINDING_CLASSES,
@@ -11,7 +10,8 @@ import {
   REVIEW_FINDING_OUTCOMES,
   REVIEW_FINDING_SEVERITIES,
   REVIEW_VERDICTS
-}                               from '../../../lib/tracker-model/constants/ReviewRecordVocabulary.ts';
+}                               from '../../../domain/tracker-model/constants/ReviewRecordVocabulary.ts';
+import { JsonRecordUtil }        from '../../../lib/json-record/JsonRecordUtil.ts';
 import type { LogRecordProblem } from '../../../shared/@types/LogFileProblem.ts';
 
 type UnknownObject = Record<string, unknown>;

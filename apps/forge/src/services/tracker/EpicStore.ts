@@ -5,7 +5,7 @@
 import { join }                                    from 'node:path';
 import type { EpicFileProblem }                    from '../../adapters/epics/@types/EpicFileProblem.ts';
 import { EpicFileIngestion }                       from '../../adapters/epics/EpicFileIngestion.ts';
-import type { Epic }                               from '../../lib/tracker-model/@types/Epic.ts';
+import type { Epic }                               from '../../domain/tracker-model/@types/Epic.ts';
 import type { BoardContents }                      from './@types/BoardRecords.ts';
 import { localStoreLayoutOf }                      from './LocalStoreLayout.ts';
 import { listStoreFolder, storeFolderFileNamesIn } from './StoreFolderListing.ts';

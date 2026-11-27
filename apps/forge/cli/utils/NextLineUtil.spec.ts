@@ -6,7 +6,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                    from '../../src/domain/tracker-model/@types/Job.ts';
 import { boardFixture, ticketFixture } from '../../src/testing/BoardFixtures.ts';
 import { NextLineUtil }                from './NextLineUtil.ts';
 

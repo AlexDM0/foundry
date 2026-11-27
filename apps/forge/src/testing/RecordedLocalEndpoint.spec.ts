@@ -8,7 +8,7 @@
 import type { Socket }              from 'node:net';
 import { beforeEach, expect, test } from 'bun:test';
 
-import { listenOnIdleTalosSocket, talosHelloLineOf } from './IdleTalosSocket.ts';
+import { listenOnIdleTalosSocket, talosHelloLineOf } from '../../talos/testing/IdleTalosSocket.ts';
 import {
   createRecordedLocalEndpoint,
   type DestroyAnswer,
@@ -33,7 +33,7 @@ beforeEach(() => {
 function nextEndpoint(): string {
   lastInstance += 1;
   return recorded.endpoint.endpointOf({
-    monitorFolder: '/example/monitor', trackerId: 'tracker-example', name: 'J-1', instance: lastInstance
+    socketFolder: '/example/monitor/private', scope: 'tracker-example', name: 'J-1', instance: lastInstance
   });
 }
 

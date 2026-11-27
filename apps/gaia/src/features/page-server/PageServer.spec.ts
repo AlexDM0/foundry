@@ -38,6 +38,7 @@ import type { FleetSnapshot }                                                 fr
 import type { GaiaCommand }                                                   from '../../shared/@types/GaiaCommand.ts';
 import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }                from '../../shared/constants/GaiaSystemVersions.ts';
 import { TICKET_DOCUMENT_COMMAND_BODY_BOUND_BYTES }                           from '../../shared/constants/Limits.ts';
+import { SUPPORTED_FORGE_VERSION }                                            from '../../shared/constants/SupportedForgeVersions.ts';
 import { manualTimers, type ManualTimers }                                    from '../../testing/ManualTimers.ts';
 import { recordedHephaestusFetch, type RecordedHephaestusFetch }              from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                          from '../../testing/ScratchRoot.ts';
@@ -122,7 +123,7 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
       readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
       readings:                () => [],
       presenceReadingAfterNow: () => Promise.resolve(null),
-      forgeClient:             forgeClientOf({ hephaestusFetch }),
+      forgeClient:             forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch }),
     },
     logBoardRelay: (entry) => {
       relayLogEntries.push(entry);

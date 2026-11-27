@@ -11,7 +11,7 @@ import type {
   LineEdit,
   TicketDocument,
   TicketDocumentRecord
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../domain/tracker-model/@types/TicketDocument.ts';
 
 const INDENTATION_SPACES = 2;
 

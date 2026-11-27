@@ -165,7 +165,7 @@ export function fakeAgentAdapter(
     versionOf:              (versionOutput) => (versionOutput.trim() === '' ? null : versionOutput.trim()),
     programRepairOf:        claudeProgramRepairOf,
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
-      const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
+      const scenarioPath = join(request.launchFilesDirectory, SCENARIO_FILE_NAME);
       const sessionSteps = sessionPlanner(request) ?? steps;
       return {
         argv:            [process.execPath, FAKE_AGENT_CHILD_PATH, scenarioPath],

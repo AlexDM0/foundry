@@ -1,6 +1,6 @@
 /**
  * Windows: the POSIX moves, with a rename and an unlink retried while something holds the file, since one MoveFileExW has no retry of its own.
- * The budget is a count of tries, linear from one step as SQLite's is, and its waits stay far under the tracker lock's stale window.
+ * The budget is a count of tries, linear from one step as SQLite's is, and its waits stay far under the stale window of a caller's lock.
  */
 import type { FileReplace }                                   from './FileReplace.ts';
 import { failureMeansTheFileIsHeld }                          from './HeldFileFailure.ts';

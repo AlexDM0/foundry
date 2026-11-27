@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { TICKET_STATUSES }          from '../../../lib/tracker-model/constants/Statuses.ts';
+import { TICKET_STATUSES }          from '../../../domain/tracker-model/constants/Statuses.ts';
 import { PRODUCT_NAMES }            from '../../../shared/constants/ProductNames.ts';
 import { TicketFileProblemWording } from '../TicketFileProblemWording.ts';
 import { TicketDocumentUtil }       from './TicketDocumentUtil.ts';

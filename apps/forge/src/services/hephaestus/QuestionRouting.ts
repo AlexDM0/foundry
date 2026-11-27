@@ -4,13 +4,13 @@
  * mix included, opens an `agent-question` decision for User. Either way the job waits, keeping its slot, and the option notes the job gave
  * for these questions with `question options` go onto their options.
  */
+import type { DecisionQuestion }           from '../../domain/tracker-model/@types/Decision.ts';
+import type { IncidentKind }               from '../../domain/tracker-model/@types/Incident.ts';
+import type { QuestionOptionNotes }        from '../../domain/tracker-model/@types/OptionConsequences.ts';
+import type { Board }                      from '../../domain/tracker-model/Board.ts';
+import { QUESTIONS_FACT, REQUEST_ID_FACT } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { OptionConsequencesUtil }          from '../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { DecisionQuestion }           from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentKind }               from '../../lib/tracker-model/@types/Incident.ts';
-import type { QuestionOptionNotes }        from '../../lib/tracker-model/@types/OptionConsequences.ts';
-import type { Board }                      from '../../lib/tracker-model/Board.ts';
-import { QUESTIONS_FACT, REQUEST_ID_FACT } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { OptionConsequencesUtil }          from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 
 export type QuestionRoute = 'agent-question' | Extract<IncidentKind, 'system-question' | 'malformed-ticket'>;
 

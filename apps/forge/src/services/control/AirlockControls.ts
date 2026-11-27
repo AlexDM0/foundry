@@ -3,11 +3,11 @@
  * repair does: the accept's `git merge-tree` prediction against the target's current tip, the update's merge in the ticket's worktree.
  */
 
+import type { Logged }                      from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { BranchTreeOf, MergeTargetOf } from '../../domain/tracker-model/AirlockClaims.ts';
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                     from '../../lib/git/GitWorktrees.ts';
 import { predictMerge }                     from '../../lib/git/MergeTree.ts';
-import type { Logged }                      from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { BranchTreeOf, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
 import type { ControlCommandOf }            from '../../shared/@types/ControlCommand.ts';
 import { type BranchNames, branchNamesOf }  from '../../shared/BranchNames.ts';
 import { OperationRefusal }                 from '../../shared/OperationRefusal.ts';

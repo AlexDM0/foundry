@@ -1,4 +1,4 @@
-import type { EntityRefusal } from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import type { EntityRefusal } from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
 
 /**
  * Why a pipeline's entities cannot be stored, as the pipeline file reports the first refusal and a `pipeline-draft-invalid` refusal

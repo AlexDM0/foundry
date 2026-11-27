@@ -1,14 +1,14 @@
 /** Whether a parsed progress.json is a document in the current format this build can read, and if not, the problem naming the offending field. */
+import { GATE_PHASES }                                        from '../../../domain/tracker-model/@types/GatePhase.ts';
+import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                    from '../../../domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { FIRST_DRAFT_NUMBER }                                 from '../../../domain/tracker-model/constants/DraftFields.ts';
+import { FIRST_SETUP_NUMBER }                                 from '../../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND }  from '../../../domain/tracker-model/constants/ReviewRounds.ts';
+import { FIRST_TASK_ID }                                      from '../../../domain/tracker-model/constants/TaskIds.ts';
+import { BoardSettingsUtil }                                  from '../../../domain/tracker-model/utils/BoardSettingsUtil.ts';
+import { TicketStageUtil }                                    from '../../../domain/tracker-model/utils/TicketStageUtil.ts';
+import { VocabularyUtil }                                     from '../../../domain/tracker-model/utils/VocabularyUtil.ts';
 import { JsonRecordUtil }                                     from '../../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }                                        from '../../../lib/tracker-model/@types/GatePhase.ts';
-import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                    from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { FIRST_DRAFT_NUMBER }                                 from '../../../lib/tracker-model/constants/DraftFields.ts';
-import { FIRST_SETUP_NUMBER }                                 from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND }  from '../../../lib/tracker-model/constants/ReviewRounds.ts';
-import { FIRST_TASK_ID }                                      from '../../../lib/tracker-model/constants/TaskIds.ts';
-import { BoardSettingsUtil }                                  from '../../../lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { TicketStageUtil }                                    from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
-import { VocabularyUtil }                                     from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { ProgressFieldExpectation, ProgressFileProblem } from '../../../shared/@types/ProgressFileProblem.ts';
 import { BranchNamespaceUtil }                                from '../../../shared/BranchNames.ts';
 import { StoredValueUtil }                                    from '../../utils/StoredValueUtil.ts';

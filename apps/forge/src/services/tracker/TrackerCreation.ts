@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 
 import { createLogFileWriter }              from '../../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter }         from '../../adapters/progress/ProgressFileWriter.ts';
-import { emptyProgressFor }                 from '../../lib/tracker-model/EmptyProgress.ts';
+import { emptyProgressFor }                 from '../../domain/tracker-model/EmptyProgress.ts';
 import type { NewTracker, TrackerCreation } from './@types/BoardRecords.ts';
 import type { LockTaker }                   from './GenerationLock.ts';
 import { localStoreLayoutOf }               from './LocalStoreLayout.ts';

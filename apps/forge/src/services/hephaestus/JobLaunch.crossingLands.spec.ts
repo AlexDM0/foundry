@@ -13,10 +13,10 @@ import path, { join }               from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
 import { PipelineFile }     from '../../adapters/pipeline/PipelineFile.ts';
-import type { Job }         from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }    from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage } from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }       from '../../lib/tracker-model/Board.ts';
+import type { Job }         from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }    from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStage } from '../../domain/tracker-model/@types/Task.ts';
+import type { Board }       from '../../domain/tracker-model/Board.ts';
 import { branchNamesOf }    from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS } from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }    from '../../shared/constants/ProductNames.ts';

@@ -7,10 +7,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }               from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ExecutableResolver }     from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { ToolSearch }             from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import { createPosixShellLine }        from '../../lib/shell-line/PosixShellLine.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
 import { AgentTools, type ToolPlaces } from './AgentTools.ts';
 
 const SHELL_LINE = createPosixShellLine({ userShell: () => '/bin/sh' });

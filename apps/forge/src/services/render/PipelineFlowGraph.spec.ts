@@ -8,9 +8,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline, PipelineAgentRole }                                   from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineFlowNode, PipelineFlowStage, ResolvedInstructionEntry } from '../../lib/tracker-model/@types/PipelineFacts.ts';
-import type { AgentPair }                                                     from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Pipeline, PipelineAgentRole }                                   from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineFlowNode, PipelineFlowStage, ResolvedInstructionEntry } from '../../domain/tracker-model/@types/PipelineFacts.ts';
+import type { AgentPair }                                                     from '../../domain/tracker-model/@types/Ticket.ts';
 import type { PipelineFlowGraph }                                             from './PipelineFlowGraph.ts';
 import { pipelineFlowGraphOf }                                                from './PipelineFlowGraph.ts';
 

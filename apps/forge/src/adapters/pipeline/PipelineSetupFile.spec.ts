@@ -21,8 +21,8 @@ import {
   test,
 } from 'bun:test';
 
-import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                             from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Pipeline, PipelineEntity }                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                             from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
 import { PipelineSetupProblemWording }                    from './PipelineSetupProblemWording.ts';

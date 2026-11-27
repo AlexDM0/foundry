@@ -12,7 +12,7 @@ import {
   test
 } from 'bun:test';
 
-import type { DoneFrame }                              from '../../lib/talos/@types/TalosFrame.ts';
+import type { DoneFrame }                              from '../../domain/talos/@types/TalosFrame.ts';
 import { detailsLoggerOf }                             from '../../testing/LoggedDetails.ts';
 import { type LeaseRenewalRequest, startLeaseRenewal } from './LeaseRenewal.ts';
 import type { TalosConnection, TalosFrameRequest }     from './TalosConnection.ts';

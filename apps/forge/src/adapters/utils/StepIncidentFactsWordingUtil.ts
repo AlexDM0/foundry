@@ -2,8 +2,8 @@
  * The words of a `setup-failed` or `sandbox-unavailable` incident whose facts keep its step's problem as values, where the incident is served
  * or printed: its facts are served as `step` and `reason`, the sentence of that problem, as they were stored before the problem was a code.
  */
+import type { Incident }                          from '../../domain/tracker-model/@types/Incident.ts';
 import type { ShellRunRefusal }                   from '../../lib/shell-line/ShellLine.ts';
-import type { Incident }                          from '../../lib/tracker-model/@types/Incident.ts';
 import type { ConfinementRefusal }                from '../../shared/@types/ConfinementRefusal.ts';
 import { type StepProblem, StepProblemFactsUtil } from '../../shared/utils/StepProblemFactsUtil.ts';
 import { LineRefusalWording }                     from '../LineRefusalWording.ts';

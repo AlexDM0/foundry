@@ -3,10 +3,10 @@
  * counted in sweeps and never in time (design section 7.5), and the incidents that took their default, which `jobs` and Hephaestus's
  * state show as a warning.
  */
-import type { IncidentDefaultCause, IncidentMove } from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job, JobKind }                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                          from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                              from '../../lib/tracker-model/Board.ts';
+import type { IncidentDefaultCause, IncidentMove } from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job, JobKind }                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                          from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                              from '../../domain/tracker-model/Board.ts';
 
 export interface DefaultedIncident {
   incidentId: string;

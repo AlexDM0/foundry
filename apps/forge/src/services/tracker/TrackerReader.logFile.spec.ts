@@ -11,7 +11,7 @@ import {
 } from 'bun:test';
 import { createLogFileWriter }                            from '../../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';

@@ -1,4 +1,4 @@
-import type { OptionNotesProblem }                       from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import type { OptionNotesProblem }                       from '../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { BaseStoredFileProblem, StoredFileProblem } from './StoredFileProblem.ts';
 
 /** What a stored field of `progress.json` must hold, as the check its validation makes. */

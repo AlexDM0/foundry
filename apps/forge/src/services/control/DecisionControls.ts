@@ -2,7 +2,7 @@
  * The decision kinds of the control contract: User's answer to an open decision, the first one winning. It is a `writeTracker` change, so it
  * is taken with Hephaestus down too; Hephaestus delivers it to the session after the hold.
  */
-import type { DecisionAnswered } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { DecisionAnswered } from '../../domain/tracker-model/@types/BoardChanges.ts';
 import type { ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { BoardTransaction } from '../tracker/BoardTransaction.ts';
 

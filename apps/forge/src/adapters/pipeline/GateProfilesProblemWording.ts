@@ -1,4 +1,4 @@
-import type { GateProfilesProblem }   from '../../lib/tracker-model/@types/GateProfilesProblem.ts';
+import type { GateProfilesProblem }   from '../../domain/tracker-model/@types/GateProfilesProblem.ts';
 import { StoredRecordProblemWording } from './StoredRecordProblemWording.ts';
 
 function sentenceOf(problem: GateProfilesProblem): string {

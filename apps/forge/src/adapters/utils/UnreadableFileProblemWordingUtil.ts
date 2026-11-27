@@ -2,7 +2,7 @@
  * The words of a problem Hephaestus carries for a file it could not read, where an incident or the header's warning is served or printed:
  * its served `reason` is the sentence the file's ingestion words.
  */
-import type { Incident }                        from '../../lib/tracker-model/@types/Incident.ts';
+import type { Incident }                        from '../../domain/tracker-model/@types/Incident.ts';
 import type { StoredFileProblem }               from '../../shared/@types/StoredFileProblem.ts';
 import { StoredFileProblemFactsUtil }           from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 import type { UnreadableFileProblem }           from '../@types/UnreadableFileProblem.ts';

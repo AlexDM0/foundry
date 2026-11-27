@@ -9,9 +9,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { DocumentMessage }                                  from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { LaunchSlotUtil }                                        from '../../domain/tracker-model/utils/LaunchSlotUtil.ts';
 import type { WorkerProfile }                                    from '../../lib/agent-launch/WorkerProfile.ts';
-import type { DocumentMessage }                                  from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { LaunchSlotUtil }                                        from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
 import type { EffectReadingRequest }                             from '../../shared/@types/EffectReading.ts';
 import { boardFixture, ticketFixture, type BoardFixture }        from '../../testing/BoardFixtures.ts';
 import { GIT_CALL_SHAPES, useRecordedGit, type RecordedGitStep } from '../../testing/RecordedGit.ts';

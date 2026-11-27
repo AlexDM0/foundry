@@ -21,9 +21,9 @@ import {
 } from 'bun:test';
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                         from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { TicketType }                                from '../../lib/tracker-model/@types/Ticket.ts';
-import { TaskRecordUtil }                                 from '../../lib/tracker-model/utils/TaskRecordUtil.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { TicketType }                                from '../../domain/tracker-model/@types/Ticket.ts';
+import { TaskRecordUtil }                                 from '../../domain/tracker-model/utils/TaskRecordUtil.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';

@@ -12,16 +12,13 @@
  */
 import { PipelineFile }                                                              from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                                                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import { GitProcess }                                                                from '../../lib/git/GitProcess.ts';
-import { commitCountAheadOf }                                                        from '../../lib/git/MergeTree.ts';
-import { JsonRecordUtil }                                                            from '../../lib/json-record/JsonRecordUtil.ts';
-import type { PipelineApplyChanged, PipelineSetupChanged, PipelineSetupStartedOver } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { PipelineApplyChanged, PipelineSetupChanged, PipelineSetupStartedOver } from '../../domain/tracker-model/@types/BoardChanges.ts';
 import type {
   EntityKey,
   Pipeline,
   PipelineAgent,
   PipelineBilling
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   ApplyMainReading,
   ConstitutionSources,
@@ -34,13 +31,16 @@ import type {
   PipelineSetupOpening,
   PipelineSetupStep,
   SetupQuestionReply
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                             from '../../lib/tracker-model/Board.ts';
-import { PIPELINE_SETUP_STEPS }                                   from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { type EntityRefusal, EntityValidationUtil }               from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { PipelineChangeUtil }                                     from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineDraftEditUtil }                                  from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
-import { PipelineUtil }                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
+import { PIPELINE_SETUP_STEPS }                                   from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { type EntityRefusal, EntityValidationUtil }               from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
+import { PipelineChangeUtil }                                     from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineDraftEditUtil }                                  from '../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { PipelineUtil }                                           from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { GitProcess }                                             from '../../lib/git/GitProcess.ts';
+import { commitCountAheadOf }                                     from '../../lib/git/MergeTree.ts';
+import { JsonRecordUtil }                                         from '../../lib/json-record/JsonRecordUtil.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, DraftFieldValue, SetupMessage }     from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';

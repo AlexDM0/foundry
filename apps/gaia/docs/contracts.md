@@ -35,7 +35,7 @@ its keys.
   versions:raise-minimum <major.minor>`, in `apps/gaia` for Gaia's and in `packages/forge-contracts` for forge's, is the dry run of a raise
   of the minimum: it lists what becomes removable and what must stay. The raise is then the one-line change of the minimum, after which the
   registry's spec fails until each listed entry, and what it keeps, is removed or its entry corrected.
-- **Gaia supports exactly one forge version**, `SUPPORTED_FORGE_VERSION` (`src/lib/forge-client/constants/SupportedForgeVersions.ts`), and
+- **Gaia supports exactly one forge version**, `SUPPORTED_FORGE_VERSION` (`src/shared/constants/SupportedForgeVersions.ts`), and
   keeps nothing for any other: no migration of an older forge document, no fallback to forge's unversioned paths, no recording of an older
   forge read. The version of each forge endpoint Gaia calls is the one forge's registry serves `SUPPORTED_FORGE_VERSION`
   (`forgeEndpointVersionOf` in `src/lib/forge-client/ForgeClient.ts`), never a list of Gaia's own. In the monorepo Gaia strives for forge's

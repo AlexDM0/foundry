@@ -1,7 +1,7 @@
 /** How a command line names the forge's agent and its tools: `machine` or a program's path, and `<name>` or `<name>=<path>` per tool. */
 import { isAbsolute, resolve } from 'node:path';
 
-import type { PipelineAgent, PipelineTool } from '../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineAgent, PipelineTool } from '../src/domain/tracker-model/@types/Pipeline.ts';
 import type { CommandContext }              from './CommandContext.ts';
 import { refuseUsage }                      from './RecordedIncidentMove.ts';
 

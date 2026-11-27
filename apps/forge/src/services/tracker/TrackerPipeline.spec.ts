@@ -23,7 +23,7 @@ import {
   expect,
   test,
 } from 'bun:test';
-import { TicketBodyHashUtil }                                 from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketBodyHashUtil }                                 from '../../domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import { OperationRefusal, refusalIsOperationRefusal }        from '../../shared/OperationRefusal.ts';
 import { EVERY_BILLING_MODE_OFFERED, EXAMPLE_PIPELINE_AGENT } from '../../testing/ExamplePipelineAgent.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                            from '../../testing/LockTakers.ts';

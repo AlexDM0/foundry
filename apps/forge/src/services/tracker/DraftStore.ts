@@ -5,7 +5,7 @@
 import { join }                  from 'node:path';
 import type { DraftFileProblem } from '../../adapters/drafts/@types/DraftFileProblem.ts';
 import { DraftFileIngestion }    from '../../adapters/drafts/DraftFileIngestion.ts';
-import type { Draft }            from '../../lib/tracker-model/@types/Draft.ts';
+import type { Draft }            from '../../domain/tracker-model/@types/Draft.ts';
 import type { BoardContents }    from './@types/BoardRecords.ts';
 import { localStoreLayoutOf }    from './LocalStoreLayout.ts';
 import { listStoreFolder }       from './StoreFolderListing.ts';

@@ -8,9 +8,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DecisionOpened }             from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { LoadedTicketDocumentRecord } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { PipelineUtil }                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { DecisionOpened }             from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { LoadedTicketDocumentRecord } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { PipelineUtil }                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                from '../../shared/OperationRefusal.ts';
 import {

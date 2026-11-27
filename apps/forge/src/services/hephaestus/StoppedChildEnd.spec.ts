@@ -4,7 +4,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { Job }                                        from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }                                        from '../../domain/tracker-model/@types/Job.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
 import { GateRun }                                         from '../lifecycle/GateRun.ts';

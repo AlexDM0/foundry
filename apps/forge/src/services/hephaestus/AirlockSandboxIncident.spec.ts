@@ -7,8 +7,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import { UnreadableFileProblemWordingUtil } from '../../adapters/utils/UnreadableFileProblemWordingUtil.ts';
-import type { Job }                         from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                       from '../../lib/tracker-model/Board.ts';
+import type { Job }                         from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                       from '../../domain/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }      from '../../testing/BoardFixtures.ts';
 import { AirlockSandboxIncident }           from './AirlockSandboxIncident.ts';
 import type { FolderMaker }                 from './WorkerProfiles.ts';

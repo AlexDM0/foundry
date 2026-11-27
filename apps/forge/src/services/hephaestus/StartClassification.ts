@@ -8,9 +8,9 @@ import type { HeartbeatRecord }                     from '../../adapters/heartbe
 import type { PresenceProblem }                     from '../../adapters/presence/@types/PresenceProblem.ts';
 import type { PresenceRecord }                      from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }          from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import type { StartKind, StartOrigin }              from '../../domain/tracker-model/@types/Job.ts';
 import { LocalTimeUtil }                            from '../../lib/local-time/LocalTimeUtil.ts';
 import { sameBoot, sameProcess }                    from '../../lib/process-identity/ProcessIdentity.ts';
-import type { StartKind, StartOrigin }              from '../../lib/tracker-model/@types/Job.ts';
 import type { PresenceFileReading }                 from './@types/PresenceRecord.ts';
 import type { HephaestusLockReading }               from './HephaestusLock.ts';
 import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS } from './constants/PresenceLimits.ts';

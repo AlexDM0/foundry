@@ -5,7 +5,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
 
-import type { TrackerProgress } from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import type { TrackerProgress } from '../../src/domain/tracker-model/@types/TrackerProgress.ts';
 import { localStoreLayoutOf }   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }    from '../../src/services/tracker/Workspace.ts';
 

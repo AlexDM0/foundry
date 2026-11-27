@@ -5,11 +5,11 @@
  */
 import { dirname } from 'node:path';
 
+import type { Pipeline, PipelineTool }        from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ExecutableResolver }            from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { PlatformPorts }                 from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { ProgramSearchUtil, type ToolSearch } from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
 import type { ShellLine }                     from '../../lib/shell-line/ShellLine.ts';
-import type { Pipeline, PipelineTool }        from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ToolFacts, ToolUse }            from '../../shared/@types/AgentFacts.ts';
 import { agentToolForbiddenRootsOf }          from '../tracker/RegisteredRepositoryRoots.ts';
 

@@ -171,7 +171,7 @@ export const CLAUDE_CODE_CAPABILITIES: AgentCapabilities = Object.freeze({
   takesLiveAnswers:           true,
   // `--resume` finds a session by the project folder it started in.
   resumeFindsSessionByFolder: true,
-  // Its sandbox applies the profile's write roots, denies and network domains, rendered into the job's settings.
+  // Its sandbox applies the profile's write roots, denies and network domains, rendered into the session's settings.
   ownConfinement:             'applies-the-profile',
 });
 
@@ -227,7 +227,7 @@ const NETWORK_OUTAGE_ENDING: PlanEndingPattern = {
 
 const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
 
-/** Every permission request but a question is denied while nobody watches; a question waits for Hephaestus. */
+/** Every permission request but a question is denied while nobody watches; a question waits for the caller. */
 export const CLAUDE_CODE_STANDING_REPLIES: readonly StandingReply[] = Object.freeze([{
   whenAllEqual:  { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
   whenNoneEqual: { 'request.tool_name': QUESTION_TOOL_NAME },

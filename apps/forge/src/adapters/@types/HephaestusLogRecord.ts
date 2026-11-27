@@ -2,11 +2,11 @@
  * What Hephaestus logs, as typed records: ids, numbers, codes, paths and stored-file problems, never a sentence. `HephaestusLogWordingUtil`
  * words each kind and gives its stored line in `hephaestus.log`. It lives in `src/adapters/`, as the problems it carries do.
  */
+import type { FrameRefusalReason }                      from '../../domain/talos/@types/TalosFrame.ts';
+import type { TalosState }                              from '../../domain/talos/TalosRecord.ts';
+import type { GatePhase }                               from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { InterruptionCause, JobKind, StartOrigin } from '../../domain/tracker-model/@types/Job.ts';
 import type { GitProblem, WorktreeRemovalProblem }      from '../../lib/git/@types/GitProblem.ts';
-import type { FrameRefusalReason }                      from '../../lib/talos/@types/TalosFrame.ts';
-import type { TalosState }                              from '../../lib/talos/TalosRecord.ts';
-import type { GatePhase }                               from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { InterruptionCause, JobKind, StartOrigin } from '../../lib/tracker-model/@types/Job.ts';
 import type { ConfinementRefusal }                      from '../../shared/@types/ConfinementRefusal.ts';
 import type { LineRefusal }                             from '../../shared/@types/LineRefusal.ts';
 import type { OperationRefusalDetail }                  from '../../shared/OperationRefusal.ts';

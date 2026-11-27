@@ -1,5 +1,5 @@
 /**
- * The Windows `GateConfinement`: native Windows has no confinement, by the owner's decision, so every line runs as it is in the job worktree.
+ * The Windows `GateConfinement`: native Windows has no confinement, by the owner's decision, so every line runs as it is in its worktree.
  */
 import type { GateConfinement } from './GateConfinement.ts';
 

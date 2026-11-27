@@ -4,9 +4,9 @@
  * start held `interrupted` commit again. `all` and `network-outage` with nothing waiting change nothing, so a monitor's one control may
  * send them to every forge.
  */
-import type { Logged }             from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Board }              from '../../lib/tracker-model/Board.ts';
-import { INTERRUPTED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import type { Logged }             from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Board }              from '../../domain/tracker-model/Board.ts';
+import { INTERRUPTED_HOLD_PREFIX } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import type { ControlCommandOf }   from '../../shared/@types/ControlCommand.ts';
 import { LIFECYCLE_LIMITS }        from '../../shared/constants/LifecycleLimits.ts';
 import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';

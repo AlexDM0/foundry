@@ -25,9 +25,9 @@ import type { RegisteredForge }                   from '../adapters/forge-regist
 import { RegistryFile }                           from '../adapters/forge-registry/RegistryFile.ts';
 import { forgeClientOf }                          from '../lib/forge-client/ForgeClient.ts';
 import type { HephaestusAnswer, HephaestusFetch } from '../lib/forge-client/HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION }                from '../lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ForgeRegistryPresence }             from '../shared/@types/ForgePresence.ts';
 import type { ForgeNewestVersions, ForgeReading } from '../shared/@types/ForgeReading.ts';
+import { SUPPORTED_FORGE_VERSION }                from '../shared/constants/SupportedForgeVersions.ts';
 import { ForgeVersionsUtil }                      from '../shared/utils/ForgeVersionsUtil.ts';
 import { manualTimers, type ManualTimers }        from '../testing/ManualTimers.ts';
 import {
@@ -192,8 +192,10 @@ function watchOver(
   const waiters: { readonly claim: (readings: readonly ForgeReading[]) => boolean; readonly resolve: (readings: readonly ForgeReading[]) => void }[] = [];
   let changes = 0;
   const watch = createForgeWatch({
-    readRegistry:      () => new RegistryFile(registryPath).read(),
-    forgeClient:       forgeClientOf({ hephaestusFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS }),
+    readRegistry: () => new RegistryFile(registryPath).read(),
+    forgeClient:  forgeClientOf({
+      supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS
+    }),
     hiddenTrackerIds:  () => hiddenTrackerIds,
     timers,
     now:               () => currentStamp,

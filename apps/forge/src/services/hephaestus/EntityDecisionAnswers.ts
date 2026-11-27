@@ -9,14 +9,14 @@
  * An answer is acted on once: anything the act logs about the ticket, or a launch of it, shows it was. An answer that names no option acts
  * on nothing, so the ticket runs again as it stood.
  */
+import type { Decision }                                                              from '../../domain/tracker-model/@types/Decision.ts';
+import type { LogRecord }                                                             from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { EntityKey }                                                             from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }                                        from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                                                 from '../../domain/tracker-model/Board.ts';
+import { DECISION_KINDS_ACTED_ON, type DecisionKindActedOn, ENTITY_DECISION_ANSWERS } from '../../domain/tracker-model/constants/EntityDecisionAnswers.ts';
+import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                        from '../../domain/tracker-model/constants/Statuses.ts';
 import { GitProcess }                                                                 from '../../lib/git/GitProcess.ts';
-import type { Decision }                                                              from '../../lib/tracker-model/@types/Decision.ts';
-import type { LogRecord }                                                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey }                                                             from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }                                        from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                                                 from '../../lib/tracker-model/Board.ts';
-import { DECISION_KINDS_ACTED_ON, type DecisionKindActedOn, ENTITY_DECISION_ANSWERS } from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
-import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                        from '../../lib/tracker-model/constants/Statuses.ts';
 import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
 import type { BoardTransaction }                                                      from '../tracker/BoardTransaction.ts';
 import { CrossingStages }                                                             from './CrossingStages.ts';

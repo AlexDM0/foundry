@@ -39,10 +39,10 @@ import { MachineLimitsFile }                                    from '../../src/
 import type { StartClassificationVerdict }                      from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
+import type { Job, StartKind }                                  from '../../src/domain/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../src/domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
-import type { Job, StartKind }                                  from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
 import type { AgentProgramResolution }                          from '../../src/services/control/AgentPrograms.ts';
 import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                   from '../../src/services/hephaestus/BoardChildren.ts';
@@ -53,6 +53,7 @@ import { jobFolderIn }                                          from '../../src/
 import { localStoreLayoutOf }                                   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace, workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
 import { QUIET_JOB_SWEEPS, SESSION_STOP_GRACE_MILLISECONDS }    from '../../src/shared/constants/HephaestusLimits.ts';
+import { AgentProgramWordingUtil }                              from '../../src/shared/utils/AgentProgramWordingUtil.ts';
 import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
@@ -247,11 +248,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
 
     const storedJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
     expect(storedJob).toMatchObject({ state: 'running', notLaunched: { cause: 'batch-target', programPath: shimPath } });
+    const repair = adapter.programRepairOf('batch-target');
+    expect(repair).not.toBeNull();
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
-      kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
+      kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair
     }));
     const noticeTexts = drivePass.state().notices.map(HephaestusNoticeWording.servedNoticeOf).map(HephaestusNoticeWording.noticeTextOf);
-    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`))).toBeDefined();
+    const notLaunchedText = noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: the ${adapter.displayName} at ${shimPath} is a batch file`));
+    expect(notLaunchedText).toEndWith(`; ${repair === null ? '' : AgentProgramWordingUtil.repairClauseOf(repair)}`);
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
     const notLaunchedLines = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"job-not-launched"'));
     expect(notLaunchedLines.filter((line) => line.includes(`"jobId":"${buildJobId()}"`))).toHaveLength(1);

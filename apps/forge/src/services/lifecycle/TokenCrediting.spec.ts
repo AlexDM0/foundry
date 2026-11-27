@@ -4,7 +4,7 @@
  * under the tool call that started it and kept out of the top-level calls a budget counts; and a stop already logged credits only growth.
  */
 import { describe, expect, test }            from 'bun:test';
-import type { LogRecord }                    from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                    from '../../domain/tracker-model/@types/LogRecord.ts';
 import { type CreditedTurn, TokenCrediting } from './TokenCrediting.ts';
 
 function turn(messageId: string, parentToolUseId: string | null, inputTokens: number, outputTokens: number): CreditedTurn {

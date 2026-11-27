@@ -35,7 +35,7 @@ function servedNoticeOf(notice: HephaestusNotice): ServedHephaestusNotice {
         jobId:  notice.jobId,
         cause:  notice.cause,
         reason: AgentProgramWordingUtil.notLaunchedClauseOf(notice.cause, notice.agentName, notice.programPath),
-        repair: notice.repair,
+        repair: notice.repair === null ? null : AgentProgramWordingUtil.repairClauseOf(notice.repair),
       };
     default:
       return notice;

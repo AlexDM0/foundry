@@ -6,8 +6,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
 
+import type { ChildLaunch }                     from '../domain/talos/ChildLaunch.ts';
 import type { AgentLaunchPlan }                 from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { ChildLaunch }                     from '../lib/talos/ChildLaunch.ts';
 import { type FakeAgentStep, fakeAgentAdapter } from './FakeAgentAdapter.ts';
 import { inheritedEnvironment }                 from './InheritedEnvironment.ts';
 
@@ -16,20 +16,20 @@ const FAKE_SESSION_FILES_FOLDER_NAME = 'fake-session-files';
 function planOf(boardFolder: string, childFolder: string, instance: number, steps: readonly FakeAgentStep[]): AgentLaunchPlan {
   const sessionFolder = join(boardFolder, childFolder);
   return fakeAgentAdapter(steps).planOf({
-    programPath:       process.execPath,
-    sessionId:         `fake-session-${instance}`,
-    resume:            false,
-    workingDirectory:  boardFolder,
-    homeDirectory:     boardFolder,
-    firstMessage:      'Start.',
-    roleBrief:         '',
-    model:             'fake-model',
-    effort:            'low',
-    environment:       inheritedEnvironment(),
-    jobFilesDirectory: join(sessionFolder, `${FAKE_SESSION_FILES_FOLDER_NAME}-${instance}`),
-    reportSchema:      null,
-    confinement:       'confined',
-    profile:           {
+    programPath:          process.execPath,
+    sessionId:            `fake-session-${instance}`,
+    resume:               false,
+    workingDirectory:     boardFolder,
+    homeDirectory:        boardFolder,
+    firstMessage:         'Start.',
+    roleBrief:            '',
+    model:                'fake-model',
+    effort:               'low',
+    environment:          inheritedEnvironment(),
+    launchFilesDirectory: join(sessionFolder, `${FAKE_SESSION_FILES_FOLDER_NAME}-${instance}`),
+    reportSchema:         null,
+    confinement:          'confined',
+    profile:              {
       writableRoots:          [],
       deniedWritableRoots:    [],
       deniedReadableRoots:    [],

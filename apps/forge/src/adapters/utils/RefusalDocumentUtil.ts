@@ -5,7 +5,7 @@
  */
 import type { ForgeJsonValue, ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import type { BoardRefusalDetail }        from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }        from '../../domain/tracker-model/BoardRefusal.ts';
 import type { InstallVersionMismatch }    from '../../shared/@types/InstallVersionMismatch.ts';
 import type { UnreadableTracker }         from '../../shared/@types/UnreadableTracker.ts';
 import type { OperationRefusal }          from '../../shared/OperationRefusal.ts';

@@ -54,9 +54,9 @@ import type {
   EffectUnresolvedReason
 } from 'forge-contracts/TicketDocumentsDocument';
 
-import type { DraftState as ModelDraftState }                                 from '../../lib/tracker-model/@types/Draft.ts';
-import { GATE_PHASES as MODEL_GATE_PHASES, type GatePhase as ModelGatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { JobState as ModelJobState }                                     from '../../lib/tracker-model/@types/Job.ts';
+import type { DraftState as ModelDraftState }                                 from '../../domain/tracker-model/@types/Draft.ts';
+import { GATE_PHASES as MODEL_GATE_PHASES, type GatePhase as ModelGatePhase } from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { JobState as ModelJobState }                                     from '../../domain/tracker-model/@types/Job.ts';
 import {
   FORGE_LEVEL_AGENT_ROLES as MODEL_FORGE_LEVEL_AGENT_ROLES,
   PIPELINE_AGENT_ROLES as MODEL_PIPELINE_AGENT_ROLES,
@@ -68,8 +68,8 @@ import {
   type PipelineAgentRole as ModelPipelineAgentRole,
   type PipelineEntityKind as ModelEntityKind,
   type TicketWritingRoute as ModelTicketWritingRoute
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DisplayState as ModelDisplayState, TaskStatus as ModelTaskStatus, TicketStageName as ModelTicketStageName } from '../../lib/tracker-model/@types/Task.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DisplayState as ModelDisplayState, TaskStatus as ModelTaskStatus, TicketStageName as ModelTicketStageName } from '../../domain/tracker-model/@types/Task.ts';
 import type {
   AgentEffort as ModelAgentEffort,
   AgentModel as ModelAgentModel,
@@ -77,7 +77,7 @@ import type {
   TicketSize as ModelTicketSize,
   TicketStatus as ModelTicketStatus,
   TicketType as ModelTicketType
-} from '../../lib/tracker-model/@types/Ticket.ts';
+} from '../../domain/tracker-model/@types/Ticket.ts';
 import {
   TICKET_DOCUMENT_KINDS as MODEL_TICKET_DOCUMENT_KINDS,
   type CommentView as ModelCommentView,
@@ -89,16 +89,16 @@ import {
   type DocumentStanding as ModelDocumentStanding,
   type ProposalMode as ModelProposalMode,
   type TicketDocumentKind as ModelTicketDocumentKind
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { AGENT_EFFORTS as MODEL_AGENT_EFFORTS }                                           from '../../lib/tracker-model/constants/AgentSettings.ts';
-import { JOB_STATES as MODEL_JOB_STATES }                                                 from '../../lib/tracker-model/constants/JobStates.ts';
-import { TASK_STATUSES as MODEL_TASK_STATUSES, TICKET_STATUSES as MODEL_TICKET_STATUSES } from '../../lib/tracker-model/constants/Statuses.ts';
+} from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { AGENT_EFFORTS as MODEL_AGENT_EFFORTS }                                           from '../../domain/tracker-model/constants/AgentSettings.ts';
+import { JOB_STATES as MODEL_JOB_STATES }                                                 from '../../domain/tracker-model/constants/JobStates.ts';
+import { TASK_STATUSES as MODEL_TASK_STATUSES, TICKET_STATUSES as MODEL_TICKET_STATUSES } from '../../domain/tracker-model/constants/Statuses.ts';
 import {
   TICKET_PRIORITIES as MODEL_TICKET_PRIORITIES,
   TICKET_SIZES as MODEL_TICKET_SIZES,
   TICKET_TYPES as MODEL_TICKET_TYPES
-} from '../../lib/tracker-model/constants/TicketFields.ts';
-import { TICKET_STAGE_NAMES as MODEL_TICKET_STAGE_NAMES } from '../../lib/tracker-model/constants/TicketStages.ts';
+} from '../../domain/tracker-model/constants/TicketFields.ts';
+import { TICKET_STAGE_NAMES as MODEL_TICKET_STAGE_NAMES } from '../../domain/tracker-model/constants/TicketStages.ts';
 import type {
   EffectChange as ModelEffectChange,
   EffectReadingState as ModelEffectReadingState,

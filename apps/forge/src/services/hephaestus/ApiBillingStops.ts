@@ -3,10 +3,10 @@
  * which holds every launch until User answers it; a stop at the pipeline's budget cap ends the job `blocked` and opens a decision holding
  * its tickets.
  */
+import type { PipelineBilling }                from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                          from '../../domain/tracker-model/Board.ts';
 import type { AgentResultFailure }             from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { PipelineBilling }                from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
 
 export type ApiBilling = Extract<PipelineBilling, { mode: 'api' }>;
 

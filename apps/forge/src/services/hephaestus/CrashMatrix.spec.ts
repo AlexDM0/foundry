@@ -34,15 +34,15 @@ import {
 } from 'bun:test';
 
 import { TurboConfigurationProblemWording }                     from '../../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
+import type { ChildRecord }                                     from '../../domain/talos/ChildRecord.ts';
+import { createEventLogWriter, type EventLogEntry }             from '../../domain/talos/EventLog.ts';
+import type { Decision }                                        from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                                             from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                    from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                              from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                   from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { WorkerProfile }                                   from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ChildRecord }                                     from '../../lib/talos/ChildRecord.ts';
-import { createEventLogWriter, type EventLogEntry }             from '../../lib/talos/EventLog.ts';
-import type { Decision }                                        from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                                             from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                           from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                            from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                                      from '../../shared/WorktreesFolder.ts';
@@ -570,7 +570,7 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
       const isWorker = request.reportSchema !== null;
       if (isWorker) {
         launches.push({
-          jobId:            basename(request.jobFilesDirectory),
+          jobId:            basename(request.launchFilesDirectory),
           resume:           request.resume,
           firstMessage:     request.firstMessage,
           workingDirectory: request.workingDirectory,
@@ -934,7 +934,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       planOf(request) {
         if (request.profile.skills) {
           productOwnerLaunches.push({
-            jobId:            basename(request.jobFilesDirectory),
+            jobId:            basename(request.launchFilesDirectory),
             resume:           request.resume,
             firstMessage:     request.firstMessage,
             workingDirectory: request.workingDirectory,
@@ -1035,7 +1035,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1060,7 +1060,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1125,7 +1125,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        plans.set(basename(request.launchFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1163,7 +1163,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const adapter: AgentAdapter = {
       ...fakeAgentAdapter(),
       planOf(request) {
-        profiles.set(basename(request.jobFilesDirectory), request.profile);
+        profiles.set(basename(request.launchFilesDirectory), request.profile);
         return fakeAgentAdapter(WAITING_STEPS).planOf(request);
       },
     };
@@ -1312,7 +1312,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
           resume, firstMessage, workingDirectory, sessionId
         } = request;
         buildLaunches.push({
-          jobId: basename(request.jobFilesDirectory), resume, firstMessage, workingDirectory, sessionId
+          jobId: basename(request.launchFilesDirectory), resume, firstMessage, workingDirectory, sessionId
         });
         return scenario.planOf(request);
       },

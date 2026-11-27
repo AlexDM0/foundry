@@ -3,8 +3,8 @@
  * job that needed it, so no step is taken on what could not be read.
  */
 import type { UnreadableFileProblem }                        from '../../adapters/@types/UnreadableFileProblem.ts';
-import type { LogRecord }                                    from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import type { LogRecord }                                    from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
 import { dataFolderPathOf }                                  from './HephaestusFiles.ts';
 import { UnreadableJobFileIncident, type UnreadableJobFile } from './UnreadableJobFileIncident.ts';
 

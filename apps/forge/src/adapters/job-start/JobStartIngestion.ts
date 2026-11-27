@@ -1,5 +1,5 @@
 /** `start.json`, what a worktree job's first launch kept for its verification, read into the job's start: read, validate, map. */
-import type { EntityKey }         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { EntityKey }         from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { LaunchSnapshot }    from '../@types/LaunchSnapshot.ts';
 import { JobFileShapeUtil }       from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';

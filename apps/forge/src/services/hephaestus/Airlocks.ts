@@ -9,16 +9,11 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
 
-import type { MergeDecisionProblem }   from '../../adapters/MergeDecisionWording.ts';
-import type { KeptAirlockFacts }       from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
-import type { MergedTreeGate }         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import type { GitProblem }             from '../../lib/git/@types/GitProblem.ts';
-import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
-import { GitProcess }                  from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
-import { predictMerge, predictMerges } from '../../lib/git/MergeTree.ts';
-import type { DecisionKind }           from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase }              from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { MergeDecisionProblem } from '../../adapters/MergeDecisionWording.ts';
+import type { KeptAirlockFacts }     from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
+import type { MergedTreeGate }       from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
+import type { DecisionKind }         from '../../domain/tracker-model/@types/Decision.ts';
+import type { GatePhase }            from '../../domain/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   GateRunCacheReports,
@@ -27,27 +22,32 @@ import type {
   JobRole,
   Airlock,
   AirlockPhase
-}                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecordFieldsOf }                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey, Pipeline, PipelineGate } from '../../lib/tracker-model/@types/Pipeline.ts';
+}                                          from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline, PipelineGate } from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   ApplyMainReading,
   ApplyRequestReason,
   MainConstitution,
   MainConstitutionReading
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }                                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                    from '../../lib/tracker-model/AirlockClaims.ts';
-import { MERGE_PRIORITY_RANK }                                                 from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                                          from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                                        from '../../lib/tracker-model/BoardRefusal.ts';
-import { INTERRUPTED_HOLD_PREFIX, INTERRUPTED_MERGE_HOLD, PARKED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HANDOFF_RED_INTERRUPTION }                                            from '../../lib/tracker-model/constants/JobStates.ts';
-import { INTERRUPTED_APPLY_REASON, PENDING_APPLY_REQUEST_STATES }              from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { EntityOwnershipUtil, type PipelineEntities }                          from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { MergeQueueUtil, type MergeForecast }                                  from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketStageUtil }                                                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording }                                 from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                    from '../../domain/tracker-model/AirlockClaims.ts';
+import { MERGE_PRIORITY_RANK }                                                 from '../../domain/tracker-model/AirlockClaims.ts';
+import type { Board }                                                          from '../../domain/tracker-model/Board.ts';
+import { BoardRefusal }                                                        from '../../domain/tracker-model/BoardRefusal.ts';
+import { INTERRUPTED_HOLD_PREFIX, INTERRUPTED_MERGE_HOLD, PARKED_HOLD_PREFIX } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HANDOFF_RED_INTERRUPTION }                                            from '../../domain/tracker-model/constants/JobStates.ts';
+import { INTERRUPTED_APPLY_REASON, PENDING_APPLY_REQUEST_STATES }              from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { EntityOwnershipUtil, type PipelineEntities }                          from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { MergeQueueUtil, type MergeForecast }                                  from '../../domain/tracker-model/utils/MergeQueueUtil.ts';
+import { PipelineUtil }                                                        from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketStageUtil }                                                     from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import type { GitProblem }                                                     from '../../lib/git/@types/GitProblem.ts';
+import { readCurrentBranch }                                                   from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }                                                          from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                        from '../../lib/git/GitWorktrees.ts';
+import { predictMerge, predictMerges }                                         from '../../lib/git/MergeTree.ts';
 import type { ConstitutionCommitProblem }                                      from '../../shared/@types/ConstitutionCommitProblem.ts';
 import type { BranchNames }                                                    from '../../shared/BranchNames.ts';
 import { OperationRefusal }                                                    from '../../shared/OperationRefusal.ts';

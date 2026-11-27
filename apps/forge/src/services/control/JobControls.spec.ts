@@ -23,9 +23,9 @@ import {
 
 import { TicketAcceptanceUtil }                  from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { OperationRefusalWordingUtil }           from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Ticket }                           from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                            from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                          from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { Ticket }                           from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                            from '../../domain/tracker-model/Board.ts';
+import { PipelineUtil }                          from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }            from '../../shared/constants/HephaestusLimits.ts';

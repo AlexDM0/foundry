@@ -13,8 +13,8 @@ import {
   test
 } from 'bun:test';
 
-import type { LaunchRegistryEntry }                       from '../../lib/talos/ChildLaunch.ts';
-import { launchRegistryEntryLineOf }                      from '../../lib/talos/LaunchRegistry.ts';
+import type { LaunchRegistryEntry }                       from '../../domain/talos/ChildLaunch.ts';
+import { launchRegistryEntryLineOf }                      from '../../domain/talos/LaunchRegistry.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LaunchRegistryIngestion }                        from './LaunchRegistryIngestion.ts';
 import { LaunchRegistryProblemWording }                   from './LaunchRegistryProblemWording.ts';

@@ -39,23 +39,11 @@ import { createTargetConflictWriter }                                           
 import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
 import type { WorktreeCreationFailure }                                            from '../../adapters/worktree-failure/@types/WorktreeCreationFailure.ts';
 import { createWorktreeFailureWriter }                                             from '../../adapters/worktree-failure/WorktreeFailureWriter.ts';
-import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                                     from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }                                                          from '../../lib/gate-confinement/ConfinedLine.ts';
-import type { GitRunFailure }                                                      from '../../lib/git/@types/GitProblem.ts';
-import { GitProcess }                                                              from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf }                                                   from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS }                                                   from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                                        from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }                                                      from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                                    from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ShellExitReport }                                                    from '../../lib/shell-line/ShellLine.ts';
-import type { ChildInput }                                                         from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd }                                                           from '../../lib/talos/ChildRecord.ts';
-import type { ReviewBarRequest }                                                   from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Decision }                                                           from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase, GateRunStamp }                                            from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { ChildInput }                                                         from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                                                           from '../../domain/talos/ChildRecord.ts';
+import type { ReviewBarRequest }                                                   from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Decision }                                                           from '../../domain/tracker-model/@types/Decision.ts';
+import type { GatePhase, GateRunStamp }                                            from '../../domain/tracker-model/@types/GatePhase.ts';
 import type {
   GateCacheReportOfGate,
   GateOutcome,
@@ -65,26 +53,38 @@ import type {
   JobState,
   LostLineKind,
   PipelineStepRun
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf } from '../../lib/tracker-model/@types/LogRecord.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf } from '../../domain/tracker-model/@types/LogRecord.ts';
 import type {
   EntityKey,
   Pipeline,
   PipelineGate,
   PipelineStep
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }            from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
-import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }       from '../../lib/tracker-model/JobControls.ts';
-import { PARKED_HOLD_PREFIX }                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { FIRST_CHILD_INSTANCE, HANDOFF_RED_INTERRUPTION } from '../../lib/tracker-model/constants/JobStates.ts';
-import { EntityOwnershipUtil, type PipelineEntities }     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { GroupNameUtil }                                  from '../../lib/tracker-model/utils/GroupNameUtil.ts';
-import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentReadingUtil }                      from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
-import type { DocumentReading }                           from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
-import { TicketStageUtil }                                from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import { VocabularyUtil }                                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }            from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
+import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }       from '../../domain/tracker-model/JobControls.ts';
+import { PARKED_HOLD_PREFIX }                             from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { FIRST_CHILD_INSTANCE, HANDOFF_RED_INTERRUPTION } from '../../domain/tracker-model/constants/JobStates.ts';
+import { EntityOwnershipUtil, type PipelineEntities }     from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { GroupNameUtil }                                  from '../../domain/tracker-model/utils/GroupNameUtil.ts';
+import { PipelineUtil }                                   from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentReadingUtil }                      from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import type { DocumentReading }                           from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import { TicketStageUtil }                                from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import { VocabularyUtil }                                 from '../../domain/tracker-model/utils/VocabularyUtil.ts';
+import type { AgentAdapter }                              from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                            from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }                                 from '../../lib/gate-confinement/ConfinedLine.ts';
+import type { GitRunFailure }                             from '../../lib/git/@types/GitProblem.ts';
+import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                   from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf }                          from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }                          from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                               from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ShellExitReport }                           from '../../lib/shell-line/ShellLine.ts';
 import type { ConfinementRefusal }                        from '../../shared/@types/ConfinementRefusal.ts';
 import type { RefusedStep }                               from '../../shared/@types/LineRefusal.ts';
 import type { MergeStepProblem }                          from '../../shared/@types/MergeStepProblem.ts';

@@ -1,5 +1,5 @@
+import type { StartOrigin }                from '../../../domain/tracker-model/@types/Job.ts';
 import type { ProcessIdentity }            from '../../../lib/process-identity/ProcessIdentity.ts';
-import type { StartOrigin }                from '../../../lib/tracker-model/@types/Job.ts';
 import type { PRESENCE_FORMAT_VERSION }    from '../constants/PresenceFileVersions.ts';
 import type { StartClassificationVerdict } from './StartClassificationVerdict.ts';
 

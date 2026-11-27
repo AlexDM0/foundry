@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test }                                from 'bun:test';
-import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../domain/tracker-model/@types/Ticket.ts';
 import { OLDER_FORMAT_ADVICE }                                   from '../../constants/OlderFormatAdvice.ts';
 import { TicketFileProblemWording }                              from '../TicketFileProblemWording.ts';
 import { type ParsedTicketDocument, TicketDocumentUtil }         from './TicketDocumentUtil.ts';

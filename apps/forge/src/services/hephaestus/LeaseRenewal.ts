@@ -4,7 +4,7 @@
  * number, never an elapsed time: the same pass in flight at two ticks in a row withholds the renewal.
  */
 import type { HephaestusLog, HephaestusLogRecord } from '../../adapters/@types/HephaestusLogRecord.ts';
-import type { LeaseRenewer }                       from '../../lib/talos/TalosRecord.ts';
+import type { LeaseRenewer }                       from '../../domain/talos/TalosRecord.ts';
 import type { TalosConnection }                    from './TalosConnection.ts';
 
 export interface PassProgress {

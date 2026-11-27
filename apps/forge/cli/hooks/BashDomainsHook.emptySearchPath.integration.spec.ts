@@ -56,7 +56,7 @@ function profileWithGuard(repository: string): WorkerProfile {
 
 /** The first `PreToolUse` hook of the settings file the vendor adapter writes for this host. */
 function renderedGuardCommandLine(repository: string): string[] {
-  const jobFilesDirectory = join(scratch, 'job-files');
+  const launchFilesDirectory = join(scratch, 'job-files');
   const plan = agentAdapterOfThisProcess().planOf({
     programPath:      join(scratch, 'claude'),
     sessionId:        'session-example',
@@ -70,10 +70,10 @@ function renderedGuardCommandLine(repository: string): string[] {
     environment:      {},
     profile:          profileWithGuard(repository),
     confinement:      'unconfined-by-design',
-    jobFilesDirectory,
+    launchFilesDirectory,
     reportSchema:     null,
   });
-  const settingsText = plan.files.find((file) => file.path === join(jobFilesDirectory, 'settings.json'))?.text ?? '{}';
+  const settingsText = plan.files.find((file) => file.path === join(launchFilesDirectory, 'settings.json'))?.text ?? '{}';
   const settings = JSON.parse(settingsText) as { hooks?: { PreToolUse: { hooks: { command: string; args: string[] }[] }[] } };
   const hook = settings.hooks?.PreToolUse[0]?.hooks[0];
   if (hook === undefined) throw new Error(`the settings hold no guard hook: ${settingsText}`);

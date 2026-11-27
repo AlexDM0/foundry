@@ -1,9 +1,9 @@
 /** `<step folder>-verdict.json`, a gate run step's verdict as the job first read it, read into the verdict: read, validate, map. */
+import { GATE_PHASES, type GateRunStamp }                            from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateCacheReport, GateOutcome, PipelineStepRun }        from '../../domain/tracker-model/@types/Job.ts';
+import { GATE_CACHE_REPORTS }                                        from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { GATE_OUTCOMES, PIPELINE_STEP_ENDINGS, PIPELINE_STEP_KINDS } from '../../domain/tracker-model/constants/JobStates.ts';
 import { JsonRecordUtil }                                            from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES, type GateRunStamp }                            from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateCacheReport, GateOutcome, PipelineStepRun }        from '../../lib/tracker-model/@types/Job.ts';
-import { GATE_CACHE_REPORTS }                                        from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
-import { GATE_OUTCOMES, PIPELINE_STEP_ENDINGS, PIPELINE_STEP_KINDS } from '../../lib/tracker-model/constants/JobStates.ts';
 import type { JobFileFieldProblem }                                  from '../@types/JobFileFieldProblem.ts';
 import { JobFileShapeUtil }                                          from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil }                                    from '../utils/StoredJsonDocumentUtil.ts';

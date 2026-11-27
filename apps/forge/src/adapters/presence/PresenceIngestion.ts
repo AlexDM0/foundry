@@ -1,7 +1,7 @@
 /** `hephaestus/presence.json`, a generation's start, its abandoned passes and its ending: read, validate every field, map. */
+import { START_KINDS, START_ORIGINS }                               from '../../domain/tracker-model/constants/JobStates.ts';
 import { JsonRecordUtil }                                           from '../../lib/json-record/JsonRecordUtil.ts';
 import { storedIdentityOf }                                         from '../../lib/process-identity/ProcessIdentity.ts';
-import { START_KINDS, START_ORIGINS }                               from '../../lib/tracker-model/constants/JobStates.ts';
 import { StoredJsonDocumentUtil }                                   from '../utils/StoredJsonDocumentUtil.ts';
 import { StoredValueUtil }                                          from '../utils/StoredValueUtil.ts';
 import type { PresenceMalformedField, PresenceProblem }             from './@types/PresenceProblem.ts';

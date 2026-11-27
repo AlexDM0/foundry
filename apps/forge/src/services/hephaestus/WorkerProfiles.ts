@@ -10,7 +10,12 @@ import {
   relative
 } from 'node:path';
 
-import type { HephaestusLogRecord } from '../../adapters/@types/HephaestusLogRecord.ts';
+import type { HephaestusLogRecord }                   from '../../adapters/@types/HephaestusLogRecord.ts';
+import { PRIVATE_FOLDER_NAME }                        from '../../domain/talos/constants/TalosProtocol.ts';
+import type { JobRole }                               from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineEntity }   from '../../domain/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil, type PipelineEntities } from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                               from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type {
   CommitSigning,
   NetworkDomainGuard,
@@ -18,18 +23,13 @@ import type {
   StageEditGuard,
   WorkerProfile
 } from '../../lib/agent-launch/WorkerProfile.ts';
-import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
-import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                             from '../../lib/shell-line/ShellLine.ts';
-import { PRIVATE_FOLDER_NAME }                        from '../../lib/talos/constants/TalosProtocol.ts';
-import type { JobRole }                               from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { PipelineUtil }                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import type { BranchNames }                           from '../../shared/BranchNames.ts';
-import { type CacheFolderStyle, GateCachePaths }      from './GateCachePaths.ts';
-import { GpgDirectories }                             from './GpgDirectories.ts';
-import { hephaestusFilesIn }                          from './HephaestusFiles.ts';
+import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
+import { GitProcess }                            from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
+import type { BranchNames }                      from '../../shared/BranchNames.ts';
+import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
+import { GpgDirectories }                        from './GpgDirectories.ts';
+import { hephaestusFilesIn }                     from './HephaestusFiles.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {

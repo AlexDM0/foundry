@@ -378,12 +378,12 @@ Anything else is in the [Runbook](runbook.md), which also has
 | What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Starting detached | `cli/hephaestus/StartCommand.ts` | `startDetached` | `cli/hephaestus/StartCommand.integration.spec.ts` |
 | The port | `src/services/hephaestus/HephaestusPort.ts` | `HephaestusPort` | `src/services/hephaestus/HephaestusServer.integration.spec.ts` |
-| A new board is paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
-| What paused holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
+| A new board is paused | `src/domain/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
+| What paused holds | `src/domain/tracker-model/Playbook.ts` | `nextStepsOf` | `src/domain/tracker-model/Playbook.spec.ts` |
 | The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |
 | The constitution commit | `src/services/hephaestus/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
-| Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
+| Readiness | `src/domain/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/domain/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/hephaestus/HephaestusWording.intake.spec.ts` |
-| What `intake close` submits | `src/lib/tracker-model/Board.ts`, `src/lib/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
+| What `intake close` submits | `src/domain/tracker-model/Board.ts`, `src/domain/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
 | How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |

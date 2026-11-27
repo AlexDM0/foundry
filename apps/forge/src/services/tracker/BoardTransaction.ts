@@ -1,8 +1,8 @@
 /** The board transaction a write hands its applier: the Board inside one exclusive hold, and what the store allocates for it without a path. */
 import type { UnreadablePipelineReading }                             from '../../adapters/pipeline/PipelineFile.ts';
-import type { LogRecord }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket }                                                from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
+import type { LogRecord }                                             from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Ticket }                                                from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
 import type { CreateTicketInput, RecordReference, UnreadableRecords } from './@types/BoardRecords.ts';
 import type { Workspace }                                             from './Workspace.ts';
 

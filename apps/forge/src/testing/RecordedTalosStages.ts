@@ -1,7 +1,7 @@
 /**
  * The Talos of a default spec: `useRecordedTalosStages` starts no Talos, and answers each frame of Hephaestus's connection by leaving
- * what the real Talos left in that stage of a child, which `src/lib/talos/Talos.stages.integration.spec.ts` records under
- * `bun run record src/lib/talos/Talos.ts`: the child record, the origin of each event-log line, whether the child still runs, and Talos's
+ * what the real Talos left in that stage of a child, which `talos/Talos.stages.integration.spec.ts` records under
+ * `bun run record talos/Talos.ts`: the child record, the origin of each event-log line, whether the child still runs, and Talos's
  * own record. A stage with no recorded answer fails the case. Talos's and its children's processes are in the recorded process table.
  * What the child does is not Talos's: a session plays its `FakeAgentAdapter` scenario, and a line ends as `scriptLine` said.
  */
@@ -10,19 +10,19 @@ import { dirname, join }                       from 'node:path';
 
 import { afterEach, beforeEach } from 'bun:test';
 
+import type { ChildInput, DoneFrame, FrameRefusalReason }                  from '../domain/talos/@types/TalosFrame.ts';
+import { type ChildLaunch, childIdOf }                                     from '../domain/talos/ChildLaunch.ts';
+import { type ChildRecord, childRecordTextOf }                             from '../domain/talos/ChildRecord.ts';
+import { createEventLogWriter, type EventLogWriter, type EventOrigin }     from '../domain/talos/EventLog.ts';
+import { type ChildFiles, childFilesOf, talosRecordPathOf }                from '../domain/talos/TalosFiles.ts';
+import { clientEntryLineOf, quitActInputOf }                               from '../domain/talos/TalosFrames.ts';
+import { type TalosRecord, talosRecordTextOf }                             from '../domain/talos/TalosRecord.ts';
 import { createFileAtomically, writeFileAtomically }                       from '../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                      from '../lib/git/GitProcess.ts';
+import type { RecognisedEnding }                                           from '../lib/line-patterns/EndingPatterns.ts';
 import type { PlatformPorts }                                              from '../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                            from '../lib/process-identity/ProcessIdentity.ts';
 import type { ProcessTreeMember }                                          from '../lib/process-identity/ProcessSupervision.ts';
-import type { ChildInput, DoneFrame, FrameRefusalReason }                  from '../lib/talos/@types/TalosFrame.ts';
-import { type ChildLaunch, childIdOf }                                     from '../lib/talos/ChildLaunch.ts';
-import { type ChildRecord, childRecordTextOf }                             from '../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                                           from '../lib/talos/EndingPatterns.ts';
-import { createEventLogWriter, type EventLogWriter, type EventOrigin }     from '../lib/talos/EventLog.ts';
-import { type ChildFiles, childFilesOf, talosRecordPathOf }                from '../lib/talos/TalosFiles.ts';
-import { clientEntryLineOf, quitActInputOf }                               from '../lib/talos/TalosFrames.ts';
-import { type TalosRecord, talosRecordTextOf }                             from '../lib/talos/TalosRecord.ts';
 import type { ProcessStarts }                                              from '../services/hephaestus/ProcessStarts.ts';
 import type { TalosConnection, TalosFrameRequest }                         from '../services/hephaestus/TalosConnection.ts';
 import type { BoundaryRecording }                                          from './BoundaryRecordings.ts';
@@ -31,7 +31,7 @@ import { FAKE_HEAD_PLACEHOLDER, type FakeAgentStep }                       from 
 import { type ControlledRecordedProcessTable, createRecordedProcessTable } from './RecordedProcessTable.ts';
 import { recordedLineOf }                                                  from './fake-agent/RecordedClaudeLines.ts';
 
-const TALOS_BOUNDARY = 'src/lib/talos/Talos.ts';
+const TALOS_BOUNDARY = 'talos/Talos.ts';
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 const SCENARIO_ARGUMENT_INDEX = 2;
 const BUILT_IN_LINES: Readonly<Record<string, ScriptedLineEnd>> = { true: {}, false: { exitCode: 1 } };

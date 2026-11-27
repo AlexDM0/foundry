@@ -30,20 +30,20 @@ const JOB_FILES = '/example/repository/.example-data/jobs/J4';
 
 function requestOf(platform: string, profile: WorkerProfile): AgentLaunchRequest {
   return {
-    confinement:       platform === 'win32' ? 'unconfined-by-design' : 'confined',
-    programPath:       '/example/bin/claude',
-    sessionId:         'session-example',
-    resume:            false,
-    workingDirectory:  WORKTREE,
-    homeDirectory:     HOME,
-    firstMessage:      'Work.',
-    roleBrief:         'A session.',
-    model:             'opus',
-    effort:            'medium',
-    environment:       {},
+    confinement:          platform === 'win32' ? 'unconfined-by-design' : 'confined',
+    programPath:          '/example/bin/claude',
+    sessionId:            'session-example',
+    resume:               false,
+    workingDirectory:     WORKTREE,
+    homeDirectory:        HOME,
+    firstMessage:         'Work.',
+    roleBrief:            'A session.',
+    model:                'opus',
+    effort:               'medium',
+    environment:          {},
     profile,
-    jobFilesDirectory: JOB_FILES,
-    reportSchema:      null,
+    launchFilesDirectory: JOB_FILES,
+    reportSchema:         null,
   };
 }
 

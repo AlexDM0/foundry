@@ -1,12 +1,12 @@
 /** A draft file's notes and question tree read from their stored JSON: undefined for any value of the wrong shape, never a throw. */
-import { JsonRecordUtil } from '../../../lib/json-record/JsonRecordUtil.ts';
 import type {
   DraftAnswer,
   DraftNote,
   DraftNoteKind,
   DraftQuestion,
   DraftQuestionOption
-}                         from '../../../lib/tracker-model/@types/Draft.ts';
+}                         from '../../../domain/tracker-model/@types/Draft.ts';
+import { JsonRecordUtil } from '../../../lib/json-record/JsonRecordUtil.ts';
 
 const NOTE_KINDS: readonly string[] = ['fact', 'assumption'] satisfies DraftNoteKind[];
 

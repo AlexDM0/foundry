@@ -1,12 +1,12 @@
-import { GATE_PHASES }           from '../../lib/tracker-model/@types/GatePhase.ts';
-import { TICKET_DOCUMENT_KINDS } from '../../lib/tracker-model/@types/TicketDocument.ts';
+import { GATE_PHASES }           from '../../domain/tracker-model/@types/GatePhase.ts';
+import { TICKET_DOCUMENT_KINDS } from '../../domain/tracker-model/@types/TicketDocument.ts';
 import {
   DECISION_KINDS,
   INCIDENT_KINDS,
   INCIDENT_MOVES,
   NON_AGENT_DECISION_ASKERS
-}                                from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HEPHAESTUS_STATES } from '../../lib/tracker-model/constants/HephaestusStates.ts';
+}                                from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HEPHAESTUS_STATES } from '../../domain/tracker-model/constants/HephaestusStates.ts';
 import {
   AIRLOCK_PHASES,
   INTERRUPTION_CAUSES,
@@ -16,9 +16,9 @@ import {
   JOB_ROLES,
   JOB_STATES,
   JOB_STOP_MODES
-}                                from '../../lib/tracker-model/constants/JobStates.ts';
-import { TASK_STATUSES }      from '../../lib/tracker-model/constants/Statuses.ts';
-import { TICKET_STAGE_NAMES } from '../../lib/tracker-model/constants/TicketStages.ts';
+}                                from '../../domain/tracker-model/constants/JobStates.ts';
+import { TASK_STATUSES }      from '../../domain/tracker-model/constants/Statuses.ts';
+import { TICKET_STAGE_NAMES } from '../../domain/tracker-model/constants/TicketStages.ts';
 import type {
   ProgressFieldExpectation,
   ProgressFileProblem,

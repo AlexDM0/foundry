@@ -16,14 +16,14 @@ import type { CrashLogJob, CrashLogRecord }    from '../../adapters/crash-log/@t
 import type { HeartbeatRecord }                from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                 from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }     from '../../adapters/presence/@types/StartClassificationVerdict.ts';
-import type { TalosRecord }                    from '../../lib/talos/TalosRecord.ts';
-import type { InterruptionCause, Job }         from '../../lib/tracker-model/@types/Job.ts';
-import type { LifecycleThresholds }            from '../../lib/tracker-model/@types/LifecycleLimits.ts';
-import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import { Playbook }                            from '../../lib/tracker-model/Playbook.ts';
-import { INTERRUPTED_HOLD_PREFIX }             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { CRASH_INTERRUPTION_CAUSES }           from '../../lib/tracker-model/constants/JobStates.ts';
+import type { TalosRecord }                    from '../../domain/talos/TalosRecord.ts';
+import type { InterruptionCause, Job }         from '../../domain/tracker-model/@types/Job.ts';
+import type { LifecycleThresholds }            from '../../domain/tracker-model/@types/LifecycleLimits.ts';
+import type { LogRecord }                      from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                          from '../../domain/tracker-model/Board.ts';
+import { Playbook }                            from '../../domain/tracker-model/Playbook.ts';
+import { INTERRUPTED_HOLD_PREFIX }             from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { CRASH_INTERRUPTION_CAUSES }           from '../../domain/tracker-model/constants/JobStates.ts';
 import { PresenceStatus }                      from './PresenceStatus.ts';
 
 /** A crash log as `CrashLog.list` and `CrashLog.read` found it. */

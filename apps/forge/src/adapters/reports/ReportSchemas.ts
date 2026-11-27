@@ -2,13 +2,13 @@
  * The builder, reviewer and Airlock agent report schemas (design section 4.3), each one draft-07 document: handed to the agent's command line as
  * written and checked by `reportVerdictOf`, so the two never disagree. No report carries a round, a rework count, a verdict or a release.
  */
-import type { ReviewFinding } from '../../lib/tracker-model/@types/ReviewRecord.ts';
+import type { ReviewFinding } from '../../domain/tracker-model/@types/ReviewRecord.ts';
 import {
   REVIEW_CLAIM_RESULTS,
   REVIEW_FINDING_CLASSES,
   REVIEW_FINDING_EVIDENCE_KINDS,
   REVIEW_FINDING_SEVERITIES
-} from '../../lib/tracker-model/constants/ReviewRecordVocabulary.ts';
+} from '../../domain/tracker-model/constants/ReviewRecordVocabulary.ts';
 import type { JsonSchema } from './ReportValidation.ts';
 
 /** A reviewer report's finding: the stored `ReviewFinding` unchanged when fixed; when filed, the Hatch's ticket id or its request id. */

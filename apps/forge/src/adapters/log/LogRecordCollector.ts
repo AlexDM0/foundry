@@ -2,7 +2,7 @@
  * Collects the records the Board logs during one command and answers what log.jsonl should hold once it is done; writing the file is
  * `src/adapters/log/LogFileWriter.ts`'s.
  */
-import type { LogRecord } from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord } from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { StoredLog } from './@types/StoredLog.ts';
 
 /** `recordsToWrite` is null when the file must stay as it is, so a command that logs nothing leaves log.jsonl alone. */

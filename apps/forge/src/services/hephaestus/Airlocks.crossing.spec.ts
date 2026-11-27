@@ -22,9 +22,9 @@ import {
   test
 } from 'bun:test';
 
-import type { Pipeline, PipelineEntity }              from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage }                           from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                                 from '../../lib/tracker-model/Board.ts';
+import type { Pipeline, PipelineEntity }              from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStage }                           from '../../domain/tracker-model/@types/Task.ts';
+import type { Board }                                 from '../../domain/tracker-model/Board.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }             from '../../shared/constants/HephaestusLimits.ts';
 import { commitResolved, linkedWorktreeRead, stepIn } from '../../testing/RecordedAirlockGit.ts';
 import {

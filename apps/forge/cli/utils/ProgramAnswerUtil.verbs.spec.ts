@@ -7,7 +7,7 @@
  */
 import { afterEach, expect, test } from 'bun:test';
 
-import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                         from '../../src/domain/talos/constants/TalosProtocol.ts';
 import { useRecordedGitOutsideAnyRepository }             from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                 from '../Main.ts';

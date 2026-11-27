@@ -9,7 +9,7 @@ import { join }                    from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import type { Job }                                               from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }                                               from '../../domain/tracker-model/@types/Job.ts';
 import { WorktreesFolder }                                        from '../../shared/WorktreesFolder.ts';
 import { createPlantedRepository }                                from '../../testing/RecordedAirlockGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';

@@ -4,10 +4,10 @@
  * from the entity's first home. A stop ends a queued run or asks Hephaestus to end a running one. Only User's press sends them: no
  * relayed role may, and nothing else queues a profile. A body is untrusted JSON, so each nested field is checked before the Board is touched.
  */
-import type { GateProfileChanged }                    from '../../lib/tracker-model/@types/BoardChanges.ts';
-import { GATE_PHASES, type GatePhase }                from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { ProfiledGate }                          from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { EntityKey, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { GateProfileChanged }                    from '../../domain/tracker-model/@types/BoardChanges.ts';
+import { GATE_PHASES, type GatePhase }                from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { ProfiledGate }                          from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { EntityKey, PipelineGate, PipelineStep } from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandOf as CommandOf }         from '../../shared/@types/ControlCommand.ts';
 import { EntityFoldersUtil }                          from '../../shared/utils/EntityFoldersUtil.ts';
 import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';

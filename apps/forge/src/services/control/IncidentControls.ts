@@ -3,8 +3,8 @@
  * be open and of a kind whose row in the Bouncer's table allows the move, and a job or park move targets its own job or ticket. The move
  * then marks it handled in the same hold. User may run each move too, so the check holds whoever names the incident.
  */
-import type { Logged }                        from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Incident, IncidentMove }        from '../../lib/tracker-model/@types/Incident.ts';
+import type { Logged }                        from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Incident, IncidentMove }        from '../../domain/tracker-model/@types/Incident.ts';
 import type { ControlCommand }                from '../../shared/@types/ControlCommand.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';

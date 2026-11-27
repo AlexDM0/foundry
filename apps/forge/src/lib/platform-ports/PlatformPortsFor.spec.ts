@@ -32,7 +32,7 @@ const SUPPORTED_PLATFORMS: string[] = ['darwin', 'linux', 'win32'];
 const UNKNOWN_PLATFORM = 'example-platform';
 const UNKNOWN_PROCESS_ID = 4242;
 /** Short enough for any socket path limit; the probe only names an endpoint, it binds nothing. */
-const SHORT_MONITOR_FOLDER = '/example';
+const SHORT_SOCKET_FOLDER = '/example';
 
 const scratchDirectory = createScratchDirectory('platform-ports');
 
@@ -54,7 +54,7 @@ const ADAPTER_PROBES: Readonly<Record<keyof PlatformPorts, (ports: PlatformPorts
   processSupervision: (ports) => ports.processSupervision.identitySourcesOf(UNKNOWN_PROCESS_ID).length > 0,
   localEndpoint:      (ports) => {
     const endpoint = ports.localEndpoint.endpointOf({
-      monitorFolder: SHORT_MONITOR_FOLDER, trackerId: 'example', name: '1', instance: 1
+      socketFolder: SHORT_SOCKET_FOLDER, scope: 'example', name: '1', instance: 1
     });
     return ports.localEndpoint.endpointFits(endpoint);
   },

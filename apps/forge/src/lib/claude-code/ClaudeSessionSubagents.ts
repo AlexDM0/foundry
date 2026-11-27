@@ -1,6 +1,6 @@
 /**
- * A job session's subagents as Claude Code wrote them under `<config>/projects/<any project>/<sessionId>/subagents/`, found by the session
- * id, tallied as the live facts tally the event log, so a job whose event log lost them after a crash or reboot still lists them. Each
+ * A session's subagents as Claude Code wrote them under `<config>/projects/<any project>/<sessionId>/subagents/`, found by the session
+ * id, tallied as the live facts tally the event log, so a session whose event log lost them after a crash or reboot still lists them. Each
  * subagent is keyed by the `toolUseId` its `.meta.json` names, the parent call the event log groups it under.
  */
 

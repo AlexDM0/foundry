@@ -15,27 +15,27 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { PipelineReading }                     from '../../adapters/pipeline/PipelineFile.ts';
-import type { Draft }                               from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }                           from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfileRun, GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { Draft }                               from '../../domain/tracker-model/@types/Draft.ts';
+import type { GatePhase }                           from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateProfileRun, GateProfilesReading } from '../../domain/tracker-model/@types/GateProfile.ts';
 import type {
   Airlock,
   GateCacheReport,
   GateRunCacheReports,
   Job
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { InstructionEntry, Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf }               from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { InstructionEntry, Pipeline, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   MainConstitutionReading,
   PipelineSetup,
   PipelineSetupReading,
   SetupQuestion
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Task }                  from '../../lib/tracker-model/@types/Task.ts';
-import type { Ticket }                from '../../lib/tracker-model/@types/Ticket.ts';
-import { Board }                      from '../../lib/tracker-model/Board.ts';
-import { createLogger }               from '../../lib/tracker-model/Logger.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Task }                  from '../../domain/tracker-model/@types/Task.ts';
+import type { Ticket }                from '../../domain/tracker-model/@types/Ticket.ts';
+import { Board }                      from '../../domain/tracker-model/Board.ts';
+import { createLogger }               from '../../domain/tracker-model/Logger.ts';
 import { taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import {
   INSTRUCTION_PREVIEW_LIMIT_CHARACTERS,

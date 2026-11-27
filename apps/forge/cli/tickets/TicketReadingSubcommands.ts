@@ -1,7 +1,7 @@
 import { TicketJsonUtil }               from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { Ticket, TicketStatus }    from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { TicketDefaultsUtil }           from '../../src/lib/tracker-model/utils/TicketDefaultsUtil.ts';
-import { TicketIdUtil }                 from '../../src/lib/tracker-model/utils/TicketIdUtil.ts';
+import type { Ticket, TicketStatus }    from '../../src/domain/tracker-model/@types/Ticket.ts';
+import { TicketDefaultsUtil }           from '../../src/domain/tracker-model/utils/TicketDefaultsUtil.ts';
+import { TicketIdUtil }                 from '../../src/domain/tracker-model/utils/TicketIdUtil.ts';
 import type { TicketListing }           from '../../src/services/tracker/@types/BoardRecords.ts';
 import { OperationRefusal }             from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                from '../../src/shared/constants/ProductNames.ts';

@@ -7,14 +7,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../../../domain/tracker-model/constants/ConcurrencyLimits.ts';
 import {
   DEFAULT_APPROVALS,
   DEFAULT_DOCUMENTS_OF_ROLE,
   DEFAULT_INSTRUCTIONS_OF_ROLE,
   DEFAULT_TICKET_WRITING_ROUTE,
   RE_REVIEW_THRESHOLD_STEP_LINES
-} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
+} from '../../../domain/tracker-model/constants/PipelineDefaults.ts';
 import type { PageTicket, PageTicketFacts } from '../../../shared/@types/PagePayload.ts';
 import { DISPATCH_PROTOCOL }                from '../../../shared/constants/DispatchProtocol.ts';
 import {

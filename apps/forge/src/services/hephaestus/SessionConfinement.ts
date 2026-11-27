@@ -22,7 +22,7 @@ export type SessionLaunch =
   | { readonly verdict: 'runs'; readonly plan: AgentLaunchPlan }
   | { readonly verdict: 'refused'; readonly refusal: ConfinementRefusal };
 
-type SessionPlanRequest = Pick<AgentLaunchRequest, 'profile' | 'workingDirectory' | 'jobFilesDirectory'>;
+type SessionPlanRequest = Pick<AgentLaunchRequest, 'profile' | 'workingDirectory' | 'launchFilesDirectory'>;
 
 /** What a session of an agent with these capabilities runs under on this platform. */
 function confinementVerdictOf(capabilities: Pick<AgentCapabilities, 'ownConfinement'>, gateConfinement: GateConfinement): ConfinementVerdict {
@@ -62,7 +62,7 @@ function planOf(request: SessionPlanRequest, agentWritablePaths: readonly string
     deniedWritableRoots: profile.deniedWritableRoots,
     deniedReadableRoots: profile.deniedReadableRoots,
     network:             true,
-    confinementFilePath: join(request.jobFilesDirectory, SESSION_CONFINEMENT_FILE_NAME),
+    confinementFilePath: join(request.launchFilesDirectory, SESSION_CONFINEMENT_FILE_NAME),
   };
 }
 
@@ -73,7 +73,7 @@ function sessionLaunchOf(adapter: AgentAdapter, gateConfinement: GateConfinement
   const plan = adapter.planOf(request);
   if (adapter.capabilities.ownConfinement === 'applies-the-profile' || request.confinement === 'unconfined-by-design') return { verdict: 'runs', plan };
   const sessionPlanOf = (): ConfinementPlan => {
-    mkdirSync(request.jobFilesDirectory, { recursive: true });
+    mkdirSync(request.launchFilesDirectory, { recursive: true });
     return planOf(request, adapter.sessionWritablePathsOf(request.homeDirectory));
   };
   const line = confinedLineOf(gateConfinement, sessionPlanOf, plan.argv);

@@ -1,4 +1,4 @@
-import type { StoredRecordProblem } from '../../lib/tracker-model/@types/StoredRecordProblem.ts';
+import type { StoredRecordProblem } from '../../domain/tracker-model/@types/StoredRecordProblem.ts';
 import { StoredFileProblemWording } from '../StoredFileProblemWording.ts';
 
 /** The words of the field checks the pipeline's stored records share; a record that is no JSON object is "the document". */

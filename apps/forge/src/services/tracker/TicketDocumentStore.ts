@@ -8,7 +8,7 @@ import { join }                                from 'node:path';
 import type { UnreadableTicketDocumentsProblem }               from '../../adapters/@types/UnreadableRecordProblem.ts';
 import { TicketDocumentContentFile }                           from '../../adapters/tickets/TicketDocumentContentFile.ts';
 import { TicketDocumentsFileIngestion }                        from '../../adapters/tickets/TicketDocumentsFileIngestion.ts';
-import type { LoadedTicketDocumentRecord }                     from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { LoadedTicketDocumentRecord }                     from '../../domain/tracker-model/@types/TicketDocument.ts';
 import type { BoardContents, UnreadableTicketDocumentsRecord } from './@types/BoardRecords.ts';
 import { localStoreLayoutOf }                                  from './LocalStoreLayout.ts';
 import type { Workspace }                                      from './Workspace.ts';

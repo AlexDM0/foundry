@@ -8,11 +8,11 @@ import { posix } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { createPosixLaunchEnvironment }                   from '../../lib/agent-launch/PosixLaunchEnvironment.ts';
 import { createPosixExecutableResolver }                  from '../../lib/executable-resolver/PosixExecutableResolver.ts';
 import type { ProgramFolders }                            from '../../lib/program-folders/ProgramFolders.ts';
 import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import { defaultSpecPlatformPorts }                       from '../../testing/DefaultSpecPlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { JobLaunch }                                      from './JobLaunch.ts';

@@ -23,7 +23,7 @@ import { CRASH_LOG_FORMAT_VERSION }                              from '../../ada
 import type { HeartbeatRecord }                                  from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                                   from '../../adapters/presence/@types/PresenceRecord.ts';
 import { HephaestusLogWordingUtil }                              from '../../adapters/utils/HephaestusLogWordingUtil.ts';
-import type { Job }                                              from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }                                              from '../../domain/tracker-model/@types/Job.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import type { CrashLogInputs }                                   from './@types/CrashLogRecord.ts';
 import { CrashLog }                                              from './CrashLog.ts';

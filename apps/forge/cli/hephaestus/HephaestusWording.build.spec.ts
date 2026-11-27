@@ -10,8 +10,8 @@
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }            from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }   from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Job }            from '../../src/domain/tracker-model/@types/Job.ts';
+import type { PipelineGate }   from '../../src/domain/tracker-model/@types/Pipeline.ts';
 import type { JobLaunchFacts } from '../../src/services/hephaestus/DrivePass.ts';
 import { resourceFilePathOf }  from '../../src/shared/ResourceFilePath.ts';
 import { fakeAgentAdapter }    from '../../src/testing/FakeAgentAdapter.ts';

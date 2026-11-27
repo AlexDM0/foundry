@@ -21,13 +21,13 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord }                                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { ConditionalReReview }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }              from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Ticket }                                      from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }                             from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                                            from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                     from '../../lib/tracker-model/Logger.ts';
+import type { LogRecord }                                   from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { ConditionalReReview }                         from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }              from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Ticket }                                      from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }                             from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import { Board }                                            from '../../domain/tracker-model/Board.ts';
+import { createLogger }                                     from '../../domain/tracker-model/Logger.ts';
 import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
 import { useRecordedGit }                                   from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                    from '../../testing/RecordedGitScenarios.ts';

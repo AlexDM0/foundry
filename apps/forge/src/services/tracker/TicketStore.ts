@@ -7,10 +7,10 @@ import { basename, join }                                                from 'n
 import { ProgressFileIngestion }                                         from '../../adapters/progress/ProgressFileIngestion.ts';
 import { CommittedContentFile }                                          from '../../adapters/tickets/CommittedContentFile.ts';
 import { TicketFileIngestion }                                           from '../../adapters/tickets/TicketFileIngestion.ts';
-import type { LogRecord }                                                from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket, TicketFrontmatter }                                from '../../lib/tracker-model/@types/Ticket.ts';
-import { FIRST_TICKET_NUMBER }                                           from '../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }                                                  from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { LogRecord }                                                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Ticket, TicketFrontmatter }                                from '../../domain/tracker-model/@types/Ticket.ts';
+import { FIRST_TICKET_NUMBER }                                           from '../../domain/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }                                                  from '../../domain/tracker-model/utils/TicketIdUtil.ts';
 import type { UnreadableTicketProblem }                                  from '../../shared/@types/UnreadableTicketProblem.ts';
 import type { CreateTicketInput, TicketListing, UnreadableTicketRecord } from './@types/BoardRecords.ts';
 import { localStoreLayoutOf }                                            from './LocalStoreLayout.ts';

@@ -1,7 +1,7 @@
 /** The by-hand `task` kinds: a row added, moved, corrected or removed by User outside a job, as the `task` verbs did in place. */
 import { TicketBodyUtil }                     from '../../adapters/utils/TicketBodyUtil.ts';
-import type { ReviewBarLink }                 from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Ticket }                        from '../../lib/tracker-model/@types/Ticket.ts';
+import type { ReviewBarLink }                 from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Ticket }                        from '../../domain/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';

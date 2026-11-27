@@ -14,8 +14,8 @@ import {
   test
 } from 'bun:test';
 
-import { RepositoryLandings }      from '../../../src/lib/git/RepositoryLandings.ts';
-import type { RepositoryTracker }  from '../../../src/lib/git/RepositoryLandings.ts';
+import { RepositoryLandings }      from '../../../src/adapters/repository-landings/RepositoryLandings.ts';
+import type { RepositoryTracker }  from '../../../src/adapters/repository-landings/RepositoryLandings.ts';
 import { repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';

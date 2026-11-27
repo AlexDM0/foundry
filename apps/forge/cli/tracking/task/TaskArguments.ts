@@ -1,5 +1,5 @@
 /** The `task` command's usage, and the task id and row annotation every one of its subcommands reads. */
-import type { TaskAnnotation } from '../../../src/lib/tracker-model/@types/BoardChanges.ts';
+import type { TaskAnnotation } from '../../../src/domain/tracker-model/@types/BoardChanges.ts';
 import { OperationRefusal }    from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }       from '../../../src/shared/constants/ProductNames.ts';
 import type { ArgumentParser } from '../../arguments/ArgumentParser.ts';

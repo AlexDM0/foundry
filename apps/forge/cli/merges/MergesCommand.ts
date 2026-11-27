@@ -2,10 +2,10 @@
  * The merge queue as `status` reads the tracker: each target's held slot, then its queued tickets in priority and readiness order, or with
  * merge approval on in User's press order, the accepted tickets first.
  */
-import type { LogRecord }      from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { MERGE_PRIORITY_RANK } from '../../src/lib/tracker-model/AirlockClaims.ts';
-import type { Board }          from '../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }      from '../../src/lib/tracker-model/ReadingBoard.ts';
+import type { LogRecord }      from '../../src/domain/tracker-model/@types/LogRecord.ts';
+import { MERGE_PRIORITY_RANK } from '../../src/domain/tracker-model/AirlockClaims.ts';
+import type { Board }          from '../../src/domain/tracker-model/Board.ts';
+import { readingBoardOf }      from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }        from '../BoardStoreOf.ts';
 import type { CommandHandler } from '../CommandHandler.ts';

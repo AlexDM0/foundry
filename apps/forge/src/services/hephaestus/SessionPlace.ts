@@ -15,12 +15,12 @@ import {
   sep
 } from 'node:path';
 
+import { childRecordOf }                                   from '../../domain/talos/ChildRecord.ts';
+import { childFilesOf }                                    from '../../domain/talos/TalosFiles.ts';
+import type { Job }                                        from '../../domain/tracker-model/@types/Job.ts';
+import type { PipelineGate }                               from '../../domain/tracker-model/@types/Pipeline.ts';
+import { FIRST_CHILD_INSTANCE }                            from '../../domain/tracker-model/constants/JobStates.ts';
 import type { AgentCapabilities }                          from '../../lib/agent-launch/AgentAdapter.ts';
-import { childRecordOf }                                   from '../../lib/talos/ChildRecord.ts';
-import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
-import type { Job }                                        from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { FIRST_CHILD_INSTANCE }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import { WorktreesFolder }                                 from '../../shared/WorktreesFolder.ts';
 import { ProjectPathsUtil }                                from '../../shared/utils/ProjectPathsUtil.ts';
 import { type ProjectLocation, worktreeProjectLocationOf } from '../tracker/ProjectLocation.ts';

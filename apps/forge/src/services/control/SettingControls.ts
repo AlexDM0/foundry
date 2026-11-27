@@ -1,6 +1,6 @@
 /** The board settings kinds of the control contract: the concurrency limit and the gate pipeline the `gate` verbs write. */
-import { CONCURRENCY_LIMIT_CEILING_AGENTS }   from '../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { BoardSettingsUtil }                  from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }   from '../../domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { BoardSettingsUtil }                  from '../../domain/tracker-model/utils/BoardSettingsUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';

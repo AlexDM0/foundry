@@ -17,8 +17,8 @@ import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts
 import type { MergedTreeGate, MergedTreeGateRunEnd }                         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MergedTreeGateOutcomeIngestion, type MergedTreeGateOutcomeReading } from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
 import { createMergedTreeGateOutcomeWriter }                                 from '../../adapters/gate-outcome/MergedTreeGateOutcomeWriter.ts';
-import type { GatePhase, GateRunStamp }                                      from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey }                                                    from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { GatePhase, GateRunStamp }                                      from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { EntityKey }                                                    from '../../domain/tracker-model/@types/Pipeline.ts';
 import { LinePausedError }                                                   from '../lifecycle/GateRun.ts';
 
 export const MERGED_TREE_GATE_RUNS_FOLDER = 'merge-gates';

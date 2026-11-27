@@ -17,10 +17,10 @@ import {
 } from 'bun:test';
 
 import { UnreadableFileProblemWordingUtil }         from '../../src/adapters/utils/UnreadableFileProblemWordingUtil.ts';
-import type { Job }                                 from '../../src/lib/tracker-model/@types/Job.ts';
-import type { JobOutcome }                          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { TicketStage }                         from '../../src/lib/tracker-model/@types/Task.ts';
-import type { Board }                               from '../../src/lib/tracker-model/Board.ts';
+import type { Job }                                 from '../../src/domain/tracker-model/@types/Job.ts';
+import type { JobOutcome }                          from '../../src/domain/tracker-model/@types/Job.ts';
+import type { TicketStage }                         from '../../src/domain/tracker-model/@types/Task.ts';
+import type { Board }                               from '../../src/domain/tracker-model/Board.ts';
 import { CrossingStages }                           from '../../src/services/hephaestus/CrossingStages.ts';
 import { launchFactsOf, type DrivePassRequest }     from '../../src/services/hephaestus/DrivePass.ts';
 import { StoredFileUnreadable }                     from '../../src/services/hephaestus/StoredFileUnreadable.ts';

@@ -10,8 +10,8 @@ import type {
   JobKind,
   JobOutcome,
   JobRole
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord } from '../../lib/tracker-model/@types/LogRecord.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord } from '../../domain/tracker-model/@types/LogRecord.ts';
 import { JobResumption }  from './JobResumption.ts';
 
 const AT = '2026-11-17T20:00:00+01:00';

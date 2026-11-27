@@ -16,6 +16,7 @@ import {
 } from 'bun:test';
 
 import { unversionedForgeProgramToRecordFrom } from '../../services/Environment.ts';
+import { SUPPORTED_FORGE_VERSION }             from '../../shared/constants/SupportedForgeVersions.ts';
 import { ForgeVersionsUtil }                   from '../../shared/utils/ForgeVersionsUtil.ts';
 import { SystemVersionUtil }                   from '../../shared/utils/SystemVersionUtil.ts';
 import { recordAnswer, recordSystemVersion }   from '../../testing/BoundaryRecordings.ts';
@@ -37,7 +38,6 @@ import {
   type HephaestusRequest,
   type HephaestusStreamRequest,
 } from './HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION } from './constants/SupportedForgeVersions.ts';
 
 const RECORDING_NAME = 'hephaestus-fetch-versions';
 const FORGES_SETUP_TIMEOUT_MILLISECONDS = 240_000;
@@ -79,7 +79,7 @@ const situationForges = new Map<VersionsSituation, SituationForge>();
 const keptAnswers: KeptAnswer[] = [];
 
 function versionedPathOf(endpointName: HephaestusEndpointName, endpoint: string): string {
-  return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName));
+  return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName, SUPPORTED_FORGE_VERSION));
 }
 
 function situationForgeOf(situation: VersionsSituation): SituationForge {

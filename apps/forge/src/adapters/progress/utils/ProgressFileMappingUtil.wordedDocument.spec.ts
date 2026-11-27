@@ -4,7 +4,7 @@
  */
 import { afterAll, expect, test } from 'bun:test';
 
-import type { TrackerProgress }    from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { TrackerProgress }    from '../../../domain/tracker-model/@types/TrackerProgress.ts';
 import type { WordedLogEntry }     from '../../../shared/@types/WordedLogEntry.ts';
 import { emptyProgress, fileRow }  from '../../../testing/ProgressFixtures.ts';
 import { removeScratchDirectory }  from '../../../testing/ScratchWorkspace.ts';

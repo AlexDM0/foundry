@@ -1,6 +1,6 @@
 /** `epic`: the epics a tracker groups its tickets under. `list` and `show` change nothing, so they read without the lock. */
-import type { Board }              from '../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }          from '../../src/lib/tracker-model/ReadingBoard.ts';
+import type { Board }              from '../../src/domain/tracker-model/Board.ts';
+import { readingBoardOf }          from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }            from '../BoardStoreOf.ts';

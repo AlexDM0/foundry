@@ -1,4 +1,4 @@
-import type { MainConstitutionProblem } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { MainConstitutionProblem } from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { GitProblemWording }            from '../GitProblemWording.ts';
 
 function sentenceOf(problem: MainConstitutionProblem): string {

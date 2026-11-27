@@ -14,11 +14,11 @@ import {
   test
 } from 'bun:test';
 
+import type { ChildInput }                                from '../../domain/talos/@types/TalosFrame.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
 import type { AgentQuestion }                             from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { ChildInput }                                from '../../lib/talos/@types/TalosFrame.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/HephaestusLimits.ts';
 import { fakeAgentAdapter, fakeQuestionLine }             from '../../testing/FakeAgentAdapter.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

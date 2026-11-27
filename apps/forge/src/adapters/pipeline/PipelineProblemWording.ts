@@ -1,4 +1,4 @@
-import type { PipelineProblem }       from '../../lib/tracker-model/@types/PipelineProblem.ts';
+import type { PipelineProblem }       from '../../domain/tracker-model/@types/PipelineProblem.ts';
 import { EntityRefusalWording }       from './EntityRefusalWording.ts';
 import { StoredRecordProblemWording } from './StoredRecordProblemWording.ts';
 

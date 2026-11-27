@@ -73,7 +73,7 @@ function adapterOf(ownConfinement: 'applies-the-profile' | 'none'): AgentAdapter
   return { ...adapter, capabilities: { ...adapter.capabilities, ownConfinement }, sessionWritablePathsOf: () => AGENT_FOLDERS };
 }
 
-function launchRequestOf(profile: WorkerProfile, jobFilesDirectory = JOB_FILES_DIRECTORY): AgentLaunchRequest {
+function launchRequestOf(profile: WorkerProfile, launchFilesDirectory = JOB_FILES_DIRECTORY): AgentLaunchRequest {
   return {
     programPath:      '/example/bin/agent',
     sessionId:        'example-session',
@@ -87,7 +87,7 @@ function launchRequestOf(profile: WorkerProfile, jobFilesDirectory = JOB_FILES_D
     environment:      {},
     profile,
     confinement:      'confined',
-    jobFilesDirectory,
+    launchFilesDirectory,
     reportSchema:     null,
   };
 }
@@ -156,17 +156,17 @@ describe('the launch of a session', () => {
   });
 
   test('an agent with no sandbox runs its argv wrapped by the port, under the plan of its profile', () => {
-    const jobFilesDirectory = createScratchDirectory('session-confinement');
+    const launchFilesDirectory = createScratchDirectory('session-confinement');
     try {
       const port = fakeGateConfinement('confined');
       const adapter = adapterOf('none');
-      const request = launchRequestOf(roleProfileOf('builder'), jobFilesDirectory);
+      const request = launchRequestOf(roleProfileOf('builder'), launchFilesDirectory);
       const launch = SessionConfinement.sessionLaunchOf(adapter, port, request);
 
       expect(launch).toEqual({ verdict: 'runs', plan: { ...adapter.planOf(request), argv: [...FAKE_CONFINER_ARGV, ...adapter.planOf(request).argv] } });
       expect(port.plans).toEqual([SessionConfinement.planOf(request, AGENT_FOLDERS)]);
     } finally {
-      removeScratchDirectory(jobFilesDirectory);
+      removeScratchDirectory(launchFilesDirectory);
     }
   });
 

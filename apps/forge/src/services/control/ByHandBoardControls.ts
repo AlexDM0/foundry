@@ -2,8 +2,8 @@
  * The by-hand board kinds: a note in the log, and the board's branch namespace, set in the hold so no job starts between the check and the
  * write. Git lists the branches at the board's repository root.
  */
+import type { JobKind }                       from '../../domain/tracker-model/@types/Job.ts';
 import { GitProcess }                         from '../../lib/git/GitProcess.ts';
-import type { JobKind }                       from '../../lib/tracker-model/@types/Job.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { BranchNamespaceUtil, branchNamesOf } from '../../shared/BranchNames.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';

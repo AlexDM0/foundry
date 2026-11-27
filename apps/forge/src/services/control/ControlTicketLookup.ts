@@ -2,7 +2,7 @@
  * A command's ticket reference resolved inside the hold: `3`, `003` and `#3` name one ticket. A reference with no ticket is refused, while
  * a file of that id that will not parse is unrepaired, a hand edit the tool will not repair; both leave as wordless details.
  */
-import { TicketIdUtil }                from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import { TicketIdUtil }                from '../../domain/tracker-model/utils/TicketIdUtil.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
 import type { UnreadableTicketRecord } from '../tracker/@types/BoardRecords.ts';
 import type { BoardTransaction }       from '../tracker/BoardTransaction.ts';

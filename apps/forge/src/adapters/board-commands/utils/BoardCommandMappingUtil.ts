@@ -16,22 +16,22 @@ import type {
 } from 'forge-contracts/BoardPipelineDocuments';
 import type { CommentAnchorDocument, DiagramAnchorDocument, LineRangeDocument } from 'forge-contracts/TicketDocumentsDocument';
 
-import type { DecisionAnswerForm } from '../../../lib/tracker-model/@types/Decision.ts';
-import type { PictureReference }   from '../../../lib/tracker-model/@types/Job.ts';
+import type { DecisionAnswerForm } from '../../../domain/tracker-model/@types/Decision.ts';
+import type { PictureReference }   from '../../../domain/tracker-model/@types/Job.ts';
 import type {
   AgentStepSettings,
   InstructionEntry,
   PipelineAgent,
   PipelineGate,
   PipelineTool
-} from '../../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   EntityDraftEdit,
   PipelineDraftEdit,
   PipelineEntityDefinition,
   PipelineStepsDraftEdit
-} from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { CommentAnchor, DiagramAnchor, LineRange }                     from '../../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { CommentAnchor, DiagramAnchor, LineRange }                     from '../../../domain/tracker-model/@types/TicketDocument.ts';
 import type { ChartRangeRequest as ForgeChartRangeRequest, ControlCommand } from '../../../shared/@types/ControlCommand.ts';
 import type { BoardContractCommand }                                        from './BoardCommandReadingUtil.ts';
 

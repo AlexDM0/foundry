@@ -74,7 +74,8 @@ export default [
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: [
       'src/testing/**/*.ts',
-      'src/lib/tracker-model/testing/**/*.ts',
+      'src/domain/tracker-model/testing/**/*.ts',
+      'talos/testing/**/*.ts',
       'cli/testing/**/*.ts',
       'src/adapters/progress/testing/**/*.ts',
       'src/services/tracker/testing/**/*.ts',
@@ -100,7 +101,7 @@ export default [
     rules: confinedReachRules(site, site.endsWith('.spec.ts') ? CONFINED_REACHES_OF_SPECS : CONFINED_REACHES),
   })),
   {
-    files:   ['src/**/*.ts', 'cli/**/*.ts', 'agent-progress.ts', 'talos.ts'],
+    files:   ['src/**/*.ts', 'talos/**/*.ts', 'cli/**/*.ts', 'agent-progress.ts', 'talos.ts'],
     ignores: [...SPECS_AND_TESTING_FOLDERS, 'cli/CommandContext.ts', 'talos.ts'],
     rules:   {
       'no-restricted-syntax': [

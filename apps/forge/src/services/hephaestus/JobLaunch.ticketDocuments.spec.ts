@@ -6,9 +6,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import { PipelineUtil }                from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentVersionUtil }   from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { Job }                    from '../../domain/tracker-model/@types/Job.ts';
+import { PipelineUtil }                from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }   from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { loadedRecordFixture }         from '../../testing/TicketDocumentRecordFixtures.ts';
 import { JobLaunch }                   from './JobLaunch.ts';

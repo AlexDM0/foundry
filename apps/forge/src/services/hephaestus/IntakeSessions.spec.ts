@@ -9,8 +9,8 @@
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
-import { PipelineUtil }                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { Job }                            from '../../domain/tracker-model/@types/Job.ts';
+import { PipelineUtil }                        from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { resourceFilePathOf }                  from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                       from '../../shared/constants/ProductNames.ts';
 import { boardFixture, entityPipelineFixture } from '../../testing/BoardFixtures.ts';

@@ -15,7 +15,7 @@ import {
   test
 } from 'bun:test';
 
-import { RepositoryLandings, type RepositoryLanding } from '../../lib/git/RepositoryLandings.ts';
+import { RepositoryLandings, type RepositoryLanding } from '../../adapters/repository-landings/RepositoryLandings.ts';
 import { LocalTimeUtil }                              from '../../lib/local-time/LocalTimeUtil.ts';
 import { useRecordedGit }                             from '../../testing/RecordedGit.ts';
 import type { SharedRepositoryLanding }               from '../lifecycle/Landing.ts';

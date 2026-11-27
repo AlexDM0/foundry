@@ -33,14 +33,14 @@ const FOLDED_INHERITED_NAMES: ReadonlySet<string> = new Set(INHERITED_VARIABLE_N
 export function createWindowsLaunchEnvironment(baseSearchFolders: () => readonly string[]): LaunchEnvironment {
   return Object.freeze<LaunchEnvironment>({
     inheritedVariableNames: INHERITED_VARIABLE_NAMES,
-    launchEnvironmentOf:    (inherited, jobVariables, vendorVariableNames = []) => {
+    launchEnvironmentOf:    (inherited, ownVariables, vendorVariableNames = []) => {
       const foldedVendorNames = new Set(vendorVariableNames.map(foldedNameOf));
       const passes = (name: string): boolean => FOLDED_INHERITED_NAMES.has(foldedNameOf(name)) || foldedVendorNames.has(foldedNameOf(name));
       const variableByFoldedName = new Map<string, readonly [string, string]>();
       for (const [name, value] of Object.entries(inherited)) {
         if (value !== undefined && passes(name)) variableByFoldedName.set(foldedNameOf(name), [name, value]);
       }
-      for (const variable of Object.entries(jobVariables)) variableByFoldedName.set(foldedNameOf(variable[0]), variable);
+      for (const variable of Object.entries(ownVariables)) variableByFoldedName.set(foldedNameOf(variable[0]), variable);
       return Object.fromEntries(variableByFoldedName.values());
     },
     searchFoldersOf: (environment) => {

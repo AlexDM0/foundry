@@ -4,6 +4,7 @@
  */
 import type { ForgeStreamEvent, ForgeStreamFollow, HephaestusAccess }           from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import { forgeClientOf, type ForgeClient }                                      from '../../../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }                                              from '../../../shared/constants/SupportedForgeVersions.ts';
 import { recordedBoardAnswersOf, recordedHephaestusFetch, type BoardSituation } from '../../../testing/RecordedAnswers.ts';
 
 /** The tracker id the recording's scratch forge was drawn with, as the registry names it. */
@@ -15,7 +16,7 @@ const EXAMPLE_ACCESS: HephaestusAccess = { hephaestusUrl: 'http://127.0.0.1:4710
 const RECORDED_EVENTS_PER_STREAM = 2;
 
 function clientOf(situation: BoardSituation): ForgeClient {
-  return forgeClientOf({ hephaestusFetch: recordedHephaestusFetch(recordedBoardAnswersOf(situation)) });
+  return forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: recordedHephaestusFetch(recordedBoardAnswersOf(situation)) });
 }
 
 type BoardDocumentSituation = Extract<

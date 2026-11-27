@@ -1,5 +1,5 @@
 /** progress.json read into the model: read, validate, map. */
-import type { TrackerProgress }       from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { TrackerProgress }       from '../../domain/tracker-model/@types/TrackerProgress.ts';
 import type { ProgressFileProblem }   from '../../shared/@types/ProgressFileProblem.ts';
 import { storedFileTextOf }           from '../StoredFileText.ts';
 import { StoredValueUtil }            from '../utils/StoredValueUtil.ts';

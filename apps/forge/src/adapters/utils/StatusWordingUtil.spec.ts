@@ -10,8 +10,8 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { TaskStatus }                from '../../lib/tracker-model/@types/Task.ts';
-import { TASK_STATUSES, TICKET_STATUSES } from '../../lib/tracker-model/constants/Statuses.ts';
+import type { TaskStatus }                from '../../domain/tracker-model/@types/Task.ts';
+import { TASK_STATUSES, TICKET_STATUSES } from '../../domain/tracker-model/constants/Statuses.ts';
 import type { MovedToStatus }             from './StatusWordingUtil.ts';
 import { StatusWordingUtil }              from './StatusWordingUtil.ts';
 

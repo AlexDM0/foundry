@@ -2,11 +2,11 @@
  * Hephaestus's one way to its board's children, agent sessions and lines alike: launch, read, write to and stop them. An adapter over the
  * Talos answers it; nothing that uses it knows how.
  */
+import type { ChildInput, FrameRefusalReason }    from '../../domain/talos/@types/TalosFrame.ts';
+import type { ChildEnd, ChildRecord, ChildState } from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                     from '../../domain/talos/EventLog.ts';
 import type { AgentLaunchPlan }                   from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import type { ChildInput, FrameRefusalReason }    from '../../lib/talos/@types/TalosFrame.ts';
-import type { ChildEnd, ChildRecord, ChildState } from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                  from '../../lib/talos/EndingPatterns.ts';
-import type { EventLogEntry }                     from '../../lib/talos/EventLog.ts';
+import type { RecognisedEnding }                  from '../../lib/line-patterns/EndingPatterns.ts';
 
 export type ChildLiveness =
   | { verdict: 'unlaunched' }

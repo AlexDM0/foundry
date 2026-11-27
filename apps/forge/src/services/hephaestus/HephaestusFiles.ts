@@ -1,6 +1,6 @@
 import { join, relative, sep } from 'node:path';
 
-import { privateFolderOf } from '../../lib/talos/TalosFiles.ts';
+import { privateFolderOf } from '../../domain/talos/TalosFiles.ts';
 
 export interface HephaestusFiles {
   /** `<data>/hephaestus/`: it holds the Hephaestus locks, and no secret. */

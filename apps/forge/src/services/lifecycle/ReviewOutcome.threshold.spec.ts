@@ -7,11 +7,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { LogRecord }                from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                    from '../../lib/tracker-model/Board.ts';
-import { RoundVerdictUtil }              from '../../lib/tracker-model/utils/RoundVerdictUtil.ts';
-import { TicketStageUtil }               from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { LogRecord }                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                    from '../../domain/tracker-model/Board.ts';
+import { RoundVerdictUtil }              from '../../domain/tracker-model/utils/RoundVerdictUtil.ts';
+import { TicketStageUtil }               from '../../domain/tracker-model/utils/TicketStageUtil.ts';
 import { LIFECYCLE_LIMITS }              from '../../shared/constants/LifecycleLimits.ts';
 import { boardFixture, ticketFixture }   from '../../testing/BoardFixtures.ts';
 import { ReviewOutcome }                 from './ReviewOutcome.ts';

@@ -2,8 +2,8 @@
 import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
-import { TICKET_STATUSES_USER_READIES }       from '../../lib/tracker-model/constants/Statuses.ts';
-import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TICKET_STATUSES_USER_READIES }       from '../../domain/tracker-model/constants/Statuses.ts';
+import { EntityOwnershipUtil }                from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';

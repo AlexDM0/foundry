@@ -1,5 +1,5 @@
-import { GATE_CACHE_REPORTS }                                  from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
-import { PIPELINE_SETUP_STEPS }                                from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { GATE_CACHE_REPORTS }                                  from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { PIPELINE_SETUP_STEPS }                                from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { LogFileProblem, LogListItems, LogRecordProblem } from '../../shared/@types/LogFileProblem.ts';
 import type { BaseStoredFileProblem }                          from '../../shared/@types/StoredFileProblem.ts';
 import { StoredFileProblemWording }                            from '../StoredFileProblemWording.ts';

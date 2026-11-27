@@ -7,11 +7,11 @@
 import { createHash } from 'node:crypto';
 
 import type { AssistantChat }                                           from '../../adapters/assistant-chats/AssistantChatsIngestion.ts';
+import type { EventLogEntry }                                           from '../../domain/talos/EventLog.ts';
+import { clientEntryOf }                                                from '../../domain/talos/TalosFrames.ts';
+import type { LogRecord }                                               from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { AgentPicture, SentLine }                                  from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                                       from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { EventLogEntry }                                           from '../../lib/talos/EventLog.ts';
-import { clientEntryOf }                                                from '../../lib/talos/TalosFrames.ts';
-import type { LogRecord }                                               from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';
 import { AssistantSession }                                             from './AssistantSession.ts';

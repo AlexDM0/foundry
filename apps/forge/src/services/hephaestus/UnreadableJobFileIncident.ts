@@ -6,10 +6,10 @@
  * launches by the board's own rules.
  */
 import type { UnreadableFileProblem } from '../../adapters/@types/UnreadableFileProblem.ts';
-import type { Incident }              from '../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                 from '../../lib/tracker-model/Board.ts';
-import { PARKED_HOLD_PREFIX }         from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import type { Incident }              from '../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }             from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                 from '../../domain/tracker-model/Board.ts';
+import { PARKED_HOLD_PREFIX }         from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { StoredFileProblemFactsUtil } from '../../shared/utils/StoredFileProblemFactsUtil.ts';
 
 const UNREADABLE_FILE_INCIDENT_KIND = 'system-file-unreadable';

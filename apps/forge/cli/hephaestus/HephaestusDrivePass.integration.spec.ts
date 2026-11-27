@@ -24,8 +24,8 @@ import {
 } from 'bun:test';
 
 import { UsageMarkerFile }                                                        from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import type { Board }                                                             from '../../src/domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                                      from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { Board }                                                             from '../../src/lib/tracker-model/Board.ts';
 import type { BoardChildren }                                                     from '../../src/services/hephaestus/BoardChildren.ts';
 import { type DrivePass }                                                         from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                                             from '../../src/services/hephaestus/HatchInbox.ts';

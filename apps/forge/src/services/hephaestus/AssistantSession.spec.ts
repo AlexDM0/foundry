@@ -13,12 +13,12 @@ import { join }                                   from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { IncidentOpening }                                              from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                                    from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PlaybookObservations }                                         from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import { Board }                                                             from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                                      from '../../lib/tracker-model/Logger.ts';
+import type { IncidentOpening }                                              from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                                          from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                                    from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { PlaybookObservations }                                         from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import { Board }                                                             from '../../domain/tracker-model/Board.ts';
+import { createLogger }                                                      from '../../domain/tracker-model/Logger.ts';
 import type { ControlCommand }                                               from '../../shared/@types/ControlCommand.ts';
 import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET } from '../../shared/constants/HephaestusLimits.ts';
 import { LIFECYCLE_LIMITS }                                                  from '../../shared/constants/LifecycleLimits.ts';

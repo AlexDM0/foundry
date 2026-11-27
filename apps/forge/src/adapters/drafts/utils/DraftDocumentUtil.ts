@@ -2,10 +2,10 @@
  * A draft file's JSON document both ways: the text read into a draft as a verdict, never a throw, and a draft written back with `version`
  * first, then the keys the model owns, then every key it does not, in the order they were stored.
  */
+import type { Draft, DraftClaim }     from '../../../domain/tracker-model/@types/Draft.ts';
+import { FIRST_DRAFT_ITEM_NUMBER }    from '../../../domain/tracker-model/constants/DraftFields.ts';
+import { DraftIdUtil }                from '../../../domain/tracker-model/utils/DraftIdUtil.ts';
 import { JsonRecordUtil }             from '../../../lib/json-record/JsonRecordUtil.ts';
-import type { Draft, DraftClaim }     from '../../../lib/tracker-model/@types/Draft.ts';
-import { FIRST_DRAFT_ITEM_NUMBER }    from '../../../lib/tracker-model/constants/DraftFields.ts';
-import { DraftIdUtil }                from '../../../lib/tracker-model/utils/DraftIdUtil.ts';
 import { StoredValueUtil }            from '../../utils/StoredValueUtil.ts';
 import type { DraftFileProblem }      from '../@types/DraftFileProblem.ts';
 import { CURRENT_DRAFT_FILE_VERSION } from '../constants/DraftFileVersions.ts';

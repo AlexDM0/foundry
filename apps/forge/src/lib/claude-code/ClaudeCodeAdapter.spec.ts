@@ -12,14 +12,14 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { fakeAgentAdapter }                      from '../../testing/FakeAgentAdapter.ts';
-import { AGENT_ENDING_NAMES, type AgentAdapter } from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, StandingReply }   from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }               from '../agent-launch/AgentLaunchRequest.ts';
-import { createPosixLaunchEnvironment }          from '../agent-launch/PosixLaunchEnvironment.ts';
-import { createWindowsLaunchEnvironment }        from '../agent-launch/WindowsLaunchEnvironment.ts';
-import type { WorkerProfile }                    from '../agent-launch/WorkerProfile.ts';
-import type { AgentHostFacts }                   from './AgentHostFacts.ts';
+import { fakeAgentAdapter }                                               from '../../testing/FakeAgentAdapter.ts';
+import { AGENT_ENDING_NAMES, type AgentAdapter, type AgentProgramRepair } from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan, StandingReply }                            from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                        from '../agent-launch/AgentLaunchRequest.ts';
+import { createPosixLaunchEnvironment }                                   from '../agent-launch/PosixLaunchEnvironment.ts';
+import { createWindowsLaunchEnvironment }                                 from '../agent-launch/WindowsLaunchEnvironment.ts';
+import type { WorkerProfile }                                             from '../agent-launch/WorkerProfile.ts';
+import type { AgentHostFacts }                                            from './AgentHostFacts.ts';
 import {
   CLAUDE_NESTING_VARIABLES,
   claudeCodeAdapterFor,
@@ -84,20 +84,20 @@ function guardedRequestOf(role: Role, programPath: string | null = GUARD_PROGRAM
 
 function requestOf(role: Role, overrides: Partial<AgentLaunchRequest> = {}): AgentLaunchRequest {
   return {
-    programPath:       CLAUDE_PROGRAM_PATH,
-    sessionId:         claudeSessionIdOf('tracker-example', 'J1'),
-    resume:            false,
-    workingDirectory:  WORKTREE,
-    homeDirectory:     '/Users/example',
-    firstMessage:      'Build the ticket.',
-    roleBrief:         'You are a builder.',
-    model:             'opus',
-    effort:            'medium',
-    environment:       { HOME: '/Users/example', PATH: '/usr/bin:/bin', USER: 'example' },
-    profile:           profileOf(role),
-    confinement:       'confined',
-    jobFilesDirectory: JOB_FILES,
-    reportSchema:      role === 'product-owner' || role === 'assistant' ? null : { type: 'object', required: ['role'] },
+    programPath:          CLAUDE_PROGRAM_PATH,
+    sessionId:            claudeSessionIdOf('tracker-example', 'J1'),
+    resume:               false,
+    workingDirectory:     WORKTREE,
+    homeDirectory:        '/Users/example',
+    firstMessage:         'Build the ticket.',
+    roleBrief:            'You are a builder.',
+    model:                'opus',
+    effort:               'medium',
+    environment:          { HOME: '/Users/example', PATH: '/usr/bin:/bin', USER: 'example' },
+    profile:              profileOf(role),
+    confinement:          'confined',
+    launchFilesDirectory: JOB_FILES,
+    reportSchema:         role === 'product-owner' || role === 'assistant' ? null : { type: 'object', required: ['role'] },
     ...overrides,
   };
 }
@@ -625,20 +625,20 @@ describe('the credentials and the repair', () => {
   });
 
   type RefusalCause = Parameters<AgentAdapter['programRepairOf']>[0];
-  const REPAIR_BY_CAUSE: Readonly<Record<RefusalCause, string | null>> = {
+  const REPAIR_BY_CAUSE: Readonly<Record<RefusalCause, AgentProgramRepair | null>> = {
     'not-a-program-name':     null,
     'not-on-search-path':     null,
     'relative-search-folder': null,
     'relative-path':          null,
     'inside-forbidden-root':  null,
-    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and choose that program',
+    'batch-target':           { code: 'install-native-windows-program', installCommand: 'irm https://claude.ai/install.ps1 | iex' },
     'not-there':              null,
     'not-executable':         null,
     'no-adapter':             null,
   };
   for (const [cause, repair] of Object.entries(REPAIR_BY_CAUSE)) {
     test(`a refused program of cause ${cause} is repaired by ${repair === null ? 'no sentence' : 'the native Windows install'}`, () => {
-      expect(CLAUDE_CODE_ADAPTER.programRepairOf(cause as RefusalCause)).toBe(repair);
+      expect(CLAUDE_CODE_ADAPTER.programRepairOf(cause as RefusalCause)).toEqual(repair);
     });
   }
 });

@@ -3,8 +3,8 @@
  * settles the incident, after which the Airlock gates the merged tree again or the policy launches the ticket's next attempt.
  */
 import { join }                          from 'node:path';
-import type { Logged }                   from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
+import type { Logged }                   from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Incident }                 from '../../domain/tracker-model/@types/Incident.ts';
 import type { ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }              from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }               from '../../shared/WorktreesFolder.ts';

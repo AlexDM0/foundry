@@ -17,7 +17,7 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Ticket }                                    from '../../domain/tracker-model/@types/Ticket.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { TicketFileIngestion }                            from './TicketFileIngestion.ts';
 import { createTicketFileWriter }                         from './TicketFileWriter.ts';

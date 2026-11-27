@@ -4,10 +4,10 @@
  * other line that does not fit is named, and the readable lines still count. The lines carry no version: Talos writes them, and a Hephaestus
  * reads the registry of a Talos of older code.
  */
+import type { LaunchRegistryEntry }       from '../../domain/talos/ChildLaunch.ts';
+import { CHILD_KINDS }                    from '../../domain/talos/ChildRecord.ts';
+import { ParsedValueUtil }                from '../../domain/talos/utils/ParsedValueUtil.ts';
 import { JsonRecordUtil }                 from '../../lib/json-record/JsonRecordUtil.ts';
-import type { LaunchRegistryEntry }       from '../../lib/talos/ChildLaunch.ts';
-import { CHILD_KINDS }                    from '../../lib/talos/ChildRecord.ts';
-import { ParsedValueUtil }                from '../../lib/talos/utils/ParsedValueUtil.ts';
 import type { BaseStoredFileProblem }     from '../../shared/@types/StoredFileProblem.ts';
 import { storedFileTextOf }               from '../StoredFileText.ts';
 import { StoredValueUtil }                from '../utils/StoredValueUtil.ts';

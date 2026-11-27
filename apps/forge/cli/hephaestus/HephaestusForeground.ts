@@ -21,16 +21,16 @@ import { PipelineCheckProblemWording }                                          
 import { TurboConfigurationProblemWording }                                          from '../../src/adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 import { HephaestusLogWordingUtil }                                                  from '../../src/adapters/utils/HephaestusLogWordingUtil.ts';
 import { OperationRefusalWordingUtil }                                               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/domain/talos/constants/TalosProtocol.ts';
+import type { StartOrigin }                                                          from '../../src/domain/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                                                    from '../../src/domain/tracker-model/@types/LogRecord.ts';
+import { readingBoardOf }                                                            from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { writeOwnerOnlyFileAtomically }                                              from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                                from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                             from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                                                        from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, sameBoot }                                            from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                                                from '../../src/lib/quiet-watch/QuietWatch.ts';
-import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/lib/talos/constants/TalosProtocol.ts';
-import type { StartOrigin }                                                          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { LogRecordFieldsOf }                                                    from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
 import { AgentProgramChecks }                                                        from '../../src/services/hephaestus/AgentProgramChecks.ts';
 import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
@@ -453,7 +453,7 @@ export function spawnSuccessor(
       stdin:  'ignore',
       stdout: 'ignore',
       stderr: logFileDescriptor,
-      ...context.platformPorts.processSupervision.spawnOptionsFor('successor'),
+      ...context.platformPorts.processSupervision.spawnOptionsFor('detached-program'),
     });
     child.unref();
     return context.platformPorts.processSupervision.identityOf(child.pid);

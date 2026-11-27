@@ -12,13 +12,13 @@ import { MergeDecisionWording }             from '../adapters/MergeDecisionWordi
 import { PipelineCheckProblemWording }      from '../adapters/pipeline/PipelineCheckProblemWording.ts';
 import { TurboConfigurationProblemWording } from '../adapters/turbo-configuration/TurboConfigurationProblemWording.ts';
 
+import type { ChildLaunch }                                       from '../domain/talos/ChildLaunch.ts';
+import { TALOS_PROTOCOL_VERSION }                                 from '../domain/talos/constants/TalosProtocol.ts';
 import type { AgentAdapter }                                      from '../lib/agent-launch/AgentAdapter.ts';
 import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                   from '../lib/gate-confinement/GateConfinement.ts';
 import type { PlatformPorts }                                     from '../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
-import type { ChildLaunch }                                       from '../lib/talos/ChildLaunch.ts';
-import { TALOS_PROTOCOL_VERSION }                                 from '../lib/talos/constants/TalosProtocol.ts';
 import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/hephaestus/DrivePass.ts';
 import { hephaestusFilesIn }                                      from '../services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                         from '../services/hephaestus/HephaestusLock.ts';

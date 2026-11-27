@@ -3,10 +3,10 @@
  * kept byte for byte. Like a ticket it is hand-edited between runs, so every other frontmatter line is kept and a file the CLI cannot
  * understand is a verdict with its problem and line, never a throw.
  */
-import type { EpicFrontmatter }                           from '../../../lib/tracker-model/@types/Epic.ts';
-import type { LineEnding }                                from '../../../lib/tracker-model/@types/Ticket.ts';
-import { EPIC_COLOUR_SLOT_COUNT, FIRST_EPIC_COLOUR_SLOT } from '../../../lib/tracker-model/constants/EpicFields.ts';
-import { EpicUtil }                                       from '../../../lib/tracker-model/utils/EpicUtil.ts';
+import type { EpicFrontmatter }                           from '../../../domain/tracker-model/@types/Epic.ts';
+import type { LineEnding }                                from '../../../domain/tracker-model/@types/Ticket.ts';
+import { EPIC_COLOUR_SLOT_COUNT, FIRST_EPIC_COLOUR_SLOT } from '../../../domain/tracker-model/constants/EpicFields.ts';
+import { EpicUtil }                                       from '../../../domain/tracker-model/utils/EpicUtil.ts';
 import type { EpicFileProblem }                           from '../@types/EpicFileProblem.ts';
 
 export type ParsedEpicDocument =

@@ -12,9 +12,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }        from '../../domain/tracker-model/@types/Pipeline.ts';
 import { dataFoldersFor }       from '../../lib/data-folders/DataFoldersFor.ts';
 import { createPosixShellLine } from '../../lib/shell-line/PosixShellLine.ts';
-import type { Pipeline }        from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   type FolderEntries,
   NO_TOOLCHAIN,

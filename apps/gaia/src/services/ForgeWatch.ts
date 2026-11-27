@@ -25,9 +25,9 @@ import type {
   HephaestusAddress,
 } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                      from '../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }                               from '../lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ForgePresenceReport }                              from '../shared/@types/ForgePresence.ts';
 import type { ForgeNewestVersions, ForgeReading, ForgeVersions } from '../shared/@types/ForgeReading.ts';
+import { SUPPORTED_FORGE_VERSION }                               from '../shared/constants/SupportedForgeVersions.ts';
 import { ForgeVersionsUtil }                                     from '../shared/utils/ForgeVersionsUtil.ts';
 import { SystemVersionUtil }                                     from '../shared/utils/SystemVersionUtil.ts';
 import type { ClockTimer, ClockTimers }                          from './Clock.ts';

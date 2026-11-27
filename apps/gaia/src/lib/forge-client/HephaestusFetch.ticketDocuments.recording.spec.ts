@@ -20,6 +20,7 @@ import {
   test
 } from 'bun:test';
 
+import { SUPPORTED_FORGE_VERSION }           from '../../shared/constants/SupportedForgeVersions.ts';
 import { recordAnswer, recordSystemVersion } from '../../testing/BoundaryRecordings.ts';
 import {
   recordedFormOf,
@@ -275,7 +276,7 @@ afterAll(async () => {
 describe('Example Bookshop\'s ticket documents, read as the relay reads them', () => {
   test('opens a draft\'s documents with a save of its spec, sends the documents event, and serves the documents and the board after it', async () => {
     const eventsRequest: HephaestusStreamRequest = {
-      hephaestusUrl, path: forgeEndpointPathOf('events'), bearerToken, lastEventId: null, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+      hephaestusUrl, path: forgeEndpointPathOf('events', SUPPORTED_FORGE_VERSION), bearerToken, lastEventId: null, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
     };
     const events = await openedStream(eventsRequest);
     const chunks: string[] = [];
@@ -284,18 +285,18 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
       const save = {
         kind: 'ticket-document-save', ticketReference: specTicketId, document: 'spec', baseVersion: null, markdown: EXAMPLE_SPEC_MARKDOWN
       };
-      const saved = await keptRequest('ticket-documents-saved', requestOf('POST', forgeEndpointPathOf('commands'), JSON.stringify(save)));
+      const saved = await keptRequest('ticket-documents-saved', requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION), JSON.stringify(save)));
       expect(saved).toMatchObject({ status: SUCCESS_STATUS });
       await readUntil(events, chunks, (eventNames) => eventNames.includes('documents'));
     } finally {
       events.close();
     }
     keep('ticket-documents-saved', streamCallShapeOf(eventsRequest), { verdict: 'streaming', chunks, ending: 'stays-open' });
-    const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId: specTicketId });
+    const documentsPath = forgeEndpointPathOf('ticketDocuments', SUPPORTED_FORGE_VERSION, { ticketId: specTicketId });
     const documents = bodyOf(await keptRequest('ticket-documents-saved', requestOf('GET', documentsPath)));
     const spec = listOf(documents['documents']).find((document) => document['document'] === 'spec');
     expect(spec).toMatchObject({ markdown: EXAMPLE_SPEC_MARKDOWN, head: { number: 1, author: 'person' } });
-    const board = bodyOf(await keptRequest('ticket-documents-saved', requestOf('GET', forgeEndpointPathOf('board'))));
+    const board = bodyOf(await keptRequest('ticket-documents-saved', requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION))));
     expect(recordOf(recordOf(board['pipeline'])['pipeline'])['ticketWriting']).toBe('spec-then-plan');
     const ticketsWithDocuments = listOf(recordOf(board['page'])['tickets']).filter((ticket) => ticket['documents'] !== undefined);
     expect(ticketsWithDocuments.map((ticket) => ticket['id'])).toEqual([specTicketId]);
@@ -306,7 +307,7 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
     leaveTheSpecAgentsOpenQuestion();
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveHephaestus();
-    const openBoard = bodyOf(await keptRequest('ticket-documents-question-open', requestOf('GET', forgeEndpointPathOf('board'))));
+    const openBoard = bodyOf(await keptRequest('ticket-documents-question-open', requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION))));
     const [question] = listOf(openBoard['decisions']);
     expect(question).toMatchObject({ id: 'E1', document: 'spec', placement: { from: QUESTION_LINE, to: QUESTION_LINE } });
     expect(question?.['jobId']).toMatch(/^J\d+$/u);
@@ -315,13 +316,13 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
     const approval = {
       kind: 'ticket-document-approve', ticketReference: specTicketId, document: 'spec', version: 1
     };
-    const refused = await keptRequest('ticket-documents-question-open', requestOf('POST', forgeEndpointPathOf('commands'), JSON.stringify(approval)));
+    const refused = await keptRequest('ticket-documents-question-open', requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION), JSON.stringify(approval)));
     expect(refused).toMatchObject({ status: CONFLICT_STATUS });
     expect(bodyOf(refused)).toMatchObject({ refusal: 'document-has-open-questions' });
     const answer = { kind: 'decision-answer', decisionId: 'E1', answer: { form: 'letters', choices: ['b'], note: QUESTION_NOTE } };
-    const answered = await keptRequest('ticket-documents-question-answered', requestOf('POST', forgeEndpointPathOf('commands'), JSON.stringify(answer)));
+    const answered = await keptRequest('ticket-documents-question-answered', requestOf('POST', forgeEndpointPathOf('commands', SUPPORTED_FORGE_VERSION), JSON.stringify(answer)));
     expect(answered).toMatchObject({ status: SUCCESS_STATUS });
-    const documentsPath = forgeEndpointPathOf('ticketDocuments', { ticketId: specTicketId });
+    const documentsPath = forgeEndpointPathOf('ticketDocuments', SUPPORTED_FORGE_VERSION, { ticketId: specTicketId });
     const documents = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', documentsPath)));
     const spec = listOf(documents['documents']).find((document) => document['document'] === 'spec');
     expect(listOf(spec?.['messages'])).toEqual([expect.objectContaining({
@@ -329,15 +330,21 @@ describe('Example Bookshop\'s ticket documents, read as the relay reads them', (
       answer:     { question: 'Does a search by author also match a part of the author\'s name?', choice: 'Any part of a name', note: QUESTION_NOTE },
       placement:  { from: QUESTION_LINE, to: QUESTION_LINE },
     })]);
-    const answeredBoard = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', forgeEndpointPathOf('board'))));
+    const answeredBoard = bodyOf(await keptRequest('ticket-documents-question-answered', requestOf('GET', forgeEndpointPathOf('board', SUPPORTED_FORGE_VERSION))));
     expect(listOf(answeredBoard['decisions'])).toEqual([]);
   }, STEP_TIMEOUT_MILLISECONDS);
 
   test('refuses the documents of a ticket that has none, and of a reference that names no ticket, each with its code and sentence', async () => {
-    const absent = await keptRequest('ticket-documents-absent', requestOf('GET', forgeEndpointPathOf('ticketDocuments', { ticketId: ticketWithoutDocumentsId })));
+    const absent = await keptRequest('ticket-documents-absent', requestOf(
+      'GET',
+      forgeEndpointPathOf('ticketDocuments', SUPPORTED_FORGE_VERSION, { ticketId: ticketWithoutDocumentsId }),
+    ));
     expect(absent).toMatchObject({ status: NOT_FOUND_STATUS });
     expect(bodyOf(absent)).toMatchObject({ refusal: 'ticket-has-no-documents', fields: expect.any(Object), text: expect.any(String) });
-    const unknown = await keptRequest('ticket-documents-unknown-ticket', requestOf('GET', forgeEndpointPathOf('ticketDocuments', { ticketId: UNKNOWN_TICKET_REFERENCE })));
+    const unknown = await keptRequest('ticket-documents-unknown-ticket', requestOf(
+      'GET',
+      forgeEndpointPathOf('ticketDocuments', SUPPORTED_FORGE_VERSION, { ticketId: UNKNOWN_TICKET_REFERENCE }),
+    ));
     expect(unknown).toMatchObject({ status: NOT_FOUND_STATUS });
     expect(bodyOf(unknown)).toMatchObject({ refusal: 'no-readable-ticket', fields: { reference: UNKNOWN_TICKET_REFERENCE }, text: expect.any(String) });
   }, STEP_TIMEOUT_MILLISECONDS);

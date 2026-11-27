@@ -5,8 +5,8 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { LogRecord }           from '../../lib/tracker-model/@types/LogRecord.ts';
-import { createLogger }             from '../../lib/tracker-model/Logger.ts';
+import type { LogRecord }           from '../../domain/tracker-model/@types/LogRecord.ts';
+import { createLogger }             from '../../domain/tracker-model/Logger.ts';
 import { createLogRecordCollector } from './LogRecordCollector.ts';
 
 const FILED_AT   = '2026-09-18T20:30:00+02:00';

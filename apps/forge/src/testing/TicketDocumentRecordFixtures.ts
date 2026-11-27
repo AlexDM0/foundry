@@ -4,8 +4,8 @@ import type {
   LoadedTicketDocumentRecord,
   TicketDocument,
   TicketDocumentKind
-} from '../lib/tracker-model/@types/TicketDocument.ts';
-import { TicketDocumentVersionUtil } from '../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+} from '../domain/tracker-model/@types/TicketDocument.ts';
+import { TicketDocumentVersionUtil } from '../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 
 const FIXTURE_AT = '2026-11-24T10:00:00.000Z';
 

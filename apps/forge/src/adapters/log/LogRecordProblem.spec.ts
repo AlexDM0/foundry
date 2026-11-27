@@ -15,10 +15,10 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord, LogRecordKind }                  from '../../lib/tracker-model/@types/LogRecord.ts';
-import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { START_KINDS }                                    from '../../lib/tracker-model/constants/JobStates.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+import type { LogRecord, LogRecordKind }                  from '../../domain/tracker-model/@types/LogRecord.ts';
+import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { START_KINDS }                                    from '../../domain/tracker-model/constants/JobStates.ts';
+import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../domain/tracker-model/constants/LogRecordSchema.ts';
 import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { LogFileIngestion }                               from './LogFileIngestion.ts';

@@ -1,6 +1,6 @@
 import { UnreadableRecordProblemWording } from '../../src/adapters/UnreadableRecordProblemWording.ts';
 import { LogUtil }                        from '../../src/adapters/utils/LogUtil.ts';
-import type { LogRecord }                 from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                 from '../../src/domain/tracker-model/@types/LogRecord.ts';
 import type {
   UnreadableDraftRecord,
   UnreadableEpicRecord,

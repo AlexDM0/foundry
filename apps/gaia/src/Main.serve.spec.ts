@@ -20,6 +20,7 @@ import { pageContentSecurityPolicyFor }              from './lib/local-http-guar
 import { environmentCopy }                           from './services/Environment.ts';
 import { createFleetStore }                          from './services/FleetStore.ts';
 import { PAGE_CONTRACT_VERSIONS }                    from './shared/constants/PageContractVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                   from './shared/constants/SupportedForgeVersions.ts';
 import { manualTimers }                              from './testing/ManualTimers.ts';
 import { recordedHephaestusFetch }                   from './testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
@@ -137,7 +138,7 @@ describe('gaia serve', () => {
         readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
         readings:                () => [],
         presenceReadingAfterNow: () => Promise.resolve(null),
-        forgeClient:             forgeClientOf({ hephaestusFetch: recordedHephaestusFetch([]) }),
+        forgeClient:             forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: recordedHephaestusFetch([]) }),
       },
       logBoardRelay: () => undefined,
       timers:        manualTimers(),

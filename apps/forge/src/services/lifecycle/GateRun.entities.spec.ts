@@ -9,8 +9,8 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineStepRun }          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineStepRun }          from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
 import {
   GateRun,
   type EntityPipelinesRunRequest,

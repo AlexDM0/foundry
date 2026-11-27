@@ -25,8 +25,8 @@ import {
 
 import { SnapshotStartIngestion }                                   from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
 import { createSnapshotStartWriter }                                from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { Board }                                               from '../../domain/tracker-model/Board.ts';
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
-import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                            from '../../shared/constants/ProductNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';

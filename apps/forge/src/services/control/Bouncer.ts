@@ -3,12 +3,12 @@
  * role and the job id come from the Hatch folder's job record, never from the request; an admitted filing comes back stamped with both.
  */
 import { TicketAcceptanceUtil }                                      from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { Incident }                                             from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobRole }                                              from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStatus }                                         from '../../lib/tracker-model/@types/Ticket.ts';
-import { NeedUtil }                                                  from '../../lib/tracker-model/utils/NeedUtil.ts';
-import { TicketIdUtil }                                              from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { Incident }                                             from '../../domain/tracker-model/@types/Incident.ts';
+import type { JobRole }                                              from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey }                                            from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStatus }                                         from '../../domain/tracker-model/@types/Ticket.ts';
+import { NeedUtil }                                                  from '../../domain/tracker-model/utils/NeedUtil.ts';
+import { TicketIdUtil }                                              from '../../domain/tracker-model/utils/TicketIdUtil.ts';
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { RoleCommandRefusalReason }                             from '../../shared/@types/RoleCommandRefusalReason.ts';
 import { WORKER_FILINGS_PER_JOB }                                    from '../../shared/constants/HephaestusLimits.ts';

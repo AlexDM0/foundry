@@ -12,8 +12,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }               from '../../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { Pipeline }               from '../../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                from '../../../domain/tracker-model/utils/PipelineUtil.ts';
 import { JsonTextUtil }                from '../../../shared/utils/JsonTextUtil.ts';
 import { boardFixture, ticketFixture } from '../../../testing/BoardFixtures.ts';
 import { emptyProgress, fileRow }      from '../../../testing/ProgressFixtures.ts';

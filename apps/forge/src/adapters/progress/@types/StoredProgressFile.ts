@@ -2,9 +2,9 @@
  * The shape progress.json is stored in, declared field by field rather than derived from the model, so a model change breaks the mappers'
  * compile instead of silently changing the format.
  */
-import type { DecisionAsker, DecisionKind } from '../../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase }                   from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { IncidentKind, IncidentMove }  from '../../../lib/tracker-model/@types/Incident.ts';
+import type { DecisionAsker, DecisionKind } from '../../../domain/tracker-model/@types/Decision.ts';
+import type { GatePhase }                   from '../../../domain/tracker-model/@types/GatePhase.ts';
+import type { IncidentKind, IncidentMove }  from '../../../domain/tracker-model/@types/Incident.ts';
 import type {
   InterruptionCause,
   JobIntake,
@@ -15,10 +15,10 @@ import type {
   JobState,
   JobStopMode,
   AirlockPhase
-}                                             from '../../../lib/tracker-model/@types/Job.ts';
-import type { TaskStatus, TicketStageName }       from '../../../lib/tracker-model/@types/Task.ts';
-import type { CommentAnchor, TicketDocumentKind } from '../../../lib/tracker-model/@types/TicketDocument.ts';
-import type { HephaestusState, ViewRange }        from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+}                                             from '../../../domain/tracker-model/@types/Job.ts';
+import type { TaskStatus, TicketStageName }       from '../../../domain/tracker-model/@types/Task.ts';
+import type { CommentAnchor, TicketDocumentKind } from '../../../domain/tracker-model/@types/TicketDocument.ts';
+import type { HephaestusState, ViewRange }        from '../../../domain/tracker-model/@types/TrackerProgress.ts';
 import type { CURRENT_PROGRESS_FILE_VERSION }     from '../constants/ProgressFileVersions.ts';
 
 export interface StoredTaskPhase {

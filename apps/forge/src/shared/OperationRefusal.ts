@@ -3,6 +3,10 @@
  * `refused` to exit 1, a refusal the caller can act on, and `unrepaired` to exit 2, a state the tool will not repair on its own. A refusal
  * thrown from `src/` carries a detail, a reason code with its facts and no words, that the command line words; only `cli/` builds one from words.
  */
+import type { PipelineProblem }           from '../domain/tracker-model/@types/PipelineProblem.ts';
+import type { MainConstitutionProblem }   from '../domain/tracker-model/@types/PipelineSetup.ts';
+import type { TicketDocumentKind }        from '../domain/tracker-model/@types/TicketDocument.ts';
+import type { BoardRefusalDetail }        from '../domain/tracker-model/BoardRefusal.ts';
 import type { ExecutableRefusal }         from '../lib/executable-resolver/ExecutableResolver.ts';
 import type { ConfinementUnavailability } from '../lib/gate-confinement/GateConfinement.ts';
 import type {
@@ -12,10 +16,6 @@ import type {
   WorktreeStepProblem
 } from '../lib/git/@types/GitProblem.ts';
 import type { OwnerOnlyRefusal }               from '../lib/owner-only-files/OwnerOnlyFiles.ts';
-import type { PipelineProblem }                from '../lib/tracker-model/@types/PipelineProblem.ts';
-import type { MainConstitutionProblem }        from '../lib/tracker-model/@types/PipelineSetup.ts';
-import type { TicketDocumentKind }             from '../lib/tracker-model/@types/TicketDocument.ts';
-import type { BoardRefusalDetail }             from '../lib/tracker-model/BoardRefusal.ts';
 import type { AgentProgramRefusalCause }       from './@types/AgentProgramCheck.ts';
 import type { HoldJournalProblem }             from './@types/HoldJournalProblem.ts';
 import type { InstallVersionMismatch }         from './@types/InstallVersionMismatch.ts';

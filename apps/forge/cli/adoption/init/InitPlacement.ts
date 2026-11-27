@@ -5,8 +5,8 @@
 import { realpathSync } from 'node:fs';
 
 import { GitProblemWording }      from '../../../src/adapters/GitProblemWording.ts';
+import type { RepositoryTracker } from '../../../src/adapters/repository-landings/RepositoryLandings.ts';
 import { GitProcess }             from '../../../src/lib/git/GitProcess.ts';
-import type { RepositoryTracker } from '../../../src/lib/git/RepositoryLandings.ts';
 import { projectLocationOf }      from '../../../src/services/tracker/ProjectLocation.ts';
 import type { ProjectLocation }   from '../../../src/services/tracker/ProjectLocation.ts';
 import {

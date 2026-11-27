@@ -1,7 +1,7 @@
 /** How an epic prints: its JSON document, its one-line listing entry and its `epic show` summary, all with its roll-up. */
+import type { Epic, EpicRollup } from '../../src/domain/tracker-model/@types/Epic.ts';
+import { TICKET_STATUSES }       from '../../src/domain/tracker-model/constants/Statuses.ts';
 import { TokenCountUtil }        from '../../src/lib/token-count/TokenCountUtil.ts';
-import type { Epic, EpicRollup } from '../../src/lib/tracker-model/@types/Epic.ts';
-import { TICKET_STATUSES }       from '../../src/lib/tracker-model/constants/Statuses.ts';
 
 export function epicDocumentOf(rollup: EpicRollup): Record<string, unknown> {
   return { ...rollup };

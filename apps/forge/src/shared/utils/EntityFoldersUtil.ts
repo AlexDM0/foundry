@@ -3,7 +3,7 @@
  * from the repository's root, where a folder leading with `/` already is. Its constitution is the file it names, else the one in its
  * first home.
  */
-import type { PipelineEntity, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineEntity, PipelineGate, PipelineStep } from '../../domain/tracker-model/@types/Pipeline.ts';
 import { ProjectPathsUtil }                                from './ProjectPathsUtil.ts';
 
 const REPOSITORY_ROOT_MARKER = '/';

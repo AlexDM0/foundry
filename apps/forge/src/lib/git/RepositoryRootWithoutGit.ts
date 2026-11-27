@@ -1,6 +1,6 @@
 /**
  * The repository root a directory belongs to, and the checkout it lies in, found from the `.git` entries on disk alone, so `GitProcess`
- * can ask it before any git is resolved and a tracker's place in its checkout costs no git call. A worktree's `.git` file leads to the main
+ * can ask it before any git is resolved and a folder's place in its checkout costs no git call. A worktree's `.git` file leads to the main
  * checkout through its `gitdir` line.
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';

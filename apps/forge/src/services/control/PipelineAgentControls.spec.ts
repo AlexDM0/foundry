@@ -20,9 +20,9 @@ import {
   test
 } from 'bun:test';
 
-import type { PipelineSetup }                                    from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { BoardRefusal }                                          from '../../lib/tracker-model/BoardRefusal.ts';
-import { CONSTITUTION_LIMIT_CHARACTERS }                         from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import type { PipelineSetup }                                    from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import { BoardRefusal }                                          from '../../domain/tracker-model/BoardRefusal.ts';
+import { CONSTITUTION_LIMIT_CHARACTERS }                         from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { ControlCommand, ControlCommandOf }                 from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                      from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                       from '../../testing/BoardFixtures.ts';

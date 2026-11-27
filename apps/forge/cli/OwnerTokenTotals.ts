@@ -3,7 +3,7 @@
  * since the owner is free text an orchestrator types; reported rows without an owner are summed apart.
  */
 import type { OwnerTokenTotals } from '../src/adapters/@types/StatusDocument.ts';
-import type { Task }             from '../src/lib/tracker-model/@types/Task.ts';
+import type { Task }             from '../src/domain/tracker-model/@types/Task.ts';
 
 interface OwnerGroup {
   spellingCounts: Map<string, number>;

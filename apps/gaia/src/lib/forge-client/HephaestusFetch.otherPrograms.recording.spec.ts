@@ -13,7 +13,8 @@ import {
   test
 } from 'bun:test';
 
-import { recordAnswer }        from '../../testing/BoundaryRecordings.ts';
+import { SUPPORTED_FORGE_VERSION } from '../../shared/constants/SupportedForgeVersions.ts';
+import { recordAnswer }            from '../../testing/BoundaryRecordings.ts';
 import {
   requestCallShapeOf,
   situationCallShapeOf,
@@ -46,11 +47,11 @@ const WHOLE_SNAPSHOT = JSON.stringify({ monitorVersion: 1, trackerId: 'example-s
 
 /** The paths Gaia calls a forge at: the version forge's registry serves the supported forge version. */
 const PATHS = {
-  identity:      ApiPathUtil.versionedPathOf('identity', forgeEndpointVersionOf('identity')),
-  summary:       ApiPathUtil.versionedPathOf('summary', forgeEndpointVersionOf('summary')),
-  monitor:       ApiPathUtil.versionedPathOf('monitor', forgeEndpointVersionOf('monitor')),
-  monitorEvents: ApiPathUtil.versionedPathOf('monitor/events', forgeEndpointVersionOf('monitorEvents')),
-  commands:      ApiPathUtil.versionedPathOf('commands', forgeEndpointVersionOf('commands')),
+  identity:      ApiPathUtil.versionedPathOf('identity', forgeEndpointVersionOf('identity', SUPPORTED_FORGE_VERSION)),
+  summary:       ApiPathUtil.versionedPathOf('summary', forgeEndpointVersionOf('summary', SUPPORTED_FORGE_VERSION)),
+  monitor:       ApiPathUtil.versionedPathOf('monitor', forgeEndpointVersionOf('monitor', SUPPORTED_FORGE_VERSION)),
+  monitorEvents: ApiPathUtil.versionedPathOf('monitor/events', forgeEndpointVersionOf('monitorEvents', SUPPORTED_FORGE_VERSION)),
+  commands:      ApiPathUtil.versionedPathOf('commands', forgeEndpointVersionOf('commands', SUPPORTED_FORGE_VERSION)),
 } as const;
 
 const servers: Bun.Server<undefined>[] = [];

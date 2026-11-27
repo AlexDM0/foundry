@@ -15,10 +15,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineDraftEdit, PipelineSetup } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Ticket }                           from '../../lib/tracker-model/@types/Ticket.ts';
-import { BoardRefusal }                          from '../../lib/tracker-model/BoardRefusal.ts';
+import type { Pipeline }                         from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit, PipelineSetup } from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Ticket }                           from '../../domain/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }                          from '../../domain/tracker-model/BoardRefusal.ts';
 import type { ControlCommand }                   from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                   from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';

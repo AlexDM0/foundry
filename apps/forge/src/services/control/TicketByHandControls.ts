@@ -1,7 +1,7 @@
 /** The by-hand ticket kinds: the settings, moves and marks User sets on a ticket outside a job, as the `ticket` verbs did in place. */
 import { TicketBodyUtil }                         from '../../adapters/utils/TicketBodyUtil.ts';
-import type { AgentAssignment, ReviewBarStarted } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Ticket, TicketStatus }              from '../../lib/tracker-model/@types/Ticket.ts';
+import type { AgentAssignment, ReviewBarStarted } from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { Ticket, TicketStatus }              from '../../domain/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf as CommandOf }     from '../../shared/@types/ControlCommand.ts';
 import type { BoardTransaction }                  from '../tracker/BoardTransaction.ts';
 import { ticketIdOfReference }                    from './ControlTicketLookup.ts';

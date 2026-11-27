@@ -4,10 +4,13 @@
  * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
  * own and settled here, and who takes a crossing ticket's conflict or red gate: the entity that owns it (strategy 5.7).
  */
-import type { SettledTargetMerge } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
-import type { MergeSides }         from '../../adapters/merge-sides/MergeSidesIngestion.ts';
-import type { ReportProblem }      from '../../adapters/reports/@types/ReportProblem.ts';
-import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
+import type { SettledTargetMerge }                    from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
+import type { MergeSides }                            from '../../adapters/merge-sides/MergeSidesIngestion.ts';
+import type { ReportProblem }                         from '../../adapters/reports/@types/ReportProblem.ts';
+import type { Job, Airlock }                          from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey }                             from '../../domain/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil, type PipelineEntities } from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { readMergeResolutionDiff }                    from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
   resetTo,
@@ -15,12 +18,9 @@ import {
   type MergeOutcome,
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
-import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                               from '../../lib/git/GitWorktrees.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE }                  from '../../lib/git/constants/GitConventions.ts';
-import type { Job, Airlock }                          from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey }                             from '../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { GitProcess }                from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }              from '../../lib/git/GitWorktrees.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE } from '../../lib/git/constants/GitConventions.ts';
 import type {
   AgentNaming,
   CustomsSubject,

@@ -5,9 +5,9 @@
  * hold journal as `unrepaired`.
  */
 import type { PipelineReading }     from '../../adapters/pipeline/PipelineFile.ts';
-import type { GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { TrackerProgress }     from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }               from '../../lib/tracker-model/Board.ts';
+import type { GateProfilesReading } from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { TrackerProgress }     from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import type { Board }               from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand }      from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }      from '../../shared/@types/ControlContext.ts';
 import type { ControlResultOf }     from '../control/ControlService.ts';

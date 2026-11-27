@@ -14,8 +14,8 @@ import {
   test
 } from 'bun:test';
 
-import { childFilesOf }                            from '../../lib/talos/TalosFiles.ts';
-import { TALOS_PROTOCOL_VERSION }                  from '../../lib/talos/constants/TalosProtocol.ts';
+import { childFilesOf }                            from '../../domain/talos/TalosFiles.ts';
+import { TALOS_PROTOCOL_VERSION }                  from '../../domain/talos/constants/TalosProtocol.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../../testing/ChildProcessCaseTimeout.ts';
 import { detailsLoggerOf }                         from '../../testing/LoggedDetails.ts';
 import { nativePlatformPorts }                     from '../../testing/NativePlatformPorts.ts';

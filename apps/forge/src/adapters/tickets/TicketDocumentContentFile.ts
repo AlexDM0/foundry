@@ -1,5 +1,5 @@
 /** One version of a ticket document, `<contentHash>.md`: its text as the hash names it, stored once before the record names it and never rewritten. */
-import { TicketDocumentVersionUtil }         from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import { TicketDocumentVersionUtil }         from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import { storedFileTextOf }                  from '../StoredFileText.ts';
 import type { TicketDocumentContentProblem } from './@types/TicketDocumentContentProblem.ts';
 

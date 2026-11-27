@@ -21,9 +21,9 @@ import {
   expect,
   test
 }                                        from 'bun:test';
+import type { PipelineStepEnding, PipelineStepKind, PipelineStepRun } from '../../domain/tracker-model/@types/Job.ts';
+import type { PipelineGate }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
 import { shellLineFor }                                               from '../../lib/shell-line/ShellLineFor.ts';
-import type { PipelineStepEnding, PipelineStepKind, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   environmentCopy,
   GATE_REPORT_VARIABLE,

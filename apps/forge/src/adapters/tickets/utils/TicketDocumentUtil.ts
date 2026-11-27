@@ -4,11 +4,11 @@
  * half-applied. The subset it accepts is stated in `docs/cli.md`.
  */
 
-import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../lib/tracker-model/@types/Ticket.ts';
-import { EpicUtil }                                              from '../../../lib/tracker-model/utils/EpicUtil.ts';
-import { NetworkDomainUtil }                                     from '../../../lib/tracker-model/utils/NetworkDomainUtil.ts';
-import { TicketIdUtil }                                          from '../../../lib/tracker-model/utils/TicketIdUtil.ts';
-import { VocabularyUtil }                                        from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
+import type { LineEnding, RetiredTicketType, TicketFrontmatter } from '../../../domain/tracker-model/@types/Ticket.ts';
+import { EpicUtil }                                              from '../../../domain/tracker-model/utils/EpicUtil.ts';
+import { NetworkDomainUtil }                                     from '../../../domain/tracker-model/utils/NetworkDomainUtil.ts';
+import { TicketIdUtil }                                          from '../../../domain/tracker-model/utils/TicketIdUtil.ts';
+import { VocabularyUtil }                                        from '../../../domain/tracker-model/utils/VocabularyUtil.ts';
 import type { TicketFileProblem }                                from '../../../shared/@types/TicketFileProblem.ts';
 
 /** `storedType` is present only when the file holds a retired type, which the frontmatter reads as `ticket`. */

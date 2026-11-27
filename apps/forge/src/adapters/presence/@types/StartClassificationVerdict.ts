@@ -1,4 +1,4 @@
-import type { StartKind } from '../../../lib/tracker-model/@types/Job.ts';
+import type { StartKind } from '../../../domain/tracker-model/@types/Job.ts';
 
 /** What a start read of the generation before it, and what kind of start it judged that to make. */
 export interface StartClassificationVerdict {

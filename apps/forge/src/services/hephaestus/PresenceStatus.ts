@@ -5,9 +5,9 @@
 import type { HeartbeatRecord }                                       from '../../adapters/heartbeat/@types/HeartbeatRecord.ts';
 import type { PresenceRecord }                                        from '../../adapters/presence/@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                            from '../../adapters/presence/@types/StartClassificationVerdict.ts';
+import type { LeaseStanding }                                         from '../../domain/talos/SupervisionLease.ts';
+import type { TalosRecord }                                           from '../../domain/talos/TalosRecord.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { LeaseStanding }                                         from '../../lib/talos/SupervisionLease.ts';
-import type { TalosRecord }                                           from '../../lib/talos/TalosRecord.ts';
 import type { Workspace }                                             from '../tracker/Workspace.ts';
 import { CrashLog }                                                   from './CrashLog.ts';
 import type { HephaestusFiles }                                       from './HephaestusFiles.ts';

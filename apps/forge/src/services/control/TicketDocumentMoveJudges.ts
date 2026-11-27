@@ -5,9 +5,9 @@
 import { readFileSync } from 'node:fs';
 
 import { TicketAcceptanceUtil }    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { DocumentProposal }   from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { DocumentMoveJudges } from '../../lib/tracker-model/TicketDocuments.ts';
+import type { DocumentProposal }   from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { TicketDocumentKind } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { DocumentMoveJudges } from '../../domain/tracker-model/TicketDocuments.ts';
 import { filledTemplateOf }        from '../../shared/FilledTemplate.ts';
 import { resourceFilePathOf }      from '../../shared/ResourceFilePath.ts';
 

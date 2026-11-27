@@ -31,7 +31,6 @@ import {
 import { BoardRelayLogUtil }                        from './features/page-server/utils/BoardRelayLogUtil.ts';
 import { forgeClientOf }                            from './lib/forge-client/ForgeClient.ts';
 import { realHephaestusFetch }                      from './lib/forge-client/HephaestusFetch.ts';
-import { SUPPORTED_FORGE_VERSION }                  from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import { realProcessRun }                           from './lib/process-run/ProcessRun.ts';
 import { realClockTimers, stampOfNow }              from './services/Clock.ts';
 import { environmentCopy, gaiaPort, homeDirectory } from './services/Environment.ts';
@@ -44,6 +43,7 @@ import { CONTRACT_VERSIONS }                        from './shared/constants/Con
 import { GAIA_SYSTEM_VERSION }                      from './shared/constants/GaiaSystemVersions.ts';
 import { GAIA_INSTALL_VERSION }                     from './shared/constants/InstallVersion.ts';
 import { PRODUCT_NAMES }                            from './shared/constants/ProductNames.ts';
+import { SUPPORTED_FORGE_VERSION }                  from './shared/constants/SupportedForgeVersions.ts';
 
 export interface ProgramOutput {
   readonly writeStandardOutput: (text: string) => void;
@@ -133,7 +133,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   let address = `http://127.0.0.1:${port}`;
 
   const readRegistry = () => new RegistryFile(registryPath).read();
-  const forgeClient = forgeClientOf({ hephaestusFetch: realHephaestusFetch() });
+  const forgeClient = forgeClientOf({ supportedForgeVersion: SUPPORTED_FORGE_VERSION, hephaestusFetch: realHephaestusFetch() });
   const processRun = realProcessRun(environmentCopy);
   const forgeProgram = createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath });
   const forgeWatch = createForgeWatch({

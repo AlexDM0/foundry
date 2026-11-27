@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { EpicRollup }      from '../../../lib/tracker-model/@types/Epic.ts';
+import type { EpicRollup }      from '../../../domain/tracker-model/@types/Epic.ts';
 import type { PageTicket }      from '../../../shared/@types/PagePayload.ts';
 import type { PagePayload }     from '../../../shared/@types/PagePayload.ts';
 import { BoardPageMappingUtil } from './BoardPageMappingUtil.ts';

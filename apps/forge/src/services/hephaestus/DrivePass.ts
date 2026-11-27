@@ -25,48 +25,48 @@ import {
   PACKAGE_REVIEWER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
-import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
-import type { TurboConfigurationProblem }            from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
-import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
-import { AgentBillingUtil }                          from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
-import { confinedLineOf }                            from '../../lib/gate-confinement/ConfinedLine.ts';
-import type { GitProblem }                           from '../../lib/git/@types/GitProblem.ts';
-import { GitProcess }                                from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEnd }                             from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                     from '../../lib/talos/EndingPatterns.ts';
-import type { EventLogEntry }                        from '../../lib/talos/EventLog.ts';
-import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentDefaultCause, IncidentMove }   from '../../lib/tracker-model/@types/Incident.ts';
+import type { JsonSchema }                          from '../../adapters/reports/ReportValidation.ts';
+import type { TurboConfigurationProblem }           from '../../adapters/turbo-configuration/@types/TurboConfigurationProblem.ts';
+import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }              from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { ChildEnd }                            from '../../domain/talos/ChildRecord.ts';
+import type { EventLogEntry }                       from '../../domain/talos/EventLog.ts';
+import type { DecisionAnswer }                      from '../../domain/tracker-model/@types/Decision.ts';
+import type { IncidentDefaultCause, IncidentMove }  from '../../domain/tracker-model/@types/Incident.ts';
 import type {
   InterruptionCause,
   Job,
   JobKind,
   JobNotLaunched,
   JobNotLaunchedCause
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineGate }            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                          from '../../lib/tracker-model/Playbook.ts';
-import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../lib/tracker-model/constants/JobStates.ts';
-import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
-import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
-import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { ConfinementRefusal }                           from '../../shared/@types/ConfinementRefusal.ts';
-import type { ConstitutionCommitProblem }                    from '../../shared/@types/ConstitutionCommitProblem.ts';
-import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
-import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
-import type { BranchNames }                                  from '../../shared/BranchNames.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
-import { WorktreesFolder }                                   from '../../shared/WorktreesFolder.ts';
-import { AIRLOCK_LIMITS }                                    from '../../shared/constants/AirlockLimits.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineGate }                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep }      from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
+import { Playbook }                                               from '../../domain/tracker-model/Playbook.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }                       from '../../domain/tracker-model/constants/JobStates.ts';
+import { EntityOwnershipUtil, ROOT_ENTITY_KEY }                   from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { LaunchSlotUtil }                                         from '../../domain/tracker-model/utils/LaunchSlotUtil.ts';
+import type { DocumentReading }                                   from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import { TicketStageUtil }                                        from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import type { AgentAdapter, AgentEndingName, AgentProgramRepair } from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentConfinement, AgentLaunchRequest }              from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                     from '../../lib/agent-launch/WorkerProfile.ts';
+import { AgentBillingUtil }                                       from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
+import { confinedLineOf }                                         from '../../lib/gate-confinement/ConfinedLine.ts';
+import type { GitProblem }                                        from '../../lib/git/@types/GitProblem.ts';
+import { GitProcess }                                             from '../../lib/git/GitProcess.ts';
+import type { RecognisedEnding }                                  from '../../lib/line-patterns/EndingPatterns.ts';
+import type { PlatformPorts }                                     from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLine }                                         from '../../lib/shell-line/ShellLine.ts';
+import type { ConfinementRefusal }                                from '../../shared/@types/ConfinementRefusal.ts';
+import type { ConstitutionCommitProblem }                         from '../../shared/@types/ConstitutionCommitProblem.ts';
+import type { SetupMessage }                                      from '../../shared/@types/ControlContext.ts';
+import type { EffectReadingSource }                               from '../../shared/@types/EffectReading.ts';
+import type { BranchNames }                                       from '../../shared/BranchNames.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }              from '../../shared/Environment.ts';
+import { WorktreesFolder }                                        from '../../shared/WorktreesFolder.ts';
+import { AIRLOCK_LIMITS }                                         from '../../shared/constants/AirlockLimits.ts';
 import {
   GATE_RUNS_AT_ONCE,
   GATE_SLOT_RETRY_MILLISECONDS,
@@ -381,7 +381,7 @@ export type HephaestusNotice =
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job stands not launched, nothing spawned, because its agent's program does not run; read each pass from the job's stored fact.
-  | { kind: 'agent-program-refused'; jobId: string; cause: JobNotLaunchedCause; agentName: string; programPath: string | null; repair: string | null }
+  | { kind: 'agent-program-refused'; jobId: string; cause: JobNotLaunchedCause; agentName: string; programPath: string | null; repair: AgentProgramRepair | null }
   // Passes in a row abandoned on one of the tracker lock's expected conditions; the forge keeps running and tries at each wake-up.
   | { kind: 'passes-abandoned'; inARow: number; reason: AbandonedPass['reason'] };
 
@@ -1212,10 +1212,10 @@ async function launchAgentChild(
       ),
       agentSearchFoldersOf(request, board, job, program.programPath),
     ),
-    profile:           launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
-    confinement:       launchFacts.confinement,
-    jobFilesDirectory: jobFolder,
-    reportSchema:      reportSchemaOf(board, job),
+    profile:              launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
+    confinement:          launchFacts.confinement,
+    launchFilesDirectory: jobFolder,
+    reportSchema:         reportSchemaOf(board, job),
     ...(billing.billing === undefined ? {} : { billing: billing.billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {

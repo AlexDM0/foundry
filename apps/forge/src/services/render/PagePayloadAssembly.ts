@@ -5,12 +5,12 @@
 import { ProgressFileMappingUtil }                from '../../adapters/progress/utils/ProgressFileMappingUtil.ts';
 import { TicketAcceptanceUtil }                   from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { LogUtil }                                from '../../adapters/utils/LogUtil.ts';
-import type { Epic }                              from '../../lib/tracker-model/@types/Epic.ts';
-import type { LogRecord }                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket }                            from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }                   from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }                             from '../../lib/tracker-model/Board.ts';
-import { TicketDocumentReadingUtil }              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import type { Epic }                              from '../../domain/tracker-model/@types/Epic.ts';
+import type { LogRecord }                         from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Ticket }                            from '../../domain/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }                   from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import type { Board }                             from '../../domain/tracker-model/Board.ts';
+import { TicketDocumentReadingUtil }              from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import type { PageConcurrency, PageDraftRequest } from '../../shared/@types/PagePayload.ts';
 import type { PagePayload, PageTicket }           from '../../shared/@types/PagePayload.ts';
 import { LIMITS }                                 from '../../shared/constants/Limits.ts';

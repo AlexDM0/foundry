@@ -8,18 +8,18 @@ import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { readCurrentBranch } from '../../lib/git/BranchIntegration.ts';
-import { GitProcess }        from '../../lib/git/GitProcess.ts';
-import type { Job }          from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }        from '../../domain/tracker-model/@types/Job.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type EntityKey,
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading, PipelineSetup } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { PipelineUtil }                                from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading, PipelineSetup } from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import { PipelineUtil }                                from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { readCurrentBranch }                           from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }                                  from '../../lib/git/GitProcess.ts';
 import { resourceFilePathOf }                          from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
 import { PathNestingUtil }                             from '../../shared/utils/PathNestingUtil.ts';

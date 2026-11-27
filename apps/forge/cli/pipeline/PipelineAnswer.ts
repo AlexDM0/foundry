@@ -1,5 +1,5 @@
 /** `pipeline answer <S> <Q>`: User's answer to a setup question, option letters or free text after `--`; answering again replaces it. */
-import type { DecisionAnswerForm }                    from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { DecisionAnswerForm }                    from '../../src/domain/tracker-model/@types/Decision.ts';
 import type { CommandContext }                        from '../CommandContext.ts';
 import { refuseUsage }                                from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }                        from '../arguments/ArgumentParser.ts';

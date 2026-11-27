@@ -12,9 +12,9 @@ import {
 } from 'node:path';
 import type { HephaestusLog } from '../../adapters/@types/HephaestusLogRecord.ts';
 
+import type { InterruptionCause, Job }                                    from '../../domain/tracker-model/@types/Job.ts';
 import { GitProcess }                                                     from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { InterruptionCause, Job }                                    from '../../lib/tracker-model/@types/Job.ts';
 import { HATCH_FOLDER, WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
 import type { StoreReadFace }                                             from '../store/BoardStore.ts';
 import type { Workspace }                                                 from '../tracker/Workspace.ts';

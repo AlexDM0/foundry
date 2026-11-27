@@ -27,8 +27,8 @@ import {
 } from 'bun:test';
 
 import { GENERATION_RECORD_FORMAT_VERSION }                             from '../../adapters/generation-record/GenerationRecordIngestion.ts';
-import type { PipelineEntity }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }                                           from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import type { PipelineEntity }                                          from '../../domain/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }                                           from '../../domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                                    from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                                       from '../../testing/EchoedControlContext.ts';

@@ -5,7 +5,7 @@ import { join }         from 'node:path';
 import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
 
 export interface SourceMutant {
-  /** Repo-rooted, as `src/lib/tracker-model/Playbook.ts`. */
+  /** Repo-rooted, as `src/domain/tracker-model/Playbook.ts`. */
   modulePath: string;
   find:       string;
   replace:    string;

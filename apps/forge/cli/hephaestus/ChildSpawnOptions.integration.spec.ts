@@ -21,11 +21,11 @@ import {
   test
 } from 'bun:test';
 
+import { childFilesOf }                                   from '../../src/domain/talos/TalosFiles.ts';
 import { platformPortsFor }                               from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { SupervisedChildKind }                       from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { processSupervisionFor }                          from '../../src/lib/process-identity/ProcessSupervisionFor.ts';
 import { WINDOWS_SUPERVISED_CHILD_SPAWN }                 from '../../src/lib/process-identity/SpawnOptionsFor.ts';
-import { childFilesOf }                                   from '../../src/lib/talos/TalosFiles.ts';
 import { NO_ORPHANS_VARIABLE, environmentCopy }           from '../../src/shared/Environment.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { jsonPrintedByAChildProcess }                     from '../../src/testing/JsonPrintedByAChildProcess.ts';
@@ -40,7 +40,7 @@ import { spawnSuccessor }                                 from './HephaestusFore
 
 const NATIVE_PORTS = nativePlatformPorts();
 const DESCENDANT_LINE = /^descendant (\d+)$/mu;
-const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['supervised-child', 'talos', 'hephaestus', 'successor'];
+const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['supervised-child', 'detached-program'];
 const START_NUMBER = 1;
 
 interface ChildStreams {
@@ -109,7 +109,7 @@ describe('the Windows answer per child kind', () => {
     expect(WINDOWS_SUPERVISED_CHILD_SPAWN).toEqual({ detached: false, windowsHide: true, stderr: 'pipe' });
   });
 
-  test.each(['talos', 'hephaestus', 'successor'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
+  test.each(['detached-program'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
     expect(supervision.spawnOptionsFor(childKind)).toEqual({ detached: true, windowsHide: true });
   });
 

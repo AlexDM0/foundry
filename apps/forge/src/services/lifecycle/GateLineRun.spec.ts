@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import type { PipelineGate }                                                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineGate }                                                         from '../../domain/tracker-model/@types/Pipeline.ts';
 import { environmentCopy }                                                           from '../../shared/Environment.ts';
 import { runsAsGiven }                                                               from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                                       from '../../testing/NativePlatformPorts.ts';

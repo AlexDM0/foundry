@@ -4,8 +4,8 @@
  * train, or writes the default back. Each field and its value are read into the typed edit the command carries.
  */
 import { SetupPayloadSchemas }                        from '../../src/adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import type { PipelineDraftEdit }                     from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { PipelineDraftEditUtil }                      from '../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+import type { PipelineDraftEdit }                     from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                      from '../../src/domain/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { refuseMalformedSetupCommand }                from '../../src/services/control/PipelineSetupControls.ts';
 import type { PipelineFieldEdit }                     from '../../src/shared/@types/ControlCommand.ts';
 import type { CommandContext }                        from '../CommandContext.ts';

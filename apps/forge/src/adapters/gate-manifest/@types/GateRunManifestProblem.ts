@@ -1,4 +1,4 @@
-import type { GatePhase }                                from '../../../lib/tracker-model/@types/GatePhase.ts';
+import type { GatePhase }                                from '../../../domain/tracker-model/@types/GatePhase.ts';
 import type { BaseStoredFileProblem, StoredFileProblem } from '../../../shared/@types/StoredFileProblem.ts';
 import type { JobFileFieldProblem }                      from '../../@types/JobFileFieldProblem.ts';
 

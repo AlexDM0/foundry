@@ -31,6 +31,7 @@ const PLANTED_FILES = [
   'resources/prompts/BuildPrompt.md',
   'cli/Main.ts',
   'cli/Main.spec.ts',
+  'talos/Talos.ts',
   'src/services/hephaestus/CodeVersion.ts',
 ];
 
@@ -92,6 +93,7 @@ describe('CodeVersion.codeVersionOf', () => {
     ['a resources/ edit', 'resources/prompts/BuildPrompt.md'],
     ['a new cli/ file', 'cli/hephaestus/NewCommand.ts'],
     ['a talos.ts edit', 'talos.ts'],
+    ['a talos/ edit', 'talos/Talos.ts'],
     ['an agent-progress.ts edit', 'agent-progress.ts'],
     ['a cli/ edit', 'cli/Main.ts'],
   ])('%s moves the version', (_editName, relativePath) => {

@@ -19,7 +19,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Board }                                               from '../../lib/tracker-model/Board.ts';
+import type { Board }                                               from '../../domain/tracker-model/Board.ts';
 import { WorktreesFolder }                                          from '../../shared/WorktreesFolder.ts';
 import { createScratchDrivePass }                                   from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, fakeStartedLine }                        from '../../testing/FakeAgentAdapter.ts';

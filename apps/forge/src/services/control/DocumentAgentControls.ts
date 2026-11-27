@@ -2,15 +2,15 @@
  * The moves on a ticket document's agent: the agent's own proposal, ready, effect reading and question through its Hatch, each refused
  * unless its job is the live agent of that ticket document, and User's effect reading of a version and stop of the agent's running turn.
  */
-import type { DecisionOpened }                                                         from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { DecisionQuestionOption }                                                 from '../../lib/tracker-model/@types/Decision.ts';
-import type { LogRecord }                                                              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { DocumentProposal, LineEdit, LineRange }                                  from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { LiveDocumentAgent }                                                      from '../../lib/tracker-model/Board.ts';
-import type { ProposalSubmission }                                                     from '../../lib/tracker-model/TicketDocuments.ts';
-import { CommentAnchorUtil }                                                           from '../../lib/tracker-model/utils/CommentAnchorUtil.ts';
-import { DocumentAgentJobUtil }                                                        from '../../lib/tracker-model/utils/DocumentAgentJobUtil.ts';
-import { OptionConsequencesUtil }                                                      from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import type { DecisionOpened }                                                         from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { DecisionQuestionOption }                                                 from '../../domain/tracker-model/@types/Decision.ts';
+import type { LogRecord }                                                              from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { DocumentProposal, LineEdit, LineRange }                                  from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { LiveDocumentAgent }                                                      from '../../domain/tracker-model/Board.ts';
+import type { ProposalSubmission }                                                     from '../../domain/tracker-model/TicketDocuments.ts';
+import { CommentAnchorUtil }                                                           from '../../domain/tracker-model/utils/CommentAnchorUtil.ts';
+import { DocumentAgentJobUtil }                                                        from '../../domain/tracker-model/utils/DocumentAgentJobUtil.ts';
+import { OptionConsequencesUtil }                                                      from '../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { ControlCommandKind, ControlCommandOf, DocumentQuestionOptionSubmission } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                                                         from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingRequest }                                                   from '../../shared/@types/EffectReading.ts';

@@ -776,9 +776,9 @@ package from the repository root.
 
 | Fact | File |
 | --- | --- |
-| Log record kinds and fields | `src/lib/tracker-model/constants/LogRecordSchema.ts`, `docs/cli.md` ("`<data>/log.jsonl`") |
+| Log record kinds and fields | `src/domain/tracker-model/constants/LogRecordSchema.ts`, `docs/cli.md` ("`<data>/log.jsonl`") |
 | A job's token total and cost | `src/services/hephaestus/EndedJobTokens.ts`, `src/services/lifecycle/TokenCrediting.ts` |
-| The event log and its stamps | `src/lib/talos/EventLog.ts` |
+| The event log and its stamps | `src/domain/talos/EventLog.ts` |
 | What a stream line maps to | `src/lib/agent-launch/AgentSessionEvent.ts`, `src/lib/claude-code/ClaudeStreamMapper.ts` |
 | A raw result line | `src/lib/claude-code/testing/fixtures/resume-structured-output.stdout.jsonl` |
 | Job folder files, step verdicts, the gate run manifest, `gate.log`, `start.json` | `src/services/hephaestus/JobLaunch.ts` |
@@ -787,18 +787,18 @@ package from the repository root.
 | Gate profiles and the pipeline check | `src/services/hephaestus/GateProfiling.ts`, `src/services/hephaestus/PipelineChecking.ts` |
 | The Airlock's reading of `gate-ran` | `src/services/hephaestus/Airlocks.ts` |
 | The transcript classifier | `src/lib/claude-code/utils/TranscriptUsageUtil.ts`, `docs/cli.md` ("`usage`") |
-| Review figures | `src/lib/tracker-model/ReviewStatistics.ts`, `src/lib/tracker-model/constants/ReviewRecordVocabulary.ts` |
-| Pipeline, roles, entities, billing, approvals | `src/lib/tracker-model/@types/Pipeline.ts`, `src/lib/tracker-model/utils/PipelineUtil.ts` |
+| Review figures | `src/domain/tracker-model/ReviewStatistics.ts`, `src/domain/tracker-model/constants/ReviewRecordVocabulary.ts` |
+| Pipeline, roles, entities, billing, approvals | `src/domain/tracker-model/@types/Pipeline.ts`, `src/domain/tracker-model/utils/PipelineUtil.ts` |
 | Instruction files and their hashes | `src/services/hephaestus/InstructionFiles.ts` |
 | Model and effort at launch | `src/services/hephaestus/LaunchSettings.ts`, `docs/cli.md` ("Tickets") |
-| Committed content by hash, and the pictures | `src/adapters/tickets/CommittedContentFile.ts`, `src/lib/tracker-model/utils/TicketBodyHashUtil.ts`, `docs/cli.md` ("`<data>/committed-content/<hash>.json`", "`<data>/pictures/`") |
+| Committed content by hash, and the pictures | `src/adapters/tickets/CommittedContentFile.ts`, `src/domain/tracker-model/utils/TicketBodyHashUtil.ts`, `docs/cli.md` ("`<data>/committed-content/<hash>.json`", "`<data>/pictures/`") |
 | Shipped briefs rewritten on every refresh | `cli/adoption/TrackerRefresh.ts`, `cli/adoption/constants/AgentInstall.ts` |
 | What `advise` is given | `src/services/hephaestus/PipelineAgentSessions.ts` |
 | Customs checks | `src/services/lifecycle/Customs.ts` |
-| Job kinds and roles | `src/lib/tracker-model/@types/Job.ts` |
-| Decisions, incidents, notices | `src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/DrivePass.ts`, `docs/concepts/overview.md` |
+| Job kinds and roles | `src/domain/tracker-model/@types/Job.ts` |
+| Decisions, incidents, notices | `src/domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/DrivePass.ts`, `docs/concepts/overview.md` |
 | The budget of a launch | `src/services/hephaestus/ApiBillingStops.ts` |
-| A ticket's size | `src/lib/tracker-model/@types/Ticket.ts` |
+| A ticket's size | `src/domain/tracker-model/@types/Ticket.ts` |
 | The store port | `src/services/store/BoardStore.ts`, `architecture/StoreBoundary.spec.ts` |
 | The agent port's boundary | `architecture/AgentBoundary.spec.ts` |
 | The system version | `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `docs/reference/hephaestus-api.md` |

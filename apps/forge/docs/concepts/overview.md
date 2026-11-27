@@ -204,13 +204,13 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | Recording a fact | `src/services/control/ControlService.ts` | `ControlService.apply` | `cli/ControlContract.spec.ts` |
 | A verb with no Hephaestus | `cli/ApplyCommandOfVerb.ts` | `applyCommandOfVerb` | `cli/ApplyCommandOfVerb.spec.ts` |
 | The loop | `src/services/hephaestus/DrivePass.ts` | `createDrivePass` | `src/services/hephaestus/CrashMatrix.spec.ts` |
-| Next steps | `src/lib/tracker-model/Playbook.ts` | `Playbook` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Next steps | `src/domain/tracker-model/Playbook.ts` | `Playbook` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Checking a report | `src/services/lifecycle/Customs.ts` | `VerificationCheck` | `src/services/lifecycle/Customs.spec.ts` |
 | Code-written Handoff | `src/services/hephaestus/JobLaunch.ts` | `bodyWithHandoffOf` | `cli/hephaestus/HephaestusBuildJob.spec.ts` |
 | The one transaction | `src/services/store/BoardStore.ts`, `src/services/tracker/TrackerPipeline.ts` | the store's transaction face, `transactions.transact`, run by `writeTracker` in the local adapter | `src/services/store/BoardStore.contract.spec.ts`, `src/services/tracker/HoldJournal.spec.ts` |
-| Talos | `src/lib/talos/Talos.ts` | `runTalos` | `src/lib/talos/Talos.handshake.integration.spec.ts` |
+| Talos | `talos/Talos.ts` | `runTalos` | `talos/Talos.handshake.integration.spec.ts` |
 | Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
-| Trouble's three kinds | `src/lib/tracker-model/IncidentMoves.ts`, `src/services/hephaestus/DrivePass.ts` | `defaultIncident`, `HephaestusNotice` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
+| Trouble's three kinds | `src/domain/tracker-model/IncidentMoves.ts`, `src/services/hephaestus/DrivePass.ts` | `defaultIncident`, `HephaestusNotice` | `src/domain/tracker-model/IncidentMoves.spec.ts` |
 | The eleven names | `architecture/ComponentNames.spec.ts` | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 | Every product name | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `cli/ProductNameIsolation.integration.spec.ts` |
 

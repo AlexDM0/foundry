@@ -1,4 +1,4 @@
-import type { ConstitutionSourcesProblem, PipelineSetupProblem } from '../../lib/tracker-model/@types/PipelineSetupProblem.ts';
+import type { ConstitutionSourcesProblem, PipelineSetupProblem } from '../../domain/tracker-model/@types/PipelineSetupProblem.ts';
 import { PipelineProblemWording }                                from './PipelineProblemWording.ts';
 
 function sentenceOf(problem: PipelineSetupProblem): string {

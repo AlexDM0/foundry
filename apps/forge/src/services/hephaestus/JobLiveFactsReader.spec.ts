@@ -19,13 +19,13 @@ import {
 } from 'bun:test';
 
 import { createAssistantChatsWriter }                     from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
+import type { ClientEntry }                               from '../../domain/talos/@types/TalosFrame.ts';
+import { createEventLogWriter }                           from '../../domain/talos/EventLog.ts';
+import type { Incident }                                  from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { SubagentFacts }                             from '../../lib/agent-launch/AgentTranscripts.ts';
-import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
-import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
-import type { Incident }                                  from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';

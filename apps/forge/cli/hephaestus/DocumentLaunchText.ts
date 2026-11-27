@@ -5,7 +5,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { Job }                           from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                           from '../../src/domain/tracker-model/@types/Job.ts';
 import type { DocumentAgentFacts }            from '../../src/services/hephaestus/DocumentAgentSessions.ts';
 import { DocumentAgentWording }               from '../../src/services/hephaestus/DocumentAgentWording.ts';
 import type { JobLaunchFacts, JobLaunchText } from '../../src/services/hephaestus/DrivePass.ts';

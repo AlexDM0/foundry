@@ -20,9 +20,9 @@ import { createProgressFileWriter }                                           fr
 import { CommittedContentFile }                                               from '../../adapters/tickets/CommittedContentFile.ts';
 import { TicketDocumentsFileWriter }                                          from '../../adapters/tickets/TicketDocumentsFileWriter.ts';
 import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
-import type { Board }                                                         from '../../lib/tracker-model/Board.ts';
-import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
+import type { Board }                                                         from '../../domain/tracker-model/Board.ts';
+import { refusalIsBoardRefusal }                                              from '../../domain/tracker-model/BoardRefusal.ts';
+import { createLogger }                                                       from '../../domain/tracker-model/Logger.ts';
 import { OperationRefusal }                                                   from '../../shared/OperationRefusal.ts';
 import type { BoardContents, UnreadableRecords }                              from './@types/BoardRecords.ts';
 import { boardOfContents }                                                    from './BoardOfContents.ts';

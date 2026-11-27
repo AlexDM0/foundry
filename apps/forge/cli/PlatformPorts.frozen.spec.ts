@@ -78,5 +78,5 @@ test('the written settings file of every fixed request equals the frozen bytes, 
 
 test('the launch environment of the fixed job equals the one the agent launch file was taken with', () => {
   const [settingsEntry] = frozenTable.settingsFiles;
-  expect(createPosixLaunchEnvironment(() => []).launchEnvironmentOf(launchFiles.inherited, launchFiles.jobVariables)).toEqual(settingsEntry?.request.environment ?? {});
+  expect(createPosixLaunchEnvironment(() => []).launchEnvironmentOf(launchFiles.inherited, launchFiles.ownVariables)).toEqual(settingsEntry?.request.environment ?? {});
 });

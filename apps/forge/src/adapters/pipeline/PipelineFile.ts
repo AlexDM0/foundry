@@ -6,8 +6,7 @@
  */
 import { posix, win32 } from 'node:path';
 
-import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
-import type { GatePhase }   from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GatePhase }   from '../../domain/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   type ConditionalReReview,
@@ -32,17 +31,18 @@ import {
   type PipelineTool,
   TICKET_WRITING_ROUTES,
   type TicketWritingRoute
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineProblem }                           from '../../lib/tracker-model/@types/PipelineProblem.ts';
-import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineProblem }                           from '../../domain/tracker-model/@types/PipelineProblem.ts';
+import { TICKET_DOCUMENT_KINDS, type TicketDocumentKind } from '../../domain/tracker-model/@types/TicketDocument.ts';
 import {
   DEFAULT_DOCUMENTS_OF_ROLE,
   type DocumentReadingRole,
   FIXED_DOCUMENTS_OF_ROLE,
   RE_REVIEW_THRESHOLD_STEP_LINES
-} from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { EntityValidationUtil } from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { VocabularyUtil }       from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+} from '../../domain/tracker-model/constants/PipelineDefaults.ts';
+import { EntityValidationUtil } from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
+import { VocabularyUtil }       from '../../domain/tracker-model/utils/VocabularyUtil.ts';
+import { JsonRecordUtil }       from '../../lib/json-record/JsonRecordUtil.ts';
 import { JsonTextUtil }         from '../../shared/utils/JsonTextUtil.ts';
 import { PathNestingUtil }      from '../../shared/utils/PathNestingUtil.ts';
 import { storedFileTextOf }     from '../StoredFileText.ts';

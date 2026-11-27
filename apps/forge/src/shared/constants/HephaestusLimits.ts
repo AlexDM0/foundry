@@ -1,5 +1,5 @@
-import type { PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { AgentPair }         from '../../lib/tracker-model/@types/Ticket.ts';
+import type { PipelineAgentRole } from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { AgentPair }         from '../../domain/tracker-model/@types/Ticket.ts';
 
 /** The bounds Hephaestus and the sessions it launches keep: how long a relayed verb waits for its reply, and how much a worker may file. */
 

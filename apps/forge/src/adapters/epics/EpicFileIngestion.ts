@@ -1,6 +1,6 @@
 /** One epic file read into the model: a file that cannot be read or parsed is a `malformed` verdict with its problem and line, never a throw. */
 import { readFileSync }         from 'node:fs';
-import type { Epic }            from '../../lib/tracker-model/@types/Epic.ts';
+import type { Epic }            from '../../domain/tracker-model/@types/Epic.ts';
 import { utf8TextOf }           from '../Utf8Text.ts';
 import type { EpicFileProblem } from './@types/EpicFileProblem.ts';
 import { EpicDocumentUtil }     from './utils/EpicDocumentUtil.ts';

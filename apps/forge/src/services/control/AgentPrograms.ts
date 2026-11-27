@@ -4,14 +4,14 @@
  */
 import { dirname } from 'node:path';
 
+import type { JobNotLaunched, JobNotLaunchedCause } from '../../domain/tracker-model/@types/Job.ts';
+import type { AgentProgramChoice, PipelineAgent }   from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { AgentAdapter }                        from '../../lib/agent-launch/AgentAdapter.ts';
 import type { LaunchEnvironment }                   from '../../lib/agent-launch/LaunchEnvironment.ts';
 import type { ExecutableResolver }                  from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { ProgramCheckRun }                     from '../../lib/program-check/ProgramCheck.ts';
 import type { ProgramFolders }                      from '../../lib/program-folders/ProgramFolders.ts';
 import { ProgramSearchUtil }                        from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
-import type { JobNotLaunched, JobNotLaunchedCause } from '../../lib/tracker-model/@types/Job.ts';
-import type { AgentProgramChoice, PipelineAgent }   from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { AgentProgramPlace }                   from '../../shared/@types/AgentFacts.ts';
 import type { AgentProgramCheck }                   from '../../shared/@types/AgentProgramCheck.ts';
 

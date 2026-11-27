@@ -1,5 +1,5 @@
 /** The local files adapter's record allocation: a new ticket's id and file, the file of each ticket the hold holds, and of each single record. */
-import type { Board }       from '../../lib/tracker-model/Board.ts';
+import type { Board }       from '../../domain/tracker-model/Board.ts';
 import { OperationRefusal } from '../../shared/OperationRefusal.ts';
 import type {
   RecordKind,

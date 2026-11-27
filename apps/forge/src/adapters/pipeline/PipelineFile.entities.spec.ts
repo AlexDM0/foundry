@@ -16,7 +16,7 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineFile }                                   from './PipelineFile.ts';
 import { PipelineProblemWording }                         from './PipelineProblemWording.ts';

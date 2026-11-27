@@ -1,5 +1,5 @@
 /** A running build job on the board, with the fields a spec overrides, for Hephaestus's specs that read jobs off a board. */
-import type { Job } from '../../../lib/tracker-model/@types/Job.ts';
+import type { Job } from '../../../domain/tracker-model/@types/Job.ts';
 
 export function liveJobFixture(overrides: Partial<Job> & Pick<Job, 'id'>): Job {
   return {

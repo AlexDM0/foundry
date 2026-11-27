@@ -3,9 +3,9 @@
  * merge queue, Hephaestus, the usage windows and the picture limits. Hephaestus's services build them; an adapter maps them into the
  * contract's board document.
  */
-import type { InterruptionCause, Job, LostLineKind } from '../../lib/tracker-model/@types/Job.ts';
-import type { TicketPriority }                       from '../../lib/tracker-model/@types/Ticket.ts';
-import type { MergeForecast, PairwiseConflict }      from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import type { InterruptionCause, Job, LostLineKind } from '../../domain/tracker-model/@types/Job.ts';
+import type { TicketPriority }                       from '../../domain/tracker-model/@types/Ticket.ts';
+import type { MergeForecast, PairwiseConflict }      from '../../domain/tracker-model/utils/MergeQueueUtil.ts';
 import type { TranscriptRole }                       from '../../shared/@types/TranscriptEntry.ts';
 
 export interface LastToolCall {

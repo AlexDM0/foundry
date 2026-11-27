@@ -13,9 +13,9 @@ import type {
   PipelineSetupMode,
   PipelineSetupStep,
   SetupQuestionReply
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { EntityRefusal }       from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import type { PipelineFieldValue }  from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { EntityRefusal }       from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
+import type { PipelineFieldValue }  from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
 import type { EffectReadingSource } from './EffectReading.ts';
 
 /** One field a draft move changed, with the value the draft holds now; `null` when the draft holds none there. */

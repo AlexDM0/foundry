@@ -5,7 +5,6 @@
 import { readFileSync } from 'node:fs';
 
 import { EntityRefusalWording } from '../src/adapters/pipeline/EntityRefusalWording.ts';
-import type { AgentAdapter }    from '../src/lib/agent-launch/AgentAdapter.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -13,8 +12,9 @@ import type {
   PipelineCheckResult,
   PipelineSetupMode,
   PipelineSetupStep
-} from '../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { EntityRefusal }                 from '../src/lib/tracker-model/utils/EntityValidationUtil.ts';
+} from '../src/domain/tracker-model/@types/PipelineSetup.ts';
+import type { EntityRefusal }                 from '../src/domain/tracker-model/utils/EntityValidationUtil.ts';
+import type { AgentAdapter }                  from '../src/lib/agent-launch/AgentAdapter.ts';
 import type { DraftFieldValue, SetupMessage } from '../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                 from '../src/shared/ResourceFilePath.ts';

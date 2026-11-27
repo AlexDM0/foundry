@@ -1,6 +1,6 @@
 /** `ticket hold` and `ticket unhold`, and the hint an unhold prints about a build it left paused. */
 import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { Task }                          from '../../src/lib/tracker-model/@types/Task.ts';
+import type { Task }                          from '../../src/domain/tracker-model/@types/Task.ts';
 import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';

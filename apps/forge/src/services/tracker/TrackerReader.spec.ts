@@ -21,8 +21,8 @@ import {
 import { createLogFileWriter }                            from '../../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                         from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { TrackerProgress }                           from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { TrackerProgress }                           from '../../domain/tracker-model/@types/TrackerProgress.ts';
 import type { UnreadableTracker }                         from '../../shared/@types/UnreadableTracker.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { ticketFixture }                                  from '../../testing/BoardFixtures.ts';
