@@ -1,12 +1,13 @@
 /**
  * The machine-wide agent slots and the limit they keep, over scratch monitor folders and an injected liveness. What matters: two boards
  * together never hold more slots than the limit; a slot whose Hephaestus is gone is taken over by the next claim of any Hephaestus, and by the
- * restarted Hephaestus whose job still runs; a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation
- * becomes the launched job's slot and an unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with
- * nothing written.
+ * restarted Hephaestus whose job still runs; one that cannot be read is taken over and logged, or, when its bytes cannot be read at all, left
+ * in place and logged once; a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation becomes the launched
+ * job's slot and an unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with nothing written.
  */
 import {
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   writeFileSync
@@ -122,6 +123,27 @@ describe('agent slots', () => {
     expect(slots.tryAcquire('tracker-b', 'J2')).toBe(true);
     expect(readdirSync(join(folder, AGENT_SLOTS_FOLDER))).toEqual(['slot-1']);
     expect(loggedLines).toEqual([expect.stringContaining(`The agent slot ${slotPath} could not be read`) as unknown as string]);
+  });
+
+  test('a slot whose bytes cannot be read is left in place, and logged once across passes', () => {
+    const folder = monitorFolder();
+    const live = new Set([FIRST_HEPHAESTUS.processId]);
+    const loggedLines: string[] = [];
+    const unreadableSlotPathsLogged = new Set<string>();
+    const slotPath = join(folder, AGENT_SLOTS_FOLDER, 'slot-1');
+    mkdirSync(slotPath, { recursive: true });
+    const slotsOfAPass = (): ReturnType<typeof AgentSlots.createAgentSlots> => AgentSlots.createAgentSlots({
+      monitorFolder:    folder,
+      limit:            1,
+      ownProcess:       FIRST_HEPHAESTUS,
+      hephaestusIsLive: (hephaestus) => hephaestus !== null && live.has(hephaestus.processId),
+      log:              (line) => loggedLines.push(line),
+      unreadableSlotPathsLogged,
+    });
+    expect(slotsOfAPass().tryAcquire('tracker-a', 'J1')).toBe(false);
+    expect(slotsOfAPass().tryAcquire('tracker-a', 'J1')).toBe(false);
+    expect(loggedLines).toEqual([expect.stringContaining(`The agent slot ${slotPath} could not be read`) as unknown as string]);
+    expect(loggedLines[0]).toEndWith('it is left in place.');
   });
 
   test('a slot whose Hephaestus is gone is taken over without a line logged', () => {

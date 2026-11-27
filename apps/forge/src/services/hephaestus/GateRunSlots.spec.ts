@@ -4,9 +4,9 @@
  * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
  * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
  * fault elsewhere, and a held move aside leaves a stale slot in place. A slot that cannot be read names no holder, so it is taken over and
- * logged. A gate profile comes after every real gate: it takes no slot while a
- * real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once, holding no
- * slot and holding no profile back.
+ * logged; one whose bytes cannot be read at all is left in place and logged once. A gate profile comes after every real gate: it takes no
+ * slot while a real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once,
+ * holding no slot and holding no profile back.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join }                          from 'node:path';
@@ -216,6 +216,23 @@ describe('a slot file that the platform refuses to create or move', () => {
 
     expect(slots.tryAcquire('example-holder')).toBe(true);
     expect(loggedLines).toEqual([expect.stringContaining(`The gate run slot ${slotPath} could not be read`) as unknown as string]);
+  });
+
+  test('a slot whose bytes cannot be read is left in place, and logged once however often it is tried', () => {
+    const loggedLines: string[] = [];
+    const scratch = createScratchDirectory('unreadable-gate-slot-bytes');
+    scratchDirectories.push(scratch);
+    const folder = join(scratch, 'slots');
+    const slots = GateRunSlots.createGateRunSlots({
+      ports: defaultSpecPlatformPorts(), folder, limit: 1, holderIsLive: () => true, retryMilliseconds: 1, log: (line) => loggedLines.push(line),
+    });
+    const slotPath = join(folder, 'slot-1');
+    mkdirSync(slotPath, { recursive: true });
+
+    expect(slots.tryAcquire('example-holder')).toBe(false);
+    expect(slots.tryAcquire('example-holder')).toBe(false);
+    expect(loggedLines).toEqual([expect.stringContaining(`The gate run slot ${slotPath} could not be read`) as unknown as string]);
+    expect(loggedLines[0]).toEndWith('it is left in place.');
   });
 });
 

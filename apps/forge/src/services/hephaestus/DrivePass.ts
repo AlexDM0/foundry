@@ -1359,15 +1359,18 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     log:               request.log,
   });
 
+  const unreadableAgentSlotPathsLogged = new Set<string>();
+
   /** Read afresh each pass, so a machine limit another Hephaestus or the `machine limit` verb set holds from the next launch. */
   function agentSlotsOfThisPass(): ReturnType<typeof AgentSlots.createAgentSlots> {
     const ceiling = request.machineAgentCeiling ?? MachineAgentLimit.cpuCeiling();
     return AgentSlots.createAgentSlots({
-      monitorFolder:    request.monitorFolder,
-      limit:            MachineAgentLimit.readingIn(request.monitorFolder, ceiling).limit,
-      ownProcess:       platformPorts.processSupervision.identityOf(process.pid),
-      hephaestusIsLive: AgentSlots.hephaestusIsLiveWith(platformPorts),
-      log:              request.log,
+      monitorFolder:             request.monitorFolder,
+      limit:                     MachineAgentLimit.readingIn(request.monitorFolder, ceiling).limit,
+      ownProcess:                platformPorts.processSupervision.identityOf(process.pid),
+      hephaestusIsLive:          AgentSlots.hephaestusIsLiveWith(platformPorts),
+      log:                       request.log,
+      unreadableSlotPathsLogged: unreadableAgentSlotPathsLogged,
     });
   }
   const jobLaunchContext: JobLaunchContext = {
