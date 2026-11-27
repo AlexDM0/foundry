@@ -1,10 +1,7 @@
 /**
- * The flow graph's contract: which nodes exist for each flow shape the designs draw (`Flow.dc.html` with Human code review off and on and
- * with the review step off, `A7Minimal.dc.html`), the insert-slot table row by row, the merge steps' placement and derived
- * meter (Q5, Q16), the node-to-dialog table, the editing marks (a removed gate stays drawn, a removed agent step goes and leaves its +),
- * the ticket writing route (`PipelineDesignTicket.dc.html`: one ticket draws today's graph byte for byte, spec then plan its four steps
- * with their own switches and agents), and that no node or edge carries words. The cases pin the rules a client must not repeat, so each
- * names the design or decision it holds.
+ * The flow graph's contract: the nodes of each flow shape the designs draw, the insert-slot table, the merge steps' placement and meter, the
+ * node-to-dialog table, the editing marks (a removed gate stays drawn, a removed agent step leaves its +), the ticket writing route, and that
+ * no node or edge carries words. The cases pin rules a client must not repeat.
  */
 import { describe, expect, test } from 'bun:test';
 

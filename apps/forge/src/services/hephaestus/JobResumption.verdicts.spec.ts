@@ -1,10 +1,7 @@
 /**
- * The resume rules as pure verdicts. What matters: only an instance past the first is a resume, and it is told it was interrupted rather
- * than handed its task again; a resume fails only when the session exited by itself before it ever started, a first instance included when
- * its launch resumed the session of another job; and only the newest earlier job
- * of the same work decides whether a fresh job inherits a replaced session's worktree. An Airlock agent carries on the session of its
- * ticket's last worker, whatever its own role, unless an agent of its merge was replaced. A fresh instance's first message survives a Talos
- * that answers nothing on one pass and is sent once, its marker following the taken frame.
+ * The resume rules as pure verdicts: only an instance past the first is a resume, told it was interrupted; a resume fails only when the
+ * session exited before it started; only the newest earlier job of the same work decides whether a fresh job inherits a replaced worktree;
+ * an Airlock agent carries on its ticket's last worker unless an agent of its merge was replaced; and a first message is sent once.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { join }                  from 'node:path';

@@ -1,8 +1,6 @@
 /**
- * Hephaestus's gate profiles with real gate lines and the real process port; git's worktree answers come from
- * `src/testing/RecordedGit.ts`. What matters: a profile runs its prepare step and its gate as real processes in its worktree, and its output
- * is appended to its file as the lines print it; and a Stop ends the real process tree through the port, so the run is recorded `stopped`
- * with no duration, while the line would otherwise have run for minutes.
+ * Hephaestus's gate profiles with real gate lines and the real process port; git's worktree answers come from `src/testing/RecordedGit.ts`.
+ * A Stop ends the real process tree, so a line that would run for minutes is recorded `stopped` with no duration.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

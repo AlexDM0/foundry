@@ -1,9 +1,7 @@
 /**
- * The pure parts of the usage-limit handling. What matters: only a top-level refusal counts, never a warning, and one whose reset is
- * already past holds for the backoff, since a past reset holds nothing and the job would be resumed and refused every pass; the reset
- * the policy holds by is the latest of the marker's and this pass's hits, so a limit met in this hold already holds its launches; a
- * marker is never moved earlier, since another board may have met a longer limit; the scheduled wake never overflows the timer, which
- * would fire at once; and every reported window is shown, as a whole percent, except under API billing, where no window counts.
+ * The pure parts of the usage-limit handling: only a top-level refusal counts, a past reset holds for the backoff, the latest reset wins and
+ * a marker never moves earlier, since another board may have met a longer limit; the scheduled wake never overflows the timer, and each
+ * reported window shows as a whole percent but under API billing.
  */
 import {
   afterEach,

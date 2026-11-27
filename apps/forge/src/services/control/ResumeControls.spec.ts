@@ -1,10 +1,7 @@
 /**
- * User's resume of interrupted work through the control service, as a hold carries it. What matters: a job target logs one instruction; a
- * ticket target lifts its `interrupted:` hold with its own record and no `ticket-unheld`, so no count resets, and instructs its interrupted
- * job, or one whose lost line waits; `all` covers both, lets an Apply held `interrupted` commit again and leaves a job that resumes by
- * itself alone; `network-outage` instructs only the jobs of that cause; a running job, a ticket with nothing interrupted and an unknown
- * ticket are refused; and with nothing waiting `all` and `network-outage` report `nothing-to-do`, a success, so one control may send them
- * to every forge.
+ * User's resume of interrupted work through the control service: a job target logs one instruction; a ticket target lifts its `interrupted:` hold
+ * with no count reset; `all` covers both and `network-outage` only that cause's jobs; and with nothing waiting they report `nothing-to-do`, a
+ * success, so one control may send them to every forge.
  */
 import { describe, expect, test } from 'bun:test';
 

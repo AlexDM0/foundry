@@ -1,7 +1,7 @@
 /**
- * Whose session a crossing ticket's Airlock agent carries on (strategy 5.7). What matters: the home's worker of a conflict carries on the
- * ticket's last home worker of its stage (E63), a package's builder resolving its part of the conflict carries on that package's newest
- * build session though a home review ran after it (E62), and a package's builder whose package never built here starts fresh.
+ * Whose session a crossing ticket's Airlock agent carries on. What matters: the home's worker of a conflict carries on the ticket's last
+ * home worker of its stage, a package's builder resolving its part of the conflict carries on that package's newest build session though a
+ * home review ran after it, and a package's builder whose package never built here starts fresh.
  */
 import { describe, expect, test } from 'bun:test';
 

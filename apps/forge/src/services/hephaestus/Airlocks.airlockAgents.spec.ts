@@ -1,11 +1,7 @@
 /**
- * The ticket's last worker in its Airlock, with the harness's fake gate and fake launcher. What matters: a merge-in conflict and a red merged
- * tree each go to the ticket's last worker from history as a `merge-agent` job of that worker's role, even after the review step left the
- * pipeline, and with no ended worker to its reviewer (its builder with no review step); a conflict hands over the conflicted files; a red
- * gate resumes the same session until the red handoff resumes are spent, and then the merge aborts, the slot frees and the ticket parks; an
- * agent that could not resume is replaced by a fresh one of its role and attempt, which spends no resume; and a group refresh, which has no
- * ticket agent, aborts on a conflict and asks User. The folders are real; git answers from the recorded answer sets of
- * `src/services/hephaestus/testing/AirlockAnswerSets.ts`, one for each state of the repository.
+ * The ticket's last worker in its Airlock: a merge-in conflict or a red merged tree goes to it as a `merge-agent` job of its role; a red gate resumes
+ * that session until its resumes are spent and the ticket parks; and a group refresh, which has no ticket agent, aborts on a conflict and asks User.
+ * Git answers from `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
  */
 import { afterEach, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * The pipeline agent's Customs column on a scratch main-line snapshot, run at each turn end of its session: it reads the repository and
- * writes only its Hatch, so a changed or added file in the snapshot, a commit on it and a moved ref each fail the check. The session owes no
- * report and files nothing, so the column asks for neither: no V1 and no V12. Git answers from the scenarios
- * `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call a scenario did not record fails the case.
+ * The pipeline agent's Customs column on a scratch main-line snapshot: it writes only its Hatch, so a changed or added file, a commit or a
+ * moved ref each fail the check.
+ * The session owes no report and files nothing, so its column runs neither the report check nor the filing check.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

@@ -1,13 +1,7 @@
 /**
- * Hephaestus's pipeline checks, on recorded git, a fake line runner and a stand-in for the two runs. What matters: User's queued check
- * runs the draft's prepare steps and only the gates the draft changes or adds, two times, in a fresh detached worktree of main's tip at
- * `<worktrees>/pipeline-checks/<S>`, with no `writes` granted, holding a slot it takes only after the real gates; the result is stored in
- * the record, its output cut to its end, and the record's agent gets it as a message in the same hold, with no `gate-ran` record; a refused
- * line ends the check `cannot-run` with the reason; its lines run in `<data>/pipeline-checks/<S>`, the folder that holds its slot; a
- * Hephaestus stop sends `stop` to its running line and the check reads `stopped` with no message; and a Hephaestus start stops the lines an
- * earlier Hephaestus left, then reads a check left running as `stopped` and removes every check worktree. On a draft over
- * entities, each entity's check runs in its own worktree `<S>-<entity>`, its steps and gates from the entity's first home, and only that
- * entity's session hears the end; that case holds the board in memory, since no stored record holds entities yet.
+ * Hephaestus's pipeline checks on recorded git, a fake line runner and a stand-in for the two runs: User's queued check runs the draft's
+ * prepare steps and changed gates twice in a fresh worktree of main's tip, stores its result and messages the record's agent; a refused line
+ * ends it `cannot-run`, a stop reads `stopped`, and on a draft over entities each entity's check runs in its own worktree.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -209,7 +203,7 @@ function heldLineOf(request: LineRunRequest): Promise<LineRunEnd> {
   });
 }
 
-/** An update of the stored `tests` and `types` gates whose draft changes `tests` and adds `lint`, `types` as stored; its agent is J1. */
+/** An update of the stored `tests` and `types` gates whose draft changes `tests` and adds `lint`, `types` as stored; its agent is `J1`. */
 async function checkRequestedOnAnUpdate(): Promise<void> {
   await applied({ kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install --frozen-lockfile' } });
   await applied({ kind: 'pipeline-gate-add', gate: { name: 'tests', run: 'bun test', writes: ['/example-cache'] } });

@@ -1,18 +1,7 @@
 /**
- * `ticket add` with a network list or an entity, `ticket ready` and `ticket submit` in a forge with entities, and `ticket entity`. What
- * matters: the Board keeps no undo and a relayed filing's hold is stored even when its reply is a refusal, so a network or an entity the
- * filing cannot set is refused before the ticket is filed, leaving no ticket behind for a retry to duplicate. In a forge with entities a
- * ticket without one never reaches `committed`, by `ticket ready` or by a submit with ticket review off, while a submit with review on still
- * waits for review and a forge without entities readies as before. A draft whose Brief names work outside its entity, its whitelisted
- * packages and its `reach` is refused by every filer's move, `ticket ready` and `ticket submit` with review on or off, naming each path,
- * and stays a draft (E85). A research draft needs an entity as any other, and readies in `root` (E84). A worker's finding, which names
- * no entity, is filed for the entity that owns the paths its Brief names, a builder's or a stage 5 reviewer's finding about a package's file
- * for the package (E83, E53), else for its finder job's entity; one whose paths span several owners is judged in the finder's entity and
- * refused before it is filed, as is one that would reach `committed` without an entity, leaving no ticket behind; a forge without entities
- * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's. A filed
- * ticket is the one the transaction's records allocate, and a reference to a ticket file the store cannot read finds it by the key the
- * store gives it, the file name's number, so it is refused as malformed rather than as no ticket. A by-hand delivery is refused for a live
- * Hephaestus the caller's context names, judged in the hold before anything is written.
+ * Filing, readying and submitting tickets around entities and networks. The Board keeps no undo and a relayed filing's hold is stored even when it
+ * refuses, so whatever a filing cannot set is refused before the ticket is filed, leaving nothing for a retry to duplicate. With entities a ticket
+ * never reaches `committed` without one, and a Brief outside its entity keeps the draft a draft.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -230,7 +219,7 @@ test('a forge without entities readies a draft whatever files its Brief names', 
   expect(board.ticketByReference('001')?.frontmatter.status).toBe('committed');
 });
 
-/** Ticket 001 of the web app with job J1 of `role` running on it, its stage's entity `jobEntity` when given. */
+/** Ticket `001` of the web app with job `J1` of `role` running on it, its stage's entity `jobEntity` when given. */
 function finderAt(
   pipeline: Pipeline,
   launch: { role: 'builder' | 'reviewer'; jobEntity?: string; stage?: number },
@@ -343,7 +332,7 @@ const TICKET_SIX_TEXT = [
   '',
 ].join('\n');
 
-/** Ticket 001 on the Board, beside three ticket files the store cannot read, listed and keyed as the local adapter keys them. */
+/** Ticket `001` on the Board, beside three ticket files the store cannot read, listed and keyed as the local adapter keys them. */
 function boardBesideUnreadableTicketFiles(): BoardTransaction {
   const { change } = boardWithOneTicket();
   const { ticketRecordsFolder } = localStoreLayoutOf(change.workspace);

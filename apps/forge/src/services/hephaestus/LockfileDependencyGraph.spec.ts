@@ -1,8 +1,7 @@
 /**
- * The part of a planted `bun.lock` one workspace member runs on. What matters: dependencies are followed through each package's own
- * dependencies, peers and optional ones, into the workspace packages the member names; a nested entry wins over the hoisted one of the
- * same name, as Node resolves it; another member's dependencies stay out; and a lockfile that is missing or not JSONC yields an empty
- * graph rather than a throw, so the code version still reads.
+ * The part of a planted `bun.lock` one workspace member runs on: dependencies, peers and optional ones followed into the workspace packages
+ * it names, a nested entry winning over the hoisted one as Node resolves it, other members' dependencies left out, and a missing or
+ * unparsable lockfile an empty graph rather than a throw, so the code version still reads.
  */
 import { describe, expect, test } from 'bun:test';
 

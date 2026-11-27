@@ -1,10 +1,7 @@
 /**
- * Whose session a job carries on in a forge with entities (E29). What matters: a build carries on the session of the same attempt's built
- * builder only when both run the same entity and stage, so a package's stage 2 never resumes the home builder's stage 1 session; an Airlock
- * agent stands in for the ticket's last worker only when that worker ran its entity and stage, else it is a fresh session and takes its own
- * launch pair; a stage job relaunched after it wound down starts a fresh session, as a build after a wind-down does today (E17); a stale
- * green is resumed only in the session of its own entity and stage; and launches that name no entity, as on a forge without entities, carry
- * on as they always did.
+ * Whose session a job carries on in a forge with entities: a build, an Airlock agent or a stale green resumes only a session of its own
+ * entity and stage, so a package's stage 2 never resumes the home builder's stage 1; a stage job relaunched after a wind-down starts fresh;
+ * and launches that name no entity carry on as they always did.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -147,7 +144,7 @@ describe('a stale green that turned red', () => {
     removeScratchDirectory(trackerDirectory);
   });
 
-  /** J1 reviewed, left a stale-green handoff and started its session; J2 is the next review. */
+  /** `J1` reviewed, left a stale-green handoff and started its session; `J2` is the next review. */
   function staleGreenSessionOwnerOf(earlierScope: EntityAndStage, laterScope: EntityAndStage): SessionOwnerAnswer<string | null> {
     const folder = join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder);
     mkdirSync(folder, { recursive: true });

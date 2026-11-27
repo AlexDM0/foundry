@@ -1,5 +1,5 @@
 /**
- * A crossing ticket's per-stage counts across a restart (E74). What matters: red handoffs, failed passes and review rounds per stage are
+ * A crossing ticket's per-stage counts across a restart. What matters: red handoffs, failed passes and review rounds per stage are
  * read from the log alone, so a board read again from progress.json and log.jsonl on disk counts what the running board counted, and its
  * next launches carry the same attempt and round; no row key holds them.
  */
@@ -89,7 +89,7 @@ function redHandoffRecord(jobId: string): LogRecord {
 }
 
 /**
- * Ticket 001's package build took a red handoff and then failed, a failed pass; ticket 002's package review was granted a further round.
+ * The package build of `001` took a red handoff and then failed a pass; the package review of `002` was granted a further round.
  * Both tickets built their stage 1 in the shop first.
  */
 const CROSSING_LOG: LogRecord[] = [

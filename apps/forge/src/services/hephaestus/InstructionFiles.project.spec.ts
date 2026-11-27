@@ -1,10 +1,7 @@
 /**
- * A tracker in a project folder below its repository's root reads its own instruction files, never the root's (Part B spec 4). What
- * matters: a tracked instruction file and the constitution are asked of git at the repository's root by their path through the project's
- * folder; a data-folder file is read from the project's own data folder; the constitution keeps its project path; the tracked instruction
- * files Customs V11 protects are repository paths through the project's folder, so they meet git's paths; tree findings name only the
- * project's files; and a tracker at its repository's root asks git exactly as before. Each repository is a scratch folder with a `.git`
- * folder, laid out as the two-tracker fixture's; git answers from the recorded answers of `src/testing/RecordedGit.ts`.
+ * A tracker in a project folder below its repository's root reads its own instruction files, never the root's: tracked files are asked of
+ * git at the repository's root by their path through the project's folder, data-folder files are read from the project's data folder, and a
+ * tracker at the root asks git exactly as before. Git answers from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

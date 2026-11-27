@@ -1,12 +1,6 @@
 /**
- * Hephaestus's event broker. What matters: the first state sends only `board`; a later one sends one `job`, `decision` or `incident`
- * event per changed item, a `job` per newly ended job, `hephaestus` and `usage` when theirs changed, then `board`; a job first shown past
- * `launching`, one launched and ended within a pass included, is published `launching` first, so every state reaches the stream; a
- * state differing only in the page's generation stamp sends nothing; ids are `<generation>-<n>`, and a replay serves only a buffered id
- * of this generation. A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` directly
- * before `board`, so the flow animates its marks from that slice (`docs/reference/hephaestus-api.md`, "The event stream"). A ticket whose
- * documents record changed, appeared or left sends `documents` with its id after the other slices and before `board`, which follows also
- * when nothing else changed; the first state sends none; an effect reading's change sends `documents` at once.
+ * Hephaestus's event broker: which events a state sends and in what order, and which ids a replay serves
+ * (`docs/reference/hephaestus-api.md`, "The event stream").
  */
 import { describe, expect, test } from 'bun:test';
 

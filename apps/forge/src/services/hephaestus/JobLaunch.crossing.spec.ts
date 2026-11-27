@@ -1,33 +1,7 @@
 /**
- * A ticket of the shop that crosses into the package `ui-kit`, stage by stage, on the entity-forge fixture with the shop whitelisting the
- * package: each stage job verified by Customs against the fixture's recorded git, gated green and settled. What matters, by strategy 5.2 to
- * 5.6: stage 1 may write a proposal in the whitelisted package, and once gated, the paths its branch changed are sorted by owner, so the
- * package's build is the next stage and the ticket stays in progress; a branch that stayed in the shop settles as it always has (E10); a
- * change to an entity that is neither home nor whitelisted is still sent back (E11); a stage 1 that changed only the package is sent back
- * as work of another entity (E15). The package build answers only for its own commits, may commit nothing (E20) or reshape the package
- * (E21), is sent back for a change outside the package, then fails, also when all its commits lie outside the package, which is no work of
- * another entity (E23), and a retry still answers for the failed job's commits; it must state what the package exposes (E40). Its gate run
- * checks the package, then the package's dependents but the home, and a red one is its red handoff (E25, E26); a dependent's gate still red
- * once the resumes are spent ends the job and opens `dependent-broken` about the package and that dependent, while the package's own goes
- * the red handoff's way; a grouped ticket's run leaves out the dependents with a ticket in its group that is not abandoned (E26). The package
- * review settles its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31),
- * and one that does not hold sends the package build back with its Review, kept in its job folder since the ticket holds none (E34); one
- * that holds seals the ticket's own change to the package, a lockfile change of its stages among it (E3), and runs the home review when the
- * build stated no change of what the package exposes and the review confirmed it, else `adapt` (E40), and must confirm or correct the
- * statement; a package stage 1 changed that the whitelist no longer names is the next package build, which opens
- * `whitelist-removed-mid-crossing` (E19). A later stage whose branch no longer holds the sealed change is sent back once, then fails
- * (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `## Handoff` holds one part per stage that
- * built, each stage writing only its own, and a package build that refuses the change ends `refused` with a `package-refused` decision
- * about the package that holds the ticket, its reason kept in its job folder for stage 1 (E22). An adapt build that needs more of the
- * package ends `package-return`: the seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and
- * the reason waits for the package builder, while the adapt branch holds no change of the package (E42); a second return opens
- * `second-return` and keeps `adapt` (E45). A home review that does not hold goes back to `adapt` and in progress, after an adapt that ran
- * and after a skipped one (E51), and for a cause in the package `adapt`'s return reaches the package build (E52). With merge approval on,
- * a package review that holds moves on to the next stage, and only the home review waits in `merging-main`, once per ticket (E36). A red
- * home gate interrupts stage 1 and `adapt` on a red handoff that resumes the same job, gated by the home's gates alone, and starts no
- * package build (E16, E44). A package without gates runs none of its own in its build and review, which still settle and seal (E27). A
- * review catch-up that merges main, advanced in the package on lines the ticket did not touch, keeps the seal, and the home review passes
- * Customs with it (E35). A home review's fix in the admin app is sent back, one in the shop's files passes (E50).
+ * A ticket of the shop that crosses into the package `ui-kit`, stage by stage, on the entity-forge fixture: stage 1, the package build and
+ * review that seal the package change, `adapt` and the home review, each job verified by Customs against recorded git, gated and settled,
+ * with every way a stage is sent back, returned to the package or opens a decision.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';

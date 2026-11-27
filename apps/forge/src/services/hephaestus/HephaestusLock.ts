@@ -19,10 +19,9 @@ import type { StaleLockReason }                                   from '../track
 export type HephaestusLockRecord = HephaestusLockFileRecord;
 
 /**
- * The one reading every reader of the lock goes through. A lock of today's fields is judged by its process whatever its version, so a live
- * Hephaestus of older code reads live; one that cannot be read names no process, so it reads as dead and a start takes it over, logged. A
- * partial lock would hand the board to a second Hephaestus, so where hard links fail the claim is refused `hephaestus-lock-not-created-whole`,
- * never created by the open fallback.
+ * The one reading every reader of the lock goes through: a lock is judged by its process whatever its version, so a live Hephaestus of older
+ * code reads live, and an unreadable one reads as dead. A partial lock would hand the board to a second Hephaestus, so where hard links fail
+ * the claim is refused, never created by the open fallback.
  */
 export type HephaestusLockReading =
   | { verdict: 'none' }

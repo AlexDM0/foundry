@@ -1,8 +1,6 @@
 /**
- * What a fresh Assistant boots with. What matters: its first message is chat 1, carrying every open incident, the newest incident records
- * and the board; and an incident opened after its boot pass is never put into a first message already sent. Its model and effort are held by
- * `src/services/hephaestus/LaunchSettings.spec.ts`, and the launch command line it renders by the Assistant rows of
- * `src/services/hephaestus/CrashMatrix.spec.ts`.
+ * What a fresh Assistant boots with: its first message is chat 1, carrying every open incident, the newest incident records and the board,
+ * and an incident opened after its boot pass is never put into a first message already sent.
  */
 import { describe, expect, test } from 'bun:test';
 

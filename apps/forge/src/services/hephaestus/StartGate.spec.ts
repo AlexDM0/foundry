@@ -1,10 +1,7 @@
 /**
- * The start gate on a scratch data folder, over a process table and a boot the spec plants. What matters: only a start the user made serves
- * after a crash or a crash suspected before a reboot, a successor stays off; the crash log is written once, whoever reads the crash first,
- * so a second refused start or the user's start finds the first log standing; a crash of a Hephaestus lock generation that came round
- * again, after an older crash of that generation, writes a log of its own under the next number and the verdict names it; a start that died
- * before its presence write is named by its Hephaestus lock's holder; a reboot with a fresh beat writes no log; a Talos lost in this boot names Talos;
- * and a crash whose generation nothing names is logged once, with no generation.
+ * The start gate on a scratch data folder, over a planted process table and boot: only a start the user made serves after a crash or a
+ * suspected one; the crash log is written once whoever reads the crash first, a recurring generation gets the next number, and a reboot
+ * with a fresh beat writes no log.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {

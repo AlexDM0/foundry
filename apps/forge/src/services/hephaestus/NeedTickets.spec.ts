@@ -1,14 +1,7 @@
 /**
- * A need from declaration to its rerun, strategy section 4.3 steps 1 to 6, on a board of a forge with entities. What matters: the need is filed as its
- * entity's ticket, stamped `filedByJob`, with its title and body, `committed` with ticket review off and `ready-for-review` with it on; every ticket of
- * the declaring job waits on it, it waits on none of them, and each waiting ticket logs `need-declared`; the needs leave the board, which then holds no
- * `needs` key, also when the declaring job ends another way; a need for a root entity without gates opens `need-for-root` and files nothing, and one
- * with gates is filed; the waiting ticket keeps its status and launches nothing until the need is delivered, a reviewed need not being on the main line
- * yet, then its stage runs again in the same attempt, as stage 1 of its entity, and is told the needs it declared, resuming the session; the need
- * runs at the waiting ticket's priority, also once it is raised later; and an abandoned need drops out of `dependsOn` with a `need-abandoned`
- * decision that holds the ticket. A crossing ticket's package build that needs a third entity ends `needs-declared` and keeps the ticket in
- * stage 2 of the package, which launches nothing until the need is delivered and then runs the package build again; one that needs the
- * home entity, which consumes the package, opens `need-closes-circle` (E24).
+ * A need from declaration to its rerun on a forge with entities: filed as its entity's ticket, which every ticket of the declaring job waits
+ * on until it is delivered and then reruns its stage in the same session; an abandoned need opens `need-abandoned`, a root entity without
+ * gates `need-for-root`, and a package build needing the home entity `need-closes-circle`.
  */
 import {
   afterEach,
@@ -74,7 +67,7 @@ interface DeclaredBoard {
   change:   BoardTransaction;
 }
 
-/** Ticket 001 of `web` in progress, its build J1 having declared `NEED` and nothing else logged yet. */
+/** Ticket `001` of `web` in progress, its build `J1` having declared `NEED` and nothing else logged yet. */
 function boardWithADeclaredNeed(pipeline: Pipeline = entityPipelineFixture(), need: typeof NEED = NEED): DeclaredBoard {
   const fixture = boardFixture({ pipeline, tickets: [ticketFixture({ id: '001', status: 'in-progress', entity: 'web' })] });
   fixture.board.setHephaestusState('running', AT);
@@ -298,7 +291,7 @@ function crossingPipelineWithIcons(): Pipeline {
   };
 }
 
-/** The shop's ticket 001 in stage 2, its package build J1 of `ui-kit` having declared a need of `needEntity`, filed and ended. */
+/** The shop's ticket `001` in stage 2, its package build `J1` of `ui-kit` having declared a need of `needEntity`, filed and ended. */
 function packageBuildThatDeclared(needEntity: string): DeclaredBoard {
   const fixture = boardFixture({
     pipeline: crossingPipelineWithIcons(),

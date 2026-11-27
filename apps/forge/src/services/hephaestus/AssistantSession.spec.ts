@@ -1,12 +1,6 @@
 /**
- * The Assistant's turns on a board, with its session's readings given as values. What matters: incidents go out only while it is idle, as
- * the next numbered chat; the n-th `result` closes chat n and its open incidents default after the hold's moves were applied; the open
- * turn's call budget defaults them too; past the context-token count its input closes; one that went down ends, never resumes, and what it
- * was delivered goes to the fresh one, but for one a network outage or a lease end interrupted, which waits for User's resume as any job; a
- * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; a
- * wind-down once asked completes, the switch on again or not, and one that went down while winding down ends `closed`; a chats file that
- * cannot be read opens its incident on the Assistant in the hold and retires it, a winding-down one too, so a fresh one boots and no
- * incident stalls, and the file is never overwritten; and every move outside its incidents is refused at the Hatch.
+ * The Assistant's turns on a board, with its session's readings given as values: when incidents and User's messages go out, when a turn
+ * closes and its incidents default, how one that went down or winds down ends, and that every move outside its incidents is refused.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

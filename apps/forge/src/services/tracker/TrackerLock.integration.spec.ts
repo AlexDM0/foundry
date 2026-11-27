@@ -1,8 +1,7 @@
 /**
- * The things `withLock` promises: serialisation, takeover of a lock only once its holder's process is gone (a dead id, or an id that
- * now runs another process), never by the record's age, and the fail-closed direction: a live holder keeps the lock however long it
- * holds, an unreadable record refuses at once, and a path that is not the lock directory is waited for, never assumed free. The crash
- * cases through the store's local adapter are in `src/services/store/LocalFilesBoardStore.integration.spec.ts`.
+ * What `withLock` promises: serialisation, takeover only once the holder's process is gone (a dead id, or an id now running another process),
+ * never by age; a live holder keeps the lock, an unreadable record refuses at once, and a path that is not the lock directory is waited for.
+ * The crash cases are in `src/services/store/LocalFilesBoardStore.integration.spec.ts`.
  */
 import {
   mkdirSync,

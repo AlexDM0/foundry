@@ -1,9 +1,7 @@
 /**
- * After the hold, the frames User's job controls ask of a live child (design section 7.4): every `job-messaged` record as a chat line in log
- * order, with the pictures it names read from the board's picture store, the wind-down turn of a `wind-down` request, and a session's quit
- * at its turn end, with a stop frame after it for a `stop`, and the quit of a job that ended while its session ran. A frame waits until its
- * child is live, and a marker written once it was taken keeps a restart from sending it again, unless Hephaestus died before the marker:
- * delivery is at least once.
+ * After the hold, the frames User's job controls ask of a live child: chat lines with their pictures, wind-downs, quits and stops. A frame
+ * waits until its child is live, and a marker written once it was taken keeps a restart from sending it again, unless Hephaestus died
+ * before the marker: delivery is at least once.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }                        from 'node:path';

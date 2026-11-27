@@ -1,11 +1,7 @@
 /**
- * Landing on git answers recorded from a real main checkout and feature commit by `src/lib/git/RecordedGitAnswers.integration.spec.ts`.
- * What matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands;
- * main lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit
- * reads as already landed; every refusal maps to a typed outcome; and a ticket with documents is accounted for against its approved spec. A
- * tracker in a project folder shares its landings through the git common directory, and one at its repository's root asks git nothing for
- * them; an already-landed rerun writes the journal line a stop cut off, once. Each stage names every call in order, so a call it does not
- * name fails. The journal and the lock themselves are held by `Airlocks.siblingTrackers.spec.ts`.
+ * Landing on recorded git answers (`src/lib/git/RecordedGitAnswers.integration.spec.ts`): a moved target never lands; main lands by a
+ * fast-forward and a group branch by `merge --ff-only`; a crash's half-landed commit reads as landed; every refusal maps to a typed outcome;
+ * a tracker in a project folder journals each landing once. Each stage names every git call in order, so an unnamed call fails.
  */
 import {
   existsSync,

@@ -1,8 +1,7 @@
 /**
- * How an interrupted job comes back, design section 3.6: its next child instance resumes the agent's session alone in the same working
- * directory, told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the
- * fresh job after a `replaced` one is told that an earlier session's uncommitted changes are its work. A job carries on only a session of
- * its own entity and stage (E29).
+ * How an interrupted job comes back: its next child instance resumes the agent's session alone in the same working directory, told first
+ * that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the fresh job after a
+ * `replaced` one is told an earlier session's uncommitted changes are its work. A job carries on only a session of its own entity and stage.
  */
 import {
   existsSync,
@@ -189,7 +188,7 @@ type SessionOwnerSubject = Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketId
 /** A build of the same attempt, entity and stage carries on the session of a build that ended so: sent back by its review, or its needs settled. */
 const SESSION_CARRYING_OUTCOMES: readonly string[] = ['built', 'needs-declared'];
 
-/** A crossing ticket's `adapt` (stage 4) carries on the home builder's session of `build` (stage 1) when it exists (E43). */
+/** A crossing ticket's `adapt` (stage 4) carries on the home builder's session of `build` (stage 1) when it exists. */
 const ADAPT_STAGE_NUMBER = 4;
 
 const BUILD_STAGE_NUMBER = 1;
@@ -201,10 +200,9 @@ function adaptTakesUp(sessionScope: SessionScope | undefined, jobScope: SessionS
 }
 
 /**
- * The job whose session a build job carries on: a build of the same attempt, entity and stage after one that ended `built` was sent back by
- * its review, or after one that ended `needs-declared` once its needs are settled, and resumes that builder's session (itself perhaps carried
- * on from an earlier one). An `adapt` job after the package stages carries on the newest home build of stage 1 or 4 that ended so, whatever
- * its attempt; with none it starts fresh (E43). The job itself for every other job.
+ * The job whose session a build job carries on: the same attempt, entity and stage's builder that ended `built` and was sent back, or ended
+ * `needs-declared` and had its needs settled. An `adapt` job after the package stages carries on the newest home build of stage 1 or 4 that
+ * ended so, whatever its attempt, or starts fresh. The job itself for every other job.
  */
 function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string {
   if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);
@@ -274,7 +272,7 @@ interface AirlockAgentPredecessors {
 
 /**
  * A last worker of another entity or stage than the Airlock agent's is no worker it stands in for. An Airlock agent of an entity stands in
- * for the newest worker of its own entity and stage, so a package's builder resolving its part of a conflict resumes its session (E62).
+ * for the newest worker of its own entity and stage, so a package's builder resolving its part of a conflict resumes its session.
  */
 function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Omit<SessionOwnerSubject, 'kind'>): AirlockAgentPredecessors {
   const ownLaunchIndex         = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
@@ -355,11 +353,9 @@ function recordStaleGreenSessionOwner(trackerDirectory: string, job: Readonly<Jo
 }
 
 /**
- * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
- * handoff, when its job folder shows that session started and it ran the job's entity and stage. `null` for every other job, and a fresh
- * session takes the handoff over. Once the first instance recorded its answer, every instance answers the same, so an interrupted
- * stale-green resume resumes that session again, never one of its own, though another same-work job ended in between. A recorded answer
- * that cannot be read is `unreadable`: nothing that needs it guesses another session.
+ * The ended session a fresh job resumes to fix a red stale green: the newest predecessor's that left the handoff, when that session started
+ * and ran the job's entity and stage; `null` otherwise. The first instance's recorded answer holds for every later one, though another
+ * same-work job ended in between, and an unreadable record is `unreadable`, so nothing guesses another session.
  */
 function staleGreenSessionOwnerOf(
   children: BoardChildren,

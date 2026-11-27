@@ -1,18 +1,7 @@
 /**
- * The merge rows of the crash, reboot and update matrix: an Airlock or a refresh cut short between git and the board, and what the next sweep
- * makes of it. What matters: a landing whose fast-forward git already made finishes the board side; a merge-in left with no live holder is
- * aborted, reset to its branch tip and requeued, never two refreshes on a group at once; a live or interrupted Airlock agent keeps its slot;
- * a conflict re-reviewer cut short keeps the slot while it lives, is relaunched as the same attempt once replaced, and frees the slot as
- * orphaned once it ended otherwise; a target moved by hand requeues and never lands on the moved tip; and a constitution commit job left in
- * `committing` is replaced, one cut short after its fast-forward finishes on the board side, a waiting request with no live job gets one,
- * and a main line already holding the text finishes Apply with no commit. After a start, a landing journal line a stop cut off is written
- * so a sibling requeues rather than meeting `target-moved`, a release's cleanup a stop cut off runs again once, and a slot a stop left
- * restored before its hold is held `interrupted:merge`. After a start that leaves work waiting (a reboot, a stop on purpose or a crash), an
- * orphaned merge, an Airlock agent or conflict re-reviewer the start found interrupted, is aborted and its ticket held `interrupted:merge`
- * until `resume <T>`, a live one keeps its slot, an orphaned constitution commit holds its Apply until `resume --all`, and a refresh, which
- * holds no ticket, is freed as before. The other rows are in `CrashMatrix.integration.spec.ts`. The folders are real; git
- * answers from recorded answer sets, one for each state of the repository, and a crash after a git call is the case entering the set of the
- * state that call left.
+ * The merge rows of the crash, reboot and update matrix: an Airlock, a refresh or a constitution commit cut short between git and the board,
+ * and what the next sweep or start makes of it. Git answers from recorded answer sets, one for each state of the repository, and a crash
+ * after a git call is the case entering the set of the state that call left.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 
@@ -474,7 +463,7 @@ describe('the group merge rows', () => {
     expect(existsSync(groupWorktreeOf(current))).toBe(true);
   });
 
-  /** A refresh holds no ticket, so even a start that waits frees its slot and lets it start again (WP3.9). */
+  /** A refresh holds no ticket, so even a start that waits frees its slot and lets it start again. */
   async function refreshCutShortMidMerge(startHoldsOrphans: boolean): Promise<void> {
     harness = createRecordedGroupHarness([{ id: '010', group: 'example', status: 'reviewed' }]);
     const current = harness;

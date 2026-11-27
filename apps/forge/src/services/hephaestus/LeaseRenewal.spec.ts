@@ -1,8 +1,7 @@
 /**
- * The lease renewal on a fake timer, a fake wall clock, a fake connection and a fake pass progress. What matters: a renewal is earned by
- * progress, so the same pass in flight at two ticks withholds it while an idle loop and a pass that ended renew; a late tick and a clock
- * moved back are gaps that renew, since a pass caught by a sleep must not cost the agents their lease; and nothing throws into the main
- * loop, a missing connection or an unanswered renewal only logged, `onRenewed` called only on `done`, a withheld streak logged once.
+ * The lease renewal on a fake timer, clock, connection and pass progress: a renewal is earned by progress, so a pass in flight at two ticks
+ * withholds it; a late tick or a clock moved back renews, since a pass caught by a sleep must not cost the agents their lease; and nothing
+ * throws into the main loop.
  */
 import {
   afterEach,

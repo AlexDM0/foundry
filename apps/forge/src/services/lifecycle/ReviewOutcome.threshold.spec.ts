@@ -1,9 +1,7 @@
 /**
- * Which pipeline's review sets the rework threshold of a ticket that crosses into no package. What matters: on a pipeline with entities it
- * is the ticket's own entity's review, never the forge's top level, which such a pipeline leaves without a review; an entity whose review
- * has no re-review grants no round and shows no ticket of it as not converging; a crossing ticket's newest review on a package stage is
- * measured against the reviewing package's threshold, as Settle measured it; and a pipeline without entities reads its own review as
- * before.
+ * Which pipeline's review sets the rework threshold of a ticket that crosses into no package: on a pipeline with entities, the ticket's own
+ * entity's review (one without re-review grants no round); for a crossing ticket's newest package-stage review, the reviewing package's; and
+ * on a pipeline without entities, its own review.
  */
 import { describe, expect, test } from 'bun:test';
 

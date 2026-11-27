@@ -1,9 +1,6 @@
 /**
- * The crash path of a live process on a scratch data folder, with a fake lease renewal and a fake registry write. What matters: the crash log
- * and the presence ending `crashed` are on disk before the registry is told, so a dying process has made them; the renewal stops, so Talos's
- * lease runs out and the agents wait; a registry write that never settles is cut off at the bound; a crash log already there is kept; an
- * input that throws leaves its part null and the path never throws; a crash log that cannot be written leaves the ending and the registry
- * naming no log. No spec here registers a process listener.
+ * The crash path of a live process on a scratch data folder, with a fake lease renewal and registry write: the crash log and the `crashed`
+ * ending are on disk before the registry is told, and the path never throws. No spec here registers a process listener.
  */
 import {
   existsSync,

@@ -1,8 +1,7 @@
 /**
- * User's document moves through the control service. What matters: each page kind reaches its Board move with the ticket its reference
- * names; a save reads the body judge for nothing and answers `nothing-to-do` for the head's own text; an approval records the main line's
- * tip as git answers at the repository root, and a spec without numbered Acceptance, as `TicketAcceptanceUtil` reads it, is refused; a
- * proposal that conflicts tells its agent in the board's own words; and an approval that leaves both documents approved readies the draft.
+ * User's document moves through the control service: each page kind reaches its Board move with the ticket its reference names; a save of the head's
+ * own text answers `nothing-to-do`; an approval records the main line's tip and refuses a spec without numbered Acceptance; and an approval that
+ * leaves both documents approved readies the draft.
  */
 import {
   afterEach,

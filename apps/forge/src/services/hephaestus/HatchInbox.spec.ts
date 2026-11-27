@@ -1,8 +1,6 @@
 /**
- * A product owner's `ticket entity` relayed through the Hatch inbox, which builds the job record the Bouncer reads from the Board. What
- * matters: the record lists every ticket in `ready-for-review` or `committed`, whatever job filed it, so the product owner sets the entity of
- * one another job filed, stamped with its own job and logged `by: product-owner`; a ticket already claimed by a builder is out of its reach. A
- * request whose bytes are not UTF-8 is pending as refused, so it is answered rather than read again on every pass.
+ * A product owner's `ticket entity` through the Hatch inbox: it reaches any ticket in `ready-for-review` or `committed`, whatever job filed
+ * it, but not one a builder claimed; a request whose bytes are not UTF-8 is refused rather than read again on every pass.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname }                  from 'node:path';

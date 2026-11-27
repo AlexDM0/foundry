@@ -1,10 +1,7 @@
 /**
- * `merge accept` and `merge update`. What matters: an accept is refused with merge approval off, for a ticket not waiting for merge, and
- * whenever git does not predict a clean merge into the target's current tip, and only a clean prediction sets `mergeAccepted`; an update
- * merges the target into the ticket's worktree with no Airlock held, leaving the queue mark for Hephaestus's gate run, while a conflict is
- * aborted, the worktree put back at its tip, and the ticket loses its review done and its accept. A merge git refuses to start resets
- * nothing, so an uncommitted edit in its way stays.
- * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, so each case names the git calls its command makes.
+ * `merge accept` and `merge update`: an accept needs merge approval on, a ticket waiting for merge and a clean predicted merge; an update merges the
+ * target into the ticket's worktree, and a conflict is aborted and loses the review done and the accept. Git plays `src/testing/RecordedGit.ts`, so
+ * each case names the git calls its command makes.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -61,7 +58,7 @@ interface Scenario {
   apply: (command: ControlCommand, stage: RecordedGitStage) => Promise<unknown>;
 }
 
-/** Ticket 001 in review on main, its worktree folder planted and its green current and queued on the planted branch tree. */
+/** Ticket `001` in review on main, its worktree folder planted and its green current and queued on the planted branch tree. */
 function scenario(mergeApprovalIsOn = true): Scenario {
   const root = createPlantedRepository('airlock-controls');
   repository = root;

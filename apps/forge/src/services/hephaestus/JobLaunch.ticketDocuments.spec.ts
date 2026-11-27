@@ -1,8 +1,6 @@
 /**
- * What a build or a review reads of its ticket's documents, and what Customs compares. What matters: a builder reads the spec and the plan
- * at their approved heads, a reviewer the plan only once a person approved it; any other job and a ticket without documents read none;
- * the launch records every document's head, which V18 compares; V8 reads the approved spec's Acceptance and V11 the paths of the body, the
- * spec and the plan.
+ * What a build or a review reads of its ticket's documents: a builder the spec and plan at their approved heads, a reviewer the plan once a
+ * person approved it; the launch records every document's head, which the document check (`ticketDocumentsUnchanged`) compares.
  */
 import { describe, expect, test } from 'bun:test';
 

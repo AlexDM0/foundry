@@ -1,11 +1,7 @@
 /**
- * The model and effort each role's session launches on. What matters: every role reads its own pipeline step and falls back field by field
- * to its default, the pipeline agent defaulting to opus and high; every value of both vocabularies reaches the launch unchanged; and an
- * Airlock agent takes the pair its last worker recorded, its own role's only when none was recorded, while a conflict re-reviewer reads
- * its own step. The spec and plan agents read their own steps, sonnet and medium and opus and high by default; the effect reader is no
- * pipeline role and launches on haiku and low. A job of an entity reads its entity's step, and the forge's for the roles a forge sets
- * once; a job of an entity the pipeline no longer holds takes its role's default. That a resume keeps the recorded pair is held by
- * `cli/hephaestus/HephaestusBuildJob.spec.ts`.
+ * The model and effort each role's session launches on: every role reads its own pipeline step, a job of an entity its entity's, and falls
+ * back field by field to its role's default; an Airlock agent takes the pair its last worker recorded; and the effect reader, no pipeline
+ * role, launches on haiku and low. That a resume keeps the recorded pair is held by `cli/hephaestus/HephaestusBuildJob.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 

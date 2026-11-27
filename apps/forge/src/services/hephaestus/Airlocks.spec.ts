@@ -1,9 +1,7 @@
 /**
- * A group's Airlock in its own worktree (design section 6). What matters: a group's tickets and refreshes land by `merge --ff-only` in the
- * group's own worktree, a refresh is due only as MergeQueueUtil says and never beside a queued release, and the release lands the whole
- * bundle on main; a refused slot stops the merged-tree gates in its worktree as it frees. `Airlocks.mainLine.spec.ts` holds the main line's
- * slot and `Airlocks.conflicts.spec.ts` a conflict. The folders are real; git answers from recorded answer sets, one for each state of the
- * repository, each handing on to the next as a call moves it.
+ * A group's Airlock in its own worktree: its tickets and refreshes land there by `merge --ff-only`, a refresh is due only as `MergeQueueUtil` says
+ * and never beside a queued release, and the release lands the whole bundle on main. Git answers from recorded answer sets, one for each state of the
+ * repository.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

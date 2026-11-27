@@ -1,9 +1,7 @@
 /**
- * V12 to V14 on recorded git scenarios: what a reviewer filed must be this job's own low draft finding, read from its filing record
- * whatever triage did since; no commit or worktree file may touch agent configuration, before a launch or after a job; and no ref but
- * the job's own branch may move outside a recorded landing. Each planted case refuses with its reason, its clean twin passes. Each state is
- * a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` walks real git through and records; a call it did not
- * record fails the case. A file the hooks digest reads is written here, since the digest reads the folder, not git.
+ * The filing, agent-configuration and ref checks on recorded git scenarios: a reviewer's filing must be this job's own low draft finding, no
+ * commit or worktree file may touch agent configuration, and no ref but the job's branch may move outside a recorded landing.
+ * A file the hooks digest reads is written here, since the digest reads the folder, not git.
  */
 import {
   chmodSync,
@@ -135,8 +133,8 @@ function jobEndedRecord(jobId: string, outcome: 'landed' | 'refreshed' | 'commit
 const OWN_BUILD_JOB_ID = 'J9';
 
 /**
- * A live build job whose exemptions are read from Hephaestus's records: ticket 378 releases `group-example`, and constitution commit job
- * C1 commits in `commitWorktree`.
+ * A live build job whose exemptions are read from Hephaestus's records: a release ticket releases `group-example`, and a constitution
+ * commit job commits in `commitWorktree`.
  */
 function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = '', commitWorktree = ''): CustomsSubject {
   return {

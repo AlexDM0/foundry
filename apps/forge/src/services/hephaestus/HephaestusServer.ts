@@ -1,11 +1,7 @@
 /**
- * Hephaestus's HTTP and SSE API on 127.0.0.1, design section 9.3. Every request needs a loopback Host, against DNS rebinding; one whose
- * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
- * origin's page. `GET /api/versions` answers at every moment, and each endpoint the compatibility registry serves also answers at its
- * `/api/v<n>/<endpoint>`, through its unversioned route. The versions, the identity, the summary and the nudge are open; every other
- * route needs the bearer token, the only credential there is. Every answer carries `API_CONTENT_SECURITY_POLICY`, a served file and a
- * picture a sandbox of their own. A 401, a 403 and a read route's 500 answer `{refusal, text}`. What a command does, and how a refusal
- * is worded, is the command surface's.
+ * Hephaestus's HTTP and SSE API on 127.0.0.1. A loopback Host is required against DNS rebinding, and a foreign Origin gets 403 with no
+ * CORS header, so the token never reaches another origin's page. Every route but the versions, identity, summary and nudge needs the
+ * bearer token; what a command does and how a refusal is worded is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
 

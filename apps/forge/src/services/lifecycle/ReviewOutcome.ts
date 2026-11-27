@@ -44,13 +44,13 @@ export interface ReviewPassRequest {
 }
 
 /**
- * The package review of a crossing ticket (E30, E31): its rounds and its record as any review's, but it moves neither the ticket's status
- * nor its merge queue. It writes no `## Review`, since the home stages read its text from its job folder (E32), and it proposes no waiver,
- * since no package stage accounts for the ticket's Acceptance.
+ * The package review of a crossing ticket: its rounds and its record as any review's, but it moves neither the ticket's status nor its merge
+ * queue. It writes no `## Review`, since the home stages read its text from its job folder, and it proposes no waiver, since no package
+ * stage accounts for the ticket's Acceptance.
  */
 export interface PackageReviewSettlement {
   /**
-   * The review does not hold: the package build runs again with `reviewSection`, the Review the ticket does not hold (E34). Called after the
+   * The review does not hold: the package build runs again with `reviewSection`, the Review the ticket does not hold. Called after the
    * job ended `does-not-hold`; returns its records.
    */
   sendBackToThePackageBuild: (reviewSection: string) => readonly LogRecord[];
@@ -170,7 +170,7 @@ function recordedRoundsOf(board: Board, job: Readonly<Job>): { round: number; fi
 }
 
 /**
- * The pipeline whose review sets the rework threshold: for a ticket that crosses into a package, the reviewing entity's (E31); for any
+ * The pipeline whose review sets the rework threshold: for a ticket that crosses into a package, the reviewing entity's; for any
  * other, the ticket's own (`Board.ticketPipelineOf`), its entity's on a pipeline with entities.
  */
 function reviewingPipelineOf(board: Board, job: Readonly<Job>): Readonly<Pipeline> | null {
@@ -309,11 +309,9 @@ export type WaiverAnswerOutcome =
   | { verdict: 'proposals-unreadable'; proposalsPath: string; reason: string };
 
 /**
- * Acts on User's recorded answer to the review job's `waiver` decision, in Hephaestus's hold after the answer: granted, each proposed
- * item is written waived and the ticket queued to merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits
- * unqueued for a fresh review, which gates it); refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant
- * whose stored proposals are missing waives nothing it cannot name, so it fails closed as that same failed pass, its cause recorded; one
- * whose proposals cannot be read leaves the job waiting, for its caller to open the unreadable file's incident.
+ * Acts on User's recorded answer to the `waiver` decision: a grant writes each proposed item waived and queues the ticket while its green is
+ * current on `headTree` (else it waits for a fresh review), a refusal fails the pass; a grant with missing proposals waives nothing it cannot
+ * name and fails the same way, and one with unreadable proposals leaves the job waiting, for its caller to open that file's incident.
  */
 function actOnWaiverAnswer(
   board: Board, jobId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string

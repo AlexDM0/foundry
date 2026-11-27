@@ -1,8 +1,7 @@
 /**
- * Hephaestus's side of the Hatch: every job's folder `<W>/hatch/<J>/` is mapped to its job record, which alone gives the request its job
- * and role; a folder whose job is neither live nor awaiting verification is not read. Each pending request is applied in the DrivePass
- * hold through the role policy and `ControlService`, its id and reply logged on a `hatch-applied` record so a replay never applies it
- * twice, and its reply written once the hold committed, or again from that record when it was lost.
+ * Hephaestus's side of the Hatch: each job folder `<W>/hatch/<J>/` maps to its job record, which alone gives a request its job and role.
+ * A request is applied in the DrivePass hold and logged on a `hatch-applied` record, so a replay never applies it twice; its reply is
+ * written only once the hold committed, or again from that record when it was lost.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -110,7 +109,7 @@ function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[
   });
 }
 
-/** The packages sealed for the ticket of a job of an entity, which no need may name (E42); nothing for any other job. */
+/** The packages sealed for the ticket of a job of an entity, which no need may name; nothing for any other job. */
 function sealedPackagesOf(board: Board, job: Readonly<Job>): Pick<RelayingJob, 'sealedPackages'> {
   const [ticketId] = job.ticketIds;
   if (job.entity === undefined || ticketId === undefined) return {};

@@ -1,7 +1,7 @@
 /**
  * The stages of a ticket that crosses into whitelisted packages (strategy 4.2), as Hephaestus runs them: which packages the branch crossed
  * into after stage 1, what Customs holds each stage to, the statement each package stage leaves in its job folder, whether `adapt` is
- * skipped (E40), and what each stage's session is told.
+ * skipped, and what each stage's session is told.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -29,7 +29,7 @@ export interface CrossedPackageResult {
   reviewText:            string;
 }
 
-/** A sealed package's review as the home review reads it (E32): the package reviewer writes there what it saw in the home's files. */
+/** A sealed package's review as the home review reads it: the package reviewer writes there what it saw in the home's files. */
 export interface SealedPackageReview {
   entity:     string;
   reviewText: string;
@@ -39,7 +39,7 @@ export interface SealedPackageReview {
  * What a job of a ticket that crosses into whitelisted packages is told of its stage (strategy 4.2). The job's `entity` is the entity the
  * stage runs under: the home entity in `build`, `adapt` and `review`, the package in `package-build` and `package-review`.
  */
-/** A package build that refused the ticket's change of its package, and why (E22): stage 1 takes that change back out. */
+/** A package build that refused the ticket's change of its package, and why: stage 1 takes that change back out. */
 export interface RefusedPackageChange {
   entity:        string;
   refusedReason: string;
@@ -84,7 +84,7 @@ function reachOf(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey): rea
 
 /**
  * In stage 1 the builder may write a proposal in the homes of the packages its entity whitelists; in no other stage. A package whose build
- * refused the ticket's change is left out (E22), so a stage 1 that still changes it is sent back.
+ * refused the ticket's change is left out, so a stage 1 that still changes it is sent back.
  */
 function proposalHomesOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'entity' | 'stage'>>, packagesLeftOut: readonly EntityKey[] = []): string[] {
   if (job.entity === undefined || job.stage !== TicketStageUtil.stageNumberOf('build')) return [];
@@ -113,8 +113,8 @@ function pathspecOf(home: string): string {
 }
 
 /**
- * What a package's seal covers: its homes, each deeper home of another entity left out, which that entity owns (E2), and the `reach` paths
- * its package stages changed, as git spells them (E3).
+ * What a package's seal covers: its homes, each deeper home of another entity left out, which that entity owns, and the `reach` paths
+ * its package stages changed, as git spells them.
  */
 function sealPathspecsOf(pipeline: Readonly<Pipeline> | null, packageKey: EntityKey, sealedReachPaths: readonly string[] = []): string[] {
   const entities = entitiesOf(pipeline);
@@ -229,7 +229,7 @@ function newestEndedStageJobOf(logRecords: readonly LogRecord[], ticketId: strin
 }
 
 /**
- * The Review of the newest package review of `packageKey`, when it did not hold: the package build it sent back fixes what it found (E34).
+ * The Review of the newest package review of `packageKey`, when it did not hold: the package build it sent back fixes what it found.
  * `null` when the newest package review held, or none ended.
  */
 function packageReviewFindingsOf(
@@ -244,7 +244,7 @@ function packageReviewFindingsOf(
 
 /**
  * Whether the ticket's newest ended build or review job is a package review: an `adapt` job launched now takes up the home builder's session
- * after the package stages (E43), not after a home review that did not hold (E51).
+ * after the package stages, not after a home review that did not hold.
  */
 function followsThePackageStages(logRecords: readonly LogRecord[], ticketId: string): boolean {
   const stageByJobId = new Map<string, number | undefined>();
@@ -281,7 +281,7 @@ function packageStageStatementsOf(
 }
 
 /**
- * What the newest adapt build of the ticket that sent it back to `packageKey` wrote the package must give (E41, E42); `null` when no adapt
+ * What the newest adapt build of the ticket that sent it back to `packageKey` wrote the package must give; `null` when no adapt
  * build sent it back there.
  */
 function packageReturnReasonOf(
@@ -305,7 +305,7 @@ function sealedPackageStatementsOf(board: Board, trackerDirectory: string, ticke
 }
 
 /**
- * Whether `adapt` is skipped (E40): for every crossed package the package builder stated that what the package exposes did not change
+ * Whether `adapt` is skipped: for every crossed package the package builder stated that what the package exposes did not change
  * from the proposal, and the package reviewer confirmed it. A statement left out counts as a change.
  */
 function adaptIsSkipped(statements: readonly PackageStageStatements[]): boolean {
@@ -331,7 +331,7 @@ function rowCrossingPackagesOf(board: Board, ticketId: string): EntityKey[] {
   return [...new Set([...sealedPackages, ...packageStage])];
 }
 
-/** Each package whose build refused the ticket's change (E22), newest refusal last, with the job that refused it. */
+/** Each package whose build refused the ticket's change, newest refusal last, with the job that refused it. */
 function refusedPackageJobsOf(logRecords: readonly LogRecord[], ticketId: string): { entity: EntityKey; jobId: string }[] {
   const packageBuildNumber = TicketStageUtil.stageNumberOf('package-build');
   const packageByJobId = new Map<string, EntityKey>();
@@ -351,7 +351,7 @@ function refusedPackageJobsOf(logRecords: readonly LogRecord[], ticketId: string
   return refused;
 }
 
-/** The packages whose build refused the ticket's change: stage 1 of the ticket may no longer write a proposal there (E22). */
+/** The packages whose build refused the ticket's change: stage 1 of the ticket may no longer write a proposal there. */
 function refusedPackagesOf(logRecords: readonly LogRecord[], ticketId: string): EntityKey[] {
   return refusedPackageJobsOf(logRecords, ticketId).map(({ entity }) => entity);
 }
@@ -372,7 +372,7 @@ function refusedPackageChangesOf(trackerDirectory: string, logRecords: readonly 
 
 /**
  * User answered a `whitelist-removed-mid-crossing` decision of the ticket with "finish under the old whitelist" since its crossing began: its
- * newest move back to `build`, or its newest entity assignment (E19).
+ * newest move back to `build`, or its newest entity assignment.
  */
 function finishesUnderTheOldWhitelist(logRecords: readonly LogRecord[], ticketId: string): boolean {
   const whitelistDecisionIds = new Set<string>();
@@ -392,7 +392,7 @@ function finishesUnderTheOldWhitelist(logRecords: readonly LogRecord[], ticketId
 
 /**
  * The packages the ticket may cross into: its home's whitelist, with the packages of its stored crossing once User chose to finish it
- * under the old whitelist (E19), and without the packages whose build refused its change (E22).
+ * under the old whitelist, and without the packages whose build refused its change.
  */
 function ticketWhitelistOf(board: Board, ticketId: string, homeEntity: EntityKey): EntityKey[] {
   const logRecords = board.logRecordsSoFar();
@@ -403,7 +403,7 @@ function ticketWhitelistOf(board: Board, ticketId: string, homeEntity: EntityKey
 
 /**
  * The packages of the ticket's stored crossing that its home's whitelist no longer names, unless User chose to finish under the old
- * whitelist (E19). None for a ticket that crosses into no package.
+ * whitelist. None for a ticket that crosses into no package.
  */
 function packagesRemovedMidCrossingOf(board: Board, ticketId: string, homeEntity: EntityKey): EntityKey[] {
   if (board.ticketStageOf(ticketId) === null || finishesUnderTheOldWhitelist(board.logRecordsSoFar(), ticketId)) return [];
@@ -414,7 +414,7 @@ function packagesRemovedMidCrossingOf(board: Board, ticketId: string, homeEntity
 /**
  * The packages the branch crosses into once a package review sealed one: those the ticket may cross into, and each package its stage 1
  * changed that the home's whitelist no longer names, since its package build had not started. That proposal is no longer crossable, so the
- * package's build opens `whitelist-removed-mid-crossing` as for a crossed package (E19). A package whose build refused the change stays out.
+ * package's build opens `whitelist-removed-mid-crossing` as for a crossed package. A package whose build refused the change stays out.
  */
 function packagesCrossedAfterAPackageReviewOf(board: Board, ticketId: string, homeEntity: EntityKey, changedPaths: readonly string[]): EntityKey[] {
   const refusedPackages = refusedPackagesOf(board.logRecordsSoFar(), ticketId);

@@ -1,13 +1,7 @@
 /**
- * A job's transcript from its child event logs. What matters: a client line reads as what it said, never as Talos's frame JSON, and
- * who sent it is derived from the board's own records. A build job's first message, wind-down and resume lines are Hephaestus's; a chat
- * equal to User's next unmatched `job message` is User's, so the same text sent twice matches two records in order; an answer is User's
- * unless the Assistant gave it under an incident. Hephaestus's wording of a setup move, sent to the pipeline agent like a message and
- * logged `byHephaestus`, is Hephaestus's chat, so its step prompt never shows as User's words. The Assistant's k-th chat is chat k: chat 1
- * its first message, and an incident delivery carries its chat number and incidents. A follower that resumes after a cursor goes on
- * counting from the lines before it. Agent lines keep `toolUseId`, a `result` closes the turn as `turn-end`, and the entries of one log
- * line share its cursor and differ in `entryKey`. A chat with pictures carries each picture's id (the sha256 of its bytes), size, type and
- * the name User's record gave it, never its bytes.
+ * A job's transcript from its child event logs: a client line reads as what it said, never as Talos's frame JSON, and whether User, the
+ * Assistant or Hephaestus sent it is derived from the board's own records; chats are numbered across resumes, agent lines keep `toolUseId`,
+ * a `result` closes the turn, and a chat's pictures carry their sha256 ids and names, never their bytes.
  */
 import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';

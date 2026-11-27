@@ -1,8 +1,6 @@
 /**
- * V10's conflict-marker and whitespace check, on git answers recorded from real merges by `src/lib/git/RecordedGitAnswers.integration.spec.ts`.
- * What matters: V10 checks a resolution with `cr-at-eol` added to the repository's own `core.whitespace`, so a resolution in a repository
- * holding CRLF blobs passes; a real trailing space or a left conflict marker still refuses; and several hundred long conflicted paths are cut
- * into argvs under `GIT_PATHSPEC_ARGUMENT_CHARACTERS`, each one checked, a bad file in the last argv still refusing.
+ * The conflict-marker and whitespace check (`mergeIsResolved`) on git answers recorded from real merges: `cr-at-eol` joins the repository's
+ * `core.whitespace`, so CRLF blobs pass while a trailing space or a left marker refuses, and a long list of paths is cut into several argvs.
  */
 import {
   afterEach,
@@ -58,7 +56,7 @@ function airlockAgentSubject(conflictedFiles: readonly string[]): CustomsSubject
   };
 }
 
-/** The calls V10 makes up to its checks: the unmerged paths, the merge in range and the repository's whitespace rule. */
+/** The calls `mergeIsResolved` makes up to its checks: the unmerged paths, the merge in range and the repository's whitespace rule. */
 function callsBeforeTheChecks(whitespaceRule: GitCallShape = GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET): RecordedGitStage {
   return [
     { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },

@@ -1,9 +1,6 @@
 /**
- * The machine-wide cap on gate runs. What matters: with the cap at 2 a third gate run waits until one of the two ends; a holder asking
- * again keeps the slot it holds rather than taking a second; a slot whose holder is no longer live is taken over without a release; and
- * the slots are files, so two Hephaestus processes sharing the folder share the cap. A gate line with no child record is judged by the process
- * recorded with its slot, the acquirer's until the launch is recorded, and one whose job folder is gone frees its slot: else a launch that
- * never came up would hold a slot for good.
+ * The machine-wide cap on gate runs, as files that two Hephaestus processes sharing the folder share. A gate line with no child record is
+ * judged by the process recorded with its slot, and one whose job folder is gone frees it: else a launch that never came up holds it for good.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

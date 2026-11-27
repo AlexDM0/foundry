@@ -1,13 +1,7 @@
 /**
- * The constitution commit through the main line's Airlock (plan section 8.7, Q1 and Q18). What matters: an Apply whose text main lacks
- * gets one `constitution-commit` job on the main line, before any ticket candidate and also while the board is paused, which commits only
- * `CONSTITUTION.md` and lands it with no gate, its slot going from `committing` to `landing`, and the landing's hold runs Apply's stage 2;
- * a main checkout that stops the fast-forward holds the request with its reason and files and never refuses it, and a clean main lands it
- * on the next sweep; a moved main line gets a fresh job on the new tip, and a changed `CONSTITUTION.md` refuses `constitution-moved`; a
- * signing failure refuses with git's text and leaves no commit, and no call overrides the signing; a commit with any other path never
- * lands; no `merge-refused` decision ever opens for the job; a job's refusal never reaches a request that User cancelled and asked again
- * while the job ran. The crash rows are in `CrashMatrix.merges.spec.ts`. The folders are real; git
- * answers from the recorded answer sets of `src/services/hephaestus/testing/ConstitutionCommitAnswers.ts`.
+ * The constitution commit through the main line's Airlock: an Apply whose text main lacks gets one `constitution-commit` job that commits only
+ * `CONSTITUTION.md` and lands it with no gate; a dirty main holds it, a moved main gets a fresh job, a changed `CONSTITUTION.md` or a signing failure
+ * refuses it, no call overriding the signing, and no `merge-refused` decision ever opens for it.
  */
 import { existsSync } from 'node:fs';
 

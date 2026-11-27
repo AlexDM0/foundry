@@ -1,16 +1,6 @@
 /**
- * A spec or plan agent's session as Hephaestus runs it, with the session's readings given as values and a planted child. What matters: its
- * profile writes only its Hatch, with no network, question or skill; its first message's facts ask for a first write, a plan's update for a
- * newer spec with that spec's text, or a read of the head; one message goes out at a time, only while the agent is idle, oldest first,
- * never a withdrawn one; the line carries the comment's lines at the head, the version it was sent on and an orphan's quote; an idle agent
- * with nothing queued has its input closed and then waits, or ends `closed` once its document is approved; an instance resumed from waiting
- * opens with the next message, which stays its opener, so no resume line follows mid-turn; a turn end whose snapshot Customs finds
- * untouched applies the turn's requests, on recorded git; a turn end whose snapshot fails Customs refuses the turn's requests, logs it,
- * opens one incident on the ticket and ends the job `failed`; and each document has a snapshot of its own, so the spec's and the plan's
- * agents never reset or dirty each other's, removed once no agent of the document holds it, a waiting one included, and tried again after a
- * later agent held it. A snapshot start or launch note that cannot be read opens the unreadable file's incident on the job, which then takes
- * no step on it; one whose launch note cannot be read is retired and ends `replaced`, so a fresh agent takes its messages; a seen head that
- * cannot be read is logged, carries the head again and is written anew.
+ * A spec or plan agent's session as Hephaestus runs it, with the session's readings given as values and a planted child: its profile, its
+ * messages one at a time while idle, Customs at each turn end on recorded git, and a snapshot of its own per document.
  */
 import {
   existsSync,

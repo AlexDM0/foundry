@@ -1,10 +1,7 @@
 /**
- * The gate pipeline run on a tree, the code Hephaestus's build, review and merge gates share: the prepare steps, then each gate of the
- * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs as a line
- * child of Talos through the caller's `LineRunner`, in a child folder of its own and within the line time bound, with the job variables
- * removed from its environment. agent-progress keeps no gate result: caching is the repository's own tooling's, and a gate may only report
- * what its tooling did, at the report path each gate line is handed. On a pipeline with entities, each gated entity's part runs in turn,
- * its steps' folders read from its first home folder and its lines in a part folder of their own.
+ * The gate pipeline run on a tree, shared by Hephaestus's build, review and merge gates: the prepare steps, then each gate in run order, the
+ * first red one stopping the rest. Each step runs as a line child of Talos in its own folder, without the job variables; no gate result is
+ * kept here, since caching is the repository's own tooling's.
  */
 import { createHash, randomUUID }  from 'node:crypto';
 import { readFileSync, rmSync }    from 'node:fs';

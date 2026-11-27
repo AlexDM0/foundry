@@ -1,9 +1,6 @@
 /**
- * The tools a forge's agents may run. What matters: git is always one, run by every job; a program a prepare step or a gate runs (its
- * fix too, an entity's too) is a tool, and a shell word, a path or a variable is none; with no list of its own a forge approves every
- * program the pipeline runs that the machine has, and with one only what it lists; a launch's tools are the approved ones that were found,
- * git among them only as the program folders hold it; a kept or found tool inside a forbidden root is no tool, and a launch states the
- * kept one it leaves off.
+ * The tools a forge's agents may run: git always, and every program a prepare step or a gate runs, but no shell word, path or variable; with no list
+ * of its own a forge approves every such program the machine has, and a tool inside a forbidden root is no tool.
  */
 import { describe, expect, test } from 'bun:test';
 

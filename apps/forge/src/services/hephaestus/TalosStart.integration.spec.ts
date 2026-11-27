@@ -1,8 +1,7 @@
 /**
- * `ensureTalos` with the Talos binary and the machine's own processes and endpoints. What matters: a start from nothing serves and a second
- * ensure attaches to it; a Talos of another protocol version, as one started from another program on disk, quits cleanly and the next one
- * starts; and a Talos killed with SIGKILL leaves its line running, which the next ensure stops and settles before it starts a new Talos,
- * so no orphan outlives its commander.
+ * `ensureTalos` with the Talos binary and the machine's own processes: a start from nothing serves and a second ensure attaches; a Talos
+ * of another protocol version quits and the next starts; and a Talos killed with SIGKILL leaves its line running, which the next ensure
+ * stops before it starts a new Talos, so no orphan outlives its commander.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

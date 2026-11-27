@@ -1,13 +1,7 @@
 /**
- * The main line's Airlock (design section 6). What matters: candidates land one at a time in queue order, each on its gated merged tree
- * and by fast-forward alone; the merged tree runs the merge phase's gates, skipped only for a green current in that phase, and a stale green
- * is gated again in the phase it was taken in, its red parking the ticket when the last agent's resumes cannot be counted; a green records
- * the stamp its gate run read at its start, so a pipeline edited while the gates ran never leaves a current green, and the run's gate-ran
- * record carries what its gates reported of their cache, beside one pipeline-step-ran record per step line it ran, a failed prepare step's
- * included; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot loop; and a job in landing whose
- * commit the main line holds finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left mid-merge, and `Airlocks.spec.ts` a
- * group's slot. The folders are real; git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`,
- * one for each state of the repository, and a by-hand move of a branch is the case entering the set of the state it leaves.
+ * The main line's Airlock: candidates land one at a time in queue order, by fast-forward alone onto their gated merged tree; a green records the
+ * stamp its gate run read at its start, so a pipeline edited mid-run leaves no current green; and a moved target, a dirty checkout and a refused
+ * stamp each map to one outcome that cannot loop.
  */
 import {
   existsSync,
@@ -73,7 +67,7 @@ function answersOf(current: AirlocksHarness, landing: Partial<MainLineLanding> =
   });
 }
 
-/** A harness of ticket #001 whose git answers from the main-line sets of `landing`, before any merge-in. */
+/** A harness of ticket `001` whose git answers from the main-line sets of `landing`, before any merge-in. */
 function harnessAnswering(landing: Partial<MainLineLanding> = {}, ticket: HarnessTicket = CHECKOUT_TICKET, hasReviewPhase = true): AirlocksHarness {
   const current = createRecordedAirlocksHarness([ticket], {}, hasReviewPhase);
   recordedGit.answerFrom(answersOf(current, landing).beforeTheMergeIn);

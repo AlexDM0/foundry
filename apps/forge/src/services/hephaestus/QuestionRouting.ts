@@ -1,8 +1,7 @@
 /**
- * An agent's question request routed by who can answer it, design section 8.2: every question headed `system` opens a
- * `system-question` incident and every one headed `ticket` a `malformed-ticket` incident for the Assistant; anything else, a
- * mix included, opens an `agent-question` decision for User. Either way the job waits, keeping its slot, and the option notes the job gave
- * for these questions with `question options` go onto their options.
+ * An agent's question request routed by who can answer it: all-`system` questions open a `system-question` incident and all-`ticket` ones a
+ * `malformed-ticket` incident for the Assistant; anything else opens an `agent-question` decision for User. Either way the job waits,
+ * keeping its slot, and the option notes it gave with `question options` go onto their options.
  */
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { DecisionQuestion }           from '../../lib/tracker-model/@types/Decision.ts';

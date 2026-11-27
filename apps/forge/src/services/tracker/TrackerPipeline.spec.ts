@@ -1,9 +1,7 @@
 /**
- * The write pipeline on real tracker files: the mutation runs with the lock held, a Board refusal and any other throw leave every stored
- * file as it was, an unreadable tracker is refused before the mutation runs, and the write order holds (progress.json, the pipeline and the
- * constitution's sources, the tickets each after the content its hash keeps, the deletions, log.jsonl, and the setup record last, so an
- * Apply closes its record after everything it stored), observed by breaking one write from inside the mutation, with no clock. A file
- * whose bytes would not change is left in place, observed by its inode, so a hold that changes nothing writes no file.
+ * The write pipeline on real tracker files: the mutation runs with the lock held, a refusal or throw leaves every file as it was, an
+ * unreadable tracker is refused before the mutation, and the write order holds, observed by breaking one write from inside the mutation. A
+ * file whose bytes would not change keeps its inode.
  */
 import {
   existsSync,

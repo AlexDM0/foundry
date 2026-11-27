@@ -1,8 +1,7 @@
 /**
- * The things the generation lock promises below any tracker: at most one holder when acquirers and releasers interleave at any step of an
- * acquire, a holder that was taken over never releasing its successor, a release that lands where hard links fail, and no generation past
- * the largest safe integer. A live holder is taken over only by a taker that misjudges it as gone; the platform's judgement reads this
- * process, recorded without an identity, as alive.
+ * The generation lock's promises below any tracker: at most one holder however acquirers and releasers interleave, a taken-over holder never
+ * releasing its successor, a release where hard links fail, and no generation past the largest safe integer. The platform's judgement reads
+ * this process, recorded without an identity, as alive.
  */
 import {
   existsSync,

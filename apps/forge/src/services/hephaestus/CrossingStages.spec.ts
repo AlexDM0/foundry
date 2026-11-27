@@ -1,14 +1,6 @@
 /**
- * Hephaestus's view of a crossing ticket's stages on the entity-forge fixture's pipeline where the shop whitelists `ui-kit`. What
- * matters: only stage 1 of an entity with a whitelist may write a proposal; the branch's paths are sorted by owner and only whitelisted
- * owners are crossed, a package before the packages that consume it; after a package review, a package stage 1 changed that the
- * whitelist no longer names stays crossed, so its build opens `whitelist-removed-mid-crossing`, but not one whose build refused (E19); a
- * seal covers a package's homes but not a deeper home of another entity (E2), and the `reach` paths its package stages changed (E3),
- * which Customs judges every later job on; `adapt` is skipped only when
- * every crossed package's build stated no change of what it exposes and its review confirmed it, a missing statement counting as a change
- * (E40); each stage's session is told its stage, the package review the build's statement, `adapt` each package's confirmed statement
- * and review, the home review each package's review (E32); a stage's run starts at its first job, a retry after a failed one included, and
- * a package review's run at its package's first build; and a stage statement that cannot be read is the unreadable file, never none.
+ * Hephaestus's view of a crossing ticket's stages on the entity-forge fixture's pipeline where the shop whitelists `ui-kit`: which packages
+ * are crossed and in what order, what a seal covers, when `adapt` is skipped, and what each stage's session is told.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

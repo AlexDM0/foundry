@@ -1,8 +1,7 @@
 /**
- * User's gate profile kinds: a start queues one gate in one phase, from the open setup's draft or, with no setup named, the stored
- * pipeline; on a forge over entities, the gate of the entity it names, read through that entity's single pipeline, with its folders taken
- * from the entity's first home. A stop ends a queued run or asks Hephaestus to end a running one. Only User's press sends them: no
- * relayed role may, and nothing else queues a profile. A body is untrusted JSON, so each nested field is checked before the Board is touched.
+ * User's gate profile kinds: a start queues one gate in one phase from the open setup's draft or the stored pipeline, on a forge over entities the
+ * gate of the entity it names; a stop ends a queued run or asks Hephaestus to end a running one. Only User's press sends them, and each field of the
+ * untrusted body is checked before the Board is touched.
  */
 import type { GateProfileChanged }     from '../../lib/tracker-model/@types/BoardChanges.ts';
 import { GATE_PHASES, type GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';

@@ -1,8 +1,7 @@
 /**
- * Entities in a tracker that sits in a folder of its repository. What matters: only a tracker at the repository's root may hold entities,
- * so a change that would store a pipeline with entities in a tracker in a folder is refused with its own detail naming the folder, worded
- * for the command line and the API alike, and nothing is written; the same change in a tracker at the root is stored; and a pipeline
- * without entities is stored in a folder as before. The `.git` folder is planted, since finding the prefix runs no git.
+ * Only a tracker at its repository's root may hold entities: storing a pipeline with entities in a tracker in a folder is refused with a
+ * detail naming the folder and writes nothing, the same change at the root is stored, and a pipeline without entities is stored in a folder
+ * as before. The `.git` folder is planted, since finding the prefix runs no git.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

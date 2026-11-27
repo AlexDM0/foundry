@@ -1,9 +1,6 @@
 /**
- * An Airlock agent under the real Seatbelt sandbox, its write rules the builder profile's denies over the linked-worktree carve-out (the
- * worktree and the shared `.git` writable). What matters: every path git writes to conclude a conflicting merge in a linked worktree is
- * writable to the confined child, and the same child cannot move the target branch's ref. The sandbox and the files are real; git answers
- * from the recorded flow stage `worktree made` of `src/testing/RecordedGitFlow.ts`, and the paths a merge commit writes are recorded from
- * real git. Skipped through `src/testing/ToolGuard.ts` where `sandbox-exec` does not apply.
+ * An Airlock agent under the real Seatbelt sandbox: every path git writes to conclude a conflicting merge in a linked worktree is writable,
+ * and the target branch's ref is not. Git answers from the recorded flow stage `worktree made`; skipped where `sandbox-exec` does not apply.
  */
 import {
   existsSync,

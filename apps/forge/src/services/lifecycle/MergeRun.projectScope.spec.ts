@@ -1,8 +1,7 @@
 /**
- * V5, V17 and V13 on a conflict resolution of a tracker in a project folder. What matters: each check judges only what the resolution
- * changed against git's automatic merge, so the target's own package.json never counts; a file outside the project's folder refuses until
- * the reach names it; the data folder and `.claude/` refuse at any depth; and a tracker at the root asks git nothing at all. Each case's
- * git state is a merge scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call it did not record fails the case.
+ * The scope checks on a conflict resolution of a tracker in a project folder (the data folders, the project's folder and its reach, the
+ * agent configuration): each judges only what the resolution changed against git's automatic merge, and a tracker at the root asks git
+ * nothing. Git states come from `src/lib/git/RecordedGitScenarios.integration.spec.ts`; an unrecorded call fails the case.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 

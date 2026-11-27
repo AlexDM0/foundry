@@ -1,21 +1,7 @@
 /**
- * Which gate step a gating job waits on, read outside the lock. What matters: a review that left the tree it was given (the tree the
- * build's gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any
- * build, waits on the pipeline's first step. A build job runs only the build phase's gates and a review job only the review phase's, and a
- * phase with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line:
- * the install and the gate run wait on each step's own line in turn; a line a clean quit paused is never judged, its next instance runs it
- * again, and a line Talos stopped at its time bound judges `cannot-run`, or `install-failed` for an install step, its output naming the
- * bound. A line a crash start found gone with no end of its own is never judged either: the hold logs it lost once and its job spawns
- * nothing until User's resume, while one found lost on a handover runs again by itself. A run's steps and stamp are its manifest's, written
- * at its start: a pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and
- * the settlement stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first
- * gate's red. Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version
- * 1's words is none; a kept verdict changed by hand into any other shape is unreadable, never judged again; the settlement logs each
- * gate's report with the manifest's phase. A job of an entity installs with its entity's prepare steps and runs its entity's gates, each
- * folder read from the entity's first home, under a stamp that names the entity's phase hash; a job of an entity the pipeline no longer
- * holds cannot run its gates. Each step line that ran is recorded with its run time, once, in the hold that consumes it: an install's when
- * the job leaves `preparing`, a gate run's at its settlement in the manifest's phase; a line stopped at its bound records `time-bound`, a
- * paused instance's run never, and a run that ran no line none. git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
+ * Which gate steps a gating job runs and how each line is judged: a review that left the build's tree runs none, a build only the build
+ * phase's gates, each prepare step a process of its own, a paused or lost line never judged, and a run's steps and stamp fixed by its
+ * manifest. Git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,

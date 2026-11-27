@@ -1,8 +1,7 @@
 /**
- * The git steps of one merge in its slot worktree (design section 6.3), as verdicts: the one merge-in against the recorded target tip,
- * the restore to the recorded branch tip an abort or a requeue starts from, V10 on a resolution, V5, V17 and V13 on a project tracker's
- * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
- * own and settled here, and who takes a crossing ticket's conflict or red gate: the entity that owns it (strategy 5.7).
+ * The git steps of one merge in its slot worktree, as verdicts: the merge-in against the recorded target tip, the restore an abort or requeue
+ * starts from, the soundness and scope checks on a resolution and its size; also the merge of the target before a ticket's review, and who
+ * takes a crossing ticket's conflict or red gate: the entity that owns it.
  */
 import type { TargetMergeSettlement } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
 import type { MergeSides }            from '../../adapters/merge-sides/MergeSidesIngestion.ts';
@@ -110,18 +109,18 @@ function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, 
   };
 }
 
-/** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
+/** Nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
 function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[], agentNaming: AgentNaming): boolean {
   return CUSTOMS_CHECKS.V10(resolutionSubjectOf(worktreePath, sides, conflictedFiles, agentNaming)).verdict === 'passed';
 }
 
-/** What a project tracker's resolution adds to V10 from the Airlock agent's column; V14 cannot run, as no Airlock agent has a launch snapshot. */
+/** The Airlock agent's checks a project tracker's resolution adds to soundness; the launch snapshot check is left out, as no Airlock agent has one. */
 const RESOLUTION_SCOPE_CHECKS: readonly VerificationCheck[] = ['V5', 'V17', 'V13'];
 
 export type ResolutionScopeVerdict = { verdict: 'in-scope' } | { verdict: 'refused'; reason: VerificationRefusalReason; facts: readonly string[] };
 
 /**
- * V5, V17 and V13 on a resolution of a tracker in a project folder: the data folders, the project's folder and its reach, and the agent
+ * The scope checks on a resolution of a tracker in a project folder: the data folders, the project's folder and its reach, and the agent
  * configuration, each judged on what the resolution changed against git's automatic merge. A tracker at the root asks git nothing here.
  */
 function resolutionScopeVerdictOf(
@@ -154,8 +153,8 @@ function claimsOf(report: unknown): readonly Readonly<Record<string, unknown>>[]
 }
 
 /**
- * The conflict re-reviewer's report, judged by the reviewer column's checks the Airlock can run: a valid reviewer report naming HEAD (V1)
- * and HEAD descending from the resolution it reviewed (V2); then every claim holds after its fixes.
+ * The conflict re-reviewer's report, judged by the reviewer column's checks the Airlock can run: a valid reviewer report naming HEAD
+ * and HEAD descending from the resolution it reviewed; then every claim holds after its fixes.
  */
 function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, report: unknown, agentNaming: AgentNaming): ReReviewVerdict {
   const subject = {
@@ -183,7 +182,7 @@ export interface CrossingLanding {
   sealedPackages: readonly EntityKey[];
 }
 
-/** The files of one worker's part of a conflict, and whether it leaves the merge open for the worker after it (E64). */
+/** The files of one worker's part of a conflict, and whether it leaves the merge open for the worker after it. */
 export interface ConflictPart {
   /** `null` for the home's part, else the sealed package whose builder resolves it. */
   packageEntity:      EntityKey | null;
@@ -195,13 +194,13 @@ const REPOSITORY_ROOT_FOLDER = '/';
 
 /**
  * A review's catch-up that conflicts in files no one stage may change parks the ticket for User: the catch-up's merge is aborted, so it is
- * never left open for a second worker as a landing's is (E64).
+ * never left open for a second worker as a landing's is.
  */
 export const CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE = 'conflict-without-one-owner';
 
 /**
- * The first part of a crossing ticket's conflict, by owner: a sealed package's files go to its builder (E62), the packages in their stage
- * order, and every other file to the home (E63). Each part but the last leaves the merge open (E64). `null` with no conflicted file.
+ * The first part of a crossing ticket's conflict, by owner: a sealed package's files go to its builder, the packages in their stage
+ * order, and every other file to the home. Each part but the last leaves the merge open. `null` with no conflicted file.
  */
 function firstConflictPartOf(landing: Readonly<CrossingLanding>, conflictedFiles: readonly string[]): ConflictPart | null {
   if (conflictedFiles.length === 0) return null;
@@ -214,7 +213,7 @@ function firstConflictPartOf(landing: Readonly<CrossingLanding>, conflictedFiles
 }
 
 /**
- * Who takes a red gate at landing (E65): a sealed package for its own gate, else the first sealed package that the gate's entity consumes,
+ * Who takes a red gate at landing: a sealed package for its own gate, else the first sealed package that the gate's entity consumes,
  * else the home.
  */
 export type RedGateOwner = { owner: 'home' } | { owner: 'package'; packageEntity: EntityKey };
@@ -229,7 +228,7 @@ function redGateOwnerOf(landing: Readonly<CrossingLanding>, gateEntity: EntityKe
 export type OpenMergeVerdict = { verdict: 'handed-on'; remainingFiles: string[] } | { verdict: 'unresolved' };
 
 /**
- * A worker that leaves the merge open (E64) hands it on only when the merge is still in progress on the recorded start, files of a later
+ * A worker that leaves the merge open hands it on only when the merge is still in progress on the recorded start, files of a later
  * worker are still unmerged, and none of `settledFiles` is: the files of the worker's own part, those of the workers before it, and those it
  * reports. So each hand-on leaves fewer files unmerged, and no part goes back to a worker that already had one.
  */

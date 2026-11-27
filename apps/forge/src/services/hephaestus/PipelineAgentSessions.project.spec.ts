@@ -1,9 +1,7 @@
 /**
- * A pipeline agent's turn end in a repository two trackers and a person share, from forge's tracker in `apps/forge`. What matters: V14
- * watches only the main line, forge's own namespace and forge's own worktrees, so a sibling's ticket branch, a person's commit, a stash or a
- * tag fails no turn, and a sibling's landing on the main line passes once the shared journal records it at its commit; a tracker with bare
- * branch names and no journal refuses every one of those moves, as it always has. Git answers from the two-tracker answer set of
- * `src/testing/TwoTrackerScenarios.ts`, asked at the main checkout.
+ * A pipeline agent's turn end in a repository two trackers and a person share: the own-refs check (`onlyOwnRefsMoved`) watches only the main
+ * line and forge's own namespace and worktrees, so others' moves fail no turn, while a tracker with bare branch names refuses them as always.
+ * Git answers from `src/testing/TwoTrackerScenarios.ts`, asked at the main checkout.
  */
 import { mkdirSync }  from 'node:fs';
 import path, { join } from 'node:path';
@@ -123,7 +121,7 @@ function boardWithPipelineAgent(): { board: Board; agentJobId: string } {
   return { board, agentJobId: job.id };
 }
 
-/** V14 at the main checkout, the refs that moved since `launchSnapshot`; `null` when it passes. */
+/** The own-refs check at the main checkout, the refs that moved since `launchSnapshot`; `null` when it passes. */
 function movedRefsAtTurnEnd(context: TurnEndContext, launchSnapshot: LaunchSnapshot): readonly string[] | null {
   const { board, agentJobId } = boardWithPipelineAgent();
   const job = board.jobById(agentJobId);

@@ -1,8 +1,7 @@
 /**
- * V3 on a build retry, verified through the hold. What matters: a second attempt whose branch already holds the failed first attempt's
- * commit is measured from that attempt's start, the ticket's fork point, so it passes to the gates; a branch with no commit since its fork
- * point still fails V3 `no-commit-since-start` (sent back with a red handoff), so a retry never passes on nothing. The folders are real; git
- * answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`, and the first attempt's commit is the move to `tree changed`.
+ * The commit check (`aCommitSinceTheStart`) on a build retry, through the hold: a second attempt whose branch holds the failed attempt's
+ * commit is measured from the ticket's fork point and passes, while a branch with no commit since its fork point is still sent back. Git
+ * answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -41,7 +40,7 @@ interface RetryScene {
   worktree:          string;
   /** The first attempt's commit on the ticket branch. */
   commitOnTheBranch: () => void;
-  /** Launches a build attempt on ticket 001 and records its start as Hephaestus does when its child is first launched. */
+  /** Launches a build attempt on ticket `001` and records its start as Hephaestus does when its child is first launched. */
   launchAttempt:     (attempt: number) => Readonly<Job>;
   /** Hands the attempt's built report to the hold, which verifies it. */
   reportBuilt:       (job: Readonly<Job>) => void;
@@ -108,7 +107,7 @@ function jobById(board: Board, jobId: string): Readonly<Job> | undefined {
   return board.jobs().find((job) => job.id === jobId);
 }
 
-/** A refused V3 sends the session back with a red handoff naming the check, its reason in the restart; `null` when nothing went red. */
+/** A refused commit check sends the session back with a red handoff naming the check, its reason in the restart; `null` when nothing went red. */
 function customsRefusalOf(scene: RetryScene, job: Readonly<Job>): string | null {
   const facts = keptRedHandoffOf(jobFolderIn(scene.context.workspace.trackerDirectory, job.id));
   if (facts === null) return null;

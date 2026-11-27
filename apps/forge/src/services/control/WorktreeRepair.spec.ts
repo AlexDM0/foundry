@@ -1,9 +1,7 @@
 /**
- * The git side of `worktree repair` (design section 8.3). What matters: `recreate` first saves `git diff HEAD` and every untracked file to
- * the job folder's next `recreate-<n>.patch`, then removes the worktree; it refuses to remove a worktree whose changes it could not save;
- * `unlock` removes a stale `index.lock` and nothing else, and reports a lock it cannot remove as a verdict, never a throw; `prune` asks git
- * to drop the record of a worktree folder that is gone. The folders and files are real; git answers from the recording of
- * `src/testing/RecordedGit.ts`, and a call the stage holds no answer for fails the case.
+ * The git side of `worktree repair`: `recreate` saves the worktree's changes to the job folder's next `recreate-<n>.patch` before removing it, and
+ * refuses when it could not save them; `unlock` removes a stale `index.lock` only; `prune` drops the record of a worktree folder that is gone. Git
+ * answers from `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,

@@ -1,8 +1,7 @@
 /**
- * The store port: the forge reaches its stored board only through it. Its command face applies one `ControlCommand`, its transaction face
- * holds the board for Hephaestus's pass, and both share a lock-free read side. `apply` and `transact` write nothing when they throw: a
- * `BoardRefusal` leaves as `OperationRefusal('refused', board-refusal)`, and a held or lost lock, an unreadable tracker or a malformed
- * hold journal as `unrepaired`.
+ * The store port, the forge's only way to its stored board: a command face applying one `ControlCommand`, a transaction face for
+ * Hephaestus's pass, and a shared lock-free read side. `apply` and `transact` write nothing when they throw: a `BoardRefusal` leaves as
+ * `OperationRefusal('refused', board-refusal)`, a lock, tracker or hold journal failure as `unrepaired`.
  */
 import type { PipelineReading }     from '../../adapters/pipeline/PipelineFile.ts';
 import type { GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';

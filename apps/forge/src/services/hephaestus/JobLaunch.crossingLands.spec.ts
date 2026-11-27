@@ -1,11 +1,7 @@
 /**
- * One crossing end to end on the entity-forge fixture, its pipeline read from the stored `pipeline.json` with the shop whitelisting the
- * package `ui-kit`. What matters: the reader accepts the whitelist, and one ticket of the shop then runs every stage on one board, each job
- * launched by the Playbook from the row's stage alone, verified by Customs against the fixture's recorded git and gated green by the
- * manifest Hephaestus writes for it: stage 1 crosses into the package, the package build states a change of what the package exposes,
- * the package review confirms it and seals the package change, `adapt` keeps the seal, and the home review queues the ticket, whose
- * Airlock gates the shop, the admin app and the package and lands it. Each stage case on its own is in `JobLaunch.crossing.spec.ts`, and
- * each landing case in `Airlocks.crossing.spec.ts`.
+ * One crossing end to end on the entity-forge fixture, from the stored `pipeline.json` with the shop whitelisting `ui-kit`: one ticket runs
+ * every stage on one board, launched by the Playbook, verified by Customs and gated green, and its Airlock lands it. Each stage case alone is
+ * in `JobLaunch.crossing.spec.ts`, each landing case in `Airlocks.crossing.spec.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path, { join }               from 'node:path';

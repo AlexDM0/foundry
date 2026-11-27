@@ -1,11 +1,7 @@
 /**
- * The pipeline agent's kinds of the setup record: a finding, a question, the constitution, draft edits and a ready step. The Bouncer stamps
- * the setup the agent serves and, for the session of one entity, that entity, whose part of the record its finding, question and
- * constitution go to; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
- * the field before the Board is touched; every other refusal is found before the Board changes too, since a relayed command shares
- * Hephaestus's hold, which a refusal does not undo. None of them messages the agent: it made the move. The agent's first proposal also records what
- * the snapshot's tree cannot hold on every OS. A layout finding of the forge's session can start a first setup's `entities` step, only for a
- * tracker at its repository's root, since only that tracker holds entities.
+ * The pipeline agent's kinds of the setup record: a finding, a question, the constitution, draft edits and a ready step, stamped by the Bouncer with
+ * the setup and entity the agent serves. Every refusal is found before the Board changes, since a relayed command shares Hephaestus's hold, which a
+ * refusal does not undo. None of them messages the agent: it made the move.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
 import type { PipelineSetupChanged }                                      from '../../lib/tracker-model/@types/BoardChanges.ts';

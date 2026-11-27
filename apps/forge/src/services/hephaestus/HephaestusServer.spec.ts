@@ -1,21 +1,7 @@
 /**
- * The picture upload's body read, the gate profile stream route, the system versions and the versioned paths, on requests built in memory:
- * no server listens. What matters: a declared length over the limit is refused before one byte is read, and a body with no declared length
- * stops being read once it runs past the limit, so an oversized upload never costs its whole size in memory; a body within the limit is
- * read whole, its chunks in order. A profile stream sends each output line after its cursor, then each line appended later, as SSE with the
- * line number as the id; a run the routes do not know is a 404; the board event stream carries no output line; and every stream route has
- * Bun's idle timeout off. `GET /api/versions` answers while Hephaestus starts and while it serves, with no token, behind the Host guard;
- * every endpoint the registry serves answers at its versioned path exactly as at its unversioned one, behind the same guards, and a version
- * or an endpoint the registry does not serve is a 404. Presence and the crash log answer behind the token at both paths, the crash log's
- * number reaching its route from the query. The board document answers at v1 behind the token with the assembly's document, while the
- * internal state answers as before at no versioned path. A templated endpoint, a job's or a profile's stream or a picture, answers at the
- * concrete path its template matches, and a path one segment longer is a 404. Each of the three board streams opens with the handshake,
- * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one. Hephaestus
- * serves no page: `GET /` and every other path outside `/api/` is a 404. The bearer token is the only credential: the routes that once
- * gave a browser a session are a 404, and a data route answers a cookie with no token 401. Every answer carries the API's policy, which
- * lets nothing frame it, and a picture and a job file their sandbox. A ticket's documents answer behind the token at their v1 path from
- * forge 4.2, the reference reaching the route from the path, and the route's 404 refusal passes through as it is. A command body larger
- * than the bound is refused 413 and never reaches the command route.
+ * The request handler on requests built in memory, no server listening: the upload body limit, the gate profile stream, `/api/versions`,
+ * every registry endpoint at its versioned path behind the same guards, the bearer token as the only credential, and the API's policy on
+ * every answer.
  */
 import {
   afterEach,

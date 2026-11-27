@@ -1,9 +1,7 @@
 /**
- * A job's profile in a ticket worktree of a tracker below its repository's root, a checkout of the whole repository nested in the main
- * checkout. What matters: the job writes its whole checkout, so a builder can change the workspace's root lockfile; both the checkout's
- * `.claude` and the project's are denied, and made before a `mount-points` launch; the main checkout's instruction files above the
- * worktree are named for exclusion; and no profile names the worktree's own git admin folder, which the sandbox grants a session started
- * at the worktree's root (`SessionPlace.ts`). A tracker at its repository's root gets exactly the profile it always got.
+ * A job's profile in a ticket worktree of a tracker below its repository's root: it writes its whole checkout, the root lockfile included,
+ * both `.claude` folders are denied, the main checkout's instruction files are excluded, and no profile names the worktree's git admin
+ * folder, which the sandbox grants a session started at the worktree's root. A tracker at its repository's root gets its old profile.
  */
 import { join } from 'node:path';
 

@@ -140,12 +140,9 @@ function plantedTipOf(branch: string): string {
 }
 
 /**
- * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
- * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
- * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set;
- * `besideSiblings` makes the tracker one in a project folder of the repository, whose landings it shares with its siblings, and
- * `projectScope` gives the Airlocks that folder and the pipeline its reach, so a conflict resolution is held to them. `entities` makes the
- * pipeline one with entities, each ticket queued on a review green of its own entity's gates.
+ * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP`, the main line at `MAIN_TIP` and a
+ * group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers. `besideSiblings` puts the tracker
+ * in a project folder sharing landings with its siblings, and `projectScope` holds a conflict resolution to that folder and its reach.
  */
 export function createRecordedAirlocksHarness(
   tickets: readonly HarnessTicket[],

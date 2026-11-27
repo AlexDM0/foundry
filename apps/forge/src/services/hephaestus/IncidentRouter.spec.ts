@@ -1,8 +1,6 @@
 /**
- * Hephaestus's incident routing outside the policy. What matters: a running build or review whose event cursor stands still for
- * `QUIET_JOB_SWEEPS` sweeps opens one `quiet-job` incident, a count and never a clock, while a moving cursor, a job waiting on an answer
- * or one whose launch stands refused never does; and the defaults taken since Hephaestus last started are the warning state `jobs` and
- * Hephaestus's notices show.
+ * Hephaestus's incident routing outside the policy: a build or review whose event cursor stands still for `QUIET_JOB_SWEEPS` sweeps opens one
+ * `quiet-job` incident, a count and never a clock, and the defaults taken since the last start are the warning state the notices show.
  */
 import { describe, expect, test } from 'bun:test';
 

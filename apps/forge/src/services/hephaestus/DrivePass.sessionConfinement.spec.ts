@@ -1,10 +1,6 @@
 /**
- * A pass launches a session under the confinement its agent adapter declares. What matters: with an adapter that confines its sessions
- * itself (Claude Code's capability, which the fake agent keeps) the launch is as before and forge's confinement wraps nothing, since a
- * nested Seatbelt profile is refused; with a planted adapter that declares `ownConfinement: 'none'` the session's argv is wrapped by the
- * `GateConfinement` port under a plan of its profile, an `unavailable` port refuses the launch with the `sandbox-unavailable` incident, and
- * so does a profile with network domains, since forge's confinement never widens a domain line. The sessions play
- * `src/testing/RecordedTalosStages.ts`; git answers from the recorded flow stages.
+ * A pass launches a session under the confinement its agent adapter declares: one that confines itself is not wrapped again, since a nested
+ * Seatbelt profile is refused; one declaring `ownConfinement: 'none'` is wrapped by the `GateConfinement` port.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

@@ -1,15 +1,7 @@
 /**
- * With merge approval on, a green review, or a green build with no review step, merges the target into the ticket's worktree before the
- * ticket waits for User's Merge (`merging-main`). What matters: a worktree that holds the target's tip and whose green is current finishes
- * at once and queues; one that lacks it gets the tip merged in by a line under Talos with every hook off, and the merged tree is gated in the
- * job's own phase (review, or build with no review step) before it queues; a red gate and a conflict both go back to the job's own session,
- * the ticket's last worker, as a red handoff; a resolution larger than `airlock.reReview.thresholdLines`, or one git cannot measure, gets a
- * conflict re-reviewer before the gates, one at or below it and a pipeline with no `airlock.reReview` go straight on; a re-review that
- * does not hold fails the job. The crash rows: each round of a job keeps its own files, so a resumed session never reads an earlier round's
- * merge; a merge that ended while Hephaestus was down is settled once, and a settlement that cannot be read never again; a round's merge
- * record, kept resolution or re-review verdict that cannot be read holds the job in `merging-main` on its incident; a replaced
- * re-reviewer relaunches with the same attempt; and a stop while a re-reviewer works stops it first. The folders are real; git answers from
- * recorded answer sets, the launcher is fake, and the spec ends each line itself.
+ * With merge approval on, a green job merges the target into the ticket's worktree before the ticket waits for User's Merge
+ * (`merging-main`): the merged tree is gated, a red gate or conflict goes back to the job's session, a large resolution gets a re-reviewer,
+ * and every crash row settles once. Git answers from recorded answer sets and the launcher is fake.
  */
 import {
   existsSync,

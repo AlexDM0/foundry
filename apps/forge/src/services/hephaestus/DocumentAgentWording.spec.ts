@@ -1,9 +1,6 @@
 /**
- * The line a document agent reads for each message. What matters: every message names its own id, the one an edit that answers it names
- * in `answers`, so `document propose` takes it; an orphaned comment keeps its quote and names no lines; a message with no anchor names only
- * its id, document, version and text; User's answer to the agent's question names that question and no comment;
- * a board message says it is the board's; a diagram comment names its node; and the
- * head follows the payload, numbered by line, only when the agent has not seen it.
+ * The line a document agent reads for each message: every message names its own id, the one an edit that answers it names in `answers`, so
+ * `document propose` takes it; the head follows, numbered by line, only when the agent has not seen it.
  */
 import { describe, expect, test } from 'bun:test';
 

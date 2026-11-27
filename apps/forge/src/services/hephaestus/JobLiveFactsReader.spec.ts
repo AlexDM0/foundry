@@ -1,13 +1,7 @@
 /**
- * A job's live facts from its Talos event log. What matters: `toolCalls` counts only top-level `tool-call` events, each subagent (by
- * `parentToolUseId`) keeps its own count and last call, `toolCallsWithSubagents` adds them up, `lastToolCall` is the newest call stamped
- * with its log entry's `at` and `running` until its result arrives, and `calls` stays the top-level API turns the budget is held against. A
- * subagent runs until its parent call's result and carries that call's description. After a crash a subagent the log lost is the one the
- * adapter rebuilt from the session's transcripts, asked for past the parent calls the log tallied; the fake agent answers what the spec
- * plants and reads no transcript. The turn reads the newest instance's chats against its results (the Assistant's, its idle rule), the
- * waiting messages read the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never
- * Hephaestus's, read without decoding a picture. The usage window is the newest the session reported, so the monitor shows the window it is
- * in.
+ * A job's live facts from its Talos event log: top-level and per-subagent tool-call counts and last calls, the turns the budget is held
+ * against, subagents the adapter rebuilt from transcripts after a crash, whether a turn is under way, the waiting messages, and a session's
+ * last line and newest usage window.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -151,14 +145,14 @@ function liveFactsSourceOf(trackerDirectory: string, readingBoard: ReadingBoard 
 
 const EXAMPLE_SESSION = { homeDirectory: '/example/home', sessionId: EXAMPLE_SESSION_ID };
 
-/** The live facts of `job` (J1, a build, by default) in a scratch tracker whose Talos logged one list of lines per instance. */
+/** The live facts of `job` (`J1`, a build, by default) in a scratch tracker whose Talos logged one list of lines per instance. */
 function liveFactsOfLoggedLines(linesByInstance: readonly (readonly LoggedLine[])[], job: Readonly<Job> = EXAMPLE_JOB, readingBoard: ReadingBoard = {}) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   writeEventLogs(trackerDirectory, job.id, linesByInstance);
   return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, readingBoard), job, EXAMPLE_SESSION);
 }
 
-/** A scratch tracker whose job J1 logged each event as one agent line, stamped in order; the mapper reads a line as the event itself. */
+/** A scratch tracker whose job `J1` logged each event as one agent line, stamped in order; the mapper reads a line as the event itself. */
 function liveFactsOfLoggedEvents(events: readonly AgentSessionEvent[], lostSubagents: readonly SubagentFacts[] = []) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [events]);

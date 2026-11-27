@@ -1,11 +1,7 @@
 /**
- * The gate pipeline run on a checkout. What matters: the prepare steps run first and a failed one is a setup failure, never a red gate;
- * the gates run in list order and the first red one stops the rest, reported by name with its output; a gate that exits 0 but changes a
- * tracked file is red with the diff as its output; each step gets its own confinement (a prepare step the network, a gate only its own
- * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing, and a phase
- * with no gates runs no prepare step either; a gate takes a machine slot while it runs; nothing is cached, so the same tree gated twice
- * runs twice; and the gate line runs the argv it is handed, through a line runner that spawns it as Talos does, in a process group of its
- * own, without the job variables; and a gate is handed its own report path, never one this process inherited, whose report is read back and removed.
+ * The gate pipeline run on a real checkout: prepare steps first, a failed one a setup failure; gates in list order, the first red one stopping
+ * the rest and a gate that changes a tracked file red with its diff; each step confined on its own and spawned as Talos spawns it, without the
+ * job variables; nothing cached; and each gate handed its own report path, read back and removed.
  */
 import {
   existsSync,

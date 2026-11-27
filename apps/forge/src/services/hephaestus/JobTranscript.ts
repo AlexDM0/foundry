@@ -1,8 +1,7 @@
 /**
- * A job's transcript as vendor-neutral entries, read from its `events-<instance>.ndjson` files through the adapter's mapper, so it reads
- * a running job, a finished job and a job whose child is gone alike. The cursor is `(instance, sequence)`. A client line reads as what
- * it said, and who sent it is derived from records the board already keeps, never from the line. A chat's pictures read as their ids, the
- * sha256 of their bytes, with the names User's records gave them: the entry never carries the bytes.
+ * A job's transcript as vendor-neutral entries, read from its `events-<instance>.ndjson` files through the adapter's mapper, so a running,
+ * finished or childless job reads alike. The cursor is `(instance, sequence)`. Who sent a client line is derived from records the board
+ * keeps, never from the line, and a chat's pictures read as their sha256 ids with User's names for them, never their bytes.
  */
 import { createHash } from 'node:crypto';
 

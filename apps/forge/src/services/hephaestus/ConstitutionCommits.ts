@@ -1,9 +1,6 @@
 /**
- * The commit of an Apply's constitutions, the project's own `CONSTITUTION.md` (plan section 8.7) and on a forge with entities each changed
- * entity's, made in Hephaestus's own process in a detached worktree of the main line's tip that its constitution commit job owns: main's
- * blob of each file is checked against the one the record opened on, each draft's text is written byte for byte, and the commit, with hooks
- * off and the repository's own signing configuration, must change only the listed paths. Every refusal is a wordless verdict; git's own
- * text goes with it.
+ * The commit of an Apply's constitutions, made in Hephaestus's own process in a detached worktree of the main line's tip. Main's blob of
+ * each file must be the one the record opened on, and the commit, hooks off and signed as the repository signs, changes only listed paths.
  */
 import { mkdirSync }     from 'node:fs';
 import { dirname, join } from 'node:path';

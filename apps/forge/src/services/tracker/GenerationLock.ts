@@ -1,10 +1,7 @@
 /**
- * One holder at a time on a lock directory, across processes. The lock is a directory of numbered generation
- * records, each created exclusively and never rewritten: taking the lock is creating the generation after
- * the newest once that one is released or its holder's process is gone, and releasing is creating the next as
- * a released record, so no step ever removes or replaces a record another process may have just written.
- * A record's age frees nothing: a live holder keeps the lock however long it holds. A record is a holding judged by its process, whatever
- * version wrote it; one whose holder is gone, or whose shape cannot be read, is stale, taken over and logged. A read that fails now holds.
+ * One holder at a time on a lock directory, across processes: a directory of numbered generation records, each created exclusively and never
+ * rewritten, so no step removes or replaces a record another process may have just written. A record's age frees nothing; one whose holder is
+ * gone or whose shape cannot be read is stale, taken over and logged; a read that fails now holds, as it says nothing of the holder.
  */
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join }                               from 'node:path';

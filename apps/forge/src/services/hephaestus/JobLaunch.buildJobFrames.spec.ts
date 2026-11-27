@@ -1,9 +1,7 @@
 /**
- * A build job's wind-down, quit and stop frames to the board's Talos, a recording one answering for it. What matters: a Talos that
- * answers no frame on one pass is sent it on a later pass, its marker written only once Talos took it; a frame whose marker was written is
- * never sent again, a restarted Hephaestus included, since the marker is all that carries over (delivery is at least once: a Hephaestus that
- * dies before the marker sends it again); a child no longer live is sent nothing and leaves no marker; and a session resumed after a red
- * handoff gets its own wind-down at the resume budget, counted from the resume.
+ * A build job's wind-down, quit and stop frames to the board's Talos, a recording one answering for it: a frame Talos did not take is sent on
+ * a later pass, a frame whose marker was written never again, a child no longer live gets nothing, and a session resumed after a red handoff
+ * gets its own wind-down counted from the resume.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';

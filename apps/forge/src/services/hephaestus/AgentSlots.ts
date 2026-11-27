@@ -1,8 +1,7 @@
 /**
- * The machine-wide cap on agent jobs, modelled on the gate run slots: one file `slot-<n>` per slot in `<monitor>/agent-slots/`, created
- * exclusively and naming the board, the job and the Hephaestus process answering for it. A slot is a holding judged by its Hephaestus,
- * whatever version wrote it. A stale slot, its Hephaestus gone or the slot unreadable, is taken over under a taking marker and logged, so a
- * crashed Hephaestus frees its slots at the next claim of any Hephaestus, without a release.
+ * The machine-wide cap on agent jobs: one file `slot-<n>` per slot in `<monitor>/agent-slots/`, created exclusively and naming the board, the job and
+ * the Hephaestus process answering for it, whatever version wrote it. A stale slot, its Hephaestus gone or the slot unreadable, is taken over under
+ * a taking marker and logged, so a crashed Hephaestus frees its slots at the next claim of any Hephaestus, without a release.
  */
 import { mkdirSync, readdirSync } from 'node:fs';
 import { join }                   from 'node:path';

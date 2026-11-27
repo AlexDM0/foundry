@@ -1,9 +1,7 @@
 /**
- * The start classification over plain evidence. What matters: each rule decides in its order, so a recorded ending outranks the boot and a
- * Hephaestus lock of another start than the record's, whatever its generation, outranks the record; a Talos lost in this boot is a crash of Talos
- * whatever the record says, but never spoils a handover or a first start; a crash is suspected only after a reboot with a stale beat of the
- * generation that died unrecorded; and the design's known misreadings stay as they are, written as claims, so a change to them is a decision
- * and not an accident.
+ * The start classification over plain evidence: each rule decides in its order, so a recorded ending outranks the boot and a foreign
+ * Hephaestus lock outranks the record; and the design's known misreadings stay written as claims, so a change to them is a decision and
+ * not an accident.
  */
 import { describe, expect, test } from 'bun:test';
 

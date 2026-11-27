@@ -1,10 +1,7 @@
 /**
- * What any adapter of the store port must do, through the port alone. What matters: a write is whole or absent (a refusal or a throw
- * leaves nothing), writes are exclusive and queue behind one another across an `await`, a command waits for a transaction rather than
- * slipping into it, every later read and every other client sees a write, the revision moves with the progress record and the log
- * only, and a committed ticket whose stored text is changed behind the store reads with the content its hash names until the next write
- * restores it. A ticket's documents a command changed are read back with every version's text. A second adapter joins `STORE_SUBJECTS`,
- * with the step that changes a ticket's stored text behind it.
+ * What any adapter of the store port must do, through the port alone: a write is whole or absent, writes queue behind one another, every
+ * later read and client sees a write, the revision moves with the progress record and the log only, and a ticket's stored text changed
+ * behind the store reads as its hash names until the next write. A second adapter joins `STORE_SUBJECTS`.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';

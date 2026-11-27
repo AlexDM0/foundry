@@ -1,9 +1,6 @@
 /**
- * What wakes the DrivePass. What matters: a burst of events is debounced into one wake, in the data folder and the Hatch root alike; the sweep
- * wakes with no file event at all; a stopped data folder watch wakes nothing, a pending debounce included; a watch the platform refuses or fails later
- * throws nothing out and leaves the sweep waking; a job's Hatch folder gets its own watch once, and an unwatch closes it for good. Those run
- * on fake timers and fake watches, so the platform's event latency and stray events decide nothing. One case plays the recorded real watch
- * (`src/testing/RecordedFolderWatch.ts`): a request written into a Hatch folder created after the start reaches it.
+ * What wakes the DrivePass, on fake timers and fake watches so the platform's latency decides nothing; one case plays the recorded real
+ * watch (`src/testing/RecordedFolderWatch.ts`), where a request written into a Hatch folder created after the start reaches it.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

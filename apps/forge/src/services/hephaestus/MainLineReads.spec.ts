@@ -1,8 +1,7 @@
 /**
- * The main line reads a state read keeps across calls. What matters: a tracked text and main's constitution are asked of git once per
- * main tip, and a moved tip asks again; a git that could not be started is not kept, so the next read asks again; a data-folder file is
- * read from disk on each read, so an edit shows at the next read. Git answers from the recorded answers of `src/testing/RecordedGit.ts`,
- * and a stage fails a call it does not hold, which counts the calls.
+ * The main line reads a state read keeps across calls: a tracked text and main's constitution are asked of git once per main tip, a git that
+ * could not start is not kept, and a data-folder file is read from disk each time. Git answers from `src/testing/RecordedGit.ts`, and a
+ * stage fails a call it does not hold, which counts the calls.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

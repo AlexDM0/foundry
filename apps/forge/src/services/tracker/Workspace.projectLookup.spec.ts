@@ -1,9 +1,7 @@
 /**
- * Finding a tracker that sits in a project folder of its repository, with no tracker at the root. What matters: an agent's checkout under
- * the project finds it by the walk up and asks no git; a person's checkout nested in the main checkout and a sibling checkout beside it
- * find it through git, by applying their own place in their checkout to the main checkout, the nearest tracker winning; and a start at the
- * root of any checkout finds none, as the walk in the main checkout never goes above its root. git answers from the recordings of
- * `src/testing/RecordedGit.ts`; the `.git` entries are planted, since a checkout's place is read from them and runs no git.
+ * Finding a tracker in a project folder with none at the root: an agent's checkout under the project finds it by the walk up, asking no git;
+ * a nested or sibling checkout finds it through git by applying its own place to the main checkout; and a checkout's root finds none. git
+ * answers from `src/testing/RecordedGit.ts`, and the `.git` entries are planted.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * The mapping's contract only, not the Board's rules, which `Board.displayQueries.spec.ts` pins: one row fact per row at its index, each fact
- * the Board query's answer for that very record, and every position an index into `board.tasks()`. Duplicated ids, bars of a ticket
- * with no file and rows naming a missing ticket are the cases a hand edit produces, so each is pinned not to shift or break the mapping.
- * A ticket's entity and its crossing stage are added keys: a ticket without them gets neither, so a forge without entities keeps its facts.
+ * The mapping's contract only (the Board's rules are `Board.displayQueries.spec.ts`'s): one row fact per row, each the Board query's answer
+ * for that record, every position an index into `board.tasks()`, and the hand-edit cases (duplicated ids, bars without a file, rows naming a
+ * missing ticket) neither shifting nor breaking it. A ticket without an entity or crossing stage gets neither key.
  */
 import { describe, expect, test } from 'bun:test';
 

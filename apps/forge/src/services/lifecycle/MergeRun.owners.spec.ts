@@ -1,8 +1,7 @@
 /**
- * Who takes a crossing ticket's conflict or red gate at landing (strategy 5.7), as pure verdicts over its entities. What matters: a sealed
- * package's conflicted files go to that package first, packages in their stage order, and every other file, root-owned ones among them, to
- * the home, each part but the last leaving the merge open (E62 to E64); a red gate goes to a sealed package for its own gate and for the
- * gate of any entity that consumes it, and to the home for its own gate, an unnamed one, or one of an entity no sealed package reaches (E65).
+ * Who takes a crossing ticket's conflict or red gate at landing: conflicted files go to the sealed package owning them first, in stage order,
+ * the rest to the home, each part but the last leaving the merge open; a red gate goes to a sealed package for its own gate or one of an
+ * entity consuming it, and otherwise to the home.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,10 +1,7 @@
 /**
- * The program a forge's agent runs, and its one run before a choice is kept, on the answers the real program check recorded for planted
- * programs. What matters: a launch never reads a search path, so no choice, another vendor or a machine naming no program refuses it;
- * a program is kept as its path spells it and refused where it lies; a run that does not start, fails, outlives the bound or answers as
- * another program does not run, a failing one keeping the first line it printed; the machine's program, which every following forge runs,
- * lies in no registered forge's repository; and the run searches what a launch searches: the forge's
- * approved tools' folders, the program's own folder and the system's, so a program a launch would start is never refused by its run.
+ * The program a forge's agent runs and its one run before a choice is kept, on recorded program checks: a launch never reads a search path, a program
+ * is kept as its path spells it, a failing run keeps the first line it printed, and the run searches the folders a launch searches, so a program a
+ * launch would start is never refused.
  */
 import { posix } from 'node:path';
 

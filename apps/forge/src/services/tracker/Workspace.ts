@@ -1,8 +1,7 @@
 /**
- * Where one tracker's files are. `findWorkspace` walks up first — the nearest tracker above wins —
- * and asks `src/lib/git/RepositoryRoot.ts` only when the walk finds nothing, which is what makes a
- * sibling worktree, with nothing above it holding the tracker, resolve to the main checkout: the
- * start's place in its own checkout is applied to the main checkout, and the walk goes on up from there.
+ * Where one tracker's files are. `findWorkspace` walks up first, the nearest tracker winning, and asks `src/lib/git/RepositoryRoot.ts` only
+ * when the walk finds nothing: a sibling worktree then resolves to the main checkout, applying its place in its own checkout to the main
+ * checkout and walking on up from there.
  */
 import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve }   from 'node:path';

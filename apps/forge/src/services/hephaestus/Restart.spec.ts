@@ -1,8 +1,7 @@
 /**
- * The checked restart decides whether a board keeps a Hephaestus through an update, so what matters is what the serving Hephaestus reads of a
- * preflight: the first failing step is the report and nothing after it runs, a report survives the print and the read whatever the error says,
- * output that is no report reads as none, and only a fit report lets the board go. The preflight as a real process, and the restart between
- * two real Hephaestus processes, are held by `cli/hephaestus/StartCommand.integration.spec.ts`.
+ * The checked restart, as the serving Hephaestus reads a preflight: the first failing step is the report, a report survives whatever the
+ * error says, output that is no report reads as none, and only a fit report lets the board go. The real processes are held by
+ * `cli/hephaestus/StartCommand.integration.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 

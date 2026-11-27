@@ -370,7 +370,7 @@ function hasConflictReReviewer(context: OccupantContext, job: Readonly<Job>): bo
   return context.input.board.jobs().some((child) => child.parentJobId === job.id && child.role === 'conflict-re-reviewer');
 }
 
-/** The merge of main before User's code review (W2.6), or its re-review while a conflict re-reviewer judges the resolution. */
+/** The merge of main before User's code review, or its re-review while a conflict re-reviewer judges the resolution. */
 function mergingMainNodesOf(context: OccupantContext, job: Readonly<Job>, worker: string): string[] {
   return [
     ...(hasConflictReReviewer(context, job) ? [NODE_IDS.reReviewBeforeHumanCodeReview] : []),

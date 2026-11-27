@@ -1,8 +1,6 @@
 /**
- * The denied roots a launch makes in its worktree under `mount-points`, the Linux deny shape. What matters: a worktree with no `.claude`
- * folder gets one before the launch, so the folder gets its read-only mount; a folder that cannot be made records a refusal and the launch
- * does not start; and the hold turns that refusal into `sandbox-unavailable` also for a worker launch, which stands in `running`. On a
- * forge with entities a prepare step's sandbox, like a session's, makes and denies the `.claude` folder of every entity home (E7).
+ * The denied roots a launch makes in its worktree under `mount-points`, the Linux deny shape: a missing `.claude` folder is made so it gets
+ * its read-only mount, one that cannot be made becomes `sandbox-unavailable`, and on a forge with entities every entity home's is denied.
  */
 import { existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { join }                               from 'node:path';

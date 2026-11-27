@@ -1,10 +1,7 @@
 /**
- * The machine-wide agent slots and the limit they keep, over scratch monitor folders and an injected liveness. What matters: two boards
- * together never hold more slots than the limit; a slot whose Hephaestus is gone is taken over and logged by the next claim of any
- * Hephaestus, and by the restarted Hephaestus whose job still runs; a slot older code wrote, with no version, is judged by its Hephaestus
- * the same way; one that cannot be read is taken over and logged, or, when its bytes cannot be read at all, left in place and logged once;
- * a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation becomes the launched job's slot and an
- * unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with nothing written.
+ * The machine-wide agent slots over scratch monitor folders: two boards never hold more slots than the limit; a slot whose Hephaestus is gone, or
+ * that cannot be read, is taken over and logged by the next claim; a lowered limit stops nothing but takes no new claim until the holdings drain; and
+ * a stored limit above the CPU ceiling is refused.
  */
 import {
   existsSync,

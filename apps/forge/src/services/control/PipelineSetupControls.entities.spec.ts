@@ -1,17 +1,7 @@
 /**
- * User's setup kinds on a forge over entities, applied to a Board in a change. What matters: once User continues the `entities` step,
- * each entity of the draft gets a pipeline-agent session of its own, stamped with its entity and held in its part of the record; an
- * advise opens at the forge or at one entity of the stored pipeline, and the record names that entity; an update at an entity holds
- * that entity's part, whose session a resume opens without one at the forge; a resume opens the level the record opened at and each
- * entity a session served, never an entity whose part only a check made; a level the pipeline has no entity for is refused before
- * anything is written; an answer, a constitution edit, a discard and a check message the session of the level they change and no other;
- * a check covers each entity whose gates the draft touched, with its own gates; a start over stops every session; an Apply reads each
- * entity's constitution path on main and starts the product owner with the request's words; a draft edit that whitelists a package
- * with a review is accepted; and a copy to another entity stores its edits under one `batch`, the first of their edit ids, which
- * `wholeBatch` undoes at once with the entity's session hearing every edit of it in one message, while a copy that names a field outside an
- * entity is refused with the record untouched. An edit that leaves entities the validator refuses lands, and the forge's session hears
- * each refusal that stands, while a malformed value is still refused. A forge without entities keeps one session and stores no batch,
- * which `PipelineSetupControls.spec.ts` holds.
+ * User's setup kinds on a forge over entities: once the `entities` step continues, each entity of the draft gets a pipeline-agent session of its own,
+ * and every move messages the session of the level it changes and no other; a copy to another entity stores its edits under one `batch`, which
+ * `wholeBatch` undoes at once. `PipelineSetupControls.spec.ts` holds a forge without entities.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -102,7 +92,7 @@ function withWebTestGate(pipeline: Pipeline): Pipeline {
   return draft;
 }
 
-/** A first setup S1 at the `entities` step whose draft holds the root entity, `web` and `design-system`; its forge session is J1. */
+/** A first setup `S1` at the `entities` step whose draft holds the root entity, `web` and `design-system`; its forge session is `J1`. */
 function boardAtEntitiesStep(tickets: Ticket[] = []): BoardFixture {
   const opened = boardFixture();
   apply(opened, {
@@ -122,7 +112,7 @@ function boardAtEntitiesStep(tickets: Ticket[] = []): BoardFixture {
   return fixture;
 }
 
-/** S1 past the `entities` step: J1 serves the forge, J2 the root entity, J3 `web` and J4 `design-system`. */
+/** `S1` past the `entities` step: `J1` serves the forge, `J2` the root entity, `J3` `web` and `J4` `design-system`. */
 function boardWithEntitySessions(tickets: Ticket[] = []): BoardFixture {
   const fixture = boardAtEntitiesStep(tickets);
   apply(fixture, {
@@ -469,7 +459,7 @@ describe('a copy to another entity', () => {
     { target: 'within-entity', entityKey: 'design-system', edit: { target: 'phase-order', phase: 'build', names: ['test'] } },
   ];
 
-  /** S1 past the `entities` step with an approval edited first, then web's test gate copied to the design system as E2 and E3. */
+  /** `S1` past the `entities` step with an approval edited first, then web's test gate copied to the design system as `E2` and `E3`. */
   function boardWithACopy(): BoardFixture {
     const fixture = boardWithEntitySessions();
     apply(fixture, {

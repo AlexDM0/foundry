@@ -1,8 +1,7 @@
 /**
- * Delivers each answered question to its session after the answering hold, design section 8.2: a live session still holding the request
- * takes the answer line; a resumed session gets the answers as its first user line. A marker per request in the job's folder, written only
- * after Talos took the line, keeps a later pass or restart from delivering the answer again, unless Hephaestus died before the marker:
- * delivery is at least once, and how an agent takes a repeated answer line was never probed.
+ * Delivers each answered question to its session after the answering hold, design section 8.2. A marker per request, written only after
+ * Talos took the line, keeps a later pass from delivering it again; a death before the marker makes delivery at least once, and how an
+ * agent takes a repeated answer line was never probed.
  */
 import { createHash }                from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';

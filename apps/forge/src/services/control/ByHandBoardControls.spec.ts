@@ -1,8 +1,7 @@
 /**
- * The by-hand board kinds over the Board fixtures, git answered from the recorded branch list. What matters: `log-note` logs the note at
- * the hold's stamp and answers it as the `log` verb printed it; `namespace-set` stores the name in the hold, and refuses with a wordless
- * detail a job on a branch (the Assistant and the product owner hold no name back) and a name the repository's branches leave no room
- * for, each with nothing written. No recording answers a failed branch list, so its detail is held by the wording spec alone.
+ * The by-hand board kinds, git answered from the recorded branch list: `log-note` logs the note at the hold's stamp; `namespace-set` stores the name,
+ * and refuses a job on a branch and a name the repository's branches leave no room for, writing nothing. A failed branch list has no recording, so
+ * the wording spec alone holds its detail.
  */
 import {
   afterEach,

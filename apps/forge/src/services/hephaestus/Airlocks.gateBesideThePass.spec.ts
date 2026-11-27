@@ -1,10 +1,7 @@
 /**
- * The merged-tree gate runs beside the pass (design section 3.2, "Renewal that only progress earns"): a pass that waited through a gate
- * would withhold the lease's renewal for as long as the gate's lines run. What matters: a gating Airlock whose run is in flight stays in
- * `gating`, counts as no move, is never stopped and lands nothing until a later sweep finds the outcome; meanwhile the sweep goes on and lands another
- * target's ticket; a passed, a red and a cannot-run outcome settle as they did when the pass awaited them, and the Airlock lets the kept
- * outcome go after the hold that settled it; a stale green's re-gate goes the same way, its ticket keeping its mark while the run is in
- * flight, since an unqueued ticket in review is the policy's to hand to a reviewer and the next sweep would not list it again.
+ * The merged-tree gate runs beside the pass, since a pass that waited through it would withhold the lease's renewal: a gating Airlock whose run is in
+ * flight stays in `gating`, counts as no move and lands nothing until a later sweep finds the outcome, while the sweep lands other targets' tickets;
+ * a stale green's re-gate goes the same way.
  */
 import {
   afterEach,
@@ -41,7 +38,7 @@ function kindsLogged(current: AirlocksHarness, kind: string): unknown[] {
   return current.board.logRecordsSoFar().filter((record) => record.kind === kind);
 }
 
-/** Ticket #001 queued on the main line, its git answering from the main-line set of a branch that already holds main. */
+/** Ticket `001` queued on the main line, its git answering from the main-line set of a branch that already holds main. */
 function mainLineHarness(landing: { branchTip?: string; branchTree?: string } = {}): AirlocksHarness {
   const current = createRecordedAirlocksHarness([{ id: '001' }]);
   recordedGit.answerFrom(AirlockAnswerSets.mainLineAnswersOf({

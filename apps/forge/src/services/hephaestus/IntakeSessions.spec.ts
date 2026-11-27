@@ -1,10 +1,7 @@
 /**
- * The entity map a product owner's brief receives. What matters: on a forge without entities the brief loses only its `{{entityMap}}`,
- * so it reads byte for byte as before; on a forge with entities it ends with the map, each entity's key, kind, homes and summary, and how
- * to give a ticket its entity with a reason, also when the brief has no placeholder (installed before it, or named by the pipeline), while
- * such a brief on a forge without entities stays byte for byte; and no other job's instructions change. The map also lists what each entity
- * depends on, files one ticket per entity ordered package first or in one group (E80), asks User for an entity it cannot find (E81), files a
- * change to every entity by expand and contract or as one group (E82), and files research for the whole repository in `root` (E84).
+ * The entity map a product owner's brief receives: on a forge without entities the brief reads byte for byte as before; on one with entities
+ * it ends with the map, each entity's key, kind, homes, summary and dependencies, and how to file work per entity, also when the brief has
+ * no `{{entityMap}}` placeholder. No other job's instructions change.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';

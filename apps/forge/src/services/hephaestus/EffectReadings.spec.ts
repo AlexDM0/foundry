@@ -1,11 +1,6 @@
 /**
- * Effect readings, in memory, with an injected clock and recorded git for the main line's tree. What matters: the reader's profile denies
- * the repository root and the tracker's data folder, excludes the instruction files from its session folder up to the repository root, and
- * gives it no tool, no network and no question; a request reads `reading` at once
- * and launches one job outside the agent slots, one at a time per board; the reader's paths are checked against the tree, a changed or
- * removed path the tree lacks reading `no-match` and several candidates `ambiguous`; a report not of its schema fails the reading; the
- * timeout and a session that ended with no `result` fail it; the reading, read or failed, goes to the agent as a board message only when it
- * asked; and one launched in a hold that was refused is asked again.
+ * Effect readings, in memory, with an injected clock and recorded git for the main line's tree: the reader's confinement, one job at a time
+ * per board outside the agent slots, how its paths are checked against the tree, and when the reading reaches the agent.
  */
 import { describe, expect, test } from 'bun:test';
 

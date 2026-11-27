@@ -1,9 +1,6 @@
 /**
- * A spec or plan agent's question to User. What matters: the question opens an `agent-question` decision on its ticket that names the
- * document and a code-view anchor on the lines the agent named, at the version it read, with the headings above them; the agent's untrusted
- * JSON is checked field by field before the Board sees it; while the question is open nobody approves that document, the pipeline
- * included; and User's answer, an option with a note, goes to the document's agent as a message on the question's lines that names the
- * decision and holds no comment number, with the answer in parts, the option chosen apart from User's own words, which nobody withdraws,
+ * A spec or plan agent's question to User: it opens an `agent-question` decision anchored on the lines the agent named, its untrusted JSON checked
+ * field by field; nobody approves the document while it is open; and User's answer reaches the document's agent as a message on the question's lines,
  * after which the document is approved as before.
  */
 import { describe, expect, test } from 'bun:test';

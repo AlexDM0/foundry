@@ -1,9 +1,7 @@
 /**
- * A file Hephaestus stored for one job that its ingestion finds unreadable is a bug, so the job does not go on as if the file said nothing.
- * The `system-file-unreadable` incident goes to the Assistant, whose moves are a fresh agent or a park; its default parks the ticket, which
- * puts the decision in front of User. A job holds one such incident per file while it stands open, and none while its ticket stays parked on
- * one. A session job neither move can heal, the Assistant or a document or pipeline agent, is retired instead, so a fresh one boots or
- * launches by the board's own rules.
+ * A stored file a job's ingestion cannot read is a bug, so the job does not go on as if it said nothing: the `system-file-unreadable` incident
+ * goes to the Assistant, whose default parks the ticket for User. A session job neither a fresh agent nor a park can heal is retired instead,
+ * so a fresh one launches by the board's own rules.
  */
 import type { Incident }      from '../../lib/tracker-model/@types/Incident.ts';
 import type { LogRecord }     from '../../lib/tracker-model/@types/LogRecord.ts';

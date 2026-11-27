@@ -1,13 +1,7 @@
 /**
- * The per-job profile table of design section 4.4, as the neutral data every adapter renders. What matters: every write and read deny the
- * design names is there as an absolute path; every role is denied the same per-OS credential list; the sockets and GnuPG home come from
- * gpgconf, whose absence commits unsigned and never throws; the gpg folder is narrowed only when an agent socket signs; and a ticket's
- * `network` line is the only network a worker gets, any domain staying the product owner's alone. The Claude Code adapter's own spec
- * holds that each of these paths renders `//`-anchored into the sandbox and the permission rules, and how `none`, a list and `any`
- * become `--disallowedTools`; the guard on the vendor's seam keeps that adapter out of this spec. Under `mount-points`, the Linux
- * sandbox's shape, no deny names an absent path, a ref held only in `packed-refs` gets none, the launch files are one folder, signing
- * falls back to unsigned and the list stays under the mount limit; the macOS output stays as frozen. The one exception is a denied root
- * inside a writable bind, `<worktree>/.claude`: the launch makes it, or refuses, so it always gets its read-only mount.
+ * The per-job profile table as the neutral data every adapter renders (the Claude Code adapter's spec holds its rendering): each deny as an
+ * absolute path, the per-OS credential list, the gpg sockets and their absence, and the ticket's `network` line. Under `mount-points` no deny
+ * names an absent path but `<worktree>/.claude`, made or refused at launch, and the list stays under the mount limit; macOS stays as frozen.
  */
 import { existsSync, mkdirSync, realpathSync } from 'node:fs';
 import {

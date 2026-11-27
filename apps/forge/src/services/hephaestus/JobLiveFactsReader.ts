@@ -1,8 +1,7 @@
 /**
- * A job's live facts as Hephaestus's API shows them, read from its Talos event logs through the adapter's mapper: API turns against
- * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt by the
- * adapter from the session's transcripts; whether a turn is under way, User's messages not yet sent, a session's last line, and the newest usage window
- * the session reported. The stamps are only recorded and shown: no Hephaestus decision reads them.
+ * A job's live facts as Hephaestus's API shows them, read from its Talos event logs through the adapter's mapper: turns, tokens, tool calls
+ * per subagent, whether a turn is under way, waiting messages, a session's last line and its usage window. The stamps are only recorded and
+ * shown: no Hephaestus decision reads them.
  */
 
 import type {

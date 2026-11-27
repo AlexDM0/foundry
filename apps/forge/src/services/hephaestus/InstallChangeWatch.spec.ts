@@ -1,10 +1,7 @@
 /**
- * Hephaestus learns of an update only through this watch, so what matters: the on-disk binary is asked again at each sweep and after
- * each landing and not on every look, the manifest is read on every look, an install change wins over new code, and nothing here ever
- * restarts anything: the watch only answers. A look never waits for the binary, which once blocked Hephaestus's API under load, and
- * never runs two at once. The child it runs answers as the real binary did, recorded by
- * `src/testing/RecordedCommand.versionCheck.integration.spec.ts`; one that never answers is killed at its deadline, since a pass after a
- * landing awaits it.
+ * Hephaestus learns of an update only through this watch: the binary is asked at each sweep and after each landing, never on every look and
+ * never two at once, an install change wins over new code, and the watch never restarts anything. The child answers as the real binary did,
+ * recorded by `src/testing/RecordedCommand.versionCheck.integration.spec.ts`.
  */
 import { join } from 'node:path';
 

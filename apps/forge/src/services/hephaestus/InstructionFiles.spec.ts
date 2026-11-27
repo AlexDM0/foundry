@@ -1,16 +1,7 @@
 /**
- * Which instruction files a launch reads, in which order, and what Customs V11 protects. What matters: a role's list is read in entry
- * order; a `constitution` entry is the pipeline's constitution path or the installed default; a `default-brief` entry is that role's
- * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
- * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading; a
- * job of an entity reads its entity's list and constitution, a job without one the forge's own, a job of an entity with no constitution the
- * installed default even where the forge sets one (E28), and a job of an entity the pipeline no longer holds the installed defaults; and
- * V11 protects every tracked path any role's resolved list names, each entity's too, while V17 learns which entity owns each entity's
- * constitution. A pipeline agent reads the constitution too, but the one the open setup record serves reads the record's draft, of its own
- * level, never the installed default, and none before a draft exists. Main's `CONSTITUTION.md`, or an entity's constitution by its
- * path, is read with its blob id from one commit of the main line, absent when that commit holds none or when the main line is checked
- * out with no commit yet, and unreadable, never absent, when any other main line does not resolve. Data-folder files are read from
- * disk; a tracked path is asked of git, which answers from the recorded answers of `src/testing/RecordedGit.ts`.
+ * Which instruction files a launch reads, in which order, and which tracked paths the checks-definition check (`checksDefinitionUnchanged`)
+ * protects: each role reads its own list, a job of an entity its entity's list and constitution, and one missing file refuses the whole
+ * reading. Tracked files are read from one commit of the main line; git answers from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,

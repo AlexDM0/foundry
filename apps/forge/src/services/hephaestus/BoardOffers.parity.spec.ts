@@ -1,8 +1,6 @@
 /**
- * The moves the board document offers on a ticket. What matters: an offered command is one the Board accepts, and a command not offered is
- * one it refuses. For each ticket status, held and unheld, on a fixture board, every board ticket kind is applied in a fresh copy as its
- * control applies it to the Board: an offered kind is accepted, any other refused. The merge kinds run their git step in the Airlock
- * controls, past the Board; on these boards merge approval is off, which those controls refuse first, so neither is offered.
+ * The moves the board document offers on a ticket: for each status, held and unheld, an offered command is one the Board accepts, and a
+ * command not offered is one it refuses.
  */
 import { describe, expect, test } from 'bun:test';
 

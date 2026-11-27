@@ -250,10 +250,9 @@ function createEffectReadings(options: EffectReadingsOptions): EffectReadings {
 }
 
 /**
- * It answers only through its report: no tool, no shell, no web, no question, and the repository root and the tracker's data folder denied
- * explicitly, since the session profile denies neither. Its session folder lies inside the repository, and instruction files load from
- * the working folder up without a tool, so every folder from its session folder up to the repository root has its instruction files and
- * rules excluded, the repository's own among them.
+ * It answers only through its report, the repository root and the tracker's data folder denied explicitly since the session profile denies
+ * neither. Instruction files load from the working folder up without a tool, and its session folder lies inside the repository, so every
+ * folder from there up to the repository root has its instruction files excluded.
  */
 function effectReaderProfileOf(sessionProfile: WorkerProfile, repositoryRoot: string, trackerDirectory: string, sessionFolder: string): WorkerProfile {
   const foldersUpToTheRepositoryRoot: string[] = [];

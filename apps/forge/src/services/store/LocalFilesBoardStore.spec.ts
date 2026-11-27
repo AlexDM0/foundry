@@ -1,13 +1,7 @@
 /**
- * What only the local files adapter promises, beyond the contract. What matters: a write cut short is finished by the next writer of
- * another store and reads as pending until then; a malformed hold journal names its file and stops every write; an unreadable ticket
- * file is reported with its key and its file and stays off the Board; the revision covers the progress record, the log and the gate
- * profile runs and no ticket; reads take no lock; the pipeline is judged once, so a tracker in a folder reads a stored pipeline with
- * entities as malformed in every read, the reading a write opens the Board on; and a lock record whose holder is judged gone is taken over
- * by the next write. A committed ticket's content is kept in `<data>/committed-content/<hash>.json`, written before the ticket file so a
- * write cut between the two leaves a board that reads; a ticket file changed on disk reads with the kept content until the next write puts
- * it back, and a missing kept content makes the ticket unreadable at the kept file. The `.git` folder is planted: finding the prefix runs
- * no git.
+ * What only the local files adapter promises beyond the contract: a cut-short write is finished by the next writer; a malformed hold journal
+ * stops every write; an unreadable ticket stays off the Board; reads take no lock; committed content is written before the ticket file, so a
+ * write cut between the two leaves a board that reads. The `.git` folder is planted, so finding the prefix runs no git.
  */
 import {
   appendFileSync,

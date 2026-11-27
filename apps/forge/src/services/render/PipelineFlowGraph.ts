@@ -136,8 +136,8 @@ function ticketWritingPlacesOf(pipeline: Pipeline): NodePlace[] {
 }
 
 /**
- * The nodes of a pipeline in drawing order. The merge before review comes with the review step (Q5); the merge before User's code
- * review, its re-review and its gates come with the merge approval; a merge's worker is the builder when no review step exists (Q16).
+ * The nodes of a pipeline in drawing order. The merge before review comes with the review step; the merge before User's code
+ * review, its re-review and its gates come with the merge approval; a merge's worker is the builder when no review step exists.
  */
 function nodePlacesOf(pipeline: Pipeline, phaseIsDrawn: (phase: GatePhase) => boolean): NodePlace[] {
   const { review }                 = pipeline;

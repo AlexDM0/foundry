@@ -1,15 +1,7 @@
 /**
- * The pipeline agent's setup kinds, applied as the Bouncer admitted them: stamped with the setup it serves and, for an entity's session,
- * that entity, whose part of the record takes its finding, question and constitution. What matters: a misshapen
- * payload or a missing setup is `malformed-setup-command` naming the field, with the Board untouched; a question takes two to four
- * options and exactly one recommendation unless it takes several, and never "Other"; a proposed edit outside the closed field union, or
- * one that leaves a draft the `pipeline.json` validator refuses for any reason but its entities' set check, is refused, while entities
- * the validator refuses land for User to resolve; the constitution is stored byte for byte, and an empty,
- * overlong, unanchored or doubly sourced one, one with a malformed source path, or one naming a source whose SOURCES tick is off, is
- * refused; a ready step is a suggestion only; and only the first proposal reads the snapshot's tree from git's index, each finding a note.
- * The forge session's second layout finding starts a first setup's `entities` step in a tracker at its repository's root only: a tracker
- * in a folder holds no entities, so its record keeps today's steps. The agent asks and suggests a Continue at the `entities` step.
- * Every refusal leaves the record and the log untouched: a relayed command shares Hephaestus's hold, which a refusal does not undo.
+ * The pipeline agent's setup kinds, applied as the Bouncer admitted and stamped them: a misshapen payload, a malformed question, an edit outside the
+ * field union or a bad constitution is refused naming the field. Every refusal leaves the record and the log untouched, since a relayed command
+ * shares Hephaestus's hold, which a refusal does not undo.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -80,7 +72,7 @@ function refusalDetailOf(attempt: () => unknown): unknown {
   throw new Error('the command was not refused');
 }
 
-/** A board whose open first setup S1 is at `step`, its agent J4. */
+/** A board whose open first setup `S1` is at `step`, its agent `J4`. */
 function boardAt(step: 'research' | 'design'): BoardFixture {
   const opened = boardFixture();
   apply(opened, {

@@ -1,8 +1,6 @@
 /**
- * The crash logs in a scratch board folder. What matters: an assembled log keeps every input, and an input that could not be read stays `null`
- * rather than reading as empty; a crash log is never rewritten, so a second writer of the same crash leaves the first byte for byte; a crash
- * of a Hephaestus lock generation that came round again gets a number of its own, one above the highest on disk; the log tail keeps only the last
- * lines of a long log; listing ignores every other file; a read is a verdict, never a throw.
+ * The crash logs in a scratch board folder: an unreadable input stays `null` rather than empty, a log is never rewritten, a repeated lock
+ * generation gets a number of its own, and a read is a verdict, never a throw.
  */
 import {
   mkdirSync,

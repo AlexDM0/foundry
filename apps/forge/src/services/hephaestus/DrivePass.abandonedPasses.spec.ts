@@ -1,8 +1,5 @@
 /**
- * A pass abandoned on one of the tracker lock's expected conditions, and a crash for anything else. What matters: a pass whose hold throws
- * `tracker-lock-held` three times in a row raises the notice and writes the count to presence, and the next pass that runs to its end clears
- * both; an abandoned forced pass is tried again at the next wake-up, even one with nothing observed changed; a pass that throws a plain error
- * runs the crash path once and no wake-up runs another pass. The throws come from the hold's first phase; git answers from the recorded flow
+ * A pass abandoned on one of the tracker lock's expected conditions, and a crash for anything else. Git answers from the recorded flow
  * stages and Talos from `src/testing/RecordedTalosStages.ts`.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';

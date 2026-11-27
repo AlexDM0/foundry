@@ -1,8 +1,7 @@
 /**
- * Settling a lost child's cause against real process groups. What matters is that the recorded child group is killed whenever it is still
- * the recorded one, including once its leader has exited while members live on (its Talos is then the one lost), and that a group whose
- * recorded leader id now belongs to an unrelated process, alive or as the members of a reused group, is never signalled. A stored cause that
- * names no interruption cause is logged and settled again, so it never reaches the board.
+ * Settling a lost child's cause against real process groups: the recorded child group is killed whenever it is still the recorded one,
+ * its leader exited included, and a group whose leader id now belongs to an unrelated process is never signalled. A stored cause that names
+ * no interruption cause is logged and settled again, so it never reaches the board.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

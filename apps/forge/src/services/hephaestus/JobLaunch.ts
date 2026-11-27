@@ -1,8 +1,7 @@
 /**
- * A build job end to end (design sections 4.4 and 5): Hephaestus prepares the ticket's worktree from the target tip, runs the install line
- * in a sandboxed line child, launches the builder, takes its closing report, closes its input, verifies, gates in a sandboxed process
- * line child, and writes the Handoff and finishes the ticket, each step a job state. Observing happens outside the lock, the moves in the hold,
- * and the effects (git, Talos, frames) after it; a step's progress lives on disk in the job folder, so a restart observes it again.
+ * A build job end to end: Hephaestus prepares the worktree, installs, launches the builder, verifies, gates, writes the Handoff and
+ * finishes the ticket, each step a job state. Observing happens outside the lock, the moves in the hold, and the effects after it; a step's
+ * progress lives on disk in the job folder, so a restart observes it again.
  */
 import {
   existsSync,
@@ -392,7 +391,7 @@ const DEPENDENT_BROKEN_DECISION = 'dependent-broken';
 /** The scope check's refusal of a job of an entity whose branch changed nothing in its own folders. */
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
-/** The scope check's refusals of a branch that changed another entity's files; a `git-failed` V17 stays an ordinary red handoff. */
+/** The scope check's refusals of a branch that changed another entity's files; a `git-failed` scope check stays an ordinary red handoff. */
 const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY, 'sealed-change-altered', 'constitution-outside-ticket-entity'];
 
 function callBudgetOf(job: Readonly<Job>): number {
@@ -460,7 +459,7 @@ function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey, pro
 /**
  * Absent for a tracker at its repository's root whose pipeline has no entities, so its subject, and every git call Customs makes for it,
  * stays as it always was. On a pipeline with entities it names every entity home, for a job of an entity what the job may change, and for a
- * job of a ticket of an entity which constitutions the job may change (E8).
+ * job of a ticket of an entity which constitutions the job may change.
  */
 function projectScopeOf(
   projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>, ticketEntity?: string, refusedPackages: readonly EntityKey[] = []
@@ -681,7 +680,7 @@ function gateRunManifestFileOf(place: GateRunPlace): string {
 }
 
 /**
- * The entities a package build's gate run checks after the package's own (E25, E26): the package's dependents but its home entity, whose
+ * The entities a package build's gate run checks after the package's own: the package's dependents but its home entity, whose
  * app the adapt stage brings in line, and but those whose fix tickets are in the ticket's group, which the group's release gates. None for
  * every other job.
  */
@@ -760,10 +759,8 @@ function gateRunManifestOf(
 }
 
 /**
- * Each prepare step, then each gate of the manifest in its run order, each in a child folder of its own named by its position in the
- * manifest; a manifest with no gates has no step, so it passes at once. A session resumed after a red handoff gates again in fresh folders,
- * suffixed with its child instance, since a child folder runs once. A step is of the job's entity on a pipeline with entities, unless
- * the manifest names a dependent's.
+ * Each prepare step, then each gate of the manifest in run order, each in a child folder named by its position; a manifest with no gates
+ * passes at once. A resumed session gates again in fresh folders suffixed with its child instance, since a child folder runs once.
  */
 function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace, job: Readonly<Pick<Job, 'entity'>>): GateStep[] {
   if (manifest.gates.length === 0) return [];
@@ -1374,7 +1371,7 @@ function endJobOnItsNeeds(hold: HoldContext, job: Readonly<Job>): void {
 }
 
 /**
- * A package build whose constitution forbids the package change ends `refused` (E22), its branch and commits kept, and opens
+ * A package build whose constitution forbids the package change ends `refused`, its branch and commits kept, and opens
  * `package-refused` with its reason, which holds the ticket until User answers. The reason also waits in its job folder, for the stage 1
  * that takes the change back out once User drops it or turns it into a need. Only a package build's report can say `refused`.
  */
@@ -1402,10 +1399,9 @@ function returnedPackageOf(sealedPackages: readonly EntityKey[], namedPackage: u
 }
 
 /**
- * An adapt build that needs the package to give more ends `package-return` (E41, E42): its own commits must stay in its homes and `reach`,
- * so it holds no change of the package, and its reason waits in its job folder for the returned package build. The Board lifts the seal,
- * counts the return and moves the ticket to the package build; a second return opens `second-return` and keeps the stage (E45). A report
- * from any other stage, or one that names no sealed package, fails as a report without one.
+ * An adapt build that needs the package to give more ends `package-return`: its commits hold no change of the package, and its reason waits
+ * in its job folder for the returned package build, which the Board starts with the seal lifted and the return counted. A report from any
+ * other stage, or one that names no sealed package, fails as a report without one.
  */
 function endJobOnItsPackageReturn(hold: HoldContext, job: Readonly<Job>, subject: CustomsSubject, report: unknown): void {
   const { board, at } = hold.change;
@@ -1428,7 +1424,7 @@ function endJobOnItsPackageReturn(hold: HoldContext, job: Readonly<Job>, subject
 
 /**
  * A package build's gate of a dependent entity, named `<entity>: <gate>`, still red once the red handoff's resumes are spent: the package
- * builder cannot hold the package change without breaking that dependent (E26).
+ * builder cannot hold the package change without breaking that dependent.
  */
 function dependentGateIsRedPastItsResumes(hold: HoldContext, job: Readonly<Job>, gateName: string): boolean {
   const entities = hold.change.board.pipeline()?.entities;
@@ -1458,7 +1454,7 @@ function openDependentBrokenDecision(hold: HoldContext, job: Readonly<Job>, gate
 
 /**
  * A session sent back once to take its change out of another entity still changed nothing in its own: all the work of the ticket belongs
- * to another entity (E15). User moves the ticket to an entity that owns the paths, or abandons it, and the decision holds it.
+ * to another entity. User moves the ticket to an entity that owns the paths, or abandons it, and the decision holds it.
  */
 function openWorkInOtherEntityDecision(hold: HoldContext, job: Readonly<Job>, pathsOutside: readonly string[]): void {
   const { board, at } = hold.change;
@@ -1520,9 +1516,9 @@ function agentConfigHitIsSettled(board: Board, ticketId: string): boolean {
 }
 
 /**
- * V13 before every launch on a branch, resumes included: the tickets of live worktree jobs whose branch past its target, or whose worktree,
- * changes agent configuration, and those with the decision still open. On a pipeline with entities, every entity home is protected too.
- * Read outside the lock.
+ * The agent-config check (`agentConfigUntouched`) before every launch on a branch, resumes included: the tickets of live worktree jobs
+ * whose branch past its target, or whose worktree, changes agent configuration, and those with the decision still open. On a pipeline with
+ * entities, every entity home is protected too. Read outside the lock.
  */
 function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null = null): string[] {
   const { projectPrefix } = projectLocationOfContext(context);
@@ -1600,18 +1596,18 @@ function redHandoffCauseOf(context: Pick<JobLaunchContext, 'workspace'>, job: Re
 /** The Customs checks a resumed session can put right in its own worktree: a dirty worktree, no commit, missing or stale gate claims. */
 const RESUMABLE_CUSTOMS_CHECKS: readonly VerificationCheck[] = ['V3', 'V4', 'V15'];
 
-/** V17, the scope check: a job of an entity is resumed to take a change outside its stage's folders back out (E11). */
+/** The scope check (`changesStayInHomeAndReach`): a job of an entity is resumed to take a change outside its stage's folders back out. */
 const SCOPE_CHECK: VerificationCheck = 'V17';
 
 /**
- * A red handoff of the job sent it back for a scope refusal before: its one V17 resume is spent, also when a red gate or another check came
- * after. A `git-failed` V17 spends nothing.
+ * A red handoff of the job sent it back for a scope refusal before: its one scope resume is spent, also when a red gate or another check
+ * came after. A `git-failed` scope check spends nothing.
  */
 function scopeResumeSpent(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
   return ownRedHandoffInTheHoldOf(context, job)?.scopeResumed === true;
 }
 
-/** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */
+/** A job without an entity, on a folder tracker too, keeps the checks it always had: there the scope check fails the job. */
 function resumableCustomsChecksOf(job: Readonly<Pick<Job, 'entity'>>): readonly VerificationCheck[] {
   return job.entity === undefined ? RESUMABLE_CUSTOMS_CHECKS : [...RESUMABLE_CUSTOMS_CHECKS, SCOPE_CHECK];
 }
@@ -1740,7 +1736,7 @@ function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>, start: Read
 }
 
 /**
- * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into (E19, E22); `null` when git cannot tell.
+ * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into; `null` when git cannot tell.
  */
 function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, start: Readonly<JobStart> | null): EntityKey[] | null {
   const changedPaths = branchChangedPathsOf(hold, job, start);
@@ -1750,10 +1746,9 @@ function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, h
 }
 
 /**
- * A verified, gated build of an entity settles by its stage (strategy 4.2). After stage 1, the paths the branch changed past its target are
- * sorted by owner: a whitelisted package among them starts its package build, the ticket staying in progress. A package build hands over
- * to its package review with the statement of what the package exposes; `adapt` hands over to the home review as any build hands over to
- * review. Returns whether the build was settled here; a build that stayed in its entity settles as it always has.
+ * A verified, gated build of an entity settles by its stage: after stage 1 a whitelisted package among the changed paths starts its package
+ * build, a package build hands over to its package review, and `adapt` to the home review. Returns whether the build was settled here; a
+ * build that stayed in its entity settles as it always has.
  */
 function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string, start: Readonly<JobStart> | null): boolean {
   const { board, at } = hold.change;
@@ -1792,7 +1787,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
 }
 
 /**
- * A stage 1 that a dropped package change sent back to `build` (E22), whose branch now stays in its entity, settles as any build: its row
+ * A stage 1 that a dropped package change sent back to `build`, whose branch now stays in its entity, settles as any build: its row
  * no longer stores a stage, so its review is the home's own. Returns false, so the build settles as it always has.
  */
 function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
@@ -1801,7 +1796,7 @@ function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
 }
 
 /**
- * The stage after the last package review: the home review when `adapt` is skipped (E40), with the ticket moved to review as a build moves
+ * The stage after the last package review: the home review when `adapt` is skipped, with the ticket moved to review as a build moves
  * it; `adapt` otherwise.
  */
 function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, headCommit: string): readonly LogRecord[] {
@@ -1819,7 +1814,7 @@ function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeE
 
 /**
  * The `reach` paths the package stages of the reviewed package changed since the first job of their run, with those an earlier review of
- * the package sealed, so a lockfile change joins the seal (E3). `null` when git cannot tell.
+ * the package sealed, so a lockfile change joins the seal. `null` when git cannot tell.
  */
 function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string, readings: Readonly<SettlementReadings>): string[] | null {
   const { packageRunStart } = readings;
@@ -1831,10 +1826,9 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
 }
 
 /**
- * A gated package review (stage 3) settles its rounds and record as any review (E30, E31) but moves neither the ticket's status nor its
- * merge queue: one that does not hold sends the package build back with its Review, kept in its job folder (E34). One that holds seals the
- * ticket's own change to the package and keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed
- * package's build runs, or the stage after the package stages. Its bar is closed here, since no status move closes it.
+ * A gated package review settles its rounds and record as any review but moves neither the ticket's status nor its merge queue: one that
+ * does not hold sends the package build back with its Review; one that holds seals the package change, then the next crossed package's build
+ * or the stage after the package stages runs. Its bar is closed here, since no status move closes it.
  */
 function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown, readings: Readonly<SettlementReadings>): PackageReviewSettlement {
   const { board, at } = hold.change;
@@ -1923,7 +1917,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     });
     hold.logged.push(...settled.logged);
     if (packageReview !== undefined) return;
-    // A home review that does not hold sends the ticket back to `adapt`, also when `adapt` was skipped (E51, E52).
+    // A home review that does not hold sends the ticket back to `adapt`, also when `adapt` was skipped.
     if (crossingStage !== null && settled.move === 'fixer' && job.entity !== undefined) board.moveTicketStage(ticketIdOf(job), { name: 'adapt', entity: job.entity }, at);
     return;
   }
@@ -2139,12 +2133,9 @@ function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extrac
 }
 
 /**
- * A crossing ticket's review sent back by its catch-up goes to the entity that owns the cause (E66), not to whichever builder ran last; a
- * review's catch-up runs only the gates of the review's own entity, so a red gate has no files and is that entity's to fix. A package review
- * goes back to its package's build when only the package's files conflict. The home review goes back to `adapt` when no sealed package's
- * file conflicts, and to the package's build when only that package's files conflict, its seal lifted and the return counted; a second
- * return opens `second-return`, naming the package, and keeps the stage (E45). A conflict that no one stage may resolve, such as one in a
- * package's and in the home's files, or one in home files for a package review, parks the ticket for User. Nothing for any other review.
+ * A crossing ticket's review sent back by its catch-up goes to the entity that owns the cause, not to whichever builder ran last: a red gate
+ * is the review's own entity's, since a catch-up runs only its gates, a conflict the entity whose files conflict, and a conflict no one
+ * stage may resolve parks the ticket for User. Nothing for any other review.
  */
 function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflictedFiles: readonly string[]): void {
   const { board, at } = hold.change;
@@ -2788,7 +2779,7 @@ function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, er
 }
 
 /**
- * Whether the ticket's entity was set after its previous job launched (E15): the branch and worktree hold the work of its old entity, so
+ * Whether the ticket's entity was set after its previous job launched: the branch and worktree hold the work of its old entity, so
  * the build starts afresh. A ticket no job worked on before has no branch to drop.
  */
 function ticketEntityChangedSinceItsBranch(logRecords: readonly LogRecord[], job: Readonly<Job>): boolean {
@@ -2813,7 +2804,7 @@ function gitStepFailureOf(directory: string, gitArguments: readonly string[]): s
 }
 
 /**
- * A build of a ticket moved to another entity (E15) drops the ticket's worktree and branch before its worktree is made, once per job, so
+ * A build of a ticket moved to another entity drops the ticket's worktree and branch before its worktree is made, once per job, so
  * it builds afresh from its target. Only on a pipeline with entities; a failure is the worktree's failure, which the setup incident takes.
  */
 function startAfreshInTheNewEntity(context: JobLaunchContext, board: Board, job: Readonly<Job>, jobFolder: string): void {
@@ -2983,14 +2974,14 @@ function ticketDocumentReadingsOf(board: Board, job: Readonly<Job>, ticketId: st
   return TicketDocumentReadingUtil.readingsForRoleOf(loadedRecord, board.pipeline(), role, entityKey);
 }
 
-/** Each document's head as `<kind>:<content hash>`, in pipeline order: what V18 compares; empty for a ticket without documents. */
+/** Each document's head as `<kind>:<content hash>`, in pipeline order, which the document check compares; empty without documents. */
 function ticketDocumentVersionsOf(board: Board, ticketId: string): string {
   const loadedRecord = board.ticketDocumentRecordOf(ticketId);
   if (loadedRecord === null) return '';
   return loadedRecord.record.documents.map((document) => `${document.kind}:${document.versions.at(-1)?.contentHash ?? ''}`).join(' ');
 }
 
-/** The text V8 reads the Acceptance from and V11 the named paths: the body, and for a ticket with documents its spec and plan heads. */
+/** The text Customs reads the Acceptance and the named paths from: the body, and for a ticket with documents its spec and plan heads. */
 function ticketTextOfCustoms(board: Board, ticket: Readonly<{ frontmatter: { id: string }; body: string }>): { ticketBody: string; acceptanceText?: string } {
   const loadedRecord = board.ticketDocumentRecordOf(ticket.frontmatter.id);
   if (loadedRecord === null) return { ticketBody: ticket.body };
@@ -3009,8 +3000,8 @@ function packageBuildStartOf(board: Board, job: Readonly<Job>): PackageBuildStar
 }
 
 /**
- * Written as the session's child is first launched: the commit verification measures from, the content hash V6 compares with, and the refs,
- * worktree HEADs and hooks folder V13 and V14 compare with.
+ * Written as the session's child is first launched: the commit verification measures from, the ticket content hash, and the refs,
+ * worktree HEADs and hooks folder the agent-config and own-refs checks compare with.
  */
 function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<Job>): void {
   const startPath = join(jobFolderOf(context.workspace, job), JOB_FILES.start);

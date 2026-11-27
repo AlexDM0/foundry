@@ -1,18 +1,7 @@
 /**
- * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters: a
- * stop or wind-down holds the job's ticket in the same hold, before any child exists too, and logs its mode; a message to a finished job
- * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
- * `ready-for-review` while ticket review is on and to `committed` while it is off, and in a forge with entities refuses one without an
- * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
- * child is live; in the spec-then-plan route closing leaves a draft with its Report and Wanted a draft and opens its documents, and with
- * entities refuses one without an entity before the job moves; only
- * User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
- * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
- * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
- * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
- * request is refused `intake-empty` unless a picture carries it. Option notes, like a title, name their job; their fields reach the Board
- * as untrusted JSON, which refuses a malformed note in words. A need names its build job too, and its body is read as `ticket ready` reads a
- * draft's. A document agent takes neither a job message nor a job stop: its document's queue and turn stop carry them.
+ * User's job controls and the product owner's intake, as a hold carries them: a stop or wind-down holds the job's ticket in the same hold; closing an
+ * intake submits its complete drafts and refuses work outside a draft's entity before the job moves, so a corrected retry closes; and the pictures,
+ * option notes and needs a command carries are checked before the Board.
  */
 import {
   afterEach,

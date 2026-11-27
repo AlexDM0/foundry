@@ -1,10 +1,7 @@
 /**
- * Whether a held record frees the lock rests on the taker's judgement of its holder alone, never on the record's age: a holder judged
- * gone, such as a Linux zombie that a signal probe still reaches, frees it at once, and a holder judged alive keeps it however old its
- * stamp. A record of today's fields without a version, as older code wrote, is judged by its holder the same way. A stale record, its
- * holder gone or the record unreadable, is taken over at once and logged, with no refusal; a record whose bytes cannot be read now is held,
- * since that read failure says nothing of its holder. A holder that waited for the lock is stamped when it takes it, and writes the
- * current version.
+ * Whether a held record frees the lock rests on the taker's judgement of its holder, never on the record's age: a holder judged gone (even a
+ * Linux zombie a signal probe still reaches) frees it at once, one judged alive keeps it; an unreadable shape is stale and taken over, while a
+ * read that fails now holds, since that failure says nothing of the holder. A holder that waited is stamped when it takes the lock.
  */
 import {
   chmodSync,

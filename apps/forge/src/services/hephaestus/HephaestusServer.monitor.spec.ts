@@ -1,9 +1,6 @@
 /**
- * The monitor's routes and the identity, answered by the server's request handler on requests built in memory: no socket is bound. What
- * matters: the identity carries its own version and the contracts this program serves; `GET /api/monitor` answers the snapshot only with the
- * token, and a 401, a 403 or a read's 500 answers its refusal with the routes' sentence; `GET /api/monitor/events` opens with a handshake
- * naming the system version, then sends the whole newest snapshot, and a later one only when it changed, each `monitor` event carrying
- * `monitorVersion` and the system version beside it, and ends when the server closes its streams, as a restart does.
+ * The monitor's routes and the identity on requests built in memory: `GET /api/monitor` answers only with the token, and
+ * `GET /api/monitor/events` opens with a handshake, sends the newest snapshot, then a later one only when it changed.
  */
 import {
   afterEach,

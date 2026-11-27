@@ -1,10 +1,7 @@
 /**
- * The main line's Airlock of a tracker in a project folder, whose siblings land on the same main line. What matters: a sibling's journaled
- * landing requeues the slot silently and never counts toward parking, while a move nobody journaled parks as it does today; each landing is
- * journaled and holds the repository's landing lock only around its tip check and fast-forward, so a lock a sibling holds makes the landing
- * wait and a gate never runs under it; and a held main line clears once the paths its fast-forward changes are clean, where a tracker at
- * the root still waits for the whole checkout. git answers from the recorded answer sets of `testing/AirlockAnswerSets.ts` and
- * `testing/ConstitutionCommitAnswers.ts`.
+ * The main line's Airlock of a tracker in a project folder beside sibling trackers: a sibling's journaled landing requeues the slot silently while an
+ * unjournaled move parks; each landing holds the repository's landing lock only around its tip check and fast-forward; and a held main line clears
+ * once the paths its fast-forward changes are clean.
  */
 import { existsSync } from 'node:fs';
 
@@ -57,7 +54,7 @@ function answersOf(current: AirlocksHarness, landing: Partial<MainLineLanding> =
   });
 }
 
-/** Ticket #001's harness, a tracker beside its siblings unless `besideSiblings` is false, answering from the sets of `landing`. */
+/** Ticket `001`'s harness, a tracker beside its siblings unless `besideSiblings` is false, answering from the sets of `landing`. */
 function harnessAnswering(landing: Partial<MainLineLanding> = {}, besideSiblings = true): AirlocksHarness {
   const current = createRecordedAirlocksHarness([{ id: '001' }], {}, true, null, besideSiblings);
   recordedGit.answerFrom(answersOf(current, landing).beforeTheMergeIn);

@@ -1,8 +1,7 @@
 /**
- * Hephaestus's connection to Talos over the recorded endpoint, against Talos's own socket server, so no socket is made. What matters: a
- * `done` settles only the frame of its own id, also out of order, since a send answered by another frame's `done` would report the wrong
- * verdict; a silent Talos answers `no-answer` after the bound rather than hang a pass; a `state` frame reaches every listener; a close
- * settles each waiting frame once and calls its listeners once; and the first answer maps to its verdict, an absent Talos read as silent.
+ * Hephaestus's connection to Talos against Talos's own socket server: a `done` settles only the frame of its own id, since another
+ * frame's `done` would report the wrong verdict; a silent Talos answers `no-answer` after the bound rather than hang a pass; and a close
+ * settles each waiting frame and listener once.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 

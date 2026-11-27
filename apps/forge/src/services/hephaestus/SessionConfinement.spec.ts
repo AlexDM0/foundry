@@ -1,8 +1,7 @@
 /**
- * A session's confinement as its agent adapter declares it. What matters: an agent that applies the profile itself is never wrapped in
- * forge's confinement too, since a nested Seatbelt profile is refused; for an agent with no sandbox of its own, the plan of each role's
- * profile writes the checkout, the profile's other roots, its one extra folder and the agent's own folders, keeps every deny of the
- * profile and gives the network whole; a profile with network domains and an unavailable port are refused, and Windows runs unwrapped.
+ * A session's confinement as its agent adapter declares it: an agent that applies the profile itself is never wrapped again, since a
+ * nested Seatbelt profile is refused; for one without a sandbox each role's plan writes the checkout and the profile's roots, keeps every
+ * deny and gives the network whole; network domains and an unavailable port are refused, and Windows runs unwrapped.
  */
 import { join } from 'node:path';
 

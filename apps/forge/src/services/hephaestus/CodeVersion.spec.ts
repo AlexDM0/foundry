@@ -1,9 +1,6 @@
 /**
- * The code version over a planted program root. What matters: an edit to any shipping file moves the version, `resources/` and
- * `talos.ts` included, since the new-code check hands a live Hephaestus to the code on disk only when it moves; a spec edit
- * leaves it unchanged, so a test-only change never reads as new code. Inside a Bun workspace, an edit to a workspace package the program
- * depends on, or to its own part of the root `bun.lock`, moves it too, while a package, tool folder or lockfile entry that only another
- * member uses does not: another app's dependency must not read as new forge code.
+ * The code version over a planted program root: an edit to any shipping file, or to a workspace package or lockfile entry the program
+ * depends on, moves it, since the new-code check hands a live Hephaestus to the code on disk only when it moves; a spec edit does not.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';

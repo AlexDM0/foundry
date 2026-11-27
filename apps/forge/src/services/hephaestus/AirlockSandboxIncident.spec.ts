@@ -1,8 +1,6 @@
 /**
- * The incident an Airlock agent opens when its worktree's denied root cannot be made. What matters: a refusing folder maker gives the
- * reason; the first pass opens one `sandbox-unavailable` incident for the agent's job, and the next pass, still refused, opens no second one
- * while the first stands; a job that left the board opens nothing; a launch closes only its job's launch incident; and under path rules
- * nothing is made, so nothing is refused.
+ * The incident an Airlock agent opens when its worktree's denied root cannot be made: one `sandbox-unavailable` incident per job however many passes
+ * are refused, none for a job that left the board, and none under path rules, where nothing is made.
  */
 import { describe, expect, test } from 'bun:test';
 

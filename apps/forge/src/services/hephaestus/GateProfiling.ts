@@ -1,10 +1,7 @@
 /**
- * Hephaestus's gate profiles: each run User queued is one gate in one phase, run once in a fresh detached worktree of main, under its
- * confinement and with no `writes` granted, holding a gate run slot that no waiting real gate wants. Its lines run under Talos in the run's
- * folder `gate-profile-runs/<P>`, outside the hold; the hold is taken only to record `running` and the end. An entity's gate runs with its
- * folders from the repository's root, as the press resolved them. Its output is appended to its own file as Talos records it, which the
- * profile stream follows. A Stop sends `stop` to its running line. At a Hephaestus's start, the lines an earlier Hephaestus left are stopped,
- * then a run it left running reads `stopped` and every profile worktree goes.
+ * Hephaestus's gate profiles: each run User queued is one gate in one phase, run once in a fresh detached worktree of main, holding a gate
+ * run slot that no waiting real gate wants. Its lines run under Talos outside the hold; the hold is taken only to record `running` and the
+ * end. At a Hephaestus's start, the lines an earlier Hephaestus left are stopped before their worktrees go.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';

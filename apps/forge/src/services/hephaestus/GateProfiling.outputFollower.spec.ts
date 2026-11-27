@@ -1,9 +1,6 @@
 /**
- * Following a gate profile's output file, `<data>/gate-profile-runs/<P>.ndjson`, as the profile stream route reads it. What matters: the
- * lines come numbered from 1 in the order they were appended, only those after the cursor; a later call gives only the lines appended since;
- * an unterminated last line waits for its line feed, also when it ends inside a character; a line that cannot be read keeps its number and
- * is not sent, and only the first after the cursor is logged, since every stream request follows the file again; and a run with no output
- * yet gives nothing until its file appears.
+ * Following a gate profile's output file, `<data>/gate-profile-runs/<P>.ndjson`, as the profile stream route reads it. Only the first
+ * unreadable line after the cursor is logged, since every stream request follows the file again.
  */
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join }                      from 'node:path';

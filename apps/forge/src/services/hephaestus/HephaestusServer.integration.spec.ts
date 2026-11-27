@@ -1,14 +1,7 @@
 /**
- * The port a board's Hephaestus prefers and the Hephaestus API's guards and streams, over planted routes. What matters: the preferred port is a
- * pure function of the tracker id inside `HEPHAESTUS_PORT_FIRST` and its count, so a board keeps it across restarts; a port in use moves the
- * bind upward while a given port is refused; the identity answers only once the start is done; a foreign Host, a foreign Origin, an
- * Origin of another local page and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
- * routed; the data routes answer only the bearer token, never a cookie or headers a local program can forge, and the routes that once
- * gave a browser a session are a 404; every answer carries the API's CSP, which lets nothing frame it, but a served job file, which is
- * sandboxed plain text and only `report.json` or `gate.log`; each of the three streams opens with the handshake, which carries no id; the event
- * stream replays after a `Last-Event-ID` of its generation and pings; a job stream sends its history then each new entry; a gate profile
- * stream sends each output line after the cursor, then each appended line, while the board event stream carries none, and an unknown run
- * is a 404; a picture upload needs the token and a body, and a served picture is never sniffed, never cached and sandboxed.
+ * The Hephaestus API over planted routes and a bound port: the preferred port follows from the tracker id, foreign Hosts and Origins get
+ * 403 with no CORS header, data routes answer only the bearer token, every answer carries the API's CSP, and the three streams open with
+ * the handshake and replay or follow as their cursors say.
  */
 import { createHash } from 'node:crypto';
 import {

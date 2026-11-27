@@ -1,11 +1,7 @@
 /**
- * Where a job's session starts and what its sandbox writes. What matters: in a ticket worktree of a tracker below its repository's root the
- * session starts at the worktree's root, where its confinement lets it commit, and knows the project's folder from there; a tracker
- * at its repository's root starts at the worktree's root as it always has, a job of an entity of a top-level forge too; before the
- * worktree exists a session works in a folder of its own either way; a pipeline agent's snapshot, which it only reads, still starts in
- * the project's folder of it; and a resumed session whose agent finds it by its folder starts where its first instance started, a project
- * folder from before the change included, but never outside its checkout, while one whose agent does not starts in today's place. The
- * gates a session reads name each folder from where it starts. The `.git` entry is planted, since finding the project's place runs no git.
+ * Where a job's session starts: in a ticket worktree at its root, where its confinement lets it commit; before the worktree exists in a
+ * folder of its own; a pipeline agent in the project folder of its snapshot; a resumed session where its first instance started when its
+ * agent finds it by folder. The `.git` entry is planted, since finding the project's place runs no git.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { join }                  from 'node:path';

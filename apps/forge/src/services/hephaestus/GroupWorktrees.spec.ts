@@ -1,9 +1,7 @@
 /**
- * A group's own worktree. What matters: the first launch creates `group-<name>` from the main line's tip, a later one reuses the branch as
- * it stands rather than resetting it to main, a refresh worktree is detached so it never moves the group branch, and the release's removal
- * deletes the branch only through `branch -d`, never forced. A leftover folder git does not read as a worktree is never reused, so git
- * never runs in the checkout above it. The folders are real; git plays recorded answers, each case a stage in production's order, so a call
- * the stage does not name fails the case. A folder git makes is made by the case, where git would have made it.
+ * A group's own worktree: created from the main line's tip once, then reused as it stands; a refresh worktree is detached, the branch is
+ * removed only through `branch -d`, and a leftover folder git does not read as a worktree is never reused, so git never runs in the checkout
+ * above it. Git plays recorded answers, so a call the stage does not name fails the case.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

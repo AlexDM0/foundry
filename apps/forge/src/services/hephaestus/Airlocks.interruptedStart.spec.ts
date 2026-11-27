@@ -1,9 +1,7 @@
 /**
- * The first sweep after a start that leaves interrupted work waiting (a reboot, a stop on purpose or a crash): a slot it finds with no live
- * holder is restored as a freed slot is, its job ended `orphaned` and its ticket held `interrupted:merge` instead of requeued, so no merge
- * starts again by itself; User's resume lifts the hold and the next sweep takes the Airlock again. A constitution commit's Apply waits the
- * same way until `resume --all`. A landing git already made is recorded, a holder that still runs keeps its slot, and without such a start
- * an orphan requeues as before.
+ * The first sweep after a start that leaves interrupted work waiting: a slot with no live holder is freed, its job ended `orphaned` and its ticket
+ * held `interrupted:merge` instead of requeued, so no merge starts again by itself until User's resume lifts the hold; a constitution commit's Apply
+ * waits for `resume --all` the same way.
  */
 import { afterEach, expect, test } from 'bun:test';
 
@@ -39,7 +37,7 @@ afterEach(() => {
   harness = null;
 });
 
-/** Ticket 001's merge job holds the main line's slot in `phase`, as a run cut short left it. */
+/** Ticket `001`'s merge job holds the main line's slot in `phase`, as a run cut short left it. */
 function slotLeftIn(phase: 'merge-in' | 'landing'): AirlocksHarness {
   const current = createRecordedAirlocksHarness([{ id: '001' }]);
   current.board.claimAirlock({

@@ -1,8 +1,6 @@
 /**
- * A main line held by its checkout, behind the DrivePass's sweep (plan section 8.7: "when User cleans main, the next sweep allocates
- * again"). What matters: the checkout that holds a target is not in the fingerprint, so once a pass held the main line an unforced wake
- * still runs no pass, while an Assistant is live; the next sweep runs one, which rechecks the checkout and lands the Apply's constitution
- * commit once User cleaned it. A ticket landing's held target is rechecked by the same sweep. Git answers from the recorded answer sets of
+ * A main line held by its checkout, behind the DrivePass's sweep: when User cleans main, the next sweep allocates again, though an unforced
+ * wake runs no pass since the checkout is not in the fingerprint. Git answers from
  * `src/services/hephaestus/testing/ConstitutionCommitAnswers.ts`; the Assistant's session plays `src/testing/RecordedTalosStages.ts`.
  */
 import {

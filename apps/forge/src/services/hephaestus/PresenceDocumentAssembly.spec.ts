@@ -1,12 +1,7 @@
 /**
- * Forge's mapping of its presence into the contract's documents, on a board built in memory. What matters: each interrupted job is listed
- * with its contract cause and what it waits for, by the resume policy the passes follow, so Gaia shows the work that waits by cause: a
- * reboot, a network outage and a lease end wait for an instruction, a crashed agent with a restart left resumes by itself, a lost child
- * reads `child-lost`, and a job whose lost line waits is listed with the line's cause; a ticket an `interrupted:` hold keeps is listed; the
- * crash logs are listed newest last, the forge's own process named `hephaestus`, and the last start names the newest log after a crash;
- * Talos's lease standing reads as supervision, and the running Talos is named by its protocol version, code version and start number, none
- * without a live one; a heartbeat of another generation is no beat of this one; and a crash log keeps a board or
- * a log that could not be read as `null`, never as empty.
+ * Forge's mapping of its presence into the contract's documents, on a board built in memory: each interrupted job is listed with its
+ * contract cause and what it waits for, by the resume policy the passes follow, so Gaia shows the work that waits by cause; beside it the
+ * crash logs, Talos's supervision and identity, and a board or log that could not be read as `null`, never as empty.
  */
 import { describe, expect, test } from 'bun:test';
 

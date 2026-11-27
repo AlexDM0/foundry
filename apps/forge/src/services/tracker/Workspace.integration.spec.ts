@@ -1,8 +1,7 @@
 /**
- * Where a command finds the tracker that governs it: the paths a root owns, the walk up, the nearest
- * tracker winning, and `requireWorkspace`'s refusal. The `AGENT_PROGRESS_ROOT` cases run in a child
- * process because only `src/shared/Environment.integration.spec.ts` assigns the environment in-process. git answers from the recordings of
- * `src/testing/RecordedGit.ts`, in this process and in each child.
+ * Where a command finds the tracker that governs it: the paths a root owns, the walk up with the nearest tracker winning, and
+ * `requireWorkspace`'s refusal. `AGENT_PROGRESS_ROOT` cases run in a child process, since only `src/shared/Environment.integration.spec.ts`
+ * assigns the environment in-process; git answers from `src/testing/RecordedGit.ts` in every process.
  */
 import {
   mkdirSync,

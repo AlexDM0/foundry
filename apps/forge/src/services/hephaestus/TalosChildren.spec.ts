@@ -1,8 +1,7 @@
 /**
- * `BoardChildren` over Talos, on planted records and a Talos socket over the recorded endpoint. What matters: each liveness verdict, and
- * above all that a record left `running` by a Talos whose process is gone reads lost, never live; Talos's identity is read once per start
- * number and pass, not once per child; a frame counts as taken only when Talos answered it, so an input's marker is written only after
- * `done` and a refusal leaves it for a later pass; a launch writes the plan's files before its frame and names its folder as Talos takes it.
+ * `BoardChildren` over Talos, on planted records and a recorded Talos socket: a record left `running` by a Talos whose process is gone
+ * reads lost, never live; Talos's identity is read once per start number and pass; and a frame counts as taken only when Talos answered
+ * `done`, so an input's marker waits for it.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';

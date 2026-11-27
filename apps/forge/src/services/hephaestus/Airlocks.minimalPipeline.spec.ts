@@ -1,9 +1,7 @@
 /**
- * The minimal pipeline end to end: no gates in any phase and no review step. The world turns the Board's lifecycle pass, as Hephaestus's
- * DrivePass does, and the Airlocks' sweep, with the harness's fake launcher; a fake builder reports the way a verified build report settles.
- * What matters: a committed ticket is built, waits in review only for its Airlock and lands with no review job launched; a merge-in conflict
- * goes to its builder, the last worker, who resolves it in the Airlock; and the same world with a merge-train re-review runs the conflict
- * re-reviewer before the ticket lands. Git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
+ * The minimal pipeline end to end, no gates and no review step, with the Board's lifecycle pass and the Airlocks' sweep turning: a committed ticket
+ * is built and lands with no review job; a merge-in conflict goes to its builder in the Airlock; and with a merge-train re-review the conflict
+ * re-reviewer runs before the ticket lands.
  */
 import { afterEach, expect, test } from 'bun:test';
 

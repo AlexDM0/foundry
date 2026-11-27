@@ -1,10 +1,7 @@
 /**
- * A gate pipeline over a line runner of recorded gate lines and recorded git. What matters: every line runs in its own step folder of the
- * run's child folder, prepare steps and gates alike, within the line time bound, and the caller hears each line's output; a gate's slot is
- * held by the gate's child folder, and a line Talos paused is never judged. A
- * prepare step that exits 0 but changes a tracked file is a setup failure naming that step, never the red first gate it would make. A
- * prepare step with a folder runs in it, as a gate with one does. A gate's environment carries its own report path and never one this
- * process inherited. A step a line child runs has one report path per step folder, read in a later pass, which a take removes.
+ * A gate pipeline over recorded gate lines and git: every line runs in its own step folder within the line time bound and streams its output;
+ * a line Talos paused is never judged; a prepare step that changes a tracked file is a setup failure naming that step; and each step gets its
+ * own report path, never an inherited one.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir }                    from 'node:os';

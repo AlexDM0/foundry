@@ -1,10 +1,7 @@
 /**
- * One run of prepare steps and gates, over a line runner of recorded gate lines and recorded git. What matters: each line runs in its own
- * step folder of the run's child folder and its output lines reach the listener, so a gate profile can stream it; a gate is recorded with
- * its outcome and its line's run time, the time Talos measured; with writes not granted, no prepare step and no gate is confined with a
- * `writes` folder, while a granted run keeps them; and a gate that changed the checkout fails and the checkout is restored
- * (`ProposalTwiceRun.spec.ts` holds the ceiling of that restore). A prepare step that exits 0 but changes a tracked file fails the prepare
- * with its diff, never the first gate, and is restored.
+ * One run of prepare steps and gates over recorded gate lines and git: each line runs in its own step folder and streams its output; a gate is
+ * recorded with its outcome and run time; an ungranted run confines no step with `writes`; and a step that changes the checkout fails with its
+ * diff and is restored, a prepare step failing the prepare, never the first gate (`ProposalTwiceRun.spec.ts` holds the ceiling of that restore).
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 

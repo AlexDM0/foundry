@@ -1,8 +1,7 @@
 /**
- * Landing a gated commit on its target, inside the caller's `writeTracker` hold: the target's tip is read and compared with the tip the
- * merge was made against before anything moves, then main is fast-forwarded in the main checkout, or a group branch by `merge --ff-only`
- * in its worktree. Every refusal is a wordless verdict naming the outcome Hephaestus acts on, so a refused landing never loops. A tracker
- * in a project folder of its repository lands under the repository's landing lock and journals each landing for its siblings.
+ * Landing a gated commit on its target inside the caller's `writeTracker` hold: the target's tip is compared with the one the merge was made
+ * against before anything moves. Every refusal is a wordless verdict Hephaestus acts on, so a refused landing never loops. A tracker in a
+ * project folder lands under the repository's landing lock and journals each landing for its siblings.
  */
 import { TicketAcceptanceUtil }                            from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import { fastForwardTo, readCurrentBranch }                from '../../lib/git/BranchIntegration.ts';

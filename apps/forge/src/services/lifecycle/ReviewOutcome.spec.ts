@@ -1,8 +1,7 @@
 /**
- * The commit a review pass that changed nothing writes, against a mocked git. What matters is that the commit and the read of its HEAD
- * run with the worktree's parent as their ceiling: a worktree that lost its `.git` then refuses, and the commit never lands on the main
- * checkout's branch above it; that a pass whose gate run read a pipeline changed since queues nothing, since its green is not current;
- * and that with merge approval on a passing review records its review and waits in `merging-main`, unqueued, for the merge of the target.
+ * The commit a review pass that changed nothing writes, against a mocked git: it runs with the worktree's parent as its ceiling, so it never lands
+ * on the main checkout's branch; a pass whose pipeline changed since its gate run queues nothing, its green not current; and with merge approval on,
+ * a passing review waits unqueued in `merging-main` for the merge of the target.
  */
 import {
   afterEach,

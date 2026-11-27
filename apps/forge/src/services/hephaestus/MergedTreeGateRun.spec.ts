@@ -1,10 +1,7 @@
 /**
- * Hephaestus's gate run of a merged tree or a stale green. What matters: on a pipeline with entities each gated entity's part runs with
- * its first home folder as the project folder, every entity's part runs when the Airlocks name none, the stamp holds the phase hash of each
- * entity that ran and of no other, and a red part names its entity; a pipeline without entities keeps the one run from the tracker's
- * project folder and the stamp without entity hashes, and no stored pipeline runs no step and stamps nothing. Each entity's part runs its
- * lines in its own part folder of the run folder; a pipeline without entities runs them in the run folder itself. The step lines that ran
- * go with the run's phase, each named by its entity on a pipeline with entities.
+ * Hephaestus's gate run of a merged tree or a stale green: on a pipeline with entities each gated entity's part runs from its first home
+ * folder in its own part folder, the stamp holds the phase hash of each entity that ran, and a red part names its entity; a pipeline without
+ * entities keeps the one run from the project folder, and no stored pipeline runs nothing and stamps nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

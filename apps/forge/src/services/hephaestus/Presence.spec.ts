@@ -1,9 +1,7 @@
 /**
- * The presence record and the heartbeat in a scratch board folder. What matters: a read is a verdict, never a throw, and another version reads
- * as unreadable since nothing older is read; an ending, an abandoned pass and a completed pass change only their own generation's record, so a
- * predecessor's late write never touches its successor's; a crash keeps its crash log's number, or none; the heartbeat's sequence rises within a
- * generation, and an older generation's beat never replaces a newer one whose record is current, as during a restart, when both processes
- * beat, while an ended run's beat never silences a run whose generations started again at 1.
+ * The presence record and the heartbeat in a scratch board folder: a read is a verdict, never a throw; each ending or pass changes only its
+ * own generation's record, so a predecessor's late write never touches its successor's; and an older generation's beat never replaces a
+ * newer one, as during a restart when both processes beat.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {

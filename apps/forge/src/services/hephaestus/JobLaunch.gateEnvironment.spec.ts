@@ -1,8 +1,6 @@
 /**
- * The environment a gate, a prepare step or a gate's fix runs in. What matters: its search path is what an agent of the forge searches,
- * the folders of the tools the steps name and the forge approves, then the system's, and nothing of Hephaestus's own search path, so a
- * program the design step shows as found is what the gates run and a Hephaestus started with a bare search path runs the same gates;
- * and a kept tool inside the forge's repository is left off.
+ * The environment a gate, a prepare step or a gate's fix runs in: its search path is the approved tools' folders, then the system's, and
+ * nothing of Hephaestus's own, so the gates run what the design step showed as found; a kept tool inside the forge's repository is left off.
  */
 import { posix } from 'node:path';
 

@@ -254,10 +254,9 @@ function interruptionCauseOf(text: string): InterruptionCause | null {
 }
 
 /**
- * A child of a lost Talos, settled once and its cause stored beside its record, so a Hephaestus dying after the stop reads the same cause
- * again. A foreign boot is a reboot; a recorded child tree still alive is stopped with the groups below it, and the cause is the lost
- * commander (still stored as `talos-lost`); otherwise the child ended with it. A refused forced stop stores no cause and answers `null`. A
- * stored text that names no interruption cause is logged and settled again, which writes over it.
+ * A child of a lost Talos, settled once and its cause stored beside its record, so a Hephaestus dying after the stop reads the same cause.
+ * A foreign boot is a reboot; a live recorded child tree is stopped with its groups, its cause the lost commander (`talos-lost`); else the
+ * child ended with it. A refused forced stop stores nothing and answers `null`; a stored text naming no cause is settled again over it.
  */
 export function settleLostChild({ processSupervision }: PlatformPorts, request: LostChildRequest): InterruptionCause | null {
   const childFolderPath = childFolderPathOf(request.boardFolder, request.childFolder, request.instance);

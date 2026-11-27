@@ -40,7 +40,7 @@ export interface NeedsSettledFacts {
   resumesSession: boolean;
 }
 
-/** A need for the root entity is a decision for User when that entity has no gate to check the change with (E12). */
+/** A need for the root entity is a decision for User when that entity has no gate to check the change with. */
 function rootEntityHasNoGates(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey): boolean {
   const entities = pipeline?.entities;
   const entity = entities !== undefined && Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
@@ -60,7 +60,7 @@ function openNeedDecision(
 
 /**
  * The declaring entity would consume the need's entity, which already consumes it, directly or through another: the need would close a circle
- * in the entities' `dependsOn` (E13). Every entity consumes the root entity, so any need of the root entity's own job closes one.
+ * in the entities' `dependsOn`. Every entity consumes the root entity, so any need of the root entity's own job closes one.
  */
 function needClosesAnEntityCircle(pipeline: Readonly<Pipeline> | null, declaringEntityKey: EntityKey | undefined, needEntityKey: EntityKey): boolean {
   const entities = pipeline?.entities;
@@ -68,14 +68,14 @@ function needClosesAnEntityCircle(pipeline: Readonly<Pipeline> | null, declaring
   return EntityOwnershipUtil.dependentsOf(entities, [declaringEntityKey]).includes(needEntityKey);
 }
 
-/** Refused as `ticket depends` refuses a circle (E13); a ticket filed fresh waits on nothing, so it guards the rule rather than meets it. */
+/** Refused as `ticket depends` refuses a circle; a ticket filed fresh waits on nothing, so it guards the rule rather than meets it. */
 function dependencyClosesACircle(board: Board, waitingTicketId: string, needTicketId: string): boolean {
   const dependsOnById = new Map(board.tickets().map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.dependsOn ?? []]));
   const dependsOn = [...dependsOnById.get(waitingTicketId) ?? [], needTicketId];
   return TicketDependencyUtil.dependencyLoopFrom(waitingTicketId, dependsOn, dependsOnById) !== null;
 }
 
-/** The job a need is filed by: the build that declared it, or the job whose package change User turned into a need (E19, E22). */
+/** The job a need is filed by: the build that declared it, or the job whose package change User turned into a need. */
 export type DeclaringJob = Readonly<Pick<Job, 'id' | 'entity'>>;
 
 /** A need as its ticket is filed: its entity, title and body, and the tickets that wait on it. */
@@ -119,7 +119,7 @@ function fileNeedsOf(change: BoardTransaction, job: Readonly<Job>, decisionWordi
 }
 
 /**
- * A crossing ticket's change of a package that User turned into a need (E19, E22): filed as a ticket of the package by the job that last
+ * A crossing ticket's change of a package that User turned into a need: filed as a ticket of the package by the job that last
  * worked on the package change, which the crossing ticket waits on, as a need its build declared.
  */
 function filePackageChangeNeed(
@@ -130,7 +130,7 @@ function filePackageChangeNeed(
 
 /**
  * The job whose needs the ticket waited on: its newest ended build job when it ended `needs-declared`, or the job that a package change
- * User turned into a need was filed by after the ticket's newest ended build (E19, E22). A replaced session in between is the same stage
+ * User turned into a need was filed by after the ticket's newest ended build. A replaced session in between is the same stage
  * taken over.
  */
 function declaringJobIdOf(logRecords: readonly LogRecord[], ticketId: string): string | null {
@@ -147,7 +147,7 @@ function declaringJobIdOf(logRecords: readonly LogRecord[], ticketId: string): s
 }
 
 /**
- * `null` for every job but a build whose ticket's last build declared needs, or whose package change became a need since (E19, E22); each
+ * `null` for every job but a build whose ticket's last build declared needs, or whose package change became a need since; each
  * need as its `need-declared` record logged it.
  */
 function needsSettledOf(board: Board, job: Readonly<Job>, launch: Pick<NeedsSettledFacts, 'mainLine' | 'resumesSession'>): NeedsSettledFacts | null {

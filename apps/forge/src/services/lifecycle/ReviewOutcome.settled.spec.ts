@@ -1,14 +1,7 @@
 /**
- * A verified and gated review pass settled by code on recorded git scenarios and a Board in memory. What matters: the rework
- * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
- * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
- * round to the merge queue with its notice, and a waiver proposal to User. User's answer is only recorded, as it is with Hephaestus down;
- * Hephaestus's next pass acts on it: a grant writes the waived item and a refusal is a failed pass. A grant whose
- * stored proposals are gone waives nothing and fails closed as a failed pass; one whose proposals are cut short or of another shape
- * waives nothing either and leaves the job waiting, for Hephaestus to open the unreadable file's incident. The board's
- * pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
- * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
- * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
+ * A verified and gated review pass settled by code over recorded git scenarios and a Board in memory: each outcome makes its one move (back to
+ * a fixer, a fresh reviewer, the merge queue, or a waiver proposal to User, acted on in Hephaestus's next pass), a grant with missing or
+ * unreadable proposals waives nothing, and the pipeline's review sets the rework threshold. An unrecorded git call fails the case.
  */
 
 import { rmSync, writeFileSync } from 'node:fs';

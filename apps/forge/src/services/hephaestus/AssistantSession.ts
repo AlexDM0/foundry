@@ -1,8 +1,6 @@
 /**
  * The Assistant's turns, design section 8.3: every chat to it is numbered, the first message being chat 1, and the n-th `result` of its
- * session closes chat n's turn. Incidents and User's messages go out only when it is idle; a turn's open incidents default when it closes
- * or spends its call budget; past a context-token count its input closes after the turn; and one that went down is ended, never resumed.
- * One asked to wind down, by the board's switch going off, has its input closed once idle and ends `closed`, also when it went down first.
+ * session closes chat n's turn. Incidents and User's messages go out only when it is idle; one that went down is ended, never resumed.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -147,11 +145,9 @@ function windDownWhileOff(board: Board, at: string): void {
 }
 
 /**
- * Run in the hold before the lifecycle: an Assistant interrupted (its child lost, its session crashed, a reboot, a clean quit, a usage
- * limit) or quiet mid-turn is ended, `failed` before its first `result` and `replaced` after, and what it was delivered goes out again to
- * the fresh one. One whose own outage or lease end waits for User's resume is left until it came. One asked to wind down has no turn left
- * to finish once it is down, whatever interrupted it: it ends `closed`, no failed boot. Returns whether a boot failed, so no retry boots
- * in the same pass.
+ * Run in the hold before the lifecycle: an Assistant interrupted or quiet mid-turn is ended, `failed` before its first `result` and
+ * `replaced` after, and what it was delivered goes out again to the fresh one. One waiting for User's resume after its own outage or lease
+ * end is left; one asked to wind down ends `closed`. Returns whether a boot failed, so no retry boots in the same pass.
  */
 function endDownAssistants(board: Board, readings: readonly AssistantReading[], quietJobIds: readonly string[], at: string): { bootFailed: boolean; endedJobs: Readonly<Job>[] } {
   let bootFailed = false;

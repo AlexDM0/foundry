@@ -1,21 +1,7 @@
 /**
- * The rows of the crash, reboot and update matrix that need no real process. What matters in these rows: a hold cut short after its journal is
- * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
- * replayed by its successor. A hold that leaves progress.json as it was journals only the files it changes, and a crash anywhere in it is still
- * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedTalosStages.ts`,
- * a Hephaestus restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
- * given with Hephaestus down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent, or a conflict
- * re-reviewer before User's code review, launches never asking User, and one whose denied root cannot be made opens one launch incident.
- * A first instance that resumes another job's session and exits before it starts is a failed resume. A gate profile left running by a
- * stopped Hephaestus reads `stopped` after the next start, is never run again, and its worktree goes. A product owner past the crash
- * bound waits for its answer when a question is open, else for User's resume.
- *
- * An Apply cut short anywhere in its hold is finished by the next holder's journal replay, so a retried Apply of the same revision finds
- * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; Hephaestus's start hold leaves no record
- * open either.
- *
- * Every row that kills or crashes a process, or needs a real Talos, git history or restart, is in
- * `src/services/hephaestus/CrashMatrix.integration.spec.ts`.
+ * The rows of the crash, reboot and update matrix that need no real process: a hold or an Apply cut short is finished by the next holder's
+ * journal replay, and sessions run behind `src/testing/RecordedTalosStages.ts`. Every row that kills or crashes a process, or needs a real
+ * Talos, git history or restart, is in `CrashMatrix.integration.spec.ts`.
  */
 import {
   existsSync,
@@ -228,7 +214,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
     });
   }
 
-  /** P1 marked running by a Hephaestus that then stopped, with its worktree left behind. */
+  /** `P1` marked running by a Hephaestus that then stopped, with its worktree left behind. */
   async function leaveARunRunning(): Promise<string> {
     await writeTracker({
       lockTaker: LIVE_HOLDERS_LOCK_TAKER,
@@ -396,7 +382,7 @@ describe('an Apply cut short', () => {
     kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: true
   };
 
-  /** A first setup S1 with its constitution drafted, at the apply step. */
+  /** A first setup `S1` with its constitution drafted, at the apply step. */
   async function openSetupAtApply(): Promise<void> {
     await writeTracker({
       lockTaker: LIVE_HOLDERS_LOCK_TAKER,

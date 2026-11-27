@@ -1,12 +1,7 @@
 /**
- * The main line's Airlock on a merge-in conflict (design section 6). What matters: the conflict goes back to the ticket's reviewer and can
- * end only in a landing or a `merge-refused` decision, each abort resetting the ticket worktree to its branch tip; and a slot left
- * mid-merge is kept while anything holds it, recovered only when nothing does. A tracker in a project folder also holds a resolution to
- * its folder and reach, its data folders and its agent configuration, a red gate's fix and a conflict re-reviewer's fix included, while
- * one at the root asks git nothing more than V10 needs. The
- * folders are real; git answers from the recorded answer sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`, one for each state
- * of the repository, or from a stage where a sweep asks the same call in two states; the folder case's own checks answer from a recorded
- * merge scenario.
+ * The main line's Airlock on a merge-in conflict: the conflict goes back to the ticket's reviewer and ends only in a landing or a `merge-refused`
+ * decision, each abort resetting the worktree to its branch tip; a slot left mid-merge is recovered only when nothing holds it; and a tracker in a
+ * project folder also holds a resolution and its fixes to its folder and reach.
  */
 import { afterEach, expect, test } from 'bun:test';
 
@@ -45,7 +40,7 @@ function kindsLogged(current: AirlocksHarness, kind: string): Record<string, unk
   return current.board.logRecordsSoFar().filter((record) => record.kind === kind).map((record) => record as unknown as Record<string, unknown>);
 }
 
-/** Ticket #001's merge-in stopped on its conflict, its reviewer launched as the merge agent. */
+/** Ticket `001`'s merge-in stopped on its conflict, its reviewer launched as the merge agent. */
 async function conflictingHarness(): Promise<AirlocksHarness> {
   const current = createRecordedAirlocksHarness([{ id: '001' }]);
   recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
@@ -139,7 +134,7 @@ describeWhenGitIsRecorded('a conflict of a tracker in a project folder', () => {
   /** Where git answers once a later commit, a red gate's fix or a re-reviewer's, added `.claude/` inside the project's folder. */
   const AGENT_CONFIGURATION_FILE = `${PROJECT_PREFIX}/.claude/settings.json`;
 
-  /** The worktree of ticket #001 in `scenario`, its merge commit at `MERGED_TIP`. */
+  /** The worktree of ticket `001` in `scenario`, its merge commit at `MERGED_TIP`. */
   function enterResolutionScenario(current: AirlocksHarness, scenario: string): void {
     recordedGit.enterScenario(scenario, {
       repositoryDirectory: current.worktreeOf('001'),
@@ -152,7 +147,7 @@ describeWhenGitIsRecorded('a conflict of a tracker in a project folder', () => {
     });
   }
 
-  /** Ticket #001's merge-in stopped on its conflict, beside its siblings; its resolution committed as the recorded scenario left it. */
+  /** Ticket `001`'s merge-in stopped on its conflict, beside its siblings; its resolution committed as the recorded scenario left it. */
   async function resolvedInAFolder(reach: readonly string[], airlock: PipelineAirlock | null = null): Promise<AirlocksHarness> {
     const projectScope: ProjectScope = { projectPrefix: PROJECT_PREFIX, reach };
     const current = createRecordedAirlocksHarness([{ id: '001' }], {}, true, airlock, true, projectScope);

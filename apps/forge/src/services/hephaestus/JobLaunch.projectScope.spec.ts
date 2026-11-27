@@ -1,16 +1,7 @@
 /**
- * The Customs subject a build job's hold builds for a tracker in a folder of its repository, and the V13 check before a launch. What matters: the
- * subject carries the tracker's prefix and the pipeline's `reach`, so V17 refuses a branch that changed a file outside the project's folder and its
- * reach, and passes it once the reach names that file; a tracker at its repository's root, its subject without a scope, passes the same branch to its
- * gates. Before a launch a folder tracker's branch that committed `.claude/` inside the project's folder holds its ticket, while a root tracker, which
- * protects `.claude/` only at the root as always, launches it. On a pipeline with entities, a job of an entity is held to its entity's homes and
- * `reach`, and a change outside them sends its session back on a red handoff to take the change out, where a folder tracker's job fails; that handoff's
- * restart names the paths to take out. A job of an entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds
- * it to exactly those. A job without an entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. A
- * `needs-declared` report never reaches the gates: a job of an entity files its kept needs as tickets and ends with that outcome, one that kept none
- * fails, and a job without an entity fails as before. A session sent back once for V17 whose branch still changed only another entity's files opens
- * `work-in-other-entity` (E15); one sent back for a red gate gets its V17 resume first. The folders are real, with a `.git` folder above the project so
- * its prefix is read from disk; git answers from recorded scenarios.
+ * The Customs subject a build job's hold builds for a tracker in a folder of its repository, and the agent-config check before a launch: the
+ * scope check (`changesStayInHomeAndReach`) holds a folder tracker to its folder and `reach`, a job of an entity to its homes, and a job of
+ * an entity sent back for it gets a red handoff naming the paths to take out. Git answers from recorded scenarios.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
@@ -74,7 +65,7 @@ interface LaunchedBuild {
   readonly worktree:         string;
 }
 
-/** A build job launched on ticket 001 for a tracker in a folder or at the root, its worktree folder made on disk. */
+/** A build job launched on ticket `001` for a tracker in a folder or at the root, its worktree folder made on disk. */
 function launchedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: string): LaunchedBuild {
   const repositoryDirectory = createScratchDirectory('job-launch-project-scope');
   folders.push(repositoryDirectory);
@@ -293,7 +284,7 @@ testWhenGitIsRecorded('a job of an entity whose needs-declared report kept no ne
   expect(verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared').whereTheJobWent).toBe('failed: no-report');
 });
 
-/** The red handoff an earlier refusal left: after a V17 scope refusal the session verified now is the one sent back to take its change out. */
+/** The red handoff an earlier refusal left: after a scope refusal the session verified now is the one sent back to take its change out. */
 function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string, scopeResumed: boolean): (build: LaunchedBuild) => void {
   return ({ context, job }) => {
     const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);

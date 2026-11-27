@@ -1,10 +1,7 @@
 /**
- * The redo journal on real files. What matters: the journal is whole on disk before the first target file changes and gone after the last;
- * the fence runs before and after the journal and before every file, so a taken-over hold writes nothing further and leaves no journal of
- * its own that was never applied; replay rewrites every file verbatim, so replaying twice leaves the same bytes even over a hand-edited
- * log; and a malformed journal is refused before any file is touched.
- * A file whose bytes on disk already are its new contents is neither journaled nor written, judged by its bytes alone: a hold that changes
- * nothing makes no file move at all, observed through a recording file replace and the files' inodes, yet still runs its fence.
+ * The redo journal on real files: whole on disk before the first target file changes and gone after the last; fenced before and after it and
+ * before every file, so a taken-over hold writes nothing further; replayed verbatim, so twice leaves the same bytes; refused before any write
+ * when malformed; and a file already holding its new bytes neither journaled nor written, observed through a recording file replace and inodes.
  */
 import {
   existsSync,

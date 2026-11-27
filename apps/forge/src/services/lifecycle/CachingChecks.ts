@@ -1,8 +1,6 @@
 /**
- * The caching checks of a pipeline being set up, as suggestions only: nothing is installed and no tracked file is edited. Read from the
- * repository's `turbo.json` and the times the gate profiles User started recorded: a slow pipeline with no caching tool, a cache kept per
- * worktree, task inputs blind to what an import graph cannot see, and a gate run past the cache. A `turbo.json` that cannot be read is one
- * suggestion of its own, since User's file is flagged, never guessed at.
+ * The caching checks of a pipeline being set up, read from `turbo.json` and the recorded gate profile times, as suggestions only: nothing is
+ * installed and no tracked file is edited. A `turbo.json` that cannot be read is a suggestion of its own: User's file is flagged, never guessed at.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { isAbsolute, join }        from 'node:path';

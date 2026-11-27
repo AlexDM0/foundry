@@ -1,9 +1,7 @@
 /**
- * The gate failure note a red handoff leaves in its job's folder. What matters: it names every field the resumed session needs instead of
- * rerunning the gate (gate, command, fix command, commit, exit code, the full log's path); a long output shows only its first and last
- * 40 lines and never more than 8 KB; a gate that changed a file shows the diff in the output's place; a conflicted merge of the target
- * names the tip it merged and lists the conflicted files; and the facts read back as written, while facts that cannot be read are the
- * unreadable file, never none, and never adopted over.
+ * The gate failure note a red handoff leaves in its job's folder: every field the resumed session needs instead of rerunning the gate, a
+ * long output cut to its first and last 40 lines and at most 8 KB, a diff or a conflicted merge's files where they apply, and facts that
+ * read back as written, unreadable ones the unreadable file, never none.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

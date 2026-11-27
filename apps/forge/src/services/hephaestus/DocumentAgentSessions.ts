@@ -1,10 +1,6 @@
 /**
- * Hephaestus's side of a spec or plan agent's session: one detached snapshot of the main line per ticket document, so the spec's and the
- * plan's agents never move or dirty each other's, checked out clean at main's tip at each launch of an instance; a profile writing only its
- * Hatch with no network; the facts of its first message; Customs at each turn end, before the turn's Hatch requests apply; and its
- * messages, written one at a time while it is idle, in the order User queued them. An idle agent with nothing queued has its input closed
- * and waits with no session, and the next message resumes it; an agent whose document is done ends `closed`. A document's snapshot is
- * removed once no agent of that document holds it.
+ * Hephaestus's side of a spec or plan agent's session. Each ticket document has one detached snapshot of the main line, so the spec's and
+ * the plan's agents never move or dirty each other's; Customs runs at each turn end, before the turn's Hatch requests apply.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
@@ -395,10 +391,9 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 }
 
 /**
- * In the hold, at each turn end of a document agent (its `result`, or its session's end): Customs on its snapshot. A clean snapshot applies
- * the turn's Hatch requests; a changed one refuses every one of them `document-snapshot-touched`, logs it, opens one incident on the
- * ticket and ends the job `failed`. A snapshot start that cannot be read opens the unreadable file's incident on the job in place of
- * Customs, and the turn's requests wait unanswered. Answers the replies to write once the hold committed.
+ * In the hold, at each turn end of a document agent: Customs on its snapshot. A clean snapshot applies the turn's Hatch requests; a changed
+ * one refuses them `document-snapshot-touched`, opens one incident on the ticket and ends the job `failed`. Answers the replies to write
+ * once the hold committed.
  */
 function verifyTurnEnds(
   change: BoardTransaction,

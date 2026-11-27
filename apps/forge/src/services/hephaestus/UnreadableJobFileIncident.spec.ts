@@ -1,9 +1,6 @@
 /**
- * The incident a job's unreadable stored file opens. What matters: one `system-file-unreadable` incident per job and file while it stands,
- * a second file of the same job opens its own, a job that left the board or whose ticket stays parked on one opens nothing, the default
- * parks the ticket so the decision reaches User, and the job counts as waiting only while its incident stands. A session job neither move
- * heals is retired: a running one opens the incident and moves to `stopping`, one not running keeps its state, and one already stopping
- * opens nothing.
+ * The incident a job's unreadable stored file opens: one per job and file while it stands, none for a job gone or parked on one, the
+ * ticket parked by default; a session job neither move heals is retired, a running one moving to `stopping` and a stopping one opening nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

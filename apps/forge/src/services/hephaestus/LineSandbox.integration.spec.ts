@@ -1,10 +1,7 @@
 /**
- * The Seatbelt profile a gate or install line runs under. What matters: the denied folders come after the writable ones, so a data folder
- * inside temp stays denied; a launch-file glob denies reads within one path segment only; the network is off unless asked; the argv is
- * wrapped only where `sandbox-exec` applies; and, where it does, a child really cannot write the data folder or read a launch file. With no
- * cache path stored a gate writes only worktree, admin folder and temp; a stored one is added unless it is, sits in or holds a `bin` or
- * `PATH` folder, and no `bin` beside its ancestors is ever writable, however the scratch home lies under temp. A `bin` inside a cache path
- * is writable, so the documented guarantee claims none: a path deny inside it would not hold against a folder renamed in.
+ * The Seatbelt profile a gate or install line runs under: denied folders win over writable ones, the network is off unless asked, and a
+ * child cannot write the data folder or read a launch file. A cache path is writable unless it is, sits in or holds a `bin` or `PATH`
+ * folder; a `bin` inside it stays writable, since a path deny there would not hold against a folder renamed in.
  */
 import {
   existsSync,

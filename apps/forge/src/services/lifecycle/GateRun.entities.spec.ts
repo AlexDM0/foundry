@@ -1,9 +1,7 @@
 /**
- * A gate run of entities on a pipeline with entities. What matters: each gated entity runs its own prepare steps and its own gates of the
- * phase, in the phase's order, and a key the pipeline has no entity for runs nothing; a step's folder reads from the entity's first home
- * folder, a step with no `in` runs there and a leading `/` is the checkout's root; the parts run in turn and the first that does not pass
- * ends the run, named by its entity, with every gate run and cache report so far. Each part runs its lines in a part folder of its own, so
- * two parts, each counting its steps from the first, never share a step folder.
+ * A gate run on a pipeline with entities: each gated entity runs its own prepare steps and gates of the phase in order, from its first home
+ * folder (a leading `/` is the checkout's root), in a part folder of its own; a key with no entity runs nothing, and the first part that does
+ * not pass ends the run, named by its entity.
  */
 import { join } from 'node:path';
 

@@ -1,18 +1,7 @@
 /**
- * User's setup kinds of the control contract, applied to a Board in a change. What matters: a body is untrusted JSON, so every kind
- * refuses a missing or misshapen nested field as `malformed-setup-command`, naming the field, and never fails on a `TypeError`, with the
- * Board untouched; a draft edit is checked against the revision User saw and the draft it leaves against the `pipeline.json` validator;
- * an update starts from a readable stored pipeline only; a start carries the agent, and with a billing launches the record's pipeline agent,
- * as the billing step's Continue does, the only launches besides `advise`,
- * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
- * words the injected context gives, carrying what changed (the constitution's new text and ticks, each changed draft field's value now),
- * since the agent cannot read the record, logged as Hephaestus's so its transcript never reads it as User's words, and opens it again
- * with its conversation when a stop closed it, while a record with no agent,
- * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
- * research recheck, naming the paths in its message, while a first setup with no billing is refused and starts no agent; a check queues
- * only the gates the draft changes or adds, one at a time, and tells the agent which; a forge without entities never stores a `batch`: a
- * copy to another entity is refused there and its record file stays byte for byte, and an edit that is no copy gets none
- * (`PipelineSetupControls.entities.spec.ts` holds a copy's batch). Git answers from the recordings of `src/testing/RecordedGit.ts`.
+ * User's setup kinds of the control contract: a misshapen body is refused `malformed-setup-command` naming the field, with the Board untouched; a
+ * draft edit is checked against the revision User saw and the `pipeline.json` validator; a start with a billing and an advise launch the agent, and
+ * every move that changes the record messages it in the same hold with what changed.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -101,7 +90,7 @@ function operationRefusalOf(attempt: () => unknown): OperationRefusal {
   throw thrown;
 }
 
-/** A board whose open record S1 is a first setup at the design step. */
+/** A board whose open record `S1` is a first setup at the design step. */
 function boardAtDesign(agentJobId: string | null = null): BoardFixture {
   const opened = boardFixture();
   apply(opened, {
@@ -623,7 +612,7 @@ describe('a resume', () => {
     };
   }
 
-  /** S1 at the design step, its snapshot at `SNAPSHOT_COMMIT`, its agent J1 closed by a stop. */
+  /** `S1` at the design step, its snapshot at `SNAPSHOT_COMMIT`, its agent `J1` closed by a stop. */
   function closedAgentBoard(): BoardFixture {
     const fixture = boardAtDesign('J1');
     fixture.board.startPipelineAgent(CHANGED_AT);

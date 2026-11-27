@@ -1,9 +1,7 @@
 /**
- * How Hephaestus notices an update, design section 7.3: its code and install version in memory against the code on disk, learned by
- * running the on-disk binary's `version --json` at each sweep and after each landing, and against the manifest, read on every look.
- * An install change holds launches until a restart brings matching code; new code alone is only shown. Hephaestus never restarts itself.
- * The binary runs beside the event loop, never blocking it: a look answers what the watch last learned, and a changed answer calls
- * `onLearned`, so the next pass reads it. After a landing a pass awaits the answer, so it never launches on an unread install version.
+ * How Hephaestus notices an update: the on-disk binary's `version --json`, asked beside the event loop at each sweep and after each landing,
+ * and the manifest, read on every look. An install change holds launches until a restart brings matching code, new code alone is only
+ * shown, and Hephaestus never restarts itself. After a landing a pass awaits the answer so it never launches on an unread install version.
  */
 export interface ProgramVersions {
   codeVersion:    string;

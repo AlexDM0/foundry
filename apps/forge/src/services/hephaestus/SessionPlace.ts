@@ -1,9 +1,7 @@
 /**
- * Where an agent session works: the folder its sandbox writes and the folder it starts in. A session in a job's worktree starts at the
- * worktree's root, where its confinement grants the worktree's own git admin folder, so it commits; a pipeline agent's snapshot, which it
- * only reads, starts in the tracker's project folder of it. In a folder of its own, or for a tracker at its repository's root, the folders
- * are one. A job of an entity of a top-level forge starts at the worktree's root too; its file-change rules, not its start, keep it to its
- * stage's folders. A resumed session starts where it began when its agent finds it by that folder.
+ * Where an agent session works and starts. A job's session starts at its worktree's root, where its confinement grants the worktree's git
+ * admin folder, so it commits; an entity's job too, kept to its stage's folders by its file-change rules, not its start. A pipeline agent,
+ * which only reads its snapshot, starts in its project folder; a resumed session where it began when its agent finds it by that folder.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {

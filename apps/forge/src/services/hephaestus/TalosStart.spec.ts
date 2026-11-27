@@ -1,9 +1,7 @@
 /**
- * `ensureTalos` over fake Talos records, a fake process table, a fake connection and a fake spawn. What matters is each branch of the
- * start: a running Talos of the required version is attached and nothing spawns; one of another version is waited out, and stopped once
- * the wait runs out; a lost one is stopped and its unended children swept, each with its stored cause, so no orphan outlives it; and a
- * Talos just started that answers another version holds Hephaestus, which then never spawns again, since the program on disk would
- * give the same Talos.
+ * `ensureTalos` over fakes of Talos's records, the process table, the connection and spawn: a running Talos of the required version is
+ * attached; one of another version is waited out, then stopped; a lost one is stopped and its children swept; and a fresh Talos of another
+ * version holds Hephaestus, which never spawns again, since the program on disk would give the same Talos.
  */
 import {
   existsSync,

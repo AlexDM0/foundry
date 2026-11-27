@@ -1,9 +1,7 @@
 /**
- * What a command about the forge's agent settles before the hold, on the answers the real program check recorded. What matters: a
- * chosen program that does not run refuses the command with its cause and path, naming the agent; one that runs passes the command as it
- * came and its run reaches the views, a failed run naming the first line it printed; a tool named alone is found in the folders in order
- * and one found nowhere is refused; a tool named with its path is kept only where a program lies outside every repository a job could
- * write; and a command of any other kind passes untouched.
+ * What a command about the forge's agent settles before the hold, on recorded program checks: a chosen program that does not run refuses the command
+ * with its cause; a tool named alone is searched in the folders in order; a tool named with its path is kept only outside every repository a job
+ * could write; and a command of any other kind passes untouched.
  */
 import { describe, expect, test } from 'bun:test';
 

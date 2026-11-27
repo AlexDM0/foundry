@@ -1,9 +1,7 @@
 /**
- * Hephaestus's side of a pipeline agent session: one detached snapshot of the main line per setup record, kept across the record's jobs and
- * checked out at the record's snapshot commit before each launch; a profile writing only its Hatch with no network; and Customs at each
- * turn end. A refusal marks the record's snapshot touched, which Apply refuses, and opens an incident. A snapshot that neither the open
- * record nor a live agent holds is removed. On a forge over entities the record has a session per entity beside the forge's, each
- * served from the record's one snapshot and stamped with its entity.
+ * Hephaestus's side of a pipeline agent session: one detached snapshot of the main line per setup record, checked out at the record's
+ * snapshot commit before each launch; a profile writing only its Hatch with no network; and Customs at each turn end, whose refusal marks the
+ * snapshot touched so Apply refuses. On a forge over entities each entity's session is served from the record's one snapshot.
  */
 import {
   existsSync,
@@ -61,8 +59,8 @@ export const PIPELINE_AGENT_SNAPSHOT_FOLDER = 'pipeline-agent';
 export const DOCUMENT_AGENT_SNAPSHOT_FOLDER = 'document-agent';
 
 /**
- * The folders of the readers' detached snapshots: Hephaestus adds, resets and removes them while other jobs run, so no job's V14 counts
- * their HEADs.
+ * The folders of the readers' detached snapshots: Hephaestus adds, resets and removes them while other jobs run, so no job's own-refs check
+ * counts their HEADs.
  */
 function readerSnapshotFoldersOf(worktreesRoot: string): string[] {
   return [join(worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER), join(worktreesRoot, DOCUMENT_AGENT_SNAPSHOT_FOLDER)];
@@ -255,8 +253,8 @@ function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: s
 }
 
 /**
- * The refs other jobs and Hephaestus's own landings and refreshes move while the session runs, which V14 lets pass; a namespaced tracker
- * also lets every ref outside its own pass, and a sibling's journaled landing.
+ * The refs other jobs and Hephaestus's own landings and refreshes move while the session runs, which the own-refs check lets pass; a
+ * namespaced tracker also lets every ref outside its own pass, and a sibling's journaled landing.
  */
 function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const tickets = board.tickets();
@@ -299,10 +297,9 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 }
 
 /**
- * In the hold that reads each turn's `result`: Customs on the snapshot. A refusal marks the record's snapshot touched, so Apply refuses
- * `setup-snapshot-touched`, and opens one incident; a snapshot already touched, or an agent with an open incident, opens nothing again. A
- * snapshot start that cannot be read fails closed too: in place of Customs it marks the snapshot touched, opens the unreadable file's
- * incident and retires the agent, whose next launch takes the snapshot start again.
+ * In the hold that reads each turn's `result`: Customs on the snapshot. A refusal marks the snapshot touched, so Apply refuses
+ * `setup-snapshot-touched`, and opens one incident, never twice; an unreadable snapshot start fails closed the same way and retires the
+ * agent, whose next launch takes the snapshot start again.
  */
 function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobIds: readonly string[]): void {
   const { board, at } = change;

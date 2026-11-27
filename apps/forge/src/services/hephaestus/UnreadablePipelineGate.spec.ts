@@ -1,8 +1,6 @@
 /**
- * The gate run on a merged tree when `pipeline.json` cannot be read. What matters: an older or a malformed file never passes the tree
- * as a pipeline with no gates; the run ends `cannot-run`, which opens `gate-cannot-run` and holds the merge, and names the stored pipeline and why.
- * A readable file, or none, is gated as before. The pass reads the pipeline through the store's judged reading, so a tracker in a folder whose
- * stored pipeline holds entities gets the same answer as the pass's own write, which opens the Board on that pipeline unreadable.
+ * The gate run on a merged tree when `pipeline.json` cannot be read: an older or malformed file ends the run `cannot-run` and holds the merge,
+ * never passing as a pipeline with no gates; a readable file, or none, is gated as before, read through the store's judged reading.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

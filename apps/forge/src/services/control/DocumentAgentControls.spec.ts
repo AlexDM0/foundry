@@ -1,10 +1,7 @@
 /**
- * The moves on a ticket document's agent. What matters: a Hatch move is refused `document-agent-not-live` unless its job is the one
- * document agent on the board for its ticket's document, so a move from another job, another ticket's agent or a builder never reaches the
- * document; a proposal's untrusted payload is checked before the Board sees it, and lands as the document's open proposal with the spec
- * version the plan agent was given, its attempt; ready marks the head with the review on and approves it as the pipeline with the review
- * off; an effect reading needs a version the document holds and a live Hephaestus, and only the agent's own reading is marked as asked by
- * the agent; and a turn stop closes the input of a running agent only, keeping its job.
+ * The moves on a ticket document's agent: a move is refused `document-agent-not-live` unless its job is the document's one live agent; a proposal's
+ * untrusted payload is checked before the Board sees it; ready approves as the pipeline with the review off; an effect reading needs a version the
+ * document holds and a live Hephaestus; and a turn stop closes a running agent's input only.
  */
 import { describe, expect, test } from 'bun:test';
 

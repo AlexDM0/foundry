@@ -86,7 +86,7 @@ export interface ReleaseAnswers {
   landed:           RecordedGitStage;
 }
 
-/** The release ticket #012's slot on main, its branch holding the group tip read at its merge-in. */
+/** The release ticket's slot on main, its branch holding the group tip read at its merge-in. */
 export function releaseAnswersOf(current: AirlocksHarness, holdsMain: boolean, branchDeleted: boolean, groupTipAtTheEnd: string = GROUP_TIP): ReleaseAnswers {
   const groupWorktree = groupWorktreeOf(current);
   const landedCommit = holdsMain ? TICKET_TIP : MERGED_TIP;

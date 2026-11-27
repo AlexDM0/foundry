@@ -1,9 +1,7 @@
 /**
- * Whose session a crossing ticket's `adapt` (stage 4) carries on (E43). What matters: after the package stages, `adapt` resumes the home
- * builder's stage 1 session, whatever attempt it ran in, and never the package builder's (E29); once that resume failed and the job was
- * replaced, the next `adapt` starts fresh on the branch (E43); `adapt` after a home review that did not hold carries on the `adapt` session
- * that built, and when `adapt` was skipped it takes up the stage 1 session (E51); a stage 1 build that never ended `built` leaves `adapt`
- * fresh; and a stage 1 build of another entity is never taken up.
+ * Whose session a crossing ticket's `adapt` stage carries on: the home builder's stage 1 session, never the package builder's; a fresh one
+ * on the branch once that resume failed; the `adapt` session that built after a home review that did not hold, or stage 1's when `adapt`
+ * was skipped; and never a stage 1 build that did not end `built` or ran another entity.
  */
 import { describe, expect, test } from 'bun:test';
 

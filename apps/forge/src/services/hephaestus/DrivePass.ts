@@ -1,8 +1,6 @@
 /**
- * Hephaestus's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (child
- * liveness under Talos, events past each job's stored cursor, then Hatch folders, target tips and ended children), applies relayed commands,
- * then the children's events with their cursors, then the Playbook in one transaction of the board's store, and runs its effects after the
- * Hephaestus lock check.
+ * Hephaestus's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock, applies
+ * commands, events and the Playbook in one transaction of the board's store, and runs its effects after the Hephaestus lock check.
  */
 import { createHash }              from 'node:crypto';
 import { mkdirSync }               from 'node:fs';
@@ -259,7 +257,7 @@ export interface AirlockFacts {
   redHandoff:          RedHandoffFacts | null;
   /** `false` for a fresh agent in place of a ticket agent whose session could not be resumed. */
   resumesSession:      boolean;
-  /** A package's builder resolving its part of a crossing ticket's conflict: it leaves the merge open for the worker after it (E64). */
+  /** A package's builder resolving its part of a crossing ticket's conflict: it leaves the merge open for the worker after it. */
   leavesTheMergeOpen?: true;
 }
 
@@ -298,9 +296,9 @@ export interface DrivePassRequest {
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                () => boolean;
   decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
-  /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
+  /** The ticket a crossing ticket's package change becomes once User turns it into a need. */
   packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
-  /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
+  /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group. */
   dependentFixWordingOf:         (facts: DependentFixFacts) => DependentFixWording;
   launchTextOf:                  (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
   /** One numbered chat to the Assistant listing the incidents it delivers, their facts and allowed moves. */
@@ -486,8 +484,8 @@ function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhas
 
 /**
  * A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. A package
- * stage's report also states what the package exposes (E40): the package builder states it, the package reviewer confirms it. An
- * adapt build's report may send the ticket back to a sealed package (E41).
+ * stage's report also states what the package exposes: the package builder states it, the package reviewer confirms it. An
+ * adapt build's report may send the ticket back to a sealed package.
  */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   if (job.kind === 'merge-agent' && airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
@@ -931,8 +929,8 @@ export function airlockFactsOf(
 
 /**
  * What a builder whose session is carried on is told of the review that sent it back: the ticket's newest Review, or for a package build the
- * Review its package review kept in its job folder (E34). `null` for a fresh session, and for `adapt` taking up the home builder's session
- * after the package stages, which gets the adapt message (E43); after a home review that did not hold, `adapt` gets its findings (E51).
+ * Review its package review kept in its job folder. `null` for a fresh session, and for `adapt` taking up the home builder's session
+ * after the package stages, which gets the adapt message; after a home review that did not hold, `adapt` gets its findings.
  */
 function reviewFindingsOf(
   board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null

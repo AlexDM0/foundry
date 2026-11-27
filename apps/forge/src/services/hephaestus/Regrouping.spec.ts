@@ -1,8 +1,7 @@
 /**
- * The leftover worktrees a starting Hephaestus names to User. What matters here: a constitution commit's worktree, one level down under its
- * own folder, belongs to its live constitution commit job and is no leftover; one whose job is gone is; and the folder that holds them is
- * never named itself; nor is the folder of the document agents' snapshots, which Hephaestus keeps. The rest of the regrouping is held by
- * `Regrouping.integration.spec.ts` and `CrashMatrix.integration.spec.ts`. The folders are real; git answers from a recorded answer set.
+ * The leftover worktrees a starting Hephaestus names to User, on real folders and recorded git: a constitution commit's worktree with a
+ * live job, the folder that holds them and the document agents' snapshots are no leftovers. The rest of the regrouping is held by
+ * `Regrouping.integration.spec.ts` and `CrashMatrix.integration.spec.ts`.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import { join }                    from 'node:path';

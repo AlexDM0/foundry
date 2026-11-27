@@ -1,8 +1,6 @@
 /**
- * How far main moved past a setup's snapshot, as each state read asks it. What matters: the count comes from git once per (snapshot commit,
- * main tip), so a second read with the same main tip runs no git, and a moved tip or a new snapshot commit asks again; no snapshot, no tip
- * or a snapshot at the tip is 0 with no git. Git answers from the recorded answers of `src/testing/RecordedGit.ts`, and a stage fails a call
- * it does not hold, which counts the calls.
+ * How far main moved past a setup's snapshot: git counts once per (snapshot commit, main tip), and no snapshot, no tip or a snapshot at the
+ * tip is 0 with no git. Git answers from `src/testing/RecordedGit.ts`, and a stage fails a call it does not hold, which counts the calls.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 

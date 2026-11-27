@@ -83,7 +83,7 @@ const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
 
 /**
  * The pipeline agent's moves on the setup record it serves, stamped with its job and that record. Every ticket verb, a gate profile and a
- * pipeline check are refused: only User starts a run (owner answer Q15).
+ * pipeline check are refused: only User starts a run.
  */
 const PIPELINE_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'pipeline-finding-record',
@@ -137,7 +137,7 @@ function questionOptionsOfOwnJob(job: RelayingJob, command: ControlCommandOf<'qu
 /**
  * Only the builder of an entity's stage declares a need, and only a complete one: what its ticket needs to be readied. The fields are read
  * as untrusted JSON, so one that is no text is an incomplete need. A need names no package whose change for the ticket is sealed: only a
- * `package-return` changes a sealed package (E42).
+ * `package-return` changes a sealed package.
  */
 function needVerdictOf(job: RelayingJob, command: ControlCommandOf<'need-declare'>): BouncerVerdict {
   if (job.role !== 'builder' || job.entity === undefined) return refused('need-outside-an-entity');

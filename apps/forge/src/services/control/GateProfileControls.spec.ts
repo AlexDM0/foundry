@@ -1,11 +1,7 @@
 /**
- * User's gate profile kinds, applied as a hold applies them. What matters: a start queues the gate as the open setup's draft or, with no
- * setup named, the stored pipeline defines it, never with its `writes`, and with that pipeline's prepare steps; a gate the source does not
- * define is `unknown-gate`, another setup `no-setup-open`, an unreadable stored pipeline its own refusal and a misshapen body
- * `malformed-setup-command`; a second start of a gate and phase not ended is `gate-profile-running`; and no role relays a start. On a forge
- * over entities a start names the entity: its gate and prepare steps come from the entity's single pipeline, each folder taken from the
- * repository's root through the entity's first home, the run is kept by entity, gate and phase, and an entity the source lacks is
- * `unknown-gate`.
+ * User's gate profile kinds, applied as a hold applies them: a start queues the gate from the open setup's draft or the stored pipeline, with its
+ * prepare steps, or is refused in its own words, and no role relays one. On a forge over entities a start names the entity, whose single pipeline
+ * gives the gate, and the run is kept by entity, gate and phase.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -63,7 +59,7 @@ function refusalDetailOf(attempt: () => unknown): unknown {
   throw new Error('the command was not refused');
 }
 
-/** A stored pipeline and an open update record S1 whose draft is that pipeline with one more gate. */
+/** A stored pipeline and an open update record `S1` whose draft is that pipeline with one more gate. */
 function boardWithAnUpdate(): BoardFixture {
   const fixture = boardFixture({ pipeline: structuredClone(STORED_PIPELINE) });
   apply(fixture, { kind: 'pipeline-update-start' });

@@ -1,10 +1,7 @@
 /**
- * The Airlocks, one per target, run by Hephaestus after each pass (design section 6): allocation, the one merge-in against the recorded
- * tip, the ticket's last worker resumed for a conflict or a red merged tree, the conditional conflict re-review of a large resolution, the
- * gate on the merged tree and the compare-and-swap landing. The main line lands in the main checkout; a group's tickets and its refreshes
- * land in the group's own worktree, and its release ticket lands the bundle on the main line. Every phase is written on the merge job's
- * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops. A ticket that crossed
- * into packages has its conflict and its red merged tree routed to the entity that owns them (strategy 5.7).
+ * The Airlocks, one per target, run by Hephaestus after each pass: allocation, the one merge-in against the recorded tip, the ticket's last worker
+ * for a conflict or a red merged tree, the conditional re-review, the gate on the merged tree and the compare-and-swap landing. Every phase is
+ * written on the merge job's slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
@@ -108,11 +105,9 @@ export interface AirlocksContext {
   refDeniesHold:          boolean;
   hold:                   AirlockHoldRunner;
   /**
-   * The gate of the tree with the gates of `phase`, read afresh as the run starts: `merge` for an Airlock's merged tree, the row's own phase
-   * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
-   * a stale green; absent, every entity's. The run goes on beside the pass, `running` until a later ask finds its outcome, which carries the
-   * stamp of what it read. `ownerJobId` is the merge job whose slot waits on the run, `null` for a stale green's: a run whose owner left the
-   * board stops.
+   * The gate of the tree with the gates of `phase`, read afresh as the run starts; on a pipeline with entities `gatedEntities` names whose gates run,
+   * every entity's when absent. The run goes on beside the pass, `running` until a later ask finds its outcome; `ownerJobId` is the merge job whose
+   * slot waits on it, `null` for a stale green's, and a run whose owner left the board stops.
    */
   mergedTreeGateOf:       MergedTreeGateAsk;
   /** The agent's configuration names, which a resolution may not change, and its attribution. */
@@ -196,7 +191,7 @@ function mergedTreeWasLastPassed(
 /** The parked hold a merged tree leaves when it is still red after the agent's resumes. */
 const MERGE_GATE_RED_PARK_CAUSE = 'merge-gate-red';
 
-/** How a crossing ticket's merge job ends when its red merged tree sends the ticket back to the package's or the home's stage (E65). */
+/** How a crossing ticket's merge job ends when its red merged tree sends the ticket back to the package's or the home's stage. */
 const RED_GATE_RETURN_CAUSES = { package: 'package-gate-red', home: 'home-gate-red' } as const satisfies Readonly<Record<RedGateOwner['owner'], string>>;
 
 /** What a merged tree's gate leaves the Airlock to do outside its hold. */
@@ -318,7 +313,7 @@ function staleGreenGatedEntitiesOf(board: Board, ticketId: string): readonly Ent
 
 /**
  * The landing's gate set: the entities the fast-forward to the merged tree changes and their consumers. On a group's branch only the
- * entities it changes: their consumers run at the group's release, which lands all of it on the main line (E68). When git cannot name the
+ * entities it changes: their consumers run at the group's release, which lands all of it on the main line. When git cannot name the
  * paths, or a group's landing changes no entity's paths, every entity's gates run.
  */
 function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string, landsOnTheMainLine: boolean): readonly EntityKey[] {
@@ -463,7 +458,7 @@ function entityAndStageOf(launch: EntityAndStage): EntityAndStage {
 
 /**
  * The ticket's last worker from history, whatever the pipeline says now; with none ended, its reviewer, or its builder with no review
- * step. On a pipeline with entities it runs the entity and stage its launch logged, so its own session is resumed: the home's worker (E63).
+ * step. On a pipeline with entities it runs the entity and stage its launch logged, so its own session is resumed: the home's worker.
  */
 function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
   const logRecords = board.logRecordsSoFar();
@@ -474,7 +469,7 @@ function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
   return launch?.kind === 'job-launched' ? { role, ...entityAndStageOf(launch.fields) } : { role };
 }
 
-/** A sealed package's part goes to that package's builder (E62); the home's part to the home's worker. */
+/** A sealed package's part goes to that package's builder; the home's part to the home's worker. */
 function conflictPartScopeOf(part: Readonly<ConflictPart>, homeScope: AirlockAgentScope): AirlockAgentScope {
   return part.packageEntity === null ? homeScope : { role: 'builder', entity: part.packageEntity, stage: PACKAGE_BUILD_STAGE_NUMBER };
 }
@@ -501,7 +496,7 @@ function airlockAgentLaunchesOf(board: Board, job: Readonly<Job>): ({ role: JobR
 
 /**
  * The conflict re-reviewer a resolution still needs, in order: the home's, when its resolution is too large to merge unread; then
- * one of each package whose builder resolved a part, whatever its size (E62). `null` once each one needed was launched.
+ * one of each package whose builder resolved a part, whatever its size. `null` once each one needed was launched.
  */
 function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsAReReview: boolean): AirlockAgentScope | null {
   const launches = airlockAgentLaunchesOf(board, job);
@@ -517,7 +512,7 @@ function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsARe
 }
 
 /**
- * A package's builder in the Airlock resumes the newest session of that package's build (E62), as its launch states it; with none to
+ * A package's builder in the Airlock resumes the newest session of that package's build, as its launch states it; with none to
  * resume it starts a fresh session of its own, the same test the launch's budget statement makes.
  */
 function startsAFreshSession(
@@ -656,7 +651,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (gate.outcome === 'failed') {
       // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff. A
-      // crossing ticket goes back to the stage of the entity that owns the red gate (E65).
+      // crossing ticket goes back to the stage of the entity that owns the red gate.
       const branchRef = `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`;
       const red: StaleGreenRed = {
         treeId,
@@ -926,7 +921,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return true;
   }
 
-  /** A crossing ticket's red merged tree goes to the entity that owns the red gate (E65): the merge aborts, and its ticket is returned. */
+  /** A crossing ticket's red merged tree goes to the entity that owns the red gate: the merge aborts, and its ticket is returned. */
   async function returnRedMergedTreeToItsOwner(
     job: Readonly<Job>, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed
   ): Promise<void> {
@@ -938,10 +933,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * In the hold: a crossing ticket's red gate, on its merged tree or on its stale green, goes to the entity that owns the gate (E65). The
-   * ticket returns to the package's build, its seal lifted and the return counted, or to the home's `adapt`, and that stage's builder takes
-   * the red handoff over. A second package return opens `second-return`, naming the package, and the ticket keeps its stage and status
-   * (E45); a red gate past the builder's resumes parks the ticket for User.
+   * In the hold: a crossing ticket's red gate, on its merged tree or its stale green, goes back to the build of the entity that owns it, a package's
+   * with its seal lifted and the return counted, the home's to `adapt`. A second package return opens `second-return` and keeps the ticket's stage; a
+   * red gate past the builder's resumes parks the ticket for User.
    */
   function returnRedGateToItsOwner(hold: AirlockHold, ticketId: string, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed): void {
     const { owner } = route;
@@ -1032,11 +1026,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red
-   * one resumes the same session and a pass ends it `resolved`. A resolution V10 refuses, or, for a tracker in a project folder, V5, V17 or
-   * V13 on the report of a resolution or of a red gate's fix, refuses the merge. A sound resolution that changed more lines than the merge
-   * train's re-review threshold goes to a conflict re-reviewer first, and one a package's builder took part in goes to that package's
-   * conflict re-reviewer too (E62). A crossing ticket's worker that left the merge open hands it on to the next part's worker (E64).
+   * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red one
+   * resumes it. An unsound resolution, or one outside a project tracker's scope, refuses the merge; a large one, or one a package's builder took part
+   * in, goes to a conflict re-reviewer first.
    */
   async function settleAirlockAgent(job: Readonly<Job>, agent: Readonly<Job>, history: AirlockAgentHistory): Promise<boolean> {
     const reading = context.mergeAgentReadingOf(agent);
@@ -1098,7 +1090,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * A worker that left the merge open hands it on (E64): the files of its own part and of the parts before it resolved, whatever its report
+   * A worker that left the merge open hands it on: the files of its own part and of the parts before it resolved, whatever its report
    * lists, and the rest still unmerged, the next part's worker is launched in the same worktree, the home's last, which commits the one
    * merge. Anything else refuses the merge, so a worker that hands on its own part unresolved is never launched again on it.
    */
@@ -1123,8 +1115,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * For a tracker in a project folder, V5, V17 and V13 on every commit since the branch tip, so a red gate's fix and a re-reviewer's fix are
-   * judged with the resolution; a refusal refuses the merge. A tracker at its repository's root asks nothing here, as it always did.
+   * For a tracker in a project folder, the scope checks of `MergeRun.resolutionScopeVerdictOf` on every commit since the branch tip, so a
+   * red gate's fix and a re-reviewer's fix are judged with the resolution; a refusal refuses the merge. A tracker at its repository's root
+   * asks nothing here, as it always did.
    */
   async function refusedOutsideProjectScope(job: Readonly<Job>, worktree: string, resolvedFiles: readonly string[], refusedWork: string): Promise<boolean> {
     const { projectPrefix } = context;
@@ -1150,7 +1143,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   /**
    * A re-review whose report holds goes on to the next re-review the resolution needs, or to the gate of the merged tree, its agent waiting
    * through it as a resolver does, so a red gate resumes it; an invalid report, a moved history, a claim that still does not hold or, for a
-   * tracker in a project folder, a fix V5, V17 or V13 refuses, refuses the merge.
+   * tracker in a project folder, a fix outside its scope, refuses the merge.
    */
   async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
     const worktree = slotWorktreeOf(job);
@@ -1168,7 +1161,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (await refusedOutsideProjectScope(job, worktree, [], `The conflict re-review of job ${agent.id}`)) return true;
     await context.hold((hold) => {
-      // A home re-review, when needed, came first: only the packages' re-reviews can follow (E62).
+      // A home re-review, when needed, came first: only the packages' re-reviews can follow.
       const nextReReviewer = nextConflictReReviewerOf(hold.board, job, false);
       if (nextReReviewer !== null) {
         hold.board.endJob(agent.id, { outcome: 'reviewed', commit: MergeRun.headOf(worktree) ?? '' }, hold.at);
@@ -1657,7 +1650,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * What stage 2 would refuse, checked before the commit lands so that a refused Apply leaves main as it was: the stored pipeline moved,
-   * or a ticket started or took an entity the draft removes while the request waited (E94, E91).
+   * or a ticket started or took an entity the draft removes while the request waited.
    */
   function stageTwoRefusalOf(hold: AirlockHold, setupId: string, mainReading: ApplyMainReading): ApplyRequestReason | null {
     if (hold.board.storedPipelineMovedSince(setupId, mainReading)) return 'pipeline-moved';

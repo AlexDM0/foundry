@@ -1,17 +1,7 @@
 /**
- * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
- * reviewer with no merge and no gate; one that lacks it gets the target merged in by a line under Talos with every hook off, and its
- * reviewer starts only once the build phase's gates are green on the merged tree, run from a manifest of its own, at once when that phase
- * has none; a red gate and a conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge
- * and resets the worktree to the branch tip. A crossing ticket's review sends its catch-up to the entity that owns the cause (E66): a
- * conflict in a sealed package's files returns the ticket to the package's build, its seal lifted and the return counted, a second such
- * return opens `second-return` naming the package and keeps the stage (E45), and a conflict in home files goes back to `adapt`; a package
- * review's catch-up that conflicts in the package's files goes back to its package's build, the ticket left in progress; a red catch-up
- * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
- * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
- * ticket for User. A merge record or settlement that cannot be read is never settled over or merged again: the review waits on its
- * incident; a conflict kept for the builder that cannot be read is no handover but the unreadable file. The folders are real; git answers
- * from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends each line itself.
+ * A review job brings its branch up to the target's tip before its reviewer starts: a merge under Talos with every hook off, gated by the
+ * build phase's gates, a red gate or conflict sent back to the builder, and on a crossing ticket each cause sent to the entity that owns it.
+ * Git answers from recorded answer sets, one for each state of the worktree, and the launcher is fake.
  */
 import {
   existsSync,

@@ -1,12 +1,7 @@
 /**
- * agent-dashboard's `GET /api/summary` document. What matters: `summaryOf` answers `summaryVersion: 3` in exactly the shape
- * `testing/fixtures/summary-v3.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
- * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
- * forecasting and `null` without one; the launch slots, as many as the concurrency counts; each job's newest launch stamp, `null` when the
- * log lost it; and the picture limits, `null` when the agent takes no pictures. It carries the pipeline facts beside them, and a second
- * state read whose main tip has not moved runs no `git show` for the instruction texts (`docs/reference/hephaestus-api.md`, "Cost of a
- * state read"): git answers from the recorded answers of `src/testing/RecordedGit.ts`, and a stage fails a call it does not hold, which
- * counts the calls.
+ * agent-dashboard's `GET /api/summary` document: `summaryOf` answers `summaryVersion: 3` in exactly the shape
+ * `testing/fixtures/summary-v3.json` holds. A new shape is a new version and a new fixture, never an edit of this one. Git answers from
+ * `src/testing/RecordedGit.ts`, which fails a call it does not hold and so counts the calls.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

@@ -1,8 +1,7 @@
 /**
- * The repository roots the machine-wide registry names. What matters: a tracker in a folder of its repository names the whole repository, two
- * trackers of one repository name it once, an entry with no root names nothing, and a registry that is absent, newer or not JSON names no root
- * rather than throwing, since an agent program check must still answer. A forge's agent tools may lie in none of them, nor in its own
- * repository and worktrees, though the registry names no forge.
+ * The repository roots the machine-wide registry names: a tracker in a folder names its whole repository, once; an entry with no root names
+ * nothing; an absent, newer or non-JSON registry names none rather than throwing, since an agent program check must still answer; and a
+ * forge's agent tools may lie in none of them, nor in its own repository and worktrees, though the registry names no forge.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

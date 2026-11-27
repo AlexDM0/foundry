@@ -1,16 +1,7 @@
 /**
- * A top-level forge switched on, end to end on the entity-forge fixture: its pipeline read from the stored `pipeline.json`, a build job of
- * the shop verified by Customs against the fixture's recorded git, and the needs it declares filed and followed by the Playbook. What
- * matters: a branch that changed only the shop's files reaches its gates; one that also changed the admin app's files is sent back once on
- * a red handoff naming them, and a second scope refusal fails the job, also after a red gate in between, while a V17 whose git failed
- * spends no resume (E11); one that changed only the admin app's files is sent back once, then fails and opens `work-in-other-entity`, which
- * offers the admin app and holds the ticket (E15); a need for the root entity, which has no gates, opens `need-for-root` and files nothing
- * (E12); a need of the package's job for an app that consumes the package would close a circle and opens `need-closes-circle` (E13); a need
- * for the admin app is filed as its ticket, which waits for the owner with ticket review on, holds the shop's ticket until delivered and
- * then reruns the shop's stage, and once abandoned leaves the shop's ticket with `need-abandoned` (E14). Each open decision holds its
- * ticket. A folder that no entity names is the root entity's, so a build of the shop that creates one is sent back as for another entity's
- * files (E6). A build of the shop that changed the package's constitution, which its ticket names, is sent back once and then fails, as any
- * scope refusal (E8).
+ * A top-level forge with entities, end to end on the entity-forge fixture: a build of the shop verified by Customs against recorded git, sent
+ * back or failed when it changes another entity's files, and the needs it declares filed and followed by the Playbook, each refused need
+ * opening its decision and holding its ticket.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
@@ -118,7 +109,7 @@ function withTheShopCrossingIntoTheUiKit(pipeline: Pipeline): Pipeline {
   return { ...pipeline, entities };
 }
 
-/** Ticket 001 of `entity` in progress, its build job launched at stage 1 in the root tracker of a scratch copy of the fixture's places. */
+/** Ticket `001` of `entity` in progress, its build job launched at stage 1 in the root tracker of a scratch copy of the fixture's places. */
 function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview = 'on', pipelineOf: (stored: Pipeline) => Pipeline = (stored) => stored): ForgeBuild {
   const repository = createScratchDirectory('entity-forge-build');
   folders.push(repository);

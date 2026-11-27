@@ -1,8 +1,7 @@
 /**
- * The merged-tree gate runs beside the drive pass (design section 3.2, "Renewal that only progress earns"): a pass asks for a gate, the run
- * starts and the pass carries on, and a later pass settles the Airlock from the outcome the run kept in its folder under the board folder.
- * The folder is keyed by everything the outcome rests on, so an ask while a run is in flight starts no second run. The run's lines are line
- * children of Talos in that folder: a stop sends `stop` to them, and the next Hephaestus stops the ones an earlier Hephaestus left running.
+ * The merged-tree gate runs beside the drive pass: a pass asks for a gate, the run starts and the pass carries on, and a later pass settles
+ * the Airlock from the outcome the run kept in its folder. The folder is keyed by everything the outcome rests on, so an ask while a run is in
+ * flight starts no second run. The run's lines are Talos line children: a stop sends them `stop`, and the next Hephaestus stops leftovers.
  */
 import { createHash } from 'node:crypto';
 import {

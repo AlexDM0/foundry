@@ -1,10 +1,7 @@
 /**
- * Hephaestus's pipeline checks: User's check of the open setup's draft runs the draft's prepare steps and the gates it changes or adds,
- * two times, in a fresh detached worktree of main, under each gate's confinement and with no `writes` granted, holding a gate run slot that
- * no waiting real gate wants. Its lines run under Talos in `pipeline-checks/<checkName>/run-<r>`, outside the hold; the hold is taken only
- * to mark the check running and to store its end, which the record's pipeline agent then reads as a message. At a Hephaestus's start, the
- * lines an earlier Hephaestus left are stopped, then a check it left running reads `stopped`, and every check worktree goes. On a draft over
- * entities each entity the draft touched has its own check: its steps and gates run from its first home, and its session hears the end.
+ * Hephaestus's pipeline checks: User's check of the open setup's draft runs its prepare steps and changed or added gates twice, in a fresh
+ * detached worktree of main with no `writes`, holding a gate run slot no waiting real gate wants. Its lines run under Talos outside the hold,
+ * which is taken only to mark the check running and store its end; on a draft over entities each touched entity has its own check.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';

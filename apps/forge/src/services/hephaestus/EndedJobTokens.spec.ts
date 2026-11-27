@@ -1,8 +1,6 @@
 /**
- * A job's tokens reach its tickets' rows when it ends. What matters: they add to what the row held, a review job's land on the newest
- * review bar, a turn repeated across log lines counts once, a job still on the board is not credited, and a hold that sees the same ended
- * job again credits nothing twice, since the `agent-stopped` record keyed by the job id already holds its total. A job a CLI control ended in
- * a hold of its own is rebuilt from the log on the next pass, every child instance read, and credited once, whichever path sees it first.
+ * A job's tokens reach its tickets' rows when it ends, credited once: the `agent-stopped` record keyed by the job id already holds its
+ * total, so a hold that sees the same ended job again credits nothing.
  */
 import { mkdirSync } from 'node:fs';
 import {

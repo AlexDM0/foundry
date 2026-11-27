@@ -1,10 +1,7 @@
 /**
- * The page ticket's text parts: a view quotes a ticket's Wanted and Brief and its Acceptance items, and shows them escaped, so what matters
- * is that each section and item arrives as its source text, that a waived item is marked, and that a ticket without an Acceptance has no
- * items rather than a missing key; a ticket with documents takes its items from its approved spec. Forge renders no HTML: a ticket's
- * `bodyMarkdown` is its stored body with the Acceptance items separated, an epic's `descriptionMarkdown` its stored description byte for
- * byte, and no key of the document ends in `Html`. The section and item reading itself is pinned in
- * `src/adapters/tickets/utils/TicketAcceptanceUtil.spec.ts`.
+ * The page ticket's text parts: each section and Acceptance item arrives as its source text, a waived item is marked, a ticket without an
+ * Acceptance has no items, and a ticket with documents takes its items from its approved spec. Forge renders no HTML: no key ends in `Html`.
+ * The section and item reading is pinned in `src/adapters/tickets/utils/TicketAcceptanceUtil.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 

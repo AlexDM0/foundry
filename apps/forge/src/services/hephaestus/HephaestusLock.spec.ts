@@ -1,10 +1,7 @@
 /**
- * The Hephaestus lock's generations in one process: what matters is that a live newest generation refuses, also one of older code with no
- * version, a dead or unreadable one is followed by the next and named for the log, the holder removes only the generations below its own, a
- * newer generation makes the holder's effect-batch check refuse `hephaestus-lock-taken` as unrepaired, and a release never unlinks a
- * generation the releaser does not hold. Two starters racing are `cli/hephaestus/StartCommand.integration.spec.ts`'s. Where hard links fail,
- * both claims are refused in words and leave no Hephaestus lock. This process's identity is the recorded process table's, so no spec reads it
- * through a program a sandbox may refuse.
+ * The Hephaestus lock's generations in one process: a live newest generation refuses, a dead or unreadable one is followed by the next, the
+ * holder removes only generations below its own, and a release never unlinks one it does not hold. This process's identity is the recorded
+ * process table's, so no spec reads it through a program a sandbox may refuse; two racing starters are `StartCommand.integration.spec.ts`'s.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import {

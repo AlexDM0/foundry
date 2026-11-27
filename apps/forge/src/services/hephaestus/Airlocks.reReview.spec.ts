@@ -1,11 +1,7 @@
 /**
- * The merge train's conditional re-review of a conflict resolution, with the harness's fake gate and fake launcher. What matters: a sound
- * resolution that changed more lines than `airlock.reReview.thresholdLines` ends its resolver and runs a fresh conflict re-reviewer in the
- * Airlock's `re-reviewing` phase before the merge gates; one at or below the threshold, or any resolution with no `airlock.reReview`, goes
- * straight to the gates; a resolution whose size git cannot tell is re-reviewed (fail closed); a re-review that leaves a claim not holding
- * refuses the merge with its own cause; and a red merged tree after a re-review resumes the conflict re-reviewer, the last worker on the
- * code, never a new agent. The folders are real; git answers from the recorded answer sets of
- * `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
+ * The merge train's conditional re-review of a conflict resolution: one larger than `airlock.reReview.thresholdLines`, or whose size git cannot tell,
+ * gets a fresh conflict re-reviewer before the merge gates; a re-review that leaves a claim not holding refuses the merge; and a red merged tree
+ * after it resumes the re-reviewer, never a new agent.
  */
 import { afterEach, expect, test } from 'bun:test';
 

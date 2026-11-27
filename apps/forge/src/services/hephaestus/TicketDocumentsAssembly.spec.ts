@@ -1,11 +1,7 @@
 /**
- * A ticket's documents and their summary, read from the board. What matters: a ticket with no record is refused
- * `ticket-has-no-documents`; User approves a document and may change it only while its review is on and no agent picked the ticket up;
- * the live document agent of that document and ticket is named, any other job is not; a constitution number is asked of the path the
- * ticket's pipeline names and never without one; a committed ticket's build is held while its spec, or a plan its builder reads, is not
- * approved, and a ticket that is not committed is never held; a fingerprint moves with its record and with what the documents serve beside
- * it, the ticket's status, the review switches and the live agent. Git counts a constitution's commits
- * once per path and commit, from the recorded answers, and a count git could not give is asked again.
+ * A ticket's documents and their summary, read from the board: the refusals, who may approve or change a document, the live document agent,
+ * the constitution number asked of the ticket's pipeline path, the build held on an unapproved spec or plan, and what moves the fingerprint.
+ * Git counts a constitution's commits once per path and commit, and a count git could not give is asked again.
  */
 import {
   afterEach,

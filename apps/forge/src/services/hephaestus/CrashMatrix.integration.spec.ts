@@ -1,28 +1,7 @@
 /**
- * The crash, reboot and update matrix on the real system, one row per scenario, each held against the mechanism that settles it; the rows that
- * need no real process are in `src/services/hephaestus/CrashMatrix.spec.ts`, and the merge rows in `CrashMatrix.merges.spec.ts`. The
- * processes, Talos and folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
- *
- * The session, Talos, Hephaestus, reboot and question rows that need no Airlock run a build job on a scratch repository, its session the fake
- * child: every crash is made by killing Talos, the child's group or both, a reboot by also giving Talos's and the child records a foreign
- * boot, and a Hephaestus restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned agent group is
- * killed before the resume, a clean restart of Talos pauses an agent that resumes by itself, never counted, only the crash causes count
- * toward the bound, a reboot and a spent bound wait for User's resume, which gives the bound back, a resume is by id in the same folder,
- * and a finished session never continues, save a closed product owner User messages, which resumes by id. A restart row hands a running
- * session's board to a successor and holds that Talos is sent nothing. The Assistant rows hold that it continues across a Hephaestus
- * restart, is replaced and never resumed when down, and boots past two failed boots only on a sweep while every incident defaults. A child
- * lost while the forge stays up keeps its crash cause and resumes by itself; one found gone at a crash start waits, as a reboot does, and
- * an answer to its question is its instruction.
- *
- * The start rows start the forge as its foreground entry does, in its order: the start gate over the real ports, then the Hephaestus lock, the presence
- * record and a drive pass reconciling by the gate's verdict; a kill writes nothing, a stop writes its ending, and the crash path is
- * `CrashPath`'s. What matters there: a crash keeps a successor's start off with one crash log under a number of its own, which a user start
- * keeps; a stop, a handover and a reboot with a fresh heartbeat serve, a stale one stays off as a suspected crash; and work a start finds
- * interrupted, or that Talos's lease ended, waits for `resume`. The foreground's own share (the registry write and the refusal of a start
- * that stays off, its exit code) is held by `cli/hephaestus/StartCommand.spec.ts` and `cli/hephaestus/HephaestusForeground.spec.ts`. A
- * restart whose preflight fails is held by `src/services/hephaestus/Restart.spec.ts`. The usage-limit row is held by
- * `src/services/hephaestus/UsageLimits.spec.ts` and `cli/hephaestus/HephaestusDrivePass.spec.ts`, and the body-edit row by V6 in
- * `src/services/lifecycle/Customs.spec.ts`.
+ * The crash, reboot and update matrix on the real system, one row per scenario, each held against the mechanism that settles it; the rows
+ * that need no real process are in `CrashMatrix.spec.ts`, and the merge rows in `CrashMatrix.merges.spec.ts`. The processes, Talos and
+ * folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
  */
 import {
   existsSync,

@@ -1,10 +1,7 @@
 /**
- * An agent's question request routed by its headers. What matters: only a request whose every question is headed `system` or every one
- * `ticket` reaches the Assistant, as a `system-question` or `malformed-ticket` incident carrying the request and exactly the agent's
- * questions; anything else, a mix of reserved and other headers included, is User's `agent-question` with the agent's questions and
- * options; either way the job waits keeping its build slot, and a replayed or answered request opens nothing twice. The notes a job gave with
- * `question options` reach the options of the question whose text they name, by label, on a decision and in an incident's questions alike,
- * and leave the job; notes for a question not asked stay on it.
+ * An agent's question request routed by its headers: only all-`system` or all-`ticket` questions reach the Assistant as an incident,
+ * anything else is User's `agent-question`; either way the job waits keeping its build slot, a replayed or answered request opens nothing
+ * twice, and the notes given with `question options` reach the options of the question they name.
  */
 import { describe, expect, test } from 'bun:test';
 

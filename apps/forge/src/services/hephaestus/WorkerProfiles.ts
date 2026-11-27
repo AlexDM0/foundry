@@ -209,7 +209,7 @@ function fixedDeniedWritableRootsOf(facts: SandboxFacts): string[] {
 
 /**
  * Under `mount-points` an absent loose ref is never denied: the mount point would stand on the host as a broken ref. A ref held only in
- * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is V14's to catch.
+ * `packed-refs` is protected by the `packed-refs` deny, and a ref moved all the same is the ref check's (`onlyOwnRefsMoved`) to catch.
  */
 function deniedWritableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
   const headsFolder = join(facts.commonGitDirectory, 'refs', 'heads');
@@ -363,10 +363,8 @@ function pathIsBelow(folder: string, repositoryPath: string): boolean {
 }
 
 /**
- * The repository paths outside a stage's own, each as high in the tree as it holds nothing the stage may change. Only the folders on the
- * way to a home or a `reach` path are read, their names at launch with the next folder of each such path. Those folders are never denied
- * themselves, so a name made after launch directly in one of them (the worktree root, `/apps`) is named by no rule: the stage edit guard
- * denies it.
+ * The repository paths outside a stage's own, each as high in the tree as it holds nothing the stage may change. The folders on the way to
+ * a home or a `reach` path are never denied themselves, so a name made after launch directly in one of them is left to the stage edit guard.
  */
 function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: FolderEntries): string[] {
   const { entities, entityKey } = stage;
@@ -391,7 +389,7 @@ function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: 
   return deniedUnder('');
 }
 
-/** The `hook stage-edits` guard of a stage (E18), which denies a file edit outside its folders, a name made after launch included. */
+/** The `hook stage-edits` guard of a stage, which denies a file edit outside its folders, a name made after launch included. */
 function stageEditGuardOf(stageFolders: readonly string[], guardCommand: readonly string[] | null): StageEditGuard {
   const [runtimePath, ...leadingArguments] = guardCommand ?? [];
   return {
@@ -521,7 +519,7 @@ function otherBoardBranchesOf(branches: readonly string[], ownBranch: string, br
   return branches.filter((branch) => branch !== ownBranch && (branch.startsWith(branchNames.ticketBranchPrefix) || branchNames.branchIsInAnotherNamespace(branch)));
 }
 
-/** Read from git at launch: a ref or worktree created later is V14's to catch, never this list's. */
+/** Read from git at launch: a ref or worktree created later is the ref check's (`onlyOwnRefsMoved`) to catch, never this list's. */
 function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirectories | null = GpgDirectories.read(request.homeDirectory)): SandboxFacts {
   const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
@@ -562,7 +560,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
 
 /**
  * The branches a worktree has checked out, where another job works; under `mount-points` only these are denied, each one a mount, and a
- * branch no worktree holds is V14's alone.
+ * branch no worktree holds is the ref check's (`onlyOwnRefsMoved`) alone.
  */
 function liveBranchesOf(branches: readonly string[], worktreeListing: readonly string[]): string[] {
   const checkedOut = new Set(worktreeListing.filter((line) => line.startsWith(WORKTREE_BRANCH_LINE_PREFIX)).map((line) => line.slice(WORKTREE_BRANCH_LINE_PREFIX.length)));

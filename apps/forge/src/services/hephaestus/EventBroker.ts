@@ -1,12 +1,7 @@
 /**
  * Hephaestus's live events for `GET /api/events`: each id is `<generation>-<n>`, kept in a bounded replay buffer, so a reconnect whose
- * `Last-Event-ID` is of this generation and still buffered gets the events after it, and any other gets a fresh `board` first. A state
- * published after a pass is diffed against the last one: `board` when anything changed, and one event per changed job, newly ended job,
- * decision or incident, and for Hephaestus and usage. A job first shown past `launching`, ended included, is published `launching` first.
- * A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` just before `board`, so the
- * flow can animate its marks from the slice before the whole state replaces it. A ticket whose documents record changed sends `documents`
- * just before `board`, a `board` following also when nothing else changed; a ticket whose effect reading changed sends `documents` alone,
- * between publishes.
+ * `Last-Event-ID` is still buffered gets the events after it, and any other gets a fresh `board` first. A changed pipeline sends `pipeline`
+ * just before `board`, so the flow can animate its marks from the slice before the whole state replaces it.
  */
 import type { EndedJob, JobLiveFactsWithSilence } from '../../adapters/@types/BoardStateParts.ts';
 import type { BoardState }                        from './BoardState.ts';

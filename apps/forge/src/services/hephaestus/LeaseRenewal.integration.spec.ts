@@ -1,8 +1,7 @@
 /**
- * The lease renewal against the Talos binary on short bounds: lease 600, interval 150, tick 50, gap 200 milliseconds. What matters: an idle
- * Hephaestus keeps its agent running past twice the lease; a pass that never ends earns no renewal, so the agent ends `lease-ended` within
- * the lease and two intervals of the last renewal; and a main thread blocked longer than the lease renews nothing, the agent ends
- * `lease-ended`, and the first tick after the block, a late one, holds the lease again.
+ * The lease renewal against the Talos binary on short bounds (lease 600, interval 150, tick 50, gap 200 milliseconds): an idle Hephaestus
+ * keeps its agent running past twice the lease, while a pass that never ends or a main thread blocked longer than the lease renews nothing
+ * and the agent ends `lease-ended`; the first tick after a block, a late one, holds the lease again.
  */
 import {
   afterEach,

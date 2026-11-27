@@ -1,8 +1,6 @@
 /**
- * The board's crash logs, `crash-logs/crash-<number>.json`: one immutable file per crash, assembled from plain values the caller read, and
- * listed and read back as verdicts. Hephaestus lock generations start again at 1 after a stop, so a log is numbered one above the highest on disk, and
- * the Hephaestus lock generation is a field inside it. A crash already logged as the newest log is not logged again, and the file is created
- * exclusively, so a racing second writer of the same crash finds the first log whole.
+ * The board's crash logs, `crash-logs/crash-<number>.json`, one immutable file per crash. Lock generations restart at 1 after a stop, so a
+ * log is numbered one above the highest on disk; the file is created exclusively, so a racing second writer finds the first log whole.
  */
 import {
   closeSync,

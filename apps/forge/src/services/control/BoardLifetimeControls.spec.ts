@@ -1,9 +1,7 @@
 /**
- * The board's lifetime kinds, applied through the control service to a Board as a hold carries it. What matters: a window is stored
- * as `range` stores it, relative bounds as written and timestamps normalised, read against the hold's own time; an unreadable bound, a
- * backwards pair and a tick that is no whole number of minutes are refused with a wordless detail and leave the axis alone; and a clear is
- * refused while any job but the Assistant is live, since a job would run on against rows, a log and tickets that are gone, and a live
- * Hephaestus always has an Assistant, so it alone must not hold the clear back; otherwise the clear keeps the tickets.
+ * The board's lifetime kinds through the control service: a window is stored as `range` stores it, an unreadable or backwards bound is refused
+ * leaving the axis alone, and a clear is refused while any job but the Assistant is live, since a job would run on against rows, a log and tickets
+ * that are gone.
  */
 import { describe, expect, test } from 'bun:test';
 

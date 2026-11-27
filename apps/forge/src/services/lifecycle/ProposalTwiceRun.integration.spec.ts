@@ -1,8 +1,7 @@
 /**
- * A proposal's gates run twice on a scratch snapshot, and each of the four verdicts is planted: green both times, red both times, unrunnable,
- * and a gate that fails once and passes once, which is `disagreeing` rather than either. A gate is judged on its own, so a red one hides
- * no later one; a gate that changes a tracked file fails and the snapshot is restored before the next gate; a failed prepare step judges no
- * gate of its run. The gates run as real processes in a plain folder; git's answers about the tree come from `src/testing/RecordedGit.ts`.
+ * A proposal's gates run twice on a scratch snapshot, planting each verdict: green twice, red twice, unrunnable, and `disagreeing` for a gate
+ * that fails once and passes once. Each gate is judged on its own, a gate that changes a tracked file fails and the snapshot is restored, and
+ * a failed prepare step judges no gate. git's answers about the tree come from `src/testing/RecordedGit.ts`.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';

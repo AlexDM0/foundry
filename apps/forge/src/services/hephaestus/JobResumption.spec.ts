@@ -1,9 +1,7 @@
 /**
- * A stale green that its ticket's gates turned red outside the Airlock, as the next job of the same kind finds it. What matters: the
- * red handoff is read from the `stale-green` folder of the ended job, never from its own folder; the ended session is resumed only when its
- * job folder shows that session started, and a fresh session takes the handoff over otherwise; a job after an ended job with no
- * stale-green handoff resumes nothing; and only a job replaced after a failed stale-green resume hands on the facts it adopted, since another
- * replaced job can hold the facts of a red handoff it already fixed.
+ * A stale green that its ticket's gates turned red outside the Airlock, as the next job of the same kind finds it: the red handoff is read
+ * from the ended job's `stale-green` folder, its session resumed only when that session started, and only a job replaced after a failed
+ * stale-green resume hands on the facts it adopted, since another replaced job can hold a red handoff it already fixed.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -85,7 +83,7 @@ function replaced(jobId: string, cause: string): LogRecord {
   };
 }
 
-/** J1 left the stale green, J2 resumed its session and was replaced, J3 is the fresh job; J2 adopted the facts into its own folder. */
+/** `J1` left the stale green, `J2` resumed its session and was replaced, `J3` is the fresh job; `J2` adopted the facts into its own folder. */
 function replacedAfterStaleGreen(cause: string): LogRecord[] {
   writeStaleGreenFacts('J1');
   const adoptedFacts = keptRedHandoffOf(join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder));

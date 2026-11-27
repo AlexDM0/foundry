@@ -1,8 +1,6 @@
 /**
- * The agent facts a view reads. What matters: the program a launch would start follows the machine's config for a choice that follows it;
- * a choice naming no program, or another vendor, reads as not running without a run; and a named program reads as Hephaestus last ran
- * it, with the places the vendor's installers use; the vendors are the adapter's, which can be chosen, then each vendor coming later by
- * name, which cannot.
+ * The agent facts a view reads: the program a launch would start follows the machine's config; a choice naming no program, or another vendor, reads
+ * as not running without a run; and a named program reads as Hephaestus last ran it, with the places the vendor's installers use.
  */
 import { join } from 'node:path';
 

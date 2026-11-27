@@ -1,8 +1,7 @@
 /**
- * A tracker's place in its repository, read from the `.git` entries on disk. What matters: a tracker at its checkout's root has the prefix
- * `''` and keeps its own spelling as the repository root, so git is handed exactly today's folder; a tracker in a project folder gets the
- * prefix git would print, from the nearest checkout, main or linked; a folder in no repository is its own root; and a project folder in
- * an agent's checkout is that checkout plus the prefix. The `.git` entries are planted, since finding them runs no git.
+ * A tracker's place in its repository, read from the `.git` entries on disk: at its checkout's root the prefix `''` with its own spelling as
+ * root; in a project folder the prefix git would print, from the nearest checkout; in no repository its own root; and in an agent's checkout
+ * that checkout plus the prefix. The `.git` entries are planted, since finding them runs no git.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';

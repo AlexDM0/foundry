@@ -1,16 +1,7 @@
 /**
- * Customs for a tracker in a folder of its repository, beside a sibling tracker and people's own checkouts. A tracker at the root must be
- * judged exactly as before: its patterns, protected names and refs read as they always did, and the reach check asks git nothing. A
- * project tracker's patterns and ticket naming read from its folder, its protected names hold at any depth, its branch may change only
- * its folder and its reach, and V14 watches only its own refs, so a sibling's branch, a person's commit, a stash or a tag fails no job
- * and a sibling's journaled landing passes. The ref cases replay the two-tracker answer set; the reach check replays a merge of the main
- * line, so a sibling's change it brought in is never the branch's own. On a top-level forge with entities, the data folder and agent
- * configuration are protected at the root and in every entity home, and a job of an entity may change only its homes and its reach: a
- * path a deeper home of another entity holds is that entity's (E2), and the root entity owns every path no other home holds. Without entity
- * homes or writable folders every check reads as before. On the entity-forge fixture: a file the shop's build writes into the package's home,
- * a generated one among them, is the package's change, a crossing's proposal when the shop whitelists the package and a V17 refusal when it
- * does not (E9); and a constitution changes only in a job of its own entity's ticket outside a package stage, so the shop's ticket naming
- * the package's constitution is refused V17 in stage 1 and in the package build, while the package's own ticket naming it passes (E8).
+ * Customs for a tracker in a folder of its repository: a root tracker is judged as before, a project tracker's patterns, protected names,
+ * branch and watched refs keep to its folder and reach, and on a forge with entities a job may change only its homes and reach, and a
+ * constitution only in its own entity's ticket outside a package stage.
  */
 import { join, posix } from 'node:path';
 

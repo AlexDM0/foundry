@@ -1,6 +1,6 @@
 /**
- * E26: the tickets of the dependents that a crossing ticket's package change breaks. Each is filed in the crossing ticket's group and waits
- * on it; the group's release lands them on the main line together and gates the dependents there (E68). A package build of a grouped
+ * The tickets of the dependents that a crossing ticket's package change breaks. Each is filed in the crossing ticket's group and waits
+ * on it; the group's release lands them on the main line together and gates the dependents there. A package build of a grouped
  * crossing ticket leaves out the gates of the dependents whose fix tickets are in its group.
  */
 import { TicketAcceptanceUtil }    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';

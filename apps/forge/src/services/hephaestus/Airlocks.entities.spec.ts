@@ -1,10 +1,7 @@
 /**
- * The Airlock of a forge with entities. What matters: the landing gates the entities whose paths the fast-forward to the merged tree
- * changes and the entities that consume them (E60), every entity for a root-owned path (E4), and a tree the gates last passed lands
- * without a gate only when its green names every entity of that set; git is asked those paths only when the
- * pipeline has entities, so a forge without entities asks git what it always asked and names no entity; a stale green is gated again by
- * its ticket's own entity; and a red handoff names the red gate's command from the pipeline of the entity whose gate it is, both for a
- * stale green and for a red merged tree. Git answers from the main-line sets of `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
+ * The Airlock of a forge with entities: the landing gates the entities its fast-forward changes and their consumers, every entity for a root-owned
+ * path, and lands ungated only on a green naming that whole set; a forge without entities asks git only what it always asked; and a red handoff names
+ * the gate's command from its own entity's pipeline.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -73,7 +70,7 @@ function landingPathsAsked(current: AirlocksHarness, changedPath: string): Recor
   });
 }
 
-/** A harness of ticket #001 on a pipeline with entities, whose git answers from the main-line sets of `landing`. */
+/** A harness of ticket `001` on a pipeline with entities, whose git answers from the main-line sets of `landing`. */
 function entitiesHarness(changedPath: string | null, landing: Partial<MainLineLanding> = {}, ticket: HarnessTicket = SHOP_TICKET): AirlocksHarness {
   const current = createRecordedAirlocksHarness([ticket], {}, true, null, false, null, ENTITIES);
   const answers = AirlockAnswerSets.mainLineAnswersOf({

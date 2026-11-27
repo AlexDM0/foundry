@@ -56,8 +56,8 @@ function beforeTheMergeIn(ticketId: string, conflicts: boolean): RecordedGitStep
 const abortedMergeIn = mergeInAborted(MAIN_TIP, TICKET_TIP);
 
 /**
- * What V10 asks of the resolution the Airlock agent committed as `MERGED_TIP`: nothing unmerged, a clean check of `conflictedFiles` and the
- * recorded parents.
+ * What the merge check (`mergeIsResolved`) asks of the resolution the Airlock agent committed as `MERGED_TIP`: nothing unmerged, a clean
+ * check of `conflictedFiles` and the recorded parents.
  */
 const soundResolutionOf = (conflictedFiles: readonly string[]): RecordedGitStage => [
   { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
@@ -266,7 +266,7 @@ export const AirlockAnswerSets = {
     unmergedFilesRead(remainingFiles.join(PATH_SEPARATOR)),
   ],
 
-  /** The last worker committed the merge as `MERGED_TIP`, and V10 passes for every one of `conflictedFiles`. */
+  /** The last worker committed the merge as `MERGED_TIP`, and `mergeIsResolved` passes for every one of `conflictedFiles`. */
   mergeCommittedOver: (conflictedFiles: readonly string[]): RecordedGitStage => [
     revisionMissing('MERGE_HEAD'),
     ...soundResolutionOf(conflictedFiles),
@@ -297,7 +297,7 @@ export const AirlockAnswerSets = {
     { gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT },
   ],
 
-  /** The resolution passes V10 and is refused after it: with no merge in progress, the worktree is only reset to the branch tip. */
+  /** The resolution passes `mergeIsResolved` and is refused after it: with no merge in progress, the worktree is only reset to the branch tip. */
   soundResolutionRefused: (): RecordedGitStage => [
     ...soundResolution,
     revisionMissing('MERGE_HEAD'),

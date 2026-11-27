@@ -1,8 +1,7 @@
 /**
- * The store's lock passes only from a holder whose process is gone, across real processes: a holder in a child process takes the lock
- * through the local adapter and stops inside its hold, after its hold journal and first file. Killed there, its lock goes to the next
- * apply at its first attempt, which finishes the journaled write before its own; alive there, it keeps the lock however old its record,
- * and the apply is refused `tracker-lock-held` once its retries run out.
+ * The store's lock passes only from a holder whose process is gone, across real processes: a child holder stops inside its hold after its
+ * journal and first file; killed, its lock goes to the next apply, which finishes the journaled write first; alive, it keeps the lock however
+ * old its record, and the apply is refused `tracker-lock-held`.
  */
 import { existsSync, mkdirSync }  from 'node:fs';
 import { join }                   from 'node:path';

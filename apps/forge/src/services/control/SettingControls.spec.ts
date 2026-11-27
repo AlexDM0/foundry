@@ -1,9 +1,7 @@
 /**
- * The setting kinds of the control contract, applied to a Board in a change. What matters: an older or malformed `pipeline.json` refuses
- * every pipeline write with its own reason before the Board is touched, so nothing overwrites it, while the concurrency limit, which is not
- * stored there, is still set; the gate kinds carry their phases and phase orders to the Board as sent; and the Assistant's switch writes
- * `assistant: true` or removes the key, logs its state, is refused with no stored pipeline, and switched off asks a live Assistant to wind
- * down in the same hold, so it finishes its turn.
+ * The setting kinds of the control contract: an older or malformed `pipeline.json` refuses every pipeline write before the Board is touched, while
+ * the concurrency limit, stored elsewhere, is still set; and the Assistant's switch writes or removes `assistant: true`, switched off asking a live
+ * Assistant to wind down in the same hold.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,11 +1,7 @@
 /**
- * The merged-tree gate runs beside the drive pass, over a fake run. What matters: an ask starts one run and answers `running`, an ask while
- * it runs starts nothing (two runs on one worktree would gate the same folder twice), and a later ask answers the outcome the run kept;
- * the folder's key holds the stamp and the gated entities, so a changed pipeline or another entity set is another run and an outcome of
- * another pipeline never settles a re-gate; `settled` lets the outcome go, `settleAtStart` first stops the lines an earlier Hephaestus's runs
- * left and then removes only the folders of runs that died unfinished, and an unreadable outcome or one of another format version is no
- * outcome. A stop aborts the run's signal, which stops its lines, and a stopped run keeps no outcome; a run whose owner job left the board is
- * stopped without the pass awaiting its end, unless a later ask took it over; a run whose line Talos paused wakes a pass, which asks again.
+ * The merged-tree gate runs beside the drive pass, over a fake run: an ask starts one run and answers `running`, a second ask while it runs
+ * starts nothing, a later ask answers the kept outcome, and a changed pipeline or entity set is another run; `settleAtStart` stops the lines
+ * an earlier Hephaestus left and removes unfinished runs' folders, and a stopped run keeps no outcome.
  */
 import {
   existsSync,

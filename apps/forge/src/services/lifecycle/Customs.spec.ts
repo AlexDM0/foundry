@@ -1,10 +1,7 @@
 /**
- * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6, V8 and V18,
- * which judge the ticket's content hash, its document heads, its spec and the report alone. V13's and V14's path comparisons run here under
- * the Windows path module, so git's `C:/` spelling and a joined backslash path are shown to meet on this machine, and V14 lets the HEADs
- * of the readers' snapshots, which Hephaestus adds, resets and removes under any job, pass. Every check that reads
- * the repository is held on one of the fake git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what
- * git answers.
+ * The Customs decisions that read no git: the retried attempt, the definition-file pattern, and the content, document, acceptance and report
+ * checks. Path comparisons run under the Windows path module, so git's `C:/` spelling and a joined backslash path are shown to meet.
+ * The checks that read the repository are held in `Customs.verification.spec.ts`, since what they decide is what git answers.
  */
 import { posix, win32 } from 'node:path';
 

@@ -1,8 +1,7 @@
 /**
- * A spec or plan agent's requests through the Hatch inbox. What matters: a request sent during the agent's turn is held, neither applied
- * nor recorded, so Customs can check the snapshot first; at the turn end it applies like any request, with the snapshot's commit stamped
- * on its document move; a commit the agent names itself, or a kind outside its three, is refused and reaches no document; and a turn
- * refused as a whole refuses each request with the Board's refusal, once, a repeat rebuilding the same reply.
+ * A spec or plan agent's requests through the Hatch inbox: held during the turn so Customs can check the snapshot first, applied at the
+ * turn end with the snapshot's commit stamped; a request naming its own commit or another kind is refused, and a refused turn refuses each
+ * request once with the Board's refusal.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -24,7 +23,7 @@ const SNAPSHOT_COMMIT = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
 const SPEC_TEXT = '# Basket\n\n## Acceptance\n\nA1. Alex Example sees the total.\n';
 
-/** A spec agent J9 of ticket 004 mid-turn, its spec at version 1 and its review off, so its ready approves the head as the pipeline. */
+/** A spec agent `J9` of ticket `004` mid-turn, its spec at version 1 and its review off, so its ready approves the head as the pipeline. */
 function documentAgentBoard(): BoardFixture & { change: BoardTransaction } {
   const fixture = boardFixture({
     tickets:               [ticketFixture({ id: '004', status: 'draft' })],

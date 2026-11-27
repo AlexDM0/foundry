@@ -1,14 +1,7 @@
 /**
- * User's kinds of the pipeline setup record: start, update and advise, billing, Continue, start over, resume, an answer, the constitution,
- * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and refuses
- * `malformed-setup-command` before the Board is touched. A start with its billing, the billing step's Continue and an advise launch the
- * record's pipeline agent, and a start over stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and
- * a check also message the agent in the same hold, in the caller's words, with what the move changed, and open it again when a stop closed
- * it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the context.
- *
- * On a forge over entities each entity has a session of its own, its level: the Continue of the `entities` step launches one for each entity
- * of the draft, an update or advise opens at the forge or at one entity, and each move messages the session of the level it changed, never
- * another's.
+ * User's kinds of the pipeline setup record. A body is untrusted JSON, so each applier refuses `malformed-setup-command` before the Board is touched.
+ * A start with its billing, the billing step's Continue and an advise launch the record's pipeline agent, and each move that changes the record
+ * messages it in the same hold; over entities only the session of the level the move changed.
  */
 import { PipelineFile }                                                              from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                                                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
@@ -284,10 +277,9 @@ function openingConstitutionOf(change: BoardTransaction, context: ControlContext
 }
 
 /**
- * The chosen agent starts a first setup, which opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and
- * never writes over a file unseen. With a billing its pipeline agent launches at once; with none the record opens at the billing step, and
- * the step's Continue launches it. A stored record that cannot be read, such as one of an older format, is started over first, as User's
- * start over would.
+ * The chosen agent starts a first setup, which opens on main's `CONSTITUTION.md` too, so its Apply never writes over a file unseen. With no billing
+ * the record opens at the billing step, whose Continue launches the agent. A stored record that cannot be read, such as one of an older format, is
+ * started over first, as User's start over would.
  */
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const agent = agentFieldOf(command);
@@ -408,10 +400,9 @@ function mainLineMoveOf(repositoryRoot: string, snapshotCommit: string | null): 
 }
 
 /**
- * Opens the record's agent again. When main moved past the snapshot, the record takes main's tip as its snapshot commit and the changed
- * paths, research needs a recheck, and the message names the paths; Hephaestus checks the snapshot out at that commit before the
- * agent's next launch. An agent that ended other than by a stop is replaced by a new one, which starts from the record. A first setup with
- * no billing is refused `setup-resume-before-billing`: no pipeline agent starts before the billing step chose one.
+ * Opens the record's agent again. When main moved past the snapshot, the record takes main's tip as its snapshot commit, which Hephaestus checks
+ * out before the agent's next launch. An agent that ended other than by a stop is replaced by a new one; a first setup with no billing is refused
+ * `setup-resume-before-billing`, since no pipeline agent starts before the billing step chose one.
  */
 function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
@@ -486,10 +477,9 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
 }
 
 /**
- * The draft a move would leave must pass the draft's read of the setup record, which is the `pipeline.json` validator but for the entities'
- * set check: entities the validator refuses are kept while User works on them, and Continue and Apply wait for none. It is checked before
- * the move touches the Board: a relayed command shares Hephaestus's hold, which a refusal does not undo, so no move leaves a record the
- * board cannot read.
+ * The draft a move would leave must pass the `pipeline.json` validator but for the entities' set check, whose refused entities stay while User works
+ * on them and hold back Continue and Apply. It is checked before the Board is touched, since a relayed command shares Hephaestus's hold, which a
+ * refusal does not undo, so no move leaves a record the board cannot read.
  */
 export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
   const reading = PipelineFile.draftReadingOf(PipelineFile.storedDocumentOf(draft));

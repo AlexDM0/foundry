@@ -1,8 +1,6 @@
 /**
- * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder, a child
- * folder, and the process answering for it. A slot is a holding judged by its holder, whatever version wrote it. A stale slot, its holder
- * no longer live or the slot unreadable, is taken over under a taking marker and logged, so a crashed Hephaestus, an ended gate line or one
- * that died before it claimed frees its slot without a release.
+ * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder. A stale
+ * slot, its holder no longer live or the slot unreadable, is taken over under a taking marker, so a crashed holder frees it without a release.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join }         from 'node:path';

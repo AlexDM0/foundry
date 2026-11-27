@@ -1,20 +1,7 @@
 /**
- * The `GET /api/monitor` document. What matters: for a board with one entry of every attention kind and one job of every role, plus a merge
- * job with none, `monitorSnapshotOf` answers `monitorVersion: 6` exactly as `testing/fixtures/monitor-v6.json` holds it, so a change to the
- * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
- * `monitor-v2.json` stay as versions 1 and 2 froze them. Version 6 is forge 4.0's: it names a restarting Hephaestus `restarting` and the
- * warning of a failed restart `restart-failed`. Version 5, forge 3.0's, carried the process's facts under `hephaestus`. Version 4,
- * forge 2.0's, named what an entry opens by a typed `target` where version 3 carried a `route`, and dropped the `flintBrain` key.
- * Beside it: `activity` keeps only the kinds a person cares about,
- * newest last, each at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
- * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
- * clock decides nothing. No forge runs Flint's brain any more: the snapshot has no `flintBrain` key, and a `flint-brain-ended` record an
- * older log holds reads as an ordinary `agent` entry with no kind and no tokens, and adds nothing to today's tokens. On a forge with
- * entities the snapshot adds its entities in the pipeline's order, each open ticket's entity and stage in board order (a delivered or
- * abandoned ticket left out, an unassigned or uncrossed one `null`), and each job's entity with its stage's name only where set; a forge
- * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture. A job's `interruption` is its cause, spelt as the
- * contract spells it, only while it is `interrupted`: a job that runs again after one serves `null`. A ticket document's agent and an
- * effect reading are no job of the monitor contract: the snapshot leaves both out, so `monitorVersion` stays 6.
+ * The `GET /api/monitor` document: for a board with one entry of every attention kind and one job of every role, `monitorSnapshotOf` answers
+ * `monitorVersion: 6` exactly as `testing/fixtures/monitor-v6.json` holds it, so a shape change fails here; a new shape is a new version and
+ * a new fixture, never an edit of a frozen one. Beside it: the activity feed, the usage window, entity keys and a job's `interruption`.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

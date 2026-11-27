@@ -1,14 +1,6 @@
 /**
- * Hephaestus's gate profiles, on recorded git, a fake line runner and a stand-in for the gate lines. What matters: a queued run runs
- * once, one gate in one phase, in a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, with the prepare steps and no
- * `writes` granted, its lines in `<data>/gate-profile-runs/<P>`, holding a slot by that folder that it takes only after the real gates; its
- * output lines are appended as Talos records them; it ends with its line's run time, recorded as its gate's `pipeline-step-ran` but never
- * a green or a `gate-ran` record, and its worktree
- * and slot go; a gate Talos stopped at its bound ends the profile `timed-out`; a Stop, and a Hephaestus stop, send `stop` to its running
- * line and record `stopped` with no duration; the next start stops the lines an earlier Hephaestus left before it removes their worktrees; a
- * proposal, a draft edit and a start queue no run; a run of the open setup turns the caching checks into note findings; and a run of an
- * entity's gate runs its lines in the folders the press took from the entity's first home. Two entities that share a gate name each get
- * their own note, in their own part of the record, never one in the forge's part.
+ * Hephaestus's gate profiles, on recorded git, a fake line runner and a stand-in for the gate lines: how a queued run runs, ends and is
+ * stopped, what queues none, and the notes a run of the open setup or of an entity's gate leaves.
  */
 import {
   existsSync,

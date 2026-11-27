@@ -1,12 +1,6 @@
 /**
- * Verification by code, V1 to V15, on recorded git scenarios, the decisions that read no git being in
- * `src/services/lifecycle/Customs.spec.ts`: each check refuses its planted case and passes a clean one, and `clearCustoms`
- * runs only the checks of the role's column, stopping at the first refusal. The planted cases are what a session could leave behind and
- * claim otherwise; V5 plants the data folder under the name `PRODUCT_NAMES` gives it. V11 reads its patterns from every gate's
- * `definedBy` and the tracked instruction files the pipeline names, and counts an instruction file only where the branch changed it
- * itself, never where a merge of the main line brought the change in; V15 holds a builder's gate claims to HEAD itself, so a stale
- * claim is refused before any gate runs. Each case's git state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts`
- * builds with real git and records; a call it did not record fails the case.
+ * Verification by code on recorded git scenarios: each check refuses its planted case and passes a clean one, and `clearCustoms` runs only
+ * the role's column, stopping at the first refusal. A planted case is what a session could leave behind and claim otherwise.
  */
 import {
   afterEach,
@@ -34,7 +28,7 @@ import {
 
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\n';
 
-/** The definition files spread over two gates, so V11 is shown reading every gate's `definedBy`, not only the first's. */
+/** The definition files spread over two gates, so `checksDefinitionUnchanged` is shown reading every gate's `definedBy`, not only the first's. */
 const BUN_GATES: readonly PipelineGate[] = [
   { name: 'tests', run: 'bun test', definedBy: ['bun.lock', 'tsconfig*.json'] },
   { name: 'lint', run: 'bun run lint', definedBy: ['package.json', 'eslint.config.*', 'bunfig.toml', '.githooks/'] },

@@ -1,17 +1,7 @@
 /**
- * The pipeline agent as a session, on Hephaestus's side. What matters: each turn end runs Customs on the setup's snapshot, and a refusal marks the
- * record's snapshot touched, which Apply refuses, and opens one incident, never a second one for the same touch; a resume clears the mark; with no
- * snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's snapshot commit, its billing
- * (a first setup's with none launches under none, never the vendor's default), and the facts its first message is built from (the record and
- * the installed default constitution), so a fresh session in place of a replaced one starts from the same; a launch adds the record's snapshot
- * at that commit, or checks an existing one out at it when a resume moved it, and takes the
- * snapshot start again; a snapshot start that cannot be read fails closed in place of Customs, opens the unreadable file's incident on the
- * agent and retires it. A
- * snapshot no open record and no live agent holds is removed once per Hephaestus, and one the removal leaves is named as a
- * leftover. A namespaced tracker's turn end lets a ref outside its own move. On a forge over entities, an entity's session is served
- * from the record's one snapshot, its facts name its entity, and a record whose sessions are only at entities still pins its snapshot
- * commit. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of `src/testing/RecordedGitScenarios.ts`,
- * whose snapshot is setup S1's under a worktrees root at the repository.
+ * The pipeline agent as a session, on Hephaestus's side: Customs at each turn end marks the record's snapshot touched and opens one incident
+ * on a refusal, an unreadable snapshot start fails closed, a launch checks the record's snapshot out at its commit, and unheld snapshots are
+ * removed. Git answers from `src/testing/RecordedGit.ts` and `src/testing/RecordedGitScenarios.ts`, whose snapshot is setup `S1`'s.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path, { join }                           from 'node:path';

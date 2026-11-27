@@ -1,9 +1,7 @@
 /**
- * A job file Hephaestus kept that its ingestion cannot read stops the step that needs it. What matters: the hold opens one
- * `system-file-unreadable` incident on the job whose step read the file, naming the file inside the board's data folder, also when the file
- * is another job's; the job keeps its state and takes no step on the file, nothing is recorded as if the file said something, and the next
- * pass opens no second incident. A park stops the job, so no pass after it opens the incident again; a fresh agent ends a job whose child
- * was never launched, and a stop is never held up by an unreadable red handoff. A file that is absent keeps the meaning absence always had.
+ * A job file its ingestion cannot read holds the step that needs it: one `system-file-unreadable` incident on the job whose step read it,
+ * naming the file, the job's state kept, nothing recorded from the file and no second incident on later passes, a park or stop included.
+ * A file that is absent keeps the meaning absence always had.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -51,7 +49,7 @@ const STATES_TO: Readonly<Record<'running' | 'in-customs' | 'gating', readonly P
   'gating':     ['preparing', 'running', 'in-customs', 'gating'],
 };
 
-/** A build job of ticket 001 in `state`, after `earlierFailedBuilds` builds of the same ticket that failed. */
+/** A build job of ticket `001` in `state`, after `earlierFailedBuilds` builds of the same ticket that failed. */
 function sceneIn(state: keyof typeof STATES_TO, earlierFailedBuilds = 0): UnreadableFileScene {
   const rootDirectory = createScratchDirectory('job-unreadable-files');
   folders.push(rootDirectory);

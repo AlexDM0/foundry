@@ -1,21 +1,7 @@
 /**
- * What Hephaestus does with User's answer to an entity decision, on the entity-forge fixture, before the Playbook of the same pass. What
- * matters: `work-in-other-entity` answered with a move sets the ticket's entity as User's assignment with the decision as its reason, clears
- * its row's stage and seals, and its next build is a fresh attempt of stage 1 of the new entity, never back through ticket review, whose
- * launch drops the old branch and worktree once; answered with abandoning, the ticket is abandoned (E15). `package-refused` answered with
- * dropping the change sends the ticket back to stage 1 of its home, which is told the reason and may no longer write a proposal in the
- * package; with a need, it also files the change, reason and proposal as a ticket of the package that the crossing ticket waits on, and
- * once that ticket is delivered stage 1 runs again told the settled need and to merge the main line first, which a drop tells it not; with
- * abandoning, the ticket is abandoned (E22). A crossing ticket whose package left its home's whitelist opens
- * `whitelist-removed-mid-crossing` before its next stage, once, which holds it; finishing under the old whitelist lets the stored stages
- * continue with the package kept in the ticket's crossing, and a need lifts the package's seal, sends the ticket back to stage 1 in progress
- * and files the change as a ticket of the package, whose delivery runs stage 1 again told the settled need; a row at the build of a package
- * the whitelist no longer names opens the decision too (E19). `dependent-broken` answered with a fix puts a crossing ticket in no group into the
- * group `ticket-<id>` and files a ticket of the dependent in its group that waits on it, submitted at once and in the group's release, whose
- * bundle then holds both, so the release gates the dependent with them; the ticket's next package build launches; a release ticket of the
- * group waits on the fix, a crossing ticket that released the group hands its mark to the fix, a dependent already fixed in the group gets
- * no second ticket, and abandoning abandons the ticket (E26). An answer is acted on once, one naming no option acts on nothing, and a forge
- * without entities acts on none.
+ * What Hephaestus does with User's answer to an entity decision, on the entity-forge fixture, before the Playbook of the same pass: each of
+ * `work-in-other-entity`, `package-refused`, `whitelist-removed-mid-crossing` and `dependent-broken` answered each way. An answer is acted
+ * on once, one naming no option acts on nothing, and a forge without entities acts on none.
  */
 import { mkdirSync }  from 'node:fs';
 import path, { join } from 'node:path';
@@ -116,7 +102,7 @@ interface Forge {
   readonly needs:   PackageNeedFacts[];
 }
 
-/** Ticket 001 of the shop in progress, in a scratch tracker, on the fixture's pipeline. */
+/** The shop's ticket `001` in progress, in a scratch tracker, on the fixture's pipeline. */
 function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipeline) => Pipeline = (stored) => stored): Forge {
   const repository = createScratchDirectory('entity-decision-answers');
   folders.push(repository);

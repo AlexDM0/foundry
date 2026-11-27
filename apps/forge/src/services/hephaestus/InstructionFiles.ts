@@ -1,8 +1,7 @@
 /**
- * The instruction files the pipeline names for a role: its ordered list, or the role's default list where it names none, each entry
- * resolved to a path; an empty list reads the role's built-in brief. A data-folder file is read from disk; any other is tracked, so it is
- * read from the main line, never from a ticket's branch. Every path here is the project's, mapped to the repository's only where git is asked,
- * and git runs at the repository's root.
+ * The instruction files the pipeline names for a role, each entry resolved to a path; an empty list reads the role's built-in brief. A
+ * tracked file is read from the main line, never from a ticket's branch. Paths here are the project's, mapped to the repository's only where
+ * git is asked, and git runs at the repository's root.
  */
 import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -94,8 +93,8 @@ function namedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[] 
 
 /**
  * Every tracked file a role's resolved list names, and the constitution, the forge's own and each entity's, which a branch may change only
- * where its ticket names it. They are repository paths, as Customs V11 compares them with git's; `projectPrefix` is
- * `ProjectLocation.projectPrefix`, `''` at the root.
+ * where its ticket names it. They are repository paths, as the checks-definition check (`checksDefinitionUnchanged`) compares them with
+ * git's; `projectPrefix` is `ProjectLocation.projectPrefix`, `''` at the root.
  */
 function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): string[] {
   const entities = pipeline?.entities ?? {};
@@ -107,7 +106,7 @@ function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectP
 
 /**
  * Each entity's tracked constitution as a repository path, with the entity whose pipeline names it (`PipelineUtil.pipelineOfEntity`): what
- * Customs V17 holds to its own entity's tickets (E8). None on a pipeline without entities.
+ * the scope check (`changesStayInHomeAndReach`) holds to its own entity's tickets. None on a pipeline without entities.
  */
 function entityConstitutionsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): { entity: EntityKey; gitPath: string }[] {
   if (pipeline === null) return [];

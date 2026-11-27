@@ -1,9 +1,6 @@
 /**
- * The four caching checks on scratch repositories, suggestions only: a repository using Turbo with its cache per worktree (`.turbo/cache`),
- * a task whose inputs miss its templates and fixtures, and a gate run past `turbo run` gets all three of its suggestions; one with no caching
- * tool gets the slow gates from the recorded profile times, each gate once with its slowest time; an absolute cache folder, default inputs
- * and gates through Turbo get none. A `turbo.json` that cannot be read is flagged as itself, and nothing is guessed from it. Nothing is
- * written.
+ * The four caching checks on scratch repositories, suggestions only: a Turbo repository gets a suggestion per misconfiguration, one without
+ * a caching tool its slow gates, a sound setup none, and an unreadable `turbo.json` is flagged as itself. Nothing is written.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

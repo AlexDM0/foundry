@@ -39,8 +39,8 @@ function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly st
 }
 
 /**
- * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names (E83, E53): their single owner, else
- * the finder job's entity. Paths of several owners are then judged as work outside that entity (E85).
+ * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names: their single owner, else
+ * the finder job's entity. Paths of several owners are then judged as work outside that entity.
  */
 function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransaction, body: string): string | undefined {
   const entities = change.board.pipeline()?.entities;
@@ -53,7 +53,7 @@ function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransact
 
 /**
  * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
- * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity (E85), or a submit that
+ * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity, or a submit that
  * would leave it without one, is refused before it is filed.
  */
 function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {

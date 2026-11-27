@@ -1,10 +1,7 @@
 /**
- * The board's picture store. What matters: the first bytes decide a picture's type, never its name, so a PNG named `.jpg` stores as PNG
- * and text named `.png` is refused; a picture over the size limit is refused before anything is written, the limit bounding the base64
- * data a session is sent, since the vendor measures that; the same bytes twice are one file
- * named by their sha256; the folder and each file are made owner-only through the port; and the sweep keeps every picture a log record or
- * a live job names and removes the rest, by a set difference. The sweep runs in Hephaestus's start hold, so an entry it cannot remove
- * stays for the next sweep instead of failing the start.
+ * The board's picture store: the first bytes decide a picture's type, never its name; a picture over the size limit (bounding the base64 a session
+ * is sent, as the vendor measures that) is refused before any write; the same bytes are one owner-only file named by their sha256; and the sweep, in
+ * Hephaestus's start hold, removes every picture no log record or live job names, leaving one it cannot remove for the next sweep.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';

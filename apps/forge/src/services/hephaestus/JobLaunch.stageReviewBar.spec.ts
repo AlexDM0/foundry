@@ -1,8 +1,7 @@
 /**
- * The bar a launched reviewer starts, on the entity-forge fixture's pipeline where the shop crosses into the package. What matters: a
- * reviewer of a stage starts a bar that stores its stage, named by the review of the stage's entity with the entity before it and numbered
- * by the job's round within the stage; a reviewer of a ticket that crosses into no package is named by its own entity's review, never the
- * forge's top level; a reviewer on a forge without entities starts the bar it always started, named by the forge's review.
+ * The bar a launched reviewer starts: a stage's reviewer stores its stage, is named by the review of the stage's entity and numbered by its
+ * round within the stage; a reviewer of a ticket that crosses nothing is named by its entity's review, and one on a forge without entities
+ * by the forge's review.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -18,7 +17,7 @@ const AT = '2026-11-17T16:00:00+01:00';
 
 const { SHOP, UI_KIT } = ENTITY_FORGE_ENTITIES;
 
-/** Ticket 001 of the shop with a reviewer launched in round `round`, in `entity` at `stage` when given, and its first observation applied. */
+/** Ticket `001` of the shop with a reviewer launched in round `round`, in `entity` at `stage` when given, and its first observation applied. */
 function barOfALaunchedReviewer(pipeline: Pipeline, round: number, entityStage?: { entity: string; stage: number }): Task | undefined {
   const { board, progress } = boardFixture({ pipeline, tickets: [ticketFixture({ id: '001', status: 'in-progress', entity: SHOP.key })] });
   const { job } = board.launchJob({

@@ -1,10 +1,7 @@
 /**
- * Hephaestus's own lines as line children of Talos, over a fake of the board's children and of the connection. What matters: a line is
- * launched as a `line` child in the next instance of its folder with its bound; its end arrives by the `state` frame of its child or, with no
- * frame, by the look at its record; the output is every `agent` line of its log, joined with line feeds, each handed on as Talos records
- * it; the run time is the child end's; a `time-bound` end, a lost child, a launch no Talos took and one Talos refused judge `cannot-run`;
- * the owner's stop sends `stop` to a launched line and launches none once stopped; and the stop of the lines under a folder stops every
- * live one and waits for their ends.
+ * Hephaestus's own lines as Talos line children, over fakes of the board's children and the connection: a line launches as a `line`
+ * child with its bound, ends by its `state` frame or its record, gives its log's `agent` lines as output, judges a time-bound, lost or
+ * refused launch `cannot-run`, and stops on its owner's stop.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

@@ -47,7 +47,7 @@ export interface StageRun {
   readonly scenario:           EntityForgeScenario;
   readonly startCommit:        string;
   readonly reportOf:           (headCommit: string) => Record<string, unknown>;
-  /** A scope resume this job already spent on an earlier V17 refusal. */
+  /** A scope resume this job already spent on an earlier refusal of the reach check (`changesStayInHomeAndReach`). */
   readonly scopeResumed?:      boolean;
   /** The gate of the job's run that is red, by its name in the run; every gate passes when absent. */
   readonly redGate?:           string;

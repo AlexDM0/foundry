@@ -1,9 +1,7 @@
 /**
- * User's job controls as frames to the board's Talos, a recording one answering for it. What matters: a Talos that answers no frame on one
- * pass is sent it on a later pass, its marker written only once Talos took it; a session is asked to quit at its turn end, never sent a
- * close; a session's stop has a marker of its own, so a `job stop` recorded after its quit still reaches the session; a stop asked before
- * any quit sends the quit then the stop, each once, a restarted Hephaestus included; a message's pictures are read from the board's store
- * and written into its chat line; and a wind-down is a chat to a build job, and to the Assistant no chat at all.
+ * User's job controls as frames to the board's Talos, a recording one answering for it: a frame Talos did not take is sent on a later pass,
+ * its marker written only once taken; a session is asked to quit at its turn end, never closed, and a stop after a quit still reaches it,
+ * each frame once, a restarted Hephaestus included.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

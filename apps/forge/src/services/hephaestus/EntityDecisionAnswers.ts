@@ -1,13 +1,7 @@
 /**
- * What Hephaestus does with User's answer to an entity decision, at the start of its next pass, before the Playbook launches anything:
- * `work-in-other-entity` moves the ticket to the entity that owns its work or abandons it (E15); `package-refused` drops the package change,
- * turns it into a need, or abandons the ticket (E22); `whitelist-removed-mid-crossing` finishes the crossing under the old whitelist or turns
- * the package change into a need (E19); `dependent-broken` files a fix ticket of the dependent in the ticket's group, or abandons the ticket
- * (E26). It also opens `whitelist-removed-mid-crossing` for a crossing ticket whose stored crossing holds a
- * package its home's whitelist no longer names, before its next stage launches.
- *
- * An answer is acted on once: anything the act logs about the ticket, or a launch of it, shows it was. An answer that names no option acts
- * on nothing, so the ticket runs again as it stood.
+ * What Hephaestus does with User's answer to an entity decision, at the start of its next pass, before the Playbook launches anything. An
+ * answer is acted on once: anything the act logs about the ticket, or a launch of it, shows it was. An answer that names no option acts on
+ * nothing, so the ticket runs again as it stood.
  */
 import { GitProcess }                                                                 from '../../lib/git/GitProcess.ts';
 import type { Decision }                                                              from '../../lib/tracker-model/@types/Decision.ts';
@@ -116,7 +110,7 @@ function homeEntityOf(board: Board, ticketId: string): EntityKey | undefined {
 }
 
 /**
- * E15: the ticket moves to the entity the answer names, logged as User's assignment with the decision as its reason, its row's stage and
+ * The ticket moves to the entity the answer names, logged as User's assignment with the decision as its reason, its row's stage and
  * seals cleared, so its next build is stage 1 of the new entity on a fresh branch, never back through ticket review.
  */
 function actOnWorkInOtherEntity(board: Board, answer: AnswerToActOn, at: string): void {
@@ -176,7 +170,7 @@ function fileThePackageChangeAsANeed(change: BoardTransaction, context: EntityDe
 }
 
 /**
- * E22: dropped or turned into a need, the refused package change goes back to stage 1 of the home, which is told the reason and may no
+ * Dropped or turned into a need, the refused package change goes back to stage 1 of the home, which is told the reason and may no
  * longer write in the package; a need also files the change as a ticket of the package that the crossing ticket waits on.
  */
 function actOnPackageRefused(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
@@ -202,7 +196,7 @@ function actOnPackageRefused(change: BoardTransaction, context: EntityDecisionAn
 }
 
 /**
- * E19: finishing under the old whitelist needs no act, since the crossing reads the answer; turning the package change into a need takes the
+ * Finishing under the old whitelist needs no act, since the crossing reads the answer; turning the package change into a need takes the
  * removed packages out of the crossing, their seals lifted, the ticket back in progress at stage 1, and files each change as a need.
  */
 function actOnWhitelistRemoved(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
@@ -224,7 +218,7 @@ function actOnWhitelistRemoved(change: BoardTransaction, context: EntityDecision
 }
 
 /**
- * E26: the dependent's fix ticket goes into the ticket's group, waiting on it, and the group's release lands both; the ticket's next package
+ * The dependent's fix ticket goes into the ticket's group, waiting on it, and the group's release lands both; the ticket's next package
  * build leaves out that dependent's gates, which run at the release. Abandoning abandons the ticket.
  */
 function actOnDependentBroken(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
@@ -254,7 +248,7 @@ const WHITELIST_REMOVED_DECISION = 'whitelist-removed-mid-crossing';
 
 /**
  * Before a crossing ticket's next stage launches: a package of its stored crossing that its home's whitelist no longer names opens
- * `whitelist-removed-mid-crossing`, naming the ticket and the package, which holds the ticket until User answers (E19). A ticket with a job
+ * `whitelist-removed-mid-crossing`, naming the ticket and the package, which holds the ticket until User answers. A ticket with a job
  * on the board waits for the job to end, and one already holding the decision opens no second.
  */
 function openWhitelistRemovedDecisions(board: Board, decisionWordingOf: EntityDecisionAnswerContext['decisionWordingOf'], at: string): void {

@@ -1,11 +1,7 @@
 /**
- * The Airlocks with merge approval on. What matters: nothing lands that User did not accept, on the main line and on a group target; once
- * accepted, the ticket runs the same merge train as with merge approval off: a conflict or a red merged tree goes to its last worker in the
- * Airlock, its accept and queue mark kept, never back to a reviewer outside it nor to `in-progress`; an accepted green tree lands with
- * no second approval; and the train takes the accepted tickets in User's press order, never by priority.
- * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, one stage per sweep, so a landing nobody accepted
- * would be a call the stage lacks; the accepted tickets' Airlock agents answer from the recorded answer sets of
- * `src/services/hephaestus/testing/AirlockAnswerSets.ts`.
+ * The Airlocks with merge approval on: nothing lands that User did not accept; an accepted ticket runs the same merge train as with approval off, its
+ * accept and queue mark kept through a conflict or a red merged tree; and the train takes the accepted tickets in User's press order. A landing
+ * nobody accepted would be a call the recorded stage lacks.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

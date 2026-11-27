@@ -1,13 +1,6 @@
 /**
- * A gate slot on Windows, over a fake kernel table. What matters: a gate line launched with no child record yet answers for its slot through
- * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. Every holder is a child
- * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
- * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
- * fault elsewhere, and a held removal leaves a stale slot in place. A slot older code wrote, with no version, is judged by its holder: held
- * while it is live, taken over and logged once it is not. A slot that cannot be read names no holder, so it is taken over and logged; one
- * whose bytes cannot be read at all is left in place and logged once. A gate profile comes after every real gate: it takes no
- * slot while a real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once,
- * holding no slot and holding no profile back.
+ * Gate slots over a fake kernel table and injected file moves: how a holder is judged live, how a stale, unreadable or older slot is taken
+ * over, and that a gate profile takes a slot only after every real gate.
  */
 import {
   existsSync,
