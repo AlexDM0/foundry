@@ -1,10 +1,6 @@
 /**
- * Wander on its floor. What matters: Flint rests, then walks at the walk speed and never past half a body from the floor's ends; the same
- * seed walks the same way each run; it does not walk while it gestures; a Flint off its floor walks back onto it; a Flint that a
- * behaviour left above its floor comes down at the body rate, while its floor still follows the box at once when the page scrolls; and
- * under reduced motion it stands still and on its floor. In a box that keeps Flint inside, it rests its attendants' reach from each wall,
- * and a gesture laid over the rest waits while Flint walks to where the gesture's extent fits, turning when that is nearer, and then
- * plays there, with an emote given meanwhile; under reduced motion at once.
+ * Wander on its floor: seeded walks that stay away from the floor's ends, no walking during a gesture, coming back down onto the floor,
+ * reduced motion, and in a box that keeps Flint inside, walking to where a gesture's extent fits before it plays.
  */
 import { describe, expect, test } from 'bun:test';
 

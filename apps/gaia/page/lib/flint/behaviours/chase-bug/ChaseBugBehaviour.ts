@@ -1,11 +1,7 @@
 /**
- * Chase the bug (`chase-bug`): a bug leaves the host's element (the row or card of a delivered ticket), falls to
- * the floor of the habitat Flint lives in, and runs away from Flint; each run is slower than the last, and after the limit it runs no
- * more. Flint is surprised, walks after it with narrowed eyes, jumps when it changes side close by, and grabs for it as cursor play grabs
- * for the pointer. The grab that catches it holds it between the closed hands; a dashed line links it to the element; it shrinks away
- * between the hands into a mini sheet with a crimson dot that rises from the floor and fades, and Flint is happy and rests. The running
- * bug, the line and the ticket are page shapes; the held bug is a prop, so it moves with Flint. A drag, a new intent, or a habitat or
- * element that is gone ends the chase and its grab, and the bug fades out. Under reduced motion the bug rests close by and is caught at once.
+ * Chase the bug: a bug leaves the host's element, falls to the habitat's floor and runs from Flint, each run slower than the last; Flint
+ * chases and grabs it as cursor play grabs the pointer, and the caught bug shrinks into a ticket. The running bug is a page shape; the held
+ * bug is a prop, so it moves with Flint.
  */
 import { intendedGestureOf }       from '../../IntentMeaning.ts';
 import type { Facing, Point }      from '../../SpriteGeometry.ts';

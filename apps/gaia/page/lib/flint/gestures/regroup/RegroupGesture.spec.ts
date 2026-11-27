@@ -1,10 +1,6 @@
 /**
- * Regrouping. What matters: the 4.6-second loop fades in four dim sparks; from 400, a
- * triangle of radius 6 points at each spark for 700 ms, 9 units short of it on the line from the body centre (from straight below at spark
- * 1, so the hand never covers spark 0), its corner along that line, with the eyes lifted towards it; no hand covers another spark; each
- * live spark lights with a spring, the dead spark 2 goes grey at 15% and narrows the eyes; a square sweeps from (40, -48) to (50, -38)
- * while the dead spark falls 14 and fades; the live sparks bob with happy eyes; the sparks fade; reduced motion holds the look at the dead
- * spark; the part does not depend on the facing.
+ * Regrouping: Flint points at each spark in turn without covering another, the live ones light and the dead one greys and is swept away,
+ * then the live sparks bob. The part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * Type. What matters: the two squares at their places with their
- * taps in each variant; the far hand taps opposite to the near hand in the normal and busy variants; the slam of the angry variant (raised for
- * 60% of 360 ms, a straight fall to 0 at 82%, the far hand half a cycle later) and its keyboard jolt; the busy eye shift 6, 8, 5;
- * the angry vein, which an emote's mark hides; and a pointing triangle that shrinks away before the typing square appears.
+ * Type: the two hands and their taps in each variant, the angry slam and keyboard jolt, the busy eye shifts, the angry vein that an emote's
+ * mark hides, and a pointing hand that shrinks away before typing starts.
  */
 import { describe, expect, test } from 'bun:test';
 

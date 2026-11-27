@@ -1,8 +1,6 @@
 /**
- * Copy: Flint walks below the element the habitat's `copyTargetFor` names, an agent's row,
- * and copies that agent's state with the gesture of its intent. A new intent of the target changes the gesture; a target that is gone, or
- * an intent that is not a gesture, ends the copy, and so does a gesture the host or a director asks for. In a box that keeps Flint inside,
- * the gesture's declared extent stands Flint, and turns it, where all it draws fits as near the target as it can.
+ * Copy: Flint walks below the element the habitat's `copyTargetFor` names, an agent's row, and shows that agent's state with the gesture of
+ * its intent. In a box that keeps Flint inside, the gesture's declared extent decides where Flint stands and which way it faces.
  */
 import { gestureIntentOf }      from '../../IntentMeaning.ts';
 import type { Facing }          from '../../SpriteGeometry.ts';

@@ -1,8 +1,6 @@
 /**
- * Forced stop. What matters: the props fade in by 300 and out from 1500; the spark bobs by
- * 2 × sin(t / 300); 300 to 600 a pentagon of 6 eases to the plug at (38, -12), eye lift 3; 600 to 750 the hand and the plug move in a
- * straight line to the plug's place (28, -14), set exactly, the cable goes slack and two small sparks fly from the socket for 200 ms;
- * 750 to 1200 the spark dies (grey, scale 0, 6 down), eyes 5 and lift -2; 1200 on Flint looks at the plug, lift 2; never happy eyes.
+ * Forced stop: Flint pulls the plug, the cable goes slack with a few sparks, the spark dies, and Flint looks at the plug; it never shows
+ * happy eyes.
  */
 import { describe, expect, test } from 'bun:test';
 

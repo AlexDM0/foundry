@@ -1,11 +1,6 @@
 /**
- * Lay the bar along a row (`lay-bar-along`): the host gives the element of a ticket's bar on its timeline, and
- * the bar stays the host's. Flint walks along its floor to below the bar's left end, hovers up to the bar's bottom edge at the body rate,
- * and walks to its right end with the hand and eyes of the `lay-bar` gesture, while a fresh shimmer lies over the bar behind it. At the
- * right end it is happy, the shimmer fades out, and it hovers back down and rests. The bar is clamped to the habitat's box; a bar too
- * narrow to walk is only risen to, and a bar with no part inside the box is not laid. A drag, a new intent, or a habitat or element that is
- * gone ends it, and the shimmer fades out; the rest then brings Flint down. Under reduced motion Flint is placed at the bar's right end, on
- * its bottom edge, and is happy, with no shimmer.
+ * Lay the bar along a row: Flint walks below a ticket's bar the host gives, hovers up to it and walks along it with the `lay-bar` gesture's
+ * hand and eyes while a shimmer lies over the bar behind it, then comes back down. The bar stays the host's, clamped to the habitat's box.
  */
 import { emoteDefinitionOf }       from '../../IntentMeaning.ts';
 import type { PosePart }           from '../../SpritePose.ts';

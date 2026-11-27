@@ -1,8 +1,6 @@
 /**
- * The pointer on a happy-dom page. What matters: a press on the body that moves no further than the threshold is a click, and one that
- * moves past it a drag whose release is a drop at the release point; a cancelled drag drops on nothing; a press with another button, or a
- * move of another pointer, does nothing; each happening is read once; a pointer that leaves the page is no pointer; and the body takes no
- * touch gesture and captures the pointer it is pressed with, so a touch drag carries Flint and does not scroll the page.
+ * The pointer on a happy-dom page: a short press is a click and a longer move a drag that drops on release, other buttons and pointers do
+ * nothing, each happening is read once, and a touch drag carries Flint without scrolling the page.
  */
 import {
   afterEach,

@@ -1,10 +1,6 @@
 /**
- * Visit, with its pop-in around a corner: Flint walks to 28 units outside an edge of the component, goes behind it while
- * it turns sideways, waits, peeks, ducks, peeks again, waves, and moves in while it turns to face the user; then it lives there. The
- * component is drawn in front of Flint for the whole sequence. A Flint on another floor line starts hidden behind the edge, at the wait.
- * A habitat that keeps Flint inside gets the same steps mirrored through its edge: Flint waits hidden outside the box, where the page is
- * drawn in front, peeks in, and moves in to 28 units inside, so it never shows over what is around the box. Under reduced motion it
- * arrives at once.
+ * Visit: Flint walks outside an edge of the component, goes behind it, peeks, waves and moves in, drawn behind the component throughout. A
+ * habitat that keeps Flint inside gets the same steps mirrored through its edge, so Flint never shows over what is around the box.
  */
 import type { Facing }                                  from '../../SpriteGeometry.ts';
 import { BODY_SHAPE }                                   from '../../constants/BodyShape.ts';

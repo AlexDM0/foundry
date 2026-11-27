@@ -1,8 +1,6 @@
 /**
- * The props of Incident fuse. What matters: the envelope of the shared vocabulary at
- * (30, -22); the graphite fuse of width 1.4 that has not burned, gone at a full burn; the flame, a small spark of 3 with a light core of
- * 1.5, both scaled by its pulse, at the end of the fuse; the three grey puffs of 2 that drift 6 apart and fade; the seal of the stamp on
- * the envelope's seal; the jolt moves the whole drawing; the hidden state draws.
+ * The props of Incident fuse: the envelope, the fuse that has not burned, the pulsing flame at its end, the smoke puffs, the stamp's seal,
+ * the jolt, and the hidden state.
  */
 import { expect, test } from 'bun:test';
 

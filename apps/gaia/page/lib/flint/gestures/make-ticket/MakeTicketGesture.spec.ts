@@ -1,8 +1,7 @@
 /**
- * The make-a-ticket gesture. What matters:
- * each phase of the 3.2-second cycle (fade in, three lines, stamp raised, fall, seal, jolt, lift, filing) and that the cycle repeats; the
- * seal is on the paper and the stamp lands on it; from the seal on the stamp's y is exact, not eased; the pen shrinks away before the stamp
- * appears; and facing left Flint still writes from left to right on the screen.
+ * The make-a-ticket gesture. What matters: each phase of the 3.2-second cycle (fade in, three lines, stamp raised, fall, seal, jolt, lift,
+ * filing) and that the cycle repeats; the seal is on the paper and the stamp lands on it; from the seal on the stamp's y is exact, not
+ * eased; the pen shrinks away before the stamp appears; and facing left Flint still writes from left to right on the screen.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * Interview. What matters: in each of the two rounds of 2200 ms Flint first asks (lean 3, eyes to the user,
- * one eye narrower, the question mark with its spring and its fade), then nods two times in 350 ms each, then writes line r of the
- * notepad with the notes study's pen and eyes; from 4400 one more nod, the happy eyes and the tick; from 5000 the lines and the tick fade;
- * reduced motion holds the pen in the first line; facing left the line still grows to the right on the screen.
+ * Interview: two rounds of asking, nodding and writing a line on the notepad, then a last nod with happy eyes and a tick. Facing left the
+ * line still grows to the right on the screen.
  */
 import { describe, expect, test } from 'bun:test';
 

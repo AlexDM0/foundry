@@ -1,8 +1,6 @@
 /**
- * The shimmer of Lay the bar along. What matters: it lies from the bar's left end to 18 behind Flint, at the bar's height; the 6 nearest
- * Flint are the head in the body colour at 70% of its freshness, the rest four segments in the light ember colour at 50% of theirs; a
- * part's freshness falls from 1 as Flint passes it to 0 800 ms later, so the faded tail is not drawn; the shimmer's ends are rounded with
- * radius 3, the joins between its pieces are flat; and there is none before Flint is 18 past the left end.
+ * The shimmer of Lay the bar along: it lies from the bar's left end to just behind Flint, its head in the body colour and its tail in ember
+ * fading with age, with rounded ends and flat joins.
  */
 import { describe, expect, test } from 'bun:test';
 

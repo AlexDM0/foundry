@@ -1,9 +1,6 @@
 /**
- * Crash resume. What matters: the eyes are 10 at once until 120; the fill opacity is 1,
- * 0.3, 0.9 and 0, each set at once at 120, 220, 320 and 420; from 420 the eyes are 1 at once, Flint lands and leans -7; the spark at
- * the centre shows from 600 and pulses by 0.3 × sin(t / 80); from 1300 the fill comes back in a straight line by 1600, the bright tint 0.6
- * goes out by 2000, the spark fades out by 1600, and the hover returns; 1700 to 2200 a dying head shake with two blinks; then the eyes look
- * behind (-3) and ahead (6). The still moment, 900, is the outline with the spark. The part does not depend on the facing.
+ * Crash resume: the body flickers out to an outline with a spark at its centre, the fill comes back, a dazed head shake, and Flint looks
+ * behind and ahead. The part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

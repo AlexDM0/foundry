@@ -1,8 +1,7 @@
 /**
- * Lay the bar. What matters: the bar grows as 10 + 26 × p² over the 1.4-second cycle and
- * fades in its last 200 ms; one square behind Flint, over the head of the bar, presses into it each 350 ms, 3 down and back in 120 ms,
- * placed exactly; Flint looks back
- * once a cycle; it goes on while Flint walks and stops when Flint jumps; and reduced motion holds the middle of the cycle.
+ * Lay the bar. What matters: the bar grows as 10 + 26 × p² over the 1.4-second cycle and fades in its last 200 ms; one square behind Flint,
+ * over the head of the bar, presses into it each 350 ms, 3 down and back in 120 ms, placed exactly; Flint looks back once a cycle; it goes
+ * on while Flint walks and stops when Flint jumps; and reduced motion holds the middle of the cycle.
  */
 import { expect, test } from 'bun:test';
 

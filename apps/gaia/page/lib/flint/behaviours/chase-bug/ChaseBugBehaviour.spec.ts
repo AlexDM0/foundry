@@ -1,15 +1,6 @@
 /**
- * Chase the bug, on the pure mind frame by frame. What matters: the bug comes from the bottom centre of the
- * element, clamped to the floor, and falls with the gravity of the jump; with no element it starts 60 ahead of Flint on the floor; a run
- * goes away from Flint to 60 to 140 from it as the seeded sequence says, and past a wall it turns and runs past Flint; the runs go at 260,
- * then 85% of the last; a resting bug runs when Flint comes within 40 or after 900 ms, and after 12 s it runs no more. Flint is surprised,
- * walks after the bug with narrowed eyes, jumps when it changes side close by, and grabs within the catch distance with the pause of
- * cursor play; a miss shows the Annoyed emote once. The grab that catches holds the bug between the closed hands, as a prop that moves
- * with Flint, for 600 ms with its wiggle twice as fast; the hands stay closed on it while the line links it to the element for 600 ms and
- * until it has shrunk away; it becomes a ticket that starts on the floor, rises and fades in 700 ms, with the Happy emote; then Flint rests.
- * A Flint that a behaviour left above its floor comes down at the body rate. A drag, a new intent, or a habitat or element that is gone
- * ends the chase and its grab. Under reduced motion the bug rests 30 ahead and is caught in one grab, and the ticket does not rise. A
- * second chase is refused.
+ * Chase the bug, on the pure mind frame by frame: the bug's fall and runs, Flint's chase, jumps, grabs and misses, the caught bug turning
+ * into a ticket, what ends the chase, reduced motion, and the refusal of a second chase.
  */
 import { describe, expect, test } from 'bun:test';
 

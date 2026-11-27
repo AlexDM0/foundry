@@ -1,9 +1,6 @@
 /**
- * Review. What matters: the pace,
- * the pages behind the sheet and the verdicts of each variant; the lens that follows the line Flint reads, and the line drawn as read; the
- * eyes that follow the lens down the sheet and along the line; the angry jab and the busy page turn; that facing left, Flint still reads
- * from left to right on the screen and gives the same verdict, which the renderer never mirrors; and that the hand of the looking glass
- * sits exactly at the drawn lens + (-8, 8) on every frame, while the lens itself eases.
+ * Review: each variant's pace, pages and verdicts, the lens and eyes following the line being read, and the angry and busy details. Facing
+ * left Flint still reads left to right, and the looking glass's hand sits exactly on the drawn lens.
  */
 import { describe, expect, test } from 'bun:test';
 

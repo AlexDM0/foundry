@@ -1,10 +1,6 @@
 /**
- * Bug jar. What matters: the lens reads line 0 and stops on line 1 at 0.6 of it, at 0.7 s for
- * a line, from left to right on the screen whatever the facing; the bug shows below the stopped lens with the "!" and wide eyes; the lens
- * leaves with its hand and a pentagon comes back to the bug; the caught bug wiggles twice as fast from the catch on, with no jump in its
- * turn, is carried above the jar, falls in, and
- * the lid closes; the jar shrinks into a low ticket that leaves by (12, -4) while the sheet fades; the cycle repeats every 5.2 s; and
- * reduced motion holds the caught bug on its way to the open jar.
+ * Bug jar: the lens reads the lines and stops on the bug, the hand catches it and drops it in the jar, and the closed jar shrinks into a
+ * ticket that leaves. The lens reads left to right whatever the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,11 +1,6 @@
 /**
- * The mind on each frame, pure, with no page: the reflexes, the intents and the target pose. What matters: Flint starts in the middle of
- * its home, or in the habitat the host stored; any cue wakes it, and only the cues of its own habitat wait for the director; a habitat
- * that leaves the page or becomes too small sends Flint home; a click starts cursor play and a drag carries Flint, and both win over the
- * director; an intent starts its gesture, emote or behaviour, keeps a gesture that already runs, and is dropped while a reflex or a
- * visit runs; the pop-in's wave stands for the arrival's wave; an emote shows over a running gesture; sleep goes home; Flint blinks only
- * while it does nothing else; an attendant the host gives stays through every gesture, emote and sleep; and the place Flint stands on is
- * what the sensors watch.
+ * The mind on each frame, pure, with no page: where Flint starts, which cues wake it and which wait for the director, what sends it home,
+ * how clicks and drags win over the director, how intents start or are dropped, and that an attendant stays through everything.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,11 +1,6 @@
 /**
- * The one easing step. What matters: easing is exponential at the rate of each
- * value; a hand that changes shape shrinks first at twice the hand step and only then appears from the body in its new shape; a hand held
- * to a prop sits on that prop's drawn grip, as the looking glass's hand at a fixed offset from the drawn lens; a prop fades and keeps its
- * last look while it goes; an exact field snaps, as a blink does; the tint, the fill opacity and the inner glow ease at the eye rate or the
- * tint's own rate, a fading tint keeps its colour, and a glow a gesture set fades back to 0 when its part is gone; an attendant member the
- * target lost shrinks away at the hand rate, then is gone; a behaviour's page shapes are drawn as given, never eased, and once the target
- * gives none they fade out over the behaviour's fade time, then are gone.
+ * The one easing step: each value eases exponentially at its own rate, a changing hand shrinks before it reappears, a held hand sits on its
+ * prop's grip, exact fields snap, and parts that go (props, attendant members, page shapes) fade out before they are gone.
  */
 import { describe, expect, test } from 'bun:test';
 

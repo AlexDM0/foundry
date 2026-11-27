@@ -1,8 +1,6 @@
 /**
- * The sparks of the shared vocabulary. What matters: a Watcher's spark is a square of 4 turned 45 degrees around its centre with a light
- * core of 1.6; a dim one is dark and a dead one grey, both with no core; a spark scales around its centre; a small spark is a square of 2.5
- * placed at its point and turned around it, and Merge, a flame and a puff keep their own side and colour; a small spark that flies out goes
- * straight at its angle, turns half a turn and fades, unseen before and after its flight.
+ * The sparks of the shared vocabulary: the Watcher's spark and its dim and dead forms, scaling around its centre, the small sparks with
+ * their own sides and colours, and a small spark's flight.
  */
 import { expect, test } from 'bun:test';
 

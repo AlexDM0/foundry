@@ -1,8 +1,7 @@
 /**
- * The merge gesture. What matters: each phase of the
- * 2.6-second cycle (fade in, the squared press, the widening eyes, the snap with its squash and sparks, the fade out) and that it repeats;
- * the happy eyes show on the frame of the snap with no fade; and the part does not depend on the facing, since the renderer mirrors the
- * tick back and a tick is never mirrored.
+ * The merge gesture. What matters: each phase of the 2.6-second cycle (fade in, the squared press, the widening eyes, the snap with its
+ * squash and sparks, the fade out) and that it repeats; the happy eyes show on the frame of the snap with no fade; and the part does not
+ * depend on the facing, since the renderer mirrors the tick back and a tick is never mirrored.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * The research gesture. What matters: the four
- * studies of 2.6 s each run in order and repeat; each shows only its own prop, so the last fades out as the next fades in; each phase of
- * each study (the book's rest and page turn, the notes' three lines, the stepped query, the hologram's scan); research shows no
- * lightbulb; and facing left, the page still turns from right to left on the screen and the notes still grow from left to right.
+ * The research gesture: four studies run in order, each with only its own prop and its phases, and no lightbulb. Facing left, the page
+ * still turns right to left and the notes still grow left to right on the screen.
  */
 import { describe, expect, test } from 'bun:test';
 import type { Facing }            from '../../SpriteGeometry.ts';

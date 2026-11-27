@@ -1,9 +1,7 @@
 /**
- * How an intent of the fixed list changes the mind, from a director or the host's `perform`. The running behaviour says what an intent
- * does while it runs (`intentWhileRunning` of `flint/behaviours/BehaviourDefinition.ts`): a reflex, a visit or a landing finishes first
- * and drops it; the rest and sleep take a gesture or an emote over them; the copy ends on a gesture; a behaviour the host started with an
- * element ends on any intent. An intent that ends the running behaviour starts from the rest, and a gesture that behaviour aimed itself ends
- * with it.
+ * How an intent of the fixed list changes the mind, from a director or the host's `perform`. The running behaviour's `intentWhileRunning`
+ * decides what an intent does meanwhile; an intent that ends it starts from the rest, and a gesture that behaviour aimed itself ends with
+ * it.
  */
 import { intentAimsAtElement, intentMeaningOf }                         from '../IntentMeaning.ts';
 import type { CatalogBehaviour }                                        from '../behaviours/BehaviourCatalog.ts';

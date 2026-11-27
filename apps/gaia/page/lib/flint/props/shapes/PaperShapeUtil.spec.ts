@@ -1,8 +1,7 @@
 /**
- * The paper of the shared vocabulary. What matters: a ready paper is the outline with a solid edge; a draft has a
- * dashed edge of 2 and 2 and a fill of 0.55; the header sits 1 unit in from the top edges; the mini sheet is the paper at 55% around its
- * centre (38, -28), moved so that centre lands on the point given, and a ticket can be scaled alike to any size; a waiting ticket's header
- * is grey.
+ * The paper of the shared vocabulary. What matters: a ready paper is the outline with a solid edge; a draft has a dashed edge of 2 and 2
+ * and a fill of 0.55; the header sits 1 unit in from the top edges; the mini sheet is the paper at 55% around its centre (38, -28), moved
+ * so that centre lands on the point given, and a ticket can be scaled alike to any size; a waiting ticket's header is grey.
  */
 import { expect, test } from 'bun:test';
 

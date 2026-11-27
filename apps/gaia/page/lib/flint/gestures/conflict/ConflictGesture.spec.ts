@@ -1,9 +1,6 @@
 /**
- * Conflict. What matters: the first press is Merge's with a shorter travel that ends when the tips of the
- * teeth touch; the hit shakes both blocks for 100 ms, shows the crimson lines at the seam for 300 ms and slants the eyes; the blocks move
- * apart and the hands go; the file makes three full strokes, set exactly, while the top teeth move over by 3 and each stroke drops two
- * shavings; the second press has Merge's travel and the teeth fit, alternating; then Merge's snap and leave. Reduced motion holds 2800.
- * The tick is mirrored back by the renderer, so the part is the same either facing.
+ * Conflict: Merge's first press stops when the teeth meet, the hit shakes the blocks, the file reshapes the teeth, and the second press
+ * fits and snaps as Merge does. The part is the same either facing.
  */
 import { describe, expect, test } from 'bun:test';
 

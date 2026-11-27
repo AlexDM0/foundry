@@ -1,9 +1,7 @@
 /**
- * The architecture test that keeps `flint/` a package that can move to its own repository unchanged: no import leaves the folder, nothing
- * that ships imports a `bun:` or `node:` module, only the React layer imports React, and a spec imports only its listed test packages. It
- * reads the folder itself, with no import of its own beyond the test runner, and lexes each file so that a comment or a string that names
- * an import is not one, while `import type` and a type's `import('…')` are. The scan first proves it read the package, and each form is
- * planted.
+ * Keeps `flint/` a package that can move to its own repository unchanged: no import leaves the folder, shipped code imports no `bun:` or
+ * `node:` module, only the React layer imports React, and specs import only their listed test packages. Each file is lexed, so a comment or
+ * string naming an import is not one.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,6 @@
 /**
- * A grab the host aims at an element, as the playground's grab at its floating square. What matters: Flint turns to the target when the
- * grab starts and not again; the grab's target is relative to the bottom tip and mirrored by the facing, and follows a moving target;
- * the catch verdict is taken against it; the aim is the centre of the element's box, and an element that is gone gives none; and without a
- * grab the target changes nothing.
+ * A grab the host aims at an element: Flint turns to it once, the grab target follows the element's centre relative to the bottom tip and
+ * mirrored by the facing, an element that is gone gives none, and without a grab the target changes nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

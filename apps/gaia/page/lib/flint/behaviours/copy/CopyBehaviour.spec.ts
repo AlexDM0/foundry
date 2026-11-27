@@ -1,9 +1,6 @@
 /**
- * Copy in the agent panel. What matters: Flint walks below the agent's row and then shows that agent's state with the gesture of its
- * intent; a new intent changes the gesture; a target that is gone, or an intent that is no gesture, ends the copy; under reduced motion
- * Flint stands below the row at once. In a slot that keeps Flint inside, Flint stands where the declared extent of the copied gesture
- * fits: in a strip's slot of 60 by 50 pixels at three quarters of a pixel to a unit, all of Needs an answer and of research stays in, and in
- * one of 100 pixels Flint stands in its middle.
+ * Copy in the agent panel: Flint walks below the agent's row and shows its state with that intent's gesture, follows a new intent, ends
+ * when the target or gesture is gone, and in a small slot stands where the copied gesture's declared extent fits.
  */
 import { describe, expect, test } from 'bun:test';
 

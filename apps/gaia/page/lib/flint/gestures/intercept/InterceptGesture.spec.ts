@@ -1,10 +1,6 @@
 /**
- * Assistant intercept. What matters: the envelope fades in over 300 ms as it flies in
- * turned -20 degrees, so it never shows at once at the start of a cycle, and
- * two pentagons reach for it from 450 with wide eyes; at 700 it is caught exactly where the flight ends, with a hop of 4; it is pulled to
- * (28, -30) as the far hand goes and the near hand holds its lower corner; it opens and its paper rises while Flint reads; then the outcome
- * alternates by cycle, handled first (paper back, envelope into Flint, tick, happy eyes) and passed up next (lifted, flown up and faded,
- * eyes up); the hands go at 3200; reduced motion holds the reading; the part does not depend on the facing.
+ * Assistant intercept: Flint catches the envelope in flight, opens it and reads, then by turns handles it (tick and happy eyes) or passes
+ * it up. The part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

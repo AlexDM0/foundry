@@ -1,10 +1,6 @@
 /**
- * Customs. What matters: claim n starts at 400 + 1300n; in a claim the pentagon reaches into the crate at
- * the hand rate, then its path is set exactly so the item moves with it, up to (39, -30) and back; Flint looks down at the crate and up at
- * the list, and the claim gets its tick at 800. The third claim is found in one cycle and not found in the next: the hand comes up empty
- * and turns, the claim gets a cross, and the eyes narrow and slant. The verdict at 4300 is the happy eyes, or eye height 4 and lean 9;
- * the props fade in and out in each cycle. Reduced motion holds 1200. The list's reading direction is the prop's, so the part is the same
- * either facing.
+ * Customs: Flint checks each claim on the list against the crate, alternating a cycle where all are found with one where the third is
+ * missing, and gives its verdict. The part is the same either facing.
  */
 import { describe, expect, test } from 'bun:test';
 

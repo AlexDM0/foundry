@@ -1,8 +1,7 @@
 /**
- * The contracts between Flint and its host: the habitat a host component
- * declares, the fixed list of intents Flint can carry out, and the director that picks the next intent. Habitat kinds and cue names are
- * the host's own strings; Flint knows no host component. The intents and the attendants come from the catalogs, the behaviour intents
- * from the behaviour catalog.
+ * The contracts between Flint and its host: the habitat a host component declares, the fixed list of intents Flint can carry out, and the
+ * director that picks the next intent. Habitat kinds and cue names are the host's own strings; Flint knows no host component. The intents
+ * and the attendants come from the catalogs, the behaviour intents from the behaviour catalog.
  */
 import type { AttendantName }              from './attendants/AttendantCatalog.ts';
 import { ATTENDANT_CATALOG }               from './attendants/AttendantCatalog.ts';
@@ -64,10 +63,9 @@ export function isFlintSteering(value: string): value is FlintSteering {
 }
 
 /**
- * Where Flint may be, as the host sets it. `roams-the-page`: Flint comes around a habitat's corner, the user can carry it and it plays
- * with the pointer. `stays-in-its-box`: all of Flint is drawn inside the box it stands in (its home or the habitat it lives in), every
- * visit pops in through an edge, it reads no pointer, so it is never carried and never plays with the pointer, and it hears only the cues
- * of the box it lives in and takes only an element inside that box.
+ * Where Flint may be, as the host sets it. `roams-the-page`: Flint visits around corners, can be carried and plays with the pointer.
+ * `stays-in-its-box`: all of Flint is drawn inside its box, it reads no pointer, and it hears only the cues of its own box and takes only
+ * an element inside it.
  */
 export type FlintConfinement = 'roams-the-page' | 'stays-in-its-box';
 

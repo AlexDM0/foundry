@@ -1,12 +1,6 @@
 /**
- * The visit and its pop-in around a corner, on the pure mind. What matters: the steps come in their order
- * with their exact points, speeds and times; Flint faces in while it goes behind and out from the wait on; the component is drawn in front
- * for the whole sequence; the width turns by the formula; the peek eases the position and narrows the eyes; the wave is the wave gesture;
- * at the end Flint lives in the habitat, hears `arrived` and is marked as greeted, so one wave asked for right after is the greeting again.
- * From another floor line Flint starts hidden at the wait, and a habitat at the right of the page is entered around its left edge. A
- * habitat that keeps Flint inside, such as a small slot with content around it, is entered through its edge, also from its own floor
- * line: Flint never shows outside the box, so it never floats over that content, and it arrives where it stays. Under reduced motion Flint
- * arrives at once.
+ * The visit and its pop-in around a corner, on the pure mind: the steps in order with their points, speeds and times, the facing and
+ * drawing order, and entry through the edge of a habitat that keeps Flint inside, so Flint never shows over the content around it.
  */
 import { describe, expect, test } from 'bun:test';
 

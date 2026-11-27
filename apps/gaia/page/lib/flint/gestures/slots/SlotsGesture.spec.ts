@@ -1,10 +1,6 @@
 /**
- * Slots. What matters, in `slots`: spark n falls from y -56 into socket n at 0.5 + 0.9n s in 300
- * ms with `p²`, lands with a spring that overshoots from its full size, and lights its ring; a triangle straight above the socket that
- * fills points down at it, behind the falling spark, and the eyes follow; from 3.2 s the sparks breathe. In `slots-full`: every socket has
- * its spark; a pentagon holds a ticket above each socket in turn, 700 ms each, at y -42, and each ring refuses it in crimson for 300 ms;
- * from 2.6 s the ticket is held up at (40, -50), clear of the rail and the body, and Flint stands upright, sweats and waits. Both fade from
- * 4.4 s, repeat every 5 s, and hold their still moments under reduced motion.
+ * Slots: in `slots` each spark falls into its socket and lights it while a hand points at the socket being filled; in `slots-full` every
+ * ring refuses the held ticket and Flint waits, sweating. Both loop and hold their still moments under reduced motion.
  */
 import { describe, expect, test } from 'bun:test';
 

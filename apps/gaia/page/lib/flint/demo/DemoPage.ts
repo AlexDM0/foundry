@@ -1,9 +1,6 @@
 /**
- * The demo page: a playground on the package. It is a host like any other: it gives Flint a home, a card
- * as a habitat and a visit-target policy, and it drives every animation through `perform`, `attend` and `steer`. It makes one control
- * for each intent and each attendant from the catalogs, so a new animation shows here with no change: a gesture that aims is given the
- * floating square, and a behaviour that takes an element the grey bar of a ticket. The movement controls are in `flint/demo/index.html`,
- * each naming its steering in a `data-` attribute.
+ * The demo page: a host like any other, driving every animation through `perform`, `attend` and `steer`. It makes one control per intent
+ * and attendant from the catalogs, so a new animation shows here with no change.
  */
 import type { FlintHandle }                        from '../CreateFlint.ts';
 import { createFlint }                             from '../CreateFlint.ts';

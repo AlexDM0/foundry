@@ -1,8 +1,6 @@
 /**
- * The landing after a drop on a habitat. What matters: Flint falls from where it was let go to the habitat's floor, its place kept inside
- * that floor, and is on the floor at once under reduced motion; it lands, looks around with three glances, and only then lives in the
- * habitat and hears `arrived`; a habitat that is gone or too small ends the landing in the wander; and the blink waits until it lives
- * there.
+ * The landing after a drop on a habitat: Flint falls to the floor, looks around, and only then lives in the habitat and hears `arrived`; a
+ * habitat that is gone or too small ends it in the wander.
  */
 import { describe, expect, test } from 'bun:test';
 

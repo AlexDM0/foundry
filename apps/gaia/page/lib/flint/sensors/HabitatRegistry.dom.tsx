@@ -1,8 +1,6 @@
 /**
- * The registry of habitats on a happy-dom page. What matters: a habitat element carries its kind and loses it on removal; a cue on an
- * element inside a habitat is that habitat's, and a cue elsewhere is dropped; a focus or a press inside a habitat orders it as the last
- * one the user worked in; with content tracking, a change of its content orders it as the last changed, and a cue counts as a change;
- * the drop target mark moves from habitat to habitat and leaves with a removed habitat.
+ * The registry of habitats on a happy-dom page: the kind a habitat element carries, which habitat a cue belongs to, the order of the last
+ * worked in and last changed habitats, and the drop target mark.
  */
 import {
   afterEach,

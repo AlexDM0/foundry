@@ -1,10 +1,6 @@
 /**
- * Bank the fire. What matters: Flint lands (hover 0) and leans -5 from the start; a
- * square of 5.5, turn 0, at (-4, -57.5) over the leaned tip (the design's (10, -56) never reaches Flint) pats two times, 3.5 down and back
- * in 300 ms each, set exactly so its lower corner meets the tip; after the first pat the tint is cooled 0.3 and the
- * height × 0.97, after the second 0.6; from 800 the hand goes, the tint goes on to 0.7 and the eyes to 2.5 by 2000; from 2000 the glow is
- * 0.35 + 0.15 × sin(t / 900) (faded in before) and only ember 2 of Sleep rises, 0.6 of Sleep's way. A steady pose: no breath,
- * still moment 2500.
+ * Bank the fire: Flint lands and pats its own tip twice, each pat cooling the tint, then dims to a low glow with one ember of Sleep rising.
+ * A steady pose with no breath.
  */
 import { describe, expect, test } from 'bun:test';
 

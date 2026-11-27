@@ -1,8 +1,6 @@
 /**
- * Sandbox. What matters: the 4-second loop types in the normal mood until 1800; the pentagon
- * reaches out level and is stopped at 2150 exactly where its edge meets the dome, which lights up and ripples there; it springs back to
- * (28, -30) with a wobble; the sweat drop shows from 2400 to 3600 with the eyes of the Sweatdrop emote and no near hand; the hands go back
- * to the typing places; reduced motion holds the contact; the part does not depend on the facing.
+ * Sandbox: Flint types, reaches out and is stopped exactly at the dome, which lights and ripples, springs back sweating, and types on. The
+ * part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

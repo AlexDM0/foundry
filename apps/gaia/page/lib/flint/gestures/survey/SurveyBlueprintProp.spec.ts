@@ -1,8 +1,6 @@
 /**
- * The blueprint of Survey. What matters: the paper in the `water` colour at 25% with an outline of 1.2; two lines across and two down
- * at the thirds, at 60% and width 0.6; the top measure from (31, -38), 14 long with the paper's slope, growing from its left end on the
- * screen, with an end mark of 2 across it at each end; the side measure at x 30 from -34 to -18, clear of post 0; and the posts on their sloped line, each
- * with the shared lamp of radius 2.2 on top.
+ * The blueprint of Survey: the paper and its grid, the top and side measures with their end marks, and the posts on their sloped line, each
+ * with its lamp.
  */
 import { describe, expect, test } from 'bun:test';
 

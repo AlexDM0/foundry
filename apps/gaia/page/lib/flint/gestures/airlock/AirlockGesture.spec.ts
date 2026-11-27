@@ -1,9 +1,6 @@
 /**
- * Airlock. What matters: each phase of the 4800 ms loop (the left door, the block entering while the queue
- * moves up, the hexagon that turns the chamber while the block lands, the right door, the block onto the main line, the happy eyes, the
- * fade of the landed block while a new block joins the queue); the eyes follow the block from 4 to 7; the props fade in only at the very
- * start, and the blocks the loop ends with stand where the next loop starts, so the loop has no break. Reduced motion holds 1800. Nothing
- * in it is read or written, so the part is the same either facing.
+ * Airlock: each phase of the loop, from the left door through the chamber to the main line, the eyes following the block, and blocks that
+ * end where the next loop starts, so the loop has no break. The part is the same either facing.
  */
 import { describe, expect, test } from 'bun:test';
 

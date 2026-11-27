@@ -1,9 +1,5 @@
 /**
- * Quiet job. What matters: the block fades in over the first 300 ms; from 300 Flint listens
- * (lean 12, eye height 3, right eye 6, eye shift 6); from 1500 one triangle of radius 5.5, turn 180, at (37, -38) taps the block at 1600
- * and 1900, 5 down and back in 100 ms while the block is 0.8 lower, its place set exactly so the drawn tip goes into the block; from 2300
- * Flint leans 5 with a right eye of 5, the hand goes away and the question mark of Doubt springs in and fades in the last 160 ms of the
- * cycle of 3600. Reduced motion holds 2600.
+ * Quiet job: Flint listens to the block, taps it twice with its tip going into the block, then leans back in doubt with the question mark.
  */
 import { describe, expect, test } from 'bun:test';
 

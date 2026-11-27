@@ -1,8 +1,6 @@
 /**
- * The gesture catalog against the rules that the mind reads from it. No two gestures share a name or an intent.
- * Among the gestures of the first build: only type and review have the busy and angry variants; point and grab go on while Flint walks;
- * only point goes on while it jumps; only grab aims at an element; grab and wave are one action, every other runs until something stops
- * it. A gesture added later keeps these lists as they are.
+ * The gesture catalog against the rules the mind reads from it: unique names and intents, and for the first build's gestures, which have
+ * variants, which go on while walking or jumping, which aim, and which are one action.
  */
 import { expect, test } from 'bun:test';
 

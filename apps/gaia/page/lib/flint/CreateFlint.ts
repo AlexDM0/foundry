@@ -85,10 +85,8 @@ export interface FlintOptions {
 }
 
 /**
- * `unknown-intent` when the value is not on the fixed intent list; `needs-an-element` for a behaviour that takes one (`lay-bar-along`)
- * given none; `already-running` for a behaviour that runs one at a time (`chase-bug`) while it runs or its intent waits; `outside-its-box`
- * when a Flint that stays in its box is given an element outside the element of the box it lives in; `destroyed` after `destroy`. A
- * refused intent changes nothing.
+ * Why `perform` refused an intent: not on the fixed list, a behaviour that needs an element given none, a one-at-a-time behaviour already
+ * running, an element outside the box of a Flint that stays in its box, or a destroyed Flint. A refused intent changes nothing.
  */
 export type PerformVerdict = 'performed' | 'unknown-intent' | 'needs-an-element' | 'already-running' | 'outside-its-box' | 'destroyed';
 
@@ -105,10 +103,9 @@ export interface FlintHandle {
   /** A cue on a habitat's element or an element inside it; any cue wakes Flint, and the habitat Flint lives in answers its own. */
   readonly cue:             (element: HTMLElement, cueName: SpriteCue) => void;
   /**
-   * Carries out an intent on the next frame, as a director's answer is; a reflex, a visit or a landing that runs then drops it. A `visit`
-   * goes to the habitat the visit-target policy picks now. A gesture that aims, such as `grab`, given an element turns Flint to it and
-   * reaches for its centre on each frame, also while it moves. A behaviour that takes an element (`chase-bug`, `lay-bar-along`) reads its
-   * box on each frame, and ends once it is gone from the page.
+   * Carries out an intent on the next frame, as a director's answer is; a running reflex, visit or landing drops it. A `visit` goes to the
+   * habitat the visit-target policy picks now; a gesture that aims, such as `grab`, follows the given element's centre each frame; a
+   * behaviour that takes an element reads its box each frame and ends once it is gone from the page.
    */
   readonly perform:         (intent: string, toward?: Element) => PerformVerdict;
   /** Steers Flint on the next frames, as a held arrow key or the space bar does; a visit, a drag or a landing ignores it. */

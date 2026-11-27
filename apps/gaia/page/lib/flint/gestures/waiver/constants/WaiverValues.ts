@@ -14,10 +14,8 @@ export const WAIVER_TIMELINE = {
 } as const;
 
 /**
- * The initials, the path `m0 0 q2 -5 3.5 0 q1.5 4 3 -1 l2 2` from its start point: each stroke a quadratic curve relative to the end of the
- * one before, the last, a straight line, given with its control point at its middle. Each curve is drawn as this many straight steps. The
- * design starts them at (30, -53), where the pen covers the cross while it writes and their tail touches the tick; they start 3 further
- * left, a builder decision.
+ * The initials, the path `m0 0 q2 -5 3.5 0 q1.5 4 3 -1 l2 2` as strokes relative to the end of the one before; the last, a straight line,
+ * has its control point at its middle. They start 3 left of the design's place, so the pen keeps off the cross and their tail off the tick.
  */
 export const WAIVER_INITIALS = {
   START_X_UNITS: 27,

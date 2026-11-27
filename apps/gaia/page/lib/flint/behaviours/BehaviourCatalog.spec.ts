@@ -1,8 +1,6 @@
 /**
- * The behaviour catalog against what the mind reads from it. What matters: no two behaviours share a name or an intent, and no behaviour
- * intent is a gesture's or an emote's; each role (the rest, the drag, the click) is one behaviour's, and the rest gives its state at rest;
- * every behaviour with an intent or a role can be started; the first build's behaviours keep their intents, and the two that take an
- * element come after them; and the mind finds a behaviour by its name, its intent and its role, and refuses a name it lacks.
+ * The behaviour catalog against what the mind reads from it: names and intents are unique and clash with no gesture or emote, each role
+ * belongs to one behaviour, every behaviour can be started, and the mind finds a behaviour by name, intent and role.
  */
 import { expect, test } from 'bun:test';
 

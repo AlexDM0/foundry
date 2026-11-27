@@ -1,8 +1,6 @@
 /**
- * Playbook. What matters: the 4-second loop observes (looks behind, then ahead), shows the
- * closed book, opens it to its spine, points down the four lines with a triangle at (44, line y) for 300 ms each with the read line lit and
- * the eyes following, closes it at once with a hop, acts with the hand of Point while the book fades, and lets the hand go; reduced motion
- * holds the reading of the second line; the part does not depend on the facing, since the book itself is never mirrored.
+ * Playbook: Flint looks around, opens the book, points down its lines as each lights, closes it with a hop and acts. The part does not
+ * depend on the facing, since the book is never mirrored.
  */
 import { describe, expect, test } from 'bun:test';
 

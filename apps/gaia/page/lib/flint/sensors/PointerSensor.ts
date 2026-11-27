@@ -1,8 +1,7 @@
 /**
- * The pointer, in client pixels: where it is, whether it moved, and what a press on Flint's body became. A press that moves further than
- * the drag threshold is a drag, and its release a drop; a press released before that is a click. Only the body takes the press, so a
- * click anywhere else reaches the page below. The body captures the pointer it is pressed with and takes no touch gesture, so a drag on a
- * touch screen carries Flint and does not scroll the page, and a release outside the page still ends the drag.
+ * The pointer, in client pixels: where it is, whether it moved, and whether a press on Flint's body became a click or a drag. Only the body
+ * takes the press, so a click anywhere else reaches the page below. The body captures the pointer and takes no touch gesture, so a touch
+ * drag carries Flint and a release outside the page still ends it.
  */
 import { SENSORS } from '../constants/Sensors.ts';
 

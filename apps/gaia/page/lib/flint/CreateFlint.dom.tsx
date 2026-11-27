@@ -1,19 +1,7 @@
 /**
- * `createFlint` in a happy-dom document, driven by a manual frame source so no spec waits on real frames; every box is a stubbed client
- * rectangle. What matters: the overlay is mounted in the root, fixed over the page and blind to the pointer; there is one Flint per
- * document; each frame draws; `perform` takes only an intent of the fixed list, and a grab given an element turns to it; a behaviour
- * that must have an element is refused without one, a chase is refused while one runs, and a behaviour given an element draws its page
- * shapes from that element's box until the element leaves the page; `steer` walks
- * Flint and takes only a steering of its list; reduced motion holds the hover still; the theme sets the
- * custom properties; a press that moves past the threshold carries Flint and a shorter one is a click; the habitat below a carried Flint
- * is marked as the drop target, and a drop there lands Flint and stores it; a habitat smaller than 50 by 50 pixels is never a drop
- * target nor visited; Flint stops, hidden, while the tab is hidden or its place is off the screen, and a habitat with no box sends it home
- * instead; a brain answers in place of the rule director
- * for its maximum time only, never while Flint sleeps, never twice at once, and an answer off the list is answered by the rule director;
- * the handle tells the kind of the habitat Flint lives in; `destroy` stops everything, after which a new Flint may be made. A Flint that
- * stays in its box is drawn only inside the box it stands in, which follows that box at any window size and on a visit; the pointer
- * changes nothing about it, so no drag carries it and no click starts play with the pointer; it takes only an element inside the box it
- * lives in, and only the cues of that box end its quiet.
+ * `createFlint` in a happy-dom document on a manual frame source, with stubbed boxes: the overlay, the one Flint per document, what
+ * `perform` and `steer` accept or refuse, dragging and dropping, hiding while unseen, the brain's turns, `destroy`, and a Flint that stays
+ * in its box, which is drawn only inside it and ignores the pointer.
  */
 import {
   afterEach,

@@ -1,9 +1,6 @@
 /**
- * Unplugged. What matters: the props fade in with a pentagon held to the loose plug at
- * (32, -30); the crimson warning blinks 300 ms on, 300 ms off until the plug is in; Flint looks at the plug, then at the socket; the hand
- * becomes a hexagon and pushes the plug to (40, -30), placed exactly; at 2.2 s sparks fly, the slots turn green and the eyes open wide;
- * pulses run down the cable each 500 ms until 3.4 s, with happy eyes from 2.4 s; the props fade; the part does not depend on the facing;
- * the cycle repeats every 4.4 s; and reduced motion holds the plug in with its stream.
+ * Unplugged: a crimson warning blinks while Flint holds the loose plug, it looks from the plug to the socket and pushes the plug in; sparks
+ * fly, the slots turn green and pulses run down the cable.
  */
 import { describe, expect, test } from 'bun:test';
 

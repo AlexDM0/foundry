@@ -1,8 +1,7 @@
 /**
- * The press of two blocks. What matters, since every gesture that presses blocks draws it through
- * this util: the hexagons sit 7 above the top block and 15 below the bottom one and let go by 3 at the snap; the eyes widen from 6 to 10
- * over the second half of a press only; the snap squashes the leaned body; the merged block and its tick show only after the snap and
- * leave together by (12, 5).
+ * The press of two blocks. What matters, since every gesture that presses blocks draws it through this util: the hexagons sit 7 above the
+ * top block and 15 below the bottom one and let go by 3 at the snap; the eyes widen from 6 to 10 over the second half of a press only; the
+ * snap squashes the leaned body; the merged block and its tick show only after the snap and leave together by (12, 5).
  */
 import { expect, test } from 'bun:test';
 

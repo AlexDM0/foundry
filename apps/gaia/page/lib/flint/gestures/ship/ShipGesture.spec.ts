@@ -1,9 +1,6 @@
 /**
- * Ship. What matters: the block fades in between two pentagons, which lift it with `p²` onto the
- * shelf, placed exactly; on landing the block is 0.85 high for 150 ms and the shelf 1 lower for 100 ms; the far hand goes, the near hand
- * becomes a square that stays by the block's near end, clear of the body, until the salute; the tick shows from 1 s; the salute stands tall
- * from 1.2 to 2 s; happy eyes from 1.7 s; then all goes; one action of 2.4 s whose part does not depend on the facing; and reduced motion
- * holds the salute.
+ * Ship, one action: two hands lift the block onto the shelf, the landing squashes it, a tick shows, Flint salutes and ends happy. The part
+ * does not depend on the facing.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * The small book of Playbook. What matters: the page is a paper rectangle 14 by 18 at
- * (30, -40) with four printed lines from x 33 to x 41, the read one in the body colour; the cover is the hand colour with a graphite spine
- * at x 30 and a body-colour diamond at its centre, and it narrows to the spine as it opens; every shape is never mirrored, so the spine
- * stays on the left on the screen; the hidden state draws.
+ * The small book of Playbook. What matters: the page is a paper rectangle 14 by 18 at (30, -40) with four printed lines from x 33 to x 41,
+ * the read one in the body colour; the cover is the hand colour with a graphite spine at x 30 and a body-colour diamond at its centre, and
+ * it narrows to the spine as it opens; every shape is never mirrored, so the spine stays on the left on the screen; the hidden state draws.
  */
 import { expect, test } from 'bun:test';
 

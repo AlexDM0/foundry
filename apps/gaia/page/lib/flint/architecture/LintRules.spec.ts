@@ -1,8 +1,6 @@
 /**
- * The package's rules that its `eslint.config.js` holds, each watched failing: every form a rule claims is planted at a path it governs
- * and must be reported by that rule (no clock, no markup as text, no network, no storage, hooks only by their rules in the React layer),
- * and each exact exception (a test package in a spec or a DOM spec) is planted too and must pass. `bun run lint` is what proves the package
- * itself passes.
+ * Each rule of the package's `eslint.config.js` watched failing: every form a rule forbids is planted at a path it governs and must be
+ * reported, and each exact exception is planted and must pass. `bun run lint` proves the package itself passes.
  */
 import { describe, expect, test } from 'bun:test';
 import { ESLint }                 from 'eslint';

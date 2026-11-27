@@ -1,8 +1,6 @@
 /**
- * The order of the layers and how a part lays over the pose below it. What matters: the order is behaviour, gesture, emote, sleep,
- * attendants, reduced motion; no part removes the attendants; an emote's mark hides a gesture's; a tint and a fill replace the body's;
- * added offsets add and factors multiply, so a hop rides on a busy bob; a hand given as null goes and an absent one stays; sleep reads
- * the eye height the emote left; reduced motion stops every bob, shake, squash and swing.
+ * The order of the layers (behaviour, gesture, emote, sleep, attendants, reduced motion) and how each part lays over the pose below it:
+ * what it replaces, adds or multiplies, and what it may never remove.
  */
 import { describe, expect, test } from 'bun:test';
 

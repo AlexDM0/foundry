@@ -1,9 +1,6 @@
 /**
- * Escaped bug. What matters: the shelf and block fade in and the block rocks; the bug
- * escapes at 0.7 s with the "!", wide eyes and one hop, and runs its route through each point at its moment; the glaring eyes follow it;
- * the hand falls exactly onto each hit point, misses twice and has the bug on the third; it lifts the bug around the shelf and the block,
- * never through them, to above the block, and the trace shows; the cycle repeats every 4.6 s; and reduced motion holds the lifted bug
- * with its trace.
+ * Escaped bug: the bug escapes the block and runs its route, the hand misses twice and catches it on the third, and lifts it around the
+ * shelf back above the block. Reduced motion holds the lifted bug.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,14 +1,6 @@
 /**
- * Lay the bar along a row, on the pure mind frame by frame. What matters: Flint walks along its floor to below
- * the bar's left end at the walk speed; its floor rises to the bar's bottom edge at the body rate, with no jump; it walks to the right end
- * with the hand and eyes of `lay-bar` and without its row line and bar, at the bar's width over a time of 110 units a second clamped
- * between 1500 and 6000 ms; the shimmer is a page shape from the bar's left end to 18 behind Flint, its four segments with the opacity of
- * their age and the 6 nearest Flint in the body colour; at the right end Flint is happy, the shimmer fades out in 400 ms, the floor goes
- * back at the body rate and Flint rests. The bar is clamped to the habitat's box on all sides, so its height is never negative; a bar
- * narrower than 40 is only risen to, and a bar with no part inside the box is not laid. A drag, a new intent, or a habitat or element that
- * is gone ends it, and Flint, up on the bar, then comes down at the body rate, not in one frame; a second lay started up there goes down
- * the same way. Under reduced motion Flint is placed at the right end on the bottom edge, happy, with no shimmer. With no element it does
- * not start.
+ * Lay the bar along a row, on the pure mind frame by frame: the walk to the bar, the rise to it, the walk along it with the shimmer behind,
+ * the way back down, the clamping of the bar to the habitat's box, what ends it, and reduced motion.
  */
 import { describe, expect, test } from 'bun:test';
 

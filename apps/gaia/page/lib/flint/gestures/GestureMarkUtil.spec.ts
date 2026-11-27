@@ -1,8 +1,6 @@
 /**
- * The marks a gesture shows during one step. What matters: no mark before or after its step; inside it, the mark enters as its emote brings
- * it in (the spring on the width, the sweat drop's growth and slide, the thinking dots one by one, the beads flying) timed from the step's
- * start, the dots faster in a step too short for them, and leaves as an emote's mark leaves, in the last 160 ms of the step, so every
- * gesture that shows a mark shows it alike.
+ * The marks a gesture shows during one step: none outside it, and inside it the mark enters and leaves as its emote's mark does, timed from
+ * the step, so every gesture shows its marks alike.
  */
 import { describe, expect, test } from 'bun:test';
 

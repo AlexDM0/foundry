@@ -1,11 +1,6 @@
 /**
- * Wander: Flint rests, then walks to another point of its floor, and rests again. It walks
- * only while it does nothing else, and under reduced motion it stands still. Its points come from the seeded sequence in the mind's state,
- * so a run is the same each time. A walk the host steers wins over the wander's own walk. It is the rest: every other behaviour ends in it,
- * and its intent only wakes Flint, while a gesture or an emote is laid over it. A Flint that a behaviour left above its floor comes down
- * at the body rate, while the floor itself follows its box at once. In a box that keeps Flint inside it rests far enough from the walls
- * for its attendants, and a gesture or an emote laid over it waits while Flint walks to where all it draws fits, and then plays there,
- * turned the way it fits.
+ * Wander, the rest every other behaviour ends in: Flint rests and walks between seeded points of its floor, while a gesture or an emote is
+ * laid over it. In a box that keeps Flint inside, it walks to where all a gesture or emote draws fits before that plays.
  */
 import { WALK }                                             from '../../constants/Motion.ts';
 import type { BehaviourPart }                               from '../../mind/BehaviourPart.ts';

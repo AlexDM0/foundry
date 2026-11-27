@@ -1,9 +1,6 @@
 /**
- * The one shape writer in a happy-dom document. What matters: each kind of shape becomes its SVG element with its geometry and style;
- * an element is made once for its key and then only changed; the elements follow the order of the drawing, and a shape the drawing no
- * longer has leaves the group but its element is kept; an attribute a shape no longer gives is removed; facing left, a shape that is
- * never mirrored is mirrored back about its own x; a hidden drawing keeps its elements, at opacity 0 or out of the layout; the group
- * carries the name of the part it draws.
+ * The one shape writer in a happy-dom document: each kind of shape becomes its SVG element, each element is made once per key and then only
+ * changed, follows the drawing's order, and is mirrored back when never mirrored.
  */
 import { describe, expect, test } from 'bun:test';
 

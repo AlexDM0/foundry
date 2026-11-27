@@ -1,9 +1,6 @@
 /**
- * Ribbon. What matters: the wrapping hexagon is 4.5 on the side by the body, so it never touches it; the
- * sheets fade in apart; two pentagons (near radius 6, far 5.4) push them together by 900 and end at (50, -30) and (26, -30); the far hand
- * goes and a hexagon goes once around the ellipse of 13 by 9 around (38, -30) while the ribbon grows to its full width by 1700; the bow
- * springs in from 1700; no hand and happy eyes from 2000; the bundle leaves by (14, -6) from 2800 to 3400; reduced motion holds the tied
- * bundle.
+ * Ribbon: two hands push the sheets together, one hand wraps the ribbon around them without touching the body, the bow springs in, and the
+ * bundle leaves.
  */
 import { describe, expect, test } from 'bun:test';
 

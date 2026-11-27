@@ -1,8 +1,6 @@
 /**
- * The connection between `<Flint>` and its habitats, on a recording fake of the handle. What matters: a habitat registered before Flint
- * exists reaches it once it attaches; a removed habitat leaves Flint; a detach removes every habitat from the old Flint and keeps them
- * for the next; a cue reaches only an attached Flint; and a perform reaches the attached Flint with its element, and answers `no-flint`
- * while none is attached.
+ * The connection between `<Flint>` and its habitats, on a recording fake of the handle: habitats, cues and performs reach only an attached
+ * Flint, a detach keeps the habitats for the next one, and a perform answers `no-flint` while none is attached.
  */
 import { expect, test } from 'bun:test';
 

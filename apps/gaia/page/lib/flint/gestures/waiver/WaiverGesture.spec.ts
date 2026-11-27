@@ -1,9 +1,6 @@
 /**
- * Waiver. What matters: the sheet and its cross fade in; from 400 to 1400 the pen writes the initials from
- * (27, -53), 3 left of the design's place so pen and tail stay off the cross and the tick, at their written end + (3, 5), while the eyes
- * look up; the cross greys from 1400 to 1700 and gives way to a grey tick by 1900; then a lean of 7 and one narrower eye with no happy eyes
- * and no hand; the props fade from 2700; reduced motion holds the doubt; and facing left the pen stays right of the written end on the
- * screen, where the initials are mirrored back about their middle.
+ * Waiver: the pen writes the initials beside the cross, the cross greys into a tick, and Flint leans in doubt. Facing left the pen stays
+ * right of the written end, where the initials are mirrored back about their middle.
  */
 import { describe, expect, test } from 'bun:test';
 

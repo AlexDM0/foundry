@@ -1,8 +1,7 @@
 /**
- * The contract of a behaviour: how
- * it starts, what it does after each frame, and its part of the target pose, with its intents and what the mind must know of it. The mind
- * reaches a behaviour only through `flint/behaviours/BehaviourCatalog.ts`, as it reaches a gesture, so it names none. A behaviour is pure:
- * it changes the mind's state and gives a pose part, and the pose stage eases.
+ * The contract of a behaviour: how it starts, what it does after each frame, and its part of the target pose, with its intents and what the
+ * mind must know of it. The mind reaches a behaviour only through `flint/behaviours/BehaviourCatalog.ts`, as it reaches a gesture, so it
+ * names none. A behaviour is pure: it changes the mind's state and gives a pose part, and the pose stage eases.
  */
 import type { BehaviourPart }                                  from '../mind/BehaviourPart.ts';
 import type { BehaviourState, SpriteMindState, StandingPlace } from '../mind/MindState.ts';

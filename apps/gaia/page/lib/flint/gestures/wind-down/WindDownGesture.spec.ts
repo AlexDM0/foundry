@@ -1,9 +1,6 @@
 /**
- * Wind-down. What matters: 0 to 500 normal typing with `sin(t / 120)`; 500 to 1700 the near
- * hand is a hexagon of 6.5 on the dial at (40, -40), and from 700 it and the pointer turn 60 degrees down in 200 ms in each of three steps
- * of 330 ms (pointer 60 to -120) while the far hand types with `sin(t / 200)`, then `sin(t / 320)`, then stops, and the eyes are 6, 5, 4;
- * 1700 to 2100 the dial fades and the hands go; 2100 to 2900 a small ticket fades in and the pen writes one more line in 600 ms,
- * from its left end on the screen facing either way; 2900 to 3200 the ticket moves by (14, -6) and fades, eye height 3.
+ * Wind-down: Flint types, turns the dial down in three steps while the other hand slows and stops, writes one more line on a small ticket
+ * from its left end whatever the facing, and sends it off.
  */
 import { describe, expect, test } from 'bun:test';
 

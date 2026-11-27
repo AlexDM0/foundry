@@ -1,8 +1,7 @@
 /**
- * The frame capture: it renders Flint in headless Chrome through `createFlint` and the real renderer on a manual frame source, at fixed
- * moments, facing right and left, to PNG files under `.claude/.evidence/flint-frames/<label>/`; and it compares two labels pixel by pixel.
- * A `--<kind>-module` adds a definition that no catalog lists yet to the bundle's catalog, so an author sees it before it is registered.
- * It is a command-line entry: it runs when Bun starts it. `flint/README.md`, "Look at an animation", gives the command lines.
+ * The frame capture: renders Flint in headless Chrome through `createFlint` at fixed moments, facing either way, to PNG files under
+ * `.claude/.evidence/flint-frames/<label>/`, and compares two labels pixel by pixel. A `--<kind>-module` shows a definition before any
+ * catalog lists it. `flint/README.md`, "Look at an animation", gives the command lines.
  */
 import { SPRITE_INTENTS }                                                   from '../SpriteHabitat.ts';
 import type { FlintCapture, FrameRequest, PictureDifference }               from './FrameCaptureEntry.ts';

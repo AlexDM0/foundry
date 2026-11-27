@@ -1,8 +1,7 @@
 /**
- * The pose: everything the renderer draws, as data. A behaviour, a gesture, an emote and sleep each give a part of the target pose;
- * `flint/PoseComposition.ts` stacks the parts and `flint/PoseEasing.ts` moves the drawn pose towards the target. All values are in sprite
- * units for Flint facing right, relative to the bottom tip of the body, unless a field says otherwise. The props, the marks and the
- * attendants are typed from their catalogs, so this file names none of them.
+ * The pose: everything the renderer draws, as data. Each layer gives a part of the target pose, which `flint/PoseComposition.ts` stacks and
+ * `flint/PoseEasing.ts` eases towards. Values are in sprite units for Flint facing right, relative to the bottom tip of the body, unless a
+ * field says otherwise.
  */
 import type { Facing }                  from './SpriteGeometry.ts';
 import type { AttendantMember }         from './attendants/AttendantRoster.ts';

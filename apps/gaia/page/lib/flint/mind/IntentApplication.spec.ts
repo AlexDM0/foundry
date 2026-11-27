@@ -1,11 +1,6 @@
 /**
- * How an intent changes the mind. What matters: only the wander, the sleep, the copy and the two behaviours a host starts with an element
- * take an intent, and an intent given in any other behaviour is dropped; the wave after a pop-in's own wave is skipped once; a gesture
- * stops the wander's walk and leaves a copy; an emote shows over a running gesture; `wander` only wakes Flint and keeps a stored habitat
- * that has not registered yet, which any other intent gives up; the idle intents keep the quiet and the others end it; a visit or a copy
- * that cannot start here changes nothing but is remembered; a behaviour that runs one at a time refuses its own intent; an intent that
- * ends a behaviour which aims its own gestures ends the gesture it aimed, and one that ends any other behaviour keeps it; and only a gesture
- * that aims and the behaviours that take one are given an element.
+ * How an intent changes the mind: which behaviours take an intent and which drop it, how gestures and emotes lay over the rest, what
+ * `wander` keeps, which intents end the quiet, how a one-at-a-time behaviour refuses itself, and which intents are given an element.
  */
 import { describe, expect, test } from 'bun:test';
 

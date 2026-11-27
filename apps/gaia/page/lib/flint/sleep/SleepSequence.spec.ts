@@ -1,8 +1,6 @@
 /**
- * The sleep sequence. What matters: the level rises at rate 2.2 and falls at rate 7, continuing from where it was; while asleep the hover
- * goes to 0 and the lean to -7 at once; the eyes close with the level; the breath and the glow follow the level; the embers start only
- * once the level is above 0.9, and fade out when Flint wakes; the embers do not mirror; a wake that has run its course is awake; and
- * under reduced motion Flint does not breathe and no ember rises.
+ * The sleep sequence: how the level rises and falls, the pose, eyes, breath and glow that follow it, when the embers start and fade,
+ * waking, and that under reduced motion Flint does not breathe and no ember rises.
  */
 import { describe, expect, test } from 'bun:test';
 

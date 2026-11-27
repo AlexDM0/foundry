@@ -1,8 +1,7 @@
 /**
- * The state of Flint's mind, as plain data: where it lives, the behaviour it runs with that behaviour's own state, its gesture, emote and
- * sleep, and what waits for the director. `flint/SpriteMind.ts` changes it on each frame; nothing else keeps state between frames. The
- * mind sits below the catalogs of behaviours, so it carries an intent as the string of the fixed list that it is, and a behaviour's state
- * as that behaviour's own, known here only by its name.
+ * The state of Flint's mind, as plain data; `flint/SpriteMind.ts` changes it on each frame, and nothing else keeps state between frames.
+ * The mind sits below the behaviour catalog, so an intent is the plain string of the fixed list and a behaviour's state is known here only
+ * by its name.
  */
 import type { MotionState }     from '../MotionPose.ts';
 import type { Point }           from '../SpriteGeometry.ts';

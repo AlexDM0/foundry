@@ -1,8 +1,7 @@
 /**
  * The host's steering, as the playground's keys. What matters: a held walk moves Flint along its floor and turns it until `stop-walking`,
- * and stops at the end of the floor; a walk ends a gesture that does not go on while walking; a jump leaves the floor, except under
- * reduced motion; a turn changes only the facing; `rest` ends the gesture; steering wakes a sleeping Flint; and a visit or a drag
- * ignores it.
+ * and stops at the end of the floor; a walk ends a gesture that does not go on while walking; a jump leaves the floor, except under reduced
+ * motion; a turn changes only the facing; `rest` ends the gesture; steering wakes a sleeping Flint; and a visit or a drag ignores it.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,6 @@
 /**
- * Where Flint stands in a box that keeps it inside. What matters: at rest it keeps half a body from each wall, or its attendants' reach
- * when that is wider, whichever way it faces; a gesture's extent stands it where all of the extent fits, as near the target as it can, and
- * turned when the other facing stands it nearer; on a tie it keeps the stance nearer to where it stands, so the walk there, which turns
- * it, keeps the choice; a box too narrow for the extent centres the extent's overflow; the extent of a gesture adds its emote and its
- * attendants; with neither a gesture nor an emote there is nothing to fit.
+ * Where Flint stands in a box that keeps it inside: its margin at rest, where a gesture's extent fits nearest the target and in which
+ * facing, how a tie keeps the nearer stance, how a too-narrow box centres the overflow, and what an extent includes.
  */
 import { describe, expect, test } from 'bun:test';
 

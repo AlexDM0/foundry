@@ -1,9 +1,7 @@
 /**
- * What Flint draws in a small box that keeps it inside, played through the mind, the pose and the easing as `createFlint` plays it. What
- * matters: every gesture form and emote whose declared extent, with the attendants at their most, fits the box draws nowhere outside the
- * box over its timeline and its still moment, wherever at rest it starts and whichever way it faces, with and without the attendants; so
- * the stance the declared extents give holds for the drawing itself, the walk to it, the turn, and the attendants that rise with a hop.
- * The box is 60 by 50 pixels at 0.75 pixels for one unit, the smallest that a host keeps for Flint.
+ * Played through the mind, the pose and the easing as `createFlint` plays them, every gesture and emote whose declared extent fits a small
+ * box that keeps Flint inside draws nothing outside it, in either facing, with or without attendants. The box is the smallest a host keeps
+ * for Flint.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,9 +1,6 @@
 /**
- * Baton pass. What matters: it is one action of 2.6 seconds; the pentagon holds the baton
- * upright, the toss takes it to y -50 with a full turn and the hand away; the flicker sets the fill opacity at once at each of its four
- * moments and only the outline shows until 1300; the return is filled, bright and glowing, both fading to nothing at 1800, with a hop and
- * wide eyes; the baton falls back to the hand that shows again from 1350; the catch squashes the body for 120 ms; the happy eyes and glints
- * show to 2200; the baton and hand then fade; reduced motion holds 1700; the part does not depend on the facing.
+ * Baton pass, one action: the toss, the flicker to an outline, the bright return and catch with its squash, the happy eyes, and the fade.
+ * Reduced motion holds a still moment, and the part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 

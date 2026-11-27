@@ -1,8 +1,6 @@
 /**
- * Bouncer. What matters: both variants loop every 2.4 seconds with one hexagon on the rope;
- * refuse stands firm and wide with narrowed eyes, shakes its head only from 600 to 1400 and shows the cross only from 600 to 1600; admit
- * unhooks the rope by 600 standing upright, steps aside with a tick, shows happy eyes only from 900 to 1500, lets go at 1800 and fades the props; reduced
- * motion holds 1000 of each; and facing left changes nothing in the part, since the verdicts are never mirrored.
+ * Bouncer: refuse stands firm, shakes its head and shows the cross; admit unhooks the rope, steps aside with a tick and lets go. Both loop,
+ * and facing left changes nothing, since the verdicts are never mirrored.
  */
 import { describe, expect, test } from 'bun:test';
 

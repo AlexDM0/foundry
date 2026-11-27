@@ -1,8 +1,6 @@
 /**
- * When the director is asked and what it is told. What matters: it is asked every three seconds and at once when a cue waits, but never
- * while a reflex, a visit or a landing runs, nor while an intent waits; a brain session lasts its maximum time and a non-positive time
- * gives none; a brain never answers while Flint sleeps; the digest tells the habitat, the new and recent cues, the quiet and the visit
- * target.
+ * When the director is asked and what it is told: its timing and what holds it back, how long a brain session lasts, that a brain never
+ * answers while Flint sleeps, and what the digest tells.
  */
 import { describe, expect, test } from 'bun:test';
 

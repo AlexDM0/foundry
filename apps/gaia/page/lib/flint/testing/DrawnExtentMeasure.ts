@@ -1,8 +1,6 @@
 /**
- * The extent of everything a drawn pose shows, computed from the pose with no browser: the same layers, transforms and shapes the renderer
- * writes, each shape's box (its stroke's half width included) carried through its transforms by its corners, as a browser's bounding box
- * would be. A shape, a prop or a mark below the visible opacity counts as not drawn. The extent is in sprite units from Flint's bottom tip
- * on its floor, for the facing the pose has, folded so the front is the side Flint faces.
+ * The extent of everything a drawn pose shows, computed with no browser from the same layers, transforms and shapes the renderer writes, as
+ * a browser's bounding box would be. It is in sprite units from Flint's bottom tip, folded so the front is the side Flint faces.
  */
 import type { DrawnExtent, Facing, Point }     from '../SpriteGeometry.ts';
 import type { HandPose, Pose }                 from '../SpritePose.ts';

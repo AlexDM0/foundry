@@ -1,9 +1,6 @@
 /**
- * The reflexes that run before any intent. What matters: on its first floor Flint stands in the middle, and a stored habitat on the page
- * takes Flint in while it may still move there; any cue wakes Flint and ends the quiet, but only the cues of the habitat it lives in wait
- * for the director, up to the limit of recent cues; a habitat that leaves the page or becomes too small sends Flint home to rest, while
- * sleep, which stands at home, a visit, a drag, a landing or a stranding goes on; a drag carries Flint and its drop lands or strands it;
- * and a click starts cursor play only where a click interrupts.
+ * The reflexes that run before any intent: where Flint first stands, which cues wake it and which wait for the director, what sends it home
+ * and what goes on regardless, how a drag carries and drops it, and where a click starts cursor play.
  */
 import { describe, expect, test } from 'bun:test';
 

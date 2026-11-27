@@ -1,9 +1,6 @@
 /**
- * Gate failed. What matters: until 350 Flint types in the normal variant while the note
- * falls with `p²` from y -70 to -18; at 350 the keyboard and the note jolt 1.6 down for 100 ms, and the eye height 10 and the full crimson
- * tint are set at once; the flinch lifts 4 × sin(π × p) until 600; until 900 the lean is -4, the tint fades in a straight line to 0 and
- * the hands are drawn back to (16, -16) and (20, -19); upright, so its body stays clear of them, Flint then looks down at the note,
- * sighs, and puts its hands back on the keys while the note fades out. It is one action of 2400 ms, and reduced motion holds 1000.
+ * Gate failed, one action: Flint types while the note falls, flinches crimson when it lands, draws back its hands, looks at the note, sighs
+ * and types on as the note fades.
  */
 import { describe, expect, test } from 'bun:test';
 

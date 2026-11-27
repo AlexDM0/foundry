@@ -1,12 +1,7 @@
 /**
- * The renderer in a happy-dom document. What matters: it draws every part in its layer order; Flint is hidden from
- * assistive technology and only its body takes the pointer; every colour is a `--flint-*` property with its default; the pose mirrors with
- * the facing but the marks, the ticks and the direction of writing do not; the sideways pose keeps the eyes and hands in shape; a prop
- * slides in with its level; the body's tint and dashed outline follow their channels; an attendant is drawn behind Flint with its x
- * mirrored; a behaviour's page shapes are drawn behind all of Flint where the page puts them, never moved with Flint or mirrored, and are
- * hidden when none is given; the size follows `pixelsForOneUnit`; a body told to take no pointer is blind to it; and a confinement holds all
- * of the drawing, the page shapes too, inside its box, shows nothing for nowhere, and is lifted for everywhere. A part is found in the group
- * named after it, since shared builders draw alike.
+ * The renderer in a happy-dom document: the layer order, the `--flint-*` colours, what mirrors with the facing and what does not, the page
+ * shapes behind Flint, the size, pointer blindness and the confinement box. A part is found in the group named after it, since shared
+ * builders draw alike.
  */
 import { describe, expect, test } from 'bun:test';
 

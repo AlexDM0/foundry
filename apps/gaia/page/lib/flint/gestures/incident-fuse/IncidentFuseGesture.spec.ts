@@ -1,10 +1,6 @@
 /**
- * Incident fuse. What matters: the 7.6-second loop burns the fuse in a straight line to
- * 6000 with a pulsing flame, while Flint watches it with no hands, its eyes going from -3 to 0, and looks at the user for 400 ms every 2
- * seconds; from 4200 (a burn of 0.7) its eyes dart between 5 and 7, it shivers and the sweat beads show; at 6000 the flame goes out in
- * smoke; the stamp of Make a ticket rises, falls onto the envelope's seal, seals it with a jolt and lifts away; the props fade from 7200,
- * and fade in again over the first 300 ms of the next cycle, so they never show at once;
- * reduced motion holds the fuse half burned; the part does not depend on the facing.
+ * Incident fuse: Flint watches the fuse burn down, growing nervous near its end, then the stamp seals the envelope; the props fade out and
+ * in again so they never show at once. The part does not depend on the facing.
  */
 import { describe, expect, test } from 'bun:test';
 
