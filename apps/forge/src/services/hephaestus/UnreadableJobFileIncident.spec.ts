@@ -1,7 +1,9 @@
 /**
  * The incident a job's unreadable stored file opens. What matters: one `system-file-unreadable` incident per job and file while it stands,
  * a second file of the same job opens its own, a job that left the board or whose ticket stays parked on one opens nothing, the default
- * parks the ticket so the decision reaches User, and the job counts as waiting only while its incident stands.
+ * parks the ticket so the decision reaches User, and the job counts as waiting only while its incident stands. A session job neither move
+ * heals is retired: a running one opens the incident and moves to `stopping`, one not running keeps its state, and one already stopping
+ * opens nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -68,5 +70,37 @@ describe('the unreadable job file incident', () => {
     if (incident === undefined) throw new Error('no incident opened');
     board.handleIncident(incident.id, 'job-fresh', NEXT_PASS_AT);
     expect(UnreadableJobFileIncident.standsOpenFor(board, buildJob.id)).toBe(false);
+  });
+});
+
+describe('retiring a session job neither move heals', () => {
+  function pipelineAgentScene(): { board: Board; agentJobId: string; unreadable: { jobId: string; file: string; reason: string } } {
+    const { board } = boardFixture();
+    const { job } = board.startPipelineAgent(AT);
+    return { board, agentJobId: job.id, unreadable: { jobId: job.id, file: `jobs/${job.id}/pipeline-agent-start.json`, reason: 'example reason' } };
+  }
+
+  test('a running job opens the incident and moves to stopping, and the next pass opens no second one', () => {
+    const { board, agentJobId, unreadable } = pipelineAgentScene();
+    board.moveJob(agentJobId, 'running', AT);
+    UnreadableJobFileIncident.openAndRetire(board, unreadable, AT);
+    UnreadableJobFileIncident.openAndRetire(board, unreadable, NEXT_PASS_AT);
+    expect(board.incidents().map((incident) => [incident.kind, incident.jobId])).toEqual([['system-file-unreadable', agentJobId]]);
+    expect(board.jobById(agentJobId)?.state).toBe('stopping');
+  });
+
+  test('a job not running opens the incident and keeps its state', () => {
+    const { board, agentJobId, unreadable } = pipelineAgentScene();
+    UnreadableJobFileIncident.openAndRetire(board, unreadable, AT);
+    expect(board.incidents()).toHaveLength(1);
+    expect(board.jobById(agentJobId)?.state).toBe('launching');
+  });
+
+  test('a job already stopping opens nothing', () => {
+    const { board, agentJobId, unreadable } = pipelineAgentScene();
+    board.moveJob(agentJobId, 'running', AT);
+    board.moveJob(agentJobId, 'stopping', AT);
+    UnreadableJobFileIncident.openAndRetire(board, unreadable, AT);
+    expect(board.incidents()).toEqual([]);
   });
 });

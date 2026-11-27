@@ -5,7 +5,8 @@
  * (a first setup's with none launches under none, never the vendor's default), and the facts its first message is built from (the record and
  * the installed default constitution), so a fresh session in place of a replaced one starts from the same; a launch adds the record's snapshot
  * at that commit, or checks an existing one out at it when a resume moved it, and takes the
- * snapshot start again; a snapshot start that cannot be read opens the unreadable file's incident on the agent in place of Customs. A
+ * snapshot start again; a snapshot start that cannot be read fails closed in place of Customs, opens the unreadable file's incident on the
+ * agent and retires it. A
  * snapshot no open record and no live agent holds is removed once per Hephaestus, and one the removal leaves is named as a
  * leftover. A namespaced tracker's turn end lets a ref outside its own move. On a forge over entities, an entity's session is served
  * from the record's one snapshot, its facts name its entity, and a record whose sessions are only at entities still pins its snapshot
@@ -223,12 +224,16 @@ test('a turn end with no snapshot start fails closed, and an agent no record nam
   expect(board.logRecordsSoFar().some((record) => record.kind === 'pipeline-snapshot-touched')).toBe(false);
 });
 
-test('a turn end whose snapshot start cannot be read opens the unreadable file\'s incident on the agent, once, and runs no Customs', () => {
-  const { board, jobId } = boardWithSetupAgent();
+function writeVersionlessSnapshotStart(jobId: string): void {
   const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   const startOfBeforeTheVersion = { startCommit: START_COMMIT, launchSnapshot: { refs: {}, hooksFolderDigest: null } };
   writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify(startOfBeforeTheVersion)}\n`);
+}
+
+test('a turn end whose snapshot start cannot be read marks the snapshot touched, opens the incident once, retires the agent, no Customs', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  writeVersionlessSnapshotStart(jobId);
 
   PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
   PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
@@ -236,7 +241,19 @@ test('a turn end whose snapshot start cannot be read opens the unreadable file\'
   expect(board.incidents().map((incident) => [incident.kind, incident.jobId, incident.facts])).toEqual([
     ['system-file-unreadable', jobId, { file: `jobs/${jobId}/${SNAPSHOT_START_FILE}`, reason: 'its version is not 1' }],
   ]);
-  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(false);
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(true);
+  expect(board.jobById(jobId)?.state).toBe('stopping');
+});
+
+test('a stopping agent whose snapshot start cannot be read still marks the snapshot touched, and opens no incident', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  writeVersionlessSnapshotStart(jobId);
+  board.moveJob(jobId, 'stopping', AT);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+
+  expect(board.incidents()).toEqual([]);
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(true);
 });
 
 test('the record gives its agent the billing, before any pipeline is stored, and the facts of its first message', () => {

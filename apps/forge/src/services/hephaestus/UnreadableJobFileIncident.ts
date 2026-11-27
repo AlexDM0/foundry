@@ -1,7 +1,9 @@
 /**
  * A file Hephaestus stored for one job that its ingestion finds unreadable is a bug, so the job does not go on as if the file said nothing.
  * The `system-file-unreadable` incident goes to the Assistant, whose moves are a fresh agent or a park; its default parks the ticket, which
- * puts the decision in front of User. A job holds one such incident per file while it stands open, and none while its ticket stays parked on one.
+ * puts the decision in front of User. A job holds one such incident per file while it stands open, and none while its ticket stays parked on
+ * one. A session job neither move can heal, the Assistant or a document or pipeline agent, is retired instead, so a fresh one boots or
+ * launches by the board's own rules.
  */
 import type { Incident }      from '../../lib/tracker-model/@types/Incident.ts';
 import type { LogRecord }     from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -45,4 +47,15 @@ function standsOpenFor(board: Board, jobId: string): boolean {
   return openIncidentsOf(board, jobId).length > 0;
 }
 
-export const UnreadableJobFileIncident = Object.freeze({ openOnce, standsOpenFor });
+/**
+ * For a session job neither move heals: unless it is already stopping or ended, opens the incident for the record and moves a running
+ * job to `stopping`, so its input closes and it ends.
+ */
+function openAndRetire(board: Board, unreadable: UnreadableJobFile, at: string): void {
+  const job = board.jobById(unreadable.jobId);
+  if (job === undefined || job.state === 'stopping') return;
+  openOnce(board, unreadable, at);
+  if (job.state === 'running') board.moveJob(job.id, 'stopping', at);
+}
+
+export const UnreadableJobFileIncident = Object.freeze({ openOnce, openAndRetire, standsOpenFor });

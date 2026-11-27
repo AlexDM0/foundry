@@ -301,7 +301,8 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
 /**
  * In the hold that reads each turn's `result`: Customs on the snapshot. A refusal marks the record's snapshot touched, so Apply refuses
  * `setup-snapshot-touched`, and opens one incident; a snapshot already touched, or an agent with an open incident, opens nothing again. A
- * snapshot start that cannot be read opens the unreadable file's incident on the agent in place of Customs.
+ * snapshot start that cannot be read fails closed too: in place of Customs it marks the snapshot touched, opens the unreadable file's
+ * incident and retires the agent, whose next launch takes the snapshot start again.
  */
 function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobIds: readonly string[]): void {
   const { board, at } = change;
@@ -310,7 +311,11 @@ function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobId
     if (job === undefined || !isPipelineAgentJob(job)) continue;
     const snapshotStart = new SnapshotStartIngestion(join(jobFolderIn(context.workspace.trackerDirectory, job.id), SNAPSHOT_START_FILE)).read();
     if (snapshotStart.verdict === 'unreadable') {
-      UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
+      const servedSetup = servedSetupOf(board, job);
+      if (servedSetup !== null && !board.setupSnapshotIsTouched(servedSetup.setupId)) {
+        board.recordSetupSnapshotTouched(servedSetup.setupId, { check: 'V16', reason: 'git-failed' }, at);
+      }
+      UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, SNAPSHOT_START_FILE), reason: snapshotStart.reason }, at);
       continue;
     }
     const verdict = turnEndVerdictOf(context, board, job, snapshotStart.verdict === 'readable' ? snapshotStart.snapshotStart : null);

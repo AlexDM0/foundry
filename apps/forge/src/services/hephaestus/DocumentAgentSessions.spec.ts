@@ -9,7 +9,8 @@
  * opens one incident on the ticket and ends the job `failed`; and each document has a snapshot of its own, so the spec's and the plan's
  * agents never reset or dirty each other's, removed once no agent of the document holds it, a waiting one included, and tried again after a
  * later agent held it. A snapshot start or launch note that cannot be read opens the unreadable file's incident on the job, which then takes
- * no step on it; a seen head that cannot be read is logged, carries the head again and is written anew.
+ * no step on it; one whose launch note cannot be read is retired and ends `replaced`, so a fresh agent takes its messages; a seen head that
+ * cannot be read is logged, carries the head again and is written anew.
  */
 import {
   existsSync,
@@ -230,7 +231,7 @@ describe('the messages', () => {
     DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
     expect(fixture.board.jobById('J9')?.state).toBe('stopping');
 
-    DocumentAgentSessions.settleEndedSession(fixture.board, fixture.board.jobById('J9') ?? job, AT);
+    DocumentAgentSessions.settleEndedSession(fixture.board, fixture.trackerDirectory, fixture.board.jobById('J9') ?? job, AT);
     expect(fixture.board.jobById('J9')?.state).toBe('awaiting-answer');
   });
 
@@ -241,7 +242,7 @@ describe('the messages', () => {
     expect(waiting.board.jobs()).toEqual([]);
 
     const stopping = sessionFixture(structuredClone(approved), [documentAgentJobFixture('004', 'spec', { state: 'stopping' })]);
-    DocumentAgentSessions.settleEndedSession(stopping.board, stopping.board.jobById('J9') ?? documentAgentJobFixture('004', 'spec'), AT);
+    DocumentAgentSessions.settleEndedSession(stopping.board, stopping.trackerDirectory, stopping.board.jobById('J9') ?? documentAgentJobFixture('004', 'spec'), AT);
     expect(stopping.records.findLast((record) => record.kind === 'job-ended')).toMatchObject({ jobId: 'J9', fields: { outcome: 'closed' } });
   });
 
@@ -258,7 +259,7 @@ describe('the messages', () => {
     expect(DocumentAgentSessions.opensWithAMessage(fixture.trackerDirectory, fixture.board, job)).toBe(true);
   });
 
-  test('a launch note that cannot be read opens the unreadable file\'s incident on the job, once, which takes no message and keeps running', async () => {
+  test('a launch note that cannot be read opens the unreadable file\'s incident on the job and retires it: it takes no message and stops', async () => {
     const job     = documentAgentJobFixture('004', 'spec');
     const fixture = sessionFixture(structuredClone(SPEC_WITH_MESSAGES), [job]);
     launched(fixture, job);
@@ -272,8 +273,23 @@ describe('the messages', () => {
       'system-file-unreadable', ['004'], 'J9', { file: 'jobs/J9/document-agent-launch.json', reason: 'its version is not 1' },
     ]]);
     expect(fixture.board.ticketDocuments().nextQueuedMessageOf('004', 'spec')?.messageId).toBe('M2');
-    expect(fixture.board.jobById('J9')?.state).toBe('running');
+    expect(fixture.board.jobById('J9')?.state).toBe('stopping');
     expect(fixture.sentLines()).toEqual([]);
+  });
+
+  test('a retired agent whose session ended ends replaced, its queued message left for a fresh agent', () => {
+    const job     = documentAgentJobFixture('004', 'spec');
+    const fixture = sessionFixture(structuredClone(SPEC_WITH_MESSAGES), [job]);
+    launched(fixture, job);
+    writeFileSync(join(jobFolderIn(fixture.trackerDirectory, 'J9'), 'document-agent-launch.json'), '{"deliveryBase":0}\n');
+    DocumentAgentSessions.deliverWhenIdle(fixture.board, [{ jobId: 'J9', instance: 1, results: 1 }], fixture.trackerDirectory, [], AT);
+
+    DocumentAgentSessions.settleEndedSessions(fixture.board, fixture.trackerDirectory, ['J9'], AT);
+
+    expect(fixture.records.findLast((record) => record.kind === 'job-ended'))
+      .toMatchObject({ jobId: 'J9', fields: { outcome: 'replaced', cause: 'system-file-unreadable' } });
+    expect(fixture.board.jobs()).toEqual([]);
+    expect(fixture.board.ticketDocuments().nextQueuedMessageOf('004', 'spec')?.messageId).toBe('M2');
   });
 
   test('a seen head that cannot be read is logged, the line carries the head again, and the seen head is written anew', async () => {
@@ -390,7 +406,7 @@ describe('a stopping agent whose session ended', () => {
     const request = { jobId: 'J9', requestId: 'R1', reading: HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('R1', proposal as never))) };
 
     const replies = DocumentAgentSessions.verifyTurnEnds(transactionOf(fixture), turnEndContextOf(fixture, fixture.rootDirectory), ['J9'], [request], ECHOED_CONTROL_CONTEXT);
-    DocumentAgentSessions.settleEndedSessions(fixture.board, ['J9'], AT);
+    DocumentAgentSessions.settleEndedSessions(fixture.board, fixture.trackerDirectory, ['J9'], AT);
 
     expect(replies.map((reply) => reply.reply.outcome)).toEqual(['done']);
     expect(fixture.board.ticketDocuments().documentOf('004', 'spec')?.proposals.map((open) => open.state)).toEqual(['proposed']);

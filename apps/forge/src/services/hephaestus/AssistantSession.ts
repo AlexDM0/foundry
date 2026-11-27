@@ -99,11 +99,14 @@ function chatsWrittenOf(reading: Exclude<AssistantChatsReading, { verdict: 'unre
   return reading.verdict === 'readable' ? reading.chats : [];
 }
 
-/** In the hold: the chats, or `null` once a file that cannot be read opened its incident on the Assistant, which then takes no step on them. */
+/**
+ * In the hold: the chats, or `null` for a file that cannot be read, which opens its incident and retires the Assistant, a winding-down one
+ * too: it takes no step on them, and a fresh one boots once it has ended.
+ */
 function chatsInTheHoldOf(board: Board, trackerDirectory: string, job: Readonly<Job>, at: string): readonly AssistantChat[] | null {
   const reading = chatsOf(trackerDirectory, job.id);
   if (reading.verdict !== 'unreadable') return chatsWrittenOf(reading);
-  UnreadableJobFileIncident.openOnce(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, CHATS_FILE), reason: reading.reason }, at);
+  UnreadableJobFileIncident.openAndRetire(board, { jobId: job.id, file: jobFileInDataFolderOf(job.id, CHATS_FILE), reason: reading.reason }, at);
   return null;
 }
 
@@ -186,7 +189,7 @@ function turnObservationsOf(board: Pick<Board, 'jobs' | 'incidents'>, readings: 
 /**
  * Run in the hold after the lifecycle, in every pass, a usage limit holding or not: an idle Assistant that was asked to wind down, or is
  * past the context-token count, has its input closed, and the next delivery goes to a fresh one if the board boots one. An Assistant whose
- * chats file cannot be read has its incident opened here.
+ * chats file cannot be read has its incident opened and its input closed here.
  */
 function closeInputWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string, at: string): void {
   for (const job of liveAssistantsOf(board)) {
@@ -255,7 +258,7 @@ function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDire
 /**
  * After the hold: each numbered chat as one line, in order, a marker keeping a restart from sending one again (at least once: not when
  * Hephaestus died before the marker), and the interrupt line once the open turn spent its call budget. An Assistant whose chats file cannot
- * be read gets nothing, and the file is kept as it is for the move its incident asks.
+ * be read gets nothing, and the file is kept as it is.
  */
 async function deliverChats(request: AssistantChatDelivery): Promise<void> {
   const { board, adapter } = request;
@@ -282,8 +285,8 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
 }
 
 /**
- * The running Assistants with a chat their session has not answered yet. One whose chats file cannot be read is not counted, so the quiet
- * watch never ends it as down while its incident waits for a move.
+ * The running Assistants with a chat their session has not answered yet. One whose chats file cannot be read is not counted: it was
+ * retired, and ends `closed` rather than as down.
  */
 function midTurnJobIdsOf(trackerDirectory: string, board: Board, readings: readonly AssistantReading[]): string[] {
   return liveAssistantsOf(board).filter((job) => {
