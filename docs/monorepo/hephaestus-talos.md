@@ -410,7 +410,7 @@ not.](figures/hephaestus-talos/ports.png)
 
 | Port | Today | Work in this plan |
 | --- | --- | --- |
-| Operating system | Exists. `platformPortsFor` builds one frozen record of ports with darwin, linux and win32 adapters; `src/PlatformBoundary.spec.ts` refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows | Carries over. "macOS first" means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only |
+| Operating system | Exists. `platformPortsFor` builds one frozen record of ports with darwin, linux and win32 adapters; `architecture/PlatformBoundary.spec.ts` refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows | Carries over. "macOS first" means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only |
 | Agent | Mostly exists. `AgentAdapter` in `src/lib/agent-launch/` is the port, `src/lib/claude-code/` the one adapter | Close the leaks: `ClaudeTranscripts.ts` inside the Overseer's services, the install-time hook entry in a repository's `.claude/settings.local.json`, the `bash-domains` hook, and session confinement resting on an assumption about the vendor's own sandbox. An agent that brings its own sandbox is confined by it, applied through its adapter, which renders the worker profile into the agent's settings and declares that confinement as a capability; forge's own confinement (the gate confinement port) wraps a session whose agent brings none. Never both: macOS refuses a nested Seatbelt profile (an inner `sandbox-exec` under an outer profile with a deny rule exits 71, measured 2026-11-18), and Claude Code starts its sandbox for every shell call. Retry policy is the adapter's: it sets what the vendor exposes. A skill becomes "an instruction bundle the adapter can load" |
 | Store | Does not exist. Files are the most pervasive dependency in forge | New (section 4). Defined with a contract spec that any adapter must pass, the convention the platform adapters already use |
 
@@ -570,7 +570,7 @@ What the API keeps, because the views use it today: the board state, the event s
 gate-profile streams, job files (the report, the gate log), pictures and their upload, the summary and the monitor
 snapshot, identity and versions, the command endpoint and the nudge. What it loses: the session routes, the page itself
 and Flint's ask route. `forge open` and the `progress.html` stub go rather than find a new target, since a forge may
-not name Gaia (`src/ClientNames.spec.ts`): forge's help and its agents' instructions name no board page.
+not name Gaia (`architecture/ClientNames.spec.ts`): forge's help and its agents' instructions name no board page.
 
 What this path gives and costs:
 

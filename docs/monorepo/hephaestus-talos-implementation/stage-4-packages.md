@@ -99,8 +99,8 @@ Decisions of the run that this stage takes:
 - **A question's recommendation is a stored field.** The agent adapter, the one place that knows the vendor's mark,
   strips it from an option's label when it maps the question, and the stored decision's option carries
   `isRecommended` (stage 2, WP2.26). The decision document's option carries that label and `recommended`, the stored
-  `isRecommended`; no forge adapter imports the agent adapter (`src/AgentBoundary.spec.ts`,
-  `src/ImportDirection.spec.ts`).
+  `isRecommended`; no forge adapter imports the agent adapter (`architecture/AgentBoundary.spec.ts`,
+  `architecture/ImportDirection.spec.ts`).
 - **`forge-contracts`' own version** rises by one minor with this stage's system minor, from whatever stage 3 left,
   and from here on with every system minor, as its README says.
 - **The committed ticket's rules are not this stage's** (decision 48, Out of scope): this stage only names the status
@@ -116,7 +116,7 @@ Read at `b4174bd9`.
 | The readings: attention entries, today's figures, notice, draft and open-decision utils, the Bridge fragment util | `apps/forge/src/shared/monitor/` | Kept; `AttentionEntries.ts` gains a typed target (WP4.10) |
 | The monitor document already serves attention entries, notices, warnings and today's figures, worded and computed from the board state | `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:352-356`; `packages/forge-contracts/@types/MonitorSnapshotDocument.ts:151-170` | Kept; the board document serves the same readings (WP4.10) |
 | The monitor's attention entries carry a Bridge fragment as `route` | `MonitorSnapshotDocument.ts:60`; `src/shared/monitor/utils/BridgeFragmentUtil.ts:7-9` | Kept until stage 8; the board document carries a typed target |
-| `forge-contracts` at package version `1.0.0`: 9 command kinds, the identity, summary and monitor documents, versions and registry; its modules import only `system-versions/` | `packages/forge-contracts/package.json:3`, `:8-19`; `PackageIsolation.spec.ts:18`, `:31-38` | Gains the board document, the board commands and the refusal document; the isolation guard already refuses an import of forge's model |
+| `forge-contracts` at package version `1.0.0`: 9 command kinds, the identity, summary and monitor documents, versions and registry; its modules import only `system-versions/` | `packages/forge-contracts/package.json:3`, `:8-19`; `architecture/PackageIsolation.spec.ts:18`, `:31-38` | Gains the board document, the board commands and the refusal document; the isolation guard already refuses an import of forge's model |
 | The README: "Types, versions and the registry only" | `packages/forge-contracts/README.md:21-24` | Widened to the value lists of the wire's unions (WP4.6) |
 | forge's system version 1.18, before stages 2 and 3 | `packages/forge-contracts/constants/ForgeSystemVersions.ts:41` | Raised one minor over what stage 3 left (WP4.4) |
 | The registry's endpoints, each at 1.0 | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:38-49` | Gains `board` at version 1 (WP4.8) |
@@ -334,7 +334,7 @@ with WP4.5, WP4.7 and WP4.12.
 4. Leave out what is not the contract's: Flint's brain (`flintBrain`, decision 25), the Bridge's identity view
    (`OverseerIdentity`), the session and embed fields, and the view models `Timeline.ts` and `DependencyGraph.ts`.
 5. Word each docblock for any reader: "a view", never "the Bridge" (`README.md:3-5`); no client word may appear
-   (`PackageIsolation.spec.ts:21`).
+   (`architecture/PackageIsolation.spec.ts:21`).
 6. Add the eight entries to `exports` and README rows. Widen "What it holds" to "Types, versions, the registry, and the
    value lists of the unions its documents carry".
 7. Write the parity spec in forge: for each union of `BoardVocabulary.ts`, a helper type
@@ -985,7 +985,7 @@ The specs that matter most, inside each workspace folder:
   ./src/adapters/utils/RefusalDocumentUtil.spec.ts ./src/services/overseer/ ./cli/overseer/routes/ \
   ./src/lib/tracker-model/PipelineSetups.spec.ts ./bridge/CommandKindsInContract.spec.ts)
 (cd apps/gaia && bun run check)      # the warning that Gaia supports an older forge; exit 0
-grep -rn "tracker-model\|apps/" packages/forge-contracts --include='*.ts' | grep -v PackageIsolation.spec.ts      # prints nothing
+grep -rn "tracker-model\|apps/" packages/forge-contracts --include='*.ts' | grep -v architecture/PackageIsolation.spec.ts      # prints nothing
 ```
 
 The Bridge on a real Overseer in a headless browser (skips without Chrome; one named file, as

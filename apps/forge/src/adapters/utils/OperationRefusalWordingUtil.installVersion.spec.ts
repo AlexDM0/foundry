@@ -14,7 +14,7 @@ const MANIFEST_FILE_PATH = '/example/repository/.agent-progress/version.json';
 
 /**
  * The expected paragraphs name the released program they were written with, so the build's name is read back to it here; that the
- * wording takes the name from the constant at all is `src/ProductNameLiterals.spec.ts`'s claim.
+ * wording takes the name from the constant at all is `architecture/ProductNameLiterals.spec.ts`'s claim.
  */
 function messageFor(mismatch: InstallVersionMismatch): string {
   return OperationRefusalWordingUtil.installVersionMismatchMessageOf({

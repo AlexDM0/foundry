@@ -1,7 +1,7 @@
 /**
- * `src/ComponentNames.spec.ts` and the carriage return scan of `src/LineEndingPolicy.spec.ts` read the files of a folder walk that runs no
- * git. This spec holds the walk to git's own list: every file `git ls-files` names is walked, so no tracked file escapes those scans. Its
- * subject is the index of this checkout, which no recorded answer can stand in for, so it is a git boundary spec.
+ * `architecture/ComponentNames.spec.ts` and the carriage return scan of `architecture/LineEndingPolicy.spec.ts` read the files of a folder
+ * walk that runs no git. This spec holds the walk to git's own list: every file `git ls-files` names is walked, so no tracked file escapes
+ * those scans. Its subject is the index of this checkout, which no recorded answer can stand in for, so it is a git boundary spec.
  */
 import { expect } from 'bun:test';
 

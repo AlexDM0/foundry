@@ -120,7 +120,7 @@ and skip the extra read.
 
 The board document's `agent.vendors` lists the vendors forge knows, each with its `displayName` and whether it is `supported`. Forge 4.1
 lists the vendors it plans to run beside the one it runs, each `supported: false`, so a client shows them as coming later in their own
-names. Gaia names no vendor of its own (`src/AgentVendorNames.spec.ts`): its agent step names the unsupported vendors in one line, as
+names. Gaia names no vendor of its own (`architecture/AgentVendorNames.spec.ts`): its agent step names the unsupported vendors in one line, as
 coming in a later version of forge, by the `displayName` forge sends.
 
 ### V12. Serve a ticket's documents and take the user's commands on them (Must, met in 4.2)

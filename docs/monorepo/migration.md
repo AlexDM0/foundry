@@ -86,7 +86,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
       `system-versions` and `brand`.
 - [x] P4A: V-server (`/api/versions`, `/api/v<n>/` paths), V-frame (frame hosts), V-bridge (the embed channel and forge's mark from
       `brand`). Both `?embedded=gaia` and `?embedded=dashboard`, and the dashboard's frame record, are dropped.
-- [x] P4B (`p4-close`): `apps/forge/src/ClientNames.spec.ts` holds that no shipped source or doc of forge names Gaia, its word
+- [x] P4B (`p4-close`): `apps/forge/architecture/ClientNames.spec.ts` holds that no shipped source or doc of forge names Gaia, its word
       `fleet`, agent-dashboard or `?embedded=dashboard`; the docs speak of a monitor or a host. Gaia's `overseer-fetch-versions` is recorded
       from real forges under scratch homes: `versions-older` from this tree's forge as itself, `versions-ahead` and `versions-newer`
       through its test setting `FORGE_VERSIONS_ANSWER` (`1.3/1.0`, `2.1/2.0`), `versions-absent` from forge at `db64ed0a` in a detached

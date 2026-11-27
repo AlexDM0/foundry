@@ -15,6 +15,7 @@
     "lint:fix":  { "dependsOn": ["transit"], "cache": false },
     "test":      { "dependsOn": ["transit"], "outputs": [] },
     "test:dom":  { "dependsOn": ["transit", "test"], "outputs": [] },
+    "test:architecture": { "dependsOn": ["transit"], "outputs": [] },
     "check":     { "cache": false }
   }
 }

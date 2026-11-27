@@ -80,5 +80,5 @@ reasons a released spelling still appears.
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
-| Component names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `architecture/ProductNames.spec.ts` |
+| Component names | `architecture/ComponentNames.spec.ts` | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |

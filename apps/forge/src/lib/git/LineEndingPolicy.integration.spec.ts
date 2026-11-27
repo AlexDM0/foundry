@@ -2,7 +2,7 @@
  * The line-ending policy: `.gitattributes` holds every text file at LF on every checkout, since a carriage return breaks `setup.sh`, the
  * hooks, the prose wrap and the frozen tables. The scan reads `git ls-files --eol`, on both the index and the working tree side. Git files a
  * text file with a lone carriage return under `-text`, so a file git calls binary is read too, a NUL byte being what makes it truly binary.
- * Each form is planted in a scratch repository to prove the scan names it and passes what it skips. `src/LineEndingPolicy.spec.ts` holds
+ * Each form is planted in a scratch repository to prove the scan names it and passes what it skips. `architecture/LineEndingPolicy.spec.ts` holds
  * the policy line and a byte scan of the repository files that runs no git. The scan reads git's own line-ending and attribute answers,
  * so it is a git boundary spec.
  */

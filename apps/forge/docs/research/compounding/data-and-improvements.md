@@ -799,8 +799,8 @@ package from the repository root.
 | Decisions, incidents, notices | `src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts`, `src/services/hephaestus/DrivePass.ts`, `docs/concepts/overview.md` |
 | The budget of a launch | `src/services/hephaestus/ApiBillingStops.ts` |
 | A ticket's size | `src/lib/tracker-model/@types/Ticket.ts` |
-| The store port | `src/services/store/BoardStore.ts`, `src/StoreBoundary.spec.ts` |
-| The agent port's boundary | `src/AgentBoundary.spec.ts` |
+| The store port | `src/services/store/BoardStore.ts`, `architecture/StoreBoundary.spec.ts` |
+| The agent port's boundary | `architecture/AgentBoundary.spec.ts` |
 | The system version | `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `docs/reference/hephaestus-api.md` |
 | The rework: headless forge, ports, the store | `docs/monorepo/hephaestus-talos.md` |
 | Phases, hooks, artifacts, approvals | `docs/monorepo/context-pipeline.md`, as it stood in the working tree on 23 November 2026 |

@@ -3,7 +3,7 @@
 Gaia's page is drawn with three libraries under `page/lib/`: the design system (`page/lib/design-system/`, reached through
 `DesignSystemInterface.ts`), Flint (`page/lib/flint/`) and the brand (`page/lib/brand/`, Forge's mark). This document holds what
 is Gaia's own: the design rules Gaia keeps on top of the library's, Gaia's tokens, the parts in `page/components/` that no library
-has, the one place each state reaches a library tone, and the contrast `page/StyleContract.spec.ts` holds. It does not describe a
+has, the one place each state reaches a library tone, and the contrast `architecture/StyleContract.spec.ts` holds. It does not describe a
 library component; each library's `README.md` does.
 
 ## 1. Principles
@@ -93,7 +93,7 @@ a library class. A variant is a `data-*` attribute on the component's class, nev
 
 ### 2.4 From the design's token names to the library's
 
-The design named its colours its own way. The library names them as below; `page/StyleContract.spec.ts` checks the design's text
+The design named its colours its own way. The library names them as below; `architecture/StyleContract.spec.ts` checks the design's text
 pairs in the library's names (section 4).
 
 | Design's name | Library name | What it is |
@@ -121,7 +121,7 @@ pairs in the library's names (section 4).
 
 `page/components/` holds only Gaia's own parts: those no library has (Gaia's mark, the brand bar, the callout's body, the list
 card) and Gaia's words around a library part (the refusal around the failed action). Each is hook-free, composed from the
-libraries through their interface files, imports no shell, view or board (`page/PageImportDirection.spec.ts`), and has a spec
+libraries through their interface files, imports no shell, view or board (`architecture/PageImportDirection.spec.ts`), and has a spec
 beside it that reads the props it hands a library part, never the markup the library draws. A state reaches a library component as
 a state tone mapped in one place: `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil` (3.2).
 
@@ -245,7 +245,7 @@ ink. Activity's categories are "Needs you", "Landed", "Agent" and "Forge" (`page
 
 ## 4. Contrast
 
-`page/StyleContract.spec.ts` reads the library's `tokens.css` and Gaia's together, as the page links them (the library's first),
+`architecture/StyleContract.spec.ts` reads the library's `tokens.css` and Gaia's together, as the page links them (the library's first),
 and computes each ratio from the token values; nothing states a ratio by hand. Every pair is a WCAG 2 text pair, checked in the
 light theme (`:root`) and the dark theme (`:root` with `:root[data-theme="dark"]` over it), with the same pairs in both.
 

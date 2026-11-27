@@ -53,7 +53,7 @@ design-system/
   an organism imports atoms and molecules. Any of them may import `utils/`, `constants/` and `@types/`, which import no
   component. `CompositionLayers.spec.ts` holds this.
 - **Nothing in the library imports a file outside it.** What ships imports React and nothing else: no `bun:` or
-  `node:` module, no other package. A stylesheet references no file outside the folder. `PackageIsolation.spec.ts`
+  `node:` module, no other package. A stylesheet references no file outside the folder. `architecture/PackageIsolation.spec.ts`
   holds this.
 - **A host imports only the interface file.** `import { Button } from './lib/design-system/DesignSystemInterface.ts'`
   by its relative path, never `atoms/Button.tsx` or another file of the folder, and never a name the interface file
@@ -71,7 +71,7 @@ design-system/
 - **A state arrives as its look, never as its name.** A component takes a `StateTone`, named for how the row looks
   (`neutral`, `accent`, `info-outline`, `success`, `muted`), and the flags of its shape (`dashed`, `struck`,
   `checked`, `pulsing`, a `StateDotShape`). The host maps its own states to a tone and flags; no component decides a
-  look from a state's name. `PackageIsolation.spec.ts` holds that no file names a word of the host: its names, its
+  look from a state's name. `architecture/PackageIsolation.spec.ts` holds that no file names a word of the host: its names, its
   views and its lifecycle. The scan reads every file, this constitution and the README among them, so neither names
   the host either.
 - **The handoff's names are the design's own vocabulary, not host words:** `FlintSlot` with its sizes and grounds, the
@@ -261,7 +261,7 @@ design-system/
 | Guard | Holds |
 | --- | --- |
 | `CompositionLayers.spec.ts` | Every component sits in a layer and imports only components of a lower layer |
-| `PackageIsolation.spec.ts` | Nothing imports outside the library; what ships imports only React; no file, the constitution and the README among them, names a host word |
+| `architecture/PackageIsolation.spec.ts` | Nothing imports outside the library; what ships imports only React; no file, the constitution and the README among them, names a host word |
 | `StyleContract.spec.ts` | Each class is styled by its owner's stylesheet, each rule styles its own component, the entry imports each stylesheet once in layer order |
 | `StyleBraceBalance.spec.ts` | Every stylesheet closes every brace it opens, and closes none it did not open |
 | `HoverMovesNothing.spec.ts` | A `:hover` or `:active` rule changes only colour, outline, a shadow, a filter, opacity, visibility or the cursor; a movement that moves nothing else is listed, exact both ways |

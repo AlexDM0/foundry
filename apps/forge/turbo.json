@@ -4,6 +4,10 @@
     "test": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.claude/rules/**", "$TURBO_ROOT$/CLAUDE.md", "$TURBO_ROOT$/bun.lock"],
       "env":    ["FORGE_REQUIRE_EVERY_TOOL"]
+    },
+    "test:architecture": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.claude/rules/**", "$TURBO_ROOT$/CLAUDE.md", "$TURBO_ROOT$/bun.lock"],
+      "env":    ["FORGE_REQUIRE_EVERY_TOOL"]
     }
   }
 }

@@ -1,4 +1,4 @@
 [test]
 preload = ["./src/testing/TestRunPreload.ts"]
 # A boundary's real-system spec is a recording command, run by `bun run record`, never by a plain `bun test`.
-pathIgnorePatterns = [".scratch/**", ".claude/**", "node_modules/**", ".forge/**", ".forge-worktrees/**", ".turbo/**", "**/*.recording.spec.ts"]
+pathIgnorePatterns = [".scratch/**", ".claude/**", "node_modules/**", ".forge/**", ".forge-worktrees/**", ".turbo/**", "**/*.recording.spec.ts", "**/architecture/**"]

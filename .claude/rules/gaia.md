@@ -83,12 +83,12 @@ its Deviations from them, each with why.
     `apps/gaia/page/styles/tokens.css`, in a light and a dark value, redefining no library token but `--press-scale`,
     which the library leaves to its host (set to 1: a press changes no size). `apps/gaia/page/styles/gaia.css` reads
     only tokens, styles exactly the classes Gaia's components emit (never a library class), and lets a hover or press
-    change no size or place; `apps/gaia/page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of
+    change no size or place; `apps/gaia/architecture/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of
     `apps/gaia/docs/design/components.md` section 4 in both themes, and 3:1 on the primary button, the one exception,
     which the owner accepts. A variant is a `data-*` attribute, never a class. `apps/gaia/page/components/` holds only
     Gaia's own parts, the ones no library has (Gaia's mark, the brand bar, the callout and the like) and Gaia's words
     around a library part (the refusal around the failed action), composed from the libraries' components; they import
-    no shell, view or board (`apps/gaia/page/PageImportDirection.spec.ts`). A state reaches a library component as a
+    no shell, view or board (`apps/gaia/architecture/PageImportDirection.spec.ts`). A state reaches a library component as a
     state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts
     take no hooks, so their specs unfold them with `apps/gaia/page/testing/ReactElementTree.ts`, which keeps every
     component the design-system library's interface file exports folded: a spec reads and calls the props Gaia hands a
@@ -102,7 +102,7 @@ its Deviations from them, each with why.
     `apps/gaia/page/board/` are the exception to the document-free specs: they keep their behaviour in `.dom.tsx` specs,
     which `bun run test:dom` runs with a document and the page project leaves out. `apps/gaia/page/board/` is styled by
     `apps/gaia/page/styles/board/*.css`, never by `gaia.css`, under the board section of
-    `apps/gaia/page/StyleContract.spec.ts`, which holds it with the board's own guards
+    `apps/gaia/architecture/StyleContract.spec.ts`, which holds it with the board's own guards
     (`apps/gaia/page/testing/BoardStyleGuards.ts`): its classes are `board-`, never `gaia-`, its keyframes `board-` and
     only there, its colour tokens in `apps/gaia/page/styles/board/tokens.css` in a light and a dark value (a colour the
     same in both themes set once, in the light block), its text pairs at 4.5:1, a hover or press that moves nothing, and
@@ -117,9 +117,9 @@ its Deviations from them, each with why.
     `apps/gaia/page/lib/brand/BrandInterface.ts`. A page links only the files a library offers by path: the design
     system's `styles/design-system.css`, `styles/tokens.css` and fonts, and the brand's `styles/brand.css`. Inside a
     library a file imports exactly the module it needs, never the interface file, nothing of another library and no Gaia
-    file, and only the interface file re-exports, one name at a time. `apps/gaia/page/LibraryBoundaries.spec.ts` holds
-    all of it, and `apps/gaia/src/WorkspaceDependencies.spec.ts` that no file names a library by a bare specifier. A
-    library names no Gaia (its `PackageIsolation.spec.ts`). Gaia's scripts run each library's tooling: `typecheck` its
+    file, and only the interface file re-exports, one name at a time. `apps/gaia/architecture/LibraryBoundaries.spec.ts` holds
+    all of it, and `apps/gaia/architecture/WorkspaceDependencies.spec.ts` that no file names a library by a bare specifier. A
+    library names no Gaia (the `PackageIsolation.spec.ts` in its `architecture/` folder). Gaia's scripts run each library's tooling: `typecheck` its
     two projects, which the page's own projects leave out; `lint` its ESLint from its own folder, since Gaia's
     configuration ignores `apps/gaia/page/lib/`; `bun test` its specs; `test:dom` its `testing/RunDomSpecs.ts`;
     `storybook:design-system` and `storybook:brand` its Storybook. `apps/gaia/page/index.html` links the design system's
@@ -127,7 +127,7 @@ its Deviations from them, each with why.
     emits and Gaia's server serves under their hashed names; the splash links the tokens and fonts by their files. Gaia
     passes every word into a library part. Gaia's mark is Gaia's (`apps/gaia/page/components/GaiaMark.tsx`), drawn on
     the brand's `MARK_GEOMETRY`; the splash, which links no `gaia.css`, carries its rules. Flint is imported only from
-    `apps/gaia/page/board/` (`apps/gaia/page/PageImportDirection.spec.ts`).
+    `apps/gaia/page/board/` (`apps/gaia/architecture/PageImportDirection.spec.ts`).
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary
     button of an area; crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill
     holds, a ring changes, dashed waits; no shadow at rest; mono for machine values. Gaia draws Flint only in the forge
@@ -142,7 +142,7 @@ Gaia's folders under `apps/gaia/`. Beside them Gaia depends on two workspace pac
 `forge-contracts` for forge's documents, system versions and compatibility registry, which only the server imports, and
 `system-versions` for the version model both systems share (rule 3). The page imports no `forge-contracts` and reads its
 own contract versions from `apps/gaia/src/shared/constants/PageContractVersions.ts`
-(`apps/gaia/page/PageImportDirection.spec.ts`, with no exception); it reaches its own modules by relative path, never by
+(`apps/gaia/architecture/PageImportDirection.spec.ts`, with no exception); it reaches its own modules by relative path, never by
 Gaia's package name `gaia`.
 
 ```
@@ -174,7 +174,7 @@ page/board/shared/ what the board's views and its shell read alike, hoisted once
                    shell
 ```
 
-`apps/gaia/page/PageImportDirection.spec.ts` holds the board's folders to these lines.
+`apps/gaia/architecture/PageImportDirection.spec.ts` holds the board's folders to these lines.
 
 ## Boundaries
 
@@ -217,7 +217,7 @@ worktree's scratch root keeps it short enough); the link goes with the scratch f
 the leak check names either left behind. Every agent it launches is the forge's fake agent, so a recording makes no
 model call. It records the paths, tracker ids, ports and process ids a run draws as fixed example values, stamps the
 recording with the forge's install and code versions, and verify lists it as not checked against an installed forge.
-`apps/gaia/src/RealProgramRuns.spec.ts` holds the exact list of files that may start a program another way.
+`apps/gaia/architecture/RealProgramRuns.spec.ts` holds the exact list of files that may start a program another way.
 
 The browser's recordings (`browser-window-watch`, `launcher-programs`) are taken from the Chrome or Edge in
 `/Applications`, which opens visible windows and dismisses its own dialogs, and are stamped with that browser's version;

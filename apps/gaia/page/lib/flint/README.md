@@ -134,7 +134,7 @@ never mirrored and never eased. Once the behaviour gives none, the last ones fad
 | `testing/` | The manual frame source, the mind run, the frame capture, and the extent a pose draws, measured without a browser. |
 | `demo/` | The demo page: a playground that shows every animation. |
 
-The library's own guard, `PackageIsolation.spec.ts`, holds that no file imports outside the folder and that nothing
+The library's own guard, `architecture/PackageIsolation.spec.ts`, holds that no file imports outside the folder and that nothing
 that ships imports a `bun:` or `node:` module.
 
 ## Design rules

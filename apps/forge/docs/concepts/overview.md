@@ -211,7 +211,7 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | Talos | `src/lib/talos/Talos.ts` | `runTalos` | `src/lib/talos/Talos.handshake.integration.spec.ts` |
 | Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
 | Trouble's three kinds | `src/lib/tracker-model/IncidentMoves.ts`, `src/services/hephaestus/DrivePass.ts` | `defaultIncident`, `HephaestusNotice` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
-| The eleven names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| The eleven names | `architecture/ComponentNames.spec.ts` | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 | Every product name | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `cli/ProductNameIsolation.integration.spec.ts` |
 
 ## Now try it

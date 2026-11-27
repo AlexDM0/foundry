@@ -264,7 +264,7 @@ export function testWhenOnMacOs(claim: string, body: SpecBody, timeoutMillisecon
   testWhenRequirementIsMet('macos', claim, body, timeoutMilliseconds);
 }
 
-/** For a spec proving that a permission bit refuses a write; `src/SpecSkips.spec.ts` holds the exact list of its callers. */
+/** For a spec proving that a permission bit refuses a write; `architecture/SpecSkips.spec.ts` holds the exact list of its callers. */
 export function testWhenNotRunningAsRoot(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('not-root', claim, body, timeoutMilliseconds);
 }

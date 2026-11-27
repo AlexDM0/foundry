@@ -1197,7 +1197,7 @@ What a [lock hold](#lock-hold) must write, the change lists `BoardRecords` keeps
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES`, `ORIGINAL_PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
-| Hard-coded product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNameLiterals.spec.ts` |
-| Decided component names | every tracked file | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES`, `ORIGINAL_PRODUCT_NAMES` | `architecture/ProductNames.spec.ts` |
+| Hard-coded product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `architecture/ProductNameLiterals.spec.ts` |
+| Decided component names | every tracked file | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 | Derived display state | `src/lib/tracker-model/DisplayQueries.ts` | `displayStateFor` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |

@@ -36,9 +36,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
-    "test": "bun test",
+    "test": "bun test --path-ignore-patterns='architecture/**'",
+    "test:architecture": "bun test ./architecture",
     "versions:raise-minimum": "bun scripts/RaiseMinimum.ts",
-    "verify": "bun run typecheck && bun run lint && bun test"
+    "verify": "bun run typecheck && bun run lint && bun run test && bun run test:architecture"
   },
   "dependencies": {
     "system-versions": "workspace:^"

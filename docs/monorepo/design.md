@@ -96,7 +96,7 @@ libraries under `apps/gaia/page/lib/` (decision 52 of `hephaestus-talos.md`): `d
 with no manifest, with its own specs, description, lint rules and two TypeScript projects, which Gaia's scripts run. Code outside a
 library imports only its interface file (`DesignSystemInterface.ts`, `FlintInterface.ts`, `BrandInterface.ts`), and a page links only
 the stylesheets and fonts the library offers by path; inside a library a file imports exactly what it needs, reaches no other library
-and no Gaia file, and only the interface file re-exports. `apps/gaia/page/LibraryBoundaries.spec.ts` holds this. Gaia's own components
+and no Gaia file, and only the interface file re-exports. `apps/gaia/architecture/LibraryBoundaries.spec.ts` holds this. Gaia's own components
 are in `apps/gaia/page/components/`.
 
 The design system, with its own README and constitution, came from forge's design-system package. That reversed Gaia's
@@ -280,7 +280,7 @@ repository of two sibling trackers and a shared package, `src/testing/TwoTracker
 |---|---|
 | path mapping both ways, prefix `''` the identity | `src/shared/utils/ProjectPathsUtil.spec.ts`, `src/services/tracker/ProjectLocation.spec.ts` |
 | lookup from an agent worktree and a `.claude/worktrees` checkout, none from the root | `src/services/tracker/Workspace.projectLookup.spec.ts` |
-| git runs at a toplevel only | `src/GitRunsAtAToplevel.spec.ts` |
+| git runs at a toplevel only | `architecture/GitRunsAtAToplevel.spec.ts` |
 | Customs accepts home and reach, rejects the sibling's files and nested agent configuration | `src/services/lifecycle/Customs.projectScope.spec.ts` |
 | a sibling's journaled landing requeues silently, the lock serialises only the landing, a held main line clears on its own paths | `src/services/overseer/Airlocks.siblingTrackers.spec.ts` |
 | `init` refuses above and below and a held namespace | `cli/adoption/init/InitPlacement.spec.ts` |

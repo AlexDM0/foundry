@@ -49,11 +49,11 @@ names and the theme button shows, for the by-eye pass against the artboards.
   `page/shared/utils/ForgeVersionsTextUtil.spec.ts`); a forge's notice that names none is passed on as the forge worded it.
 - **A hover or a press changes colour, background, border colour, shadow, opacity, outline colour, text decoration or cursor only.**
   Nothing moves or changes size. The design system's press scale, which it leaves to its host, is set to 1 in `page/styles/tokens.css`
-  (`--press-scale: 1`), so its press shrinks nothing. `page/StyleContract.spec.ts` holds it for `gaia.css` ("no hover or press rule
+  (`--press-scale: 1`), so its press shrinks nothing. `architecture/StyleContract.spec.ts` holds it for `gaia.css` ("no hover or press rule
   changes a size or a place") and for the board's stylesheets ("no :hover or :active rule moves or resizes anything"), and holds that
   every transition and animation changes no size or place either.
 - **Both themes.** A screen is done when it matches its artboard in light and in dark. Every colour is a token with a light and a dark
-  value (`page/StyleContract.spec.ts`, "the tokens").
+  value (`architecture/StyleContract.spec.ts`, "the tokens").
 - **One primary per area.** An area (a list, a callout, a row, a panel, a dialog) has at most one orange primary button. Orange is work,
   what waits on User and that one primary button; crimson is a failure only and never a button. Stop is never red, and never
   primary except as the confirming "Stop" of a Stop question (A4's stop panel, B1's popover).
@@ -64,7 +64,7 @@ names and the theme button shows, for the by-eye pass against the artboards.
 - **"You" only for what waits on User:** "Waiting on you", "2 wait on you". Attention's lead reads "What waits on you across every forge,
   and the forges that need a look.", and the list of what waits is labelled "Waiting on you".
 - **Flint only in a forge.** Gaia draws Flint only in the forge route, one per forge, and calls no model (`.claude/rules/gaia.md` rule 12;
-  `page/PageImportDirection.spec.ts` holds that only `page/board/` imports Flint).
+  `architecture/PageImportDirection.spec.ts` holds that only `page/board/` imports Flint).
 
 ## The shell
 

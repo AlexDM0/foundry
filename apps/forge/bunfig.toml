@@ -1,6 +1,6 @@
 [test]
 preload = ["./src/testing/ProgramTrapGuard.ts", "./src/testing/TestRunReport.ts", "./src/testing/SharedCaseDeadlinePreload.ts", "./src/testing/RecordedBoundariesGuard.ts"]
-pathIgnorePatterns = ["**/*.integration.spec.ts"]
+pathIgnorePatterns = ["**/*.integration.spec.ts", "architecture/**"]
 
 [install]
 # The workspace keeps the one hoisted node_modules the tools resolve from; a lockfile of configVersion 1 would otherwise isolate it.

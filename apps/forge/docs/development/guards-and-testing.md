@@ -12,7 +12,7 @@ Rules here are code. Many rules in [forge's rules](../../../../.claude/rules/for
 that guard states the rule in full. If a spec failed, find it in the [guard catalogue](#guard-catalogue): the
 last column says what to change.
 
-![A four-row diagram of src/ImportDirection.spec.ts. Three blue rows, the floor, the planted violations and the exact-both-ways check, are bracketed together, and each rules out a false green: green on nothing, a blind finder, a stale exception. Only after all three does the green row, every violation list empty, count as a finding.](../figures/guards-and-testing/guard-anatomy.png)
+![A four-row diagram of architecture/ImportDirection.spec.ts. Three blue rows, the floor, the planted violations and the exact-both-ways check, are bracketed together, and each rules out a false green: green on nothing, a blind finder, a stale exception. Only after all three does the green row, every violation list empty, count as a finding.](../figures/guards-and-testing/guard-anatomy.png)
 
 *Three parts make an empty list mean something; read any guard by finding them.*
 
@@ -29,7 +29,7 @@ and so no DOM spec. [Changing the code](contributing.md) says when to run what.
 
 ## How to read a guard
 
-A guard has three parts before its real assertion. `src/ImportDirection.spec.ts` shows each, and its `describe` titles
+A guard has three parts before its real assertion. `architecture/ImportDirection.spec.ts` shows each, and its `describe` titles
 are the map.
 
 **The floor proves the scan read the tree.** `describe('the scan itself')` requires at least 1500 repository edges, at
@@ -69,27 +69,27 @@ Find the failing spec by its path; the group tells where it sits, and the last c
 ### Repository guards, `src/*.spec.ts`
 
 A spec directly in `src/` is the `repository-guard` layer: it imports nothing of the tree but a `testing/` folder. That
-is why `src/ProductNames.spec.ts` and `src/ProductNameLiterals.spec.ts` read the constant from source text.
+is why `architecture/ProductNames.spec.ts` and `architecture/ProductNameLiterals.spec.ts` read the constant from source text.
 
 Two programs can share a machine: the released `agent-progress` and this build, `forge`. Each reads its own
 root override variable, which names the repository to use; [cli.md](../cli.md) holds the variables.
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
-| `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
-| `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
-| `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
-| `src/TestFileConventions.spec.ts` | No `.test.ts`, `.spec.tsx` or `.dom.tsx`, no test code names `createProcessContext`, no spec starts a [Hephaestus](../glossary.md#hephaestus) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
-| `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
-| `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
-| `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
-| `src/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, a rule file under `.claude/rules/` or a file under `docs/` (except the untracked `docs/design/`) cites exists, except an exact list of citations that are absent on purpose. | Write the path of the file that holds the case now, in the same change as the rename or split. |
-| `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
-| `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
-| `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
-| `src/LineEndingPolicy.spec.ts` | The root's `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
-| `src/BunVersionPin.spec.ts` | The root's `.bun-version` equals the `@types/bun` version the root's `bun.lock` locks. | Change the pin with the lock. |
+| `architecture/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `architecture/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
+| `architecture/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
+| `architecture/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
+| `architecture/TestFileConventions.spec.ts` | No `.test.ts`, `.spec.tsx` or `.dom.tsx`, no test code names `createProcessContext`, no spec starts a [Hephaestus](../glossary.md#hephaestus) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
+| `architecture/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
+| `architecture/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
+| `architecture/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
+| `architecture/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, a rule file under `.claude/rules/` or a file under `docs/` (except the untracked `docs/design/`) cites exists, except an exact list of citations that are absent on purpose. | Write the path of the file that holds the case now, in the same change as the rename or split. |
+| `architecture/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
+| `architecture/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
+| `architecture/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
+| `architecture/LineEndingPolicy.spec.ts` | The root's `.gitattributes` holds the LF policy, git applies it to every tracked file, and no tracked text file holds a carriage return. | Restore the policy, or rewrite the named file with LF. |
+| `architecture/BunVersionPin.spec.ts` | The root's `.bun-version` equals the `@types/bun` version the root's `bun.lock` locks. | Change the pin with the lock. |
 
 ### Surface and behaviour guards, `cli/*.spec.ts`
 
@@ -136,7 +136,7 @@ These sit next to the code they guard.
 | --- | --- | --- |
 | `cli/hephaestus/HephaestusBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/hephaestus/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
-| `src/lib/talos/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
+| `architecture/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](hephaestus-claude-probe.md). |
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
@@ -148,7 +148,7 @@ These sit next to the code they guard.
 ## What ESLint holds
 
 A reach is one use of a process-wide API such as `process.env` or `localStorage`. ESLint confines reaches, which the
-type system cannot see. `bun run lint` proves the tree obeys, and `src/LintRules.spec.ts` proves the configuration: it
+type system cannot see. `bun run lint` proves the tree obeys, and `architecture/LintRules.spec.ts` proves the configuration: it
 runs the real `ESLint` over planted texts at governed paths, one for each violation form and each exact exception,
 without writing a file.
 
@@ -175,10 +175,10 @@ into config blocks that bind the same rule ids, so a later block replaces an ear
 | No `!` assertion; inline `type` imports; no `todo`, `fixme`, `xxx` or `hack` anywhere | All TypeScript |
 | `node:` protocol, full file extension | All TypeScript |
 
-`MECHANISED_RULE_IDS` lists the rules `src/LintRules.spec.ts` plants. The import-style rules and `exhaustive-deps` are
+`MECHANISED_RULE_IDS` lists the rules `architecture/LintRules.spec.ts` plants. The import-style rules and `exhaustive-deps` are
 outside it, so `bun run lint` alone holds those.
 
-> **As built.** An ESLint allowlist is not exact both ways. `src/LintRules.spec.ts` plants forms and exceptions, and
+> **As built.** An ESLint allowlist is not exact both ways. `architecture/LintRules.spec.ts` plants forms and exceptions, and
 > never checks that an `allowedIn` site exists, so the stale `process.cwd` entry above survives: see
 > stale prose in code.
 
@@ -188,12 +188,12 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 | text | read by | what breaks it |
 | --- | --- | --- |
-| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `src/ImportDirection.spec.ts`, also `src/lib/talos/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
+| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `architecture/ImportDirection.spec.ts`, also `architecture/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |
 | Commands and flags named in installed templates and skills | `cli/InstalledSurface.spec.ts` | Naming something outside the frozen surface of the current version. |
-| `name` and `bin` in `package.json` | `src/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
+| `name` and `bin` in `package.json` | `architecture/ProductNames.spec.ts` | Editing either without `PRODUCT_NAMES`. |
 
 ## What specs require of docs
 
@@ -201,8 +201,8 @@ Four specs read documentation, so a docs change can fail `bun test`, or `bun run
 
 | spec | what it requires |
 | --- | --- |
-| `src/ComponentNames.spec.ts` | No file of the folder walk in `src/testing/RepositorySources.ts` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
-| `src/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in the rule files under `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
+| `architecture/ComponentNames.spec.ts` | No file of the folder walk in `src/testing/RepositorySources.ts` holds a name in `RETIRED_NAMES`, as a substring of its path or text. Only binary suffixes, the spec itself, `.agent-progress/` and `docs/design/` are skipped, so `.svg` and `.html` count. `ALLOWED_RETIRED_NAMES` is empty. |
+| `architecture/ProseWrap.spec.ts` | Paragraph lines wrap at `PROSE_WIDTH_COLUMNS` in the rule files under `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, and the Markdown under the skills, `resources/templates/` and `resources/prompts/`. Table rows, fences, frontmatter and a lone code span are exempt. |
 | `cli/HelpText.flags.spec.ts` | Every option a handler accepts is in its help entry and its `docs/cli.md` row, and neither names one it refuses. `ENTRIES_DOCUMENTED_AS_ANOTHER` lists the one entry documented by reference. |
 | `cli/ReferenceCopies.spec.ts` | Each copy in `resources/templates/Reference.md` holds its `docs/cli.md` section byte for byte, and may add lines around it, never inside it. The sections are the ticket file, the ticket moves and the exit codes. Moving a heading breaks the match. |
 
@@ -255,7 +255,7 @@ A plain `bun test` refuses an integration spec even by path, so run one with
 
 A boundary ending in `/` is a package whose files all sit behind one port, recorded as one.
 
-`src/RealSystemSpecs.spec.ts` holds the split. A default spec may not call `Bun.spawn`, `Bun.spawnSync`, `Bun.serve`,
+`architecture/RealSystemSpecs.spec.ts` holds the split. A default spec may not call `Bun.spawn`, `Bun.spawnSync`, `Bun.serve`,
 `Bun.connect`, `Bun.listen`, `Bun.udpSocket`, `fetch`, `WebSocket`, `GitProcess.run` or the Bun shell (`Bun.$` or `$`), may not load a
 process or socket module, and may not import a helper export that does, such as `runAgentProgress` or `gitOutputIn`.
 Its `REAL_SYSTEM_ALLOWLIST` is empty, and a case holds it empty. An integration spec that
@@ -293,7 +293,7 @@ carries the most tests, and few claims need a real process.
 
 | tier | tests | how a spec works there | example |
 | --- | --- | --- | --- |
-| Static guards | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `src/ImportDirection.spec.ts` |
+| Static guards | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `architecture/ImportDirection.spec.ts` |
 | Pure logic | 2,024 | Model, util or decider, no disk | `src/lib/tracker-model/Board.spec.ts` |
 | Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
@@ -362,7 +362,7 @@ Every spec and test helper judged by concept: does its verdict depend on elapsed
 wait goes through `src/testing/WaitUntil.ts`, on the state itself, and every spec file runs on the one deadline in
 `src/testing/ChildProcessCaseTimeout.ts`, which `src/testing/SharedCaseDeadlinePreload.ts` applies, since a child is
 often reached through a helper. A deadline only ends a case that hangs; the verdict is the child's result or the
-state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the audit, a pointer rather than a contract.
+state. `architecture/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the audit, a pointer rather than a contract.
 
 | file | line | concept | outcome |
 | --- | --- | --- | --- |
@@ -407,7 +407,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 151 | elapsed time against the retry budget | Redesigned: the recorded lock waits are empty, under `lockRetryWaitsDuring`. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 56 | clock read | Kept: a clock an hour ahead shows that a record's age frees nothing; no verdict reads the time. |
 | `src/testing/FakeAgentAdapter.integration.spec.ts` | 103 | process signalled | Kept: the fake agent's crash is the claim, and its exit is awaited. |
-| `src/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
+| `architecture/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
 | `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/ScratchTalos.ts` puts each Talos board and monitor folder under such a folder. |
@@ -432,10 +432,10 @@ becomes an exit code a spec cannot tell from the command's own.
 
 | door | acts | lock | proved by |
 | --- | --- | --- | --- |
-| Changing directory | forbidden | `process.chdir` is allowed nowhere | `src/LintRules.spec.ts` |
-| The real process context | forbidden | Test code never names `createProcessContext` | `src/TestFileConventions.spec.ts` |
-| A board's real port | forbidden | A spec starting a Hephaestus passes `--port 0` | `src/TestFileConventions.spec.ts` |
-| The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `src/LintRules.spec.ts` |
+| Changing directory | forbidden | `process.chdir` is allowed nowhere | `architecture/LintRules.spec.ts` |
+| The real process context | forbidden | Test code never names `createProcessContext` | `architecture/TestFileConventions.spec.ts` |
+| A board's real port | forbidden | A spec starting a Hephaestus passes `--port 0` | `architecture/TestFileConventions.spec.ts` |
+| The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `architecture/LintRules.spec.ts` |
 | A command's directory | refused | `requireTrackerIsolation` in `createCapturedCommandContext`, `runAgentProgress` and `startAgentProgress`; also the `cwd` of a piped hook input | `cli/testing/CapturedCommandContext.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Discovery walking up, or the git common directory | refused | `trackerIsolationVerdictFor` runs `findWorkspace` and checks what it resolves | `src/testing/TrackerIsolation.integration.spec.ts` |
 | The root override's value | refused | `runAgentProgress` checks both programs' variables through `ROOT_OVERRIDE_VARIABLES`; `startAgentProgress` does not check them | `src/testing/TrackerIsolation.integration.spec.ts` |
@@ -545,7 +545,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 > `FakeAgentAdapter.ts` imports `ClaudeStreamLines.ts` rather than the vendor adapter, so the
 > vendor seam holds.
 
-**No DOM specs.** forge has no page. `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which `bun test` would run
+**No DOM specs.** forge has no page. `architecture/TestFileConventions.spec.ts` bans a `.spec.tsx`, which `bun test` would run
 without a DOM, and a `.dom.tsx`, which nothing runs.
 
 **Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. Only
@@ -597,8 +597,8 @@ of its own; every other testing folder keeps the layer of its parent.*
 | --- | --- | --- | --- |
 | Import scan | `src/testing/ImportGraph.ts` | `createImportGraphScanner`, `graphWithPlantedFiles` | `src/testing/ImportGraph.spec.ts` |
 | Source scan | `src/testing/RepositorySources.ts` | `repositoryTypeScriptSources` | the guards using it |
-| Layer table | `src/ImportDirection.spec.ts` | `LAYER_REACH`, `TESTING_FOLDER_IMPORTERS` | itself |
-| Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `src/LintRules.spec.ts` |
+| Layer table | `architecture/ImportDirection.spec.ts` | `LAYER_REACH`, `TESTING_FOLDER_IMPORTERS` | itself |
+| Confined reaches | `eslint.config.js` | `CONFINED_REACHES`, `confinedReachRules` | `architecture/LintRules.spec.ts` |
 | Scratch directories | `src/testing/ScratchWorkspace.ts` | `createScratchDirectory`, `createScratchGitRepository`, `addWorktree` | used by every disk spec |
 | Isolation check | `src/testing/TrackerIsolation.ts` | `trackerIsolationVerdictFor`, `requireTrackerIsolation` | `src/testing/TrackerIsolation.integration.spec.ts` |
 | In-process commands | `cli/testing/CapturedCommandContext.ts` | `createCapturedCommandContext` | `cli/testing/CapturedCommandContext.spec.ts` |

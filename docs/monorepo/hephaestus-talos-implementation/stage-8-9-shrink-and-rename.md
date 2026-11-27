@@ -135,7 +135,7 @@ Paths are from the repository root. "Stage 8" and "Stage 9" name the stage that 
 | The Bridge bundle build and the page files | `OverseerServer.ts:485-532`, `:583`, `:630` | Stage 8: deleted |
 | The page CSP with `frame-ancestors` on every answer | `OverseerServer.ts:184-188`, `:587-591`, `:641-651` | Stage 8: replaced by one fixed deny-all policy; the sandbox policy of pictures and job files stays |
 | Flint's ask route | `OverseerServer.ts:87-88`, `:181-182`, `:320-333`, `:577`; `apps/forge/cli/overseer/routes/OverseerRoutes.ts:125-129` | Stage 8: deleted |
-| The Bridge's HTML import, the one feature reach | `OverseerRoutes.ts:11`, `:178`; `apps/forge/src/ImportDirection.spec.ts:135-136` | Stage 8: deleted |
+| The Bridge's HTML import, the one feature reach | `OverseerRoutes.ts:11`, `:178`; `apps/forge/architecture/ImportDirection.spec.ts:135-136` | Stage 8: deleted |
 | Frame origins read from the frame-ancestor records | `apps/forge/cli/overseer/routes/FrameOrigins.ts:1-49`, `OverseerRoutes.ts:39`, `:177` | Stage 8: deleted |
 | Refusal sentences of the server | `OverseerRoutes.ts:51-57` | Stage 8: changed: no page, no session, no page build |
 | The command route with Flint's brain's kinds | `apps/forge/cli/overseer/routes/CommandRoute.ts:1-8`, `:41-42`, `:54-55`, `:126-144` | Stage 8: changed: the brain's kinds go |
@@ -157,11 +157,11 @@ Paths are from the repository root. "Stage 8" and "Stage 9" name the stage that 
 | The Bridge route writer | `apps/forge/src/shared/monitor/utils/BridgeFragmentUtil.ts`, read at `MonitorSnapshotAssembly.ts:212-215` and in `apps/forge/bridge/` | Stage 8: the monitor document carries the typed target, and the util is deleted (WP8.2) |
 | The Bridge | `apps/forge/bridge/` (607 tracked files today) | Stage 8: whatever stage 6 left is deleted |
 | What exists only for the Bridge | `apps/forge/package.json:10-20`, `:26-32`; `apps/forge/eslint.config.js:11-12`, `:92-93`, `:127`; `ImportDirection.spec.ts:117-123`, `:136`, `:172`, `:284`, `:609-802`; `apps/forge/src/testing/BoundarySpecs.ts:22`, `:139`, `:146-151`; `apps/forge/src/testing/recordings/darwin/bridge__*.json`; `apps/forge/.readme-graphics/` | Stage 8: deleted or changed |
-| The client-name guard's scan proof | `apps/forge/src/ClientNames.spec.ts:26`, `:44-45` | Stage 8: changed (fewer than 1,000 shipped files remain); stage 9: changed (renamed paths) |
+| The client-name guard's scan proof | `apps/forge/architecture/ClientNames.spec.ts:26`, `:44-45` | Stage 8: changed (fewer than 1,000 shipped files remain); stage 9: changed (renamed paths) |
 | The Bridge's rules | `.claude/rules/bridge.md`; `apps/forge/CLAUDE.md:59-62`, `:76-78`, `:221-224`, `:268-273`, `:326`, `:342`, `:350-352` | Stage 8: deleted or changed (WP8.2) |
-| The three UI packages | `packages/design-system/` (305 tracked files, 80 entries in its `exports`, `CONSTITUTION.md`, Storybook), `packages/flint/` (537, 5 entries), `packages/brand/` (20, 3 entries); each with `package.json`, `tsconfig.json`, `tsconfig.spec.json`, `eslint.config.js`, `PackageIsolation.spec.ts`, a DOM runner and `README.md` | Stage 8: moved to `apps/gaia/page/lib/` (WP8.13) |
+| The three UI packages | `packages/design-system/` (305 tracked files, 80 entries in its `exports`, `CONSTITUTION.md`, Storybook), `packages/flint/` (537, 5 entries), `packages/brand/` (20, 3 entries); each with `package.json`, `tsconfig.json`, `tsconfig.spec.json`, `eslint.config.js`, `architecture/PackageIsolation.spec.ts`, a DOM runner and `README.md` | Stage 8: moved to `apps/gaia/page/lib/` (WP8.13) |
 | Gaia's own components | `apps/gaia/page/design-system/` (19 files: `GaiaMark`, `BrandBar`, `BrainChip`, `ListCard`, `Refusal` and others) | Stage 8: `BrainChip` deleted (WP8.5); the folder becomes `page/components/` (WP8.13) |
-| How Gaia reaches the packages | `apps/gaia/package.json` dependencies; `apps/gaia/page/index.html:8-9` (the two stylesheets by package name); `apps/gaia/resources/page/loading.html:8`, `:21`, `:29` (tokens and fonts through `node_modules/design-system/`); `apps/gaia/page/Main.tsx:6`; `apps/gaia/page/testing/ReactElementTree.ts:27-44` (reads the package's `exports`); `apps/gaia/page/DesignSystemPackage.spec.tsx`; `apps/gaia/src/WorkspaceDependencies.spec.ts` | Stage 8: changed (WP8.13) |
+| How Gaia reaches the packages | `apps/gaia/package.json` dependencies; `apps/gaia/page/index.html:8-9` (the two stylesheets by package name); `apps/gaia/resources/page/loading.html:8`, `:21`, `:29` (tokens and fonts through `node_modules/design-system/`); `apps/gaia/page/Main.tsx:6`; `apps/gaia/page/testing/ReactElementTree.ts:27-44` (reads the package's `exports`); `apps/gaia/page/DesignSystemPackage.spec.tsx`; `apps/gaia/architecture/WorkspaceDependencies.spec.ts` | Stage 8: changed (WP8.13) |
 | The rules of the packages | `.claude/rules/design-system.md`, `.claude/rules/flint.md` (each scoped to `packages/<name>/**`); root `CLAUDE.md:13-28` (the package and tracker tables); `apps/gaia/CLAUDE.md:15-17`, `:60-91`, `:95-96`, `:111-112`; root `README.md:127-129`; `docs/monorepo/design.md:39-42`, `:98-116` | Stage 8: changed (WP8.13) |
 | The Assistant's boot rule | `apps/forge/src/lib/tracker-model/Playbook.ts:773-784` | Stage 8: changed: it boots only while the board's switch is on |
 | The `no-assistant` default | `Playbook.ts:731-740`; `apps/forge/src/lib/tracker-model/@types/Incident.ts:34-35`; `constants/DecisionAndIncidentVocabulary.ts:60`; `LogUtil.ts:357`; `apps/forge/src/shared/monitor/utils/NoticeWordingUtil.ts:24-27` | Stage 8: kept, beside a new cause `assistant-off` |
@@ -193,7 +193,7 @@ Paths are from the repository root. "Stage 8" and "Stage 9" name the stage that 
 | The registry entry key Gaia reads | `apps/forge/src/services/tracker/MonitorRegistration.ts:38`, `:62`, `:114-117`; `apps/forge/src/services/tracker/constants/MonitorRegistryFiles.ts:6`; `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:32-59`; `ContractVersions.ts:14` | Stage 9: renamed, registry version raised once |
 | Document keys and types naming the Overseer | `packages/forge-contracts/@types/BoardSummaryDocument.ts:7-29`; `MonitorSnapshotDocument.ts:27-30`, `:156`; `apps/gaia/page/@types/FleetDocument.ts:176` | Stage 9: renamed |
 | The installed surface | `apps/forge/cli/constants/InstallVersion.ts:1` (36); `apps/forge/cli/FrozenInstalledSurface.json` (keys 1 to 36); `apps/forge/cli/adoption/FrozenClaudeInstall.json`; `apps/forge/resources/templates/`, `apps/forge/skills/` | Stages 8 and 9: version raised once each; a new frozen key; the older keys kept |
-| The retired-name guard | `apps/forge/src/ComponentNames.spec.ts:21` (`UNSCANNED_FOLDERS`), `:28-63`, `:66`, `:77-86`, `:93-98` | Stages 8 and 9: changed |
+| The retired-name guard | `apps/forge/architecture/ComponentNames.spec.ts:21` (`UNSCANNED_FOLDERS`), `:28-63`, `:66`, `:77-86`, `:93-98` | Stages 8 and 9: changed |
 | Gaia's Overseer names | `apps/gaia/src/lib/forge-client/OverseerFetch*.ts`; `apps/gaia/src/adapters/forge-api/OverseerTokenFile.ts`; `apps/gaia/src/testing/recordings/darwin/overseer-fetch-*.json`; `BoundaryRecordings.ts:89-111`; `apps/gaia/src/testing/RecordedAnswers.ts:107-113`; `apps/gaia/CLAUDE.md:49` | Stage 9: renamed |
 | Records that keep the old name | `docs/monorepo/` (design, migration, research); `FrozenInstalledSurface.json` keys up to the last install version; `apps/forge/src/lib/claude-code/testing/fixtures/*.jsonl` (recorded vendor output); `apps/forge/docs/research/` (3 files); `ProductNames.ts:30` | Stage 9: kept, named in the checks |
 
@@ -227,7 +227,7 @@ Files to change:
   `STATUS_OF_SERVER_REFUSAL` (`:198`), and the `HTMLBundle` import (`:13`).
 - `apps/forge/cli/overseer/routes/OverseerRoutes.ts`: delete the `bridgePage` import (`:11`), `page: bridgePage`
   (`:178`) and the `page-build-failed` sentence (`:55`); reword the file header (`:1-7`).
-- `apps/forge/src/ImportDirection.spec.ts`: `FEATURE_REACHES_BY_PATH` (`:135-136`) becomes empty, and the planted
+- `apps/forge/architecture/ImportDirection.spec.ts`: `FEATURE_REACHES_BY_PATH` (`:135-136`) becomes empty, and the planted
   cases at `:716-722` that depend on the allowed reach change to prove that any import of `bridge/index.html` from
   `cli/` is refused. If the exact-both-ways allowlist must not be empty, delete the constant and its check.
 - `apps/forge/CLAUDE.md`: delete the Deviations row "A feature never reaches another" (`:342`).
@@ -277,21 +277,21 @@ Files to change:
 - `apps/forge/.readme-graphics/README.md`: only the diagrams section stays; the screenshot pipeline goes.
 - `apps/forge/eslint.config.js`: delete the browser-storage rule (`:11-12`), the Bridge test globs (`:92-93`) and the
   `bridge/**` block (`:127` onward); keep every other rule.
-- `apps/forge/src/ImportDirection.spec.ts`: delete the `bridge/` entries of the testing allowlist (`:117`, `:122-123`),
+- `apps/forge/architecture/ImportDirection.spec.ts`: delete the `bridge/` entries of the testing allowlist (`:117`, `:122-123`),
   the feature list's `bridge/`, the DOM-suite note (`:172`), the view-folder rule and its planted cases (`:284`,
   `:645`, `:656`, `:710-794`), and the `design-system` and `flint` package cases (`:609`, `:772-802`), which forge does
   not declare after this package. The scan's proof that it read the tree keeps a lower bound that still holds.
-- `apps/forge/src/TestFileConventions.spec.ts`: `DOM_SPEC_FOLDERS` (`:19`) loses `bridge/`; forge has no DOM spec left,
+- `apps/forge/architecture/TestFileConventions.spec.ts`: `DOM_SPEC_FOLDERS` (`:19`) loses `bridge/`; forge has no DOM spec left,
   so the constant and its check go if nothing else is listed; the header (`:2-3`) and the note at `:87` follow.
-- `apps/forge/src/ClientNames.spec.ts:26`: lower `SMALLEST_SHIPPED_FILE_COUNT` to a bound under the new count (about
+- `apps/forge/architecture/ClientNames.spec.ts:26`: lower `SMALLEST_SHIPPED_FILE_COUNT` to a bound under the new count (about
   840 shipped files remain today, 1,199 less the 360 in `bridge/`; measure with the spec's own `isShipped`), and drop
   paths that do not exist from `:45` (`cli/overseer/routes/FrameOrigins.ts` stays until WP8.6).
-- `apps/forge/src/ComponentNames.spec.ts:81`: forge scans `design-system/CONSTITUTION.md` and `flint/package.json`
+- `apps/forge/architecture/ComponentNames.spec.ts:81`: forge scans `design-system/CONSTITUTION.md` and `flint/package.json`
   only while it declares the two packages; replace them with a file of a package forge still declares
   (`forge-contracts/package.json`).
-- Every other guard that names `bridge/`: `src/LintRules.spec.ts`, `src/PlatformBoundary.spec.ts`,
-  `src/ProductNameLiterals.spec.ts`, `src/RealSystemSpecs.spec.ts`, `src/SpecSkips.spec.ts`, `src/SpecSleeps.spec.ts`,
-  `src/SpecsOpenNoPage.spec.ts`, `src/UtilShape.spec.ts`, `src/services/overseer/CodeVersion.spec.ts`,
+- Every other guard that names `bridge/`: `architecture/LintRules.spec.ts`, `architecture/PlatformBoundary.spec.ts`,
+  `architecture/ProductNameLiterals.spec.ts`, `architecture/RealSystemSpecs.spec.ts`, `architecture/SpecSkips.spec.ts`, `architecture/SpecSleeps.spec.ts`,
+  `architecture/SpecsOpenNoPage.spec.ts`, `architecture/UtilShape.spec.ts`, `src/services/overseer/CodeVersion.spec.ts`,
   `src/testing/ImportGraph.ts`, `src/testing/ImportGraph.spec.ts`, `src/testing/BoundaryRecordings.ts`,
   `src/testing/CheckRecordingStamps.integration.spec.ts`, `cli/tracking/range/RangeCommand.spec.ts`,
   `src/services/control/BoardLifetimeControls.ts`. Remove each `bridge/` entry; every allowlist stays exact both ways.
@@ -311,7 +311,7 @@ What to do:
 3. Search: `git grep -n -i "bridge" -- apps/forge ':!apps/forge/docs' ':!*.md'` prints only the word in wording that
    WP8.12 rewrites (refusal sentences, comments), and no path.
 4. Between this package and WP8.13 the three packages are workspaces no app outside Gaia declares; each keeps its own
-   `PackageIsolation.spec.ts`, run by its own workspace (Traps).
+   `architecture/PackageIsolation.spec.ts`, run by its own workspace (Traps).
 
 Specs: no new spec. Each changed guard still proves its scan found files and still fails on a planted case of each
 form it keeps.
@@ -348,7 +348,7 @@ and the root is green.
 ### WP8.4 Remove `forge open` and the `progress.html` stub
 
 Purpose: decision 43. No forge command opens a page or writes a pointer to one; the user opens Gaia and picks the
-forge, and forge names no client (`apps/forge/src/ClientNames.spec.ts:1-5`). Forge's help and its agents'
+forge, and forge names no client (`apps/forge/architecture/ClientNames.spec.ts:1-5`). Forge's help and its agents'
 instructions name no board page. Runs after WP8.2; beside WP8.5.
 
 Files to delete: `apps/forge/cli/tracking/open/` (OpenCommand, OpenThroughARedirectFile and their specs);
@@ -359,7 +359,7 @@ the guards below and `docs/development/`
 (`git grep -ln "openerFor\|OpenerFor\|Opener\b" -- apps/forge`);
 `apps/forge/src/testing/recordings/*/cli__OpenInTheDefaultBrowser.ts.json`;
 `apps/forge/src/adapters/progress-page/` (the stub writer and its spec);
-`apps/forge/cli/adoption/WriteProgressPageStub.ts`. `apps/forge/src/SpecsOpenNoPage.spec.ts` stays: it also refuses any
+`apps/forge/cli/adoption/WriteProgressPageStub.ts`. `apps/forge/architecture/SpecsOpenNoPage.spec.ts` stays: it also refuses any
 spec that starts an opener program (`open`, `xdg-open`, the Windows handler) through a process start or a shell tag
 (`:17-30`); drop only its reaches through `openInTheDefaultBrowser`, `openCommand`, the `open` command line and
 `openerFor`, with their planted cases and the header sentence (`:1-8`) that names them.
@@ -382,7 +382,7 @@ Files to change:
   (`git grep -n "progressHtml\|progressJson" -- apps packages ':!*.spec.ts' ':!*.json'` names only the writer). The
   registry's format version stays until stage 9 raises it once (WP9.2); Gaia's reader passes the missing keys by.
 - `apps/forge/src/testing/BoundarySpecs.ts:142`, `src/testing/RecordedBoundaryCommands.ts`, `BoundaryRecordings.ts`,
-  `src/PlatformBoundary.spec.ts`: the opener's boundary and its allowlisted platform reads go.
+  `architecture/PlatformBoundary.spec.ts`: the opener's boundary and its allowlisted platform reads go.
 - `apps/forge/src/testing/RecordedOverseerFetch.ts:226-236`: the `session-codes` and `session` call shapes stay until
   WP8.6, which deletes them with the routes.
 - `apps/forge/CLAUDE.md`: the Runtime sentence on `openerFor` (`:142-143`); the Tests rule "A spec never opens a
@@ -478,7 +478,7 @@ Files to change:
   call shapes and the session-cookie branch of `readerIsAuthorized`.
 - `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:45` and `ForgeCompatibilityRegistry.spec.ts:29`,
   `:53-55`: `session-codes` leaves the registry and the spec's lists.
-- `apps/forge/src/ClientNames.spec.ts:45`: drop `cli/overseer/routes/FrameOrigins.ts`.
+- `apps/forge/architecture/ClientNames.spec.ts:45`: drop `cli/overseer/routes/FrameOrigins.ts`.
 - `apps/forge/src/shared/constants/OverseerLimits.ts:120`: delete `SESSION_CODE_LIFETIME_SECONDS` (read by
   `BrowserSessions.ts:8` until now).
 - `apps/forge/docs/reference/overseer-api.md`: the route table rows for `session-codes`, `session`, `session-token`
@@ -551,7 +551,7 @@ Files to change:
   (`git grep -n "availableTools === 'none'\|availableTools: 'none'" -- apps/forge`).
 - The vendor records of a brain turn stay as recorded:
   `apps/forge/src/lib/claude-code/ClaudeStreamFixtures.spec.ts:165-167`,
-  `src/testing/fake-agent/RecordedClaudeLines.ts:23`, `ClaudeWireRecorder.ts:19-25`, `src/PlatformProbes.spec.ts:74`,
+  `src/testing/fake-agent/RecordedClaudeLines.ts:23`, `ClaudeWireRecorder.ts:19-25`, `architecture/PlatformProbes.spec.ts:74`,
   `.platform-probes/claude-p22-flint-brain-turn.js` and the `flint-brain-turn` scenario in
   `src/testing/recordings/darwin/src__testing__fake-agent.json`. They record the vendor's answer to a tool-less,
   structured-output turn.
@@ -854,7 +854,7 @@ Bridge"; wording in `apps/forge/src` and `apps/forge/cli` that names the Bridge
 line), `:46-48` (the component list), `:71` (the tracker model is DOM-safe for the Bridge's project), `:90-92` (a
 sentence names "the Bridge control"), `:404` (no Bridge control for an entity move), `:419` (the Bridge reads rows as
 bars); Gaia's `docs/architecture.md`, `docs/forge-requirements.md`, `docs/backlog.md`;
-`apps/forge/src/ComponentNames.spec.ts`.
+`apps/forge/architecture/ComponentNames.spec.ts`.
 
 What to do:
 1. A sentence an API, a monitor or an agent shows names a neutral action and no surface, since forge names no client:
@@ -863,13 +863,13 @@ What to do:
 2. New system text (the rule, the installed texts) is written in ASD-STE100 (`apps/forge/CLAUDE.md:293-294`); human
    documentation is not.
 3. Leave `apps/forge/docs/research/` as written: it records findings at a date.
-4. Wrap prose at 120 columns; `src/ProseWrap.spec.ts` holds the files it lists.
-5. `apps/forge/src/ComponentNames.spec.ts`: add `'Bridge'` and `'bridge/'` to `RETIRED_NAMES` (`:28-63`) with a planted
+4. Wrap prose at 120 columns; `architecture/ProseWrap.spec.ts` holds the files it lists.
+5. `apps/forge/architecture/ComponentNames.spec.ts`: add `'Bridge'` and `'bridge/'` to `RETIRED_NAMES` (`:28-63`) with a planted
    case each, and `'docs/research/'` to `UNSCANNED_FOLDERS` (`:21`). The guard matches substrings and scans forge and
    the packages it declares; first rename every identifier that holds the word (`git grep -n "Bridge" -- apps/forge
    packages/forge-contracts packages/system-versions`), each new name checked against the retired names.
 
-Specs: `cli/ReferenceCopies.spec.ts`, `src/ProseWrap.spec.ts`, `cli/HelpText.spec.ts` pass; `ComponentNames.spec.ts`
+Specs: `cli/ReferenceCopies.spec.ts`, `architecture/ProseWrap.spec.ts`, `cli/HelpText.spec.ts` pass; `ComponentNames.spec.ts`
 catches a planted `Bridge` and `bridge/` and passes without them.
 
 Done when: `git grep -n -w "Bridge" -- apps/forge ':!apps/forge/docs/research'` prints nothing; this prints nothing:
@@ -915,7 +915,7 @@ Files to create:
   `styles/brand.css` stays a linked file.
 - `apps/gaia/page/lib/brand/testing/RunDomSpecs.ts`, the runner the other two libraries have, in place of brand's
   inline `test:dom` line, so Gaia runs every library's DOM specs alike.
-- `apps/gaia/page/LibraryBoundaries.spec.ts`, the guard: (1) each folder of `page/lib/` has exactly one interface file
+- `apps/gaia/architecture/LibraryBoundaries.spec.ts`, the guard: (1) each folder of `page/lib/` has exactly one interface file
   `<Name>Interface.ts` at its root, a `README.md`, at least one spec, and no `package.json`; (2) a module of Gaia
   outside `page/lib/<name>/` (`page/`, `src/`, `resources/`) that imports a file under it imports exactly its interface
   file, and an HTML or CSS link into a library names only the files that library lists as linkable (design-system's
@@ -949,17 +949,17 @@ Files to change:
 - Specs that read a package's `exports` map read the interface file's exports: `page/testing/ReactElementTree.ts:27-44`
   (every component the design-system library exports stays folded); `page/DesignSystemPackage.spec.tsx` becomes
   `page/DesignSystemLibrary.spec.tsx`; design-system's `StoryCoverage.spec.ts` (a story per export); brand's
-  `PackageExports.spec.ts` becomes `InterfaceExports.spec.ts`; `src/WorkspaceDependencies.spec.ts` (the three are no
+  `PackageExports.spec.ts` becomes `InterfaceExports.spec.ts`; `architecture/WorkspaceDependencies.spec.ts` (the three are no
   workspace packages: a bare `design-system/…` specifier is a finding).
-- Gaia's guards that walk `page/` and would now read the libraries: `page/StyleContract.spec.ts` (Gaia's stylesheets
-  style the classes of `page/components/` and Gaia's views, never a library class), `page/PageImportDirection.spec.ts`
+- Gaia's guards that walk `page/` and would now read the libraries: `architecture/StyleContract.spec.ts` (Gaia's stylesheets
+  style the classes of `page/components/` and Gaia's views, never a library class), `architecture/PageImportDirection.spec.ts`
   (`components` takes the place of `design-system` in `FORBIDDEN_IMPORTS`),
   `src/features/page-server/routes/PageFilesRoute.spec.ts` (the fonts come from `page/lib/design-system/fonts/`). A
   library's own rules govern its folder; a Gaia guard skips `page/lib/` only where a library spec holds the same
   concern.
 - Each library's `README.md` and design-system's `CONSTITUTION.md`: a library of Gaia's page, reached through its
   interface file, its tooling run by Gaia's scripts; no `package.json`, `exports` map or workspace in the text. The
-  libraries stay free of host words (`PackageIsolation.spec.ts`'s `HOST_WORDS`).
+  libraries stay free of host words (`architecture/PackageIsolation.spec.ts`'s `HOST_WORDS`).
 - `.claude/rules/design-system.md`: `paths` is `apps/gaia/page/lib/design-system/**`; the text says the library, its
   interface file, `LibraryBoundaries.spec.ts`, the two projects Gaia's typecheck runs, `bun run storybook:design-system`
   in `apps/gaia/`, the DOM runner, and the board's state-tone util at the path stage 6 gave it.
@@ -983,7 +983,7 @@ What to do:
 5. Rules and descriptions last.
 
 Specs: `LibraryBoundaries.spec.ts` with its planted cases; every library spec passes under Gaia's `bun test`
-(`PackageIsolation.spec.ts`, `ProjectIncludeList.spec.ts`, `LintRules.spec.ts`, `CompositionLayers.spec.ts`,
+(`architecture/PackageIsolation.spec.ts`, `ProjectIncludeList.spec.ts`, `LintRules.spec.ts`, `CompositionLayers.spec.ts`,
 `StoryCoverage.spec.ts`, `AnimationModules.spec.ts` and the rest) and every library DOM spec under Gaia's
 `bun run test:dom`; `ReactElementTree`'s spec still folds every library component.
 
@@ -1040,7 +1040,7 @@ What to do:
    `apps/forge/cli/FrozenInstalledSurface.json` (its older keys are records; WP9.4 adds the new key);
    `apps/forge/src/lib/claude-code/testing/fixtures/*.jsonl` (vendor output); the one line of
    `apps/forge/src/shared/constants/ProductNames.ts` holding `com.agent-progress.overseer` (the released program's
-   label); `apps/forge/src/ComponentNames.spec.ts` (WP9.5 edits it by hand); binary files.
+   label); `apps/forge/architecture/ComponentNames.spec.ts` (WP9.5 edits it by hand); binary files.
 
 Done when: the scripts run in dry mode in the worktree and list counts within a few percent of the measured ones;
 `git status` in the worktree shows no change.
@@ -1167,11 +1167,11 @@ What to do:
    code lines over 180 columns and comment lines over 155 (each rename adds two or three characters), and any aligned
    column the fixer does not move.
 4. Fix the guards whose expectations name paths, without adding the retired names yet:
-   `apps/forge/src/ComponentNames.spec.ts:77-86` expects `src/services/hephaestus/` and keeps `CLAUDE.md` containing
+   `apps/forge/architecture/ComponentNames.spec.ts:77-86` expects `src/services/hephaestus/` and keeps `CLAUDE.md` containing
    `Overseer` until WP9.3 (then `Hephaestus`); the planted case at `:97` uses `src/services/hephaestus/Example.ts`;
-   `src/ClientNames.spec.ts:45` the renamed reference path; `src/ImportDirection.spec.ts:51`, `:80`, `:97`, `:121`
-   the layer `hephaestus-service`; `src/PlatformBoundary.spec.ts`, `src/RealSystemSpecs.spec.ts`,
-   `src/TestFileConventions.spec.ts:130-146` (the planted start uses `start --foreground`);
+   `architecture/ClientNames.spec.ts:45` the renamed reference path; `architecture/ImportDirection.spec.ts:51`, `:80`, `:97`, `:121`
+   the layer `hephaestus-service`; `architecture/PlatformBoundary.spec.ts`, `architecture/RealSystemSpecs.spec.ts`,
+   `architecture/TestFileConventions.spec.ts:130-146` (the planted start uses `start --foreground`);
    `src/testing/BoundarySpecs.ts`;
    `cli/HatchUnderJob.spec.ts`, `cli/ControlContract.spec.ts`, `cli/CommandTable.spec.ts`, `cli/HelpText.flags.spec.ts`.
 5. Retake each frozen table whose subject the rename changed, by the retake procedure its spec states, never by hand:
@@ -1208,7 +1208,7 @@ What to do:
 2. Read every changed sentence of the rules files and the installed texts; read a sample of 50 changed sentences
    across the documents. Fix grammar the rules could not see ("a Hephaestus", "Hephaestus's"), and any `oversees` or
    `overseeing` the word rules left.
-3. Rewrap every changed Markdown paragraph at 120 columns; `src/ProseWrap.spec.ts` holds the files it lists, and the
+3. Rewrap every changed Markdown paragraph at 120 columns; `architecture/ProseWrap.spec.ts` holds the files it lists, and the
    rename lengthens lines.
 4. Figures: `apps/forge/docs/figures/hephaestus-api/` moved in WP9.2. Open every PNG under `apps/forge/docs/figures/`
    and `apps/forge/docs/images/` and read its pixels. A diagram of `docs/images/` with an SVG source is edited in its
@@ -1216,7 +1216,7 @@ What to do:
    "Overseer" is drawn again as an SVG kept beside its PNG, rendered the same way; one that cannot be drawn again
    faithfully is deleted with its reference, and its document says in text what it showed.
 
-Specs: `src/ProseWrap.spec.ts`, `cli/ReferenceCopies.spec.ts`, `cli/HelpText.spec.ts` pass.
+Specs: `architecture/ProseWrap.spec.ts`, `cli/ReferenceCopies.spec.ts`, `cli/HelpText.spec.ts` pass.
 
 Done when: `check.ts` lists only the exclusions; the root is green.
 
@@ -1259,7 +1259,7 @@ Purpose: the guards keep the old names out, the check proves none is left, and t
 alone, after WP9.4.
 
 What to do:
-1. `apps/forge/src/ComponentNames.spec.ts`: add `'Oversee'`, `'oversee'` and `'OVERSEE'` to `RETIRED_NAMES` (`:28-63`);
+1. `apps/forge/architecture/ComponentNames.spec.ts`: add `'Oversee'`, `'oversee'` and `'OVERSEE'` to `RETIRED_NAMES` (`:28-63`);
    each substring also covers `Overseer`, `overseer` and `OVERSEER`. Add `'watcher-lost'`, which the rename turned into
    `talos-lost` (N7), and change the planted case that holds `watcher-lost` as allowed (`ComponentNames.spec.ts:97`) to
    plant it as caught. `ALLOWED_RETIRED_NAMES` (`:66`) gets exactly these entries, each a file the guard scans:
@@ -1338,7 +1338,7 @@ Removed: `POST /api/session-codes`, `POST /api/session`, `GET /api/session-token
   `apps/gaia/page/lib/brand/BrandInterface.ts`: the only modules code outside a library imports from it. Linkable files:
   `page/lib/design-system/styles/design-system.css`, `styles/tokens.css`, `fonts/**`; `page/lib/brand/styles/brand.css`.
 - `apps/gaia/page/components/`: Gaia's own components.
-- `apps/gaia/page/LibraryBoundaries.spec.ts`: the guard of section 1 of the design.
+- `apps/gaia/architecture/LibraryBoundaries.spec.ts`: the guard of section 1 of the design.
 - `apps/gaia/package.json` scripts: `typecheck`, `lint`, `lint:fix` and `test:dom` cover the libraries;
   `storybook:design-system`, `storybook:brand`.
 - `packages/` holds `forge-contracts` and `system-versions`.
@@ -1434,11 +1434,11 @@ unless an earlier stage raised them), and each format of stages 2 and 3 that nam
 ## Traps
 
 - **The ClientNames scan proof breaks when the Bridge goes.** `SMALLEST_SHIPPED_FILE_COUNT` is 1,000
-  (`apps/forge/src/ClientNames.spec.ts:26`); forge ships 1,199 such files today, 360 of them in `bridge/`. Lower the
+  (`apps/forge/architecture/ClientNames.spec.ts:26`); forge ships 1,199 such files today, 360 of them in `bridge/`. Lower the
   bound in WP8.2 to one the new count passes with margin, not to zero.
 - **The packages lose forge's guards before they move.** `ImportDirection.spec.ts` and `ComponentNames.spec.ts` scan
   `design-system` and `flint` because forge declares them (`apps/forge/src/testing/RepositorySources.ts:206-214`).
-  Between WP8.2 and WP8.13 their isolation is held only by each package's own `PackageIsolation.spec.ts`; keep the two
+  Between WP8.2 and WP8.13 their isolation is held only by each package's own `architecture/PackageIsolation.spec.ts`; keep the two
   packages close together in the schedule, and do not move forge's guard to cover them.
 - **ESLint 9 reads one configuration per run.** Run from `apps/gaia/`, it reads Gaia's `eslint.config.js` and never a
   library's. Gaia's lint ignores `page/lib/**`, and each library is linted from its own folder, where its own file is
@@ -1567,7 +1567,7 @@ The specs that matter most, each in its workspace folder:
 - `packages/forge-contracts`: `bun test` (the registry and the contract integers).
 - `apps/gaia`: `bun test src/features/page-server/PageServer.spec.ts
   src/adapters/forge-api/MonitorSnapshotIngestion.spec.ts src/shared/constants/ContractVersions.reference.spec.ts
-  src/testing/RecordedAnswers.spec.ts page/LibraryBoundaries.spec.ts page/lib`, then `bun run test:dom` and
+  src/testing/RecordedAnswers.spec.ts architecture/LibraryBoundaries.spec.ts page/lib`, then `bun run test:dom` and
   `bun run check`.
 
 The end-to-end check on a scratch forge, which Gaia's rules name (`apps/gaia/CLAUDE.md:18-20`, `:139-150`):

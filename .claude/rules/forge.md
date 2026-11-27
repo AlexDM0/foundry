@@ -39,15 +39,15 @@ naming the guard: the spec is the full statement.
 ### Files and naming
 
 - A file is `PascalCase.ts`, named after its main export. An app-wide list is one global object, such as `LIMITS`.
-- `src/UtilShape.spec.ts` holds that no exported `*Util` has fewer than two members.
+- `architecture/UtilShape.spec.ts` holds that no exported `*Util` has fewer than two members.
 - The lifecycle components carry the names the owner decided: Hephaestus, Talos, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Hephaestus lock, Regrouping and Bouncer, in code, stored values, wording and docs alike;
-  `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
+  `architecture/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - The role that designs a board's pipeline is the pipeline agent: `pipeline-agent` as a job kind and role,
   `pipelineAgent` as a `pipeline.json` role key.
 - `eslint.config.js` holds one-letter names (`id-length`: only `i`, `a`, `b`) and inline magic numbers
   (`@typescript-eslint/no-magic-numbers`, its ignore list the arithmetic identities, off in specs, `testing/` and
-  `constants/` folders); `src/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
+  `constants/` folders); `architecture/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
 
 ### Imports
 
@@ -57,7 +57,7 @@ packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every
 packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
 ```
 
-- `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set isolation, the bin
+- `architecture/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set isolation, the bin
   shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on" packages and
   the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
   structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports
@@ -67,7 +67,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
   `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package is one
   workspace-package layer, and it imports another package only when its own `package.json` declares it.
-  `src/ImportDirection.spec.ts` holds this.
+  `architecture/ImportDirection.spec.ts` holds this.
 
 ### Values and wording
 
@@ -106,7 +106,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - The core reaches a stored record only through the store port, `BoardStore` in `src/services/store/BoardStore.ts`:
   commands through its command face, Hephaestus's pass through its transaction face, every read through its read
   side. Its one adapter, `LocalFilesBoardStore`, is the only code that names a record's path or judges a stored
-  pipeline; `src/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
+  pipeline; `architecture/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
   adapter must pass.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, Hephaestus port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
@@ -141,15 +141,15 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   `src/services/hephaestus/HeldSlotCreateFor.ts` reads `process.platform` at call time. The gate slots have no context,
   and they create through the `FileReplace` port. What lib may not read for itself reaches the record as
   `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
-- `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
+- `architecture/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
-- `src/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter (`src/lib/claude-code/` and
+- `architecture/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter (`src/lib/claude-code/` and
   the fake agent's files), comments included, names the vendor, and that no testing helper names it but on its listed
-  lines; `src/ImportDirection.spec.ts` holds that only `cli/CommandContext.ts` and the fake agent import it.
+  lines; `architecture/ImportDirection.spec.ts` holds that only `cli/CommandContext.ts` and the fake agent import it.
 - Keep the adapter layer thin. A portable Bun or Node call stays in the core. Make an adapter only for code that is
   truly specific to a platform.
 - `src/lib/platform-ports/PlatformPortsFor.spec.ts` holds that on darwin, linux and win32 each port is an adapter, and
-  that an unknown platform gets the ports that refuse. `src/PlatformBoundary.spec.ts` also holds that a contract spec
+  that an unknown platform gets the ports that refuse. `architecture/PlatformBoundary.spec.ts` also holds that a contract spec
   (`*.contract.spec.ts`) names each Linux, Windows and POSIX adapter and runs it on fakes; its list of exceptions is
   exact.
 - Confinement: on macOS and Linux, no gate and no session runs unconfined, and `start` refuses where confinement is
@@ -191,7 +191,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Comments
 
-- `src/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines. Name files in
+- `architecture/CommentRuns.spec.ts` holds that no inline comment outside a docblock runs past two lines. Name files in
   backticks, by the path the head of this file sets. Agreed-and-not-done work lives in `docs/backlog.md`;
   `no-warning-comments` in `eslint.config.js` holds that no TODO does.
 
@@ -200,9 +200,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Bun runs the TypeScript; `tsc` only type-checks, under `tsconfig.json`'s strict options. Write for them:
   `process.env['NAME']`, a written fallback, conditional objects instead of spreading `undefined`.
 - `eslint.config.js` holds no `!` non-null assertion, type-only imports as `type` and LF on every platform.
-- The root's `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.spec.ts`; the
+- The root's `.gitattributes` keeps every text file LF on every checkout, held by `architecture/LineEndingPolicy.spec.ts`; the
   root's `.bun-version` pins Bun to the `@types/bun` version that `bun.lock` locks, held by
-  `src/BunVersionPin.spec.ts`.
+  `architecture/BunVersionPin.spec.ts`.
 - ESLint 9 through `@reliquary/eslint-config`, extended in `eslint.config.js`; `bun run lint` is its statement. The
   testing folders may import devDependencies.
 
@@ -217,24 +217,24 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   versions. A stale stamp fails `verify`, and the check names the boundary and its record command.
   `SYSTEM_OF_BOUNDARY` in `src/testing/BoundaryRecordings.ts` gives the system of each boundary.
 - A boundary with no recording for an OS is not finished for that OS. `bun run verify` lists each of them.
-- `src/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
+- `architecture/RealSystemSpecs.spec.ts` holds that a default spec makes no real process, git or socket call, that its allowlist
   is exact, and that `BOUNDARY_SPECS` lists every real-system spec and every shipping call site.
 - Real git runs only in the git boundary specs (`src/lib/git/*.integration.spec.ts`); every other spec and spec
-  helper uses mocks of recorded git responses. `src/RealSystemSpecs.spec.ts` holds it, with an exact allowlist. A spec
+  helper uses mocks of recorded git responses. `architecture/RealSystemSpecs.spec.ts` holds it, with an exact allowlist. A spec
   whose commands run in a folder with no repository uses `useRecordedGitOutsideAnyRepository`.
 - A default spec gets its platform ports from `src/testing/DefaultSpecPlatformPorts.ts`. Its process table and its gate
   confinement give the recorded answers, not the answers of the real system. The preload
   `src/testing/RecordedBoundariesGuard.ts` fails a case of a default spec that starts git or a program of
   `src/testing/RecordedBoundaryPrograms.ts`, or that makes a call that has no recorded answer.
 - A wait in a spec is on the state itself, through `src/testing/WaitUntil.ts` or an injected clock or event, never a
-  fixed sleep before an assertion; `src/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
+  fixed sleep before an assertion; `architecture/SpecSleeps.spec.ts` holds it, its allowlist exact. Every spec file runs on the
   one case deadline, through the preload `src/testing/SharedCaseDeadlinePreload.ts`.
   `docs/development/guards-and-testing.md` holds the audit.
 - A test needing a tool the machine may lack skips through `src/testing/ToolGuard.ts`, its title saying what is
   missing; the preload `src/testing/TestRunReport.ts` counts and names every skip, and
   `EVERY_TOOL_REQUIRED_VARIABLE` (`src/shared/Environment.ts`, built from `ENVIRONMENT_PREFIX`) set to 1 fails them.
   End-to-end suites spawning the binary sit at the layer root.
-- `src/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and holds the
+- `architecture/SpecSkips.spec.ts` holds that no spec skips a test other than through `src/testing/ToolGuard.ts`, and holds the
   exact list of the specs that skip when the run is root.
 - Tests never touch live data: every spec works under the scratch root, checked by `src/testing/TrackerIsolation.ts`;
   the binary is spawned only through `cli/testing/CliProcess.ts`.
@@ -245,9 +245,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   through `releaseTrappedProgramForThisSpecFile` (`src/testing/ProgramTraps.ts`, held by its spec).
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
   answer without this action, write the answer from the documentation of that system and name the source in a
-  comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts a program that opens the default
+  comment. `architecture/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts a program that opens the default
   browser (`open`, `xdg-open`, the Windows handler).
-- `src/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since forge has
+- `architecture/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since forge has
   no page and runs no DOM spec, and that no spec or test helper creates the real process context.
 
 ### Documentation and commits
@@ -261,7 +261,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
   flags, exit codes and file formats.
 - `docs/README.md` is the documentation map.
-- `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, the files in `.claude/rules/`, `docs/cli.md`,
+- `architecture/ProseWrap.spec.ts` holds the 120-column wrap of this file, the files in `.claude/rules/`, `docs/cli.md`,
   `docs/backlog.md`, the skills, the templates under `resources/templates/` and the prompts under
   `resources/prompts/`.
 - Write new tickets, new agent prompts and new system md text (`CLAUDE.md`, skills, briefs, templates) in ASD-STE100.
@@ -285,7 +285,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Git runs at a toplevel only: `repositoryRoot` for the main line, `worktreeRoot` for a job. A session in a job's
   worktree starts at `worktreeRoot` and is told the project folder; any other session, a gate and a prepare step start
   in the project folder of their checkout. A resumed session starts where it first started when its agent finds it by
-  that folder. `src/GitRunsAtAToplevel.spec.ts`, `src/services/hephaestus/SessionPlace.spec.ts` and
+  that folder. `architecture/GitRunsAtAToplevel.spec.ts`, `src/services/hephaestus/SessionPlace.spec.ts` and
   `src/services/lifecycle/GateRun.projectFolder.spec.ts` hold this.
 - A tracker in a folder has a branch namespace. It changes only its own folder and the paths of its `reach`, and it
   watches only its own refs; Customs holds both. The trackers of a repository meet in `<git common dir>/forge/`, and
@@ -298,7 +298,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
 | No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/RecordedBoundariesGuard.ts` registers its case hooks and its spawn check, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
-| Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`src/lib/talos/TalosClosure.spec.ts`). |
+| Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`architecture/TalosClosure.spec.ts`). |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/hephaestus/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | A frozen table comes from the previous implementation and is retaken on a change. | `src/lib/talos/FrozenTalosHandshake.json` is never retaken: `src/lib/talos/TalosHandshake.frozen.spec.ts` holds that each frozen `hello` reads as itself, each frozen answer is written byte for byte, and the three frames' keys equal the table's. | The first frame of every Talos protocol is read by `helloFrameOf` alone and must never change, so a Hephaestus of any version can tell a Talos of another (design decision 6). |
@@ -309,7 +309,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Only the current stored format is read. | A stored open `pipeline-proposal` decision is read, and the Playbook withdraws it at the next pass. | Stored files are never rewritten. The one-shot proposal that the decision accepts is retired. |
 | Only the current stored format is read. | A `log.jsonl` record with the job kind or role `onboarder` reads as `pipeline-agent`. | The log is append-only and is never rewritten. |
 | Only the current stored format is read. | A lock or slot record (a lock generation, the Hephaestus lock, an agent slot, a gate run slot) of today's fields reads whatever its version, and is judged by the process it names; one whose process is gone, or that cannot be read, is taken over and logged (`docs/cli.md`, "Lock and slot records"). | Such a record is a holding by a live process, not stored data: refusing it would show a running Hephaestus as down, or stop every command until User removes it. Nothing is converted, so it is no migration. |
-| Only `agent-progress.ts` exits. | `talos.ts`, the Talos binary, exits with the code `runTalos` in `src/lib/talos/` returns, and imports nothing else, held by `src/ImportDirection.spec.ts` and `src/lib/talos/TalosClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: Hephaestus spawns it, detached, once per board. |
+| Only `agent-progress.ts` exits. | `talos.ts`, the Talos binary, exits with the code `runTalos` in `src/lib/talos/` returns, and imports nothing else, held by `architecture/ImportDirection.spec.ts` and `architecture/TalosClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: Hephaestus spawns it, detached, once per board. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Talos appends a child's `events-<instance>.ndjson` in place, fsynced before the child's `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends a gate profile's output to `<data>/gate-profile-runs/<P>.ndjson` in place, outside the hold, one line for each piece. | The output stream is append-only and is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends `hephaestus.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
@@ -322,8 +322,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | A clock measures real time. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Hephaestus sweeps opens `quiet-job` (`src/services/hephaestus/IncidentRouter.ts`). An Assistant that is quiet in a turn for the same number of sweeps is ended (`src/services/hephaestus/AssistantSession.ts`). The two watches count sweeps and read no clock. | The two watches are older than this rule. A running session must report in an actual time, so each watch becomes a time bound; this change is not done. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 | Code starts beside its only consumer; never in anticipation. | `src/services/hephaestus/SessionConfinement.ts` wraps a session in forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the contract integration spec. |
-| Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `src/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
-| Code names no agent vendor (`src/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
+| Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `architecture/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
+| Code names no agent vendor (`architecture/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
 
 ## Local rules
 
@@ -348,7 +348,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - The `--json` answers of `start`, `stop`, `init`, `update`, `version` and `machine` carry
   `answerVersion` (`cli/utils/ProgramAnswerUtil.ts`). With `--json`, a refusal of these commands is
   `{answerVersion, refusal, text}` on stdout at exit 1. A change of shape increases `answerVersion`.
-- `src/TestFileConventions.spec.ts` holds that no spec starts a Hephaestus without `--port 0`.
+- `architecture/TestFileConventions.spec.ts` holds that no spec starts a Hephaestus without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by
   `cli/CommandTable.spec.ts` and `cli/HelpText.spec.ts`.
 - Every mutating command applies a `ControlCommand` through the store's command face (`cli/ApplyCommandOfVerb.ts`),

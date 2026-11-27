@@ -37,7 +37,7 @@ Rules that hold for every stage:
   checkout, talks to a running forge or starts a vendor session. End-to-end checks use a scratch forge and the fake
   agent, where the app's rules name one.
 - **Names.** The Overseer keeps its name in code until stage 9. Talos is called Talos from its first line.
-  `apps/forge/src/ComponentNames.spec.ts` refuses a retired name.
+  `apps/forge/architecture/ComponentNames.spec.ts` refuses a retired name.
 - **Nothing stays compatible.** No older board, stored format, verb, link form or client is read or kept; every
   in-flight ticket is dropped, and boards are set up anew after stage 9.
 - **Sessions do this work, no forge does.** Neither tracker's reach applies, and one commit may span both apps and the
@@ -105,7 +105,7 @@ in line; until then the stage files are right where the two differ.
 
 Every owner answer has a package. The committed ticket (decision 48, owner answer 14) is stage 5's WP5.14 to WP5.17.
 The agent port's leaks (design section 5) and every other reach past the port that the owner's rule of 2026-11-18
-forbids close in stage 2, WP2.21 to WP2.32, held by `src/AgentBoundary.spec.ts`; the end of hand-editing stored
+forbids close in stage 2, WP2.21 to WP2.32, held by `architecture/AgentBoundary.spec.ts`; the end of hand-editing stored
 records is stage 5's WP5.13.
 
 ## Not checked

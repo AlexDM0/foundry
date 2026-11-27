@@ -48,7 +48,7 @@ function evidenceFolder(): string {
   return `${repositoryFolder()}/${FRAME_CAPTURE_FOLDERS.EVIDENCE_FOLDER}`;
 }
 
-/** The last line of a catalog's list, which `flint/AnimationModules.spec.ts` holds; the preview joins the catalog right after it. */
+/** The last line of a catalog's list, which `flint/architecture/AnimationModules.spec.ts` holds; the preview joins the catalog right after it. */
 const CATALOG_LIST_END = '] as const);';
 
 const USAGE = [

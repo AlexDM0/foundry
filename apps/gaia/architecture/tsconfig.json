@@ -1,0 +1,8 @@
+{
+  // The architecture tests read the server's and the page's files alike, and the page's style contract imports page modules, so they
+  // compile on the page's spec project: the DOM library, React's JSX and Bun's types.
+  "extends": "../page/tsconfig.spec.json",
+  "compilerOptions": { "tsBuildInfoFile": "../node_modules/.cache/typecheck/architecture.tsbuildinfo" },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}

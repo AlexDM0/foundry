@@ -248,7 +248,7 @@ row and bar take the new verdict's form without a reload.
 7. In place, a newer or older forge mounts no board: the area holds the notice and the versions pair, with no button
    (`ForgeModel.versions.spec.ts`, `ForgeLayout.versions.spec.tsx`).
 8. Every text pair holds 4.5:1 in both themes, among them the orange text on its tint, the secondary ink on the wash beside the
-   pair and the mono numbers in ink on the orange tint (`page/StyleContract.spec.ts`).
+   pair and the mono numbers in ink on the orange tint (`architecture/StyleContract.spec.ts`).
 9. An ahead forge shows no callout in Attention, keeps its condition word ("Live") and its counts in every total, offers no action
    for its version anywhere, and its reading row says "forge 3.4 · ahead" in the secondary ink (`AttentionModel.spec.ts`,
    `AttentionLayout.spec.tsx`, `ForgesModel.spec.ts`).

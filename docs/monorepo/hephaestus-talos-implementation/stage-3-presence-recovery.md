@@ -203,7 +203,7 @@ leaves.
 | `ticket-unheld` starts a fresh attempt: it resets the builder's return from review and from its needs | `src/lib/tracker-model/Playbook.ts:309-339` | Kept; lifting an `interrupted:` hold does not log it (R5) |
 | A lost gate or install Watcher reads as a line that never ran | `src/services/overseer/JobLaunch.ts:552-573` | Replaced by stage 2 (N7). This stage turns a lost line into a wait (WP3.10) |
 | The crash, reboot and update matrix | `src/services/overseer/CrashMatrix.integration.spec.ts:382-997`, `CrashMatrix.spec.ts`, `CrashMatrix.merges.spec.ts` | Changed: the rows listed in WP3.14 |
-| Retired names that no file may hold | `src/ComponentNames.spec.ts:28-63` | Kept. No new name contains one (Traps) |
+| Retired names that no file may hold | `architecture/ComponentNames.spec.ts:28-63` | Kept. No new name contains one (Traps) |
 
 ## Work packages
 
@@ -306,7 +306,7 @@ write, with no change of behaviour yet.
   (`src/adapters/log/LogFileIngestion.spec.ts`).
 
 **Done when.** At the repository root, `bun install --frozen-lockfile` and `bun run verify` pass. In `apps/forge/`,
-`bun test src/lib/tracker-model` passes, and `bun test src/ComponentNames.spec.ts` passes.
+`bun test src/lib/tracker-model` passes, and `bun test architecture/ComponentNames.spec.ts` passes.
 
 ### WP3.2 The Playbook resumes by the policy table
 
@@ -510,7 +510,7 @@ today.
 2. On macOS, reuse the command-runner primitive the adapter already uses for `sysctl`; parse
    `{ sec = 1763370000, usec = 0 } ...` with one named pattern constant. A text that does not match answers `null`.
 3. On Linux, read `/proc/stat` through the adapter's existing file-read primitive; a missing `btime` answers `null`.
-4. Keep `src/PlatformBoundary.spec.ts` green: no platform read outside the adapter files.
+4. Keep `architecture/PlatformBoundary.spec.ts` green: no platform read outside the adapter files.
 5. Record the boundary on macOS: `bun run record <the process-identity boundary as BOUNDARY_SPECS names it>` (look it up
    in `src/testing/BoundarySpecs.ts`), and commit the recording.
 
@@ -1531,7 +1531,7 @@ export interface ForgeCrashLogDocument {
 - **Name collisions.** `FailedPassUtil` and `FAILED_PASSES_BEFORE_PARKING` already mean a ticket's failed job outcomes;
   the new thing is an abandoned pass. `oversee resume` means "undo a pause" (`OverseerCommand.ts:128-139`, the command
   kind `overseer-resume`) until stage 9 renames it `unpause`; the new command kind is `interrupted-work-resume` and its
-  verb the top-level `resume`. `src/ComponentNames.spec.ts:28-63` retires `handing-over`, `lease-taken-over`,
+  verb the top-level `resume`. `architecture/ComponentNames.spec.ts:28-63` retires `handing-over`, `lease-taken-over`,
   `Reattachment` and `RunnerLease` among others: the ending is `handed-over`, never `handing-over`, and no new
   identifier may contain a retired name; the contract's cause is `child-lost`, never a Watcher's name.
 - **`job-lost` goes quiet.** `job-lost` opens after two `replaced` endings in a row (`Playbook.ts:202-212`), and the
@@ -1585,7 +1585,7 @@ bun test src/services/overseer/StartGate.spec.ts src/services/overseer/Reconcile
 bun test src/services/overseer/PresenceDocumentAssembly.spec.ts src/services/overseer/OverseerServer.spec.ts
 bun test src/services/control/ResumeControls.spec.ts cli/resume cli/crash-log cli/overseer cli/tracking/status
 bun test src/services/lifecycle/Landing src/services/overseer/CrashMatrix.spec.ts src/services/overseer/CrashMatrix.merges.spec.ts
-bun test src/ComponentNames.spec.ts src/ImportDirection.spec.ts src/PlatformBoundary.spec.ts src/RealSystemSpecs.spec.ts
+bun test architecture/ComponentNames.spec.ts architecture/ImportDirection.spec.ts architecture/PlatformBoundary.spec.ts architecture/RealSystemSpecs.spec.ts
 ```
 
 The real-system matrix, only as the recording of its boundary or when the owner asks for `bun run

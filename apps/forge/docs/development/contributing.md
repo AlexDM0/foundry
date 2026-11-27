@@ -244,13 +244,13 @@ tracked file.
 | Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | Add a change to the board that a job or a client can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
-| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
+| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/lib/tracker-model/Board.*.spec.ts`, `architecture/ImportDirection.spec.ts` |
 | Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
 | Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
-| Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `src/ImportDirection.spec.ts` |
-| Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `architecture/ImportDirection.spec.ts` |
+| Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
 
 ## Seeing a change in a running Hephaestus
 
@@ -298,7 +298,7 @@ The README's diagrams are the exception: they stay in `docs/images/` and render 
 documents link that anchor. An entry defines the word and links its home. It never states a bound.
 
 **Check the wrap.** Paragraph lines stop at 120 columns; table rows, fences and a line holding one code span are exempt.
-`src/ProseWrap.spec.ts` holds this for the files it lists, which are the rule files under
+`architecture/ProseWrap.spec.ts` holds this for the files it lists, which are the rule files under
 `.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, the skills, and the templates and prompts under `resources/`. For any other document, this prints what is too long, and a
 printed line that holds one code span is fine. It skips image lines, whose alt text stays on one line:
 
@@ -306,12 +306,12 @@ printed line that holds one code span is fine. It skips image lines, whose alt t
 awk '/^```/{fence=!fence} !fence && length > 120 && !/^\|/ && !/^!\[/' <file>.md
 ```
 
-**Never write a retired component name.** `src/ComponentNames.spec.ts` matches `RETIRED_NAMES` by substring over every
+**Never write a retired component name.** `architecture/ComponentNames.spec.ts` matches `RETIRED_NAMES` by substring over every
 tracked file, `.svg` and `.html` included. It reads
 `git ls-files`, so an unstaged new file passes until it is added. Run it after `git add`:
 
 ```sh
-bun test src/ComponentNames.spec.ts
+bun test architecture/ComponentNames.spec.ts
 ```
 
 ## Committing
@@ -324,7 +324,7 @@ commit rule; the [rule book](../../../../.claude/rules/forge.md)'s sections "Ver
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
 | Setup steps | `setup.ts`, `cli/setup/`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `--instruct-only` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
-| The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `src/LintRules.spec.ts` holds lint's own rules |
+| The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `architecture/LintRules.spec.ts` holds lint's own rules |
 | Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ProgramTrapGuard.ts`, `src/testing/TestRunReport.ts` and `src/testing/SharedCaseDeadlinePreload.ts` are the preloads |
 | Commit hook | `.githooks/pre-commit` | None | `cli/setup/Setup.spec.ts` for `core.hooksPath` |
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |

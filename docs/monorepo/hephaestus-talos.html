@@ -932,7 +932,7 @@ not.</figcaption></figure>
 </thead>
 <tbody><tr>
 <td>Operating system</td>
-<td>Exists. <code>platformPortsFor</code> builds one frozen record of ports with darwin, linux and win32 adapters; <code>src/PlatformBoundary.spec.ts</code> refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows</td>
+<td>Exists. <code>platformPortsFor</code> builds one frozen record of ports with darwin, linux and win32 adapters; <code>architecture/PlatformBoundary.spec.ts</code> refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows</td>
 <td>Carries over. &quot;macOS first&quot; means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only</td>
 </tr>
 <tr>
@@ -1305,7 +1305,7 @@ and session codes. The reads and the command call stay, and the session codes go
 gate-profile streams, job files (the report, the gate log), pictures and their upload, the summary and the monitor
 snapshot, identity and versions, the command endpoint and the nudge. What it loses: the session routes, the page itself
 and Flint&#39;s ask route. <code>forge open</code> and the <code>progress.html</code> stub go rather than find a new target, since a forge may
-not name Gaia (<code>src/ClientNames.spec.ts</code>): forge&#39;s help and its agents&#39; instructions name no board page.</p>
+not name Gaia (<code>architecture/ClientNames.spec.ts</code>): forge&#39;s help and its agents&#39; instructions name no board page.</p>
 <p>What this path gives and costs:</p>
 <ul>
 <li><strong>Two programs, released apart.</strong> Forge and Gaia stay released apart and meet through system versions; Gaia keeps

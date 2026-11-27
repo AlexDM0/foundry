@@ -101,7 +101,7 @@ Decisions the run takes here:
   `test:dom` task, and Gaia's rule 10 says so for that folder; Gaia's own views keep the rule that their specs have no
   document (WP6.4, WP6.5).
 - **The board's stylesheets.** `page/styles/board/*.css` with `board-` names, held by the Bridge's four style guards
-  plus Gaia's class and contrast checks in a board section of `page/StyleContract.spec.ts`; a board `@keyframes` is
+  plus Gaia's class and contrast checks in a board section of `architecture/StyleContract.spec.ts`; a board `@keyframes` is
   named `board-` and lives only there (WP6.4). Unifying them with `gaia.css` is later design work.
 - **The forge route's header.** Gaia's forge bar keeps the forge's controls, versions and alerts; the board header keeps
   the figures, the tabs, the setup stepper and the waiting-on-user pill, without its own stop and restart (WP6.8). The
@@ -192,8 +192,8 @@ changes nothing under `apps/` or `packages/` since `0a648b2b`, when `entities/in
 | Gaia writes the frame-ancestor record `<monitor>/frame-ancestors/gaia.json` | `apps/gaia/src/adapters/gaia-files/ServerRecordWriter.ts:1-3`, `:43-45` | Deleted in WP6.23 |
 | Gaia's page has no DOM specs and no `test:dom` task | `apps/gaia/CLAUDE.md`, rule 10; `apps/gaia/package.json:10-18` | Changed: `test:dom` for `page/board/` (WP6.5), rule 10 amended (WP6.4) |
 | Gaia draws no Flint, and its screens name no command | `apps/gaia/CLAUDE.md`, rules 12 and 4 | Changed: Flint in the forge route only; a forge refusal in the forge's sentence (WP6.4) |
-| Gaia's page imports: views never the shell, shared never the shell or a view | `apps/gaia/page/PageImportDirection.spec.ts:15-18` | Changed: `board` added, and no page module imports `forge-contracts` (WP6.4) |
-| Gaia's style contract: classes, tokens, contrast, no keyframe of Gaia's own | `apps/gaia/page/StyleContract.spec.ts:1-11` | Changed: a board stylesheets section (WP6.4) |
+| Gaia's page imports: views never the shell, shared never the shell or a view | `apps/gaia/architecture/PageImportDirection.spec.ts:15-18` | Changed: `board` added, and no page module imports `forge-contracts` (WP6.4) |
+| Gaia's style contract: classes, tokens, contrast, no keyframe of Gaia's own | `apps/gaia/architecture/StyleContract.spec.ts:1-11` | Changed: a board stylesheets section (WP6.4) |
 | The Notification API has no boundary in Gaia yet | `apps/gaia/CLAUDE.md`, the boundaries table | Created with the question alerts (WP6.8) |
 | The registry entry Gaia reads | `apps/gaia/src/adapters/forge-registry/@types/RegisteredForge.ts:12-23` | Changed: stage 3's `presence` (WP6.21) |
 | The fleet document's forge: `codeVersion`, `versions` | `apps/gaia/page/@types/FleetDocument.ts` | Changed: presence, waiting work, outage endings, Talos and newest versions (WP6.21, WP6.26, WP6.22) |
@@ -206,10 +206,10 @@ changes nothing under `apps/` or `packages/` since `0a648b2b`, when `entities/in
 | Pipeline agent verbs outside a job name the setup record | `apps/forge/cli/pipeline/AgentCommandLine.ts:1-4` | Kept: the user's own agent runs the skill through them |
 | Installed and prompt wording names the Bridge | `PipelineAgentPrompt.md:3`, `:34`; `PipelineAgentDesign.md:7`; `resources/templates/PipelineAgentBrief.md:6`; `resources/templates/Reference.md:249`; `skills/agent-po/SKILL.md:147`; `skills/agent-progress-orchestrate/SKILL.md:75` | The pipeline agent's prompts take a neutral word (WP7.2); the rest, which name the Bridge while it still runs, in stage 8 |
 | The rule that Flint is imported only by the Bridge | `.claude/rules/flint.md:14-16`; root `CLAUDE.md:17` | Changed: Gaia's page is a second consumer until stage 8 (WP6.4) |
-| No shipped forge file names a client | `apps/forge/src/ClientNames.spec.ts:24` | Kept: every forge change here names no client |
-| Retired component names | `apps/forge/src/ComponentNames.spec.ts:28-63` | Kept: every new name checked against it |
+| No shipped forge file names a client | `apps/forge/architecture/ClientNames.spec.ts:24` | Kept: every forge change here names no client |
+| Retired component names | `apps/forge/architecture/ComponentNames.spec.ts:28-63` | Kept: every new name checked against it |
 | The Overseer's server is a recorded boundary | `apps/forge/src/testing/BoundarySpecs.ts:139` | Recorded again after WP6.1 |
-| Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/src/TestFileConventions.spec.ts:108`, `:122`; the include list's guard is deleted, and the Bridge's tsc projects, lint and DOM specs are out of the gates | Kept: the Bridge stays until stage 8 |
+| Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/architecture/TestFileConventions.spec.ts:108`, `:122`; the include list's guard is deleted, and the Bridge's tsc projects, lint and DOM specs are out of the gates | Kept: the Bridge stays until stage 8 |
 
 ## Work packages
 
@@ -231,13 +231,13 @@ WP6.1 (forge) ──► WP6.2 ──► WP6.24 ──► WP6.25 ──► WP6.3 
 
 - Run alone: WP6.1, WP6.2, WP6.24, WP6.25, WP6.3, WP6.5 to WP6.9, WP6.21, WP6.26, WP6.22, WP6.23. WP6.4 may run
   beside WP6.2, WP6.24, WP6.25 and WP6.3. It changes `apps/gaia/page/tsconfig.json`, `page/tsconfig.spec.json`,
-  `page/PageImportDirection.spec.ts`, `page/StyleContract.spec.ts`, `apps/gaia/src/shared/constants/ContractVersions.ts`
+  `architecture/PageImportDirection.spec.ts`, `architecture/StyleContract.spec.ts`, `apps/gaia/src/shared/constants/ContractVersions.ts`
   and the page modules that import it, `apps/gaia/package.json`, `apps/gaia/eslint.config.js`, `apps/gaia/CLAUDE.md`,
   `.claude/rules/flint.md`, the root `CLAUDE.md` and `bun.lock`. WP6.24, WP6.25 and WP6.3 add their contract versions
   to the file WP6.4 splits: whichever lands second rebases and puts its keys in the half WP6.4 named.
 - The view packages WP6.10 to WP6.20 and WP7.1 touch disjoint folders under `page/board/views/`. Each also adds one
   line to `apps/gaia/page/board/shell/BoardTabViews.tsx`, one `<link>` line to `apps/gaia/page/index.html` and one row
-  to the board section of `apps/gaia/page/StyleContract.spec.ts`' stylesheet list. Those three lines are the only
+  to the board section of `apps/gaia/architecture/StyleContract.spec.ts`' stylesheet list. Those three lines are the only
   overlap: each package rebases before it lands and keeps the other packages' lines. `pipeline.css` is the exception:
   WP6.8 creates, links and lists it for `PipelinePanel.tsx`, and WP6.20 only adds rules to it.
 - A view package finds every field it reads in Gaia's page board contract (WP6.25). A field a view needs that the
@@ -287,7 +287,7 @@ WP6.5 to WP6.20 and WP7.1 move Bridge code by these steps. Each package names it
    every other `Bridge` in an identifier to `Board`. CSS classes, keyframes and custom properties: the prefix `bridge-`
    becomes `board-` (`grep -rn "bridge-" page/board page/styles/board` prints nothing when done). Words shown to the
    user that say "Bridge" become "board". Words that say "Overseer" stay (stage 9). Check each new name against
-   `apps/forge/src/ComponentNames.spec.ts:28-63`.
+   `apps/forge/architecture/ComponentNames.spec.ts:28-63`.
 5. Replace the Bridge's services with `BoardServices` (Interfaces). A component that read `services.<x>` reads the
    same member of `BoardServices`; a member that `BoardServices` lacks (brain, identity, reload, embed) is removed with
    the code that used it.
@@ -300,7 +300,7 @@ WP6.5 to WP6.20 and WP7.1 move Bridge code by these steps. Each package names it
    with `grep -ohE "className=[^>]+" <files>` and the rules with the selector text. Create
    `page/styles/board/tokens.css` if it does not exist yet and link it in `apps/gaia/page/index.html` after
    `./styles/gaia.css`. Link the new stylesheet after `./styles/board/tokens.css`, and add both to the board stylesheet
-   list of `apps/gaia/page/StyleContract.spec.ts`.
+   list of `apps/gaia/architecture/StyleContract.spec.ts`.
 8. Run, from `apps/gaia/`: `bun run typecheck`, `bun run lint`, `bun test page/board/<folder>`, `bun run test:dom`;
    then `bun run verify` at the root.
 
@@ -681,8 +681,8 @@ the move changes. The rule files change with this code (decision 34); no approva
   `page/shared/utils/ForgeContractUtil.ts`, `page/api/CommandSender.ts`, `page/api/FleetStreamClient.ts`,
   `page/views/forge-frame/EmbedChannel.ts`, `FrameSessionRequest.ts`) and the server modules that read a page
   contract's version.
-- Change `apps/gaia/page/PageImportDirection.spec.ts`: `board` (step 2) and the `forge-contracts` rule (step 3).
-- Change `apps/gaia/page/StyleContract.spec.ts`: a board section (step 4).
+- Change `apps/gaia/architecture/PageImportDirection.spec.ts`: `board` (step 2) and the `forge-contracts` rule (step 3).
+- Change `apps/gaia/architecture/StyleContract.spec.ts`: a board section (step 4).
 - Create no stylesheet yet: the first package that copies a style rule creates `apps/gaia/page/styles/board/tokens.css`
   and links it in `apps/gaia/page/index.html` after `./styles/gaia.css` (the transplant procedure, step 7).
 - Change `apps/gaia/eslint.config.js`: browser storage confined (step 5).
@@ -691,7 +691,7 @@ the move changes. The rule files change with this code (decision 34); no approva
 
 **What to do.**
 
-1. Add the dependency, `bun install`, and prove `src/WorkspaceDependencies.spec.ts` accepts it.
+1. Add the dependency, `bun install`, and prove `architecture/WorkspaceDependencies.spec.ts` accepts it.
 2. Add `board` to the page's tsconfig include and to the import-direction guard: `FORBIDDEN_IMPORTS` gains
    `board: ['shell', 'views']` (`views` may import `board`), with a planted case for `board → shell` and
    `board → views`, proved failing then passing.
@@ -728,8 +728,8 @@ the move changes. The rule files change with this code (decision 34); no approva
 
 **Specs.** The planted cases of steps 2 to 4; the existing page specs pass with `PageContractVersions`.
 
-**Done when.** At the root green; in `apps/gaia/`: `bun test page/PageImportDirection.spec.ts page/StyleContract.spec.ts
-src/WorkspaceDependencies.spec.ts` passes.
+**Done when.** At the root green; in `apps/gaia/`: `bun test architecture/PageImportDirection.spec.ts architecture/StyleContract.spec.ts
+architecture/WorkspaceDependencies.spec.ts` passes.
 
 **Parallel.** May run beside WP6.2, WP6.24, WP6.25 and WP6.3.
 
@@ -1427,7 +1427,7 @@ session, the embed channel and the frame-ancestor record, and its page reaches n
   fixtures that carry `embed` (`git grep -n -i "embed" -- apps/gaia` lists them). The forge keeps serving `embed` in
   its identity until stage 8; Gaia passes the key over as any unknown one. The fleet document changes, so
   `fleetVersion` and the `fleet` and `events` endpoints rise with Gaia's other version changes of this package.
-- Change `apps/gaia/page/PageImportDirection.spec.ts`: the exception for `EmbedChannel.ts` goes, so no page module
+- Change `apps/gaia/architecture/PageImportDirection.spec.ts`: the exception for `EmbedChannel.ts` goes, so no page module
   imports `forge-contracts`.
 - Change `GaiaSystemVersions.ts` (`frameSession` removed; `commands` at its next version),
   `GaiaCompatibilityRegistry.ts`, `ContractVersions.ts` and `PageContractVersions.ts` (`forgeEmbedChannel`,
@@ -1530,7 +1530,7 @@ which the user can run in an agent of their own (decision 23, design section 3.5
   refused while one stands (decision 44). It lists no command beyond what it cites (`.claude/rules/skills.md:25-29`),
   names `forge help` and `.forge/reference.md`, and names no board page (decision 43).
 - Change `apps/forge/src/shared/constants/ProductNames.ts`: `PIPELINE_SETUP_SKILL` (`'forge-pipeline'`, and
-  `'agent-pipeline'` in the other product names at `:26-28`), checked against `src/ComponentNames.spec.ts:28-63`.
+  `'agent-pipeline'` in the other product names at `:26-28`), checked against `architecture/ComponentNames.spec.ts:28-63`.
 - Change `apps/forge/cli/adoption/constants/AgentInstall.ts` (stage 2's WP2.30 moved the install table there from
   `ClaudeCodeInstall.ts`): the third instruction bundle, installed into the folder the agent adapter's installer names.
 - Change `apps/forge/resources/prompts/PipelineAgentPrompt.md`: the first message runs `{{skill}}` on the setup, as
@@ -1538,7 +1538,7 @@ which the user can run in an agent of their own (decision 23, design section 3.5
   `PipelineAgentDesign.md:7` become "the board". Change `pipelineAgentTextOf`
   (`cli/overseer/OverseerWording.ts:823-835`, the first message at `:826`) to start with the agent adapter's
   `instructionBundleLineOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL, …)`, as `productOwnerTextOf` (`:276-286`) does since
-  stage 2's WP2.25. The new skill names no agent vendor and no vendor tool: `src/AgentBoundary.spec.ts` scans
+  stage 2's WP2.25. The new skill names no agent vendor and no vendor tool: `architecture/AgentBoundary.spec.ts` scans
   `skills/**` and `resources/**` (stage 2, WP2.22).
 - Change `.claude/rules/skills.md`: three skills; the pipeline agent loads its skill as its first line. The rule file
   changes in this commit, with no approval gate (decision 34).
@@ -1553,7 +1553,7 @@ step only. The installed brief `resources/templates/PipelineAgentBrief.md` keeps
 
 **Specs.** `OverseerWording.pipelineAgent.spec.ts`: the first message runs the skill by its installed name.
 `InstalledSurface.spec.ts`, `InstalledFiles.spec.ts`: the new folder installed and removed with the others.
-`src/ProseWrap.spec.ts` holds the 120-column wrap of the new skill. `cli/HelpText.spec.ts` (no by-hand lifecycle verb
+`architecture/ProseWrap.spec.ts` holds the 120-column wrap of the new skill. `cli/HelpText.spec.ts` (no by-hand lifecycle verb
 named).
 
 **Done when.** At the root green; in `apps/forge/`: `bun test --path-ignore-patterns='.claude/**'
@@ -1948,7 +1948,7 @@ forge, `interrupted-work-resume` with the outage target. The answer of `fleet-ou
   pollutes Gaia's main run. The runner must use Gaia's preload (`src/testing/TestRunPreload.ts`), which moves `HOME`
   and `TMPDIR` into `.scratch/`, and the leak check then judges the DOM run too.
 - **Style contracts disagree.** Gaia's contract forbids Gaia's own keyframes and styles exactly `gaia.css`'s classes
-  (`page/StyleContract.spec.ts:1-11`); the Bridge's CSS has 22 keyframes and 764 classes. Moving them into `gaia.css`
+  (`architecture/StyleContract.spec.ts:1-11`); the Bridge's CSS has 22 keyframes and 764 classes. Moving them into `gaia.css`
   fails the contract. Keep them in `page/styles/board/` under the board section (WP6.4).
 - **Class renames must be complete.** `StyleContract` scans literal `className` values. A `bridge-` class left in a
   component and renamed in its stylesheet fails late and by surprise; rename both in the same step and grep for
@@ -1966,7 +1966,7 @@ forge, `interrupted-work-resume` with the outage target. The answer of `fleet-ou
   timer.
 - **The outage control must stay clickable.** A disabled state while a forge is down or nothing waits breaks decision
   35. Draw it always enabled and let the answer say what happened per forge.
-- **A forge may not name its client.** Every forge change here (WP6.1, WP6.22, WP7.2) passes `src/ClientNames.spec.ts`:
+- **A forge may not name its client.** Every forge change here (WP6.1, WP6.22, WP7.2) passes `architecture/ClientNames.spec.ts`:
   no "Gaia" and no "fleet" in forge code, docs or installed text. The neutral words are "the board", "a monitor",
   "a host".
 - **Retired names.** `HostRecord`, `HostFleet`, `agent-host` and others are retired (`ComponentNames.spec.ts:28-63`); a

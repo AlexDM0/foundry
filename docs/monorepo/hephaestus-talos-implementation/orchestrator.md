@@ -49,7 +49,7 @@ for every checker.
 2. **Checker.** A second agent that did not build it. Brief: "Check work package `<WP>` in `<path>` against its text
    in `<stage file>`. Run its 'Done when' commands yourself, and at the repository root
    `bun install --frozen-lockfile` and `bun run verify`. Read the diff: is everything the package names done, is
-   anything done that it does not name, does a new name break `apps/forge/src/ComponentNames.spec.ts`, does any
+   anything done that it does not name, does a new name break `apps/forge/architecture/ComponentNames.spec.ts`, does any
    interface differ from 'Interfaces introduced'? Try to show that it is not done. Report pass or fail with the
    evidence."
 3. **Fixer,** only on a fail: the builder's brief plus the checker's findings. Then the checker again. Two failed
