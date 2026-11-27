@@ -39,14 +39,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
   'architecture/RealProgramRuns.spec.ts':                 1,
   'architecture/StyleContract.spec.ts':                   1,
   'architecture/WorkspaceDependencies.spec.ts':           1,
-  'page/shell/BrandStatusModel.spec.ts':                  1,
-  'page/shell/GaiaApp.spec.tsx':                          1,
-  'page/shell/GaiaApp.tsx':                               1,
-  'page/shell/PageClock.spec.ts':                         1,
-  'page/shell/Rail.spec.tsx':                             1,
-  'page/shell/RailModel.setup.spec.ts':                   1,
-  'page/shell/RailModel.spec.ts':                         1,
-  'page/shell/RailModel.ts':                              1,
   'page/testing/ArtboardScreens.tsx':                     1,
   'page/testing/MarkupTree.spec.ts':                      1,
   'page/testing/MarkupTree.ts':                           1,
@@ -99,11 +91,6 @@ const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */
 const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'page/shell/BrandStatusModel.spec.ts':               1,
-  'page/shell/GaiaApp.spec.tsx':                       1,
-  'page/shell/RailModel.spec.ts':                      1,
-  'page/shell/RailModel.ts':                           1,
-  'page/shell/WindowTitle.spec.ts':                    1,
   'page/testing/ArtboardScreens.tsx':                  27,
   'page/testing/VersionsPartsSheet.spec.tsx':          1,
   'page/testing/VersionsPartsSheet.tsx':               3,

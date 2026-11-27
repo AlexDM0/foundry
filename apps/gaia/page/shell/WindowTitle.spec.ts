@@ -1,7 +1,7 @@
 /**
- * The view's title and the window's. What matters (C2): the window reads `(N) Gaia · <view>`, N being the rail's Attention count, `4+`
- * included, and no count when nothing waits or no document has come; a forge in place is titled by its project, or by its tracker id
- * while the document does not hold it.
+ * The view's title and the window's (`docs/design/screens.md`, "Notifications and the window title"). What matters: the window reads
+ * `(N) Gaia · <view>`, N being the rail's Attention count, `4+` included, and no count when nothing waits or no document has come; a forge
+ * in place is titled by its project, or by its tracker id while the document does not hold it.
  */
 import { describe, expect, test } from 'bun:test';
 

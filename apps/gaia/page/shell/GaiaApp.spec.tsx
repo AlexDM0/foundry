@@ -1,18 +1,7 @@
 /**
- * The shell's root. What matters (`docs/design/screens.md`, the shell): a forge that joins or leaves the registry joins or leaves the rail from the fleet
- * source's next document, with no reload; with no forge registered the rail says "No forge is registered" and its slot meter is all free;
- * the route's row is the active one; Tab meets every control in visual order, the brand bar from its home link to the theme button, the
- * rail top to bottom, then the view's buttons in its page title, and every control, an icon-only one included, has a name. Also: the route
- * is read from the fragment and its view draws its page title under the brand bar, the settings' theme choice shows on the theme button
- * from the first document, named after the next choice, and a forge in place (B1) has no theme button. And (W4.3): a lost event stream
- * shows the connection banner under the page title and disables every control until the stream opens again. And (W5.2): the Agents route
- * shows the Agents view under its page title and figures, its selected agent survives the source's next document, and a filter press goes
- * to the fragment that keeps it. And motion may start only once the source holds a document; the frames after it are MotionReadiness's.
- * And the shell hands the rail where the setup of the forge shown in place stands, as that forge's board told the page.
- *
- * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
- * would paint for the source's current document: Gaia's own markup, and a package part only as the whole markup the package draws for the
- * props Gaia hands it, never its insides. `GaiaShell` takes no hooks and unfolds, its package parts folded.
+ * The shell's root (`docs/design/screens.md`, the shell): the rail follows the registry without a reload, the route picks the view and
+ * its page title, Tab meets every control in visual order with a name, and a lost event stream shows the banner and disables every control.
+ * `GaiaApp` is rendered with React's server renderer, which runs its hooks without a document; a package part is read only whole.
  */
 import { describe, expect, test } from 'bun:test';
 import type { ReactElement }      from 'react';

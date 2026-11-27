@@ -1,9 +1,7 @@
 /**
- * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
- * keeps the window title and the document's theme in step with them, picks the view the route names, and provides the command sender to the
- * views; `GaiaShell` lays out the brand bar across the window, the rail under it, and beside the rail the view's page title, the connection
- * banner and the view, from those values alone. While the stream is lost one disabled fieldset disables every button and field of the shell
- * and the view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
+ * The page's root. `GaiaApp` follows the fleet document, the event stream, the route and the theme choice and picks the view; `GaiaShell`
+ * lays out the brand bar, the rail and the view from those values alone. While the stream is lost one disabled fieldset disables every
+ * button and field, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
  */
 import {
   useCallback,

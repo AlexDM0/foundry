@@ -1,8 +1,6 @@
 /**
- * The page's clock. What matters: a reading stays the same between ticks, so React's external-store hook sees one value per render; it
- * ticks only while someone listens, and the last listener leaving cancels the schedule, so no timer outlives the page's root; it ticks
- * every second only while someone holds second ticks, as while a countdown in seconds shows, and every ten seconds again once every hold
- * is released. Every tick is a schedule the spec runs by hand.
+ * The page's clock: a reading stays the same between ticks, so React's external-store hook sees one value per render; it ticks only while
+ * someone listens, every second only while someone holds second ticks, and no timer outlives the page's root. The spec runs every tick by hand.
  */
 import { describe, expect, test } from 'bun:test';
 

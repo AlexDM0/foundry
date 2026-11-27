@@ -1,12 +1,7 @@
 /**
- * The rail's model, on the four fleet fixtures. What matters (`docs/design/screens.md`, the shell, acceptance 1): each count is the fleet document's own
- * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the
- * agent rows (the shell, acceptance 5: 10); Forges and the forge rows count and list the forges
- * not hidden, in registry order. A count the document does not hold is absent, never 0.
- * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
- * this machine's slots and lines at, under and without a limit, and the agents an unreachable forge last
- * reported (B3). U1: Agents reads `8+` while a forge Gaia cannot talk to at its version runs agents no total counts, and each forge row's
- * title says what its version means.
+ * The rail's model on the four fleet fixtures (`docs/design/screens.md`, the shell): each count is the fleet document's own figure for its
+ * row, absent rather than 0 when the document does not hold it, with `+` where a forge cannot vouch for it; plus each row's dot and title
+ * and this machine's slots and lines.
  */
 import { describe, expect, test } from 'bun:test';
 

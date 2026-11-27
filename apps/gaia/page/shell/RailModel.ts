@@ -1,10 +1,7 @@
 /**
- * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
- * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
- * does not hold is absent, never zero. Agents is `8+` while a forge at a version Gaia cannot talk to runs agents no total counts. A forge
- * with no pipeline, which Gaia knows by the forge's "no pipeline" question, says so under its name, where its setup stands while its board
- * shows it, and, before its setup is under way, offers Set up in place of a count while Gaia reads it in full, talks to it and nothing else
- * of it waits. That question counts nowhere (`FleetDocumentUtil`).
+ * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden, and this machine's agents
+ * against its limit. Every count is the document's own figure; one it does not hold is absent, never zero. A forge with no pipeline says
+ * so under its name and may offer Set up in place of a count; its "no pipeline" question counts nowhere (`FleetDocumentUtil`).
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../components/ConditionDot.tsx';
@@ -64,7 +61,7 @@ export interface OpenForgeSetup {
 export interface RailContent {
   readonly views:       readonly RailViewRow[];
   readonly forges:      readonly RailForgeRow[];
-  /** The line under the forges' head when the registry holds no forge (B4); `null` while it holds one and before the first document. */
+  /** The line under the forges' head when the registry holds no forge; `null` while it holds one and before the first document. */
   readonly noForgeLine: string | null;
   /** `null` until the first fleet document. */
   readonly machine:     MachineLoad | null;

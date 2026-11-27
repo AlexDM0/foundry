@@ -1,11 +1,7 @@
 /**
- * The rail of a fleet holding a forge with no pipeline, which Gaia knows by the forge's "no pipeline" question (`checks-not-set`). What
- * matters: that question counts nowhere in the rail, neither on the forge's row nor in Attention, since the setup answers it; the row says
- * "Not set up yet" under the name and offers Set up in place of a count while nothing else of the forge waits, and keeps its count beside
- * the line while something does; a forge Gaia cannot reach or cannot talk to keeps the line and offers no Set up, since its view could not
- * open on the onboarding; the Attention view lists as many entries as the rail counts; the forge shown in place says where its setup stands
- * as its board reported it, offering no Set up while the setup is under way, and a report for it alone moves the line, a repeated one keeps
- * the same object, and the forge's own `null` clears it while another forge's leaves it standing.
+ * The rail of a fleet holding a forge with no pipeline, known by its "no pipeline" question (`checks-not-set`): that question counts
+ * nowhere, the row says "Not set up yet" and offers Set up only while nothing else waits and Gaia can open its onboarding, and the forge
+ * shown in place says where its setup stands as its board last reported it.
  */
 import { describe, expect, test } from 'bun:test';
 

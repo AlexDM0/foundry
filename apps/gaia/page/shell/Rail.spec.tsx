@@ -1,11 +1,7 @@
 /**
- * The rail as markup (`docs/design/screens.md`, the shell). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand
- * bar holds it); each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits
- * on User and plain otherwise, its mark as the badge's qualifier, which its holder's title words; the current row, and only it, carries
- * `aria-current`; a forge row leads with its condition dot, which the package hides from the accessibility tree, and carries the model's
- * title; with no forge registered the forges' group says "No forge is registered" and the slot meter is handed every slot free; and this
- * machine is one link to the Forges view, with its slot meter and its lines. A forge with no pipeline says where its setup stands under its name,
- * and in its count's place, while nothing else of it waits, the package's dashed tag Set up in the warn tone.
+ * The rail as markup (`docs/design/screens.md`, the shell): the navigation landmark named Gaia, each row a link to its route with the
+ * model's label, count and title, only the current row carrying `aria-current`, an empty registry said in words, this machine one link to
+ * the Forges view, and a forge with no pipeline offering the dashed Set up tag in its count's place.
  */
 import { describe, expect, test } from 'bun:test';
 import {
