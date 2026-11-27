@@ -4,8 +4,8 @@
  */
 import { posix, win32 } from 'node:path';
 
-import type { Logged }                        from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { PipelineTool }                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Logged }                        from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { PipelineTool }                  from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';

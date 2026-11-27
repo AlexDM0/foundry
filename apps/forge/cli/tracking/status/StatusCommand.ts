@@ -1,6 +1,6 @@
 import { LogUtil }                                      from '../../../src/adapters/utils/LogUtil.ts';
+import { readingBoardOf }                               from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { readingBoardOf }                               from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import type { WordedLogEntry }                          from '../../../src/shared/@types/WordedLogEntry.ts';
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }                                 from '../../BoardStoreOf.ts';

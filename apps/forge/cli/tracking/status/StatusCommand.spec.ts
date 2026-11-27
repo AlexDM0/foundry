@@ -13,8 +13,8 @@ import {
   test
 }                                                                             from 'bun:test';
 import type { FullStatusDocument }                from '../../../src/adapters/@types/StatusDocument.ts';
+import type { TicketFrontmatter }                 from '../../../src/domain/tracker-model/@types/Ticket.ts';
 import type { ConfinementVerdict }                from '../../../src/lib/gate-confinement/GateConfinement.ts';
-import type { TicketFrontmatter }                 from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type { WordedProgressDocument }            from '../../../src/shared/@types/WordedProgressDocument.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import { fakeGateConfinement }                    from '../../../src/testing/FakeGateConfinement.ts';

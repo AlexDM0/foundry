@@ -8,9 +8,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineStepRun }                                                from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineEntity }                                       from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { PipelineStepRun }                                                from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineEntity }                                       from '../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                                        from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { EntityPipelinesRunRequest, PipelineRunRequest, PipelineVerdict } from '../lifecycle/GateRun.ts';
 import { type MergedTreeGateRunRequest, runMergedTreeGates }                   from './MergedTreeGateRun.ts';
 

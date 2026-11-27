@@ -7,8 +7,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { EntityKey, Pipeline, PipelineEntity } from '../../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineDraftEditUtil }                    from '../../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+import type { EntityKey, Pipeline, PipelineEntity } from '../../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineDraftEditUtil }                    from '../../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { BoardCommandMappingUtil }                  from '../../board-commands/utils/BoardCommandMappingUtil.ts';
 import { BoardEntityRefusalMappingUtil }            from './BoardEntityRefusalMappingUtil.ts';
 

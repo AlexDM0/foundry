@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import type { Draft }             from '../../../lib/tracker-model/@types/Draft.ts';
+import type { Draft }             from '../../../domain/tracker-model/@types/Draft.ts';
 import { DraftDocumentUtil }      from './DraftDocumentUtil.ts';
 
 const DRAFT_WITHOUT_ENTITY = `${JSON.stringify({

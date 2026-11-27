@@ -25,7 +25,7 @@ import {
   ticketOf
 }                                             from './testing/LifecycleFixtures.ts';
 
-const POLICY_MODULE = 'src/lib/tracker-model/Playbook.ts';
+const POLICY_MODULE = 'src/domain/tracker-model/Playbook.ts';
 
 interface NeedClaim {
   name:   string;

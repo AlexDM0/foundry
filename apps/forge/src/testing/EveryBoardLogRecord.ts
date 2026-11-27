@@ -2,9 +2,9 @@
  * One record of every kind, as the Board's own changes log them, so a spec pinning what log.jsonl stores reads the Board's key order rather
  * than a hand-written copy of it. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { LogRecord } from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }     from '../lib/tracker-model/Board.ts';
-import { PipelineUtil }   from '../lib/tracker-model/utils/PipelineUtil.ts';
+import type { LogRecord } from '../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }     from '../domain/tracker-model/Board.ts';
+import { PipelineUtil }   from '../domain/tracker-model/utils/PipelineUtil.ts';
 import {
   boardFixture,
   entityPipelineFixture,

@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DecisionOpening }                     from '../../lib/tracker-model/@types/Decision.ts';
+import type { DecisionOpening }                     from '../../domain/tracker-model/@types/Decision.ts';
 import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { StatusDocumentUtil }                       from './StatusDocumentUtil.ts';
 

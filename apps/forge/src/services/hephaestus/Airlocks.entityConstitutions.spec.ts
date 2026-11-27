@@ -13,7 +13,7 @@ import {
   test
 } from 'bun:test';
 
-import type { MainConstitution }                                           from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { MainConstitution }                                           from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { useRecordedGit }                                                  from '../../testing/RecordedGit.ts';
 import { entityAssignmentRequestOf }                                       from '../control/EntityAssignmentRequest.ts';
 import { createRecordedAirlocksHarness, HARNESS_AT, type AirlocksHarness } from './testing/AirlocksHarness.ts';

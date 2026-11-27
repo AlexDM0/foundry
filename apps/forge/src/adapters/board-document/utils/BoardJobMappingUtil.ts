@@ -13,8 +13,8 @@ import type {
 import type { BoardJobOffersDocument }   from 'forge-contracts/BoardReadingDocuments';
 import type { BoardLaunchSlotsDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { LaunchSlots }                              from '../../../lib/tracker-model/@types/LaunchSlots.ts';
-import type { TicketForecast, TicketForecastStep }       from '../../../lib/tracker-model/@types/TicketForecast.ts';
+import type { LaunchSlots }                              from '../../../domain/tracker-model/@types/LaunchSlots.ts';
+import type { TicketForecast, TicketForecastStep }       from '../../../domain/tracker-model/@types/TicketForecast.ts';
 import { AgentProgramWordingUtil }                       from '../../../shared/utils/AgentProgramWordingUtil.ts';
 import type { EndedJob, JobWithLiveFacts, LastToolCall } from '../../@types/BoardStateParts.ts';
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }           from '../../constants/MonitorInterruptionCauseOfCause.ts';

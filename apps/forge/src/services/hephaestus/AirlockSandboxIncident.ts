@@ -2,9 +2,9 @@
  * An Airlock agent whose worktree's denied root cannot be made does not launch, and the Airlock waits on it. The `sandbox-unavailable` incident
  * tells the Assistant so; the launch is tried again each pass, and opens no second incident while the first stands. The launch that succeeds closes it.
  */
-import type { Incident }                    from '../../lib/tracker-model/@types/Incident.ts';
-import type { LogRecord }                   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                       from '../../lib/tracker-model/Board.ts';
+import type { Incident }                    from '../../domain/tracker-model/@types/Incident.ts';
+import type { LogRecord }                   from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                       from '../../domain/tracker-model/Board.ts';
 import { type FolderMaker, WorkerProfiles } from './WorkerProfiles.ts';
 
 /** The `step` a refused Airlock agent launch names in its incident. */

@@ -9,11 +9,11 @@ import { join }       from 'node:path';
 
 import { AssistantChatsIngestion, type AssistantChat, type AssistantChatsReading } from '../../adapters/assistant-chats/AssistantChatsIngestion.ts';
 import { createAssistantChatsWriter }                                              from '../../adapters/assistant-chats/AssistantChatsWriter.ts';
+import type { Incident, IncidentDeliveryTurn }                                     from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                                                from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                                                              from '../../domain/tracker-model/Board.ts';
+import { Playbook }                                                                from '../../domain/tracker-model/Playbook.ts';
 import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
-import type { Incident, IncidentDeliveryTurn }                                     from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                                from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                                              from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                                                from '../../lib/tracker-model/Playbook.ts';
 import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET }       from '../../shared/constants/HephaestusLimits.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                                      from './AssistantBoot.ts';
 import type { BoardChildren }                                                      from './BoardChildren.ts';

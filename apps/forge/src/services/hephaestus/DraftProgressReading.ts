@@ -2,10 +2,10 @@
  * Where each ticket being written stands, read from the board: the board document carries it on each ticket, and the Waiting on User
  * list of the board document and the monitor reads it to leave out a draft whose agent is still writing it.
  */
-import type { DraftProgress }  from '../../lib/tracker-model/@types/DraftProgress.ts';
-import type { Board }          from '../../lib/tracker-model/Board.ts';
-import { DraftProgressUtil }   from '../../lib/tracker-model/utils/DraftProgressUtil.ts';
-import { TicketWritingUtil }   from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
+import type { DraftProgress }  from '../../domain/tracker-model/@types/DraftProgress.ts';
+import type { Board }          from '../../domain/tracker-model/Board.ts';
+import { DraftProgressUtil }   from '../../domain/tracker-model/utils/DraftProgressUtil.ts';
+import { TicketWritingUtil }   from '../../domain/tracker-model/utils/TicketWritingUtil.ts';
 import type { PageTicket }     from '../../shared/@types/PagePayload.ts';
 import type { AttentionBoard } from '../../shared/monitor/AttentionEntries.ts';
 import type { BoardState }     from './BoardState.ts';

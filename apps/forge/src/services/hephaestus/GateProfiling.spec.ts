@@ -26,10 +26,10 @@ import {
   test
 } from 'bun:test';
 
-import type { PipelineStepRun }                           from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { ResearchFinding }                           from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
+import type { PipelineStepRun }                           from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineEntity }                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { ResearchFinding }                           from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand }                            from '../../shared/@types/ControlCommand.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';

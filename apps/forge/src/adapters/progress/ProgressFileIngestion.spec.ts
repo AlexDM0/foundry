@@ -6,7 +6,7 @@ import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
-import { ConcurrencyUtil }                                 from '../../lib/tracker-model/utils/ConcurrencyUtil.ts';
+import { ConcurrencyUtil }                                 from '../../domain/tracker-model/utils/ConcurrencyUtil.ts';
 import { emptyProgress, fileRow }                          from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
 import { OLDER_FORMAT_ADVICE }                             from '../constants/OlderFormatAdvice.ts';

@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
 import { RefusalDocumentUtil }   from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
-import type { LogRecord }        from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }        from '../../../src/domain/tracker-model/@types/LogRecord.ts';
 import { BoardDocumentAssembly } from '../../../src/services/hephaestus/BoardDocumentAssembly.ts';
 import { BoardStateAssembly }    from '../../../src/services/hephaestus/BoardState.ts';
 import type { EventBroker }      from '../../../src/services/hephaestus/EventBroker.ts';

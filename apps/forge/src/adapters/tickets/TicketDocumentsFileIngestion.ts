@@ -2,7 +2,6 @@
  * One ticket's documents record read into the model: a file that cannot be read or parsed, or that breaks its shape, is a `malformed`
  * verdict with its reason, never a throw. Only the current format is read.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type {
   CommentAnchor,
   DiagramAnchor,
@@ -16,8 +15,9 @@ import type {
   TicketDocument,
   TicketDocumentKind,
   TicketDocumentRecord
-} from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TICKET_DOCUMENT_KINDS, TICKET_DOCUMENTS_FORMAT_VERSION } from '../../lib/tracker-model/@types/TicketDocument.ts';
+} from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS, TICKET_DOCUMENTS_FORMAT_VERSION } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { JsonRecordUtil }                                         from '../../lib/json-record/JsonRecordUtil.ts';
 import { storedFileTextOf }                                       from '../StoredFileText.ts';
 import { StoredValueUtil }                                        from '../utils/StoredValueUtil.ts';
 

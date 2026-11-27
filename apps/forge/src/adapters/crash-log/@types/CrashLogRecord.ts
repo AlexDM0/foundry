@@ -1,5 +1,5 @@
+import type { StartOrigin }                from '../../../domain/tracker-model/@types/Job.ts';
 import type { ProcessIdentity }            from '../../../lib/process-identity/ProcessIdentity.ts';
-import type { StartOrigin }                from '../../../lib/tracker-model/@types/Job.ts';
 import type { StartClassificationVerdict } from '../../presence/@types/StartClassificationVerdict.ts';
 import type { CRASH_LOG_FORMAT_VERSION }   from '../constants/CrashLogFileVersions.ts';
 

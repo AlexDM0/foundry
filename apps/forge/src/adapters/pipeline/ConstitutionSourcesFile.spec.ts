@@ -13,7 +13,7 @@ import {
   test,
 } from 'bun:test';
 
-import type { StoredConstitutionSources }                 from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { StoredConstitutionSources }                 from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { ConstitutionSourcesFile }                        from './ConstitutionSourcesFile.ts';
 

@@ -2,7 +2,7 @@
  * What a document version names in the main line's tree, as an effect reading reports it, and the port that runs readings and keeps the
  * newest one of each ticket document in memory. Nothing of it is stored on the board: a restart forgets every reading.
  */
-import type { LineRange, TicketDocumentKind } from '../../lib/tracker-model/@types/TicketDocument.ts';
+import type { LineRange, TicketDocumentKind } from '../../domain/tracker-model/@types/TicketDocument.ts';
 
 export type EffectChange = 'adds' | 'changes' | 'removes' | 'unresolved';
 

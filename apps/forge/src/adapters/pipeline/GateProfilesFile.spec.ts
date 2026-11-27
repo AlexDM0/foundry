@@ -15,7 +15,7 @@ import {
   test,
 } from 'bun:test';
 
-import type { GateProfiles }                              from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { GateProfiles }                              from '../../domain/tracker-model/@types/GateProfile.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { GateProfilesFile }                               from './GateProfilesFile.ts';
 

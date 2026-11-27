@@ -37,11 +37,11 @@ import {
   ticketRecord
 }                                             from './testing/LifecycleFixtures.ts';
 
-const POLICY_MODULE = 'src/lib/tracker-model/Playbook.ts';
+const POLICY_MODULE = 'src/domain/tracker-model/Playbook.ts';
 
-const FAILED_PASS_MODULE = 'src/lib/tracker-model/utils/FailedPassUtil.ts';
+const FAILED_PASS_MODULE = 'src/domain/tracker-model/utils/FailedPassUtil.ts';
 
-const LAUNCH_SLOT_MODULE = 'src/lib/tracker-model/utils/LaunchSlotUtil.ts';
+const LAUNCH_SLOT_MODULE = 'src/domain/tracker-model/utils/LaunchSlotUtil.ts';
 
 interface PolicyClaim {
   name:    string;
@@ -177,9 +177,9 @@ const RED_INTERRUPTED_STAGE_TWO_BUILD = jobFixture({
   id: 'J2', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', entity: 'ui', stage: 2
 });
 
-const JOB_STATES_MODULE = 'src/lib/tracker-model/constants/JobStates.ts';
+const JOB_STATES_MODULE = 'src/domain/tracker-model/constants/JobStates.ts';
 
-const RESUME_POLICY_MODULE = 'src/lib/tracker-model/constants/ResumePolicy.ts';
+const RESUME_POLICY_MODULE = 'src/domain/tracker-model/constants/ResumePolicy.ts';
 
 /** One interrupted job of each path `crashBoundStepsOf` and `productOwnerStepsOf` take, with the ticket status its kind runs in. */
 const INTERRUPTED_JOBS_OF_EACH_PATH: readonly { job: Job; ticketStatus: TicketStatus }[] = [

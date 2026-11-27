@@ -3,11 +3,11 @@
  * run and a gate profile share it. Each line runs under Talos in its own step folder of the run's child folder. A gate that changed the
  * checkout fails, and the change is undone before the next gate.
  */
+import type { GateCacheReport, GateOutcome, PipelineStepRun } from '../../domain/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                    from '../../domain/tracker-model/@types/Pipeline.ts';
 import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                       from '../../lib/git/GitWorktrees.ts';
 import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
-import type { GateCacheReport, GateOutcome, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   GateRun,
   type GateConfinement,

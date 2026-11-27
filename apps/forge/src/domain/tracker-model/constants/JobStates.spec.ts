@@ -1,6 +1,6 @@
 /**
  * The stored check reads each job vocabulary from its tuple, so a union member the tuple lacks would make a well-formed progress file
- * unreadable: each tuple names every member of its union in `src/lib/tracker-model/@types/Job.ts`, once.
+ * unreadable: each tuple names every member of its union in `src/domain/tracker-model/@types/Job.ts`, once.
  */
 import { expect, test } from 'bun:test';
 

@@ -1,5 +1,5 @@
+import type { TrackerProgress }                      from '../../domain/tracker-model/@types/TrackerProgress.ts';
 import { createFileAtomically, writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { TrackerProgress }                      from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import { JsonTextUtil }                              from '../../shared/utils/JsonTextUtil.ts';
 import { ProgressFileMappingUtil }                   from './utils/ProgressFileMappingUtil.ts';
 

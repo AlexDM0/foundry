@@ -8,7 +8,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
 import { afterEach, beforeEach, expect }          from 'bun:test';
-import type { PipelineGate }                      from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineGate }                      from '../../domain/tracker-model/@types/Pipeline.ts';
 import { environmentCopy }                        from '../../shared/Environment.ts';
 import { FAKE_MISSING_TOOLS_REASON, runsAsGiven } from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                    from '../../testing/NativePlatformPorts.ts';

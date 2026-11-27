@@ -1,5 +1,5 @@
-import type { Ticket }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import { TicketIdUtil }          from '../../../src/lib/tracker-model/utils/TicketIdUtil.ts';
+import type { Ticket }           from '../../../src/domain/tracker-model/@types/Ticket.ts';
+import { TicketIdUtil }          from '../../../src/domain/tracker-model/utils/TicketIdUtil.ts';
 import type { UnreadableRecord } from '../../../src/services/tracker/@types/BoardRecords.ts';
 import type { BoardTransaction } from '../../../src/services/tracker/BoardTransaction.ts';
 import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';

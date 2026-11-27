@@ -1,10 +1,10 @@
 /**
- * The named verbs enforce the legality matrix of `src/lib/tracker-model/constants/TicketMoveLegality.ts`; `ticket status` is the
+ * The named verbs enforce the legality matrix of `src/domain/tracker-model/constants/TicketMoveLegality.ts`; `ticket status` is the
  * documented override that skips it.
  */
 import { TicketJsonUtil }                                         from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { IncompleteTicket, TicketStatus }                    from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { VocabularyUtil }                                         from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+import type { IncompleteTicket, TicketStatus }                    from '../../src/domain/tracker-model/@types/Ticket.ts';
+import { VocabularyUtil }                                         from '../../src/domain/tracker-model/utils/VocabularyUtil.ts';
 import type { ControlCommandOf }                                  from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                       from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                          from '../../src/shared/constants/ProductNames.ts';

@@ -13,7 +13,7 @@ import {
   test,
 } from 'bun:test';
 import { OperationRefusalWordingUtil }                    from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { PipelineEntity }                            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineEntity }                            from '../../domain/tracker-model/@types/Pipeline.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

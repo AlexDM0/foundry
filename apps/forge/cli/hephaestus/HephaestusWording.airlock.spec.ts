@@ -10,7 +10,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                          from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                          from '../../src/domain/tracker-model/@types/Job.ts';
 import type { AirlockFacts, JobLaunchFacts } from '../../src/services/hephaestus/DrivePass.ts';
 import { DISPATCH_PROTOCOL }                 from '../../src/shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }    from '../../src/shared/constants/HephaestusLimits.ts';

@@ -5,7 +5,7 @@
  */
 import { join } from 'node:path';
 
-import type { GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import type { GateOutcome } from '../../domain/tracker-model/@types/Job.ts';
 import {
   GateLineRun,
   type GateLineRunRequest,

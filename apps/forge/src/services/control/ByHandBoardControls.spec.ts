@@ -11,7 +11,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Board }                                             from '../../lib/tracker-model/Board.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                          from '../../shared/constants/ProductNames.ts';

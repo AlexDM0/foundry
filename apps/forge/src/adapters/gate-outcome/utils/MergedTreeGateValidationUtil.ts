@@ -1,8 +1,8 @@
 /** Each field of a kept merged-tree gate, checked against the shape the gate run wrote: the first problem, or `null` when there is none. */
+import { GATE_PHASES }                                from '../../../domain/tracker-model/@types/GatePhase.ts';
+import { GATE_CACHE_REPORTS }                         from '../../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { PIPELINE_STEP_ENDINGS, PIPELINE_STEP_KINDS } from '../../../domain/tracker-model/constants/JobStates.ts';
 import { JsonRecordUtil }                             from '../../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }                                from '../../../lib/tracker-model/@types/GatePhase.ts';
-import { GATE_CACHE_REPORTS }                         from '../../../lib/tracker-model/constants/GateProfileVocabulary.ts';
-import { PIPELINE_STEP_ENDINGS, PIPELINE_STEP_KINDS } from '../../../lib/tracker-model/constants/JobStates.ts';
 import type { MergedTreeGate }                        from '../@types/MergedTreeGate.ts';
 
 const KEPT_GATE_OUTCOMES: readonly unknown[] = ['passed', 'failed', 'cannot-run', 'setup-failed', 'sandbox-unavailable'] satisfies MergedTreeGate['outcome'][];

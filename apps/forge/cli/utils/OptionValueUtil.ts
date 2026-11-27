@@ -1,6 +1,6 @@
+import { FIRST_TASK_ID }       from '../../src/domain/tracker-model/constants/TaskIds.ts';
 import { LocalTimeUtil }       from '../../src/lib/local-time/LocalTimeUtil.ts';
 import { TokenCountUtil }      from '../../src/lib/token-count/TokenCountUtil.ts';
-import { FIRST_TASK_ID }       from '../../src/lib/tracker-model/constants/TaskIds.ts';
 import { OperationRefusal }    from '../../src/shared/OperationRefusal.ts';
 import type { ArgumentParser } from '../arguments/ArgumentParser.ts';
 

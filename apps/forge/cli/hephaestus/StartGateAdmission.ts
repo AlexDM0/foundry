@@ -2,8 +2,8 @@
  * The start gate as every form of `start` runs it: a start that may serve goes on with its verdict, and one that stays off tells the registry
  * the forge crashed, logs one line and is refused `forge-off-after-crash`, before it takes a Hephaestus lock, binds a port or contacts Talos.
  */
+import type { StartOrigin }          from '../../src/domain/tracker-model/@types/Job.ts';
 import { LocalTimeUtil }             from '../../src/lib/local-time/LocalTimeUtil.ts';
-import type { StartOrigin }          from '../../src/lib/tracker-model/@types/Job.ts';
 import type { StartGateVerdict }     from '../../src/services/hephaestus/@types/StartClassification.ts';
 import { CrashLog }                  from '../../src/services/hephaestus/CrashLog.ts';
 import type { HephaestusFiles }      from '../../src/services/hephaestus/HephaestusFiles.ts';

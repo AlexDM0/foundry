@@ -15,8 +15,8 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/HephaestusLimits.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';

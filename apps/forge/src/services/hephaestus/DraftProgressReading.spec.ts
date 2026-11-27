@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Decision }                                        from '../../lib/tracker-model/@types/Decision.ts';
-import { PipelineUtil }                                         from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { Decision }                                        from '../../domain/tracker-model/@types/Decision.ts';
+import { PipelineUtil }                                         from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { PageTicket }                                      from '../../shared/@types/PagePayload.ts';
 import { attentionEntriesOf }                                   from '../../shared/monitor/AttentionEntries.ts';
 import { documentAgentJobFixture, ticketDocumentRecordFixture } from '../../testing/TicketDocumentFixtures.ts';

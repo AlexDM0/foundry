@@ -1,5 +1,5 @@
 /** log.jsonl read into the model's records: read, split into lines, parse, validate and map. The format's first version has nothing to migrate. */
-import type { LogRecord }       from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }       from '../../domain/tracker-model/@types/LogRecord.ts';
 import { storedFileTextOf }     from '../StoredFileText.ts';
 import { StoredValueUtil }      from '../utils/StoredValueUtil.ts';
 import type { LogFileReading }  from './@types/StoredLog.ts';

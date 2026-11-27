@@ -24,6 +24,11 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema }                                        from '../../adapters/reports/ReportValidation.ts';
 import { TicketAcceptanceUtil }                                                    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import type { JobOutcome }                                                         from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                                          from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { PipelineGate }                                                       from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStageName }                                                    from '../../domain/tracker-model/@types/Task.ts';
+import { EntityOwnershipUtil }                                                     from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { AgentAdapter, AgentConfigurationNames }                              from '../../lib/agent-launch/AgentAdapter.ts';
 import { type GitPathStyle, GitPaths }                                             from '../../lib/git/GitPaths.ts';
 import { type GitHookPolicy, type GitRun, GitProcess }                             from '../../lib/git/GitProcess.ts';
@@ -31,11 +36,6 @@ import { GitWorktrees }                                                         
 import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings } from '../../lib/git/RepositoryLandings.ts';
 import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                        from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                                                        from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { JobOutcome }                                                         from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                                          from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineGate }                                                       from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStageName }                                                    from '../../lib/tracker-model/@types/Task.ts';
-import { EntityOwnershipUtil }                                                     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { BranchNames }                                                        from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                                           from '../../shared/constants/ProductNames.ts';
 import { ProjectPathsUtil }                                                        from '../../shared/utils/ProjectPathsUtil.ts';

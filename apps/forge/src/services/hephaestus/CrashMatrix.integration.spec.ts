@@ -40,6 +40,10 @@ import {
 } from 'bun:test';
 import type { CrashedComponent, CrashLogError }    from '../../adapters/crash-log/@types/CrashLogRecord.ts';
 import { writeHatchRequest }                       from '../../adapters/hatch/HatchFolder.ts';
+import type { Decision }                           from '../../domain/tracker-model/@types/Decision.ts';
+import type { Incident }                           from '../../domain/tracker-model/@types/Incident.ts';
+import type { Job }                                from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                              from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                       from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                      from '../../lib/agent-launch/AgentSessionEvent.ts';
@@ -50,10 +54,6 @@ import { childRecordTextOf }                       from '../../lib/talos/ChildRe
 import type { EventLogEntry }                      from '../../lib/talos/EventLog.ts';
 import { talosRecordPathOf }                       from '../../lib/talos/TalosFiles.ts';
 import { talosRecordTextOf }                       from '../../lib/talos/TalosRecord.ts';
-import type { Decision }                           from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                           from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                              from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                     from '../../shared/@types/ControlCommand.ts';
 import { LIFECYCLE_LIMITS }                        from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                           from '../../shared/constants/ProductNames.ts';

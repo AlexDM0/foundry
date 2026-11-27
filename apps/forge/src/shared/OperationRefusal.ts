@@ -3,7 +3,7 @@
  * `refused` to exit 1, a refusal the caller can act on, and `unrepaired` to exit 2, a state the tool will not repair on its own. A refusal
  * thrown from `src/` carries a detail, a reason code with its facts and no words, that the command line words; only `cli/` builds one from words.
  */
-import type { BoardRefusalDetail }       from '../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }       from '../domain/tracker-model/BoardRefusal.ts';
 import type { AgentProgramRefusalCause } from './@types/AgentProgramCheck.ts';
 import type { InstallVersionMismatch }   from './@types/InstallVersionMismatch.ts';
 import type { RoleCommandRefusalReason } from './@types/RoleCommandRefusalReason.ts';

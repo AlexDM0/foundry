@@ -3,14 +3,13 @@
  * the page through `identifiedEntryOf`, which also carries every task and ticket id the record concerns, so a detail panel never reads ids
  * out of the sentence.
  */
-import { TokenCountUtil }            from '../../lib/token-count/TokenCountUtil.ts';
-import type { IncidentDefaultCause } from '../../lib/tracker-model/@types/Incident.ts';
+import type { IncidentDefaultCause } from '../../domain/tracker-model/@types/Incident.ts';
 import type {
   JobStopMode,
   PipelineStepEnding,
   StartKind,
   StartOrigin
-} from '../../lib/tracker-model/@types/Job.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
 import type {
   AgentUsage,
   FlintBrainEndedReason,
@@ -18,8 +17,9 @@ import type {
   LogRecordContent,
   LogRecordFieldsOf,
   RetiredDispatcherState
-} from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { ViewRange }                          from '../../lib/tracker-model/@types/TrackerProgress.ts';
+} from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { ViewRange }                          from '../../domain/tracker-model/@types/TrackerProgress.ts';
+import { TokenCountUtil }                          from '../../lib/token-count/TokenCountUtil.ts';
 import type { IdentifiedLogEntry, WordedLogEntry } from '../../shared/@types/WordedLogEntry.ts';
 import type { MovedToStatus }                      from './StatusWordingUtil.ts';
 import { StatusWordingUtil }                       from './StatusWordingUtil.ts';

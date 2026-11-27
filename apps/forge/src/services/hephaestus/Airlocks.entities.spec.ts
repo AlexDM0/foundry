@@ -16,7 +16,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineEntity } from '../../domain/tracker-model/@types/Pipeline.ts';
 import { stepIn }                        from '../../testing/RecordedAirlockGit.ts';
 import {
   GIT_CALL_SHAPES,

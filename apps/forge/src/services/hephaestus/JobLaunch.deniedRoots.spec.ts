@@ -14,10 +14,10 @@ import {
 } from 'bun:test';
 
 import { SandboxRefusalIngestion }                                    from '../../adapters/sandbox-refusal/SandboxRefusalIngestion.ts';
+import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                              from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
 import type { SandboxDenyShape }                                      from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { fakeAgentAdapter }                                           from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';

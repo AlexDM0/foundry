@@ -22,8 +22,8 @@ import type {
 import { CrashLogIngestion }                                                                  from '../../adapters/crash-log/CrashLogIngestion.ts';
 import { createCrashLogWriter }                                                               from '../../adapters/crash-log/CrashLogWriter.ts';
 import { CRASH_LOG_FORMAT_VERSION }                                                           from '../../adapters/crash-log/constants/CrashLogFileVersions.ts';
+import type { Job }                                                                           from '../../domain/tracker-model/@types/Job.ts';
 import type { ProcessIdentity }                                                               from '../../lib/process-identity/ProcessIdentity.ts';
-import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
 import type { CrashLogInputs, CrashLogWrite }                                                 from './@types/CrashLogRecord.ts';
 import type { PresenceFileReading }                                                           from './@types/PresenceRecord.ts';
 import type { HephaestusFiles }                                                               from './HephaestusFiles.ts';

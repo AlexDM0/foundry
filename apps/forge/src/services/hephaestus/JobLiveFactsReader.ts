@@ -14,12 +14,12 @@ import type {
   SubagentState,
   UsageWindowReport
 } from '../../adapters/@types/BoardStateParts.ts';
+import type { Job, JobKind }      from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }             from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }      from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent } from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }     from '../../lib/talos/EventLog.ts';
 import { clientEntryOf }          from '../../lib/talos/TalosFrames.ts';
-import type { Job, JobKind }      from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }             from '../../lib/tracker-model/Board.ts';
 import type { TranscriptEntry }   from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot }          from './AssistantBoot.ts';
 import { AssistantSession }       from './AssistantSession.ts';

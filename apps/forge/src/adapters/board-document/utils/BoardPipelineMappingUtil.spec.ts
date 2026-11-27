@@ -10,10 +10,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { LogRecord }                from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                 from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetupFacts }       from '../../../lib/tracker-model/@types/PipelineFacts.ts';
-import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { LogRecord }                from '../../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                 from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupFacts }       from '../../../domain/tracker-model/@types/PipelineFacts.ts';
+import { PipelineUtil }                  from '../../../domain/tracker-model/utils/PipelineUtil.ts';
 import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
 import { BoardPipelineMappingUtil }      from './BoardPipelineMappingUtil.ts';
 

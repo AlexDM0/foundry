@@ -2,8 +2,8 @@
  * The checks every stored format's validation shares: a stored text parsed as JSON, whether a parsed value is a whole number, and whether it
  * is a list of the pictures User sent.
  */
+import { PICTURE_ID_PATTERN } from '../../domain/tracker-model/constants/PictureIdPattern.ts';
 import { JsonRecordUtil }     from '../../lib/json-record/JsonRecordUtil.ts';
-import { PICTURE_ID_PATTERN } from '../../lib/tracker-model/constants/PictureIdPattern.ts';
 
 export type ParsedJson =
   | { verdict: 'parsed'; value: unknown }

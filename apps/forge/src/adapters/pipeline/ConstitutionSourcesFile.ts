@@ -4,8 +4,8 @@
  * map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the top level, after its own, in
  * their stored order, so a read and a write leave the file byte-identical.
  */
+import type { ConstitutionSourcesReading, SourceAnnotation, StoredConstitutionSources } from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { JsonRecordUtil }                                                               from '../../lib/json-record/JsonRecordUtil.ts';
-import type { ConstitutionSourcesReading, SourceAnnotation, StoredConstitutionSources } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { JsonTextUtil }                                                                 from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf }                                                             from '../StoredFileText.ts';
 import { StoredValueUtil }                                                              from '../utils/StoredValueUtil.ts';

@@ -8,8 +8,8 @@
  * tracker at its repository's root, since only that tracker holds entities.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import type { PipelineSetupChanged }                                      from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { EntityKey }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupChanged }                                      from '../../domain/tracker-model/@types/BoardChanges.ts';
+import type { EntityKey }                                                 from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandKind, ControlCommandOf }                      from '../../shared/@types/ControlCommand.ts';
 import { TreePortability }                                                from '../lifecycle/TreePortability.ts';
 import type { BoardTransaction }                                          from '../tracker/BoardTransaction.ts';

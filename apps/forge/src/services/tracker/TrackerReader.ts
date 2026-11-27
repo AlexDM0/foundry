@@ -9,8 +9,8 @@ import { GateProfilesFile }                                from '../../adapters/
 import { PipelineFile, type PipelineReading }              from '../../adapters/pipeline/PipelineFile.ts';
 import { PipelineSetupFile }                               from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { ProgressFileIngestion, type ProgressFileReading } from '../../adapters/progress/ProgressFileIngestion.ts';
-import type { Pipeline }                                   from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TrackerProgress }                            from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { Pipeline }                                   from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TrackerProgress }                            from '../../domain/tracker-model/@types/TrackerProgress.ts';
 import type { UnreadableTracker }                          from '../../shared/@types/UnreadableTracker.ts';
 import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import type { BoardContents }                              from './@types/BoardRecords.ts';

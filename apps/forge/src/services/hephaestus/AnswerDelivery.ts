@@ -8,12 +8,12 @@ import { createHash }                from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
+import type { DecisionAnswer }             from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                        from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                  from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                      from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { DecisionAnswer }             from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
 import type { BoardChildren }              from './BoardChildren.ts';
 import { JobResumption }                   from './JobResumption.ts';

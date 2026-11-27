@@ -676,10 +676,10 @@ its lease ends; [Changing the code](../development/contributing.md) has the full
 
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
-| Launch order and holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` (`resumesAreHeld`, `newWorkIsHeld`), `candidateOf`, `ticketIsHeld`, `candidateOrder`, `freeSlotsOf` | `src/lib/tracker-model/Board.lifecycle.spec.ts` |
-| Default paused state | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `src/lib/tracker-model/constants/HephaestusStates.spec.ts` |
-| Stop controls | `src/lib/tracker-model/JobControls.ts` | `requestJobStop`, `stopAllJobs` | `src/services/control/JobControls.spec.ts` |
-| What an unhold starts | `src/lib/tracker-model/Playbook.ts` | `candidateOf`, `mergeQueueStepsOf` | `src/lib/tracker-model/Board.lifecycle.spec.ts` |
+| Launch order and holds | `src/domain/tracker-model/Playbook.ts` | `nextStepsOf` (`resumesAreHeld`, `newWorkIsHeld`), `candidateOf`, `ticketIsHeld`, `candidateOrder`, `freeSlotsOf` | `src/domain/tracker-model/Board.lifecycle.spec.ts` |
+| Default paused state | `src/domain/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `src/domain/tracker-model/constants/HephaestusStates.spec.ts` |
+| Stop controls | `src/domain/tracker-model/JobControls.ts` | `requestJobStop`, `stopAllJobs` | `src/services/control/JobControls.spec.ts` |
+| What an unhold starts | `src/domain/tracker-model/Playbook.ts` | `candidateOf`, `mergeQueueStepsOf` | `src/domain/tracker-model/Board.lifecycle.spec.ts` |
 | Quiet job count | `src/services/hephaestus/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/hephaestus/IncidentRouter.spec.ts` |
 | Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |
 | Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |

@@ -14,11 +14,11 @@ import { BoardMergeQueueMappingUtil }                from '../../adapters/board-
 import { BoardPageMappingUtil, type TicketReadings } from '../../adapters/board-document/utils/BoardPageMappingUtil.ts';
 import { BoardPipelineMappingUtil }                  from '../../adapters/board-document/utils/BoardPipelineMappingUtil.ts';
 import { BoardReadingMappingUtil }                   from '../../adapters/board-document/utils/BoardReadingMappingUtil.ts';
-import type { Decision }                             from '../../lib/tracker-model/@types/Decision.ts';
-import type { LogRecord }                            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { LineRange }                            from '../../lib/tracker-model/@types/TicketDocument.ts';
-import type { Board }                                from '../../lib/tracker-model/Board.ts';
-import type { MergeForecast }                        from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import type { Decision }                             from '../../domain/tracker-model/@types/Decision.ts';
+import type { LogRecord }                            from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { LineRange }                            from '../../domain/tracker-model/@types/TicketDocument.ts';
+import type { Board }                                from '../../domain/tracker-model/Board.ts';
+import type { MergeForecast }                        from '../../domain/tracker-model/utils/MergeQueueUtil.ts';
 import type { PageTicket }                           from '../../shared/@types/PagePayload.ts';
 import { attentionEntriesOf }                        from '../../shared/monitor/AttentionEntries.ts';
 import { todayCalendarDateOf, todayFiguresOf }       from '../../shared/monitor/TodayFigures.ts';

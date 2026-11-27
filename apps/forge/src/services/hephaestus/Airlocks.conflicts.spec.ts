@@ -11,7 +11,7 @@
 import { afterEach, expect, test } from 'bun:test';
 
 
-import type { PipelineAirlock }           from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineAirlock }           from '../../domain/tracker-model/@types/Pipeline.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET } from '../../shared/constants/HephaestusLimits.ts';
 import {
   ancestryAsked,

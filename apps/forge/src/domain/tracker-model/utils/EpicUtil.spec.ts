@@ -1,7 +1,7 @@
 /**
  * The board-free epic rules. The key check guards the file name, so its edges matter: no capitals, no leading, trailing or doubled hyphen.
  * The slot choice is the stored colour, so a tie must always resolve to the same slot; the span tests live with the roll-up in
- * `src/lib/tracker-model/Board.epics.spec.ts`, beside the rows they are taken from.
+ * `src/domain/tracker-model/Board.epics.spec.ts`, beside the rows they are taken from.
  */
 import { expect, test } from 'bun:test';
 

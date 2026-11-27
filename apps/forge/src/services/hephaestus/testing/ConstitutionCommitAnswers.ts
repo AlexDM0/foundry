@@ -4,8 +4,8 @@
  */
 import { join } from 'node:path';
 
-import type { MainConstitution } from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }            from '../../../lib/tracker-model/Board.ts';
+import type { MainConstitution } from '../../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }            from '../../../domain/tracker-model/Board.ts';
 import {
   ancestryAsked,
   commitResolved,

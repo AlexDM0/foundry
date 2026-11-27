@@ -1,5 +1,5 @@
 import { LogUtil }               from '../../src/adapters/utils/LogUtil.ts';
-import type { LogRecord }        from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }        from '../../src/domain/tracker-model/@types/LogRecord.ts';
 import type { UnreadableRecord } from '../../src/services/tracker/@types/BoardRecords.ts';
 import { JsonTextUtil }          from '../../src/shared/utils/JsonTextUtil.ts';
 import type { CommandContext }   from '../CommandContext.ts';

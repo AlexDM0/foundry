@@ -3,7 +3,7 @@
  * by (main tip, path), and `mainMovedByCommits`, kept by (snapshot commit, main tip). A read with the same main tip runs no `git show`.
  * A data-folder file is read from disk on each read.
  */
-import type { MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { MainConstitutionReading } from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { InstructionFiles }             from './InstructionFiles.ts';
 import { MainMovedCounts }              from './MainMovedCounts.ts';
 

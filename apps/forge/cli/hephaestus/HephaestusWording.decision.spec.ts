@@ -10,10 +10,10 @@
  */
 import { expect, test } from 'bun:test';
 
+import type { DecisionKind }       from '../../src/domain/tracker-model/@types/Decision.ts';
+import type { DecisionDraft }      from '../../src/domain/tracker-model/@types/PlaybookStep.ts';
+import { ENTITY_DECISION_ANSWERS } from '../../src/domain/tracker-model/constants/EntityDecisionAnswers.ts';
 import type { AgentAdapter }       from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { DecisionKind }       from '../../src/lib/tracker-model/@types/Decision.ts';
-import type { DecisionDraft }      from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import { ENTITY_DECISION_ANSWERS } from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { HephaestusWording }       from './HephaestusWording.ts';
 

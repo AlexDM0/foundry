@@ -1,6 +1,6 @@
-import type { GateRunStamp }                                      from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateOutcome, GateRunCacheReports, GateRunStepRuns } from '../../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey }                                         from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { GateRunStamp }                                      from '../../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateOutcome, GateRunCacheReports, GateRunStepRuns } from '../../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey }                                         from '../../../domain/tracker-model/@types/Pipeline.ts';
 
 /** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
 export interface MergedTreeGate {

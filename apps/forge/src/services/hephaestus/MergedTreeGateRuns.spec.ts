@@ -23,7 +23,7 @@ import {
 
 import type { MergedTreeGate }                            from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION }        from '../../adapters/gate-outcome/MergedTreeGateOutcomeIngestion.ts';
-import type { GateRunStamp }                              from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateRunStamp }                              from '../../domain/tracker-model/@types/GatePhase.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../testing/WaitUntil.ts';
 import { LinePausedError }                                from '../lifecycle/GateRun.ts';

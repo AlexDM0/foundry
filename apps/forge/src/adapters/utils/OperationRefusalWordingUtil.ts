@@ -2,17 +2,17 @@
  * Words an `OperationRefusal` for its channel: its own message, or its detail. A Board refusal carries only its reason code and facts, and
  * the install-version mismatch is worded as one paragraph, so a refusal is always one report.
  */
-import type { JobMoveTarget }                                from '../../lib/tracker-model/@types/Job.ts';
-import type { NeedGap }                                      from '../../lib/tracker-model/@types/Need.ts';
-import type { TaskStatus }                                   from '../../lib/tracker-model/@types/Task.ts';
-import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../lib/tracker-model/@types/Ticket.ts';
-import type { BoardRefusalDetail }                           from '../../lib/tracker-model/BoardRefusal.ts';
-import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }                  from '../../lib/tracker-model/constants/JobMoveLegality.ts';
-import { TICKET_STATUSES_WITH_EDITABLE_CONTENT }             from '../../lib/tracker-model/constants/Statuses.ts';
-import { LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS }           from '../../lib/tracker-model/constants/TicketMoveLegality.ts';
-import type { EntityRefusal }                                from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
-import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
+import type { JobMoveTarget }                                from '../../domain/tracker-model/@types/Job.ts';
+import type { NeedGap }                                      from '../../domain/tracker-model/@types/Need.ts';
+import type { TaskStatus }                                   from '../../domain/tracker-model/@types/Task.ts';
+import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../domain/tracker-model/@types/Ticket.ts';
+import type { BoardRefusalDetail }                           from '../../domain/tracker-model/BoardRefusal.ts';
+import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }                  from '../../domain/tracker-model/constants/JobMoveLegality.ts';
+import { TICKET_STATUSES_WITH_EDITABLE_CONTENT }             from '../../domain/tracker-model/constants/Statuses.ts';
+import { LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS }           from '../../domain/tracker-model/constants/TicketMoveLegality.ts';
+import type { EntityRefusal }                                from '../../domain/tracker-model/utils/EntityValidationUtil.ts';
+import type { OptionNotesProblem }                           from '../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
+import { TicketMoveUtil }                                    from '../../domain/tracker-model/utils/TicketMoveUtil.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
 import { type BranchNamespaceRefusal, branchNamesOf }        from '../../shared/BranchNames.ts';

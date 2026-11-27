@@ -2,7 +2,7 @@
  * `resume`: User's resume of interrupted work, one job, one ticket, every waiting job, or every job that ended on a network outage. It
  * records one `interrupted-work-resume` in a hold, with the forge up or down, and the forge carries it out at its next pass.
  */
-import { JOB_ID_PREFIX }                            from '../../src/lib/tracker-model/constants/JobStates.ts';
+import { JOB_ID_PREFIX }                            from '../../src/domain/tracker-model/constants/JobStates.ts';
 import type { ResumeTarget }                        from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
 import type { CommandHandler }                      from '../CommandHandler.ts';

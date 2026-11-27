@@ -2,7 +2,7 @@
  * How a draft's Kanban card, its detail panel and its Waiting on User entry word it; the state itself comes from the Board's facts, never
  * from the page.
  */
-import type { DraftState } from '../../../lib/tracker-model/@types/Draft.ts';
+import type { DraftState } from '../../../domain/tracker-model/@types/Draft.ts';
 
 const DRAFT_STATE_WORD: Readonly<Record<DraftState, string>> = {
   researching: 'Researching',

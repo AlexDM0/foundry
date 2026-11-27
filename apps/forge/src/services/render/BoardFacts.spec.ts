@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Task }                                from '../../lib/tracker-model/@types/Task.ts';
+import type { Task }                                from '../../domain/tracker-model/@types/Task.ts';
 import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { boardFactsOf }                             from './BoardFacts.ts';
 

@@ -16,7 +16,7 @@ import {
 } from 'bun:test';
 
 import type { RedHandoffFacts }                                            from '../../adapters/red-handoff/RedHandoffIngestion.ts';
-import type { Job }                                                        from '../../lib/tracker-model/@types/Job.ts';
+import type { Job }                                                        from '../../domain/tracker-model/@types/Job.ts';
 import { DISPATCH_PROTOCOL }                                               from '../../shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/HephaestusLimits.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }                   from '../../testing/FrameRecordingTalos.ts';

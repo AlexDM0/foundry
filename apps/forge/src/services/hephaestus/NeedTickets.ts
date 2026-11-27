@@ -3,16 +3,16 @@
  * `needs-declared`, and what the stage that declared them is told when it runs again once they are settled.
  */
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import type { DecisionKind }                   from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { DeclaredNeed }                   from '../../lib/tracker-model/@types/Need.ts';
-import type { EntityKey, Pipeline }            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TicketStatus }                   from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                          from '../../lib/tracker-model/Board.ts';
-import { EntityOwnershipUtil }                 from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketDependencyUtil }                from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
+import type { DecisionKind }                   from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                            from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                      from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { DeclaredNeed }                   from '../../domain/tracker-model/@types/Need.ts';
+import type { EntityKey, Pipeline }            from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStatus }                   from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                          from '../../domain/tracker-model/Board.ts';
+import { EntityOwnershipUtil }                 from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketDependencyUtil }                from '../../domain/tracker-model/utils/TicketDependencyUtil.ts';
 import type { BoardTransaction }               from '../tracker/BoardTransaction.ts';
 
 type DecisionWordingOf = (draft: DecisionDraft) => DecisionWording;

@@ -14,11 +14,11 @@ import type {
   BoardTodayDocument
 } from 'forge-contracts/BoardReadingDocuments';
 
-import type { PipelineAgentRole }                                                                              from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { Task }                                                                                           from '../../../lib/tracker-model/@types/Task.ts';
-import type { JobOffers, TicketOffers }                                                                        from '../../../lib/tracker-model/MoveOffers.ts';
-import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
-import { jobStopHoldOf }                                                                                       from '../../../lib/tracker-model/constants/JobStopHolds.ts';
+import type { PipelineAgentRole }                                                                              from '../../../domain/tracker-model/@types/Pipeline.ts';
+import type { Task }                                                                                           from '../../../domain/tracker-model/@types/Task.ts';
+import type { JobOffers, TicketOffers }                                                                        from '../../../domain/tracker-model/MoveOffers.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../domain/tracker-model/constants/ConcurrencyLimits.ts';
+import { jobStopHoldOf }                                                                                       from '../../../domain/tracker-model/constants/JobStopHolds.ts';
 import {
   DEFAULT_APPROVALS,
   DEFAULT_DOCUMENTS_OF_ROLE,
@@ -27,15 +27,15 @@ import {
   type DocumentReadingRole,
   FIXED_DOCUMENTS_OF_ROLE,
   RE_REVIEW_THRESHOLD_STEP_LINES
-} from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { FIRST_REPEAT_REVIEW_ROUND }         from '../../../lib/tracker-model/constants/ReviewRounds.ts';
+} from '../../../domain/tracker-model/constants/PipelineDefaults.ts';
+import { FIRST_REPEAT_REVIEW_ROUND }         from '../../../domain/tracker-model/constants/ReviewRounds.ts';
 import {
   TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP,
   TICKET_STATUSES_THAT_CLOSE_A_TICKET,
   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY
-} from '../../../lib/tracker-model/constants/Statuses.ts';
-import { DEFAULT_TICKET_PRIORITY }                                 from '../../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketDefaultsUtil }                                      from '../../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+} from '../../../domain/tracker-model/constants/Statuses.ts';
+import { DEFAULT_TICKET_PRIORITY }                                 from '../../../domain/tracker-model/constants/TicketFields.ts';
+import { TicketDefaultsUtil }                                      from '../../../domain/tracker-model/utils/TicketDefaultsUtil.ts';
 import type { PageTicket, PageTicketFacts }                        from '../../../shared/@types/PagePayload.ts';
 import { DISPATCH_PROTOCOL }                                       from '../../../shared/constants/DispatchProtocol.ts';
 import { DEFAULT_AGENT_PAIR_OF_ROLE, WORKER_EFFORT, WORKER_MODEL } from '../../../shared/constants/HephaestusLimits.ts';

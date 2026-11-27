@@ -1,6 +1,6 @@
 /** Where a ticket merges: its group's branch, or the main line for a ticket with no group and a group's release ticket. */
+import type { MergeTargetOf } from '../../domain/tracker-model/AirlockClaims.ts';
 import { GitProcess }         from '../../lib/git/GitProcess.ts';
-import type { MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
 
 const DEFAULT_MAIN_LINE = 'main';
 

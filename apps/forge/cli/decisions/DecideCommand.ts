@@ -1,5 +1,5 @@
 /** User's answer to an open decision: option letters per question, or `-- <text>` for a one-question decision; the first answer wins. */
-import type { DecisionAnswerForm } from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { DecisionAnswerForm } from '../../src/domain/tracker-model/@types/Decision.ts';
 import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';

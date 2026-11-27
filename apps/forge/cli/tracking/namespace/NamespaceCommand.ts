@@ -3,7 +3,7 @@
  * on a branch on it and no branch left under its current names, since every one of those would go on under the old names. A namespace
  * another tracker of the repository lists is refused, and the board's own entry in that list follows the name it takes.
  */
-import { readingBoardOf }                                           from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { readingBoardOf }                                           from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import { hephaestusFilesIn }                                        from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }                                           from '../../../src/services/hephaestus/HephaestusLock.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';

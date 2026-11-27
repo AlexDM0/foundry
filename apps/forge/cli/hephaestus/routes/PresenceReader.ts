@@ -3,8 +3,8 @@
  * contract's documents by `PresenceDocumentAssembly`.
  */
 import { RefusalDocumentUtil }                             from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
+import { readingBoardOf }                                  from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import type { PlatformPorts }                              from '../../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { readingBoardOf }                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { CrashLog }                                        from '../../../src/services/hephaestus/CrashLog.ts';
 import type { HephaestusFiles }                            from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import type { RouteAnswer }                                from '../../../src/services/hephaestus/HephaestusServer.ts';

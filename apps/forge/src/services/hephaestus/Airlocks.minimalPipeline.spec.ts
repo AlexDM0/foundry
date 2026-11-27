@@ -7,8 +7,8 @@
  */
 import { afterEach, expect, test } from 'bun:test';
 
-import type { PipelineAirlock }      from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PlaybookObservations } from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { PipelineAirlock }      from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PlaybookObservations } from '../../domain/tracker-model/@types/PlaybookStep.ts';
 import { LIFECYCLE_LIMITS }          from '../../shared/constants/LifecycleLimits.ts';
 import { ancestryAsked }             from '../../testing/RecordedAirlockGit.ts';
 import { useRecordedGit }            from '../../testing/RecordedGit.ts';

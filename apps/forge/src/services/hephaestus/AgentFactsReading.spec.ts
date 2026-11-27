@@ -9,10 +9,10 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { MachineConfigFile }                              from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                   from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ExecutableResolver }                        from '../../lib/executable-resolver/ExecutableResolver.ts';
 import { ProgramSearchUtil }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
 import { defaultSpecPlatformPorts }                       from '../../testing/DefaultSpecPlatformPorts.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';

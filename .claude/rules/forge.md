@@ -56,18 +56,21 @@ are the specs in `architecture/`; `bun run test:architecture` runs them, and `bu
 ### Imports
 
 ```
-src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → hephaestus)  →  cli/
+src/lib/  →  src/domain/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → hephaestus)  →  cli/
 packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
 packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
 ```
 
 - `architecture/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set
-  isolation, the bin shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on"
-  packages and the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
-  structurally typed parameter. No command set (a folder directly under `cli/` but its shared folders) imports another,
-  and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them, and in test code.
-- A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
-  App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
+  isolation, the bin shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), the declared "depends on" packages of
+  a `src/lib/` or `src/domain/` package and the tracker model's isolation. What two commands share is hoisted to the
+  level above both, or passed as a structurally typed parameter. No command set (a folder directly under `cli/` but its
+  shared folders) imports another, and the `cli/` root imports a set only in `cli/CommandTable.ts`, which composes them,
+  and in test code.
+- A `src/lib/` package is a building block and knows nothing about its callers: no forge names, file names, wording
+  or exit codes. App values arrive as parameters; a refusal leaves as a verdict.
+- `src/domain/` holds forge's own models: the tracker model (`src/domain/tracker-model/`, the `Board`). A domain
+  package imports `src/lib/` and the domain packages its main module declares.
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
   `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package is one
   workspace-package layer, and it imports another package only when its own `package.json` declares it.
@@ -320,7 +323,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Every write of a file a reader may hold open goes through the atomic-file package. | Talos appends a child's `events-<instance>.ndjson` in place, fsynced before the child's `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends a gate profile's output to `<data>/gate-profile-runs/<P>.ndjson` in place, outside the hold, one line for each piece. | The output stream is append-only and is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | Hephaestus appends `hephaestus.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
-| A `src/lib/` package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
+| A package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
 | One reference per fact. | `resources/templates/Reference.md`, installed as `.forge/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
 | A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing session-start entry would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
@@ -330,7 +333,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 | Code starts beside its only consumer; never in anticipation. | `src/services/hephaestus/SessionConfinement.ts` wraps a session in forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the contract integration spec. |
 | Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `architecture/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
-| Code names no agent vendor (`architecture/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
+| Code names no agent vendor (`architecture/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/domain/tracker-model/constants/AgentSettings.ts:5-7`). |
 
 ## Local rules
 

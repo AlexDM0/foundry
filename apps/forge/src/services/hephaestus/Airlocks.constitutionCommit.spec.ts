@@ -18,7 +18,7 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord }                        from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                        from '../../domain/tracker-model/@types/LogRecord.ts';
 import { useRecordedGit, type RecordedGitStage } from '../../testing/RecordedGit.ts';
 import { AirlockAnswerSets, MOVED_AIRLOCK_IDS }  from './testing/AirlockAnswerSets.ts';
 import {

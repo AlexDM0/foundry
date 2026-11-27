@@ -2,7 +2,6 @@
  * Whether the parsed `jobs`, `nextJobId` and `needs` of a progress.json are in the current format, and if not, the reason naming the offending
  * field.
  */
-import { JsonRecordUtil } from '../../../lib/json-record/JsonRecordUtil.ts';
 import {
   FIRST_CHILD_INSTANCE,
   FIRST_JOB_NUMBER,
@@ -15,8 +14,9 @@ import {
   JOB_STATES,
   JOB_STOP_MODES,
   AIRLOCK_PHASES
-}                          from '../../../lib/tracker-model/constants/JobStates.ts';
-import { OptionConsequencesUtil } from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+}                          from '../../../domain/tracker-model/constants/JobStates.ts';
+import { OptionConsequencesUtil } from '../../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
+import { JsonRecordUtil }         from '../../../lib/json-record/JsonRecordUtil.ts';
 import { OLDER_FORMAT_ADVICE }    from '../../constants/OlderFormatAdvice.ts';
 import { StoredValueUtil }        from '../../utils/StoredValueUtil.ts';
 

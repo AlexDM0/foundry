@@ -17,9 +17,9 @@ import {
   test
 } from 'bun:test';
 
+import type { Job, JobKind, JobRole }                     from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../domain/tracker-model/@types/LogRecord.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
-import type { Job, JobKind, JobRole }                     from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

@@ -29,14 +29,14 @@ import {
   test
 } from 'bun:test';
 
+import type { Decision, DecisionKind }                       from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                                          from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                     from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStage }                                  from '../../domain/tracker-model/@types/Task.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
+import { ENTITY_DECISION_ANSWERS }                           from '../../domain/tracker-model/constants/EntityDecisionAnswers.ts';
 import { type GitHookPolicy, GitProcess, type GitRun }       from '../../lib/git/GitProcess.ts';
-import type { Decision, DecisionKind }                       from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TicketStage }                                  from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
-import { ENTITY_DECISION_ANSWERS }                           from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';

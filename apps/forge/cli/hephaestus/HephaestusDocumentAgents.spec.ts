@@ -15,8 +15,8 @@ import {
 } from 'bun:test';
 
 import { writeHatchRequest }                                 from '../../src/adapters/hatch/HatchFolder.ts';
-import type { Job }                                          from '../../src/lib/tracker-model/@types/Job.ts';
-import type { TicketDocument, TicketDocumentRecord }         from '../../src/lib/tracker-model/@types/TicketDocument.ts';
+import type { Job }                                          from '../../src/domain/tracker-model/@types/Job.ts';
+import type { TicketDocument, TicketDocumentRecord }         from '../../src/domain/tracker-model/@types/TicketDocument.ts';
 import { ControlService }                                    from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                    from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                        from '../../src/services/hephaestus/HatchInbox.ts';

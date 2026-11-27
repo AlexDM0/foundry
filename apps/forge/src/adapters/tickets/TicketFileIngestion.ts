@@ -1,6 +1,6 @@
 /** One ticket file read into the model: a file that cannot be read or parsed is a `malformed` verdict with its reason and line, never a throw. */
 import { readFileSync }       from 'node:fs';
-import type { Ticket }        from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Ticket }        from '../../domain/tracker-model/@types/Ticket.ts';
 import { utf8TextOf }         from '../Utf8Text.ts';
 import { TicketDocumentUtil } from './utils/TicketDocumentUtil.ts';
 

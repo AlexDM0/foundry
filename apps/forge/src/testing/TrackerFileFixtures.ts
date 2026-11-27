@@ -8,7 +8,7 @@ import { join, relative }           from 'node:path';
 import { createLogFileWriter }      from '../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter } from '../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }   from '../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }           from '../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }           from '../domain/tracker-model/@types/LogRecord.ts';
 import { localStoreLayoutOf }       from '../services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }        from '../services/tracker/Workspace.ts';
 import type { Workspace }           from '../services/tracker/Workspace.ts';

@@ -31,13 +31,13 @@ import type {
   LoadedTicketDocumentRecord,
   TicketDocument,
   TicketDocumentKind
-} from '../../../lib/tracker-model/@types/TicketDocument.ts';
-import { TICKET_DOCUMENT_KINDS }      from '../../../lib/tracker-model/@types/TicketDocument.ts';
-import { DocumentLineMergeUtil }      from '../../../lib/tracker-model/utils/DocumentLineMergeUtil.ts';
-import { LineDiffUtil }               from '../../../lib/tracker-model/utils/LineDiffUtil.ts';
-import type { LineHunk }              from '../../../lib/tracker-model/utils/LineDiffUtil.ts';
-import { TicketDocumentStandingUtil } from '../../../lib/tracker-model/utils/TicketDocumentStandingUtil.ts';
-import { TicketDocumentVersionUtil }  from '../../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+} from '../../../domain/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS }      from '../../../domain/tracker-model/@types/TicketDocument.ts';
+import { DocumentLineMergeUtil }      from '../../../domain/tracker-model/utils/DocumentLineMergeUtil.ts';
+import { LineDiffUtil }               from '../../../domain/tracker-model/utils/LineDiffUtil.ts';
+import type { LineHunk }              from '../../../domain/tracker-model/utils/LineDiffUtil.ts';
+import { TicketDocumentStandingUtil } from '../../../domain/tracker-model/utils/TicketDocumentStandingUtil.ts';
+import { TicketDocumentVersionUtil }  from '../../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { EffectReading }         from '../../../shared/@types/EffectReading.ts';
 
 /** What forge reads of one document beyond its record: who approves it, whether User may change it, and the agent at work on it. */

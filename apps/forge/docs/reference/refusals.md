@@ -631,7 +631,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 ## Coverage
 
 At commit e408bd50 a one-off script, not kept in the repository, matched every `case` in
-`src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/lib/tracker-model/BoardRefusal.ts` and every
+`src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/domain/tracker-model/BoardRefusal.ts` and every
 key of `RoleCommandRefusalReason` to a `Code` cell here, and every code here to the source. No spec keeps this page in
 step; rerun the comparison after changing a wording.
 The counts below are that commit's. The rows under [Ticket documents](#ticket-documents), `job-is-document-agent` and
@@ -654,7 +654,7 @@ row per reason.
 | Concept | Path | Symbol | Spec that holds it |
 | --- | --- | --- | --- |
 | The refusal and its status | `src/shared/OperationRefusal.ts` | `OperationRefusal`, `OperationRefusalDetail` | `src/shared/OperationRefusal.spec.ts` |
-| A Board rule's refusal | `src/lib/tracker-model/BoardRefusal.ts` | `BoardRefusalDetail` | `src/lib/tracker-model/BoardRefusal.spec.ts` |
+| A Board rule's refusal | `src/domain/tracker-model/BoardRefusal.ts` | `BoardRefusalDetail` | `src/domain/tracker-model/BoardRefusal.spec.ts` |
 | All wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf`, `boardRefusalMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | The API sentence | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `apiMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.apiChannel.spec.ts` |
 | Exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |

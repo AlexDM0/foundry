@@ -2,10 +2,10 @@
  * The record allocation of a transaction a spec builds by hand: tickets get the next free id, and nothing is refused, so no spec writes its
  * own.
  */
-import type { Ticket }                               from '../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                from '../lib/tracker-model/Board.ts';
-import { FIRST_TICKET_NUMBER }                       from '../lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }                              from '../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { Ticket }                               from '../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                from '../domain/tracker-model/Board.ts';
+import { FIRST_TICKET_NUMBER }                       from '../domain/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }                              from '../domain/tracker-model/utils/TicketIdUtil.ts';
 import type { CreateTicketInput, UnreadableRecords } from '../services/tracker/@types/BoardRecords.ts';
 import type { RecordAllocation }                     from '../services/tracker/BoardTransaction.ts';
 

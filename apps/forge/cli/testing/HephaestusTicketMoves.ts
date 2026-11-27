@@ -6,7 +6,7 @@
  */
 import { OperationRefusalWordingUtil }               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { TicketJsonUtil }                            from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { TicketStatus }                         from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { TicketStatus }                         from '../../src/domain/tracker-model/@types/Ticket.ts';
 import { reviewBarStartedFor }                       from '../../src/services/control/TicketByHandControls.ts';
 import type { BoardTransaction }                     from '../../src/services/tracker/BoardTransaction.ts';
 import { refusalIsOperationRefusal }                 from '../../src/shared/OperationRefusal.ts';

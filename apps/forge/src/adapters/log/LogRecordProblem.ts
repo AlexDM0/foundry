@@ -1,16 +1,15 @@
 /** Whether one parsed log.jsonl line is a well-formed record of a known kind, and if not, the reason naming the offending field. */
-import { JsonRecordUtil }     from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }        from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { LogRecordKind } from '../../lib/tracker-model/@types/LogRecord.ts';
+import { GATE_PHASES }        from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { LogRecordKind } from '../../domain/tracker-model/@types/LogRecord.ts';
 import {
   DECISION_KINDS,
   INCIDENT_DEFAULT_CAUSES,
   INCIDENT_KINDS,
   INCIDENT_MOVES
-}                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { FLINT_BRAIN_ENDED_REASONS, FLINT_BRAIN_STARTERS } from '../../lib/tracker-model/constants/FlintBrainVocabulary.ts';
-import { GATE_CACHE_REPORTS, GATE_PROFILE_RUN_ENDINGS }    from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
-import { HEPHAESTUS_STATES }                               from '../../lib/tracker-model/constants/HephaestusStates.ts';
+}                             from '../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { FLINT_BRAIN_ENDED_REASONS, FLINT_BRAIN_STARTERS } from '../../domain/tracker-model/constants/FlintBrainVocabulary.ts';
+import { GATE_CACHE_REPORTS, GATE_PROFILE_RUN_ENDINGS }    from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { HEPHAESTUS_STATES }                               from '../../domain/tracker-model/constants/HephaestusStates.ts';
 import {
   FIRST_CHILD_INSTANCE,
   GATE_OUTCOMES,
@@ -26,24 +25,25 @@ import {
   PIPELINE_STEP_KINDS,
   START_KINDS,
   START_ORIGINS
-}                                                            from '../../lib/tracker-model/constants/JobStates.ts';
-import type { LogFieldShape } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+}                                                            from '../../domain/tracker-model/constants/JobStates.ts';
+import type { LogFieldShape } from '../../domain/tracker-model/constants/LogRecordSchema.ts';
 import {
   HATCH_REFUSAL_STATUSES,
   LOG_RECORD_SCHEMA,
   LOG_RECORD_SUBJECT_IDS,
   RETIRED_DISPATCHER_STATES
-} from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+} from '../../domain/tracker-model/constants/LogRecordSchema.ts';
 import {
   PIPELINE_BILLING_MODES,
   PIPELINE_SETUP_MODES,
   PIPELINE_SETUP_STEP_STATES,
   PIPELINE_SETUP_STEPS
-} from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../lib/tracker-model/constants/ReviewRounds.ts';
-import { ENTITY_ASSIGNERS, TICKET_PRIORITIES, TICKET_SIZES } from '../../lib/tracker-model/constants/TicketFields.ts';
-import { BoardSettingsUtil }                                 from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { VocabularyUtil }                                    from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+} from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../domain/tracker-model/constants/ReviewRounds.ts';
+import { ENTITY_ASSIGNERS, TICKET_PRIORITIES, TICKET_SIZES } from '../../domain/tracker-model/constants/TicketFields.ts';
+import { BoardSettingsUtil }                                 from '../../domain/tracker-model/utils/BoardSettingsUtil.ts';
+import { VocabularyUtil }                                    from '../../domain/tracker-model/utils/VocabularyUtil.ts';
+import { JsonRecordUtil }                                    from '../../lib/json-record/JsonRecordUtil.ts';
 import { StoredValueUtil }                                   from '../utils/StoredValueUtil.ts';
 import { LogRecordMappingUtil }                              from './utils/LogRecordMappingUtil.ts';
 import { ReviewRecordFieldsUtil }                            from './utils/ReviewRecordFieldsUtil.ts';

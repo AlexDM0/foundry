@@ -3,8 +3,8 @@
  * touches, its trade-off and its effect on the Acceptance. The decision the question opens takes them. Under the asking job it names no
  * job: Hephaestus stamps it.
  */
-import type { QuestionOptionNotes } from '../../src/lib/tracker-model/@types/OptionConsequences.ts';
-import { OptionConsequencesUtil }   from '../../src/lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import type { QuestionOptionNotes } from '../../src/domain/tracker-model/@types/OptionConsequences.ts';
+import { OptionConsequencesUtil }   from '../../src/domain/tracker-model/utils/OptionConsequencesUtil.ts';
 import type { ControlCommandOf }    from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }         from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }            from '../../src/shared/constants/ProductNames.ts';

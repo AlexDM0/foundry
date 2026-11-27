@@ -157,8 +157,8 @@ These specs hold a rule and sit next to the code whose behaviour they hold; they
 | `cli/hephaestus/HephaestusBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/hephaestus/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](hephaestus-claude-probe.md). |
-| `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
-| `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
+| `src/domain/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
+| `src/domain/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
 | `src/services/hephaestus/CrashMatrix.spec.ts`, `src/services/hephaestus/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. |
 
@@ -316,8 +316,8 @@ carries the most tests, and few claims need a real process.
 | tier | tests | how a spec works there | example |
 | --- | --- | --- | --- |
 | Architecture tests | 158 | Read the tree or the repository's own files, usually through `ImportGraph` or `RepositorySources` | `architecture/ImportDirection.spec.ts` |
-| Pure logic | 2,024 | Model, util or decider, no disk | `src/lib/tracker-model/Board.spec.ts` |
-| Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
+| Pure logic | 2,024 | Model, util or decider, no disk | `src/domain/tracker-model/Board.spec.ts` |
+| Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/domain/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
 | Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/hephaestus/CrashMatrix.integration.spec.ts` |
@@ -351,10 +351,10 @@ watched failing without the line it pins.
 
 *The build's exit is the point: a mutant whose text went stale cannot pass by changing nothing.*
 
-`src/lib/tracker-model/Playbook.spec.ts` gives every claim a `mutant` and runs each claim twice. After editing a line a
+`src/domain/tracker-model/Playbook.spec.ts` gives every claim a `mutant` and runs each claim twice. After editing a line a
 claim pins, update that claim's `find` text. `mutatedModuleOf` bundles into a scratch folder and imports the bundle.
 
-**Seeded interleavings.** `src/lib/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
+**Seeded interleavings.** `src/domain/tracker-model/Playbook.interleavings.spec.ts` runs `LifecycleWorld` for `SEEDS` (200)
 seeds of `TURNS_PER_SEED` (60) turns.
 
 ![A loop inside a loop. For each seed, and for each turn, the world follows the Playbook on one in-memory Board, checks the invariants, then a fake agent or User acts at random, and the next turn starts. Any violation is listed under its seed, which replays exactly. A second row runs the same world on a mutated policy and requires violations above zero, proving the world notices a broken policy.](../figures/architecture-tests-and-testing/seeded-interleavings.png)
@@ -366,9 +366,9 @@ Violations include two live jobs on a [ticket](../glossary.md#ticket), a launch 
 two git operations on a [worktree](../glossary.md#worktree). The generator is Mulberry32, which is why a seed replays.
 A last test proves the turns do real work.
 
-**`TupleCoversTheUnion`.** `src/lib/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
+**`TupleCoversTheUnion`.** `src/domain/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
 fails the type check when a constant tuple misses a union member. The `JobStates`, `HephaestusStates`, `Statuses` and
-`TicketFields` specs in `src/lib/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
+`TicketFields` specs in `src/domain/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
 unreadable.
 
 **Frozen tables.** `cli/FrozenInstalledSurface.json` holds one key per `INSTALL_VERSION` and only grows; the header of
@@ -589,7 +589,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
 | `src/testing/` | `src/`, `cli/`, `architecture/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
-| `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
+| `src/domain/tracker-model/testing/` | `src/domain/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
 | `src/services/hephaestus/testing/` | `src/services/hephaestus/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
@@ -628,5 +628,5 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Program traps | `src/testing/ProgramTrapGuard.ts`, `src/testing/ProgramTraps.ts` | `failOnAnyTrappedProgramAttempt`, `releaseTrappedProgramForThisSpecFile`, `TRAPPED_EXIT_CODE` | `src/testing/ProgramTraps.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Skips | `src/testing/ToolGuard.ts`, `src/testing/TestRunReport.ts` | `SpecRequirement` | `src/testing/ToolGuard.integration.spec.ts` |
 | Fake agent | `src/testing/FakeAgentAdapter.ts`, `src/testing/fake-agent/FakeAgentChild.ts` | `fakeAgentAdapter`, `FakeAgentStep` | `src/testing/FakeAgentAdapter.integration.spec.ts` |
-| Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |
-| Seeded world | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
+| Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/domain/tracker-model/Playbook.spec.ts` |
+| Seeded world | `src/domain/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/domain/tracker-model/Playbook.interleavings.spec.ts` |

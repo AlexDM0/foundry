@@ -9,9 +9,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 import { afterEach, expect, test }  from 'bun:test';
 
-import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
+import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                              from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                                                 from '../../domain/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';

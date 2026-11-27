@@ -3,9 +3,9 @@
  * tracker's project folder; a pipeline with entities runs each gated entity's part from its first home folder.
  */
 import type { MergedTreeGate }          from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
-import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey, Pipeline }     from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { GatePhase, GateRunStamp } from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { EntityKey, Pipeline }     from '../../domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                 from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import {
   type EntityPipelinesRunRequest,
   type EntityPipelinesVerdict,

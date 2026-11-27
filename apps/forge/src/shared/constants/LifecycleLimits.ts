@@ -1,5 +1,5 @@
 /** Every threshold the Playbook, the round verdict and Hephaestus's jobs decide by, passed into the tracker model as `limits`. */
-import type { LifecycleThresholds } from '../../lib/tracker-model/@types/LifecycleLimits.ts';
+import type { LifecycleThresholds } from '../../domain/tracker-model/@types/LifecycleLimits.ts';
 import { DISPATCH_PROTOCOL }        from './DispatchProtocol.ts';
 
 export const LIFECYCLE_LIMITS = {

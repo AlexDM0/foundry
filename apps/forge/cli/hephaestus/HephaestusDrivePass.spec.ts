@@ -39,10 +39,10 @@ import { MachineLimitsFile }                                    from '../../src/
 import type { StartClassificationVerdict }                      from '../../src/adapters/presence/@types/StartClassificationVerdict.ts';
 import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
+import type { Job, StartKind }                                  from '../../src/domain/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../src/domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
-import type { Job, StartKind }                                  from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
 import type { AgentProgramResolution }                          from '../../src/services/control/AgentPrograms.ts';
 import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/hephaestus/AgentSlots.ts';
 import type { BoardChildren }                                   from '../../src/services/hephaestus/BoardChildren.ts';

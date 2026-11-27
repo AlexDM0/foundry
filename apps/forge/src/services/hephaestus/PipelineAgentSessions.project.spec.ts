@@ -16,8 +16,8 @@ import {
 } from 'bun:test';
 
 import type { LaunchSnapshot }                                                from '../../adapters/@types/LaunchSnapshot.ts';
+import type { Board }                                                         from '../../domain/tracker-model/Board.ts';
 import { RepositoryLandings }                                                 from '../../lib/git/RepositoryLandings.ts';
-import type { Board }                                                         from '../../lib/tracker-model/Board.ts';
 import { type BranchNames, branchNamesOf }                                    from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                                    from '../../shared/WorktreesFolder.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';

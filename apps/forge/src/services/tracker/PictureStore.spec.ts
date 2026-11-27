@@ -16,10 +16,10 @@ import {
   test
 } from 'bun:test';
 
+import type { Job }                                                   from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                             from '../../domain/tracker-model/@types/LogRecord.ts';
 import type { FileReplace }                                           from '../../lib/atomic-file/FileReplace.ts';
 import type { OwnerOnlyFiles }                                        from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
-import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
 import { PICTURE_ENCODED_SIZE_LIMIT_BYTES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/HephaestusLimits.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { PictureStore }                                               from './PictureStore.ts';

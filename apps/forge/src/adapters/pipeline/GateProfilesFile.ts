@@ -3,21 +3,21 @@
  * the hold. A file the read cannot map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the
  * top level, after its own, in their stored order, so a read and a write leave the file byte-identical.
  */
-import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }    from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES } from '../../domain/tracker-model/@types/GatePhase.ts';
 import type {
   GateProfileRun,
   GateProfiles,
   GateProfilesReading,
   ProfiledGate
-} from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { PipelineStep }     from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { PipelineStep }     from '../../domain/tracker-model/@types/Pipeline.ts';
 import {
   FIRST_GATE_PROFILE_RUN_NUMBER,
   GATE_CACHE_REPORTS,
   GATE_PROFILE_RUN_STATES,
   GATE_PROFILES_FORMAT_VERSION
-} from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
+} from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
+import { JsonRecordUtil }   from '../../lib/json-record/JsonRecordUtil.ts';
 import { JsonTextUtil }     from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf } from '../StoredFileText.ts';
 import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';

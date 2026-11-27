@@ -33,15 +33,15 @@ import {
   test,
 } from 'bun:test';
 
+import type { Decision }                                        from '../../domain/tracker-model/@types/Decision.ts';
+import type { Job }                                             from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                    from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                              from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                   from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { WorkerProfile }                                   from '../../lib/agent-launch/WorkerProfile.ts';
 import type { ChildRecord }                                     from '../../lib/talos/ChildRecord.ts';
 import { createEventLogWriter, type EventLogEntry }             from '../../lib/talos/EventLog.ts';
-import type { Decision }                                        from '../../lib/tracker-model/@types/Decision.ts';
-import type { Job }                                             from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                           from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                            from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                                      from '../../shared/WorktreesFolder.ts';

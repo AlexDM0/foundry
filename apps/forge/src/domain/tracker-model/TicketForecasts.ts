@@ -1,7 +1,7 @@
 /**
  * The forecast of each open ticket: its lifecycle steps from the one under way, or the next one, to its landing, and the tickets that wait
  * on it. A forecast, never a decision: the Playbook decides; this reads the same facts and the Playbook's own counts, and
- * `src/lib/tracker-model/Playbook.forecast.spec.ts` holds its first step to the step the Playbook takes.
+ * `src/domain/tracker-model/Playbook.forecast.spec.ts` holds its first step to the step the Playbook takes.
  */
 import type { Job, JobState }                                       from './@types/Job.ts';
 import type { Pipeline }                                            from './@types/Pipeline.ts';

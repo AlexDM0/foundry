@@ -15,19 +15,19 @@ import { dirname, join } from 'node:path';
 import type { RedHandoffFacts }                                                from '../../adapters/red-handoff/RedHandoffIngestion.ts';
 import { StaleGreenSessionOwnerIngestion, type StaleGreenSessionOwnerReading } from '../../adapters/session-owner/StaleGreenSessionOwnerIngestion.ts';
 import { createStaleGreenSessionOwnerWriter }                                  from '../../adapters/session-owner/StaleGreenSessionOwnerWriter.ts';
-import type { AgentAdapter }                                                   from '../../lib/agent-launch/AgentAdapter.ts';
-import { writeFileAtomically }                                                 from '../../lib/atomic-file/AtomicFile.ts';
-import type { EventLogEntry }                                                  from '../../lib/talos/EventLog.ts';
 import type {
   InterruptionCause,
   Job,
   JobKind,
   JobRole,
   PictureReference
-}                                                              from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }  from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                         from '../../lib/tracker-model/Board.ts';
-import { HANDOFF_RED_INTERRUPTION }           from '../../lib/tracker-model/constants/JobStates.ts';
+}                                                              from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordFieldsOf }  from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Board }                         from '../../domain/tracker-model/Board.ts';
+import { HANDOFF_RED_INTERRUPTION }           from '../../domain/tracker-model/constants/JobStates.ts';
+import type { AgentAdapter }                  from '../../lib/agent-launch/AgentAdapter.ts';
+import { writeFileAtomically }                from '../../lib/atomic-file/AtomicFile.ts';
+import type { EventLogEntry }                 from '../../lib/talos/EventLog.ts';
 import { PictureStore }                       from '../tracker/PictureStore.ts';
 import type { BoardChildren }                 from './BoardChildren.ts';
 import { jobFileInDataFolderOf, jobFolderIn } from './HephaestusFiles.ts';

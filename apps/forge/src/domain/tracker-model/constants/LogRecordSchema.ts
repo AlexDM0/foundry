@@ -1,6 +1,6 @@
 /**
  * The log's vocabulary: every record kind with what it is about and the shape of each field, in the order the record stores them. The
- * record types in `src/lib/tracker-model/@types/LogRecord.ts` are derived from it, and so are the stored check and the mapping back, so a
+ * record types in `src/domain/tracker-model/@types/LogRecord.ts` are derived from it, and so are the stored check and the mapping back, so a
  * new kind is one entry here plus its wording and its emitter.
  */
 

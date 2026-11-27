@@ -99,7 +99,7 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Lib writes have no context, so this selector reads the platform at call time.',
   'src/services/hephaestus/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
     'The gate slots have no context, as the FileReplace port they create through, so this selector reads the platform at call time.',
-  'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
+  'src/domain/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
     'The port\'s type, not a spawn.',

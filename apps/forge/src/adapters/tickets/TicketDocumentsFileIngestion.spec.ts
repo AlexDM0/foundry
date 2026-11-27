@@ -8,8 +8,8 @@ import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
-import type { TicketDocumentRecord }    from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { TicketDocumentVersionUtil }    from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { TicketDocumentRecord }    from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { TicketDocumentVersionUtil }    from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import { createScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
 import { loadedRecordFixture }          from '../../testing/TicketDocumentRecordFixtures.ts';
 import { TicketDocumentContentFile }    from './TicketDocumentContentFile.ts';

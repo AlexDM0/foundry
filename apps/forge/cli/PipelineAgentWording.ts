@@ -4,7 +4,6 @@
  */
 import { readFileSync } from 'node:fs';
 
-import type { AgentAdapter } from '../src/lib/agent-launch/AgentAdapter.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -12,7 +11,8 @@ import type {
   PipelineCheckResult,
   PipelineSetupMode,
   PipelineSetupStep
-} from '../src/lib/tracker-model/@types/PipelineSetup.ts';
+} from '../src/domain/tracker-model/@types/PipelineSetup.ts';
+import type { AgentAdapter }                  from '../src/lib/agent-launch/AgentAdapter.ts';
 import type { DraftFieldValue, SetupMessage } from '../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                 from '../src/shared/ResourceFilePath.ts';

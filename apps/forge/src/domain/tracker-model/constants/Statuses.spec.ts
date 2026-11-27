@@ -1,5 +1,5 @@
 /**
- * That the status tuples and the unions in `src/lib/tracker-model/@types/` still describe the same ladders, that each
+ * That the status tuples and the unions in `src/domain/tracker-model/@types/` still describe the same ladders, that each
  * ladder holds its states in order and once, and that every ticket status is a task status, paused and re-review being the task's own.
  */
 import { expect, test } from 'bun:test';

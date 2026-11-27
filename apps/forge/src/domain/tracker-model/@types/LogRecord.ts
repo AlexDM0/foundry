@@ -1,6 +1,6 @@
 /**
  * What the Board tells the log, as ids and values with no wording; the caller words it. Every record type is derived from
- * `src/lib/tracker-model/constants/LogRecordSchema.ts`, so a new kind is an entry there plus its wording in `src/adapters/utils/LogUtil.ts`.
+ * `src/domain/tracker-model/constants/LogRecordSchema.ts`, so a new kind is an entry there plus its wording in `src/adapters/utils/LogUtil.ts`.
  */
 import type {
   HATCH_REFUSAL_STATUSES,

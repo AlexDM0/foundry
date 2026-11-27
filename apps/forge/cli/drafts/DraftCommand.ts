@@ -1,7 +1,7 @@
 /** `draft`: the filing cabinet's working records a filing session builds tickets from. `list` and `show` change nothing, so they read without the lock. */
 import { DraftDocumentUtil }                                       from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
-import type { Board }                                              from '../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }                                          from '../../src/lib/tracker-model/ReadingBoard.ts';
+import type { Board }                                              from '../../src/domain/tracker-model/Board.ts';
+import { readingBoardOf }                                          from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { OperationRefusal }                                        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }                                            from '../BoardStoreOf.ts';

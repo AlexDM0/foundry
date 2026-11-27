@@ -9,9 +9,9 @@ import path, { join }              from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
 
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { Board }                                     from '../../domain/tracker-model/Board.ts';
 import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';

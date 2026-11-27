@@ -39,9 +39,9 @@ import {
   ticketRecord
 }                                             from './testing/LifecycleFixtures.ts';
 
-const POLICY_MODULE = 'src/lib/tracker-model/Playbook.ts';
+const POLICY_MODULE = 'src/domain/tracker-model/Playbook.ts';
 
-const FAILED_PASS_MODULE = 'src/lib/tracker-model/utils/FailedPassUtil.ts';
+const FAILED_PASS_MODULE = 'src/domain/tracker-model/utils/FailedPassUtil.ts';
 
 const { SHOP, UI_KIT } = ENTITY_FORGE_ENTITIES;
 

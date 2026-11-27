@@ -15,7 +15,7 @@ import {
   expect,
   test
 }                                             from 'bun:test';
-import type { PipelineSetup }                     from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineSetup }                     from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';

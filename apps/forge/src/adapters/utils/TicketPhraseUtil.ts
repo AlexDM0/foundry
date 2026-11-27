@@ -1,5 +1,5 @@
 /** The phrases a worded Board refusal or log sentence shares with the ticket command's own lines, so each reads the same everywhere. */
-import type { AgentPair } from '../../lib/tracker-model/@types/Ticket.ts';
+import type { AgentPair } from '../../domain/tracker-model/@types/Ticket.ts';
 
 function ticketReferencesText(ticketIds: readonly string[]): string {
   return ticketIds.map((ticketId) => `#${ticketId}`).join(', ');

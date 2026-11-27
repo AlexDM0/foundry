@@ -4,10 +4,10 @@
  * file: the main line's texts arrive as a parameter, read by Hephaestus, since the render service cannot reach the hephaestus service.
  */
 import type { PipelineReading }      from '../../adapters/pipeline/PipelineFile.ts';
-import type { GatePhase }            from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfilesReading }  from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { GateCacheReport, Job } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { GatePhase }            from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { GateProfilesReading }  from '../../domain/tracker-model/@types/GateProfile.ts';
+import type { GateCacheReport, Job } from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }            from '../../domain/tracker-model/@types/LogRecord.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type EntityAgentRole,
@@ -15,7 +15,7 @@ import {
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   ApplyRefusalFacts,
@@ -37,7 +37,7 @@ import type {
   PipelineStepRunTimeFacts,
   ResolvedInstructionEntry,
   ResolvedSourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineFacts.ts';
+} from '../../domain/tracker-model/@types/PipelineFacts.ts';
 import type {
   ConstitutionDraft,
   MainConstitution,
@@ -48,12 +48,12 @@ import type {
   ResearchFinding,
   SetupQuestion,
   SourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }                                                  from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                                      from '../../lib/tracker-model/Board.ts';
-import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../lib/tracker-model/constants/AgentSettings.ts';
-import { PipelineChangeUtil }                                              from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { AgentPair }                                                  from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                                      from '../../domain/tracker-model/Board.ts';
+import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../domain/tracker-model/constants/AgentSettings.ts';
+import { PipelineChangeUtil }                                              from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }                                                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { EntityFoldersUtil }                                               from '../../shared/utils/EntityFoldersUtil.ts';
 import { PIPELINE_FLOW_NODE_IDS, entityFlowGraphsOf, pipelineFlowGraphOf } from './PipelineFlowGraph.ts';
 

@@ -235,7 +235,7 @@ The [tracker](#tracker) is the same thing on disk.
 
 ### `Board` class
 
-The class in `src/lib/tracker-model/Board.ts` that holds a [board](#board) in memory and owns its rules. A command
+The class in `src/domain/tracker-model/Board.ts` that holds a [board](#board) in memory and owns its rules. A command
 builds one for each [lock hold](#lock-hold); it never touches a file.
 
 ### Bouncer
@@ -467,7 +467,7 @@ over, so a holder a platform misjudged as gone writes nothing further.
 ### filing draft
 
 A working record `D<n>` in `<data>/filing-cabinet/` that a filing session builds tickets from. It is never a ticket: no
-status, row or move (`src/lib/tracker-model/Drafts.ts`).
+status, row or move (`src/domain/tracker-model/Drafts.ts`).
 
 ### finding
 
@@ -629,7 +629,7 @@ The frontmatter field on a bug naming the delivered ticket whose change introduc
 
 ### job
 
-The board's unit of work, `J<n>`, stored in `progress.json` while unsettled (`src/lib/tracker-model/@types/Job.ts`). A
+The board's unit of work, `J<n>`, stored in `progress.json` while unsettled (`src/domain/tracker-model/@types/Job.ts`). A
 merge or refresh job runs no agent of its own.
 
 ### job kind
@@ -803,7 +803,7 @@ fresh worktree of the main line, its result sent to the [pipeline agent](#pipeli
 ### Playbook
 
 The pure function that derives what runs next from the board and Hephaestus's observations,
-`src/lib/tracker-model/Playbook.ts`. It reads no clock, file or process.
+`src/domain/tracker-model/Playbook.ts`. It reads no clock, file or process.
 
 ### pipeline-step-ran
 
@@ -927,7 +927,7 @@ one.
 ### review bar
 
 A chart row of its own, not the ticket's [row](#row), carrying `reviewOf`, in which one review of a ticket runs
-(`src/lib/tracker-model/ReviewBars.ts`).
+(`src/domain/tracker-model/ReviewBars.ts`).
 
 ### review pass
 
@@ -1100,7 +1100,7 @@ A Markdown work item, `<data>/tickets/`, known by its frontmatter `id` such as `
 ### ticket documents
 
 A ticket's spec and plan in the spec-then-plan route, stored in `<data>/ticket-documents/<ticketId>/`
-(`src/lib/tracker-model/TicketDocuments.ts`). The approved spec holds the Acceptance and the approved plan takes the
+(`src/domain/tracker-model/TicketDocuments.ts`). The approved spec holds the Acceptance and the approved plan takes the
 place of the Brief; a ticket with documents is judged by them ever after. Home: [cli.md](cli.md#ticket-documents).
 
 ### ticket hold
@@ -1201,4 +1201,4 @@ What a [lock hold](#lock-hold) must write, the change lists `BoardRecords` keeps
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES`, `ORIGINAL_PRODUCT_NAMES` | `architecture/ProductNames.spec.ts` |
 | Hard-coded product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `architecture/ProductNameLiterals.spec.ts` |
 | Decided component names | every tracked file | `RETIRED_NAMES` | `architecture/ComponentNames.spec.ts` |
-| Derived display state | `src/lib/tracker-model/DisplayQueries.ts` | `displayStateFor` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
+| Derived display state | `src/domain/tracker-model/DisplayQueries.ts` | `displayStateFor` | `src/domain/tracker-model/Board.displayQueries.spec.ts` |

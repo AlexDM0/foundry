@@ -1,4 +1,4 @@
-import type { IncidentKind, IncidentMove } from '../../../lib/tracker-model/@types/Incident.ts';
+import type { IncidentKind, IncidentMove } from '../../../domain/tracker-model/@types/Incident.ts';
 
 /**
  * The Bouncer's one table of the moves each incident kind allows, design section 8.3, whoever names the incident: Hephaestus's

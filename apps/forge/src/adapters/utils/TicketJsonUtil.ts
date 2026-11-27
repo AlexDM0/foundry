@@ -1,5 +1,5 @@
-import type { Ticket, TicketPriority } from '../../lib/tracker-model/@types/Ticket.ts';
-import { TicketDefaultsUtil }          from '../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
+import type { Ticket, TicketPriority } from '../../domain/tracker-model/@types/Ticket.ts';
+import { TicketDefaultsUtil }          from '../../domain/tracker-model/utils/TicketDefaultsUtil.ts';
 
 type TicketDocument = Ticket['frontmatter'] & { priority: TicketPriority; epics: string[] };
 

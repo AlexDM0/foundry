@@ -1,7 +1,7 @@
 /** `task update` and `task remove`: they correct or drop a row and, unlike the moves, stamp no time. */
-import type { TaskStatus }                        from '../../../src/lib/tracker-model/@types/Task.ts';
-import { TASK_STATUSES }                          from '../../../src/lib/tracker-model/constants/Statuses.ts';
-import { VocabularyUtil }                         from '../../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+import type { TaskStatus }                        from '../../../src/domain/tracker-model/@types/Task.ts';
+import { TASK_STATUSES }                          from '../../../src/domain/tracker-model/constants/Statuses.ts';
+import { VocabularyUtil }                         from '../../../src/domain/tracker-model/utils/VocabularyUtil.ts';
 import type { ControlCommandOf }                  from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';

@@ -22,7 +22,7 @@ const DECLARED_PACKAGE_PATTERN = /`src\/lib\/([a-z-]+)`/g;
 const HEADER_COMMENT = /^\/\*\*([\s\S]*?)\*\//;
 
 /** What Talos must never reach: the tracker and its model, the git primitives, and the app layers above `src/lib/`. */
-const FORBIDDEN_FOLDERS = ['src/lib/tracker-model/', 'src/lib/git/', 'src/shared/', 'src/adapters/', 'src/services/', 'cli/'];
+const FORBIDDEN_FOLDERS = ['src/domain/tracker-model/', 'src/lib/git/', 'src/shared/', 'src/adapters/', 'src/services/', 'cli/'];
 const FORBIDDEN_NAMES = /agent-progress|claude|anthropic/i;
 
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());

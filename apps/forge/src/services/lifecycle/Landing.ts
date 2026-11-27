@@ -5,14 +5,14 @@
  * in a project folder of its repository lands under the repository's landing lock and journals each landing for its siblings.
  */
 import { TicketAcceptanceUtil }                            from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import type { Ticket }                                     from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                      from '../../domain/tracker-model/Board.ts';
+import { TicketDocumentReadingUtil }                       from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { fastForwardTo, readCurrentBranch }                from '../../lib/git/BranchIntegration.ts';
 import { GitProcess, type GitHookPolicy }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                    from '../../lib/git/GitWorktrees.ts';
 import type { CheckoutWritePrimitives }                    from '../../lib/git/HeldCheckout.ts';
 import { RepositoryLandings, type RepositoryLandingFiles } from '../../lib/git/RepositoryLandings.ts';
-import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                      from '../../lib/tracker-model/Board.ts';
-import { TicketDocumentReadingUtil }                       from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { LIMITS }                                          from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
 import { LockGenerationSteps, type LockTaker }             from '../tracker/GenerationLock.ts';

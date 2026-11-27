@@ -22,12 +22,12 @@ import { join } from 'node:path';
 
 import { afterEach, expect } from 'bun:test';
 
+import type { Job }                                      from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import { Board }                                         from '../../domain/tracker-model/Board.ts';
+import { createLogger }                                  from '../../domain/tracker-model/Logger.ts';
 import type { ChildLaunch }                              from '../../lib/talos/ChildLaunch.ts';
-import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                                         from '../../lib/tracker-model/Board.ts';
-import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
 import { branchNamesOf }                                 from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';

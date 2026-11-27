@@ -4,7 +4,7 @@
  * User's merge accept. The board document's attention and the monitor snapshot's `attention` are this one list. It orders by the stamp
  * strings, which one writer wrote, so no clock decides the order; ages are only shown.
  */
-import type { DraftState }                          from '../../lib/tracker-model/@types/Draft.ts';
+import type { DraftState }                          from '../../domain/tracker-model/@types/Draft.ts';
 import type { MonitorAttentionEntry }               from './@types/MonitorSnapshot.ts';
 import { DraftWordingUtil }                         from './utils/DraftWordingUtil.ts';
 import { OpenDecisionsUtil, type EscalationRecord } from './utils/OpenDecisionsUtil.ts';

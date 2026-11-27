@@ -24,12 +24,12 @@ import {
 
 import { JOB_START_FORMAT_VERSION }                          from '../../adapters/job-start/JobStartIngestion.ts';
 import type { RedHandoffFacts }                              from '../../adapters/red-handoff/RedHandoffIngestion.ts';
+import type { Job }                                          from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineEntity }                     from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Ticket }                                       from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
+import { PipelineUtil }                                      from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
-import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineEntity }                     from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Ticket }                                       from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                       from '../../testing/BoardFixtures.ts';

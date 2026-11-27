@@ -1,6 +1,6 @@
 /**
  * The agent vocabularies and their defaults. What callers rely on: the tuples match the unions in
- * `src/lib/tracker-model/@types/Ticket.ts`, and there is one default pair rather than something each reader decides.
+ * `src/domain/tracker-model/@types/Ticket.ts`, and there is one default pair rather than something each reader decides.
  */
 import { expect, test } from 'bun:test';
 

@@ -16,8 +16,8 @@ import {
   test
 } from 'bun:test';
 
+import type { Board }                                  from '../../src/domain/tracker-model/Board.ts';
 import type { AgentAdapter }                           from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { Board }                                  from '../../src/lib/tracker-model/Board.ts';
 import type { DrivePass }                              from '../../src/services/hephaestus/DrivePass.ts';
 import { requireWorkspace }                            from '../../src/services/tracker/Workspace.ts';
 import { branchNamesOf }                               from '../../src/shared/BranchNames.ts';

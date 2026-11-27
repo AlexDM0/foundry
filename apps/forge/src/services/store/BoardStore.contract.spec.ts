@@ -11,7 +11,7 @@ import { join }                                     from 'node:path';
 
 import { expect } from 'bun:test';
 
-import { BoardRefusal }                                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { BoardRefusal }                                       from '../../domain/tracker-model/BoardRefusal.ts';
 import type { ControlCommand }                                from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                          from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                             from '../../testing/EchoedControlContext.ts';

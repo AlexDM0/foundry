@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineEntity }            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineEntity }            from '../../domain/tracker-model/@types/Pipeline.ts';
 import { MergeRun, type CrossingLanding } from './MergeRun.ts';
 
 function entityOf(kind: PipelineEntity['kind'], home: string, dependsOn: string[] = []): PipelineEntity {

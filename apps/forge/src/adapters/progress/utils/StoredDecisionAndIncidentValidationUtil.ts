@@ -2,8 +2,7 @@
  * Whether the parsed `decisions`, `nextDecisionId`, `incidents` and `nextIncidentId` of a progress.json are in the current format, and if
  * not, the reason naming the offending field.
  */
-import { JsonRecordUtil }        from '../../../lib/json-record/JsonRecordUtil.ts';
-import { TICKET_DOCUMENT_KINDS } from '../../../lib/tracker-model/@types/TicketDocument.ts';
+import { TICKET_DOCUMENT_KINDS } from '../../../domain/tracker-model/@types/TicketDocument.ts';
 import {
   DECISION_ID_PREFIX,
   DECISION_KINDS,
@@ -13,9 +12,10 @@ import {
   INCIDENT_KINDS,
   INCIDENT_MOVES,
   NON_AGENT_DECISION_ASKERS
-}                          from '../../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { JOB_ROLES }              from '../../../lib/tracker-model/constants/JobStates.ts';
-import { OptionConsequencesUtil } from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+}                          from '../../../domain/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { JOB_ROLES }              from '../../../domain/tracker-model/constants/JobStates.ts';
+import { OptionConsequencesUtil } from '../../../domain/tracker-model/utils/OptionConsequencesUtil.ts';
+import { JsonRecordUtil }         from '../../../lib/json-record/JsonRecordUtil.ts';
 import { StoredValueUtil }        from '../../utils/StoredValueUtil.ts';
 
 type UnknownObject = Record<string, unknown>;

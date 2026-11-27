@@ -13,9 +13,9 @@ import {
   test
 } from 'bun:test';
 
+import type { Board }                                   from '../../domain/tracker-model/Board.ts';
+import { PipelineUtil }                                 from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import { GitProcess }                                   from '../../lib/git/GitProcess.ts';
-import type { Board }                                   from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                       from '../../testing/EchoedControlContext.ts';

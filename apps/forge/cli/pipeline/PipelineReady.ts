@@ -1,5 +1,5 @@
 /** `pipeline ready <step>`: the pipeline agent suggests that User may continue the current step; it never moves a step. */
-import { SETUP_QUESTION_STEPS } from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { SETUP_QUESTION_STEPS } from '../../src/domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { CommandContext }  from '../CommandContext.ts';
 import { refuseUsage }          from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }  from '../arguments/ArgumentParser.ts';

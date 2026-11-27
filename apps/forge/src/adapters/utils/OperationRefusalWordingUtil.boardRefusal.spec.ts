@@ -6,7 +6,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { BoardRefusalDetail }               from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }               from '../../domain/tracker-model/BoardRefusal.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES } from '../../shared/constants/ProductNames.ts';
 import { COMMAND_LINE_FORM }                     from '../../testing/CommandLineForm.ts';

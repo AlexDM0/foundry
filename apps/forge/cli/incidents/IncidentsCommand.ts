@@ -1,5 +1,5 @@
 /** The open incidents for the Assistant, in opening order, each with the moves its kind allows. Read-only, no lock. */
-import type { Incident }                  from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Incident }                  from '../../src/domain/tracker-model/@types/Incident.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND } from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
 import { PRODUCT_NAMES }                  from '../../src/shared/constants/ProductNames.ts';
 import { boardReadsOf }                   from '../BoardStoreOf.ts';

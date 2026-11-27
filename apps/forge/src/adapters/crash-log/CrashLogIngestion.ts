@@ -1,7 +1,7 @@
 /** `hephaestus/crash-logs/crash-<number>.json`, the record of one crash: read, validate every field, map. */
+import { START_ORIGINS }          from '../../domain/tracker-model/constants/JobStates.ts';
 import { JsonRecordUtil }         from '../../lib/json-record/JsonRecordUtil.ts';
 import { storedIdentityOf }       from '../../lib/process-identity/ProcessIdentity.ts';
-import { START_ORIGINS }          from '../../lib/tracker-model/constants/JobStates.ts';
 import { startClassificationOf }  from '../presence/PresenceIngestion.ts';
 import { StoredJsonDocumentUtil } from '../utils/StoredJsonDocumentUtil.ts';
 import { StoredValueUtil }        from '../utils/StoredValueUtil.ts';

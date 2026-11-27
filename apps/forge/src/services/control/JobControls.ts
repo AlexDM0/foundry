@@ -4,11 +4,11 @@
  * incident marks it handled by the move in the same hold.
  */
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import type { PictureReference }               from '../../domain/tracker-model/@types/Job.ts';
+import type { ReadinessGap }                   from '../../domain/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }                        from '../../domain/tracker-model/BoardRefusal.ts';
+import { TicketWritingUtil }                   from '../../domain/tracker-model/utils/TicketWritingUtil.ts';
 import { JsonRecordUtil }                      from '../../lib/json-record/JsonRecordUtil.ts';
-import type { PictureReference }               from '../../lib/tracker-model/@types/Job.ts';
-import type { ReadinessGap }                   from '../../lib/tracker-model/@types/Ticket.ts';
-import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
-import { TicketWritingUtil }                   from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/HephaestusLimits.ts';

@@ -11,7 +11,7 @@ import type { Job }                         from './@types/Job.ts';
 import type { TicketForecast }              from './@types/TicketForecast.ts';
 import { LifecycleWorld, type PassWitness } from './testing/LifecycleWorld.ts';
 
-const WORLD_MODULE = 'src/lib/tracker-model/testing/LifecycleWorld.ts';
+const WORLD_MODULE = 'src/domain/tracker-model/testing/LifecycleWorld.ts';
 
 const SEEDS = 60;
 
@@ -88,25 +88,25 @@ describe('the ticket forecast against the Playbook', () => {
   test.each([
     [
       'a build attempt of its own',
-      'src/lib/tracker-model/TicketForecasts.ts',
+      'src/domain/tracker-model/TicketForecasts.ts',
       '{ kind: \'build\', attempt: launchNumbers.buildAttempt, jobId: null }',
       '{ kind: \'build\', attempt: launchNumbers.buildAttempt + 1, jobId: null }',
     ],
     [
       'a review round of its own',
-      'src/lib/tracker-model/TicketForecasts.ts',
+      'src/domain/tracker-model/TicketForecasts.ts',
       'reviewStepsOf(launchNumbers.reviewRound)',
       'reviewStepsOf(FIRST_REVIEW_ROUND)',
     ],
     [
       'no live job',
-      'src/lib/tracker-model/TicketForecasts.ts',
+      'src/domain/tracker-model/TicketForecasts.ts',
       'job.ticketIds.includes(ticketId));',
       'job.ticketIds.includes(ticketId) && job.kind === \'pipeline-agent\');',
     ],
     [
       'a Playbook that counts review rounds another way',
-      'src/lib/tracker-model/Playbook.ts',
+      'src/domain/tracker-model/Playbook.ts',
       'round: nextReviewRoundOf(ticket.id, facts)',
       'round: 1',
     ],

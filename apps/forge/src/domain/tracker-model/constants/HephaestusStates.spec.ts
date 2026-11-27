@@ -1,5 +1,5 @@
 /**
- * That the Hephaestus state tuple and its union in `src/lib/tracker-model/@types/TrackerProgress.ts` name the same two states, once each,
+ * That the Hephaestus state tuple and its union in `src/domain/tracker-model/@types/TrackerProgress.ts` name the same two states, once each,
  * and that the default is one of them.
  */
 import { expect, test } from 'bun:test';

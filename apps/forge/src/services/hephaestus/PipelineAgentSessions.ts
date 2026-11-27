@@ -13,25 +13,25 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { SnapshotStartIngestion, type SnapshotStart }                                     from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
-import { createSnapshotStartWriter }                                                      from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import { SnapshotStartIngestion, type SnapshotStart } from '../../adapters/snapshot-start/SnapshotStartIngestion.ts';
+import { createSnapshotStartWriter }                  from '../../adapters/snapshot-start/SnapshotStartWriter.ts';
+import type { Job }                                   from '../../domain/tracker-model/@types/Job.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgent,
+  PipelineBilling
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, PipelineSetupMode }                                          from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
 import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle }                                                              from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
-import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type {
-  EntityKey,
-  Pipeline,
-  PipelineAgent,
-  PipelineBilling
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup, PipelineSetupMode } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                            from '../../lib/tracker-model/Board.ts';
-import type { BranchNames }                      from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
+import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                                                  from '../../shared/constants/ProductNames.ts';
 import {
   clearCustoms,
   launchSnapshotOf,

@@ -2,7 +2,7 @@
  * Why an agent's program does not run, as one clause the board, the notices and the command line all read: it names the agent and the
  * path, and never a command line, since User runs no command.
  */
-import type { JobNotLaunchedCause }      from '../../lib/tracker-model/@types/Job.ts';
+import type { JobNotLaunchedCause }      from '../../domain/tracker-model/@types/Job.ts';
 import type { AgentProgramRefusalCause } from '../@types/AgentProgramCheck.ts';
 
 /** `outputLine`: the first line a run that failed printed. */

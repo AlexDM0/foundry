@@ -7,8 +7,8 @@ import { join }      from 'node:path';
 
 import { AirlockFactsIngestion, type KeptAirlockFacts } from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import { createAirlockFactsWriter }                     from '../../adapters/airlock-facts/AirlockFactsWriter.ts';
+import type { AirlockPhase }                            from '../../domain/tracker-model/@types/Job.ts';
 import { unmergedPathsIn }                              from '../../lib/git/BranchMerge.ts';
-import type { AirlockPhase }                            from '../../lib/tracker-model/@types/Job.ts';
 import { jobFileInDataFolderOf }                        from './HephaestusFiles.ts';
 import type { UnreadableJobFile }                       from './UnreadableJobFileIncident.ts';
 

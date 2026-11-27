@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 import { afterEach, expect, test }  from 'bun:test';
 
-import type { PlaybookStep }                              from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { PlaybookStep }                              from '../../domain/tracker-model/@types/PlaybookStep.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';

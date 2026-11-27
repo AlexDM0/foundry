@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { TicketBodyUtil }      from '../../adapters/utils/TicketBodyUtil.ts';
-import type { Board }          from '../../lib/tracker-model/Board.ts';
+import type { Board }          from '../../domain/tracker-model/Board.ts';
 import type { ControlCommand } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }    from '../../shared/OperationRefusal.ts';
 import {

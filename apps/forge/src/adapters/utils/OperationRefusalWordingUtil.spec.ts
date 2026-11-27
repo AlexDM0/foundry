@@ -6,7 +6,7 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
+import type { BoardRefusalDetail }     from '../../domain/tracker-model/BoardRefusal.ts';
 import type { UnreadableTracker }      from '../../shared/@types/UnreadableTracker.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';

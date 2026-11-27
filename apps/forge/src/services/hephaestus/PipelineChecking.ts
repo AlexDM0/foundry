@@ -9,13 +9,13 @@
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
 
+import type { EntityKey }                                                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineCheckEnding, PipelineCheckResult, PipelineCheckStart }              from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                                                     from '../../domain/tracker-model/Board.ts';
+import { CHECK_OUTPUT_LIMIT_CHARACTERS, NO_TOUCHED_GATE_REASON }                          from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { EntityKey }                                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineCheckEnding, PipelineCheckResult, PipelineCheckStart }              from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import { CHECK_OUTPUT_LIMIT_CHARACTERS, NO_TOUCHED_GATE_REASON }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { SetupMessage }                                                              from '../../shared/@types/ControlContext.ts';
 import { EntityFoldersUtil }                                                              from '../../shared/utils/EntityFoldersUtil.ts';
 import { messagedToTheSetupAgent }                                                        from '../control/PipelineSetupControls.ts';

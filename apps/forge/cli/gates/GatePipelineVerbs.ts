@@ -5,14 +5,14 @@
  * On a pipeline with entities the Board refuses each write of the forge's own steps, gates and reach, since every entity holds its own.
  */
 import { PipelineFile }                from '../../src/adapters/pipeline/PipelineFile.ts';
-import { GATE_PHASES, type GatePhase } from '../../src/lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES, type GatePhase } from '../../src/domain/tracker-model/@types/GatePhase.ts';
 import type {
   Pipeline,
   PipelineGate,
   PipelinePhaseOrders,
   PipelineStep
-} from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
+} from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                   from '../../src/domain/tracker-model/utils/PipelineUtil.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/hephaestus/GateCachePaths.ts';
 import type { ControlCommand, ControlCommandOf }          from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';

@@ -20,7 +20,7 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job }                               from '../../src/domain/tracker-model/@types/Job.ts';
 import { jobFolderIn }                            from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';

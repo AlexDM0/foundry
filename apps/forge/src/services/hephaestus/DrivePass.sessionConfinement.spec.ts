@@ -15,9 +15,9 @@ import {
   test
 } from 'bun:test';
 
+import type { PipelineGate }                                     from '../../domain/tracker-model/@types/Pipeline.ts';
 import type { AgentAdapter }                                     from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan }                                  from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import type { PipelineGate }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
 import { createScratchDrivePass }                                from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep, fakeStartedLine } from '../../testing/FakeAgentAdapter.ts';
 import {

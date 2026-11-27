@@ -2,26 +2,26 @@
  * A Board over synthetic records, with a logger that keeps every record in a list, for the Board's specs to assert reason codes, records
  * and changed tickets against. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { Draft }                                            from '../lib/tracker-model/@types/Draft.ts';
-import type { Epic, EpicFrontmatter }                            from '../lib/tracker-model/@types/Epic.ts';
-import type { GateProfilesReading }                              from '../lib/tracker-model/@types/GateProfile.ts';
-import type { LogRecord }                                        from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineEntity }                         from '../lib/tracker-model/@types/Pipeline.ts';
-import type { ConstitutionSourcesReading, PipelineSetupReading } from '../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Task }                                             from '../lib/tracker-model/@types/Task.ts';
+import type { Draft }                                            from '../domain/tracker-model/@types/Draft.ts';
+import type { Epic, EpicFrontmatter }                            from '../domain/tracker-model/@types/Epic.ts';
+import type { GateProfilesReading }                              from '../domain/tracker-model/@types/GateProfile.ts';
+import type { LogRecord }                                        from '../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline, PipelineEntity }                         from '../domain/tracker-model/@types/Pipeline.ts';
+import type { ConstitutionSourcesReading, PipelineSetupReading } from '../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Task }                                             from '../domain/tracker-model/@types/Task.ts';
 import type {
   RowedTicketStatus,
   Ticket,
   TicketFrontmatter,
   TicketStatus
-} from '../lib/tracker-model/@types/Ticket.ts';
-import type { LoadedTicketDocumentRecord } from '../lib/tracker-model/@types/TicketDocument.ts';
-import type { TrackerProgress }            from '../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                           from '../lib/tracker-model/Board.ts';
-import type { BoardRefusalDetail }         from '../lib/tracker-model/BoardRefusal.ts';
-import { refusalIsBoardRefusal }           from '../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                    from '../lib/tracker-model/Logger.ts';
-import { PipelineUtil }                    from '../lib/tracker-model/utils/PipelineUtil.ts';
+} from '../domain/tracker-model/@types/Ticket.ts';
+import type { LoadedTicketDocumentRecord } from '../domain/tracker-model/@types/TicketDocument.ts';
+import type { TrackerProgress }            from '../domain/tracker-model/@types/TrackerProgress.ts';
+import { Board }                           from '../domain/tracker-model/Board.ts';
+import type { BoardRefusalDetail }         from '../domain/tracker-model/BoardRefusal.ts';
+import { refusalIsBoardRefusal }           from '../domain/tracker-model/BoardRefusal.ts';
+import { createLogger }                    from '../domain/tracker-model/Logger.ts';
+import { PipelineUtil }                    from '../domain/tracker-model/utils/PipelineUtil.ts';
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 

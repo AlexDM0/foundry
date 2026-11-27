@@ -23,9 +23,9 @@ import {
 } from 'bun:test';
 
 import type { LaunchSnapshot }                                  from '../../adapters/@types/LaunchSnapshot.ts';
+import type { Pipeline }                                        from '../../domain/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil }                                  from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
 import type { GitPathStyle }                                    from '../../lib/git/GitPaths.ts';
-import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil }                                  from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { branchNamesOf }                                        from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
 import {

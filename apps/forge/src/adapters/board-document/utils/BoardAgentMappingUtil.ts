@@ -10,8 +10,8 @@ import type {
   PipelineToolDocument
 } from 'forge-contracts/BoardAgentDocuments';
 
+import type { PipelineAgent, PipelineTool } from '../../../domain/tracker-model/@types/Pipeline.ts';
 import type { AgentBillingOption }          from '../../../lib/agent-launch/AgentAdapter.ts';
-import type { PipelineAgent, PipelineTool } from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentFacts,
   AgentVendor,

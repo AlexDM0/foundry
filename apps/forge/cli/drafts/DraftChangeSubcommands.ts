@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
 import { DraftDocumentUtil }                                from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
-import { DraftIdUtil }                                      from '../../src/lib/tracker-model/utils/DraftIdUtil.ts';
+import { DraftIdUtil }                                      from '../../src/domain/tracker-model/utils/DraftIdUtil.ts';
 import type { ControlResultOf }                             from '../../src/services/control/ControlService.ts';
 import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                              from '../../src/shared/@types/ControlCommand.ts';

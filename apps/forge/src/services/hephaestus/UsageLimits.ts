@@ -6,8 +6,8 @@
 import type { UsageFacts }                                                         from '../../adapters/@types/BoardStateParts.ts';
 import { type UsageMarkerReading, UsageMarkerFile }                                from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import { type UsageWindowObservation, type UsageWindowsReading, UsageWindowsFile } from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { Board }                                                              from '../../domain/tracker-model/Board.ts';
 import type { AgentSessionEvent }                                                  from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { Board }                                                              from '../../lib/tracker-model/Board.ts';
 import { API_RATE_LIMIT_BACKOFF_SECONDS }                                          from '../../shared/constants/HephaestusLimits.ts';
 import { MILLISECONDS_PER_SECOND }                                                 from './constants/TimeUnits.ts';
 

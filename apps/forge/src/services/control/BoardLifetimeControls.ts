@@ -3,10 +3,10 @@
  * written and resolved at layout time, so `-2h` keeps meaning "the last two hours"; a reader resolves each end on its own, which
  * is what makes a mixed pair legal.
  */
+import type { JobKind }                       from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord }                     from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { ViewRange }                     from '../../domain/tracker-model/@types/TrackerProgress.ts';
 import { LocalTimeUtil }                      from '../../lib/local-time/LocalTimeUtil.ts';
-import type { JobKind }                       from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { ViewRange }                     from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';

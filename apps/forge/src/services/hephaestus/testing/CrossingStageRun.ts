@@ -6,9 +6,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
 import { JOB_START_FORMAT_VERSION }                                                        from '../../../adapters/job-start/JobStartIngestion.ts';
+import type { Job }                                                                        from '../../../domain/tracker-model/@types/Job.ts';
+import type { Board }                                                                      from '../../../domain/tracker-model/Board.ts';
 import { GitProcess }                                                                      from '../../../lib/git/GitProcess.ts';
-import type { Job }                                                                        from '../../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                                                      from '../../../lib/tracker-model/Board.ts';
 import { LIFECYCLE_LIMITS }                                                                from '../../../shared/constants/LifecycleLimits.ts';
 import { ENTITY_FORGE_MAIN_LINE }                                                          from '../../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';

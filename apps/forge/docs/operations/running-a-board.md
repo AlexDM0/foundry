@@ -742,7 +742,7 @@ the untouched apps.
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
+| Display state | `src/domain/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/domain/tracker-model/Board.displayQueries.spec.ts` |
 | Command route | `cli/hephaestus/routes/CommandRoute.ts` | `answerControlCommand` | `cli/hephaestus/HephaestusApi.integration.spec.ts` |
 | Stop with agents running | `cli/hephaestus/HephaestusForeground.ts` | `BoardChildren.stopLiveLines` | `cli/hephaestus/StartCommand.integration.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |

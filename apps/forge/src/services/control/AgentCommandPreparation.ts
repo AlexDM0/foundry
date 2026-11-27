@@ -4,9 +4,9 @@
  * named with its path is refused when it is no program to keep, such as one inside a repository a job could write.
  */
 import { MachineConfigFile }                            from '../../adapters/machine-config/MachineConfigFile.ts';
+import type { PipelineAgent, PipelineTool }             from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit }                       from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import type { ToolSearch }                              from '../../lib/program-folders/utils/ProgramSearchUtil.ts';
-import type { PipelineAgent, PipelineTool }             from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineDraftEdit }                       from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { AgentProgramCheck }                       from '../../shared/@types/AgentProgramCheck.ts';
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';

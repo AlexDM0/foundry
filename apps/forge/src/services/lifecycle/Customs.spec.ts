@@ -10,8 +10,8 @@ import { posix, win32 } from 'node:path';
 
 import { expect, test } from 'bun:test';
 
+import type { LogRecord }              from '../../domain/tracker-model/@types/LogRecord.ts';
 import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
 import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
 import {
   agentConfigPathsAmong,

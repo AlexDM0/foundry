@@ -2,11 +2,11 @@
  * `job` and its subcommands: `show` and `attach` read without the lock; `message`, `wind-down`, `stop` and `fresh` each record one control
  * command in a hold, with Hephaestus up or down, and Hephaestus sends the frames.
  */
+import type { LogRecord }         from '../../src/domain/tracker-model/@types/LogRecord.ts';
+import { FIRST_CHILD_INSTANCE }   from '../../src/domain/tracker-model/constants/JobStates.ts';
 import type { AgentAdapter }      from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent } from '../../src/lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }     from '../../src/lib/talos/EventLog.ts';
-import type { LogRecord }         from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { FIRST_CHILD_INSTANCE }   from '../../src/lib/tracker-model/constants/JobStates.ts';
 import { jobFolderIn }            from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { createTalosChildren }    from '../../src/services/hephaestus/TalosChildren.ts';
 import type { StoreReadFace }     from '../../src/services/store/BoardStore.ts';

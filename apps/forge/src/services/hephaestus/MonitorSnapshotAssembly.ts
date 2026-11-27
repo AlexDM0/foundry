@@ -9,15 +9,15 @@ import type { BoardTarget } from 'forge-contracts/BoardReadingDocuments';
 import type { JobWithLiveFacts, UsageWindowReport } from '../../adapters/@types/BoardStateParts.ts';
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }      from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
 import { LogUtil }                                  from '../../adapters/utils/LogUtil.ts';
+import type { Decision }                            from '../../domain/tracker-model/@types/Decision.ts';
+import type { Incident }                            from '../../domain/tracker-model/@types/Incident.ts';
+import type { JobKind }                             from '../../domain/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordKind }            from '../../domain/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                            from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Board }                               from '../../domain/tracker-model/Board.ts';
+import { SETTLED_TICKET_STATUSES }                  from '../../domain/tracker-model/constants/Statuses.ts';
+import { TicketStageUtil }                          from '../../domain/tracker-model/utils/TicketStageUtil.ts';
 import { LocalTimeUtil }                            from '../../lib/local-time/LocalTimeUtil.ts';
-import type { Decision }                            from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                            from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobKind }                             from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordKind }            from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                               from '../../lib/tracker-model/Board.ts';
-import { SETTLED_TICKET_STATUSES }                  from '../../lib/tracker-model/constants/Statuses.ts';
-import { TicketStageUtil }                          from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { SERVED_CONTRACT_VERSIONS }                 from '../../shared/constants/HephaestusApiContracts.ts';
 import type {
   ActivityCategory,

@@ -1,4 +1,4 @@
-import type { LogRecord } from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord } from '../../../domain/tracker-model/@types/LogRecord.ts';
 
 export interface StoredLog {
   records: LogRecord[];

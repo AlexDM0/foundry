@@ -2,9 +2,9 @@
  * `gate-run.json` and its kin, the steps a job's gate run fixed as it started, read into the run's manifest: read, validate, map. A manifest
  * is read for one phase, the one its file name stands for, so a manifest of another phase is unreadable.
  */
+import type { GatePhase, GateRunStamp }               from '../../domain/tracker-model/@types/GatePhase.ts';
+import type { EntityKey, PipelineGate, PipelineStep } from '../../domain/tracker-model/@types/Pipeline.ts';
 import { JsonRecordUtil }                             from '../../lib/json-record/JsonRecordUtil.ts';
-import type { GatePhase, GateRunStamp }               from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { type FieldCheck, JobFileShapeUtil }          from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil }                     from '../utils/StoredJsonDocumentUtil.ts';
 

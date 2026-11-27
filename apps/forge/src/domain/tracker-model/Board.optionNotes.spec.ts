@@ -11,7 +11,7 @@ import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/Boar
 
 const AT = '2026-09-26T10:15:00+02:00';
 
-/** The bound `src/lib/tracker-model/Jobs.ts` names; the case below fills it past this count. */
+/** The bound `src/domain/tracker-model/Jobs.ts` names; the case below fills it past this count. */
 const NOTES_KEPT_PER_JOB = 8;
 
 function notesFor(question: string, tradeOff = 'Lighter, less sturdy.'): { question: string; options: { label: string; tradeOff: string }[] } {

@@ -7,8 +7,8 @@
  */
 import { expect, test } from 'bun:test';
 
-import { Board }                      from '../../../lib/tracker-model/Board.ts';
-import { createLogger }               from '../../../lib/tracker-model/Logger.ts';
+import { Board }                      from '../../../domain/tracker-model/Board.ts';
+import { createLogger }               from '../../../domain/tracker-model/Logger.ts';
 import { JsonTextUtil }               from '../../../shared/utils/JsonTextUtil.ts';
 import { emptyProgress, fileRow }     from '../../../testing/ProgressFixtures.ts';
 import type { StoredProgressFile }    from '../@types/StoredProgressFile.ts';

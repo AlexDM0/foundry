@@ -28,10 +28,10 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                                               from '../../lib/tracker-model/@types/Job.ts';
-import { PIPELINE_AGENT_ROLES, type Pipeline }                    from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineAgentRole }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Job }                                               from '../../domain/tracker-model/@types/Job.ts';
+import { PIPELINE_AGENT_ROLES, type Pipeline }                    from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineAgentRole }                                 from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                     from '../../domain/tracker-model/@types/PipelineSetup.ts';
 import { PRODUCT_NAMES }                                          from '../../shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';

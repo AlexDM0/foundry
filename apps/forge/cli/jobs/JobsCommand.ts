@@ -1,5 +1,5 @@
 /** One screen of the board's live jobs, one line each, then a footer of Hephaestus and what is open for User. Read-only, no lock. */
-import { readingBoardOf }      from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { readingBoardOf }      from '../../src/domain/tracker-model/ReadingBoard.ts';
 import { hephaestusFilesIn }   from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { HephaestusLock }      from '../../src/services/hephaestus/HephaestusLock.ts';
 import { IncidentRouter }      from '../../src/services/hephaestus/IncidentRouter.ts';

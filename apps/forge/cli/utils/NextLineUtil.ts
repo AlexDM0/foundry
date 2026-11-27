@@ -1,6 +1,6 @@
 import { TicketPhraseUtil }     from '../../src/adapters/utils/TicketPhraseUtil.ts';
-import type { HephaestusState } from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }           from '../../src/lib/tracker-model/Board.ts';
+import type { HephaestusState } from '../../src/domain/tracker-model/@types/TrackerProgress.ts';
+import type { Board }           from '../../src/domain/tracker-model/Board.ts';
 
 const READY_TICKETS_LISTED_AT_MOST = 5;
 

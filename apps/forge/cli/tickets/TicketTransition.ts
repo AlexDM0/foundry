@@ -1,6 +1,6 @@
 /** Moves one ticket to a status, prints the move and any review bar it opened, and warns when a start ignores the dispatch order. */
 import { TicketPhraseUtil }                   from '../../src/adapters/utils/TicketPhraseUtil.ts';
-import type { TicketStatus }                  from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { TicketStatus }                  from '../../src/domain/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf }              from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';

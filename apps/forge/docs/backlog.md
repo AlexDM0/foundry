@@ -23,7 +23,7 @@ seventh step.
 
 | Move | Must keep | Waits for |
 | --- | --- | --- |
-| `createTicket`'s initial frontmatter moves to a util in `src/lib/tracker-model/utils/` or a Board method. | Nothing beyond its behaviour. | The next change to ticket filing |
+| `createTicket`'s initial frontmatter moves to a util in `src/domain/tracker-model/utils/` or a Board method. | Nothing beyond its behaviour. | The next change to ticket filing |
 | `forge ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
 | `nextTicketId` takes the ticket ids that [rows](glossary.md#row) name from the Board, replacing `ticketIdsNamedByTaskRows`, which reads `progress.json` a second time. | Nothing beyond its behaviour. | The next change to ticket filing |
 | A Board query replaces `BoardTransaction.deleteAllTicketFilesAfterwards` in `src/services/tracker/BoardTransaction.ts`. | Reaching unreadable ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `forge clear` prints. | The next change to `forge clear --all` |
@@ -44,7 +44,7 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 
 | Gap | Change | Waits for |
 | --- | --- | --- |
-| The `checks-not-set` decision stays open | The `gate` writes that make the board's pipeline set (`gate none`, `gate add`, `gate prepare`) withdraw an open `checks-not-set` decision, as Apply does. | The next change to the `gate` writes in `src/lib/tracker-model/TrackerChanges.ts` |
+| The `checks-not-set` decision stays open | The `gate` writes that make the board's pipeline set (`gate none`, `gate add`, `gate prepare`) withdraw an open `checks-not-set` decision, as Apply does. | The next change to the `gate` writes in `src/domain/tracker-model/TrackerChanges.ts` |
 
 ## Out of the code-owned lifecycle epic
 

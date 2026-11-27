@@ -21,7 +21,7 @@ import {
 } from 'bun:test';
 
 import type { LaunchSnapshot }                                 from '../../adapters/@types/LaunchSnapshot.ts';
-import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                                      from '../../domain/tracker-model/@types/LogRecord.ts';
 import { fakeAgentAdapter }                                    from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';

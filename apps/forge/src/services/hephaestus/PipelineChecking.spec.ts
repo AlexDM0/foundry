@@ -19,9 +19,9 @@ import {
   test
 } from 'bun:test';
 
-import type { PipelineCheck, PipelineSetup }                      from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                                             from '../../lib/tracker-model/Board.ts';
-import { CHECK_OUTPUT_LIMIT_CHARACTERS }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import type { PipelineCheck, PipelineSetup }                      from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                             from '../../domain/tracker-model/Board.ts';
+import { CHECK_OUTPUT_LIMIT_CHARACTERS }                          from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
 import { WorktreesFolder }                                        from '../../shared/WorktreesFolder.ts';
 import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';

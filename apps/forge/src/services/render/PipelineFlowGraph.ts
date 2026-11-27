@@ -3,14 +3,14 @@
  * the same graph on every stage; only the marks differ: all `proposed` in a proposal, all `unchanged` live, and against the applied
  * pipeline while editing. On a forge over entities each entity's single pipeline gives a graph of its own the same way.
  */
-import { GATE_PHASES, type GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
+import { GATE_PHASES, type GatePhase } from '../../domain/tracker-model/@types/GatePhase.ts';
 import type {
   EntityKey,
   Pipeline,
   PipelineAgentRole,
   PipelineApproval
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PIPELINE_FORMAT_VERSION } from '../../lib/tracker-model/@types/Pipeline.ts';
+} from '../../domain/tracker-model/@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION } from '../../domain/tracker-model/@types/Pipeline.ts';
 import type {
   DerivedSettingsSource,
   MergePlacement,
@@ -26,13 +26,13 @@ import type {
   PipelineNodeKind,
   PipelineNodeMark,
   ResolvedInstructionEntry
-} from '../../lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineDraftField } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }          from '../../lib/tracker-model/@types/Ticket.ts';
-import type { PipelineChangeKind } from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineChangeUtil }      from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineUtil }            from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketWritingUtil }       from '../../lib/tracker-model/utils/TicketWritingUtil.ts';
+} from '../../domain/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineDraftField } from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import type { AgentPair }          from '../../domain/tracker-model/@types/Ticket.ts';
+import type { PipelineChangeKind } from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineChangeUtil }      from '../../domain/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }            from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketWritingUtil }       from '../../domain/tracker-model/utils/TicketWritingUtil.ts';
 
 export interface PipelineFlowGraphInput {
   /** The draft during a setup or an edit; the stored pipeline when live. */

@@ -21,10 +21,10 @@ import type {
   LineRangeDocument
 } from 'forge-contracts/TicketDocumentsDocument';
 
+import { GATE_PHASES }                  from '../../../domain/tracker-model/@types/GatePhase.ts';
+import { PIPELINE_SETUP_STEPS }         from '../../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { TICKET_PRIORITIES }            from '../../../domain/tracker-model/constants/TicketFields.ts';
 import { JsonRecordUtil }               from '../../../lib/json-record/JsonRecordUtil.ts';
-import { GATE_PHASES }                  from '../../../lib/tracker-model/@types/GatePhase.ts';
-import { PIPELINE_SETUP_STEPS }         from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { TICKET_PRIORITIES }            from '../../../lib/tracker-model/constants/TicketFields.ts';
 import { BOARD_COMMAND_CONTRACT_KINDS } from '../../../shared/constants/HephaestusApiContracts.ts';
 import { SetupPayloadSchemas }          from '../../pipeline-setup/SetupPayloadSchemas.ts';
 

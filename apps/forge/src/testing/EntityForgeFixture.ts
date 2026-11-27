@@ -8,8 +8,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
 
 import { PipelineFile }                                      from '../adapters/pipeline/PipelineFile.ts';
-import type { Pipeline, PipelineEntity, PipelineEntityKind } from '../lib/tracker-model/@types/Pipeline.ts';
-import { PIPELINE_FORMAT_VERSION }                           from '../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineEntity, PipelineEntityKind } from '../domain/tracker-model/@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION }                           from '../domain/tracker-model/@types/Pipeline.ts';
 import { branchNamesOf }                                     from '../shared/BranchNames.ts';
 import { WorktreesFolder }                                   from '../shared/WorktreesFolder.ts';
 import { PRODUCT_NAMES }                                     from '../shared/constants/ProductNames.ts';

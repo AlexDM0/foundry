@@ -1,5 +1,5 @@
 /** A committed ticket's kept content, `<hash>.json`: its title and body as the hash names them, stored whole once and never rewritten. */
-import { TicketBodyHashUtil } from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketBodyHashUtil } from '../../domain/tracker-model/utils/TicketBodyHashUtil.ts';
 import { storedFileTextOf }   from '../StoredFileText.ts';
 import { StoredValueUtil }    from '../utils/StoredValueUtil.ts';
 

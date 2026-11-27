@@ -18,8 +18,8 @@ import {
 } from 'bun:test';
 
 import { PipelineSetupFile }                                         from '../../src/adapters/pipeline/PipelineSetupFile.ts';
-import type { Pipeline }                                             from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                        from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { Pipeline }                                             from '../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                        from '../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { ControlService }                                            from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                            from '../../src/services/hephaestus/DrivePass.ts';
 import { HatchInbox }                                                from '../../src/services/hephaestus/HatchInbox.ts';

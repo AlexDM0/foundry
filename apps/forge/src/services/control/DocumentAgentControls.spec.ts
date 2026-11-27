@@ -8,10 +8,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
-import type { LoadedTicketDocumentRecord } from '../../lib/tracker-model/@types/TicketDocument.ts';
-import { PipelineUtil }                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketDocumentVersionUtil }       from '../../lib/tracker-model/utils/TicketDocumentVersionUtil.ts';
+import type { Job }                        from '../../domain/tracker-model/@types/Job.ts';
+import type { LoadedTicketDocumentRecord } from '../../domain/tracker-model/@types/TicketDocument.ts';
+import { PipelineUtil }                    from '../../domain/tracker-model/utils/PipelineUtil.ts';
+import { TicketDocumentVersionUtil }       from '../../domain/tracker-model/utils/TicketDocumentVersionUtil.ts';
 import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
 import type { EffectReadingRequest }       from '../../shared/@types/EffectReading.ts';
 import { OperationRefusal }                from '../../shared/OperationRefusal.ts';

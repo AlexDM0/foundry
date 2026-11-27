@@ -6,10 +6,10 @@ import type {
   AgentModel,
   Ticket,
   TicketStatus
-} from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { TicketDefaultsUtil }   from '../../src/lib/tracker-model/utils/TicketDefaultsUtil.ts';
-import { TicketDependencyUtil } from '../../src/lib/tracker-model/utils/TicketDependencyUtil.ts';
-import { VocabularyUtil }       from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+} from '../../src/domain/tracker-model/@types/Ticket.ts';
+import { TicketDefaultsUtil }   from '../../src/domain/tracker-model/utils/TicketDefaultsUtil.ts';
+import { TicketDependencyUtil } from '../../src/domain/tracker-model/utils/TicketDependencyUtil.ts';
+import { VocabularyUtil }       from '../../src/domain/tracker-model/utils/VocabularyUtil.ts';
 import { boardReadsOf }         from '../BoardStoreOf.ts';
 import type { CommandContext }  from '../CommandContext.ts';
 import type { ArgumentParser }  from '../arguments/ArgumentParser.ts';

@@ -19,10 +19,10 @@ import { join }                     from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import type { Pipeline }         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Ticket }           from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }            from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }          from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { Pipeline }         from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { Ticket }           from '../../domain/tracker-model/@types/Ticket.ts';
+import type { Board }            from '../../domain/tracker-model/Board.ts';
+import { PipelineUtil }          from '../../domain/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }      from '../../shared/OperationRefusal.ts';
 import {

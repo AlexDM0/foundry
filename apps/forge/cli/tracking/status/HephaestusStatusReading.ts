@@ -2,8 +2,8 @@
  * The process facts `status` prints above the board: the Hephaestus lock, the stored pause, the code on disk against the live one's, the notices and
  * presence, with the lines that word them. Read-only and lockless; the live Hephaestus's Hephaestus lock says which code it runs.
  */
-import type { TrackerProgress }                                   from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
-import { readingBoardOf }                                         from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import type { TrackerProgress }                                   from '../../../src/domain/tracker-model/@types/TrackerProgress.ts';
+import { readingBoardOf }                                         from '../../../src/domain/tracker-model/ReadingBoard.ts';
 import { CodeVersion }                                            from '../../../src/services/hephaestus/CodeVersion.ts';
 import type { HephaestusNotice }                                  from '../../../src/services/hephaestus/DrivePass.ts';
 import { hephaestusFilesIn }                                      from '../../../src/services/hephaestus/HephaestusFiles.ts';

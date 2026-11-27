@@ -8,8 +8,8 @@ import { writeFileSync } from 'node:fs';
 import { afterAll, expect, test } from 'bun:test';
 
 import { PipelineFile }                                   from '../../../src/adapters/pipeline/PipelineFile.ts';
-import type { Pipeline }                                  from '../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineDraftEdit, PipelineSetupOpening }   from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { Pipeline }                                  from '../../../src/domain/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit, PipelineSetupOpening }   from '../../../src/domain/tracker-model/@types/PipelineSetup.ts';
 import { BoardDocumentAssembly }                          from '../../../src/services/hephaestus/BoardDocumentAssembly.ts';
 import type { BoardStore }                                from '../../../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore }                     from '../../../src/services/store/LocalFilesBoardStore.ts';

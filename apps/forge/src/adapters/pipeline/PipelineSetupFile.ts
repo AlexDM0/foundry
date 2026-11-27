@@ -3,9 +3,8 @@
  * hold. A file the read cannot map whole is `malformed` with the reason, never a throw. Keys this build does not know are kept at the top
  * level, after its own, in their stored order, so a read and a write leave the file byte-identical.
  */
-import { JsonRecordUtil }                        from '../../lib/json-record/JsonRecordUtil.ts';
-import type { DraftAnswer, DraftQuestionOption } from '../../lib/tracker-model/@types/Draft.ts';
-import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DraftAnswer, DraftQuestionOption } from '../../domain/tracker-model/@types/Draft.ts';
+import type { Pipeline }                         from '../../domain/tracker-model/@types/Pipeline.ts';
 import {
   type ApplyRequest,
   type CheckedGate,
@@ -23,8 +22,8 @@ import {
   type SetupQuestion,
   type SetupQuestionSubject,
   type SourceAnnotation
-} from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { GATE_OUTCOMES }    from '../../lib/tracker-model/constants/JobStates.ts';
+} from '../../domain/tracker-model/@types/PipelineSetup.ts';
+import { GATE_OUTCOMES }    from '../../domain/tracker-model/constants/JobStates.ts';
 import {
   APPLY_REQUEST_REASONS,
   APPLY_REQUEST_STATES,
@@ -40,8 +39,9 @@ import {
   SETUP_QUESTION_STEPS,
   SETUP_QUESTION_SUBJECT_KINDS,
   SOURCE_ANNOTATION_KINDS
-} from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { PipelineDraftEditUtil } from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+} from '../../domain/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { PipelineDraftEditUtil } from '../../domain/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { JsonRecordUtil }        from '../../lib/json-record/JsonRecordUtil.ts';
 import { JsonTextUtil }          from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf }      from '../StoredFileText.ts';
 import { StoredValueUtil }       from '../utils/StoredValueUtil.ts';

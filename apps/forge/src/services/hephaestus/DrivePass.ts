@@ -21,38 +21,38 @@ import {
   PACKAGE_REVIEWER_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
-import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
-import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
-import { AgentBillingUtil }                          from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
-import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEnd }                             from '../../lib/talos/ChildRecord.ts';
-import type { RecognisedEnding }                     from '../../lib/talos/EndingPatterns.ts';
-import type { EventLogEntry }                        from '../../lib/talos/EventLog.ts';
-import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentDefaultCause, IncidentMove }   from '../../lib/tracker-model/@types/Incident.ts';
+import type { JsonSchema }                          from '../../adapters/reports/ReportValidation.ts';
+import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }              from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { DecisionAnswer }                      from '../../domain/tracker-model/@types/Decision.ts';
+import type { IncidentDefaultCause, IncidentMove }  from '../../domain/tracker-model/@types/Incident.ts';
 import type {
   InterruptionCause,
   Job,
   JobKind,
   JobNotLaunched,
   JobNotLaunchedCause
-} from '../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineGate }            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                        from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                          from '../../lib/tracker-model/Playbook.ts';
-import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../lib/tracker-model/constants/JobStates.ts';
-import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
-import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
-import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+} from '../../domain/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineGate }            from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../domain/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                        from '../../domain/tracker-model/Board.ts';
+import { Playbook }                                          from '../../domain/tracker-model/Playbook.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../domain/tracker-model/constants/JobStates.ts';
+import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../domain/tracker-model/utils/EntityOwnershipUtil.ts';
+import { LaunchSlotUtil }                                    from '../../domain/tracker-model/utils/LaunchSlotUtil.ts';
+import type { DocumentReading }                              from '../../domain/tracker-model/utils/TicketDocumentReadingUtil.ts';
+import { TicketStageUtil }                                   from '../../domain/tracker-model/utils/TicketStageUtil.ts';
+import type { AgentAdapter, AgentEndingName }                from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentConfinement, AgentLaunchRequest }         from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                from '../../lib/agent-launch/WorkerProfile.ts';
+import { AgentBillingUtil }                                  from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
+import { type ConfinedLine, confinedLineOf }                 from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEnd }                                     from '../../lib/talos/ChildRecord.ts';
+import type { RecognisedEnding }                             from '../../lib/talos/EndingPatterns.ts';
+import type { EventLogEntry }                                from '../../lib/talos/EventLog.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';

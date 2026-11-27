@@ -5,9 +5,9 @@
  */
 import { lstatSync } from 'node:fs';
 
+import type { GateCacheReport } from '../../domain/tracker-model/@types/Job.ts';
+import { GATE_CACHE_REPORTS }   from '../../domain/tracker-model/constants/GateProfileVocabulary.ts';
 import { JsonRecordUtil }       from '../../lib/json-record/JsonRecordUtil.ts';
-import type { GateCacheReport } from '../../lib/tracker-model/@types/Job.ts';
-import { GATE_CACHE_REPORTS }   from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { storedFileTextOf }     from '../StoredFileText.ts';
 import { StoredValueUtil }      from '../utils/StoredValueUtil.ts';
 

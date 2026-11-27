@@ -20,9 +20,9 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { TicketStage }                               from '../../lib/tracker-model/@types/Task.ts';
+import type { Job }                                       from '../../domain/tracker-model/@types/Job.ts';
+import type { Pipeline }                                  from '../../domain/tracker-model/@types/Pipeline.ts';
+import type { TicketStage }                               from '../../domain/tracker-model/@types/Task.ts';
 import { boardFixture, taskFixture, ticketFixture }       from '../../testing/BoardFixtures.ts';
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

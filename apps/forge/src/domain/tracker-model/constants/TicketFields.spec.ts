@@ -1,5 +1,5 @@
 /**
- * That the ticket type and priority tuples match their unions in `src/lib/tracker-model/@types/Ticket.ts`, that an absent
+ * That the ticket type and priority tuples match their unions in `src/domain/tracker-model/@types/Ticket.ts`, that an absent
  * priority has one default, and that the id width keeps a listing in filing order.
  */
 import { expect, test } from 'bun:test';
