@@ -1,8 +1,6 @@
 /**
- * Attention with no forge registered (`docs/design/screens.md` B4), one column that heads itself: the welcome with Look again, why nothing waits, the card
- * that adds a repository and starts its forge, and under it either the line that says no forge program is known, with a way to choose one,
- * or the forge program Gaia found and that a forge set up elsewhere appears by itself. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps
- * the form through the shared add-a-repository form and sends its commands.
+ * Attention with no forge registered (`docs/design/screens.md`, "No forge yet"): the welcome, the card that adds a repository and starts its forge,
+ * and the line on the forge program. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the shared add-a-repository form and sends its commands.
  */
 import {
   CommandSender,

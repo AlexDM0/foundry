@@ -1,11 +1,6 @@
 /**
- * What a forge in place shows of a fleet document. What matters (`docs/design/screens.md` B1, its controls per condition and its Stop question): the
- * bar names the forge's condition by its word beside the dot and shows one line of agents and what waits with its figures apart, artboard
- * B1's line, so the bar stays short, with the whole reading of a usage limit hit and since for its tooltip; a value the forge
- * did not report is absent, not zero; a Hephaestus that stopped answering says its line is as last reported; each condition shows exactly
- * its controls, and a forge whose control contract Gaia does not know cannot be paused, unpaused or stopped from Gaia; the Stop question
- * offers its two choices only while agents run; the area under the bar is the board for a forge read in full or as a Hephaestus that
- * stopped answering last reported it, and otherwise why it cannot be shown; a refusal is worded with the forge's own sentence.
+ * What a forge in place shows of a fleet document: the bar's condition word and one short line, with the whole usage reading in its tooltip;
+ * exactly the controls each condition allows; the Stop question's choices only while agents run; and the board, or why it cannot be shown.
  */
 import { describe, expect, test } from 'bun:test';
 

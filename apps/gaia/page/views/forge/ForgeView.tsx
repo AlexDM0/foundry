@@ -1,11 +1,7 @@
 /**
- * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` (`docs/design/screens.md` B1), the one way a board opens (decision 43). Gaia's head,
- * the bar, the forge's presence and a refusal, heads it, drawn by the board at its top, then the board's own header and tabs, then the main area, where
- * the view of every tab is Gaia's own. A forge whose board Gaia cannot read shows why in place of the board, under the same head. The bar reads the
- * command sender and keeps the Stop question's state, and its Open in new tab opens the same route of Gaia's own address in a new tab. While the board
- * is in setup the bar of a forge Gaia talks to is the setup bar, whatever its condition, any other keeps the setup's steps on a line under its whole
- * bar, and the bar tells the page where the setup stands. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page
- * title. A new fleet document changes both at once.
+ * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` and the one way a board opens: Gaia's bar, the forge's presence and a
+ * refusal head it, then the board's own header, tabs and main area. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the
+ * shell no page title.
  */
 import {
   type ReactNode,

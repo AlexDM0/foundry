@@ -1,8 +1,7 @@
 /**
- * "What notifies", opened from the Gaia panel over the Forges view: C2's seven kinds in a card, a hairline between each two, each a checkbox
- * with its line of explanation that sends `settings-set` for `notifications`, how many are on at the head, the line that says nothing
- * notifies while notifications are off, and the refusal of a change it sent. It closes on Done, on its close button and on Escape, never on
- * a stray click beside it. The package's dialog holds the hooks; its body and foot take none, so a spec unfolds them whole.
+ * "What notifies", opened from the Gaia panel: the seven kinds in a card, each a checkbox sending `settings-set` for `notifications`, the
+ * count on at the head, and the refusal of a change it sent. It closes on Done, its close button or Escape, never on a stray click beside it. The
+ * package's dialog holds the hooks; its body and foot take none, so a spec unfolds them whole.
  */
 import {
   Button,
@@ -64,7 +63,7 @@ export function WhatNotifiesDialog({ content, handlers, onClose }: WhatNotifiesD
       isOpen
       onDismiss={formDialogDismissalOf(onClose)}
       closeLabel="Close What notifies"
-      // The package's wide dialog is the one whose list comes closest to the width C2 draws.
+      // The package's wide dialog is the one whose list comes closest to the width the screen design draws.
       width="wide"
       foot={<WhatNotifiesFoot onClose={onClose} />}
     >

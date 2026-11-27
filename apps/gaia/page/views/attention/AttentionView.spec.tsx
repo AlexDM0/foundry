@@ -1,14 +1,7 @@
 /**
- * The Attention view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (`docs/design/screens.md` A1 acceptance 2 and 4;
- * B3 acceptance 3; B4 acceptance 1): every change arrives as the next fleet document, with no reload: a new entry appears and a closed one
- * leaves; the held forge's callout leaves once the forge reports serving; an unreachable forge that answers again has its rows back to
- * normal; a forge that registers while no forge is shown replaces B4 with A1. Also: A1's page title carries the title, the lead and the
- * six figures, the waiting one marked, and keeps them with nothing waiting; B3 and B4 draw no figures there, and B4 no page title at all,
- * while a fleet whose every forge is hidden keeps it; ages are printed from the page's clock.
- *
- * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
- * would paint for the source's current document: Gaia's own markup and the text a reader sees in it, and a package part only whole, as the
- * package draws it for the props Gaia hands it.
+ * The Attention view in the shell, fed by the fleet source: every change arrives as the next fleet document with no reload, the page title carries
+ * the figures only while every forge is read in full, and the no-forge screen has no page title. `GaiaApp` is rendered with React's own server
+ * renderer, which runs the hooks without a document.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';

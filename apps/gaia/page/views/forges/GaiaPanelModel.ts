@@ -1,8 +1,6 @@
 /**
- * What the Forges view's Gaia panel shows of a fleet document (`docs/design/screens.md` A4): "Notify me while Gaia is open", a switch that sends
- * `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is built for and its address;
- * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
- * refusal shows in the place whose switch sent the change, and only for that send.
+ * What the Forges view's Gaia panel shows of a fleet document: the notify switch that sends `settings-set`, Gaia's facts, and behind "What
+ * notifies" the seven notification kinds. A settings file newer than this Gaia turns the switches off; a refusal shows only where its switch sent it.
  */
 import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
@@ -67,7 +65,7 @@ export interface WhatNotifiesContent {
 
 const NOTIFY_LABEL = 'Notify me while Gaia is open';
 
-/** C2's seven kinds, in its order, each named and explained as the artboard does. */
+/** The seven notification kinds, in order, each named and explained as `docs/design/screens.md` does. */
 const NOTIFICATION_KINDS: readonly { readonly kind: FleetDocumentNotificationKind; readonly label: string; readonly explanation: string }[] = [
   { kind: 'escalated-questions', label: 'Escalated questions', explanation: 'An incident the Assistant could not settle.' },
   { kind: 'questions', label: 'Questions', explanation: 'An agent or Hephaestus asks, and work waits on the answer.' },

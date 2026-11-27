@@ -1,9 +1,6 @@
 /**
- * A forge in place laid out at a version this Gaia cannot talk to (the Versions boards' U3). What matters: a newer forge's bar shows Pause
- * and Stop disabled, each titled with both versions, and Open in new tab, with no Update forge; an older forge's bar shows Update forge as
- * its primary, then Stop disabled, and each step of the update in Update forge's place: the status while on its way, the pending restart
- * with Restart as the primary and a named dismiss, and the forge's refusal in one line, titled with its whole sentence, with Try again and
- * a named dismiss; the area under the bar holds the notice with its word, heading, sentence and versions pair, and no button.
+ * A forge in place at a version this Gaia cannot talk to (`docs/design/versions.md`, "A forge in place"): a newer forge's controls disabled and
+ * titled with both versions; an older forge's Update forge and each of its steps in its place; and the versions notice under the bar, with no button.
  */
 import { describe, expect, test } from 'bun:test';
 import type { CommandBody }       from '../../@types/CommandDocument.ts';

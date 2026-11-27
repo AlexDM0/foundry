@@ -1,10 +1,7 @@
 /**
- * A forge in place at each version this Gaia, built for forge 3.1, meets (the Versions boards' U3). What matters: a forge Gaia cannot talk
- * to, newer or older, gets the versions notice and pair in place of the board, so no board is read; its bar shows the condition
- * of its verdict, a line that names its version and the whole sentence in its title and no control Gaia would send, only those
- * controls disabled with a title naming both versions; an older forge, also one that states no version, offers Update forge, whose steps
- * follow the forge's command state and whose refusal shows in the bar rather than under it; an ahead forge keeps its condition and every
- * control, its line ending in a quiet version clause; a current forge's bar names no version.
+ * A forge in place at each version this Gaia, built for forge 3.1, meets: one it cannot talk to gets the versions notice in place of the board and no
+ * control Gaia would send, an older one offering Update forge; an ahead forge keeps every control with a quiet version clause; a current forge
+ * names no version.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,8 +1,7 @@
 /**
- * The Activity view (artboard A3): the two filters across the top, then what happened across the fleet, newest first, beside the cards of today's
- * landings and tokens per forge, and the usage line. `ActivityView` keeps the filters and whether the
- * forge menu is open; `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the
- * page title's parts with the view.
+ * The Activity view (`docs/design/screens.md`, "Activity"): the two filters, what happened across the fleet newest first, today's cards per forge
+ * and the usage line. `ActivityView` keeps the filters and whether the forge menu is open; `ActivityLayout` takes no hooks and lays out the model's
+ * content; `activityViewPartsOf` hands the shell the page title's parts with the view.
  */
 import { useMemo, useState } from 'react';
 

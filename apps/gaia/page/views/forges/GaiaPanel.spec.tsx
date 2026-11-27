@@ -1,9 +1,7 @@
 /**
- * The Gaia panel laid out, and the "What notifies" list. What matters (`docs/design/screens.md` A4 and C2): the panel sits under this machine's in the
- * Forges view; its two switches hand the view the setting clicked, "What notifies" opens the list and is a button of its own beside the second switch, not
- * inside its label; a refusal offers Try again and its dismissal; the facts and a settings file line show, a path free to break after each slash; the list
- * holds the seven kinds with their lines, hands the view the kind clicked, and closes on Done; it is the package's open dialog titled "What notifies". The
- * panel and the list are unfolded without a document, the package's dialog, switches and checkboxes folded.
+ * The Gaia panel laid out, and the "What notifies" list: the switches hand on the setting clicked, "What notifies" is a button of its own, a
+ * refusal offers Try again, paths break after each slash, and the list's seven kinds hand on their clicks and close on Done. Both are unfolded
+ * without a document, the package's dialog, switches and checkboxes folded.
  */
 import { describe, expect, test } from 'bun:test';
 

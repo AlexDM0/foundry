@@ -1,18 +1,7 @@
 /**
- * A forge in place in the shell, fed by the fleet source. What matters (`docs/design/screens.md` B1): Answer on E2 in Attention links to
- * `#forge/<trackerId>/questions/E2`, and that address shows Example Storefront's bar as artboard B1 draws it: the forge's mark before its
- * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
- * with the arrow of "Open in new tab", and no theme button, over the board, which waits for its first read; an unreachable forge still
- * shows its board as last reported; a forge whose board Gaia cannot read says so; a command on its way disables the bar's controls, and
- * the forge's refusal shows under the bar; nothing of the board is asked for or painted before the first fleet document, and the
- * page's markup carries no session code and no frame. The board's own header and tabs stand under the bar for every tab, and no tab is
- * left to a frame. The bar's Open in new tab opens the same route of Gaia's own address, for a forge Gaia cannot talk to as for any other,
- * and sends no command. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect. The bar's
- * controls are held whole to the hook-free controls drawn for the state the sender holds, whose buttons the spec reads unfolded, so no
- * spec reads the markup the package draws. While the board, read at mount, has no readable pipeline, the bar of a forge Gaia talks to is the
- * setup bar, whatever its condition: its name, the setup step bar the board hands it, or the repository's path before a setup record opens,
- * the condition's word while it is not live, and one menu, with no status line, no Pause and no versions line, and the board draws no header
- * of its own; a paused, held, restarting or unreachable forge keeps the steps.
+ * A forge in place in the shell, fed by the fleet source: the bar over the board, its controls disabled while a command is on its way, and the setup
+ * bar while the board has no readable pipeline. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect, and the
+ * bar's controls are held whole to the hook-free controls drawn for the sender's state.
  */
 import { describe, expect, test }         from 'bun:test';
 import { isValidElement, type ReactNode } from 'react';

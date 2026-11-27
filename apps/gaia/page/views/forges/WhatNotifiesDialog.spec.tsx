@@ -1,7 +1,6 @@
 /**
- * The "What notifies" list as `docs/design/screens.md` C2 has it. What matters: the count of kinds on sits at the end of the dialog's title line and
- * follows the settings, never a number of its own; the seven kinds sit in one card with a hairline between each two
- * (`docs/design/screens.md` C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
+ * The "What notifies" list's look: the count of kinds on ends the dialog's title line and follows the settings, and the seven kinds sit in one card
+ * with a hairline between each two (`docs/design/screens.md`, "Notifications and the window title"). Its behaviour is held in `GaiaPanel.spec.tsx`.
  */
 import { describe, expect, test } from 'bun:test';
 import type { CommandStates }     from '../../api/CommandSender.ts';

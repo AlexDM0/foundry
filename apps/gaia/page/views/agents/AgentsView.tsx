@@ -1,6 +1,6 @@
 /**
- * The Agents view (`docs/design/screens.md` A2): the two filters over every running agent on the machine, grouped by forge, and beside them the selected
- * agent's panel. `AgentsView` takes no hooks: its root builds the content from the fleet document and hands it the way to change the
+ * The Agents view (`docs/design/screens.md`, "Agents"): the two filters over every running agent on the machine, grouped by forge, and beside them
+ * the selected agent's panel. `AgentsView` takes no hooks: its root builds the content from the fleet document and hands it the way to change the
  * filters, which it writes into the route. `agentsViewPartsOf` hands the shell the page title's parts with it.
  */
 import type { FleetDocument } from '../../@types/FleetDocument.ts';

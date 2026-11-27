@@ -1,13 +1,7 @@
 /**
- * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (`docs/design/screens.md` A4, B4): the page title
- * carries the registered and running counts, Look again and "Add a repository", which goes to `#forges/add`; that route opens the dialog
- * over the view; with no forge registered the table says so and the dialog's "Add and start" is off while no forge program is known; a
- * render reads the source's newest document, so a newly registered forge and a changed setting show; `#forges?forge=` selects that forge's
- * row; the Gaia panel sits under this machine's.
- *
- * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
- * would paint for the source's current document: Gaia's own markup, and a package part or the view's layout only whole, as drawn for the
- * props Gaia hands it.
+ * The Forges view in the shell, fed by the fleet source: the page title's counts and actions, `#forges/add` opening the dialog, the newest
+ * document's forges and settings, `#forges?forge=` selecting a row, and the Gaia panel under this machine's. `GaiaApp` is rendered with React's
+ * own server renderer, which runs the hooks without a document.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';

@@ -1,10 +1,6 @@
 /**
- * A forge in place laid out from its model. What matters (`docs/design/screens.md` B1): the bar shows Pause or Unpause, Stop and Open in new tab as
- * the forge's condition allows; Stop opens its question under the button and sends `forge-stop` with `agents: 'keep'` for "Stop
- * Hephaestus only" and `stop-first` for the other choice; while a command to the forge is on its way every control of the bar is disabled;
- * a forge whose control contract Gaia does not know keeps only Open in new tab; a refusal shows the forge's code and sentence with Try
- * again only where the command can be sent again as it was. Where no board shows, the area says Gaia cannot read the forge's board,
- * with no way to open its own Bridge, or that the registry names no such forge.
+ * A forge in place laid out from its model: the bar's controls as the condition allows, Stop's question and the `forge-stop` it sends, every
+ * control disabled while a command is on its way, refusals with Try again only where resendable, and why the area shows no board when it shows none.
  */
 import { describe, expect, test } from 'bun:test';
 

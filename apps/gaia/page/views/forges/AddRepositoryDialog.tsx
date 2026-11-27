@@ -1,8 +1,6 @@
 /**
- * "Add a repository" over the Forges view (`#forges/add`): B4's form in a dialog, with the line of a missing forge program under it. It
- * closes on Cancel, on its close button, on Escape, and once the add went through, never on a stray click beside it; a refusal of `init`
- * or `start` shows in it. Its body and foot take no hooks, the package's dialog holds them; `AddRepositoryDialog` keeps the form and sends
- * its commands.
+ * "Add a repository" over the Forges view (`#forges/add`): the no-forge screen's form in a dialog, closing on Cancel, its close button, Escape
+ * or a finished add, never on a stray click beside it. Its body and foot take no hooks; `AddRepositoryDialog` keeps the form and sends its commands.
  */
 import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
 import { Button, Dialog }                                            from '../../lib/design-system/DesignSystemInterface.ts';

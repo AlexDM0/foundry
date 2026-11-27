@@ -1,7 +1,7 @@
 /**
- * The Agents table (`docs/design/screens.md` A2): a head row, then one group per forge, its head row first (the forge's condition, its agents against its
- * limit, and what of it waits on User), then a row per agent. A row selects itself through a link stretched over it; its job's own link sits
- * above that one.
+ * The Agents table (`docs/design/screens.md`, "Agents"): a head row, then one group per forge, its head row first (the forge's condition, its agents
+ * against its limit, and what of it waits on User), then a row per agent. A row selects itself through a link stretched over it; its job's own link
+ * sits above that one.
  */
 
 import { ConditionDot } from '../../components/ConditionDot.tsx';

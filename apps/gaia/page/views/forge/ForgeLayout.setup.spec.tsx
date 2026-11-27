@@ -1,10 +1,6 @@
 /**
- * The setup bar of a forge whose board is in setup, laid out from its model. What matters: the bar says the forge's condition only while it
- * is not live; after the name the bar shows the setup's step bar, or the repository's path from `~` before a setup record opens, then that
- * condition's dot and word; under a forge's whole bar the step bar takes a line of its own; its one quiet menu offers Open in new tab, Pause
- * or Unpause, Stop with its question opening in Stop's place, and a restart of Hephaestus and of Talos described by what each runs; a
- * control that cannot act now is left out of the menu, Open in new tab staying; a newer installed version marks the trigger and its restart;
- * and every command goes to the handler, which sends it.
+ * The setup bar of a forge whose board is in setup: the step bar or the repository's path, the condition's word only while not live, and one
+ * quiet menu of the rare controls, a control that cannot act left out and a newer installed version marked; every command goes to the handler.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * What a forge in place shows of a fleet document (`docs/design/screens.md` B1): Gaia's bar over the board, with the forge's name, its condition, one
- * short line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the board of a
- * Hephaestus that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge whose board Gaia cannot
- * read. Also the steps of an older forge's Update forge. While its board is in setup a forge Gaia talks to shows a quieter bar, whatever its
- * condition: its name, the setup, its condition's word only while it is not live, and its rare controls in one menu.
+ * What a forge in place shows of a fleet document (`docs/design/screens.md`, "A forge in place"): Gaia's bar with its allowed controls, the Stop
+ * question, an older forge's Update forge steps, and what the area under the bar holds. While its board is in setup a forge Gaia talks to shows a
+ * quieter bar with its rare controls in one menu.
  */
 
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';

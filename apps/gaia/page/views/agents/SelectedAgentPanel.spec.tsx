@@ -1,8 +1,6 @@
 /**
- * The selected agent's panel, on its own contract. What matters: a running agent shows its head, its subject, its ticket, calls and last
- * tool, only the facts it is given, its last line kept line for line, and links only to the agent in its forge; a last line the forge does
- * not report is said in words; an agent that has ended and no selection each say so in a sentence; and in every state the panel says
- * messages and stops are sent from the agent's forge, with no control of its own to send either.
+ * The selected agent's panel on its own contract: a running agent shows only the facts it is given and links only into its forge; a missing last
+ * line, an ended agent and no selection each say so in words; and every state says messages and stops are sent from the agent's forge.
  */
 import { describe, expect, test } from 'bun:test';
 import type { ReactNode }         from 'react';

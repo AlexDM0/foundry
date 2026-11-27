@@ -1,10 +1,7 @@
 /**
- * The Activity view's model (`docs/design/screens.md` A3). What matters: the rows from several forges keep the server's interleaving by `at`, newest
- * first, and the page compares no stamp to reorder them (acceptance 1); a forge that reports no `today` is absent from both side lists, not shown as 0
- * (acceptance 2); each filter keeps exactly its rows; past three forges the rest sit in the menu; a row links into its forge only when the forge gave it a
- * route; the text is the forge's, unedited; every value no forge reports stays absent; and, for its look (`docs/design/screens.md` A3), the kind counts
- * follow the chosen forge and the page title's figures total what the side lists show. An entry of an earlier day carries its month and day. Clock times
- * are read in UTC, the fixtures' own zone, so the specs do not depend on the machine's.
+ * The Activity view's model: rows from several forges keep the server's interleaving, newest first; a forge that reports no `today` is absent
+ * from the side lists, not 0; each filter keeps exactly its rows; a row links only where its forge gave it a route; the forge's text stays unedited.
+ * Clock times are read in UTC, the fixtures' own zone, so the specs do not depend on the machine's.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,6 +1,6 @@
 /**
  * The Attention view's root, the shell's default route. It reads the command sender, builds the screen from the fleet document and the
- * shell's reading of the page's clock, and lays it out: the fleet (A1, B3) or no forge yet (B4). `attentionViewPartsOf` hands the shell
+ * shell's reading of the page's clock, and lays it out: the fleet or no forge yet. `attentionViewPartsOf` hands the shell
  * the page title's parts with it, so a new fleet document changes both at once, with no reload.
  */
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
@@ -41,8 +41,8 @@ export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
 }
 
 /**
- * B4 heads itself, so it has no page title. A1's figures stand in the page title; while a forge is not fully read (B3) they fold into one
- * line atop the main column instead. The outage resume stands in the page title whenever the fleet shows, with nothing to resume too.
+ * The no-forge screen heads itself, so it has no page title. The fleet's figures stand in the page title; while a forge is not fully read they
+ * fold into one line atop the main column instead. The outage resume stands in the page title whenever the fleet shows, with nothing to resume too.
  */
 export function attentionViewPartsOf(fleetDocument: FleetDocument | null, clock: ClockReading): ViewParts {
   if (fleetDocument === null) {

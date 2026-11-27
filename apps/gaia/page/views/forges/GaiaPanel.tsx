@@ -1,7 +1,6 @@
 /**
- * The Forges view's Gaia panel (`docs/design/screens.md` A4), beside this machine's: the two settings as switches, "What notifies" under the second's
- * label, the line of a settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash, then
- * this Gaia's own. It takes no hooks: the content and the handlers come in as props, so a spec unfolds it whole. `SettingsCheckboxView` and
+ * The Forges view's Gaia panel (`docs/design/screens.md`, "Forges and this machine"): the two settings as switches with "What notifies", the
+ * line of a settings file Gaia cannot use, a refusal, and Gaia's facts. It takes no hooks, so a spec unfolds it whole. `SettingsCheckboxView` and
  * `SettingsRefusalLine` are shared with the "What notifies" list.
  */
 
@@ -52,7 +51,7 @@ function withBreaksAfterSlashes(value: string): ReactNode {
 }
 
 /**
- * A4 sets each fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. This Gaia's
+ * The panel sets each fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. This Gaia's
  * facts close the list, each a label and its value on one line.
  */
 function GaiaFacts({ facts, thisGaiaFacts }: { readonly facts: readonly GaiaFact[]; readonly thisGaiaFacts: readonly GaiaFact[] }) {

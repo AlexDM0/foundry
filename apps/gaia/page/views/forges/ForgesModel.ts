@@ -1,9 +1,7 @@
 /**
- * What the Forges view shows of a fleet document (`docs/design/screens.md` A4 and B2): the status line, one row per forge with the buttons of its
- * condition, the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
- * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update left pending
- * shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at another version than this Gaia is
- * built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
+ * What the Forges view shows of a fleet document (`docs/design/screens.md`, "Forges and this machine"): the status line, a row per forge with
+ * its condition's buttons, the Stop dialog, held banners, missing and hidden forges, and the machine's limit. A value the document does not hold is
+ * absent, never zero; a forge Gaia cannot talk to at its version shows nothing of its work.
  */
 
 import type {
@@ -230,7 +228,7 @@ export interface ForgesContent {
   readonly rows:          readonly ForgeRow[];
   /** What the table's place says when it holds no row. */
   readonly emptySentence: string | null;
-  /** B2: the line under the table that says why a control is off or a refusal shows, while one is; `null` at rest. */
+  /** The line under the table that says why a control is off or a refusal shows, while one is; `null` at rest. */
   readonly controlsNote:  string | null;
   readonly heldBanners:   readonly HeldBanner[];
   readonly notFoundHead:  string;
@@ -256,7 +254,7 @@ const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live',
 const HEPHAESTUS_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
 
 /**
- * `docs/design/screens.md` A4: which buttons each condition shows. Open is left out where the forge cannot open in place
+ * Which buttons each condition shows (`docs/design/screens.md`, "Which buttons a row shows"). Open is left out where the forge cannot open in place
  * (`ForgeContractUtil.canOpenInPlace`).
  */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
@@ -486,7 +484,7 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition,
   }
 }
 
-/** B2: held, starting and a forge that needs an update read in orange; a paused, dormant, unreadable or missing forge in the secondary ink. */
+/** Held, starting and a forge that needs an update read in orange; a paused, dormant, unreadable or missing forge in the secondary ink. */
 function conditionToneOf(condition: ShownCondition): ConditionTone | null {
   if (condition === 'held' || condition === 'starting' || condition === 'outdated') return 'warn';
   if (condition === 'paused' || condition === 'dormant' || condition === 'unreadable' || condition === 'missing') return 'muted';
@@ -500,7 +498,7 @@ function detailFaceOf(condition: ShownCondition, forgeProgramIsMissing: boolean)
 
 /**
  * The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Hephaestus runs and is read in full, and a
- * disabled one while the forge starts (B2).
+ * disabled one while the forge starts.
  */
 function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeAgentsCell | null {
   if (cannotTalkTo(forge)) return { kind: 'not-read' };
@@ -559,7 +557,7 @@ function refusalOf(trackerId: string, surroundings: ForgesSurroundings, showsHer
 }
 
 /**
- * B2: the dialog under the row it stops. With no agent running there is nothing to choose, nor for a Hephaestus that does not answer Gaia,
+ * The dialog under the row it stops. With no agent running there is nothing to choose, nor for a Hephaestus that does not answer Gaia,
  * since the forge program then stops it whatever its agents were asked to do; the agents are then kept.
  */
 function stopDialogOf(forge: FleetDocumentForge, surroundings: ForgesSurroundings): StopDialog | null {
@@ -675,7 +673,7 @@ function heldBannerOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
     trackerId,
     project:        forge.project,
     sentence:       [noticeSentenceOf(forge), keepRunning].filter((part) => part !== null).join(' '),
-    // A4: Update forge is secondary, so a pending restart's Restart is the held area's one primary.
+    // Update forge is secondary, so a pending restart's Restart is the held area's one primary.
     updateButton:   commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings)),
     refusal:        refusalOf(trackerId, rowSurroundings.surroundings, (kind) => refusalBelongsToTheHeldBanner(forge, kind)),
     pendingRestart: pendingRestartOf(forge, rowSurroundings),
@@ -775,7 +773,7 @@ function noMachineLimitSentenceOf(fleetDocument: FleetDocument): string {
   return aForgeAnswered ? 'This forge version does not enforce a machine limit.' : 'No running forge has reported a machine limit yet.';
 }
 
-/** Without F6 no forge reports a machine limit: the panel says why and its stepper is off. A limit above the CPU count cannot be chosen. */
+/** While no forge reports the machine-wide limit the panel says why and its stepper is off. A limit above the CPU count cannot be chosen. */
 function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStates): MachinePanel {
   const { machineLimit, agentsInFlight } = fleetDocument.figures;
   const { cpuCount } = fleetDocument.machine;

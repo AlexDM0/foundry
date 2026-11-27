@@ -1,8 +1,6 @@
 /**
- * What the Activity view shows of a fleet document under its two filters: the entries in the document's own order, newest first, each with
- * its forge, its category and the forge's text unedited; the forge choices, the first three as segments and the rest in a menu; today's
- * landings and tokens per forge that reports them, the usage line the forges report; and the
- * page title's figures. A value no forge reports is absent, never zero.
+ * What the Activity view shows of a fleet document under its two filters: the entries in the document's own order, newest first, the forge
+ * choices, today's landings and tokens per forge, the usage line and the page title's figures. A value no forge reports is absent, never zero.
  */
 import type {
   FleetDocument,

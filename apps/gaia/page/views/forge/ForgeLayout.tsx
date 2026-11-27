@@ -1,12 +1,7 @@
 /**
- * A forge in place laid out (`docs/design/screens.md` B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
- * question as a popover under its button and Open in new tab, or, for a forge Gaia cannot talk to, the
- * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
- * Hephaestus and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
- * talk to or why its board cannot be shown. While the forge's board is in setup the bar is its name, the setup step bar (or the repository's
- * path before a setup record opens), the condition's word while it is not live, and one quiet menu of the rare controls: Open in new tab,
- * Pause or Unpause, Stop with its question in place, and the restarts. It takes no hooks: the states and the handlers come in as props, so a
- * spec unfolds it whole.
+ * A forge in place laid out (`docs/design/screens.md`, "A forge in place"): the bar with its controls and Stop's question, its line of versions and
+ * restarts, a refusal, and the board's area or why it shows none; while the board is in setup, the quieter setup bar. It takes no hooks: the states
+ * and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { ReactNode, RefObject } from 'react';
 

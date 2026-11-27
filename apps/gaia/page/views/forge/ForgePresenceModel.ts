@@ -1,8 +1,6 @@
 /**
- * What the forge route shows under its bar of how the forge is present (decisions 13, 14, 21, 38, 39): the alert of a forge that crashed,
- * is down or stopped supervising its agents, with the registry's crash summary and Start where the forge's Hephaestus is gone; the crash logs
- * a forge that serves again lists, each read when User opens it; and the work that waits, each job's cause and what it waits for, a Resume
- * per job that waits for an instruction, and one Resume all. Gaia starts and resumes nothing by itself.
+ * What the forge route shows under its bar of how the forge is present: the alert of a crashed, down or hung forge, with Start where its
+ * Hephaestus is gone; the crash logs, each read when User opens it; and the waiting work with its Resumes. Gaia starts and resumes nothing by itself.
  */
 import type { CommandBody }      from '../../@types/CommandDocument.ts';
 import type { CrashLogDocument } from '../../@types/CrashLogDocument.ts';

@@ -1,8 +1,7 @@
 /**
- * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps which row's Stop dialog is open with its choice,
- * which row's versions are shown, the last command it sent each forge, the last settings change and whether "What notifies" is open, builds
- * the content from the fleet document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the
- * shell the page title's parts with it, so a new fleet document changes both at once, with no reload.
+ * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps the open Stop dialog, the shown versions, the last
+ * commands sent and "What notifies", builds the content from the fleet document and lays it out. `forgesViewPartsOf` hands the shell the page
+ * title's parts with it, so a new fleet document changes both at once.
  */
 import { useEffect, useState } from 'react';
 

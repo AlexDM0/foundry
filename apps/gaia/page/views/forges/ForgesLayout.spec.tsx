@@ -1,14 +1,7 @@
 /**
- * The Forges view laid out. What matters (`docs/design/screens.md` A4 and B2): the table's head and rows, set close, each root carrying its full path;
- * Stop opens its dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; a stepper sends
- * the limit one step on and is off past its ends, the machine's plus at the CPU count; without F6 the machine panel says so with its stepper off; the
- * forge's refusal of a limit above the CPU count shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends
- * Update forge, and once that left a restart pending, Restart and its dismissal; a forge whose Assistant cannot come up says so under its row; a paused
- * row offers Unpause first; a hidden forge folds away with Show again. The command states come from the real sender over Gaia's server stood in for by
- * authored answers. Versions (U2): a forge at another version opens its pair under its row from the disclosure under its condition, the row expanded,
- * never selected; a current forge has no disclosure; a forge Gaia cannot talk to reads "not read" for its agents and what waits, and a control it cannot
- * send says why in its title; an ahead forge's quiet line stands under its row until the pair is shown; Update forge on its way says so under the row, and
- * its restart pending stands without an edge; this machine names the forges it leaves out of its figure.
+ * The Forges view laid out: the table and its rows, Stop's dialog and the steppers handing the view their commands, refusals with Try again,
+ * held banners, hidden forges, and versions pairs opening under their row. The command states come from the real sender over Gaia's server stood
+ * in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 

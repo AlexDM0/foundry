@@ -1,8 +1,6 @@
 /**
- * What the Agents view shows of a fleet document: the page title's figures, the two filters with their counts, the rows the filters
- * leave in the document's order and the same rows grouped by forge in the registry's order, and the selected agent. The selection and the
- * filters live in the route, so both survive a new document; a value the forge did not report is `null` here and a dash on screen, never
- * zero.
+ * What the Agents view shows of a fleet document: the page title's figures, the two filters with their counts, the rows grouped by forge, and
+ * the selected agent. The selection and the filters live in the route, so both survive a new document; an unreported value is `null`, never zero.
  */
 
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';

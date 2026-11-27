@@ -1,9 +1,6 @@
 /**
- * The Agents view's markup (`docs/design/screens.md` A2), unfolded without a document. What matters: with `fleet-five-forges` the table holds A2's ten
- * rows cell for cell under their forges' heads; "Needs a look" leaves the two rows the forge flags; the Calls cell holds no meter when there is no budget;
- * a `counts-only` forge's row shows a dash where its summary is silent; the selected row is marked and its panel survives a new document or says the agent
- * is no longer running; with no agent the view says so beside the machine meter; a filter press hands the view's caller the new filters; and the view
- * holds no control that would message or stop a job, and says so.
+ * The Agents view's markup over `fleet-five-forges`, unfolded without a document: the table cell for cell as its board draws it, the filters,
+ * a dash where a `counts-only` forge is silent, the selected row and its panel, the empty view, and no control that would message or stop a job.
  */
 import { describe, expect, test } from 'bun:test';
 import type { ReactNode }         from 'react';
@@ -44,10 +41,8 @@ function factsOf(nodes: ReturnType<typeof unfoldedView>): (readonly [string, str
 }
 
 /**
- * A2's groups as the artboard's example data writes them: each forge's head, then its rows, the forges in the
- * registry's order and the jobs in the document's. Each row is its cells' reading: job with its role and running time, ticket with its last
- * tool call, state with its flag, calls, tokens, each package part in it written as `[Name words]`. Example Mobile App's limit is the
- * fixture's 2, where the artboard draws 4. Retake it from the fixture when A2 of `docs/design/screens.md` changes.
+ * The groups as the Agents board's example data writes them, forges in the registry's order, each package part as `[Name words]`. Example Mobile
+ * App's limit is the fixture's 2, where the board draws 4. Retake it from the fixture when the Agents section of `docs/design/screens.md` changes.
  */
 const ARTBOARD_GROUPS = [
   ['Example Storefront[SlotMeter 4 agents against a limit of 5]4 / 5agents2 wait on you', [
@@ -107,7 +102,7 @@ function cellTextsOf(row: HostElement): string[] {
   return tree.hostElementsIn([row], (element) => element.props['role'] === 'cell').map((cell) => tree.readingOf([cell]));
 }
 
-/** A body row by its select link's name, such as "Invoice Service, J12". */
+/** A body row by its select link's name, such as `Invoice Service, J12`. */
 function jobRowNamed(nodes: ReturnType<typeof unfoldedView>, selectLabel: string): HostElement {
   const rows = bodyRowsIn(nodes).filter((row) => tree.hostElementsIn([row], (element) => element.props['aria-label'] === selectLabel).length > 0);
   const [row] = rows;

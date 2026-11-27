@@ -1,15 +1,7 @@
 /**
- * What the Forges view shows of a fleet document. What matters (`docs/design/screens.md` A4 and B2): each condition shows exactly its buttons, Open only
- * where the forge opens in place; a row reads its root from `~`, its condition word with when it started or stopped, its agents against its limit, what
- * waits and its short code; a forge's limit runs from one agent to the forge's ceiling and the machine's from one to the CPU count, and without F6 the
- * machine panel says why no limit is known, its stepper off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and
- * keeps the agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a
- * refusal stays on its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the
- * forge answers; an update that left a restart pending offers Restart where the update was sent, on a held forge's banner, with its refusal, or under its
- * row; a forge whose Assistant cannot come up says so under its row. Versions (U2): a forge Gaia cannot talk to runs, is not read, shows nothing of its
- * work and offers only what Gaia can send, Update forge for an older one; an ahead forge keeps every control and says quietly what differs; each verdict
- * but current opens its pair, one row at a time; a count that leaves a forge out says so. Command states come from the real sender over Gaia's server
- * stood in for by authored answers.
+ * What the Forges view shows of a fleet document: each condition's buttons, a row's reading, the limits and steppers, Stop's two choices,
+ * refusals that stay until dismissed or the next success, pending restarts, and what a forge at another version shows and offers. Command states
+ * come from the real sender over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -48,7 +40,7 @@ const DONE: CommandAnswerDocument = {
   answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
-/** `docs/design/screens.md` B2: the refusal under Example Mobile App's row. */
+/** The refusal under Example Mobile App's row, as `docs/design/screens.md` draws it. */
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',

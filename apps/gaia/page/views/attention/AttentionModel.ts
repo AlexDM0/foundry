@@ -1,7 +1,7 @@
 /**
- * What the Attention view shows of a fleet document (`docs/design/screens.md` A1, B3, B4): the figures, what waits on User in the fleet's own order, the
- * forges that need a look with their actions, the running forges, the newest activity, and for a forge Gaia cannot read in full, its banner and what Gaia
- * reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the document does not hold is absent, never zero.
+ * What the Attention view shows of a fleet document (`docs/design/screens.md`, "Attention"): the figures, what waits on User in the fleet's
+ * order, the forges that need a look, the running forges, the newest activity, and the banners of forges Gaia cannot read in full. The page's
+ * clock only prints ages and clock times; no order reads it. A value the document does not hold is absent, never zero.
  */
 
 import type { CommandAnswerDocument, CommandBody, OutageResumeOutcome } from '../../@types/CommandDocument.ts';
@@ -165,10 +165,10 @@ export interface UnreachableBanner {
   readonly lastReportedClock: string | null;
 }
 
-/** A row of stacked figures in the page title; one line atop the main column while a forge is not fully read, so B3 fits the window. */
+/** A row of stacked figures in the page title; one line atop the main column while a forge is not fully read, so the view fits the window. */
 export type AttentionFiguresForm = 'row' | 'line';
 
-/** A running card as A1 draws it, or compact, its waiting line in its head, while the side panel shares the column (B3). */
+/** A running card in full, or compact, its waiting line in its head, while the side panel shares the column. */
 export type RunningCardForm = 'full' | 'compact';
 
 export interface AttentionContent {
@@ -210,7 +210,7 @@ export interface OutageResumeAnswer {
   readonly nothingText: string | null;
 }
 
-/** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
+/** No forge is registered. The forge program is missing when the settings name none and Gaia found none. */
 export interface NoForgeContent {
   readonly forgeProgramIsMissing: boolean;
   /** The program Gaia runs, else the one the settings name, from `~`: `~/.bun/bin/forge`; `null` while it is missing. */
@@ -274,8 +274,8 @@ function aForgeReportsToday(fleetDocument: FleetDocument): boolean {
 }
 
 /**
- * While a forge is not read in full the figures fold into one line atop the main column, so B3 fits the window; a forge Gaia cannot talk
- * to at its version alone leaves them in the title, as the Versions boards draw A1.
+ * While a forge is not read in full the figures fold into one line atop the main column, so the view fits the window; a forge Gaia cannot
+ * talk to at its version alone leaves them in the title.
  */
 function figuresFoldIntoTheMainColumn(fleetDocument: FleetDocument): boolean {
   const leftOut = new Set(fleetDocument.figures.incompleteFor);
@@ -587,7 +587,7 @@ function restartAfterUpdateOf(forge: FleetDocumentForge, parts: CalloutParts): L
 }
 
 /**
- * The callouts' order by kind, as B3 draws them: what Gaia cannot reach first, then what User updates or reads in another tab, then what
+ * The callouts' order by kind: what Gaia cannot reach first, then what User updates or reads in another tab, then what
  * runs but shows less; forges of one kind keep the document's order.
  */
 const LOOK_CALLOUT_ORDER: readonly FleetDocumentLookKind[] = [
@@ -659,7 +659,7 @@ function slotsTextOf(forge: FleetDocumentForge): string {
     : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`;
 }
 
-/** A card is for a forge that runs agents (`docs/design/screens.md` A1). */
+/** A card is for a forge that runs agents. */
 function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReading): RunningCard[] {
   return forges.filter((forge) => forge.agents.length > 0).map((forge) => {
     const waitingCount = FleetDocumentUtil.waitingCountOf(forge) ?? 0;
@@ -740,7 +740,7 @@ function readingsOf(fleetDocument: FleetDocument, forges: readonly FleetDocument
   return forges.map((forge) => readingLineOf(forge, leftOut.has(forge.trackerId), clock));
 }
 
-/** A small count in a sentence is written as a word, "the three forges", as `docs/design/screens.md` B3 words the readings' footnote. */
+/** A small count in a sentence is written as a word, "the three forges", as the readings' footnote words it. */
 const SMALL_COUNT_WORDS: readonly string[] = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
 /** `Example Billing`, `Example Billing and Analytics Sandbox`, `A, B and C`. */
@@ -749,7 +749,7 @@ function namesInASentenceOf(names: readonly string[]): string {
   return names.length < 2 ? last : `${names.slice(0, -1).join(', ')} and ${last}`;
 }
 
-/** Forges Gaia cannot talk to at their version are named, with the link to their versions; B3's forges read in part are counted. */
+/** Forges Gaia cannot talk to at their version are named, with the link to their versions; forges read in part are counted. */
 function readingsNoteOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[]): ReadingsNote | null {
   const leftOutIds = new Set(fleetDocument.figures.incompleteFor);
   const leftOut = forges.filter((forge) => leftOutIds.has(forge.trackerId));
@@ -804,7 +804,7 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
   };
 }
 
-/** The figures the page title shows: none while a forge is read only in part, when they fold into the main column instead (B3). */
+/** The figures the page title shows: none while a forge is read only in part, when they fold into the main column instead. */
 function titleFiguresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   return figuresFoldIntoTheMainColumn(fleetDocument) ? [] : figuresOf(fleetDocument);
 }
@@ -817,7 +817,7 @@ function noForgeContentOf(fleetDocument: FleetDocument): NoForgeContent {
   };
 }
 
-/** The server leaves hidden forges out of the document, so a fleet whose every forge is hidden is still a fleet, not B4. */
+/** The server leaves hidden forges out of the document, so a fleet whose every forge is hidden is still a fleet, not the no-forge screen. */
 function noForgeIsRegisteredIn(fleetDocument: FleetDocument): boolean {
   return fleetDocument.forges.length === 0 && fleetDocument.settings.hiddenTrackerIds.length === 0;
 }

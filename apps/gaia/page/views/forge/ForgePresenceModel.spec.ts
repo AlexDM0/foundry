@@ -1,9 +1,6 @@
 /**
- * The forge route's presence from a fleet document (decisions 13, 14, 21, 38, 39). What matters: a crashed forge alerts with its crash
- * summary, "Suspected crash before a reboot" where the registry says so, and Start; a down forge alerts with Start; a hung one says it
- * stopped supervising its agents and offers no Start; a serving forge shows no alert; each waiting job's cause reads in words, with a
- * Resume only where it waits for an instruction, and Resume all while any work waits; crash logs list newest first; and a crash log once
- * read shows its error, its active jobs and its tail, never an unread board as no jobs.
+ * The forge route's presence: a crashed, down or hung forge's alert and whether it offers Start, each waiting job's cause in words with Resume only
+ * where it waits for an instruction, and crash logs newest first, a read one showing its error, active jobs and tail, never an unread one as empty.
  */
 import { describe, expect, test } from 'bun:test';
 

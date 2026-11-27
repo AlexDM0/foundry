@@ -1,9 +1,6 @@
 /**
- * The bar's second line (decision 31): the running and the newest Hephaestus and Talos, and a clean restart of each. What matters: a forge that
- * runs the installed code shows each running version and marks nothing; a newer installed Hephaestus, or a Talos whose protocol or code is
- * not the installed program's, marks that pair and restarts nothing; a forge with no Talos says so; Restart Hephaestus sends `forge-restart`
- * and Restart Talos `forge-talos-restart`, both enabled while the forge answers and waiting while a command to it is on its way; a forge
- * not answering shows no pair and both restarts disabled; and a forge Gaia cannot talk to has no such line.
+ * The bar's second line: the running and the newest Hephaestus and Talos and a clean restart of each, a pair marked only where it differs from
+ * the installed program, the restarts disabled while the forge does not answer, and no such line for a forge Gaia cannot talk to.
  */
 import { describe, expect, test } from 'bun:test';
 

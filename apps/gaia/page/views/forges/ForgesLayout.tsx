@@ -1,9 +1,7 @@
 /**
- * The Forges view laid out from its content (`docs/design/screens.md` A4 and B2): the table of forges with a notice that the Assistant cannot come up, the
- * Stop dialog, a refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden
- * forges, and beside them this machine's panel and Gaia's. A forge at another version than this Gaia is built for opens its versions pair under its row
- * from the disclosure under its condition, and the table's note says what the verdicts mean. It takes no hooks: the command states and the handlers come
- * in as props, so a spec unfolds it whole.
+ * The Forges view laid out from its content (`docs/design/screens.md`, "Forges and this machine"): the table of forges with what stands under
+ * their rows, held banners, missing and hidden forges, and this machine's panel and Gaia's. It takes no hooks: the command states and the handlers
+ * come in as props, so a spec unfolds it whole.
  */
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';

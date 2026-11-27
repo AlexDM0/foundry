@@ -1,10 +1,7 @@
 /**
- * The Gaia panel's content and its "What notifies" list. What matters (`docs/design/screens.md` A4 and C2): each checkbox shows the setting and sends
- * `settings-set` with that one setting turned over, the kinds' checkbox only its own kind; the facts read the document's paths from `~`,
- * and this Gaia's system version, the one forge version it is built for and its address, never a package version or the contracts it
- * reads, and say in words when no forge program is known; a settings change on its way
- * or a settings file newer than this Gaia leaves every checkbox off, and the second is said; a refusal shows only where this view's own
- * send came from, with the code and sentence of the answer. The command states come from the real sender over authored answers.
+ * The Gaia panel's content and its "What notifies" list: each checkbox sends `settings-set` with only its setting turned over; the facts name
+ * paths from `~` and this Gaia's versions and address; a pending change or a newer settings file turns every checkbox off; and a refusal, from the
+ * real sender over authored answers, shows only where its send came from.
  */
 import { describe, expect, test } from 'bun:test';
 

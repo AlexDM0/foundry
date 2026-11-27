@@ -1,13 +1,6 @@
 /**
- * The Attention view's layout. What matters (`docs/design/screens.md` A1 acceptance 1, 3 and 4; B3 acceptance 1 and 2): the list draws its rows in the
- * content's order, the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to `#questions/E2`;
- * "Update forge" sends `forge-update` through the command sender and is disabled while it is on its way; a refusal shows under its callout with the
- * forge's code and sentence until dismissed; an update that left a restart pending offers Restart under the callout that sent it until dismissed, and a
- * refused Restart's refusal shows there too; nothing waiting says so; B3's banner, its stale rows that can be read and not acted on, its figures folded
- * into one line atop the main column so the side panel and Running fit the window, and the side panel that names the forges the totals cannot vouch for;
- * an empty place says so; U1's older forge's callout with its versions line and Update forge's pending and done steps, its newer forge's neutral callout,
- * the side panel naming each forge's version and the notes naming the forges the totals leave out. The content comes from the model over the artboards'
- * fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
+ * The Attention view's layout over the model's content: rows in order linking into their forge, Update forge and Restart through the real command
+ * sender over authored answers, refusals until dismissed, the unreachable and version callouts, and figures folded while a forge is not fully read.
  */
 import { describe, expect, test } from 'bun:test';
 
