@@ -1,8 +1,7 @@
 /**
- * The ingestion of a Hephaestus's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
- * `ForgeIdentity`, and decide from its `contracts` whether Gaia reads the forge (`docs/architecture.md`, "A reading, from forge to
- * screen"): only a forge that serves the monitor contract Gaia knows is read. An identity without `identityVersion` is a forge's from
- * before F1, older than Gaia reads.
+ * The ingestion of a Hephaestus's identity: check `identityVersion` and the keys, map to a `ForgeIdentity`, and decide from its `contracts`
+ * whether Gaia reads the forge (`docs/architecture.md`, "A reading, from forge to screen"): only a forge serving the monitor contract Gaia
+ * knows is read. An identity without `identityVersion` comes from a forge older than Gaia reads.
  */
 import type { IdentityContractsDocument, IdentityDocument } from 'forge-contracts/IdentityDocument';
 

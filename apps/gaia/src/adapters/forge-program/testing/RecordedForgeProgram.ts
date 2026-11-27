@@ -8,8 +8,8 @@ export const EXAMPLE_FORGE_PROGRAM_PATH = '/Users/example/.bun/bin/forge';
 export const MISSING_FORGE_PROGRAM_PATH = '/Users/example/.bun/bin/missing-forge';
 
 /**
- * `forge-before-versioned-answers`: recorded from a forge checkout that does not answer F8 yet. `every-verb-done` and `every-verb-refused`:
- * recorded from a forge that answers F8.
+ * `forge-before-versioned-answers`: recorded from a forge checkout that does not answer in versioned JSON yet. `every-verb-done` and
+ * `every-verb-refused`: recorded from a forge that answers in it.
  */
 export type ForgeProgramStage = 'forge-before-versioned-answers' | 'every-verb-done' | 'every-verb-refused';
 

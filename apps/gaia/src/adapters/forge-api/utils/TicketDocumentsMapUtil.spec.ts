@@ -1,8 +1,7 @@
 /**
- * The ticket documents mapper against its own contract. What matters: every field of a full document is mapped by name, an anchor's
- * absent columns, quote and diagram read as `null`, every list is copied rather than shared, and a document with no head maps to none.
- * The recorded answer only shows a spec at its first version, so the messages, proposals, approvals, out-of-date plan and effect readings
- * are written here as the contract types them.
+ * The ticket documents mapper against its own contract: every field mapped by name, an anchor's absent parts read as `null`, every list
+ * copied rather than shared, a document with no head maps to none. The recorded answer shows a spec only at its first version, so the
+ * later messages, proposals, approvals and readings are written here as the contract types them.
  */
 import { describe, expect, test } from 'bun:test';
 

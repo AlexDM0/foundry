@@ -1,7 +1,7 @@
 /**
- * ForgeProgram over the recorded forge program, one answer set per stage: a forge checkout recorded before it answers in versioned JSON,
- * and a forge that answers F8 recorded with every verb done, and with every verb refused. What matters: the call each verb makes and where,
- * the program Gaia picks, a refusal's code and sentence passed through unchanged, and an answer Gaia does not understand named so.
+ * ForgeProgram over the recorded forge program, one answer set per stage: a checkout from before the versioned JSON answers, and a forge
+ * that answers in them with every verb done and with every verb refused. What matters: each verb's call and where, the program Gaia picks,
+ * a refusal's code and sentence unchanged, and an answer Gaia does not understand named so.
  */
 import {
   afterAll,
@@ -25,7 +25,7 @@ import {
   type ForgeProgramStage,
 } from './testing/RecordedForgeProgram.ts';
 
-/** The forge the F8 answers were recorded from, as the recording's stamp names it. */
+/** The forge the versioned JSON answers were recorded from, as the recording's stamp names it. */
 const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-done']);
 
 const EXAMPLE_CONTRACTS = { summary: 3, monitor: 6, control: 3 };

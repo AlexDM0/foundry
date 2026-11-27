@@ -14,7 +14,7 @@ import type {
 } from './@types/ForgeProgramAnswer.ts';
 import { ForgeAnswerMapUtil, type DoneAnswerMapper } from './utils/ForgeAnswerMapUtil.ts';
 
-/** The forge a verb runs for: its root, and the program the registry names for it (F9), `null` when it names none. */
+/** The forge a verb runs for: its root, and the program the registry names for it, `null` when it names none. */
 export interface ForgeProgramTarget {
   readonly root:    string;
   readonly program: string | null;

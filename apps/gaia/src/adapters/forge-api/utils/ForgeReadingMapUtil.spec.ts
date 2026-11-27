@@ -1,10 +1,7 @@
 /**
- * The reading mapper against its own contract, on documents its ingestions have checked: Hephaestus's state and pause to a condition,
- * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
- * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a summary's
- * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; a monitor's typed target
- * as that subject's place on Gaia's board, an entry with no target as none; and a newer
- * contract's reading with no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
+ * The reading mapper against its own contract, on documents its ingestions have checked: Hephaestus's state and pause to a condition, a
+ * contract left out to `null`, warnings and notices, usage, interruption causes, a monitor target to its place on Gaia's board, and a newer
+ * contract's reading with no fact of any document. The whole mappings are held by the ingestion specs.
  */
 import { describe, expect, test } from 'bun:test';
 

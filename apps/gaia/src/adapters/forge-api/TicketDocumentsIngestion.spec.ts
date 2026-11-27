@@ -1,8 +1,7 @@
 /**
- * The ticket documents ingestion against the answers a scratch forge at the supported version gave (`hephaestus-fetch-ticket-documents`).
- * What matters: the documents read whole, the Markdown kept as source text, an answer to the spec agent's question naming its decision;
- * the forge's two 404 refusals keep their code, fields and sentence unchanged; and a body that breaks the shape, or any other status,
- * maps nothing and names its keys. The endpoint version is the one forge's registry serves the supported forge.
+ * The ticket documents ingestion against the answers a scratch forge at the supported version gave (`hephaestus-fetch-ticket-documents`):
+ * the documents read whole with their Markdown as source text; the forge's 404 refusals keep their code, fields and sentence unchanged; a
+ * body that breaks the shape, or any other status, maps nothing and names its keys.
  */
 import { describe, expect, test } from 'bun:test';
 

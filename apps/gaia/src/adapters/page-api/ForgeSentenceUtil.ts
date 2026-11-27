@@ -1,7 +1,7 @@
 /**
- * D10 at the page's edge: no forge sentence but a refusal reaches the page telling User to run a command. A notice the forge is known to
- * word with a command leaves in Gaia's words, by its kind; any other sentence that still names a command is dropped for a neutral one. A
- * refusal is never routed here: it reads as the forge's own sentence, unchanged (decision 45).
+ * At the page's edge, no forge sentence but a refusal tells User to run a command. A notice the forge is known to word with a command
+ * leaves in Gaia's words, by its kind; any other sentence that still names a command is dropped for a neutral one. A refusal is never
+ * routed here: it reads as the forge's own sentence, unchanged.
  */
 import { FORGE_NOTICE_KINDS } from '../../shared/constants/ForgeNoticeKinds.ts';
 

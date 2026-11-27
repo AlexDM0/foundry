@@ -1,12 +1,7 @@
 /**
- * D10 over every sentence a real forge was recorded answering: none but a refusal's reaches the page naming a command. What matters: every
- * string of every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each
- * recorded refusal reaches the page through the command answer as the forge's own sentence, unchanged (decision 45); and each recorded
- * monitor snapshot reaches it through the fleet document, its notices, warnings and activity entries among it. The frozen list of refusal
- * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
- * forge-program-refused` or a hephaestus-fetch recording.
- * The board's answers and a ticket's documents are left out: the board contract shows a forge's sentence as the forge serves it (decision
- * 45), and a document's Markdown is its author's text, no forge sentence.
+ * Over every string a real forge was recorded answering, none but a refusal's, kept unchanged, reaches the page naming a command, a monitor
+ * snapshot's through the fleet document. The board's answers and a ticket's documents are left out: the board shows a forge's sentence as
+ * the forge serves it, and a document's Markdown is its author's text, no forge sentence.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,7 +30,10 @@ const EVENT_DATA_PREFIX = 'data: ';
 
 const EXAMPLE_READ_STAMP = '2026-11-13T07:00:00.000Z';
 
-/** Taken from the recordings: the refusal codes whose recorded sentence names a command. */
+/**
+ * Taken from the recordings: the refusal codes whose recorded sentence names a command, which keeps the spec from passing on nothing.
+ * Retake it after `bun run record forge-program-refused` or a hephaestus-fetch recording.
+ */
 const REFUSALS_RECORDED_NAMING_A_COMMAND = ['arguments-refused', 'no-crash-log'];
 
 interface RecordedRefusal {

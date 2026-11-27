@@ -1,9 +1,7 @@
 /**
- * The identity ingestion over the identities recorded from forges at the version Gaia supports, read through the forge client. What
- * matters: the choice in `docs/architecture.md`, "A reading, from forge to screen", of whether a forge is read, a monitor at the known
- * number (read) against an older one, none or an identity from before F1 (older, nothing read) and a newer number (nothing, at fidelity
- * newer-contract, which equals B3's fixture); an identity that names no contracts (malformed); an identity of another forge at the
- * registry's address; and an identity at a newer `identityVersion` mapped to nothing.
+ * The identity ingestion over identities recorded from forges at the supported version, held to `docs/architecture.md`, "A reading, from
+ * forge to screen": only a monitor at the known number is read, never an older or newer one, none, or an identity without a version; an
+ * identity naming no contracts is malformed, one of another forge is named as such, and one at a newer `identityVersion` maps to nothing.
  */
 import { describe, expect, test } from 'bun:test';
 

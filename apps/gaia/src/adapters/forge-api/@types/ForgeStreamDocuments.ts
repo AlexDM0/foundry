@@ -1,7 +1,6 @@
 /**
  * What a forge sends that `forge-contracts` declares no type for yet: a job stream's transcript entry, a profile stream's line, and a
- * command's applied and refused answers. Gaia writes them down from the forge's API reference and its recordings, so its shapes are typed
- * against something; once the contract declares them, the shapes are typed against the contract's and these go
+ * command's applied and refused answers, written down from the forge's API reference and recordings until the contract declares them
  * (`docs/forge-requirements.md`).
  */
 import type { JsonValue } from '../../../lib/json-value/JsonValueUtil.ts';

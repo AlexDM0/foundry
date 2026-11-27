@@ -1,9 +1,7 @@
 /**
- * The real-system spec of every forge verb refused, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
- * forge-program-refused` with the program of a forge that answers F8. It runs that forge under a scratch home, through ForgeProgram, and
- * records one refusal of each verb Gaia runs under the example program path: init in a bare repository, start and update over files a
- * newer forge installed, stop of a Hephaestus that is suspended and so outlives the stop, and a machine limit above the CPU
- * count. The forge's install version stamps the recording.
+ * The real-system spec of every forge verb refused, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program-refused`
+ * with a forge that answers in versioned JSON. It records one refusal of each verb Gaia runs: init in a bare repository, start and update
+ * over a newer install, stop of a suspended Hephaestus, and a machine limit above the CPU count.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';

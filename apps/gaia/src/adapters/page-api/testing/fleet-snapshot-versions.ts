@@ -194,7 +194,7 @@ function attentionOf(forge: ForgeReading, idText: string) {
   return { ...item, trackerId: forge.trackerId };
 }
 
-/** U1 to U3: the five forges, one at each verdict and two current; the totals leave out the two Gaia cannot talk to. */
+/** The five forges, one at each verdict and two current; the totals leave out the two Gaia cannot talk to. */
 export const FLEET_SNAPSHOT_VERSIONS: FleetSnapshot = {
   ...FLEET_SNAPSHOT_FIVE_FORGES,
   forges:    [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_BILLING, ANALYTICS_SANDBOX],
@@ -247,7 +247,7 @@ export const FLEET_SNAPSHOT_VERSIONS: FleetSnapshot = {
   gaia: { ...FLEET_SNAPSHOT_FIVE_FORGES.gaia, versions: GAIA_VERSIONS },
 };
 
-/** U4's forge that states no version, Example Docs, in Example Billing's place: every released forge reads so today. */
+/** A forge that states no version, Example Docs, in Example Billing's place: every released forge reads so today. */
 export const FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION: FleetSnapshot = {
   ...FLEET_SNAPSHOT_VERSIONS,
   forges:     FLEET_SNAPSHOT_VERSIONS.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleBilling ? EXAMPLE_DOCS : forge)),

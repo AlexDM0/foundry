@@ -1,11 +1,7 @@
 /**
- * The page's board command body read into Gaia's model. What matters: a valid body of each kind becomes its model command, every typed draft
- * edit included; an agent's program is followed on the machine or pinned to a path, and a tool names its path or `null`; a key the kind does
- * not name never reaches the model; a missing key, a key of the wrong type, a value outside its union, an agent's program of neither form
- * and a malformed draft edit are refused as a malformed body and named; a kind Gaia does not send, a by-hand kind among them, is refused as
- * unknown; a body at another version or no JSON object is malformed. A ticket document's save, an edited proposal and a comment's quote may
- * carry a whole document, up to its own bound, while every other kind keeps to the smaller one; a comment's anchor is read key by key, a
- * diagram node's included.
+ * The page's board command body read into Gaia's model: a valid body of each kind becomes its model command; a key the kind does not name
+ * never reaches the model; a missing or mistyped key, a value outside its union or an unknown kind is refused and named; a ticket
+ * document's save, an edited proposal and a comment's quote may carry a whole document, every other kind keeps to the smaller bound.
  */
 import { describe, expect, test } from 'bun:test';
 

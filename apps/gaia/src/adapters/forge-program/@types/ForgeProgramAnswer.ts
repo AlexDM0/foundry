@@ -1,4 +1,4 @@
-/** The forge program's JSON answers (F8) mapped in, one per verb, and the verdict every run of the program ends in. */
+/** The forge program's versioned JSON answers mapped in, one per verb, and the verdict every run of the program ends in. */
 import type { ForgeContracts } from '../../../shared/@types/ForgeReading.ts';
 
 export type ForgeProgramOutcome = 'done' | 'nothing-to-do';

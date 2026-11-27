@@ -622,7 +622,7 @@ const EXAMPLE_MOBILE_APP: FleetForge = {
   attention:        [],
   attentionCount:   null,
   agents:           MOBILE_AGENTS,
-  /** The forge's own sentence, which the page receives in Gaia's words (D10). */
+  /** The forge's own sentence, which names a command and so reaches the page in Gaia's words. */
   notices:          [{ kind: 'install-version-changed', text: 'the install version changed, so launches are held: run `forge update`' }],
   warnings:         [],
   activity:         [

@@ -1,8 +1,7 @@
 /**
- * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, an update whose restart was not
- * taken answers restart pending, a forge's refusal keeps its code and its sentence unchanged (decision 45), Gaia's own
- * refusal carries its code with no sentence, a chosen path is a done answer's text, and a command Gaia could not read answers not-supported
- * with the reason as its code.
+ * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, an untaken restart as restart pending;
+ * a forge's refusal keeps its code and sentence unchanged, Gaia's own carries its code alone; a chosen path is a done answer's text; and an
+ * unreadable command answers not-supported with the reason as its code.
  */
 import { describe, expect, test } from 'bun:test';
 

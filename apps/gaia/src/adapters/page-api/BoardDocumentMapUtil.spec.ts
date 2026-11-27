@@ -1,12 +1,7 @@
 /**
- * The board model mapped out to the page's board contract, on the model a scratch forge's recorded board reads into. What matters: every
- * value of the model reaches its page field, a forge sentence under the page's `text`; the served facts by name (attention with its typed
- * target, today with its date, the answering order, each ticket's and job's facts and offers, the step run times); a refusal's text is the
- * forge's sentence byte for byte, even one that names a command; a notice that names a command leaves in Gaia's words, its cause dropped;
- * each event and conversation entry carries the board's version; the ordered lists the views iterate keep the forge's order; and the Markdown
- * a forge serves (a ticket body, an epic description, a constitution) reaches the page as HTML rendered here, its raw HTML escaped and a
- * link with a script scheme dropped, since an agent wrote it. The forge's agent reaches the page with Gaia's own count of the other forges
- * that follow this machine's program, none unless counted, and a job not launched keeps the forge's cause, program and sentence.
+ * The board model mapped out to the page's board contract, on a scratch forge's recorded board: every value reaches its page field, a
+ * refusal as the forge's sentence byte for byte, a command-naming notice in Gaia's words; lists keep the forge's order; and the Markdown an
+ * agent wrote reaches the page as HTML rendered here, its raw HTML escaped and a script-scheme link dropped.
  */
 import { describe, expect, test } from 'bun:test';
 import {

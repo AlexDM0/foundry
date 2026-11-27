@@ -1,9 +1,7 @@
 /**
- * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
- * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
- * report stays `null` rather than becoming zero, a notice, warning or activity entry that names a command reaches it in Gaia's words
- * (D10), and a forge's system versions and their verdict as the watch read them; an attention entry's monitor route, the forge's
- * fragment read by the ingestion, reaches it as its board route.
+ * The page sees the fleet only through this mapper: each internal fixture maps to exactly its page fixture, the version is stamped, a key
+ * the contract does not name never reaches the page, an unreported value stays `null`, and a sentence that names a command reaches the page
+ * in Gaia's words; an attention entry's monitor route reaches it as its board route.
  */
 import { describe, expect, test } from 'bun:test';
 

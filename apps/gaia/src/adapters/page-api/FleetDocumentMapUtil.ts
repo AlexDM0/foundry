@@ -1,7 +1,7 @@
 /**
  * Maps the internal `FleetSnapshot` out to the page contract. Every key is named one by one, so a key the internal model gains reaches the
- * page only when the contract names it. A forge's notice, warning, activity entry leaves in Gaia's words when it
- * names a command (D10). A place on a forge's board leaves as the board route the page opens.
+ * page only when the contract names it. A forge's notice, warning or activity entry that names a command leaves in Gaia's words, since no
+ * screen tells User to run a command. A place on a forge's board leaves as the board route the page opens.
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 

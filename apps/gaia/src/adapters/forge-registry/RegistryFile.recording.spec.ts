@@ -1,9 +1,7 @@
 /**
- * The real-system spec of the forges' registry, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-registry` with the
- * program of a forge that writes F4 and F9. It brings five scratch boards under one scratch home into the states Gaia shows, each with the
- * presence the forge writes: two serving, one crashed (its Talos killed while its Hephaestus served, which the forge records as a crash
- * of Talos and ends on), one stopped and one never started, then reads the registry the forge wrote and records it, with the paths,
- * tracker ids, ports and process ids this run drew replaced by examples. The forge's install version stamps the recording.
+ * The real-system spec of the forges' registry, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-registry`. It
+ * brings five scratch boards under one scratch home into the presences Gaia shows (two serving, one crashed, one stopped, one never
+ * started), then records the registry the forge wrote, with the run's paths, tracker ids, ports and process ids replaced by examples.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';

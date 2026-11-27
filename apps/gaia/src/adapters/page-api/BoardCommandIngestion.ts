@@ -1,8 +1,7 @@
 /**
- * The ingestion of a board command the page posts (`POST /api/v1/forges/<trackerId>/commands`), as `GaiaCommandIngestion` reads Gaia's own:
- * parse, check `boardCommandVersion`, the kind and each key of the kind against its shape, then map into Gaia's `BoardCommand`. A key the
- * kind does not name is passed over and never reaches the forge. The page and the server ship together, so another version means a stale
- * page, refused as a malformed body. Only a ticket document's save carries a whole document; every other kind keeps to the smaller bound.
+ * The ingestion of a board command the page posts (`POST /api/v1/forges/<trackerId>/commands`): parse, check `boardCommandVersion`, the kind
+ * and its keys, then map into Gaia's `BoardCommand`; a key the kind does not name never reaches the forge. The page and server ship
+ * together, so another version means a stale page, refused as a malformed body.
  */
 import type { BoardAgentProgramChoiceDocument, BoardPipelineAgentDocument, BoardToolRequestDocument } from '../../../page/@types/board/BoardAgentDocuments.ts';
 import type {

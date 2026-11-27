@@ -1,7 +1,7 @@
 /**
- * The board summary ingestion over the summary recorded from a forge as it stands today, read through the forge client, and a summary of
- * the shape `summaryVersion: 3` gives for the Research Wiki of B3. What matters: a forge read through its summary maps to counts and jobs
- * only, with every fact the summary does not hold `null`, never zero; a newer `summaryVersion` maps nothing of the summary.
+ * The board summary ingestion over a summary recorded from a forge today and one shaped as `summaryVersion: 3` for the degraded fleet's
+ * Research Wiki. What matters: a summary maps to counts and jobs only, every fact it does not hold `null`, never zero; a newer
+ * `summaryVersion` maps nothing of the summary.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,7 +35,7 @@ const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
 
 const RESEARCH_WIKI = FLEET_SNAPSHOT_DEGRADED.forges.find((reading) => reading.fidelity === 'counts-only');
 
-/** What a forge before F1 answers for the Research Wiki of B3: one open question, one builder, two ready tickets. */
+/** What an older forge answers for the degraded fleet's Research Wiki: one open question, one builder, two ready tickets. */
 const RESEARCH_WIKI_SUMMARY = {
   summaryVersion:      3,
   project:             'Research Wiki',

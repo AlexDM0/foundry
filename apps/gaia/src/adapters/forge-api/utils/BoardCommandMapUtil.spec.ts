@@ -1,10 +1,7 @@
 /**
- * Gaia's board commands mapped to the forge's contract commands. What matters: each kind maps to the contract's command of the same kind,
- * every kind is one the forge takes from a client (`FORGE_CONTROL_COMMAND_KINDS`) and no kind only its command line runs; Gaia's names
- * reach the contract's (`ticketId` as `ticketReference`, `runsIn` as `in`); a key Gaia holds as `null` is absent from the contract, a tool
- * named without a path and a setup started without an agent among them; an agent keeps its vendor and how it names its program; and every
- * typed draft edit maps to the contract's typed edit. A ticket document's command names the ticket by its reference and leaves out an
- * anchor's absent columns, quote and diagram and an apply's absent replacement lines.
+ * Gaia's board commands mapped to the forge's contract commands: each kind to the contract's command of the same kind, only kinds the forge
+ * takes from a client (`FORGE_CONTROL_COMMAND_KINDS`); Gaia's names reach the contract's (`ticketId` as `ticketReference`, `runsIn` as `in`);
+ * a key Gaia holds as `null` is absent from the contract; every typed draft edit maps to the contract's typed edit.
  */
 import { describe, expect, test }      from 'bun:test';
 import { FORGE_CONTROL_COMMAND_KINDS } from 'forge-contracts/ForgeControlCommandKinds';

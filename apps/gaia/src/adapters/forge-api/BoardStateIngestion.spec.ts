@@ -1,14 +1,7 @@
 /**
- * The board document's ingestion over the documents a scratch forge at the supported forge version answered (`hephaestus-fetch-board`). What
- * matters: every served fact of the forge's board maps to its field of Gaia's model unchanged, the attention entries with their typed
- * target, the worded notices, today's figures with their date, the open decisions in answering order, each ticket's facts and offers, each
- * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
- * draft with its refusals and their typed fix, the Apply refusal and the step run times; the Assistant's switch is the stored pipeline's
- * `assistant` key, read from the boards recorded after it was switched off and on, off while no readable pipeline is stored; the forge's agent
- * as the forge serves it, with each vendor's ways to bill, from the first setup record at its billing step with no billing chosen, through
- * the agent chosen and its program running, to a job standing not launched once that program is gone, with the forge's sentence; a missing
- * key, or a value outside a value list, makes the document malformed and is named; a key Gaia does not read is passed over, and so is a
- * key Gaia names as passed over.
+ * The board document's ingestion over the boards a scratch forge at the supported version answered (`hephaestus-fetch-board`): every served
+ * fact maps to its field of Gaia's model unchanged, through each recorded setup stage; a missing key or a value outside a value list makes
+ * the document malformed and is named; a key Gaia does not read is passed over.
  */
 import { describe, expect, test } from 'bun:test';
 

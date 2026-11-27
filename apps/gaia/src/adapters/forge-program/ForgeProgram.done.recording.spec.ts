@@ -1,8 +1,7 @@
 /**
  * The real-system spec of every forge verb done, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program-done`
- * with the program of a forge that answers F8. It runs that forge under a scratch home in a scratch repository, through ForgeProgram, and
- * records each answer under the example program path: init, version, the machine limit set, start, update with Hephaestus live and stop.
- * The forge's install version stamps the recording.
+ * with a forge that answers in versioned JSON. It runs that forge under a scratch home and repository through ForgeProgram and records each
+ * answer under the example program path: init, version, the machine limit set, start, update with Hephaestus live and stop.
  */
 import {
   afterAll,

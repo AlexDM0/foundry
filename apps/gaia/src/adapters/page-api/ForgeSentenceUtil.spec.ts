@@ -1,9 +1,7 @@
 /**
- * Gaia's wording of a forge sentence that tells User to run a command (D10). What matters: a refusal is worded by none of it (decision
- * 45); a known notice kind is worded by Gaia whatever the forge's prose says, so a reworded forge sentence cannot slip through; an unknown
- * sentence that names a command, by a backticked span or by `forge <verb>`, is dropped for a neutral one; and a sentence that names none
- * passes through unchanged, so Gaia does not reword the forge where D10 does not ask it to. A registry entry's last command reaches the
- * page only as the name of Gaia's own command for it. The forge's sentences below are worded as the forge words them.
+ * Gaia's wording of a forge sentence that tells User to run a command: a refusal is never reworded; a known notice kind is worded by Gaia
+ * whatever the forge's prose, so a reworded sentence cannot slip through; any other sentence naming a command is dropped for a neutral one,
+ * one naming none passes unchanged. A registry entry's last command reaches the page only as the name of Gaia's own command for it.
  */
 import { describe, expect, test } from 'bun:test';
 

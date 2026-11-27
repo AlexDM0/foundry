@@ -1,6 +1,6 @@
 /**
- * The ingestion of a Hephaestus's token file (F4): owner-only and fresh at each of Hephaestus's starts, so a caller reads it again before
- * each use. The token is a secret: it travels only as a bearer, never into a reading, an answer or a log line.
+ * The ingestion of a Hephaestus's token file: owner-only and fresh at each of Hephaestus's starts, so a caller reads it again before each
+ * use. The token is a secret: it travels only as a bearer, never into a reading, an answer or a log line.
  */
 import { AtomicFile } from '../../lib/atomic-file/AtomicFile.ts';
 

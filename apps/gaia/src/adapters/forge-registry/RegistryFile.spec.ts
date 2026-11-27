@@ -1,9 +1,7 @@
 /**
- * The registry's ingestion, over the registry a forge wrote for five boards, each in a presence the forge writes (recorded), and
- * variants of it written to the scratch root: the recording maps to five forges in its order, an entry from a forge before F4 or F9 maps
- * its token file or program as unknown, a newer version maps nothing, an entry without its root is left out while the rest map, an entry
- * with a broken `hephaestus` entry keeps its forge with no live Hephaestus, every file that is no registry at version 2 answers a verdict, never a
- * throw, and a registry Gaia cannot read names no forge but the reason.
+ * The registry's ingestion over a recorded registry of five boards and variants written to the scratch root: the recording maps to five
+ * forges in order, an older entry's token file or program reads as unknown, a newer version maps nothing, a broken entry is left out or
+ * loses its live Hephaestus, and every file that is no readable registry answers a verdict naming the reason, never a throw.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

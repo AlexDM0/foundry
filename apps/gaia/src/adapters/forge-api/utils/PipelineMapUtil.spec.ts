@@ -1,9 +1,7 @@
 /**
- * The pipeline mapper against its own contract, on parts the recorded board does not hold. What matters: every typed draft edit a refusal's
- * fix may carry keeps its target and values, an edit within an entity included; a pipeline's absent parts stay absent rather than taking a
- * forge default; billing by an API key keeps its budget; an agent that follows the machine and the forge's own tool list keep their form;
- * a tools edit keeps a tool named alone without a path; every history entry keeps its kind and fields; the recorded pipeline maps; and a
- * pipeline in the spec-then-plan route keeps its route and the documents its builder reads, which a pipeline without them never gains.
+ * The pipeline mapper against its own contract, on parts the recorded board does not hold: every typed draft edit keeps its target and
+ * values; absent parts stay absent rather than taking a forge default; billing, agents, tools and history entries keep their form; and the
+ * spec-then-plan route keeps its route and builder documents, which a pipeline without them never gains.
  */
 import { describe, expect, test }         from 'bun:test';
 import type { PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';

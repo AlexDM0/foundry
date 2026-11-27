@@ -1,7 +1,7 @@
 /**
- * The ingestion of a forge's monitor snapshot (F2, F3, G1): check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads
- * at that number, map to a `ForgeReading` at fidelity `full`. A snapshot at another version maps nothing of itself; nor does a malformed
- * one, or one that names another forge.
+ * The ingestion of a forge's monitor snapshot: check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads at that
+ * number, map to a `ForgeReading` at fidelity `full`. A snapshot at another version maps nothing of itself; nor does a malformed one, or one
+ * that names another forge.
  */
 import { MONITOR_INTERRUPTION_CAUSES } from 'forge-contracts/MonitorInterruptionCauses';
 import type {

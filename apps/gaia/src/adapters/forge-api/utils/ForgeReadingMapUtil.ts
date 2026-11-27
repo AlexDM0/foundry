@@ -1,9 +1,7 @@
 /**
- * Maps the forge documents an ingestion has checked to the internal model: an identity to a `ForgeIdentity`, and a monitor snapshot, a
- * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (`docs/architecture.md`, "A reading, from forge to
- * screen"). What a document does not carry comes from the registry and the identity; a fact no source gives is `null`, never zero. A
- * monitor's `target` names the thing an entry opens, and maps to that subject's place on Gaia's board; an entry with no target maps to
- * none.
+ * Maps the forge documents an ingestion has checked to the internal model: an identity to a `ForgeIdentity`, and a monitor snapshot, a board
+ * summary or an unknown contract to a `ForgeReading` at its fidelity (`docs/architecture.md`, "A reading, from forge to screen"). What no
+ * document, registry entry or identity gives is `null`, never zero; a monitor's `target` maps to that subject's place on Gaia's board.
  */
 import type { BoardTarget, BoardTargetSubject }                                  from 'forge-contracts/BoardReadingDocuments';
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryHephaestusState } from 'forge-contracts/BoardSummaryDocument';

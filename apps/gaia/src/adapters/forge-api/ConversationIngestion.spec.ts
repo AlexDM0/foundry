@@ -1,8 +1,7 @@
 /**
- * The conversation streams' data mapped into Gaia's model, on the product owner's job stream and the gate profile run's output a scratch
- * forge recorded. What matters: a history's entries keep their cursor, key, role, text and the pictures a chat carried, an absent field
- * reads as `null` or empty; a message is one entry; a profile line keeps its text; a malformed entry or line maps to nothing and names its
- * keys; a key Gaia does not read is passed over.
+ * The conversation streams mapped into Gaia's model, on a job stream and a profile run a scratch forge recorded. What matters: a history
+ * entry keeps its fields, an absent one reads as `null` or empty; a message is one entry; a profile line keeps its text; a malformed entry or
+ * line maps to nothing and names its keys; a key Gaia does not read is passed over.
  */
 import { describe, expect, test } from 'bun:test';
 

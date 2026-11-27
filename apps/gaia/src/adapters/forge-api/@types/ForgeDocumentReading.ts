@@ -15,7 +15,7 @@ export interface ForgeRegistryFacts {
   readonly lastChangedAt:       string | null;
 }
 
-/** A Hephaestus's identity mapped in. `contracts` is `null` from a forge before F1, which names none. */
+/** A Hephaestus's identity mapped in. `contracts` is `null` from an older forge whose identity names none. */
 export interface ForgeIdentity {
   readonly trackerId:      string;
   readonly project:        string;

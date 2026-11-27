@@ -1,8 +1,7 @@
 /**
- * The real-system spec of the path chooser, run only by `bun run record path-chooser` on a Mac with a person at the screen, since only a
- * person answers the system's dialog: a note says what to do, then the folder chooser is answered with any folder and the file chooser is
- * cancelled. It checks what PathChooser makes of each answer and records both, the chosen folder under an example path: only the answer's
- * shape matters, and the person's own folders do not belong in the repository.
+ * The real-system spec of the path chooser, run only by `bun run record path-chooser` on a Mac with a person at the screen to answer the
+ * dialogs: the folder chooser is answered with any folder and the file chooser cancelled. Both answers are recorded, the folder under an
+ * example path, since only their shape matters and the person's own folders do not belong in the repository.
  */
 import {
   afterAll,

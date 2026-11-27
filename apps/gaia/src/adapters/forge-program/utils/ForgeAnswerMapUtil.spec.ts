@@ -1,7 +1,7 @@
 /**
  * The mapping from one run of the forge program to a verdict, against its own contract: a run that found nothing to run or ran out of time,
  * a document at another answer version or no document at all, a refusal at any exit but 0 with its words unchanged, and a done document
- * that lacks what its answer needs. Each verb's mapper is pinned on the keys F8 states and on the ones it may leave out.
+ * that lacks what its answer needs. Each verb's mapper is pinned on the keys the versioned answer states and on the ones it may leave out.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -1,9 +1,7 @@
 /**
- * The real-system spec of the forge program, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program` with the
- * program of a forge checkout that does not answer F8 yet. It runs that forge through `ScratchForge`, under a scratch home in a scratch
- * repository with `FORGE_ROOT` pinned to it, checks what ForgeProgram makes of each answer, and records each one under the example program
- * path. The cases that matter: `version --json`, `init` and `update`, which this forge refuses with `--json` and so write nothing, and a
- * program that is not there. The forge's install and code versions stamp the recording.
+ * The real-system spec of the forge program, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program` with a
+ * forge checkout that does not answer in versioned JSON yet. It runs that forge through `ScratchForge` and records `version --json`, `init`
+ * and `update`, which this forge refuses with `--json`, and a program that is not there, under the example program path.
  */
 import {
   afterAll,

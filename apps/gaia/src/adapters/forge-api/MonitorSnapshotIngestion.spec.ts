@@ -1,11 +1,7 @@
 /**
- * The monitor snapshot ingestion over the snapshots a forge at the version Gaia supports answered as Example Storefront, at monitor
- * contract 3, read through the forge client. What matters: the snapshot of the Storefront at work maps to its frozen reading below; a
- * warning keeps its kind, `assistant-down` becoming a notice; the current usage window is read; a job's turn, its interruption cause and a
- * lost launch stamp read as the forge sends them, a job of a forge before 1.19, which sends no cause, as having none, a cause outside the
- * contract's list as malformed; a snapshot at a newer
- * `monitorVersion` maps nothing of itself, so no attention entry leaks from it, and one at an older version, monitor 2 included, is older
- * than Gaia reads; a malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
+ * The monitor snapshot ingestion over snapshots a forge at the supported version answered as Example Storefront, at monitor contract 3: the
+ * Storefront at work maps to its frozen reading, warnings, usage and each job's turn and interruption read as sent; a snapshot at another
+ * version, a malformed one or one of another forge maps nothing of itself, so no attention entry leaks from it.
  */
 import { describe, expect, test } from 'bun:test';
 

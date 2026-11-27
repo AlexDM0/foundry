@@ -1,8 +1,7 @@
 /**
- * The registry entry mapper against its own contract: an entry without a whole project and root is left out, every optional key (the F4
- * and F9 keys, the `hephaestus` entry, the last command and its stamp) reads as `null` when it is absent or breaks its rule and never leaves a forge
- * out, and keys are read as the entry's own, never through a prototype. A presence maps in each state the forge writes, a crash with its
- * summary; a state Gaia does not know is no presence, and a crash whose summary is not whole stays a crash.
+ * The registry entry mapper against its own contract: an entry without a whole project and root is left out, every optional key reads as
+ * `null` when absent or broken and never leaves a forge out, keys are read as the entry's own, never through a prototype, and a presence
+ * maps in each state the forge writes, an unknown state as none and a crash with a broken summary still as a crash.
  */
 import { describe, expect, test } from 'bun:test';
 

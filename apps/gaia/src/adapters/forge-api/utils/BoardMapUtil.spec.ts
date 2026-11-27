@@ -1,11 +1,7 @@
 /**
- * The board mapper against its own contract, on parts the recorded board does not hold. What matters: a ticket's absent fields read as
- * `null` or empty and a held ready ticket as held; a task row's absent phases stay `null`, apart from a row with none; a note in the log
- * carries no id lists; every forecast step keeps its kind; an interrupted job keeps its cause and its lost line, and takes what it waits
- * for from presence, `null` where presence lists it not; a refusal and a question's
- * answer keep the forge's values unchanged; the recorded board maps whole; and the board in the spec-then-plan route keeps a ticket's
- * documents summary only on the ticket that has documents, each draft's stage, wait and agent, and a spec agent's question with its letters,
- * its document, its anchor and its placement on the head.
+ * The board mapper against its own contract, on parts the recorded board does not hold: absent fields read as `null` or empty, every
+ * forecast step keeps its kind, an interrupted job keeps its cause and takes its wait from presence, a refusal keeps the forge's values, and
+ * the spec-then-plan board keeps each ticket's documents summary, each draft's stage and a spec agent's question.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';

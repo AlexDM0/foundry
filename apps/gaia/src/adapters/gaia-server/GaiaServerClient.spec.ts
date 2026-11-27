@@ -1,9 +1,7 @@
 /**
- * The client of Gaia's own server against servers of this spec on loopback ports. The health: an answer that says Gaia, at any health
- * version, is Gaia, with its forge counts only at the known version; any other answer is another program; a port where nothing listens
- * answers nothing. The session code: asked with the token as a bearer, issued only as a code, refused with the status otherwise. Both are
- * asked at their versioned paths alone: a server that answers a versioned path 404 is no Gaia this client talks to, and is asked nothing more.
- * The page server's spec proves the routes themselves, and the launcher's recording spec this client against a real `gaia serve`.
+ * The client of Gaia's own server against servers of this spec on loopback ports: an answer that says Gaia is Gaia, with its forge counts
+ * only at the known health version; any other answer is another program; the session code is asked with the token as a bearer; and a
+ * server that answers a versioned path 404 is no Gaia this client talks to.
  */
 import {
   afterEach,

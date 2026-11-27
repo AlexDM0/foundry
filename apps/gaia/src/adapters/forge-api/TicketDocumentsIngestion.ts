@@ -1,8 +1,7 @@
 /**
- * The ingestion of a forge's answer for a ticket's documents (`GET /api/v1/tickets/{ticketId}/documents`) into Gaia's
- * `BoardTicketDocuments`. The document carries no version key: its version is the endpoint's, which Gaia derives from the forge's registry
- * at the forge version it supports. 200 is the documents, 404 the forge's refusal kept with its code, fields and sentence unchanged; any
- * other status, or a body that does not fit, is `unreadable` and names its keys.
+ * The ingestion of a forge's answer for a ticket's documents (`GET /api/v1/tickets/{ticketId}/documents`). The body carries no version key:
+ * its version is the endpoint's, derived from the forge's registry. 200 is the documents, 404 the forge's refusal kept unchanged; any other
+ * status, or a body that does not fit, is `unreadable` and names its keys.
  */
 import type { ForgeTicketDocumentsDocument } from 'forge-contracts/TicketDocumentsDocument';
 

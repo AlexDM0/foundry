@@ -1,8 +1,7 @@
 /**
- * The pipeline part of the board model mapped out to the page's contract, on the recorded board's pipeline: an applied pipeline over two
- * entities and an update setup whose entities draft holds a standing refusal. What matters: every value reaches its page field, a refusal's
- * sentence under `text` unchanged, and a refusal's fix keeps its typed draft edits. A pipeline in the spec-then-plan route carries its route
- * and each agent's document reading rules to the page; a pipeline without them carries neither key.
+ * The pipeline part of the board model mapped out to the page's contract, on the recorded board's pipeline: every value reaches its page
+ * field, a refusal's sentence under `text` unchanged and its fix with its typed draft edits; a spec-then-plan pipeline carries its route and
+ * each agent's document reading rules, a pipeline without them neither key.
  */
 import { describe, expect, test } from 'bun:test';
 

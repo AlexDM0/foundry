@@ -1,8 +1,7 @@
 /**
- * The page's command body read in. What matters: every kind this Gaia carries out maps to its internal command with exactly its keys, a
- * body at another `commandVersion`, older or newer, maps nothing, a `__proto__` key is an ordinary key that carries none of the keys inside
- * it, and a kind this Gaia does not carry out is named so. A limit is a whole number of at least one, a path the server runs a program in
- * is absolute, and a settings value has the type of its key.
+ * The page's command body read in: every kind this Gaia carries out maps to its internal command with exactly its keys; another
+ * `commandVersion` maps nothing; a `__proto__` key carries none of its keys; an unknown kind is named so. A limit is a whole number of at
+ * least one, a path a program runs in is absolute, and a settings value has the type of its key.
  */
 import { describe, expect, test } from 'bun:test';
 
