@@ -1,15 +1,6 @@
 /**
- * The page's folders import one way: the shell draws the views, so no view and nothing shared imports the shell, and nothing shared
- * imports a view; the board, which a view may draw, imports neither the shell nor a view. Inside the board no view imports another,
- * `board/shared/` imports no view and no shell, only `Board.tsx` and `board/testing/` import the shell, and `page/shared/` imports nothing of
- * the board, today's breaks aside, held exactly. And the page reaches no forge: no module the page project compiles, the shared files its
- * tsconfig names among them, imports `forge-contracts` or a path under `apps/forge/`, and no page module or shared file reaches a file
- * outside `page/` but those shared files; read through the compiler, the page program compiles no Gaia file the tsconfig leaves out,
- * nothing under `apps/forge/` and no `forge-contracts` file. Gaia's own components under
- * `page/components/` import no shell, view or board. The Flint library is imported only from `page/board/`; that every import of a library
- * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. No page module imports Gaia by its package name, which would slip
- * past every rule that reads relative paths. What matters: the rules read every shipping module, specs aside, since a spec may render the
- * whole shell; and each check is first proved on a planted case, in memory.
+ * The page's folders import one way: the shell draws the views, views draw the board, and nothing imports upward; the page reaches no
+ * forge code, `forge-contracts` included, and no Gaia file outside `page/` but the shared files its tsconfig names.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative }               from 'node:path';

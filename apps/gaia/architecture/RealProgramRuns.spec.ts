@@ -1,8 +1,6 @@
 /**
- * Only process-run starts another program, and every spec reaches other programs through the recorded-runs mock. A direct start is
- * allowed only in the exact list below, and the real boundary only in shipping code, in a recording spec and in the record command; both
- * lists are exact both ways. A reach is found in a file's syntax tree, so a sentence or a string is not one. The scan first proves it saw
- * the repository, and each form is planted to prove the test names it.
+ * Only process-run starts another program, and every spec reaches other programs through the recorded-runs mock. Both allow lists below
+ * are exact both ways, and a reach is found in a file's syntax tree, so a sentence or a string is not one.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

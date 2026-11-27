@@ -1,9 +1,6 @@
 /**
- * Every workspace package Gaia's code names by a bare specifier is declared in Gaia's `package.json`, or neither the workspace install nor
- * turbo knows Gaia depends on it, and a change to that package would leave Gaia's cached checks green. What matters: the scan reads the
- * imports, re-exports and dynamic imports of `src/` and `page/` and the stylesheets `page/index.html` links, sees the workspace's packages
- * from its manifest, and each form is planted to prove the test names it. The libraries under `page/lib/` are no workspace packages: a
- * bare specifier that names one is a finding, since a library is reached by a relative path to its interface file or a linked file.
+ * Every workspace package Gaia's code names by a bare specifier is declared in Gaia's `package.json`, or turbo would not rerun Gaia's
+ * checks when that package changes. A library under `page/lib/` is no workspace package: it is reached by a relative path.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

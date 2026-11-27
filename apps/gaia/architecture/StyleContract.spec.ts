@@ -1,20 +1,7 @@
 /**
- * Gaia's style contract, read from the stylesheets and the components themselves. What matters: every text pair of `docs/design/components.md`
- * section 4, in the design-system package's token names, holds 4.5:1 in both themes as a WCAG 2 text pair, a translucent token composited
- * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 as the owner accepts; every colour token of
- * Gaia's own `tokens.css` has a light and a dark value, and every token of it is read somewhere; `gaia.css` holds no colour value and
- * reads only tokens that the package's or Gaia's `tokens.css` defines; a hover or press rule changes no size or place; every class a
- * shipping component emits is styled, and every styled class emitted; and one rule hides a label read only by a screen reader. Motion, in
- * `gaia.css` and the splash's own style: every transition and animation times itself with a package motion token and eases with
- * `--ease-out`, animates no size or place, and starts from no size or place; an animation is a live signal that runs only once motion is
- * ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no keyframe and names
- * only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under reduced motion, or is an
- * exception only a gated animation reads. The board's views under `page/board/` are styled apart, by the stylesheets `BOARD_STYLESHEETS`
- * lists under `page/styles/board/`, and held by the Bridge's own style checks (`page/testing/BoardStyleChecks.ts`): no hover or press that
- * moves, a winning reduced-motion rule for each animation outside the no-preference query, a dark value for each literal colour token but
- * one the same in both themes, set once; beside them classes emitted and styled both ways, balanced braces, only defined tokens and no
- * colour value, the board's text pairs at 4.5:1, no `gaia-` board class and no `board-` Gaia class, and every keyframe named `board-` and
- * kept in a board stylesheet. Each check is first proved on a planted case, in memory.
+ * Gaia's style contract, read from the stylesheets and the components: the text pairs of `docs/design/components.md` hold their contrast
+ * in both themes, Gaia's stylesheets read only defined tokens, motion uses the package's tokens and stops under reduced motion, and the
+ * board's stylesheets are held apart by `page/testing/BoardStyleChecks.ts`.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                         from 'node:path';

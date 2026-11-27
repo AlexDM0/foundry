@@ -1,8 +1,7 @@
 /**
  * Gaia speaks to forge only: no shipping line of the server or the page, comments included, names the agent vendor, its wire fields, its
- * tool names or its marks; forge's agent port is where the vendor lives. Specs, `.dom.tsx` files, testing folders and recordings plant and
- * replay forge's answers, so they are not scanned. The scan first proves it saw the tree, the allowlist is exact both ways, each entry
- * naming the forge package that removes it, and each form is planted once.
+ * tool names or its marks; forge's agent port is where the vendor lives. Specs, `.dom.tsx` files, testing folders and recordings replay
+ * forge's answers, so they are not scanned; the allowlist is exact both ways, each entry naming the forge package that removes it.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';

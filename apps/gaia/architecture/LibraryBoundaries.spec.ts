@@ -1,10 +1,6 @@
 /**
- * The libraries of Gaia's page, each a folder of `page/lib/`. What matters: every library has exactly one interface file at its root,
- * named after its folder, a `README.md`, at least one spec and no `package.json`; code outside a library that imports a file of it imports
- * exactly its interface file, and a page or stylesheet outside it links only the files the library offers for linking; a file inside a
- * library reaches nothing outside its folder, no other library and no Gaia file; and inside a library only the interface file re-exports,
- * one name at a time, and no file imports its own interface file. The scan first proves it read every library, and each form is planted in
- * memory.
+ * The libraries of `page/lib/`: each has one interface file named after its folder, a README, a spec and no `package.json`; outside code
+ * reaches a library only through its interface file or the files it offers for linking; and a library reaches nothing outside its folder.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative }   from 'node:path';

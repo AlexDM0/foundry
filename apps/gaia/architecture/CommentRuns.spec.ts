@@ -32,14 +32,7 @@ const REFERENCE_PATTERNS: readonly RegExp[] = [
 ];
 
 /** Files with comments longer than five lines, each with its count; the sweep shrinks this to nothing and nothing joins it. */
-const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {
-  'architecture/AgentVendorNames.spec.ts':      1,
-  'architecture/LibraryBoundaries.spec.ts':     1,
-  'architecture/PageImportDirection.spec.ts':   1,
-  'architecture/RealProgramRuns.spec.ts':       1,
-  'architecture/StyleContract.spec.ts':         1,
-  'architecture/WorkspaceDependencies.spec.ts': 1,
-};
+const LONG_COMMENTS_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {};
 
 /** Files whose comments name a reference, each with its count of such comments; it only shrinks. */
 const REFERENCES_AWAITING_THE_SWEEP: Readonly<Record<string, number>> = {};
