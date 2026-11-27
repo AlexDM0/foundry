@@ -59,7 +59,7 @@ async function servedEndpoint(optionChanges: Partial<TalosSocketOptions> = {}): 
     },
     ...optionChanges,
   });
-  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.reason}`);
+  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.systemError}`);
   return {
     endpoint, framesTaken, versionMismatches: () => versionMismatches, close: listening.server.close,
   };

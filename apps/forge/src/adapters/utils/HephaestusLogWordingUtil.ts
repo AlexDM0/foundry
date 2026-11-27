@@ -11,6 +11,9 @@ import type {
   UnstartableGuardReason
 } from '../@types/HephaestusLogRecord.ts';
 
+import { ConfinementRefusalWording }           from '../ConfinementRefusalWording.ts';
+import { ExecutableRefusalWording }            from '../ExecutableRefusalWording.ts';
+import { GitProblemWording }                   from '../GitProblemWording.ts';
 import { AgentSlotProblemWording }             from '../agent-slot/AgentSlotProblemWording.ts';
 import { MergedTreeGateOutcomeProblemWording } from '../gate-outcome/MergedTreeGateOutcomeProblemWording.ts';
 import { GateProfileOutputProblemWording }     from '../gate-profile-output/GateProfileOutputProblemWording.ts';
@@ -21,6 +24,7 @@ import { HephaestusLockProblemWording }        from '../hephaestus-lock/Hephaest
 import { PresenceProblemWording }              from '../presence/PresenceProblemWording.ts';
 import { SeenHeadProblemWording }              from '../seen-head/SeenHeadProblemWording.ts';
 import { UsageMarkerProblemWording }           from '../usage-marker/UsageMarkerProblemWording.ts';
+import { WorktreeFailureWording }              from '../worktree-failure/WorktreeFailureWording.ts';
 import { UnreadableFileProblemWordingUtil }    from './UnreadableFileProblemWordingUtil.ts';
 
 function staleHoldingReasonOf<Problem>(reason: StaleHoldingReason<Problem>, sentenceOf: (problem: Problem) => string): string {
@@ -157,14 +161,14 @@ function detailsOf(record: HephaestusLogRecord): string {
       return `The merged-tree gate run folder ${record.runFolderName} is removed: its kept outcome cannot be read `
         + `(${MergedTreeGateOutcomeProblemWording.sentenceOf(record.problem)}).`;
     case 'gate-profile-failed':             return `Gate profile ${record.profileRunId} failed and waits for the next start: ${record.thrownMessage}`;
-    case 'gate-profile-worktree-left-over': return `The gate profile worktree ${record.worktreePath} is a leftover: ${record.removalReason}`;
+    case 'gate-profile-worktree-left-over': return `The gate profile worktree ${record.worktreePath} is a leftover: ${GitProblemWording.sentenceOf(record.problem)}`;
     case 'gate-profile-output-unreadable':
       return `The gate profile output ${record.outputFilePath} could not be read (${GateProfileOutputProblemWording.sentenceOf(record.problem)}); its stream waits.`;
     case 'gate-profile-output-line-unreadable':
       return `Line ${record.lineNumber} of the gate profile output ${record.outputFilePath} could not be read (${GateProfileOutputProblemWording.sentenceOf(record.problem)}); `
         + 'it and any later unreadable line are not sent.';
     case 'pipeline-check-failed':             return `Pipeline check of setup ${record.setupId} failed and waits for the next start: ${record.thrownMessage}`;
-    case 'pipeline-check-worktree-left-over': return `The pipeline check worktree ${record.worktreePath} is a leftover: ${record.removalReason}`;
+    case 'pipeline-check-worktree-left-over': return `The pipeline check worktree ${record.worktreePath} is a leftover: ${GitProblemWording.sentenceOf(record.problem)}`;
     case 'lease-renewal-without-connection':  return 'The lease renewal found no connection to Talos.';
     case 'lease-renewal-unanswered':          return 'Talos did not answer a lease renewal.';
     case 'lease-renewal-refused':             return `Talos refused a lease renewal: ${record.reason}.`;
@@ -174,9 +178,10 @@ function detailsOf(record: HephaestusLogRecord): string {
     case 'usage-marker-malformed':
       return `The usage marker ${record.markerPath} is malformed (${UsageMarkerProblemWording.sentenceOf(record.problem)}); no limit is held by it.`;
     case 'session-confinement-refused':
-      return `The session of job ${record.jobId} did not launch: ${record.confinementRefusal}; the next pass tries again.`;
+      return `The session of job ${record.jobId} did not launch: ${ConfinementRefusalWording.sentenceOf(record.confinementRefusal)}; the next pass tries again.`;
     case 'tool-left-off-search-path':
-      return `The tool ${record.toolName} is left off the search path of job ${record.jobId}: ${record.resolverRefusal}.`;
+      return `The tool ${record.toolName} is left off the search path of job ${record.jobId}: `
+        + `${ExecutableRefusalWording.sentenceOf({ cause: 'inside-forbidden-root', path: record.toolPath, forbiddenRoot: record.forbiddenRoot })}.`;
     case 'job-file-unreadable-at-launch':
       return `Job ${record.jobId} did not launch: its launch reads ${record.file}, which cannot be read (${UnreadableFileProblemWordingUtil.sentenceOf(record.problem)}).`;
     case 'pipeline-agent-awaits-billing':
@@ -192,7 +197,7 @@ function detailsOf(record: HephaestusLogRecord): string {
     }
     case 'child-instance-launched':
       return `Launched child instance ${record.childInstance} of job ${record.jobId} (${launchedJobWordsOf(record)}) under Talos.`;
-    case 'cleanup-declined':                return `Git declined the ${record.cleanup} cleanup of ${record.groupBranch}: ${record.gitMessage}`;
+    case 'cleanup-declined':                return `Git declined the ${record.cleanup} cleanup of ${record.groupBranch}: ${GitProblemWording.sentenceOf(record.problem)}`;
     case 'presence-unrecorded':             return `Presence could not record the pass: ${record.thrownMessage}`;
     case 'pass-abandoned':                  return `Drive pass abandoned (${record.reason}); it waits for the next wake-up: ${record.refusalMessage}`;
     case 'pass-crashed':                    return `Drive pass crashed: ${record.thrownMessage}; the crash path runs and no further pass runs.`;
@@ -217,12 +222,12 @@ function detailsOf(record: HephaestusLogRecord): string {
       return `Launched the ${record.step} line of job ${record.jobId} (#${record.ticketId}) under Talos, merging ${record.mergedTip} into ${record.branch}.`;
     case 'fresh-worktree-differs':
       return `The fresh worktree of job ${record.jobId} already differs from its commit in ${record.changedFileCount} file(s), as line-ending normalisation leaves it.`;
-    case 'worktree-creation-failed': return `Creating the worktree of job ${record.jobId} failed: ${record.worktreeFailure}`;
+    case 'worktree-creation-failed': return `Creating the worktree of job ${record.jobId} failed: ${WorktreeFailureWording.sentenceOf(record.failure)}`;
     case 'seen-head-unreadable':
       return `The document agent's seen head ${record.seenHeadFilePath} is unreadable, so its next line carries the head again: `
         + SeenHeadProblemWording.sentenceOf(record.problem);
-    case 'document-agent-snapshot-left-over': return `The document agent snapshot ${record.snapshotPath} is a leftover: ${record.removalReason}`;
-    case 'pipeline-agent-snapshot-left-over': return `The pipeline agent snapshot ${record.snapshotPath} is a leftover: ${record.removalReason}`;
+    case 'document-agent-snapshot-left-over': return `The document agent snapshot ${record.snapshotPath} is a leftover: ${GitProblemWording.sentenceOf(record.problem)}`;
+    case 'pipeline-agent-snapshot-left-over': return `The pipeline agent snapshot ${record.snapshotPath} is a leftover: ${GitProblemWording.sentenceOf(record.problem)}`;
   }
 }
 

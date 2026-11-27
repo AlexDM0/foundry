@@ -40,7 +40,7 @@ function deleteJournal(workspace: Workspace, fileReplace: FileReplace): void {
   try {
     removeUnlessAbsent(journalFilePath, fileReplace);
   } catch (failure) {
-    throw new OperationRefusal('unrepaired', { kind: 'hold-journal-unremovable', journalFilePath, reason: String(failure) });
+    throw new OperationRefusal('unrepaired', { kind: 'hold-journal-unremovable', journalFilePath, systemError: String(failure) });
   }
 }
 

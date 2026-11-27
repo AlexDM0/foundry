@@ -39,19 +39,19 @@ export function talosStartFileOf(text: string): StoredRecordReading<TalosStartFi
   const reading = ParsedValueUtil.parsedObjectOf(text, TALOS_START_FILE_FORMAT_VERSION);
   if (reading.verdict !== 'object') return reading;
   const field = (key: keyof TalosStartFile): unknown => ParsedValueUtil.ownFieldOf(reading.parsed, key);
-  const unreadable = (reason: string): StoredRecordReading<TalosStartFile> => ({ verdict: 'unreadable', reason });
+  const unreadable = (field: string): StoredRecordReading<TalosStartFile> => ({ verdict: 'unreadable', problem: { code: 'field-malformed', field } });
   const startNumber = field('startNumber');
   const boardFolder = field('boardFolder');
   const endpoint = field('endpoint');
   const secretFilePath = field('secretFilePath');
   const codeVersion = field('codeVersion');
-  if (!ParsedValueUtil.isWholeNumberAtLeast(startNumber, 1)) return unreadable('startNumber is not a whole number from 1');
-  if (typeof boardFolder !== 'string' || !isAbsolute(boardFolder)) return unreadable('boardFolder is not an absolute path');
-  if (typeof endpoint !== 'string' || endpoint === '') return unreadable('endpoint is not a non-empty string');
-  if (typeof secretFilePath !== 'string' || !isAbsolute(secretFilePath)) return unreadable('secretFilePath is not an absolute path');
-  if (typeof codeVersion !== 'string') return unreadable('codeVersion is not a string');
+  if (!ParsedValueUtil.isWholeNumberAtLeast(startNumber, 1)) return unreadable('startNumber');
+  if (typeof boardFolder !== 'string' || !isAbsolute(boardFolder)) return unreadable('boardFolder');
+  if (typeof endpoint !== 'string' || endpoint === '') return unreadable('endpoint');
+  if (typeof secretFilePath !== 'string' || !isAbsolute(secretFilePath)) return unreadable('secretFilePath');
+  if (typeof codeVersion !== 'string') return unreadable('codeVersion');
   const unboundedKey = BOUND_KEYS.find((key) => !ParsedValueUtil.isWholeNumberAtLeast(field(key), 1));
-  if (unboundedKey !== undefined) return unreadable(`${unboundedKey} is not a whole number of milliseconds above 0`);
+  if (unboundedKey !== undefined) return unreadable(unboundedKey);
   const boundOf = (key: typeof BOUND_KEYS[number]): number => field(key) as number;
   return {
     verdict: 'read',

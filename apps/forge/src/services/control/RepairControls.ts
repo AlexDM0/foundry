@@ -36,7 +36,7 @@ function repairWorktree(command: ControlCommandOf<'worktree-repair'>, change: Bo
   });
   if (repaired.verdict === 'uncommitted-work-not-saved') throw new OperationRefusal('refused', { kind: 'worktree-has-uncommitted-work', ticketId, worktreePath });
   if (repaired.verdict === 'git-failed') throw new OperationRefusal('refused', {
-    kind: 'worktree-repair-failed', ticketId, step: command.step, gitReason: repaired.reason
+    kind: 'worktree-repair-failed', ticketId, step: command.step, problem: repaired.problem
   });
   const recorded = change.board.recordWorktreeRepaired(ticketId, { step: command.step, patchPath: repaired.patchPath }, change.at);
   return handledUnder(change, incident?.id, 'worktree-repair', recorded);

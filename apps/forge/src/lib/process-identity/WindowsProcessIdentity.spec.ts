@@ -212,7 +212,7 @@ describe('a forced tree stop', () => {
     const supervision = windowsProcessSupervision(kernel.api, kernel.primitives, systemRoot);
     const outcome = supervision.stopTree(leader, 'force');
     expect(outcome.verdict).toBe('refused');
-    expect(outcome.verdict === 'refused' ? outcome.reason : '').toContain('SystemRoot');
+    expect(outcome).toEqual({ verdict: 'refused', refusal: { cause: 'no-system-root' } });
     expect(supervision.stopProcess(CHILD_PROCESS_ID, 'force').verdict).toBe('refused');
     expect(kernel.programs).toEqual([]);
     expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
@@ -227,7 +227,7 @@ describe('a forced tree stop', () => {
     const supervision = windowsProcessSupervision(api, kernel.primitives, EXAMPLE_SYSTEM_ROOT);
     const outcome = supervision.stopTree(leader, 'force');
     expect(outcome.verdict).toBe('refused');
-    expect(outcome.verdict === 'refused' ? outcome.reason : '').toContain(String(CHILD_PROCESS_ID));
+    expect(outcome).toMatchObject({ verdict: 'refused', refusal: { cause: 'tree-starts-unreadable', processIds: [CHILD_PROCESS_ID] } });
     expect(supervision.treeMembersOf(leader)).toBeNull();
     expect(kernel.table.has(CHILD_PROCESS_ID)).toBe(true);
   });

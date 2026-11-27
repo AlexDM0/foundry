@@ -336,7 +336,7 @@ describe('replayHoldJournal', () => {
     expect(refusalIsOperationRefusal(refusal)).toBe(true);
     expect(refusal).toEqual(expect.objectContaining({
       status: 'unrepaired',
-      detail: { kind: 'hold-journal-unremovable', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, reason: 'Error: held' },
+      detail: { kind: 'hold-journal-unremovable', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, systemError: 'Error: held' },
     }));
     expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(true);
   });

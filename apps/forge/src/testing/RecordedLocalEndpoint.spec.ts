@@ -249,7 +249,7 @@ describeWhenRecorded(['local-endpoint-recording'], 'a Talos socket over the mock
   ] as const)('answers a hello with %s with the frames, the end and the close the real one gave', async (_case, secret, callShape) => {
     const endpoint = nextEndpoint();
     const listening = await listenOnIdleTalosSocket(recorded.endpoint, endpoint, TALOS_SECRET);
-    if (listening.verdict !== 'listening') throw new Error(listening.reason);
+    if (listening.verdict !== 'listening') throw new Error(listening.systemError);
     const client = watched((await connectOutcomeOf(endpoint)).socket, true);
     client.socket.write(talosHelloLineOf(secret));
     await afterEveryMockedAnswer();

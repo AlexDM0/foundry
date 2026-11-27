@@ -48,7 +48,7 @@ function foundToolsOf(tools: readonly PipelineTool[], context: AgentCommandPrepa
   return tools.map((tool) => {
     if (tool.path !== '') {
       const program = context.check.resolver.programAt(tool.path, context.toolForbiddenRoots);
-      if (program.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'tool-refused', name: tool.name, reason: program.reason });
+      if (program.verdict === 'refused') throw new OperationRefusal('refused', { kind: 'tool-refused', name: tool.name, refusal: program });
       return tool;
     }
     const path = AgentTools.foundPathOf(tool.name, context.toolSearch, context.check.resolver, context.toolForbiddenRoots);

@@ -66,7 +66,7 @@ export function createSynchronousCalls(transport: SynchronousCallsTransport): Sy
     if (pendingCall === undefined) return;
     pendingCalls.delete(answer.callId);
     if (answer.verdict === 'done') pendingCall.resolve(answer.value);
-    else pendingCall.reject(new SynchronousCallFailedError(pendingCall.call, answer.reason));
+    else pendingCall.reject(new SynchronousCallFailedError(pendingCall.call, answer.systemError));
   });
 
   transport.onFailure((reason) => {

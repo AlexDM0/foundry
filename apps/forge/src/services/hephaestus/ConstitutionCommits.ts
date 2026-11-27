@@ -9,6 +9,7 @@ import { mkdirSync }     from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { writeFileAtomically }                      from '../../lib/atomic-file/AtomicFile.ts';
+import type { WorktreeRemovalProblem }              from '../../lib/git/@types/GitProblem.ts';
 import { GitProcess }                               from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                             from '../../lib/git/GitWorktrees.ts';
 import { projectLocationOf }                        from '../tracker/ProjectLocation.ts';
@@ -141,11 +142,11 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   return { verdict: 'committed', commit };
 }
 
-/** Forced: the worktree holds only the job's own commit, landed or refused, never User's work. `null` once it is gone, else git's reason. */
-function removeCommitWorktree(projectDirectory: string, worktreesRoot: string, jobId: string): string | null {
+/** Forced: the worktree holds only the job's own commit, landed or refused, never User's work. `null` once it is gone, else why it stays. */
+function removeCommitWorktree(projectDirectory: string, worktreesRoot: string, jobId: string): WorktreeRemovalProblem | null {
   const { repositoryRoot } = projectLocationOf(projectDirectory);
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: commitWorktreeOf(worktreesRoot, jobId), force: 'force' });
-  return removal.verdict === 'removed' ? null : removal.reason;
+  return removal.verdict === 'removed' ? null : removal.problem;
 }
 
 export const ConstitutionCommits = Object.freeze({

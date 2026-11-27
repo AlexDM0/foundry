@@ -29,7 +29,7 @@ function setNamespace(command: CommandOf<'namespace-set'>, change: BoardTransact
   if (jobsOnBranches.length > 0) throw new OperationRefusal('refused', { kind: 'namespace-board-has-jobs', jobCount: jobsOnBranches.length });
   const branchList = GitProcess.run(change.workspace.rootDirectory, BRANCH_LIST_ARGUMENTS);
   if (!GitProcess.succeeded(branchList)) {
-    throw new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', reason: GitProcess.failureReasonOf(branchList, BRANCH_LIST_ARGUMENTS) });
+    throw new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', problem: GitProcess.failureOf(branchList, BRANCH_LIST_ARGUMENTS) });
   }
   const branches = branchList.standardOutput.split('\n').filter((branch) => branch !== '');
   const refusal  = BranchNamespaceUtil.refusalOf(branches, branchNamesOf(board.branchNamespace()), wantedNamespace);

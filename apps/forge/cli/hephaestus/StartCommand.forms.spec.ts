@@ -85,7 +85,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the confinem
     expect(await runCommandLine(commandLine, context)).toBe(1);
 
     expect(context.errorText().trim()).toBe(`Gates and install lines cannot run confined here, so Hephaestus did not start: ${FAKE_MISSING_TOOLS_REASON}.`);
-    expect(context.errorText()).toContain('bubblewrap, socat and ripgrep');
+    expect(context.errorText()).toContain('bwrap (bubblewrap)');
     expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
     expect(HephaestusLock.newestOf(nativePlatformPorts(), hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory).verdict).not.toBe('live');
   });

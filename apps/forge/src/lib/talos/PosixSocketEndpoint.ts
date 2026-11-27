@@ -30,13 +30,14 @@ function outcomeOf(attempt: () => EndpointOutcome | null): EndpointOutcome {
   try {
     return attempt() ?? { verdict: 'done' };
   } catch (error) {
-    return { verdict: 'refused', reason: String(error) };
+    return { verdict: 'refused', refusal: { cause: 'system-error', systemError: String(error) } };
   }
 }
 
-/** The folder's restriction refused, as its cause and path, since this package words nothing. */
 function restrictionRefusalOf(restriction: OwnerOnlyRestriction): EndpointOutcome | null {
-  return restriction.verdict === 'refused' ? { verdict: 'refused', reason: `${restriction.cause}: ${restriction.path}` } : null;
+  return restriction.verdict === 'refused'
+    ? { verdict: 'refused', refusal: { cause: 'folder-not-private', restrictionCause: restriction.cause, path: restriction.path } }
+    : null;
 }
 
 export function createPosixSocketEndpoint(primitives: PosixEndpointPrimitives, socketPathLimitBytes: number): LocalEndpoint {

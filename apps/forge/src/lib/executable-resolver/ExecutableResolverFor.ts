@@ -45,8 +45,7 @@ export const REAL_EXECUTABLE_RESOLVER_PRIMITIVES: ExecutableResolverPrimitives =
 export function executableResolverFor(platform: string): ExecutableResolver {
   if (platform === 'darwin' || platform === 'linux') return createPosixExecutableResolver(REAL_EXECUTABLE_RESOLVER_PRIMITIVES);
   if (platform === 'win32') return createWindowsExecutableResolver(REAL_EXECUTABLE_RESOLVER_PRIMITIVES);
-  const reason = `no executable resolver exists for the platform ${platform}`;
-  const refusal = { verdict: 'refused', cause: 'no-adapter', reason } as const;
+  const refusal = { verdict: 'refused', cause: 'no-adapter', platformName: platform } as const;
   return Object.freeze<ExecutableResolver>({ absolutePathOf: () => refusal, programAt: () => refusal });
 }
 

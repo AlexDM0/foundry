@@ -222,8 +222,9 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     const refused = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'board-refusal', boardRefusal } });
     expect([refused?.applyRefusal?.code, refused?.applyRefusal?.fields]).toEqual(['pipeline-moved', { setupId: 'S2', baseContentHash: 'example-hash', contentHash: 'other-hash' }]);
     expect(refused?.applyRefusal?.sentence).not.toBe('');
-    const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', reason: 'git failed' } });
-    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { reason: 'git failed' }]);
+    const problem = { code: 'main-line-unresolved', mainLine: 'main' } as const;
+    const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', problem } });
+    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { problem }]);
     expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.applyRefusal).toBeNull();
   });
 

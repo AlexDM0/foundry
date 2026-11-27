@@ -61,7 +61,7 @@ export const REAL_BUBBLEWRAP_PRIMITIVES: BubblewrapPrimitives = Object.freeze({
 
 function createUnsupportedGateConfinement(platform: string): GateConfinement {
   return Object.freeze<GateConfinement>({
-    availability:      () => ({ verdict: 'unavailable', reason: `no gate confinement exists for the platform ${platform}` }),
+    availability:      () => ({ verdict: 'unavailable', unavailability: { cause: 'no-adapter', platformName: platform } }),
     workerConfinement: () => 'unavailable',
     confinedArgvOf:    (_plan, argv) => [...argv],
   });

@@ -27,6 +27,7 @@ import type {
   ConstitutionSources,
   EntityConstitutionsOnMain,
   MainConstitution,
+  MainConstitutionProblem,
   PipelineDraftEdit,
   PipelineDraftField,
   PipelineSetup,
@@ -259,7 +260,7 @@ function startedEntityAgentsOf(changed: PipelineSetupChanged, change: BoardTrans
 /** Main's `CONSTITUTION.md`, `null` when main holds none; a read git cannot answer refuses, since a guess would hide a change on main. */
 function mainConstitutionOf(change: BoardTransaction, context: ControlContext): MainConstitution | null {
   const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
-  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', problem: reading.problem });
   return reading.verdict === 'read' ? reading.constitution : null;
 }
 
@@ -610,11 +611,11 @@ function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevis
   return { draftRevision, resumesBoard };
 }
 
-type EntityConstitutionsReading = { verdict: 'read'; readings: EntityConstitutionsOnMain } | { verdict: 'unreadable'; reason: string };
+type EntityConstitutionsReading = { verdict: 'read'; readings: EntityConstitutionsOnMain } | { verdict: 'unreadable'; problem: MainConstitutionProblem };
 
 /**
  * Each entity's constitution file on main, at the path its draft entity names or in its first home, read only on a draft over entities;
- * unreadable, with git's reason, when git could not answer one of them.
+ * unreadable, with git's problem, when git could not answer one of them.
  */
 function entityConstitutionsOf(change: BoardTransaction, context: ControlContext): EntityConstitutionsReading {
   const entities = change.board.pipelineSetup()?.draft?.entities ?? {};
@@ -649,7 +650,7 @@ function applySetup(command: CommandOf<'pipeline-apply'>, change: BoardTransacti
   let entityConstitutions: EntityConstitutionsOnMain | undefined;
   if (change.board.pipelineSetup()?.setupId === setupId && draftHasEntities(change)) {
     const reading = entityConstitutionsOf(change, context);
-    if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+    if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', problem: reading.problem });
     entityConstitutions = reading.readings;
   }
   return change.board.requestApply(setupId, { draftRevision, resumesBoard, ...applyMainReadingOf(mainConstitution, entityConstitutions) }, change.at);

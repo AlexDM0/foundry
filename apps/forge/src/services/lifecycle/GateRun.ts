@@ -12,7 +12,6 @@ import { tmpdir }                  from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
 import { GateReportFile }                                   from '../../adapters/pipeline/GateReportFile.ts';
-import type { ConfinedLine }                                from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
 import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shell-line/ShellLine.ts';
@@ -136,7 +135,12 @@ export interface PipelineRunRequest {
 }
 
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
-export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
+/** `reason` is the sentence the step's output then records, as its confiner worded the refusal. */
+export type ConfinedGateLine =
+  | { readonly verdict: 'runs'; readonly argv: readonly string[] }
+  | { readonly verdict: 'refused'; readonly reason: string };
+
+export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedGateLine;
 
 /** What every run's verdict carries: each gate's cache report, and each step line that ran with its run time, both in run order. */
 interface PipelineRunRecords {

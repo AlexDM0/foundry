@@ -8,6 +8,7 @@ import { existsSync, statSync } from 'node:fs';
 import { join }                 from 'node:path';
 
 import { hostExecutableResolver }   from '../executable-resolver/ExecutableResolverFor.ts';
+import type { GitRunFailure }       from './@types/GitProblem.ts';
 import { repositoryRootWithoutGit } from './RepositoryRootWithoutGit.ts';
 import { PORTABLE_GIT_SETTINGS }    from './constants/GitConventions.ts';
 import { GitArgumentsUtil }         from './utils/GitArgumentsUtil.ts';
@@ -100,6 +101,14 @@ function directoryExists(path: string): boolean {
   }
 }
 
+/** A run `succeeded` rejected, as its arguments and git's own message; `null` is a git that never started. */
+function failureOf(finishedRun: GitRun | null, gitArguments: readonly string[]): GitRunFailure {
+  if (finishedRun === null) return { code: 'git-not-started', gitArguments };
+  return {
+    code: 'git-exited', gitArguments, exitCode: finishedRun.exitCode, gitMessage: finishedRun.standardError
+  };
+}
+
 function failureReasonOf(finishedRun: GitRun | null, gitArguments: readonly string[]): string {
   const command = `git ${gitArguments.join(' ')}`;
   if (finishedRun === null) return `${command} could not be started.`;
@@ -116,6 +125,7 @@ function resolvedCommitOf(directory: string, revision: string, ceilingDirectory?
 export const GitProcess = {
   commandOf,
   directoryExists,
+  failureOf,
   failureReasonOf,
   resolvedCommitOf,
   run,

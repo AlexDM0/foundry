@@ -223,7 +223,7 @@ async function childrenOverServedTalos(
       return answerOf(frame);
     },
   });
-  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.reason}`);
+  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.systemError}`);
   closers.push(listening.server.close);
   const outcome = await connectToTalos({
     endpoint, secret: EXAMPLE_SECRET, localEndpoint: recordedEndpoint.endpoint, frameTimeoutMilliseconds

@@ -5,10 +5,12 @@
  */
 import { join } from 'node:path';
 
-import { GitProcess }   from '../../lib/git/GitProcess.ts';
-import { GitWorktrees } from '../../lib/git/GitWorktrees.ts';
+import type { GitRunFailure, WorktreeRemovalProblem } from '../../lib/git/@types/GitProblem.ts';
+import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                               from '../../lib/git/GitWorktrees.ts';
+import type { GroupWorktreeProblem }                  from '../../shared/@types/GroupWorktreeProblem.ts';
 
-export type GroupWorktreeVerdict = { verdict: 'ready'; path: string } | { verdict: 'git-failed'; reason: string };
+export type GroupWorktreeVerdict = { verdict: 'ready'; path: string } | { verdict: 'git-failed'; problem: GroupWorktreeProblem };
 
 const REFRESH_FOLDER_PREFIX = 'refresh-';
 
@@ -21,7 +23,7 @@ function refreshWorktreeOf(worktreesRoot: string, groupBranch: string): string {
 }
 
 function leftoverRefusalOf(path: string): GroupWorktreeVerdict {
-  return { verdict: 'git-failed', reason: `The leftover folder ${path} is not a checkout of the repository.` };
+  return { verdict: 'git-failed', problem: { code: 'leftover-not-a-checkout', path } };
 }
 
 /**
@@ -40,13 +42,13 @@ function checkoutIsOnBranch(path: string, branch: string): boolean {
 function addWorktree(repositoryRoot: string, path: string, worktreeArguments: readonly string[], expectedBranch: string | null): GroupWorktreeVerdict {
   const state = GitWorktrees.worktreeStateOf(repositoryRoot, path);
   if (state === 'checkout' && expectedBranch !== null && !checkoutIsOnBranch(path, expectedBranch)) {
-    return { verdict: 'git-failed', reason: `The folder ${path} is a checkout of another branch than ${expectedBranch}.` };
+    return { verdict: 'git-failed', problem: { code: 'checkout-of-another-branch', path, expectedBranch } };
   }
   if (state === 'checkout') return { verdict: 'ready', path };
   if (state === 'leftover') return leftoverRefusalOf(path);
   const gitArguments = ['worktree', 'add', '--quiet', ...worktreeArguments];
   const run          = GitProcess.run(repositoryRoot, gitArguments);
-  return GitProcess.succeeded(run) ? { verdict: 'ready', path } : { verdict: 'git-failed', reason: GitProcess.failureReasonOf(run, gitArguments) };
+  return GitProcess.succeeded(run) ? { verdict: 'ready', path } : { verdict: 'git-failed', problem: GitProcess.failureOf(run, gitArguments) };
 }
 
 /** The branch is made from the main line's tip only when it does not exist yet; an existing one is checked out as it stands. */
@@ -61,15 +63,16 @@ function detachLeftoverAt(path: string, groupTip: string): GroupWorktreeVerdict 
   const ceiling = GitWorktrees.ceilingOf(path);
   if (GitProcess.resolvedCommitOf(path, 'HEAD', ceiling) === groupTip) return { verdict: 'ready', path };
   if (GitProcess.resolvedCommitOf(path, 'MERGE_HEAD', ceiling) !== null) {
-    return { verdict: 'git-failed', reason: `The leftover refresh worktree ${path} holds a merge in progress.` };
+    return { verdict: 'git-failed', problem: { code: 'refresh-merge-in-progress', path } };
   }
   const status = GitProcess.run(path, ['status', '--porcelain=v1', '--untracked-files=no'], 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(status) || status.standardOutput.trim() !== '') {
-    return { verdict: 'git-failed', reason: `The leftover refresh worktree ${path} holds uncommitted changes.` };
+    return { verdict: 'git-failed', problem: { code: 'refresh-changes-uncommitted', path } };
   }
   const gitArguments = ['checkout', '--quiet', '--detach', groupTip];
   const run          = GitProcess.run(path, gitArguments, 'hooks-off', undefined, ceiling);
-  return GitProcess.succeeded(run) ? { verdict: 'ready', path } : { verdict: 'git-failed', reason: `${path}: ${GitProcess.failureReasonOf(run, gitArguments)}` };
+  if (GitProcess.succeeded(run)) return { verdict: 'ready', path };
+  return { verdict: 'git-failed', problem: { code: 'refresh-not-detached', path, gitFailure: GitProcess.failureOf(run, gitArguments) } };
 }
 
 /** Detached at the group's recorded tip, so nothing but the landing's `merge --ff-only` ever moves the group branch. */
@@ -86,19 +89,19 @@ function cleanupIsStillDeclined(repositoryRoot: string, worktreesRoot: string, g
   return !worktreeIsGone(groupWorktreeOf(worktreesRoot, groupBranch)) || GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${groupBranch}`) !== null;
 }
 
-/** Never forced: a worktree git declines to remove stays, and the reason is handed back. */
-function removeWorktree(repositoryRoot: string, path: string): string | null {
+/** Never forced: a worktree git declines to remove stays, and the problem is handed back. */
+function removeWorktree(repositoryRoot: string, path: string): WorktreeRemovalProblem | null {
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: path, force: 'never-force' });
-  return removal.verdict === 'removed' ? null : removal.reason;
+  return removal.verdict === 'removed' ? null : removal.problem;
 }
 
 /** After the release: the group worktree removed, then its branch deleted with `branch -d`, which refuses an unmerged one. */
-function removeGroup(repositoryRoot: string, worktreesRoot: string, groupBranch: string): string | null {
+function removeGroup(repositoryRoot: string, worktreesRoot: string, groupBranch: string): WorktreeRemovalProblem | GitRunFailure | null {
   const worktreeFailure = removeWorktree(repositoryRoot, groupWorktreeOf(worktreesRoot, groupBranch));
   if (worktreeFailure !== null) return worktreeFailure;
   const gitArguments = ['branch', '-d', groupBranch];
   const run          = GitProcess.run(repositoryRoot, gitArguments);
-  return GitProcess.succeeded(run) ? null : GitProcess.failureReasonOf(run, gitArguments);
+  return GitProcess.succeeded(run) ? null : GitProcess.failureOf(run, gitArguments);
 }
 
 export const GroupWorktrees = Object.freeze({

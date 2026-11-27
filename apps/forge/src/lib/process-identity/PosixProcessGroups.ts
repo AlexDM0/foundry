@@ -109,7 +109,7 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
       return { verdict: 'signalled' };
     } catch (error) {
       if (errorSaysNoSuchProcess(error)) return { verdict: 'group-gone' };
-      return { verdict: 'refused', reason: `the process group ${processGroupId} could not be signalled: ${String(error)}` };
+      return { verdict: 'refused', refusal: { cause: 'group-not-signalled', processGroupId, systemError: String(error) } };
     }
   }
 
@@ -121,7 +121,7 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
     if (!groupHasMembers(leader.processId)) return { verdict: 'group-gone' };
     if (reader.bootIdentity() !== leader.bootIdentity) return { verdict: 'group-recycled' };
     const members = reader.groupMembersOf(leader.processId);
-    if (members === null) return { verdict: 'refused', reason: `the members of process group ${leader.processId} could not be read` };
+    if (members === null) return { verdict: 'refused', refusal: { cause: 'group-members-unreadable', processGroupId: leader.processId } };
     if (members.length === 0) return { verdict: 'group-gone' };
     if (members.some((member) => startedBefore(member.startStamp, leader.startStamp))) return { verdict: 'group-recycled' };
     return signalGroup(leader.processId, stage);
@@ -148,7 +148,7 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
       return { verdict: 'signalled' };
     } catch (error) {
       if (errorSaysNoSuchProcess(error)) return { verdict: 'gone' };
-      return { verdict: 'refused', reason: `the process ${processId} could not be signalled: ${String(error)}` };
+      return { verdict: 'refused', refusal: { cause: 'process-not-signalled', processId, systemError: String(error) } };
     }
   }
 

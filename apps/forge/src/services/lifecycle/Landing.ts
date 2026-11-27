@@ -5,6 +5,7 @@
  * in a project folder of its repository lands under the repository's landing lock and journals each landing for its siblings.
  */
 import { TicketAcceptanceUtil }                            from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import type { GitRunFailure, HeadDiffersProblem }          from '../../lib/git/@types/GitProblem.ts';
 import { fastForwardTo, readCurrentBranch }                from '../../lib/git/BranchIntegration.ts';
 import { GitProcess, type GitHookPolicy }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                    from '../../lib/git/GitWorktrees.ts';
@@ -63,10 +64,10 @@ export type LandingRefusalReason =
 
 export type LandingOutcome = 'wait-for-the-landing-lock' | 'requeue-from-branch-tip' | 'open-target-moved' | 'hold-target' | 'hold-ticket' | 'finish-board-side';
 
-/** Wordless: the caller words a refusal from these; `gitFailure` is git's own text. */
+/** Wordless: the caller words a refusal from these; `gitFailure` carries git's own message. */
 export interface LandingRefusalFacts {
   targetTip?:     string;
-  gitFailure?:    string;
+  gitFailure?:    GitRunFailure | HeadDiffersProblem;
   blockingFiles?: readonly string[];
   /** The files another process holds open, so git could not replace them: never the owner's changes. */
   heldFiles?:     readonly string[];
@@ -103,7 +104,7 @@ function refused(reason: LandingRefusalReason, facts: LandingRefusalFacts = {}):
   return { verdict: 'refused', reason, facts };
 }
 
-function gitFailed(gitFailure: string): LandingVerdict {
+function gitFailed(gitFailure: GitRunFailure | HeadDiffersProblem): LandingVerdict {
   return refused('git-failed', { gitFailure });
 }
 
@@ -113,7 +114,7 @@ function movedTargetVerdictOf(request: LandingRequest, targetTip: string): Landi
   const ancestry                                   = GitProcess.run(target.directory, ancestryArguments);
   // An ancestor, not tip equality: a later landing may already stand on top of this one.
   if (GitProcess.succeeded(ancestry)) return { verdict: 'already-landed', commit: mergedCommit, targetTip };
-  if (ancestry === null || ancestry.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE) return gitFailed(GitProcess.failureReasonOf(ancestry, ancestryArguments));
+  if (ancestry === null || ancestry.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE) return gitFailed(GitProcess.failureOf(ancestry, ancestryArguments));
   if (recordedLandings.includes(targetTip)) return refused('target-moved-by-a-recorded-landing', { targetTip });
   return refused('target-moved', { targetTip });
 }
@@ -123,7 +124,7 @@ function landAlone(request: LandingRequest): LandingVerdict {
     target, mergedCommit, expectedTargetTip, hookPolicy
   } = request;
   const currentBranch                                           = readCurrentBranch(target.directory);
-  if (currentBranch.verdict === 'git-failed') return gitFailed(currentBranch.reason);
+  if (currentBranch.verdict === 'git-failed') return gitFailed(currentBranch.problem);
   if (currentBranch.verdict !== 'on-branch' || currentBranch.branch !== target.branch) return refused('not-on-target-branch');
   const targetTip = GitProcess.resolvedCommitOf(target.directory, `refs/heads/${target.branch}`);
   if (targetTip === null) return refused('git-failed');
@@ -131,9 +132,9 @@ function landAlone(request: LandingRequest): LandingVerdict {
 
   const merge = fastForwardTo(target.directory, mergedCommit, hookPolicy, request.checkoutWritePrimitives);
   if (merge.verdict === 'fast-forwarded') return { verdict: 'landed', commit: merge.commit, previousTip: targetTip };
-  if (merge.verdict === 'target-file-held') return refused('target-file-held', { heldFiles: merge.heldFiles, gitFailure: merge.reason.trim() });
-  if (merge.blockingFiles.length > 0) return refused('dirty-checkout', { blockingFiles: merge.blockingFiles, gitFailure: merge.reason.trim() });
-  return gitFailed(merge.reason.trim());
+  if (merge.verdict === 'target-file-held') return refused('target-file-held', { heldFiles: merge.heldFiles, gitFailure: merge.problem });
+  if (merge.blockingFiles.length > 0) return refused('dirty-checkout', { blockingFiles: merge.blockingFiles, gitFailure: merge.problem });
+  return gitFailed(merge.problem);
 }
 
 /**

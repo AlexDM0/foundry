@@ -66,7 +66,7 @@ export function talosRecordOf(text: string): StoredRecordReading<TalosRecord> {
   const reading = ParsedValueUtil.parsedObjectOf(text, TALOS_RECORD_FORMAT_VERSION);
   if (reading.verdict !== 'object') return reading;
   const field = (key: keyof TalosRecord): unknown => ownFieldOf(reading.parsed, key);
-  const unreadable = (reason: string): StoredRecordReading<TalosRecord> => ({ verdict: 'unreadable', reason });
+  const unreadable = (field: string): StoredRecordReading<TalosRecord> => ({ verdict: 'unreadable', problem: { code: 'field-malformed', field } });
   const startNumber = field('startNumber');
   const protocolVersion = field('protocolVersion');
   const codeVersion = field('codeVersion');
@@ -75,19 +75,19 @@ export function talosRecordOf(text: string): StoredRecordReading<TalosRecord> {
   const endpoint = field('endpoint');
   const quitReason = field('quitReason');
   const storedLease = field('lease');
-  if (!isWholeNumberAtLeast(startNumber, 1)) return unreadable('startNumber is not a whole number from 1');
-  if (!isWholeNumberAtLeast(protocolVersion, 1)) return unreadable('protocolVersion is not a whole number from 1');
-  if (typeof codeVersion !== 'string') return unreadable('codeVersion is not a string');
-  if (talos === undefined) return unreadable('talos is neither null nor a process identity');
-  if (!isOneOf(state, TALOS_STATES)) return unreadable('state is not a Talos state');
-  if (endpoint !== null && (typeof endpoint !== 'string' || endpoint === '')) return unreadable('endpoint is neither null nor a non-empty string');
-  if (quitReason !== null && !isOneOf(quitReason, TALOS_QUIT_REASONS)) return unreadable('quitReason is neither null nor a quit reason');
-  if (!JsonRecordUtil.valueIsAPlainObject(storedLease)) return unreadable('lease is not an object');
+  if (!isWholeNumberAtLeast(startNumber, 1)) return unreadable('startNumber');
+  if (!isWholeNumberAtLeast(protocolVersion, 1)) return unreadable('protocolVersion');
+  if (typeof codeVersion !== 'string') return unreadable('codeVersion');
+  if (talos === undefined) return unreadable('talos');
+  if (!isOneOf(state, TALOS_STATES)) return unreadable('state');
+  if (endpoint !== null && (typeof endpoint !== 'string' || endpoint === '')) return unreadable('endpoint');
+  if (quitReason !== null && !isOneOf(quitReason, TALOS_QUIT_REASONS)) return unreadable('quitReason');
+  if (!JsonRecordUtil.valueIsAPlainObject(storedLease)) return unreadable('lease');
   const standing = ownFieldOf(storedLease, 'standing');
   const storedRenewer = ownFieldOf(storedLease, 'lastRenewer');
   const lastRenewer = storedRenewer === null ? null : leaseRenewerOf(storedRenewer);
-  if (!isOneOf(standing, LEASE_STANDINGS)) return unreadable('lease.standing is not a lease standing');
-  if (storedRenewer !== null && lastRenewer === null) return unreadable('lease.lastRenewer is neither null nor a renewer');
+  if (!isOneOf(standing, LEASE_STANDINGS)) return unreadable('lease.standing');
+  if (storedRenewer !== null && lastRenewer === null) return unreadable('lease.lastRenewer');
   return {
     verdict: 'read',
     record:  {

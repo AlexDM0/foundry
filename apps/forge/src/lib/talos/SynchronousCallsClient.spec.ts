@@ -64,7 +64,7 @@ test('a failed answer rejects only its own call', async () => {
   const calls = createSynchronousCalls(transport);
   const failing = calls.appendText('/scratch/example/talos-1.log', 'a line\n');
   const passing = calls.identityOf(EXAMPLE_IDENTITY.processId);
-  answer({ callId: callIdOf(posted[0]), verdict: 'failed', reason: 'EACCES: permission denied' });
+  answer({ callId: callIdOf(posted[0]), verdict: 'failed', systemError: 'EACCES: permission denied' });
   answer({ callId: callIdOf(posted[1]), verdict: 'done', value: null });
   const failure: unknown = await failing.catch((error: unknown) => error);
   expect(failure).toBeInstanceOf(SynchronousCallFailedError);

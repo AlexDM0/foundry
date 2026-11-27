@@ -344,11 +344,17 @@ export interface MainConstitution {
   blob:     string;
 }
 
+/** Why git could not answer for main's constitution: the main line names no commit, or git did not start or exited with its own message. */
+export type MainConstitutionProblem =
+  | { readonly code: 'main-line-unresolved'; readonly mainLine: string }
+  | { readonly code: 'git-not-started'; readonly gitArguments: readonly string[] }
+  | { readonly code: 'git-exited'; readonly gitArguments: readonly string[]; readonly exitCode: number; readonly gitMessage: string };
+
 /** Main's `CONSTITUTION.md` as git answers for it: no such file, its text and blob, or a read git could not answer. */
 export type MainConstitutionReading =
   | { verdict: 'absent' }
   | { verdict: 'read'; constitution: MainConstitution }
-  | { verdict: 'unreadable'; reason: string };
+  | { verdict: 'unreadable'; problem: MainConstitutionProblem };
 
 /** Each entity's constitution file on main as the caller read it, by entity key; null where main holds no such file. */
 export type EntityConstitutionsOnMain = Readonly<Record<EntityKey, MainConstitution | null>>;

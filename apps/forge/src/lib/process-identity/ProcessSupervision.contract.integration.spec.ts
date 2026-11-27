@@ -453,8 +453,7 @@ const WINDOWS_CLAUSES: readonly PortClause<WindowsIdentitySubject>[] = [
       plantWindowsTree(table);
       table.set(WINDOWS_GRANDCHILD_ID, { creationTime: WINDOWS_CREATION_TIME + 2n, parentProcessId: WINDOWS_CHILD_ID, refusesStop: true });
       const outcome = supervision.stopTree(required(supervision.identityOf(WINDOWS_PROCESS_ID)), 'force');
-      expect(outcome).toMatchObject({ verdict: 'refused' });
-      expect(outcome).toHaveProperty('reason', expect.stringContaining(String(WINDOWS_GRANDCHILD_ID)));
+      expect(outcome).toMatchObject({ verdict: 'refused', refusal: { cause: 'processes-not-ended', processIds: expect.arrayContaining([WINDOWS_GRANDCHILD_ID]) } });
       expect(table.has(WINDOWS_GRANDCHILD_ID)).toBe(true);
     },
   },
@@ -585,7 +584,7 @@ describe('a stop over several groups', () => {
 describe('a platform with no adapter', () => {
   const unsupported = createUnsupportedProcessSupervision('example-os');
   const leader: ProcessIdentity = { processId: 4242, startStamp: '1', bootIdentity: FAKE_BOOT };
-  const refusal = { verdict: 'refused', reason: 'no process supervision exists for the platform example-os' } as const;
+  const refusal = { verdict: 'refused', refusal: { cause: 'no-adapter', platformName: 'example-os' } } as const;
 
   test('guesses nothing: no identity, no members and a refused stop', () => {
     expect(unsupported.identityOf(process.pid)).toBeNull();

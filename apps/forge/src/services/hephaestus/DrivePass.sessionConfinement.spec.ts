@@ -43,8 +43,10 @@ import { workspacePathsFor, type Workspace }                   from '../tracker/
 import type { BoardChildren }                                  from './BoardChildren.ts';
 import type { DrivePass }                                      from './DrivePass.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
-import { NETWORK_DOMAINS_REFUSAL }                             from './SessionConfinement.ts';
-import { createTalosChildren }                                 from './TalosChildren.ts';
+
+const NETWORK_DOMAINS_REFUSAL = 'Hephaestus\'s confinement gives a session the network whole or not at all, and this session\'s profile'
+  + ' allows only some domains, which it never widens';
+import { createTalosChildren } from './TalosChildren.ts';
 
 const recordedGit = useRecordedGit();
 const world = useRecordedTalosStages(nativePlatformPorts());

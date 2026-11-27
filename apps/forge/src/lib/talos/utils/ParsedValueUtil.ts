@@ -5,9 +5,16 @@
 import { JsonRecordUtil }                         from '../../json-record/JsonRecordUtil.ts';
 import { type ProcessIdentity, storedIdentityOf } from '../../process-identity/ProcessIdentity.ts';
 
+/** Why a stored record is unreadable: `parserError` is the JSON parser's own message, `field` the key whose value does not fit. */
+export type StoredRecordProblem =
+  | { readonly code: 'not-json'; readonly parserError: string }
+  | { readonly code: 'not-a-json-object' }
+  | { readonly code: 'format-version-not-a-whole-number' }
+  | { readonly code: 'field-malformed'; readonly field: string };
+
 export type StoredRecordReading<StoredRecord> =
   | { verdict: 'read'; record: StoredRecord }
-  | { verdict: 'unreadable'; reason: string }
+  | { verdict: 'unreadable'; problem: StoredRecordProblem }
   | { verdict: 'other-format'; formatVersion: number };
 
 type ParsedObjectReading =
@@ -49,11 +56,11 @@ function parsedObjectOf(text: string, formatVersion: number): ParsedObjectReadin
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    return { verdict: 'unreadable', reason: `not JSON: ${String(error)}` };
+    return { verdict: 'unreadable', problem: { code: 'not-json', parserError: String(error) } };
   }
-  if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', reason: 'not a JSON object' };
+  if (!JsonRecordUtil.valueIsAPlainObject(parsed)) return { verdict: 'unreadable', problem: { code: 'not-a-json-object' } };
   const storedFormatVersion = ownFieldOf(parsed, 'formatVersion');
-  if (!Number.isSafeInteger(storedFormatVersion)) return { verdict: 'unreadable', reason: 'formatVersion is not a whole number' };
+  if (!Number.isSafeInteger(storedFormatVersion)) return { verdict: 'unreadable', problem: { code: 'format-version-not-a-whole-number' } };
   if (storedFormatVersion !== formatVersion) return { verdict: 'other-format', formatVersion: storedFormatVersion as number };
   return { verdict: 'object', parsed };
 }

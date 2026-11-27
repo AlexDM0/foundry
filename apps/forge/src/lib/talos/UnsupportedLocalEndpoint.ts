@@ -7,7 +7,7 @@ import { createConnection, createServer } from 'node:net';
 import type { LocalEndpoint } from './LocalEndpoint.ts';
 
 export function createUnsupportedLocalEndpoint(platform: string): LocalEndpoint {
-  const refusal = { verdict: 'refused', reason: `no local endpoint exists for the platform ${platform}` } as const;
+  const refusal = { verdict: 'refused', refusal: { cause: 'no-adapter', platformName: platform } } as const;
   return Object.freeze<LocalEndpoint>({
     endpointOf:      () => '',
     endpointFits:    () => false,

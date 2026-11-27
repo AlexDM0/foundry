@@ -12,6 +12,7 @@ import { join }                                 from 'node:path';
 import type { KeptAirlockFacts }       from '../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }         from '../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import type { ReportProblem }          from '../../adapters/reports/@types/ReportProblem.ts';
+import type { GitProblem }             from '../../lib/git/@types/GitProblem.ts';
 import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
@@ -47,6 +48,7 @@ import { EntityOwnershipUtil, type PipelineEntities }                          f
 import { MergeQueueUtil, type MergeForecast }                                  from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
 import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketStageUtil }                                                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { GroupWorktreeProblem }                                           from '../../shared/@types/GroupWorktreeProblem.ts';
 import type { BranchNames }                                                    from '../../shared/BranchNames.ts';
 import { OperationRefusal }                                                    from '../../shared/OperationRefusal.ts';
 import type { AirlockLimits }                                                  from '../../shared/constants/AirlockLimits.ts';
@@ -137,6 +139,7 @@ export interface AirlocksContext {
   decisionWordingOf:       (draft: DecisionDraft) => DecisionWording;
   /** An invalid report's problem as the merge-refused decision names it. */
   reportProblemSentenceOf: (problem: ReportProblem) => string;
+  gitProblemSentenceOf:    (problem: GitProblem | GroupWorktreeProblem) => string;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
   keepAirlockFacts:        (mergeJob: Readonly<Job>, facts: KeptAirlockFacts) => void;
   /** The facts kept beside the merge job: `absent` when none were kept, `unreadable` when the merge job's file cannot be read. */
@@ -235,8 +238,8 @@ interface AirlockAgentHistory {
 export interface DeclinedCleanup {
   cleanup:     'refresh' | 'release';
   groupBranch: string;
-  /** Git's own reason, as `GroupWorktrees` hands it back. */
-  reason:      string;
+  /** Why git declined, as `GroupWorktrees` hands it back. */
+  problem:     GitProblem;
 }
 
 /**
@@ -752,8 +755,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   function removeRefreshWorktree(job: Readonly<Job>): void {
-    const reason = GroupWorktrees.removeWorktree(context.repositoryRoot, slotWorktreeOf(job));
-    if (reason !== null) context.reportDeclinedCleanup({ cleanup: 'refresh', groupBranch: job.target ?? '', reason });
+    const problem = GroupWorktrees.removeWorktree(context.repositoryRoot, slotWorktreeOf(job));
+    if (problem !== null) context.reportDeclinedCleanup({ cleanup: 'refresh', groupBranch: job.target ?? '', problem });
   }
 
   /** Frees the slot with the worktree back at its recorded start, a refresh's removed; the ticket stays queued unless the caller took it out. */
@@ -809,7 +812,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (isRefresh(job)) {
       const prepared = GroupWorktrees.prepareRefreshWorktree(context.repositoryRoot, context.worktreesRoot, slot.target, slot.targetTip);
       if (prepared.verdict === 'git-failed') {
-        await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, prepared.reason);
+        await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, context.gitProblemSentenceOf(prepared.problem));
         return true;
       }
     }
@@ -845,7 +848,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       });
       return true;
     }
-    await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, merge.verdict === 'git-failed' ? merge.reason : 'unknown commit');
+    await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, merge.verdict === 'git-failed' ? context.gitProblemSentenceOf(merge.problem) : 'unknown commit');
     return true;
   }
 
@@ -1250,8 +1253,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   function removeReleasedGroup(releasedGroup: string): void {
     const groupBranch = `${groupTargetPrefix}${releasedGroup}`;
-    const reason      = GroupWorktrees.removeGroup(context.repositoryRoot, context.worktreesRoot, groupBranch);
-    if (reason !== null) context.reportDeclinedCleanup({ cleanup: 'release', groupBranch, reason });
+    const problem     = GroupWorktrees.removeGroup(context.repositoryRoot, context.worktreesRoot, groupBranch);
+    if (problem !== null) context.reportDeclinedCleanup({ cleanup: 'release', groupBranch, problem });
   }
 
   /** After the landing hold: a refresh's temporary worktree goes, and a release removes the group's worktree and deletes its branch. */

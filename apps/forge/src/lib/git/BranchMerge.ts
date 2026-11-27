@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
+import type { GitRunFailure, HeadDiffersProblem }                                     from './@types/GitProblem.ts';
 import { fastForwardTo, type FastForwardOutcome }                                     from './BranchIntegration.ts';
 import { GitProcess }                                                                 from './GitProcess.ts';
 import { GitWorktrees }                                                               from './GitWorktrees.ts';
@@ -19,13 +20,13 @@ export type MergeOutcome =
   | { verdict: 'already-descends'; headCommit: string }
   | { verdict: 'conflicted'; conflictedFiles: string[] }
   | { verdict: 'unknown-commit' }
-  | { verdict: 'git-failed'; reason: string };
+  | { verdict: 'git-failed'; problem: GitRunFailure | HeadDiffersProblem };
 
 export type TipRestoreOutcome =
   | { verdict: 'restored'; headCommit: string }
   | { verdict: 'unknown-commit' }
-  | { verdict: 'refused'; reason: string }
-  | { verdict: 'target-file-held'; reason: string; heldFiles: string[] };
+  | { verdict: 'refused'; problem: GitRunFailure | HeadDiffersProblem }
+  | { verdict: 'target-file-held'; problem: GitRunFailure; heldFiles: string[] };
 
 function nulSeparatedFieldsOf(output: string): string[] {
   return output.split('\0').filter((field) => field !== '');
@@ -66,23 +67,23 @@ export function mergeIn(worktreePath: string, commit: string): MergeOutcome {
   const resolvedCommit = commitInWorktree(worktreePath, commit);
   if (resolvedCommit === null) return { verdict: 'unknown-commit' };
   const headCommit = commitInWorktree(worktreePath, 'HEAD');
-  if (headCommit === null) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(null, ['rev-parse', 'HEAD']) };
+  if (headCommit === null) return { verdict: 'git-failed', problem: GitProcess.failureOf(null, ['rev-parse', 'HEAD']) };
 
   const ancestryArguments = ['merge-base', '--is-ancestor', resolvedCommit, headCommit];
   const ancestry          = runInWorktree(worktreePath, ancestryArguments);
   if (GitProcess.succeeded(ancestry)) return { verdict: 'already-descends', headCommit };
-  if (ancestry?.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE) return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(ancestry, ancestryArguments) };
+  if (ancestry?.exitCode !== NOT_AN_ANCESTOR_EXIT_CODE) return { verdict: 'git-failed', problem: GitProcess.failureOf(ancestry, ancestryArguments) };
 
   const mergeArguments = ['merge', '--no-ff', '--no-edit', '--quiet', resolvedCommit];
   const merge          = runInWorktree(worktreePath, mergeArguments);
   if (!GitProcess.succeeded(merge)) {
     const conflictedFiles = unmergedPathsIn(worktreePath) ?? [];
     if (conflictedFiles.length > 0) return { verdict: 'conflicted', conflictedFiles };
-    return { verdict: 'git-failed', reason: GitProcess.failureReasonOf(merge, mergeArguments) };
+    return { verdict: 'git-failed', problem: GitProcess.failureOf(merge, mergeArguments) };
   }
   const mergeCommit = commitInWorktree(worktreePath, 'HEAD');
   if (mergeCommit === null || mergeCommit === headCommit) {
-    return { verdict: 'git-failed', reason: `git merge ${resolvedCommit} exited 0, yet HEAD is ${mergeCommit ?? 'unreadable'}.` };
+    return { verdict: 'git-failed', problem: { code: 'head-differs-after-success', commandArguments: ['merge', resolvedCommit], headCommit: mergeCommit } };
   }
   return { verdict: 'merged', mergeCommit };
 }
@@ -92,9 +93,9 @@ export function fastForwardInto(worktreePath: string, commit: string): FastForwa
   return fastForwardTo(worktreePath, commit, 'hooks-off');
 }
 
-function restoredUnlessHeadDiffers(worktreePath: string, expectedCommit: string, command: string): TipRestoreOutcome {
+function restoredUnlessHeadDiffers(worktreePath: string, expectedCommit: string, commandArguments: readonly string[]): TipRestoreOutcome {
   const headCommit = commitInWorktree(worktreePath, 'HEAD');
-  if (headCommit !== expectedCommit) return { verdict: 'refused', reason: `${command} exited 0, yet HEAD is ${headCommit ?? 'unreadable'}.` };
+  if (headCommit !== expectedCommit) return { verdict: 'refused', problem: { code: 'head-differs-after-success', commandArguments, headCommit } };
   return { verdict: 'restored', headCommit };
 }
 
@@ -112,7 +113,7 @@ export function resetTo(worktreePath: string, recordedCommit: string, primitives
     ceilingDirectory: GitWorktrees.ceilingOf(worktreePath),
     afterHeldFailure: () => undefined,
   }, primitives);
-  if (reset.verdict === 'failed') return { verdict: 'refused', reason: reset.reason };
+  if (reset.verdict === 'failed') return { verdict: 'refused', problem: reset.problem };
   if (reset.verdict === 'target-file-held') return reset;
-  return restoredUnlessHeadDiffers(worktreePath, resolvedCommit, `git reset --hard ${resolvedCommit}`);
+  return restoredUnlessHeadDiffers(worktreePath, resolvedCommit, ['reset', '--hard', resolvedCommit]);
 }

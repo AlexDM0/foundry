@@ -134,7 +134,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log({ kind: 'pipeline-check-worktree-left-over', worktreePath, removalReason: removal.reason });
+    if (removal.verdict === 'left') context.log({ kind: 'pipeline-check-worktree-left-over', worktreePath, problem: removal.problem });
   }
 
   /** The record keeps the end, and the session of the check's level hears it in the same hold; a record that moved on keeps nothing. */

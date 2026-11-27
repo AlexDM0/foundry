@@ -28,7 +28,7 @@ export interface DetachedHephaestusStartRequest {
 /** Before any job: where confinement is expected and missing no gate could run, so what is missing is said once rather than job by job. */
 function requireGateConfinement(gateConfinement: GateConfinement): void {
   const availability = gateConfinement.availability();
-  if (availability.verdict === 'unavailable') throw new OperationRefusal('refused', { kind: 'gate-confinement-unavailable', reason: availability.reason });
+  if (availability.verdict === 'unavailable') throw new OperationRefusal('refused', { kind: 'gate-confinement-unavailable', unavailability: availability.unavailability });
 }
 
 export function requireHephaestusCanStartIn(directory: string, gateConfinement: GateConfinement): void {

@@ -77,6 +77,8 @@ export function seatbeltProfileTextOf(plan: ConfinementPlan): string {
   ].join('\n');
 }
 
+const SEATBELT_MECHANISM = 'sandbox-exec';
+
 export function createDarwinSeatbelt(primitives: SeatbeltPrimitives): GateConfinement {
   let usable: boolean | null = null;
   // Probed once and by applying a profile, since a process already under a sandbox may not apply another.
@@ -85,7 +87,9 @@ export function createDarwinSeatbelt(primitives: SeatbeltPrimitives): GateConfin
     return usable;
   };
   return Object.freeze<GateConfinement>({
-    availability:      () => (isUsable() ? { verdict: 'confined', mechanism: 'sandbox-exec' } : { verdict: 'unavailable', reason: 'sandbox-exec cannot apply a profile here' }),
+    availability: () => (isUsable()
+      ? { verdict: 'confined', mechanism: SEATBELT_MECHANISM }
+      : { verdict: 'unavailable', unavailability: { cause: 'mechanism-unusable', mechanism: SEATBELT_MECHANISM } }),
     // A worker's launch demands its sandbox, so a worker that runs at all is confined.
     workerConfinement: () => 'confined',
     confinedArgvOf:    (plan, argv) => {

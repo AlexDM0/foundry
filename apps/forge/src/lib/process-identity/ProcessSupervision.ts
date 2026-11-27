@@ -6,6 +6,7 @@ import type {
   ChildEnd,
   ProcessIdentity,
   ProcessStartStamp,
+  ProcessStopRefusal,
   ProcessTreeStopOutcome
 } from './ProcessIdentity.ts';
 
@@ -34,7 +35,7 @@ export interface ProcessTreeMember {
 export type ProcessStopOutcome =
   | { verdict: 'signalled' }
   | { verdict: 'gone' }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; refusal: ProcessStopRefusal };
 
 export interface ProcessSupervision {
   /** `null` for a process that does not exist, or whose start or boot cannot be read: an identity is never guessed. */

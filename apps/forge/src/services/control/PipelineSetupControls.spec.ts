@@ -805,13 +805,13 @@ describe('Apply', () => {
 
   test('a main whose CONSTITUTION.md git cannot read refuses main-constitution-unreadable, with the Board untouched', () => {
     const fixture = boardAtDesign();
-    const unreadable = echoedControlContextWith({ verdict: 'unreadable', reason: 'git could not be started' });
+    const unreadable = echoedControlContextWith({ verdict: 'unreadable', problem: { code: 'git-not-started', gitArguments: ['show'] } });
 
     const refusal = operationRefusalOf(() => applyIn(fixture, {
       kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
     }, unreadable));
 
-    expect(refusal.detail).toEqual({ kind: 'main-constitution-unreadable', reason: 'git could not be started' });
+    expect(refusal.detail).toEqual({ kind: 'main-constitution-unreadable', problem: { code: 'git-not-started', gitArguments: ['show'] } });
     expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
   });
 

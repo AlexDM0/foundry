@@ -105,7 +105,7 @@ async function arrives(emitter: Socket, event: 'end' | 'close'): Promise<boolean
 async function helloAnswerOf(secret: string): Promise<HelloAnswer> {
   const endpoint = preparedEndpoint();
   const listening = await listenOnIdleTalosSocket(port, endpoint, TALOS_SECRET);
-  if (listening.verdict !== 'listening') throw new Error(listening.reason);
+  if (listening.verdict !== 'listening') throw new Error(listening.systemError);
   const client = await connected(endpoint);
   let received = '';
   let endArrived = false;

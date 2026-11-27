@@ -4,6 +4,8 @@
  */
 import type { Server, Socket } from 'node:net';
 
+import type { OwnerOnlyRefusalCause } from '../owner-only-files/OwnerOnlyFiles.ts';
+
 export interface EndpointInstanceFacts {
   readonly monitorFolder: string;
   readonly trackerId:     string;
@@ -12,9 +14,15 @@ export interface EndpointInstanceFacts {
   readonly instance:      number;
 }
 
+/** Why an endpoint could not be made ready or released: `systemError` is the operating system's own message. */
+export type EndpointRefusal =
+  | { readonly cause: 'system-error'; readonly systemError: string }
+  | { readonly cause: 'folder-not-private'; readonly restrictionCause: OwnerOnlyRefusalCause; readonly path: string }
+  | { readonly cause: 'no-adapter'; readonly platformName: string };
+
 export type EndpointOutcome =
   | { verdict: 'done' }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; refusal: EndpointRefusal };
 
 export interface LocalEndpoint {
   /** One endpoint per instance. An adapter may draw a new one each call, so a launch keeps what it was answered. */

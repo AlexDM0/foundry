@@ -75,7 +75,7 @@ describeWhenGitIsPresent('adding a worktree from a recorded commit', () => {
       repositoryDirectory, worktreesFolder, worktreeName: 'one', newBranch: 'taken', startCommit: tip
     });
     expect(refusal.verdict).toBe('refused');
-    expect(refusal.verdict === 'refused' ? refusal.reason : '').toContain('taken');
+    expect(refusal.verdict === 'refused' && refusal.problem.code === 'git-exited' ? refusal.problem.gitMessage : '').toContain('taken');
     expect(addWorktreeFromCommit({
       repositoryDirectory, worktreesFolder, worktreeName: 'two', newBranch: 'fresh', startCommit: '--detach'
     }))

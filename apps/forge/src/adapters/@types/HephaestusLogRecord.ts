@@ -2,10 +2,12 @@
  * What Hephaestus logs, as typed records: ids, numbers, codes, paths and stored-file problems, never a sentence. `HephaestusLogWordingUtil`
  * words each kind and gives its stored line in `hephaestus.log`. It lives in `src/adapters/`, as the problems it carries do.
  */
+import type { GitProblem, WorktreeRemovalProblem }      from '../../lib/git/@types/GitProblem.ts';
 import type { FrameRefusalReason }                      from '../../lib/talos/@types/TalosFrame.ts';
 import type { TalosState }                              from '../../lib/talos/TalosRecord.ts';
 import type { GatePhase }                               from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { InterruptionCause, JobKind, StartOrigin } from '../../lib/tracker-model/@types/Job.ts';
+import type { ConfinementRefusal }                      from '../../shared/@types/ConfinementRefusal.ts';
 import type { AgentSlotProblem }                        from '../agent-slot/@types/AgentSlotProblem.ts';
 import type { CrashedComponent }                        from '../crash-log/@types/CrashLogRecord.ts';
 import type { MergedTreeGate }                          from '../gate-outcome/@types/MergedTreeGate.ts';
@@ -19,6 +21,7 @@ import type { PresenceProblem }                         from '../presence/@types
 import type { AbandonedPassReason }                     from '../presence/@types/PresenceRecord.ts';
 import type { SeenHeadProblem }                         from '../seen-head/@types/SeenHeadProblem.ts';
 import type { UsageMarkerProblem }                      from '../usage-marker/@types/UsageMarkerProblem.ts';
+import type { WorktreeCreationFailure }                 from '../worktree-failure/@types/WorktreeCreationFailure.ts';
 import type { UnreadableFileProblem }                   from './UnreadableFileProblem.ts';
 
 /** Why a stale lock or slot was taken over: the process it names is gone, or it could not be read. */
@@ -131,11 +134,11 @@ export type HephaestusLogRecord =
   | { readonly kind: 'merged-tree-gate-stopped-while-running' } & MergedTreeGateRunNamed
   | { readonly kind: 'merged-tree-gate-run-folder-removed'; readonly runFolderName: string; readonly problem: MergedTreeGateOutcomeProblem }
   | { readonly kind: 'gate-profile-failed'; readonly profileRunId: string; readonly thrownMessage: string }
-  | { readonly kind: 'gate-profile-worktree-left-over'; readonly worktreePath: string; readonly removalReason: string }
+  | { readonly kind: 'gate-profile-worktree-left-over'; readonly worktreePath: string; readonly problem: WorktreeRemovalProblem }
   | { readonly kind: 'gate-profile-output-unreadable'; readonly outputFilePath: string; readonly problem: GateProfileOutputProblem }
   | { readonly kind: 'gate-profile-output-line-unreadable'; readonly outputFilePath: string; readonly lineNumber: number; readonly problem: GateProfileOutputProblem }
   | { readonly kind: 'pipeline-check-failed'; readonly setupId: string; readonly thrownMessage: string }
-  | { readonly kind: 'pipeline-check-worktree-left-over'; readonly worktreePath: string; readonly removalReason: string }
+  | { readonly kind: 'pipeline-check-worktree-left-over'; readonly worktreePath: string; readonly problem: WorktreeRemovalProblem }
   | { readonly kind: 'lease-renewal-without-connection' }
   | { readonly kind: 'lease-renewal-unanswered' }
   | { readonly kind: 'lease-renewal-refused'; readonly reason: FrameRefusalReason }
@@ -143,8 +146,8 @@ export type HephaestusLogRecord =
   // The drive pass: what it observes, the sessions it launches and how a pass ends.
   | { readonly kind: 'child-event-log-malformed'; readonly jobId: string; readonly childInstance: number }
   | { readonly kind: 'usage-marker-malformed'; readonly markerPath: string; readonly problem: UsageMarkerProblem }
-  | { readonly kind: 'session-confinement-refused'; readonly jobId: string; readonly confinementRefusal: string }
-  | { readonly kind: 'tool-left-off-search-path'; readonly toolName: string; readonly jobId: string; readonly resolverRefusal: string }
+  | { readonly kind: 'session-confinement-refused'; readonly jobId: string; readonly confinementRefusal: ConfinementRefusal }
+  | { readonly kind: 'tool-left-off-search-path'; readonly toolName: string; readonly jobId: string; readonly toolPath: string; readonly forbiddenRoot: string }
   | { readonly kind: 'job-file-unreadable-at-launch'; readonly jobId: string; readonly file: string; readonly problem: UnreadableFileProblem }
   | { readonly kind: 'pipeline-agent-awaits-billing'; readonly jobId: string }
   | { readonly kind: 'airlock-agent-root-unmade'; readonly jobId: string; readonly sandboxRefusal: string }
@@ -153,7 +156,7 @@ export type HephaestusLogRecord =
   /** A `null` Talos refusal is a launch no Talos took. */
   | { readonly kind: 'child-instance-not-launched'; readonly talosRefusal: FrameRefusalReason | null } & LaunchedChildNamed
   | { readonly kind: 'child-instance-launched' } & LaunchedChildNamed
-  | { readonly kind: 'cleanup-declined'; readonly cleanup: 'refresh' | 'release'; readonly groupBranch: string; readonly gitMessage: string }
+  | { readonly kind: 'cleanup-declined'; readonly cleanup: 'refresh' | 'release'; readonly groupBranch: string; readonly problem: GitProblem }
   | { readonly kind: 'presence-unrecorded'; readonly thrownMessage: string }
   | { readonly kind: 'pass-abandoned'; readonly reason: AbandonedPassReason; readonly refusalMessage: string }
   | { readonly kind: 'pass-crashed'; readonly thrownMessage: string }
@@ -170,11 +173,11 @@ export type HephaestusLogRecord =
   | { readonly kind: 'line-not-launched'; readonly jobId: string; readonly step: string; readonly instance: number; readonly talosRefusal: FrameRefusalReason | null }
   | { readonly kind: 'merge-line-launched'; readonly step: string; readonly mergedTip: string; readonly branch: string } & JobNamed
   | { readonly kind: 'fresh-worktree-differs'; readonly jobId: string; readonly changedFileCount: number }
-  /** `worktreeFailure` is the text the job's worktree failure file keeps: git's message or why no git ran. */
-  | { readonly kind: 'worktree-creation-failed'; readonly jobId: string; readonly worktreeFailure: string }
+  /** `failure` is what the job's worktree failure file keeps, worded. */
+  | { readonly kind: 'worktree-creation-failed'; readonly jobId: string; readonly failure: WorktreeCreationFailure }
   | { readonly kind: 'seen-head-unreadable'; readonly seenHeadFilePath: string; readonly problem: SeenHeadProblem }
-  | { readonly kind: 'document-agent-snapshot-left-over'; readonly snapshotPath: string; readonly removalReason: string }
-  | { readonly kind: 'pipeline-agent-snapshot-left-over'; readonly snapshotPath: string; readonly removalReason: string };
+  | { readonly kind: 'document-agent-snapshot-left-over'; readonly snapshotPath: string; readonly problem: WorktreeRemovalProblem }
+  | { readonly kind: 'pipeline-agent-snapshot-left-over'; readonly snapshotPath: string; readonly problem: WorktreeRemovalProblem };
 
 export type HephaestusLogKind = HephaestusLogRecord['kind'];
 

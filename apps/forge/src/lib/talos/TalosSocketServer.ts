@@ -45,7 +45,8 @@ export interface TalosSocketServer {
 
 export type TalosSocketListening =
   | { readonly verdict: 'listening'; readonly server: TalosSocketServer }
-  | { readonly verdict: 'unbindable'; readonly reason: string };
+  /** `systemError` is the operating system's own message for the failed bind. */
+  | { readonly verdict: 'unbindable'; readonly systemError: string };
 
 function secretsMatch(offered: string, expected: string): boolean {
   const offeredBytes = Buffer.from(offered, 'utf8');
@@ -135,7 +136,7 @@ export async function listenOnTalosSocket(options: TalosSocketOptions): Promise<
     server.once('error', resolve);
     server.listen(options.endpoint, () => resolve(null));
   });
-  if (bindError !== null) return { verdict: 'unbindable', reason: String(bindError) };
+  if (bindError !== null) return { verdict: 'unbindable', systemError: String(bindError) };
   return {
     verdict: 'listening',
     server:  {

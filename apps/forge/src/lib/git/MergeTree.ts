@@ -2,7 +2,8 @@
  * Predicting a merge without touching a worktree, through `git merge-tree --write-tree`: one pair, or a `--stdin` batch of pairs that falls
  * back to one prediction per pair when the batch fails. Verdicts, never throws, and a conflicted-file list is never read without its status.
  */
-import { GitProcess, type GitRun } from './GitProcess.ts';
+import type { MergePredictionProblem } from './@types/GitProblem.ts';
+import { GitProcess, type GitRun }     from './GitProcess.ts';
 
 const CLEAN_EXIT_CODE       = 0;
 const CONFLICTING_EXIT_CODE = 1;
@@ -19,7 +20,7 @@ const BATCH_PREDICTION_ARGUMENTS = ['merge-tree', '--stdin', '--name-only', '--n
 export type MergePrediction =
   | { verdict: 'clean' }
   | { verdict: 'conflicting'; conflictedFiles: string[] }
-  | { verdict: 'prediction-failed'; reason: string };
+  | { verdict: 'prediction-failed'; problem: MergePredictionProblem };
 
 /** `target` is merged into, `branch` merged in; the order only decides how git labels the two sides. */
 export interface MergePair {
@@ -36,13 +37,13 @@ function uniqueFilesOf(fields: readonly string[]): string[] {
  * revision also exits 1, with nothing on standard output.
  */
 export function predictionOfRun(run: GitRun | null, gitArguments: readonly string[]): MergePrediction {
-  if (run === null) return { verdict: 'prediction-failed', reason: GitProcess.failureReasonOf(run, gitArguments) };
+  if (run === null) return { verdict: 'prediction-failed', problem: GitProcess.failureOf(run, gitArguments) };
   const [treeObjectId = '', ...fileFields] = run.standardOutput.split('\0');
   const treeWasWritten = TREE_OBJECT_ID.test(treeObjectId);
   if (treeWasWritten && run.exitCode === CLEAN_EXIT_CODE) return { verdict: 'clean' };
   if (treeWasWritten && run.exitCode === CONFLICTING_EXIT_CODE) return { verdict: 'conflicting', conflictedFiles: uniqueFilesOf(fileFields) };
-  const reason = GitProcess.failureReasonOf(run, gitArguments);
-  return { verdict: 'prediction-failed', reason: treeWasWritten ? reason : `${reason} (no tree written)` };
+  const failure = { gitArguments, exitCode: run.exitCode, gitMessage: run.standardError };
+  return { verdict: 'prediction-failed', problem: { code: treeWasWritten ? 'git-exited' : 'git-exited-without-tree', ...failure } };
 }
 
 export function predictMerge(directory: string, pair: MergePair): MergePrediction {
@@ -77,18 +78,18 @@ function batchRecordsOf(standardOutput: string, recordCount: number): BatchRecor
 }
 
 function predictionOfBatchRecord(record: BatchRecord): MergePrediction {
-  if (!TREE_OBJECT_ID.test(record.treeObjectId)) return { verdict: 'prediction-failed', reason: `git merge-tree --stdin wrote no tree for a record (status ${record.status}).` };
+  if (!TREE_OBJECT_ID.test(record.treeObjectId)) return { verdict: 'prediction-failed', problem: { code: 'batch-record-without-tree', recordStatus: record.status } };
   if (record.status === BATCH_RECORD_CLEAN_STATUS) return { verdict: 'clean' };
   if (record.status === BATCH_RECORD_CONFLICTING_STATUS) return { verdict: 'conflicting', conflictedFiles: uniqueFilesOf(record.conflictedFiles) };
-  return { verdict: 'prediction-failed', reason: `git merge-tree --stdin answered status ${record.status} for a record.` };
+  return { verdict: 'prediction-failed', problem: { code: 'batch-record-status-unknown', recordStatus: record.status } };
 }
 
 /** A batch that exits non-zero stopped at a bad record, so every pair is failed, the records printed before it included. */
 export function batchPredictionsOfRun(run: GitRun | null, pairCount: number): MergePrediction[] {
-  const failedEveryPair = (reason: string): MergePrediction[] => Array.from({ length: pairCount }, () => ({ verdict: 'prediction-failed', reason }));
-  if (!GitProcess.succeeded(run)) return failedEveryPair(GitProcess.failureReasonOf(run, BATCH_PREDICTION_ARGUMENTS));
+  const failedEveryPair = (problem: MergePredictionProblem): MergePrediction[] => Array.from({ length: pairCount }, () => ({ verdict: 'prediction-failed', problem }));
+  if (!GitProcess.succeeded(run)) return failedEveryPair(GitProcess.failureOf(run, BATCH_PREDICTION_ARGUMENTS));
   const records = batchRecordsOf(run.standardOutput, pairCount);
-  if (records === null) return failedEveryPair(`git merge-tree --stdin did not print one record for each of the ${pairCount} pairs.`);
+  if (records === null) return failedEveryPair({ code: 'batch-records-miscounted', pairCount });
   return records.map(predictionOfBatchRecord);
 }
 

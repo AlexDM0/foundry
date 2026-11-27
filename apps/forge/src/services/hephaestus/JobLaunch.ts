@@ -25,6 +25,7 @@ import { createMainMergeConflictWriter }                                        
 import { MainMergeResolutionIngestion, type MainMergeResolution }                  from '../../adapters/main-resolution/MainMergeResolutionIngestion.ts';
 import { createMainMergeResolutionWriter }                                         from '../../adapters/main-resolution/MainMergeResolutionWriter.ts';
 import { MergeSettlementIngestion, type TargetMergeSettlement }                    from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
+import type { SettledTargetMerge }                                                 from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
 import { createMergeSettlementWriter }                                             from '../../adapters/merge-settlement/MergeSettlementWriter.ts';
 import { MergeSidesIngestion, type MergeSides }                                    from '../../adapters/merge-sides/MergeSidesIngestion.ts';
 import { createMergeSidesWriter }                                                  from '../../adapters/merge-sides/MergeSidesWriter.ts';
@@ -36,9 +37,12 @@ import { createStepVerdictWriter }                                              
 import { TargetConflictIngestion }                                                 from '../../adapters/target-conflict/TargetConflictIngestion.ts';
 import { createTargetConflictWriter }                                              from '../../adapters/target-conflict/TargetConflictWriter.ts';
 import { TicketHandoffUtil }                                                       from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
+import type { WorktreeCreationFailure }                                            from '../../adapters/worktree-failure/@types/WorktreeCreationFailure.ts';
+import { createWorktreeFailureWriter }                                             from '../../adapters/worktree-failure/WorktreeFailureWriter.ts';
 import type { AgentAdapter }                                                       from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                                     from '../../lib/atomic-file/AtomicFile.ts';
 import { confinedLineOf }                                                          from '../../lib/gate-confinement/ConfinedLine.ts';
+import type { GitRunFailure }                                                      from '../../lib/git/@types/GitProblem.ts';
 import { GitProcess }                                                              from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
 import { changedTrackedPathsOf }                                                   from '../../lib/git/Worktrees.ts';
@@ -81,6 +85,7 @@ import { TicketDocumentReadingUtil }                      from '../../lib/tracke
 import type { DocumentReading }                           from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import type { ConfinementRefusal }                        from '../../shared/@types/ConfinementRefusal.ts';
 import type { BranchNames }                               from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';
@@ -140,31 +145,33 @@ import { StoredFileUnreadable }                                                 
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest }           from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
-  platformPorts:        PlatformPorts;
-  workspace:            Workspace;
-  agentAdapter:         AgentAdapter;
-  monitorFolder:        string;
-  homeDirectory:        string;
-  inheritedEnvironment: Readonly<Record<string, string | undefined>>;
-  mainLine:             string;
-  branchNames:          BranchNames;
-  boardChildren:        BoardChildren;
+  platformPorts:                PlatformPorts;
+  workspace:                    Workspace;
+  agentAdapter:                 AgentAdapter;
+  monitorFolder:                string;
+  homeDirectory:                string;
+  inheritedEnvironment:         Readonly<Record<string, string | undefined>>;
+  mainLine:                     string;
+  branchNames:                  BranchNames;
+  boardChildren:                BoardChildren;
   /** Hephaestus's own runtime, isolating arguments and entry script, which a job's network guard hook runs. */
-  programCommand:       readonly string[];
-  codeVersion:          string;
-  gateSlots:            GateRunSlots;
-  windDownMessage:      string;
-  decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
-  log:                  HephaestusLog;
+  programCommand:               readonly string[];
+  codeVersion:                  string;
+  gateSlots:                    GateRunSlots;
+  windDownMessage:              string;
+  decisionWordingOf:            (draft: DecisionDraft) => DecisionWording;
+  /** A line forge's confinement refuses, as its sandbox refusal names it. */
+  confinementRefusalSentenceOf: (refusal: ConfinementRefusal) => string;
+  log:                          HephaestusLog;
   /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
-  resolutionLinesOf:    (worktreePath: string) => number | null;
+  resolutionLinesOf:            (worktreePath: string) => number | null;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
-  sharedRepository?:    SharedRepositoryLanding;
+  sharedRepository?:            SharedRepositoryLanding;
   /**
    * The cause an install or gate line found lost in this pass is logged with, so its job waits for User's resume: the start's, while a
    * start that leaves work waiting reconciles; `null` or absent otherwise, and a lost line then runs again by itself.
    */
-  lostLineCause?:       () => InterruptionCause | null;
+  lostLineCause?:               () => InterruptionCause | null;
 }
 
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
@@ -1043,7 +1050,7 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolder, TARGET_MERGE_CHILD_FOLDER));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
-  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
+  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.storedReason };
   if (settlement.verdict === 'conflicted') return { verdict: 'conflicted', targetTip: record.mergedTip, conflictedFiles: settlement.conflictedFiles };
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'merge-failed', reason: `The tree of the merge commit ${settlement.mergeCommit} cannot be read.` };
@@ -1120,7 +1127,7 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolderOf(context.workspace, job), files.childFolder));
     return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
-  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
+  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.storedReason };
   if (settlement.verdict === 'conflicted') return {
     verdict: 'conflicted', targetTip: record.mergedTip, branchTip: record.startTip, conflictedFiles: settlement.conflictedFiles
   };
@@ -2619,7 +2626,8 @@ async function spawnLineChild(
   const planOf = () => LineSandbox.planOf(sandboxRequestOf(), join(lineFolder, JOB_FILES.profile));
   const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
   if (line.verdict === 'refused') {
-    recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
+    const reason = context.confinementRefusalSentenceOf({ cause: 'confinement-unavailable', unavailability: line.unavailability });
+    recordSandboxRefusal(context, job, { step: folderName, reason });
     return { verdict: 'refused' };
   }
   // A report or a status left at the path before this instance ran is never this run's; a re-run's first instance left them too.
@@ -2684,7 +2692,7 @@ async function launchLineChild(
 /** The review's catch-up merge before its reviewer, in the `target-merge` line folder. */
 const TARGET_CATCH_UP_MERGE: MergeIntoTreeFiles = { childFolder: TARGET_MERGE_CHILD_FOLDER, settlementFile: JOB_FILES.targetMergeSettlement };
 
-function writeMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, files: MergeIntoTreeFiles, settlement: TargetMergeSettlement): void {
+function writeMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, files: MergeIntoTreeFiles, settlement: SettledTargetMerge): void {
   createMergeSettlementWriter(join(jobFolderOf(context.workspace, job), files.settlementFile)).write(settlement);
 }
 
@@ -2700,7 +2708,7 @@ async function launchMergeIntoTree(
   const worktree = worktreeOf(context.workspace, job);
   const git = context.platformPorts.executableResolver.absolutePathOf('git', [projectLocationOfContext(context).repositoryRoot]);
   if (git.verdict === 'refused') {
-    writeMergeSettlement(context, job, files, { verdict: 'failed', reason: 'git cannot be found on Hephaestus\'s PATH.' });
+    writeMergeSettlement(context, job, files, { verdict: 'failed', failure: { code: 'git-not-found' } });
     return;
   }
   const gitVariables = { ...GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS), GIT_CEILING_DIRECTORIES: GitWorktrees.ceilingOf(worktree) };
@@ -2786,8 +2794,7 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const { groupTargetPrefix } = context.branchNames;
   const groupName = target.startsWith(groupTargetPrefix) ? target.slice(groupTargetPrefix.length) : null;
   if (groupName !== null && !GroupNameUtil.groupNameIsWellFormed(groupName)) {
-    recordWorktreeFailure(context, job, `The stored group "${groupName}" is not a portable group name (lower-case letters and digits in words joined by single `
-      + 'hyphens); file its tickets again under a group that is, since nothing migrates.');
+    recordWorktreeFailure(context, job, { code: 'group-name-not-portable', groupName });
     return;
   }
   const group = groupName !== null
@@ -2801,13 +2808,14 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
     recordAnUnnormalisedCheckout(context, job, worktree);
     return;
   }
-  recordWorktreeFailure(context, job, group?.verdict === 'git-failed' ? group.reason : run?.standardError.trim() ?? 'git did not run');
+  if (group?.verdict === 'git-failed') recordWorktreeFailure(context, job, group.problem);
+  else recordWorktreeFailure(context, job, run === null ? { code: 'git-did-not-run' } : { code: 'worktree-add-refused', gitMessage: run.standardError.trim() });
 }
 
-function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, errorText: string): void {
+function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, failure: WorktreeCreationFailure): void {
   mkdirSync(jobFolderOf(context.workspace, job), { recursive: true });
-  writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure), `${errorText}\n`);
-  context.log({ kind: 'worktree-creation-failed', jobId: job.id, worktreeFailure: errorText });
+  createWorktreeFailureWriter(join(jobFolderOf(context.workspace, job), JOB_FILES.worktreeFailure)).write(failure);
+  context.log({ kind: 'worktree-creation-failed', jobId: job.id, failure });
 }
 
 /**
@@ -2829,10 +2837,10 @@ function ticketEntityChangedSinceItsBranch(logRecords: readonly LogRecord[], job
   return entityChangedSinceIt;
 }
 
-/** The step that failed, worded as git's own failure; `null` when the step ran. */
-function gitStepFailureOf(directory: string, gitArguments: readonly string[]): string | null {
+/** The step that failed, as git's own failure; `null` when the step ran. */
+function gitStepFailureOf(directory: string, gitArguments: readonly string[]): GitRunFailure | null {
   const run = GitProcess.run(directory, gitArguments);
-  return GitProcess.succeeded(run) ? null : GitProcess.failureReasonOf(run, gitArguments);
+  return GitProcess.succeeded(run) ? null : GitProcess.failureOf(run, gitArguments);
 }
 
 /**
@@ -2865,7 +2873,7 @@ function prepareWorktree(context: JobLaunchContext, job: Readonly<Job>, jobFolde
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return false;
   const { repositoryRoot } = projectLocationOfContext(context);
   const state = GitWorktrees.worktreeStateOf(repositoryRoot, worktree);
-  if (state === 'leftover') recordWorktreeFailure(context, job, `The leftover folder ${worktree} is not a checkout of the repository.`);
+  if (state === 'leftover') recordWorktreeFailure(context, job, { code: 'leftover-not-a-checkout', path: worktree });
   if (state === 'absent') createWorktree(context, job);
   return GitWorktrees.worktreeIsCheckoutOf(repositoryRoot, worktree);
 }

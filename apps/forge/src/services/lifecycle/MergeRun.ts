@@ -4,10 +4,10 @@
  * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
  * own and settled here, and who takes a crossing ticket's conflict or red gate: the entity that owns it (strategy 5.7).
  */
-import type { TargetMergeSettlement } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
-import type { MergeSides }            from '../../adapters/merge-sides/MergeSidesIngestion.ts';
-import type { ReportProblem }         from '../../adapters/reports/@types/ReportProblem.ts';
-import { readMergeResolutionDiff }    from '../../lib/git/BranchDiffs.ts';
+import type { SettledTargetMerge } from '../../adapters/merge-settlement/MergeSettlementIngestion.ts';
+import type { MergeSides }         from '../../adapters/merge-sides/MergeSidesIngestion.ts';
+import type { ReportProblem }      from '../../adapters/reports/@types/ReportProblem.ts';
+import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
 import {
   mergeIn,
   resetTo,
@@ -82,19 +82,19 @@ function targetMergeCommandOf(gitProgramPath: string, targetTip: string): string
  * Read once the merge's process ended. A conflict is aborted and the worktree reset to the branch tip, so nothing of the merge stays; a
  * HEAD still on the branch tip is left as it is, so a merge git refused to start never resets the worktree.
  */
-function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): TargetMergeSettlement {
+function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): SettledTargetMerge {
   if (mergeIsInProgress(worktreePath)) {
     const conflictedFiles = unmergedPathsIn(worktreePath) ?? [];
     const restore = restoreBranchTip(worktreePath, sides.startTip);
-    if (restore.verdict !== 'restored') return { verdict: 'failed', reason: `The conflicted merge of ${sides.mergedTip} could not be undone: ${restore.verdict}.` };
+    if (restore.verdict !== 'restored') return { verdict: 'failed', failure: { code: 'conflicted-merge-not-undone', mergedTip: sides.mergedTip, restoreVerdict: restore.verdict } };
     if (conflictedFiles.length > 0) return { verdict: 'conflicted', conflictedFiles };
-    return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} stopped with no conflicted file.` };
+    return { verdict: 'failed', failure: { code: 'stopped-without-conflicted-file', mergedTip: sides.mergedTip } };
   }
   const headCommit = headOf(worktreePath);
   if (headCommit !== null && headCommit !== sides.startTip && headHoldsCommit(worktreePath, sides.mergedTip) === 'holds'
     && headHoldsCommit(worktreePath, sides.startTip) === 'holds') return { verdict: 'merged', mergeCommit: headCommit };
   if (headCommit !== sides.startTip) restoreBranchTip(worktreePath, sides.startTip);
-  return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} did not commit; HEAD is ${headCommit ?? 'unreadable'}.` };
+  return { verdict: 'failed', failure: { code: 'merge-not-committed', mergedTip: sides.mergedTip, headCommit } };
 }
 
 function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[], agentNaming: AgentNaming): CustomsSubject {

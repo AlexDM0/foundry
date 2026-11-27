@@ -20,6 +20,7 @@ import type {
 import type { PipelineProblem } from './PipelineProblem.ts';
 import type {
   ApplyRequest,
+  MainConstitutionProblem,
   PipelineDraftField,
   PipelineSetup,
   SourceAnnotation
@@ -124,7 +125,7 @@ export interface PipelineSetupEntityFacts {
 /** The refusal an Apply of the current draft meets now: the Board's, or main's constitution that git could not read, which an Apply refuses too. */
 export type ApplyRefusalFacts =
   | { kind: 'board-refusal'; boardRefusal: BoardRefusalDetail }
-  | { kind: 'main-constitution-unreadable'; reason: string };
+  | { kind: 'main-constitution-unreadable'; problem: MainConstitutionProblem };
 
 export interface PipelineSetupFacts {
   record:               PipelineSetup;

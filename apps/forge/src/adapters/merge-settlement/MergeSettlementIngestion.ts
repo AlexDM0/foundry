@@ -4,14 +4,21 @@
  */
 import { type ExpectationCheck, JobFileShapeUtil } from '../utils/JobFileShapeUtil.ts';
 import { StoredJsonDocumentUtil }                  from '../utils/StoredJsonDocumentUtil.ts';
+import type { MergeFailure }                       from './@types/MergeFailure.ts';
 import type { MergeSettlementProblem }             from './@types/MergeSettlementProblem.ts';
 
 export const MERGE_SETTLEMENT_FORMAT_VERSION = 1;
 
+/** The settlement as read back: a failed one carries the sentence its file stores under `reason`, which forge worded when it wrote it. */
 export type TargetMergeSettlement =
   | { verdict: 'merged'; mergeCommit: string }
   | { verdict: 'conflicted'; conflictedFiles: string[] }
-  | { verdict: 'failed'; reason: string };
+  | { verdict: 'failed'; storedReason: string };
+
+/** The settlement as the merge's end settles it and the writer stores it, a failure as its code. */
+export type SettledTargetMerge =
+  | Exclude<TargetMergeSettlement, { verdict: 'failed' }>
+  | { verdict: 'failed'; failure: MergeFailure };
 
 export type MergeSettlementReading =
   | { verdict: 'readable'; settlement: TargetMergeSettlement }
@@ -27,7 +34,7 @@ const SETTLEMENT_CHECKS: Readonly<Record<TargetMergeSettlement['verdict'], Reado
 function settlementOf(document: Readonly<Record<string, unknown>>, verdict: TargetMergeSettlement['verdict']): TargetMergeSettlement {
   if (verdict === 'merged') return { verdict, mergeCommit: document['mergeCommit'] as string };
   if (verdict === 'conflicted') return { verdict, conflictedFiles: [...document['conflictedFiles'] as string[]] };
-  return { verdict, reason: document['reason'] as string };
+  return { verdict, storedReason: document['reason'] as string };
 }
 
 export class MergeSettlementIngestion {

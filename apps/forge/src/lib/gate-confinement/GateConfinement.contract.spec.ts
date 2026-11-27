@@ -194,9 +194,9 @@ test('sandbox-exec is probed once, and a missing one is never run', () => {
   expect(applyingProbes).toBe(1);
 });
 
-test('a platform with no adapter and Seatbelt that cannot apply answer unavailable with a reason', () => {
-  expect(gateConfinementFor('freebsd').availability()).toMatchObject({ verdict: 'unavailable', reason: expect.any(String) });
-  expect(seatbeltOf(false).availability()).toMatchObject({ verdict: 'unavailable', reason: expect.any(String) });
+test('a platform with no adapter and Seatbelt that cannot apply answer unavailable with their cause', () => {
+  expect(gateConfinementFor('freebsd').availability()).toEqual({ verdict: 'unavailable', unavailability: { cause: 'no-adapter', platformName: 'freebsd' } });
+  expect(seatbeltOf(false).availability()).toEqual({ verdict: 'unavailable', unavailability: { cause: 'mechanism-unusable', mechanism: 'sandbox-exec' } });
 });
 
 test('Windows answers unconfined-by-design for gates and workers, and writes no confinement file', () => {
@@ -214,7 +214,7 @@ test('a worker is confined under Seatbelt whatever the gate probe answers, since
 describe('confinedLineOf, the only way to a line', () => {
   test('refuses on unavailable, never asking the adapter for the argv it would hand back unchanged', () => {
     const written = new Map<string, string>();
-    expect(confinedLineOf(seatbeltOf(false, written), () => PLAN, ARGV)).toEqual({ verdict: 'refused', reason: 'sandbox-exec cannot apply a profile here' });
+    expect(confinedLineOf(seatbeltOf(false, written), () => PLAN, ARGV)).toMatchObject({ verdict: 'refused', unavailability: { cause: 'mechanism-unusable' } });
     expect(written.size).toBe(0);
   });
 
@@ -381,20 +381,19 @@ describe('LinuxBubblewrap availability', () => {
   });
 
   test.each([
-    ['no bwrap is on the search path', { ...WORKING_BWRAP, executablePath: null }, 'bwrap (bubblewrap) is not on the search path'],
-    ['a user namespace is blocked', BLOCKED_BWRAP, 'bwrap: setting up uid map: Permission denied'],
-    ['bwrap prints no version', { ...WORKING_BWRAP, versionOutput: 'example output\n' }, 'bwrap --version gave no version: example output'],
-  ] as const)('answers unavailable with a reason when %s, and #521\'s refusal fires on it', (_case, fake, reasonPart) => {
+    ['no bwrap is on the search path', { ...WORKING_BWRAP, executablePath: null }, { cause: 'bubblewrap-not-on-search-path' }],
+    ['a user namespace is blocked', BLOCKED_BWRAP, { cause: 'bubblewrap-namespaces-refused', processMessage: 'bwrap: setting up uid map: Permission denied' }],
+    ['bwrap prints no version', { ...WORKING_BWRAP, versionOutput: 'example output\n' }, { cause: 'bubblewrap-version-unread', processMessage: 'example output' }],
+  ] as const)('answers unavailable with its cause when %s, and #521\'s refusal fires on it', (_case, fake, unavailability) => {
     const bubblewrap = bubblewrapOf(fake);
-    const availability = bubblewrap.availability();
-    expect(availability).toMatchObject({ verdict: 'unavailable', reason: expect.stringContaining(reasonPart) });
+    expect(bubblewrap.availability()).toEqual({ verdict: 'unavailable', unavailability });
     expect(bubblewrap.confinedArgvOf(BUBBLEWRAP_PLAN, ARGV)).toEqual(ARGV);
-    expect(confinedLineOf(bubblewrap, () => BUBBLEWRAP_PLAN, ARGV)).toEqual({ verdict: 'refused', reason: availability.verdict === 'unavailable' ? availability.reason : '' });
+    expect(confinedLineOf(bubblewrap, () => BUBBLEWRAP_PLAN, ARGV)).toEqual({ verdict: 'refused', unavailability });
   });
 
   test('the linux selector answers LinuxBubblewrap', () => {
     const availability = gateConfinementFor('linux').availability();
     if (availability.verdict === 'confined') expect(availability.mechanism).toStartWith(BUBBLEWRAP_MECHANISM);
-    else expect(availability).toMatchObject({ verdict: 'unavailable', reason: expect.stringContaining('bwrap') });
+    else expect(availability).toMatchObject({ verdict: 'unavailable', unavailability: { cause: expect.stringContaining('bubblewrap') } });
   });
 });

@@ -24,11 +24,11 @@ export interface ToolPlaces {
   readonly forbiddenRoots: readonly string[];
 }
 
-/** A kept tool a launch leaves off the search path, with the resolver's reason. */
+/** A kept tool a launch leaves off the search path, and the forbidden root its path sits inside. */
 export interface RefusedTool {
-  readonly name:   string;
-  readonly path:   string;
-  readonly reason: string;
+  readonly name:          string;
+  readonly path:          string;
+  readonly forbiddenRoot: string;
 }
 
 export interface LaunchTools {
@@ -152,7 +152,7 @@ function toolFactsOf(pipeline: Readonly<ToolNamingSteps> | null, places: ToolPla
 function refusedToolsOf(pipeline: Readonly<ToolNamingSteps> | null, places: ToolPlaces): RefusedTool[] {
   return (pipeline?.tools ?? []).flatMap((tool) => {
     const program = places.resolver.programAt(tool.path, places.forbiddenRoots);
-    return program.verdict === 'refused' && program.cause === 'inside-forbidden-root' ? [{ name: tool.name, path: tool.path, reason: program.reason }] : [];
+    return program.verdict === 'refused' && program.cause === 'inside-forbidden-root' ? [{ name: tool.name, path: tool.path, forbiddenRoot: program.forbiddenRoot }] : [];
   });
 }
 

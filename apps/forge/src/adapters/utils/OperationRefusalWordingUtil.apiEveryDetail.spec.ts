@@ -315,7 +315,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'tracker-lock-held':        { kind: 'tracker-lock-held', lockDirectoryPath: `${ROOT}/lock` },
   'lock-taken-over':          { kind: 'lock-taken-over', lockDirectoryPath: `${ROOT}/lock` },
   'malformed-hold-journal':   { kind: 'malformed-hold-journal', journalFilePath: `${ROOT}/journal.json`, problem: { code: 'files-not-a-list', field: 'files' } },
-  'hold-journal-unremovable': { kind: 'hold-journal-unremovable', journalFilePath: `${ROOT}/journal.json`, reason: 'Example reason' },
+  'hold-journal-unremovable': { kind: 'hold-journal-unremovable', journalFilePath: `${ROOT}/journal.json`, systemError: 'Example reason' },
   'install-version-mismatch': {
     kind: 'install-version-mismatch', rootDirectory: ROOT, manifestFilePath: `${ROOT}/version.json`, installVersion: 30, mismatch: { reason: 'unversioned' }
   },
@@ -332,12 +332,12 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'hephaestus-already-running':         { kind: 'hephaestus-already-running', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
   'hephaestus-down':                    { kind: 'hephaestus-down', hephaestusDirectory: '/example/hephaestus' },
   'hephaestus-contended':               { kind: 'hephaestus-contended', hephaestusDirectory: '/example/hephaestus' },
-  'gate-confinement-unavailable':       { kind: 'gate-confinement-unavailable', reason: 'Example reason' },
+  'gate-confinement-unavailable':       { kind: 'gate-confinement-unavailable', unavailability: { cause: 'mechanism-unusable', mechanism: 'sandbox-exec' } },
   'malformed-hephaestus-poll-interval': { kind: 'malformed-hephaestus-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: 'soon' },
   'malformed-versions-answer':          { kind: 'malformed-versions-answer', variable: 'EXAMPLE_VERSIONS_ANSWER', value: 'newest' },
   'git-below-floor':                    { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
   'hephaestus-lock-taken':              { kind: 'hephaestus-lock-taken', hephaestusLockFilePath: HEPHAESTUS_LOCK },
-  'hephaestus-lock-not-created-whole':  { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: HEPHAESTUS_LOCK, reason: 'Example reason' },
+  'hephaestus-lock-not-created-whole':  { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: HEPHAESTUS_LOCK, systemError: 'Example reason' },
   'hephaestus-port-in-use':             { kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4252 },
   'hephaestus-identity-unreadable':     { kind: 'hephaestus-identity-unreadable', processId: 4242, identitySources: [] },
   'hephaestus-did-not-start':           { kind: 'hephaestus-did-not-start', exitCode: 1, logFilePath: '/example/hephaestus.log' },
@@ -370,10 +370,15 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
     kind: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
   },
   'merge-accept-prediction-failed': {
-    kind: 'merge-accept-prediction-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
+    kind:     'merge-accept-prediction-failed',
+    ticketId: '004',
+    target:   'main',
+    problem:  {
+      code: 'git-exited', gitArguments: ['status'], exitCode: 128, gitMessage: 'Example reason'
+    }
   },
   'merge-update-failed': {
-    kind: 'merge-update-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
+    kind: 'merge-update-failed', ticketId: '004', target: 'main', problem: { code: 'target-unresolved' }
   },
   'no-open-incident':       { kind: 'no-open-incident', subject: 'Job J3', move: 'job-fresh' },
   'several-open-incidents': {
@@ -381,7 +386,12 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   },
   'worktree-has-uncommitted-work': { kind: 'worktree-has-uncommitted-work', ticketId: '004', worktreePath: '/example/worktree' },
   'worktree-repair-failed':        {
-    kind: 'worktree-repair-failed', ticketId: '004', step: 'reset', gitReason: 'Example reason'
+    kind:     'worktree-repair-failed',
+    ticketId: '004',
+    step:     'reset',
+    problem:  {
+      code: 'git-exited', gitArguments: ['status'], exitCode: 128, gitMessage: 'Example reason'
+    }
   },
   'document-agent-not-live': {
     kind: 'document-agent-not-live', ticketId: '004', document: 'spec', jobId: 'J7'
@@ -401,17 +411,22 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'malformed-setup-command':        { kind: 'malformed-setup-command', commandKind: 'pipeline-setup-answer', field: 'letters' },
   'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', problem: { code: 'has-no-name', field: 'gates[0]' } },
   'draft-copy-outside-entities':    { kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['gate:test'] },
-  'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', reason: 'Example reason' },
+  'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', problem: { code: 'main-line-unresolved', mainLine: 'main' } },
   'agent-program-does-not-run':     {
     kind: 'agent-program-does-not-run', cause: 'not-there', programPath: '/opt/example/bin/agent', agentName: 'Example Agent'
   },
   'tool-not-found':               { kind: 'tool-not-found', name: 'example-tool', searchedFolders: ['/opt/example/bin'] },
-  'tool-refused':                 { kind: 'tool-refused', name: 'example-tool', reason: '/home/example/repository/bin/example-tool sits inside /home/example/repository' },
+  'tool-refused':                 { kind: 'tool-refused', name: 'example-tool', refusal: { cause: 'inside-forbidden-root', path: `${ROOT}/bin/tool`, forbiddenRoot: ROOT } },
   'machine-config-unwritable':    { kind: 'machine-config-unwritable', filePath: '/home/example/.example-monitor/config.json', problem: { code: 'not-a-json-object' } },
   'task-ticket-missing':          { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
   'namespace-board-has-jobs':     { kind: 'namespace-board-has-jobs', jobCount: 2 },
-  'namespace-branch-list-failed': { kind: 'namespace-branch-list-failed', reason: 'Example reason' },
-  'namespace-not-free':           { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
+  'namespace-branch-list-failed': {
+    kind:    'namespace-branch-list-failed',
+    problem: {
+      code: 'git-exited', gitArguments: ['status'], exitCode: 128, gitMessage: 'Example reason'
+    }
+  },
+  'namespace-not-free': { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
 
   // Defects of forge's own code, worded as their throws were.
   'merge-job-holds-no-slot':                { kind: 'merge-job-holds-no-slot', jobId: 'J3' },

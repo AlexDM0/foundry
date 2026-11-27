@@ -32,6 +32,7 @@ import type { SynchronousCalls }                                                
 import { type ChildFiles, childFilesOf }                                                                  from './TalosFiles.ts';
 import { clientEntryLineOf, quitActInputOf }                                                              from './TalosFrames.ts';
 import { CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS, CHILD_RECORD_FORMAT_VERSION, EVENT_LOG_FORMAT_VERSION } from './constants/TalosProtocol.ts';
+import { TalosLogWordingUtil }                                                                            from './utils/TalosLogWordingUtil.ts';
 
 const TREE_SWEEP_INTERVAL_MILLISECONDS = 100;
 const TREE_SWEEP_ATTEMPTS              = 20;
@@ -229,7 +230,7 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     const outcome = await calls.stopTree(child.leader, stage, await listTree(child));
     // A refusal can leave one member alive after the rest died, the child among them.
     if (stage === 'force' && (outcome.verdict === 'signalled' || outcome.verdict === 'refused')) child.forcedStopRan = true;
-    logLine(`stop ${stage} ${child.childId}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${outcome.reason})` : ''}`);
+    logLine(`stop ${stage} ${child.childId}: ${outcome.verdict}${outcome.verdict === 'refused' ? ` (${TalosLogWordingUtil.processStopRefusalOf(outcome.refusal)})` : ''}`);
   }
 
   /** `force` again until the listing is empty, since a member still being killed can have started another; the attempts end it regardless. */

@@ -474,7 +474,7 @@ function removeUnheldSnapshots(
     if (triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') log({ kind: 'document-agent-snapshot-left-over', snapshotPath: snapshot, removalReason: removal.reason });
+    if (removal.verdict === 'left') log({ kind: 'document-agent-snapshot-left-over', snapshotPath: snapshot, problem: removal.problem });
   }
 }
 

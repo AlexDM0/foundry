@@ -31,7 +31,8 @@ import type { AgentAdapter, AgentEndingName }        from '../../lib/agent-launc
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
 import { AgentBillingUtil }                          from '../../lib/agent-launch/utils/AgentBillingUtil.ts';
-import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
+import { confinedLineOf }                            from '../../lib/gate-confinement/ConfinedLine.ts';
+import type { GitProblem }                           from '../../lib/git/@types/GitProblem.ts';
 import { GitProcess }                                from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
@@ -56,8 +57,10 @@ import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tra
 import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
 import type { DocumentReading }                              from '../../lib/tracker-model/utils/TicketDocumentReadingUtil.ts';
 import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { ConfinementRefusal }                           from '../../shared/@types/ConfinementRefusal.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { EffectReadingSource }                          from '../../shared/@types/EffectReading.ts';
+import type { GroupWorktreeProblem }                         from '../../shared/@types/GroupWorktreeProblem.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
 import { WorktreesFolder }                                   from '../../shared/WorktreesFolder.ts';
@@ -72,7 +75,7 @@ import { LIFECYCLE_LIMITS }                                    from '../../share
 import { AgentProgramWordingUtil }                             from '../../shared/utils/AgentProgramWordingUtil.ts';
 import { type AgentProgramResolution, AgentPrograms }          from '../control/AgentPrograms.ts';
 import { AgentTools }                                          from '../control/AgentTools.ts';
-import type { GateConfinement, LineRunner }                    from '../lifecycle/GateRun.ts';
+import type { ConfinedGateLine, GateConfinement, LineRunner }  from '../lifecycle/GateRun.ts';
 import { Landing }                                             from '../lifecycle/Landing.ts';
 import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
@@ -302,6 +305,9 @@ export interface DrivePassRequest {
   decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
   /** An invalid report's problem as a refused merge names it. */
   reportProblemSentenceOf:       (problem: ReportProblem) => string;
+  gitProblemSentenceOf:          (problem: GitProblem | GroupWorktreeProblem) => string;
+  /** A session or line forge's confinement refuses, as the sandbox refusal, the Airlock's incident or a step's output names it. */
+  confinementRefusalSentenceOf:  (refusal: ConfinementRefusal) => string;
   /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
   packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
   /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
@@ -1021,14 +1027,14 @@ export function launchFactsOf(
  * ends the job, an Airlock agent's through the Airlock's own, tried again each pass; any other job is logged and tried again each pass.
  */
 function sessionConfinementRefusalOf(
-  request: DrivePassRequest, jobLaunchContext: JobLaunchContext, job: Readonly<Job>, reason: string,
+  request: DrivePassRequest, jobLaunchContext: JobLaunchContext, job: Readonly<Job>, refusal: ConfinementRefusal,
 ): UnmadeAirlockAgentRoot | SessionConfinementRefused | null {
   if (JobLaunch.isWorktreeJob(job)) {
-    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, reason });
+    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, reason: request.confinementRefusalSentenceOf(refusal) });
     return null;
   }
-  if (job.kind === 'merge-agent') return { jobId: job.id, reason };
-  request.log({ kind: 'session-confinement-refused', jobId: job.id, confinementRefusal: reason });
+  if (job.kind === 'merge-agent') return { jobId: job.id, reason: request.confinementRefusalSentenceOf(refusal) };
+  request.log({ kind: 'session-confinement-refused', jobId: job.id, confinementRefusal: refusal });
   return { sessionConfinementRefusedFor: job.id };
 }
 
@@ -1077,7 +1083,7 @@ function agentSearchFoldersOf(request: DrivePassRequest, board: Board, job: Read
     platformPorts: request.platformPorts, homeDirectory: request.homeDirectory, monitorFolder: request.monitorFolder, rootDirectory: request.workspace.rootDirectory
   });
   for (const refused of launch.refusedTools) request.log({
-    kind: 'tool-left-off-search-path', toolName: refused.name, jobId: job.id, resolverRefusal: refused.reason,
+    kind: 'tool-left-off-search-path', toolName: refused.name, jobId: job.id, toolPath: refused.path, forbiddenRoot: refused.forbiddenRoot,
   });
   return [...AgentTools.toolFoldersOf(launch.tools), dirname(programPath)];
 }
@@ -1216,7 +1222,7 @@ async function launchAgentChild(
   JobLaunch.recordInstructionsRead(jobFolder, job.childInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
   const sessionLaunch = SessionConfinement.sessionLaunchOf(agentAdapter, request.platformPorts.gateConfinement, launchRequest);
-  if (sessionLaunch.verdict === 'refused') return sessionConfinementRefusalOf(request, jobLaunchContext, job, sessionLaunch.reason);
+  if (sessionLaunch.verdict === 'refused') return sessionConfinementRefusalOf(request, jobLaunchContext, job, sessionLaunch.refusal);
   const launched = await children.launchAgent({
     childFolder:                    jobFolder,
     instance:                       job.childInstance,
@@ -1325,7 +1331,9 @@ function noticesOf(
       : {
         kind: 'dirty-main-checkout', target: held.target, branch: held.branch, blockingFiles: held.blockingFiles
       })),
-    ...declinedCleanups.map((declined) => ({ kind: 'cleanup-declined', ...declined }) as const),
+    ...declinedCleanups.map(({ cleanup, groupBranch, problem }) => ({
+      kind: 'cleanup-declined', cleanup, groupBranch, reason: request.gitProblemSentenceOf(problem)
+    }) as const),
     ...(installVersionChanged ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),
     ...attributionTicketIds.map((ticketId) => ({ kind: 'attribution-found', ticketId }) as const),
@@ -1405,23 +1413,24 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
   const jobLaunchContext: JobLaunchContext = {
     platformPorts,
-    workspace:            request.workspace,
-    agentAdapter:         request.agentAdapter,
-    monitorFolder:        request.monitorFolder,
-    homeDirectory:        request.homeDirectory,
-    inheritedEnvironment: request.inheritedEnvironment,
-    mainLine:             request.mainLine,
-    branchNames:          request.branchNames,
-    boardChildren:        request.boardChildren,
-    programCommand:       request.programCommand,
-    codeVersion:          request.codeVersion,
+    workspace:                    request.workspace,
+    agentAdapter:                 request.agentAdapter,
+    monitorFolder:                request.monitorFolder,
+    homeDirectory:                request.homeDirectory,
+    inheritedEnvironment:         request.inheritedEnvironment,
+    mainLine:                     request.mainLine,
+    branchNames:                  request.branchNames,
+    boardChildren:                request.boardChildren,
+    programCommand:               request.programCommand,
+    codeVersion:                  request.codeVersion,
     gateSlots,
-    windDownMessage:      request.windDownMessage,
-    decisionWordingOf:    request.decisionWordingOf,
-    log:                  request.log,
-    resolutionLinesOf:    MergeRun.resolutionLinesOf,
+    windDownMessage:              request.windDownMessage,
+    decisionWordingOf:            request.decisionWordingOf,
+    confinementRefusalSentenceOf: request.confinementRefusalSentenceOf,
+    log:                          request.log,
+    resolutionLinesOf:            MergeRun.resolutionLinesOf,
     ...(sharedRepository === null ? {} : { sharedRepository }),
-    lostLineCause:        () => (startIsBeingReconciled ? causeOfAChildGoneAtTheStart : null),
+    lostLineCause:                () => (startIsBeingReconciled ? causeOfAChildGoneAtTheStart : null),
   };
   const endedJobTokensContext = { boardChildren: request.boardChildren, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
@@ -1435,7 +1444,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
    */
   function hephaestusGateLineOf(
     worktreePath: string, profilePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement
-  ): ConfinedLine {
+  ): ConfinedGateLine {
     const sandboxFacts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot:                projectLocation.repositoryRoot,
       projectPrefix:                 projectLocation.projectPrefix,
@@ -1458,11 +1467,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const planOf = () => LineSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
-    return confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
+    const line = confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
+    if (line.verdict === 'runs') return line;
+    return { verdict: 'refused', reason: request.confinementRefusalSentenceOf({ cause: 'confinement-unavailable', unavailability: line.unavailability }) };
   }
 
   /** A merge gate step in the slot's worktree; one profile file per worktree. */
-  function mergeGateLineOf(worktreePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
+  function mergeGateLineOf(worktreePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement): ConfinedGateLine {
     const profileFolder = join(hephaestusFilesIn(request.workspace.trackerDirectory).hephaestusDirectory, MERGE_GATE_PROFILES_FOLDER);
     return hephaestusGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), pipeline, commandArguments, confinement);
   }
@@ -1620,6 +1631,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     startHoldsOrphans:       startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
     decisionWordingOf:       request.decisionWordingOf,
     reportProblemSentenceOf: request.reportProblemSentenceOf,
+    gitProblemSentenceOf:    request.gitProblemSentenceOf,
     keepAirlockFacts:        (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
     keptAirlockFactsOf:      (mergeJob) => AirlockFactsFile.keptFactsOf(request.boardChildren.jobFolderOf(mergeJob.id), mergeJob.id),
     jobFolderOf:             (job) => request.boardChildren.jobFolderOf(job.id),
@@ -1628,7 +1640,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     dispatchIsStopped:       () => request.boardStore.reads.requireProgress().hephaestusState === 'paused',
     reportDeclinedCleanup:   (declined) => {
       request.log({
-        kind: 'cleanup-declined', cleanup: declined.cleanup, groupBranch: declined.groupBranch, gitMessage: declined.reason
+        kind: 'cleanup-declined', cleanup: declined.cleanup, groupBranch: declined.groupBranch, problem: declined.problem
       });
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },

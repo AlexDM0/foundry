@@ -21,7 +21,8 @@ export type SynchronousCallRequest =
 
 export type SynchronousCallAnswer =
   | { callId: number; verdict: 'done'; value: unknown }
-  | { callId: number; verdict: 'failed'; reason: string };
+  /** `systemError` is the message of what the call threw, the operating system's own for a file or process call. */
+  | { callId: number; verdict: 'failed'; systemError: string };
 
 export type SynchronousCallKind = SynchronousCallRequest['call'];
 

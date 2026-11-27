@@ -25,8 +25,8 @@ const PROGRAM = '/opt/example/bin/agent';
 const FOLLOWING_THE_MACHINE: Pipeline = { ...PipelineUtil.minimalPipelineOf(), agent: { vendor: ADAPTER.vendor, program: { follows: 'machine' } } };
 
 const RESOLVER: ExecutableResolver = {
-  absolutePathOf: () => ({ verdict: 'refused', cause: 'not-on-search-path', reason: 'example' }),
-  programAt:      (path) => (path === PROGRAM ? { verdict: 'found', path } : { verdict: 'refused', cause: 'not-there', reason: 'example' }),
+  absolutePathOf: () => ({ verdict: 'refused', cause: 'not-on-search-path', name: 'example' }),
+  programAt:      (path) => (path === PROGRAM ? { verdict: 'found', path } : { verdict: 'refused', cause: 'not-there', path }),
 };
 
 function sourceOf(pipeline: Pipeline, monitorFolder: string, adapter = ADAPTER): AgentFactsSource {

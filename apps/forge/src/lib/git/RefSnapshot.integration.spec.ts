@@ -31,7 +31,7 @@ function scratchGitRepository(prefix: string): string {
 
 function snapshotOf(repositoryDirectory: string): RefSnapshot {
   const reading = takeRefSnapshot(repositoryDirectory);
-  if (reading.verdict !== 'read') throw new Error(`the snapshot was not read: ${reading.reason}`);
+  if (reading.verdict !== 'read') throw new Error(`the snapshot was not read: ${JSON.stringify(reading.problem)}`);
   return reading.snapshot;
 }
 

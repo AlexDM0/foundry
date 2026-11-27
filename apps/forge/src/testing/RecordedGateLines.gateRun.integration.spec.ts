@@ -72,7 +72,7 @@ async function gateEndOf(line: string, confinement: GateLineConfinementKind): Pr
   const statusFile = join(tmpdir(), `example-line-status-${crypto.randomUUID()}`);
   const { argv } = spawningShellRequestOf(shellLine, line, statusFile);
   const confined = confinement === 'confined' ? confinedLineOf(gateConfinementFor(process.platform), planOf, argv) : { verdict: 'runs' as const, argv };
-  if (confined.verdict === 'refused') throw new Error(confined.reason);
+  if (confined.verdict === 'refused') throw new Error(`confinement unavailable: ${confined.unavailability.cause}`);
   return GateRun.runGate({
     argv:        confined.argv,
     statusFile,

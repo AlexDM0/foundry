@@ -108,7 +108,7 @@ export function childRecordOf(text: string): StoredRecordReading<ChildRecord> {
   const reading = ParsedValueUtil.parsedObjectOf(text, CHILD_RECORD_FORMAT_VERSION);
   if (reading.verdict !== 'object') return reading;
   const field = (key: keyof ChildRecord): unknown => ownFieldOf(reading.parsed, key);
-  const unreadable = (reason: string): StoredRecordReading<ChildRecord> => ({ verdict: 'unreadable', reason });
+  const unreadable = (field: string): StoredRecordReading<ChildRecord> => ({ verdict: 'unreadable', problem: { code: 'field-malformed', field } });
   const childId = field('childId');
   const kind = field('kind');
   const label = field('label');
@@ -121,21 +121,21 @@ export function childRecordOf(text: string): StoredRecordReading<ChildRecord> {
   const timeBoundMilliseconds = field('timeBoundMilliseconds');
   const storedEndings = field('recognisedEndings');
   const storedEnd = field('end');
-  if (typeof childId !== 'string' || childId === '') return unreadable('childId is not a non-empty string');
-  if (!isOneOf(kind, CHILD_KINDS)) return unreadable('kind is neither agent nor line');
-  if (typeof label !== 'string') return unreadable('label is not a string');
-  if (typeof workingDirectory !== 'string' || workingDirectory === '') return unreadable('workingDirectory is not a non-empty string');
-  if (!isWholeNumberAtLeast(talosStartNumber, 1)) return unreadable('talosStartNumber is not a whole number from 1');
-  if (talos === undefined) return unreadable('talos is neither null nor a process identity');
-  if (!isOneOf(state, CHILD_STATES)) return unreadable('state is not a child state');
-  if (childProcess === undefined) return unreadable('childProcess is neither null nor a process identity');
-  if (!isNullOr(childProcessGroupId, isWholeNumberAboveZero)) return unreadable('childProcessGroupId is neither null nor a process id');
-  if (field('eventLogFormatVersion') !== EVENT_LOG_FORMAT_VERSION) return unreadable(`eventLogFormatVersion is not ${EVENT_LOG_FORMAT_VERSION}`);
-  if (!isNullOr(timeBoundMilliseconds, isWholeNumberAboveZero)) return unreadable('timeBoundMilliseconds is neither null nor a whole number above 0');
+  if (typeof childId !== 'string' || childId === '') return unreadable('childId');
+  if (!isOneOf(kind, CHILD_KINDS)) return unreadable('kind');
+  if (typeof label !== 'string') return unreadable('label');
+  if (typeof workingDirectory !== 'string' || workingDirectory === '') return unreadable('workingDirectory');
+  if (!isWholeNumberAtLeast(talosStartNumber, 1)) return unreadable('talosStartNumber');
+  if (talos === undefined) return unreadable('talos');
+  if (!isOneOf(state, CHILD_STATES)) return unreadable('state');
+  if (childProcess === undefined) return unreadable('childProcess');
+  if (!isNullOr(childProcessGroupId, isWholeNumberAboveZero)) return unreadable('childProcessGroupId');
+  if (field('eventLogFormatVersion') !== EVENT_LOG_FORMAT_VERSION) return unreadable('eventLogFormatVersion');
+  if (!isNullOr(timeBoundMilliseconds, isWholeNumberAboveZero)) return unreadable('timeBoundMilliseconds');
   const recognisedEndings = Array.isArray(storedEndings) ? storedEndings.map(recognisedEndingOf) : null;
-  if (recognisedEndings === null || recognisedEndings.includes(null)) return unreadable('recognisedEndings is not a list of recognised endings');
+  if (recognisedEndings === null || recognisedEndings.includes(null)) return unreadable('recognisedEndings');
   const end = storedEnd === null ? null : childEndOf(storedEnd);
-  if (storedEnd !== null && end === null) return unreadable('end is neither null nor a child end');
+  if (storedEnd !== null && end === null) return unreadable('end');
   return {
     verdict: 'read',
     record:  {

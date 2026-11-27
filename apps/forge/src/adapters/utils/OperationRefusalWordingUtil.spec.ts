@@ -32,7 +32,8 @@ test('a malformed Hephaestus poll interval names the variable, the value and wha
 });
 
 test('a Hephaestus lock that cannot be created whole names the file, the failure and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: '/example/hephaestus/lock-1.json', reason: 'Error: EPERM' });
+  const hephaestusLockFilePath = '/example/hephaestus/lock-1.json';
+  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, systemError: 'Error: EPERM' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
     'The Hephaestus lock /example/hephaestus/lock-1.json cannot be created whole (Error: EPERM), so Hephaestus did not start. Its claim needs a hard link: '
     + 'move the data folder to a filesystem that allows one.'
@@ -107,7 +108,7 @@ test('a journal that stayed is worded naming it, what kept it and that the next 
   const refusal = new OperationRefusal('unrepaired', {
     kind:            'hold-journal-unremovable',
     journalFilePath: '/example/.agent-progress/hold-journal.json',
-    reason:          'Error: EBUSY',
+    systemError:     'Error: EBUSY',
   });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
     'The write finished, but /example/.agent-progress/hold-journal.json could not be removed (Error: EBUSY), so a later command would replay it. '
@@ -155,8 +156,13 @@ test('the by-hand task and namespace refusals are worded as their verbs printed 
       'The board has 2 job(s) on it, which run under its current branch names; let them end first. Nothing was written.',
     ],
     [
-      new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', reason: 'git exited 128' }),
-      'git did not list the branches (git exited 128). Nothing was written.',
+      new OperationRefusal('refused', {
+        kind:    'namespace-branch-list-failed',
+        problem: {
+          code: 'git-exited', gitArguments: ['branch', '--list'], exitCode: 128, gitMessage: 'fatal: bad'
+        }
+      }),
+      'git did not list the branches (git branch --list exited with 128: fatal: bad). Nothing was written.',
     ],
     [
       new OperationRefusal('refused', { kind: 'namespace-not-free', refusal: { reason: 'branch-blocks-namespace', branch: PROGRAM }, wantedNamespace: 'web' }),

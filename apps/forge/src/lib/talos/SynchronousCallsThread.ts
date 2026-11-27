@@ -98,7 +98,7 @@ function synchronousCallAnswerer(): (request: SynchronousCallRequest) => Synchro
     try {
       return { callId: request.callId, verdict: 'done', value: valueOf(request) };
     } catch (error) {
-      return { callId: request.callId, verdict: 'failed', reason: error instanceof Error ? error.message : String(error) };
+      return { callId: request.callId, verdict: 'failed', systemError: error instanceof Error ? error.message : String(error) };
     }
   };
 }

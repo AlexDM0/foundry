@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
+import { GitProblemWording }                              from '../../../adapters/GitProblemWording.ts';
 import type { KeptAirlockFacts }                          from '../../../adapters/airlock-facts/AirlockFactsIngestion.ts';
 import type { MergedTreeGate }                            from '../../../adapters/gate-outcome/@types/MergedTreeGate.ts';
 import { ReportProblemWording }                           from '../../../adapters/reports/ReportProblemWording.ts';
@@ -238,6 +239,7 @@ export function createRecordedAirlocksHarness(
     limits:                  { ...AIRLOCK_LIMITS, ...limits },
     agentNaming:             fakeAgentAdapter(),
     reportProblemSentenceOf: ReportProblemWording.sentenceOf,
+    gitProblemSentenceOf:    GitProblemWording.sentenceOf,
     get refDeniesHold() {
       return settings.refDeniesHold;
     },

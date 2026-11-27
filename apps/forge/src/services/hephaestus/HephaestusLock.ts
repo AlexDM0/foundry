@@ -108,7 +108,7 @@ function createHephaestusLockWhole(hephaestusDirectory: string, generation: numb
   try {
     return createHephaestusLockWriter(hephaestusLockFilePath, fileReplace).createWhole(record);
   } catch (failure) {
-    throw new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, reason: String(failure) });
+    throw new OperationRefusal('refused', { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, systemError: String(failure) });
   }
 }
 

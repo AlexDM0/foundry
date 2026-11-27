@@ -3,6 +3,7 @@
  * `unable to unlink old '<path>'`; POSIX unlinks a held file and never fails this way. Such a failure is told apart from the others and
  * tried again a bounded number of times, after the caller puts back what git already wrote.
  */
+import type { GitRunFailure }                          from './@types/GitProblem.ts';
 import { GitProcess, type GitHookPolicy, type GitRun } from './GitProcess.ts';
 
 export const HELD_CHECKOUT_RETRY_TRIES = 3;
@@ -33,8 +34,8 @@ export interface CheckoutWriteRequest {
 
 export type CheckoutWriteVerdict =
   | { verdict: 'written' }
-  | { verdict: 'failed'; reason: string }
-  | { verdict: 'target-file-held'; reason: string; heldFiles: string[] };
+  | { verdict: 'failed'; problem: GitRunFailure }
+  | { verdict: 'target-file-held'; problem: GitRunFailure; heldFiles: string[] };
 
 function heldFilesOf(finishedRun: GitRun | null): string[] {
   if (finishedRun === null) return [];
@@ -47,11 +48,11 @@ function writeRetryingWhileHeld(
 ): CheckoutWriteVerdict {
   const run = primitives.runGit(request.directory, request.gitArguments, request.hookPolicy, undefined, request.ceilingDirectory);
   if (GitProcess.succeeded(run)) return { verdict: 'written' };
-  const reason    = GitProcess.failureReasonOf(run, request.gitArguments);
+  const problem   = GitProcess.failureOf(run, request.gitArguments);
   const heldFiles = heldFilesOf(run);
-  if (heldFiles.length === 0) return { verdict: 'failed', reason };
+  if (heldFiles.length === 0) return { verdict: 'failed', problem };
   request.afterHeldFailure();
-  if (attempt >= HELD_CHECKOUT_RETRY_TRIES) return { verdict: 'target-file-held', reason, heldFiles };
+  if (attempt >= HELD_CHECKOUT_RETRY_TRIES) return { verdict: 'target-file-held', problem, heldFiles };
   primitives.pause(HELD_CHECKOUT_RETRY_STEP_MILLISECONDS);
   return writeRetryingWhileHeld(request, primitives, attempt + 1);
 }

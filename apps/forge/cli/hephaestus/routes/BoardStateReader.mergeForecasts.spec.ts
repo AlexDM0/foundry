@@ -53,7 +53,12 @@ function countingPredictor(): CountingPredictor {
   let runs = 0;
   const conflictingBranches = new Set<string>();
   const predictionOf = (branch: string): MergePrediction => {
-    if (branch === 'ticket-3') return { verdict: 'prediction-failed', reason: 'the branch does not resolve' };
+    if (branch === 'ticket-3') return {
+      verdict: 'prediction-failed',
+      problem: {
+        code: 'git-exited', gitArguments: ['merge-tree'], exitCode: 128, gitMessage: 'the branch does not resolve'
+      }
+    };
     return conflictingBranches.has(branch) ? { verdict: 'conflicting', conflictedFiles: ['shared.txt'] } : { verdict: 'clean' };
   };
   return {
@@ -111,7 +116,7 @@ describeWhenGitIsRecorded('caching the merge forecasts across board reads', () =
     const failingOncePredictor: typeof predictMerges = (directory, pairs) => {
       if (!failNextRun) return predictor.predict(directory, pairs);
       failNextRun = false;
-      return pairs.map(() => ({ verdict: 'prediction-failed' as const, reason: 'planted failure' }));
+      return pairs.map(() => ({ verdict: 'prediction-failed' as const, problem: { code: 'git-not-started' as const, gitArguments: ['merge-tree'] } }));
     };
     const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), createMergeForecastCache(), failingOncePredictor);
     await recordedGit.playStage([tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, SECOND_TICKET_TIP)], async () => {

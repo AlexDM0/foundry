@@ -1,10 +1,17 @@
-import type { ConfinedLine }                                         from '../lib/gate-confinement/ConfinedLine.ts';
-import type { ConfinementPlan, ConfinementVerdict, GateConfinement } from '../lib/gate-confinement/GateConfinement.ts';
+import type {
+  ConfinementPlan,
+  ConfinementUnavailability,
+  ConfinementVerdict,
+  GateConfinement
+} from '../lib/gate-confinement/GateConfinement.ts';
 
 /** The wrapper a planted `confined` adapter puts before an argv: harmless and runnable, so a child still starts. */
 export const FAKE_CONFINER_ARGV: readonly string[] = ['/usr/bin/env'];
 
-export const FAKE_MISSING_TOOLS_REASON = 'bubblewrap, socat and ripgrep are missing';
+export const FAKE_UNAVAILABILITY: ConfinementUnavailability = { cause: 'bubblewrap-not-on-search-path' };
+
+/** The words of `FAKE_UNAVAILABILITY`, as a refusal, an incident or the start's refusal names it. */
+export const FAKE_MISSING_TOOLS_REASON = 'bwrap (bubblewrap) is not on the search path';
 
 export interface FakeGateConfinement extends GateConfinement {
   /** Each plan the adapter was asked to confine a line under. */
@@ -18,7 +25,7 @@ export function fakeGateConfinement(verdict: ConfinementVerdict, workerVerdict: 
     plans,
     availability: () => {
       if (verdict === 'confined') return { verdict, mechanism: 'fake-confiner' };
-      return verdict === 'unavailable' ? { verdict, reason: FAKE_MISSING_TOOLS_REASON } : { verdict };
+      return verdict === 'unavailable' ? { verdict, unavailability: FAKE_UNAVAILABILITY } : { verdict };
     },
     workerConfinement: () => workerVerdict,
     confinedArgvOf:    (plan, argv) => {
@@ -29,6 +36,6 @@ export function fakeGateConfinement(verdict: ConfinementVerdict, workerVerdict: 
 }
 
 /** For a spec of what a line does once it may run, not of its confinement. */
-export function runsAsGiven(argv: readonly string[]): ConfinedLine {
+export function runsAsGiven(argv: readonly string[]): { readonly verdict: 'runs'; readonly argv: readonly string[] } {
   return { verdict: 'runs', argv };
 }

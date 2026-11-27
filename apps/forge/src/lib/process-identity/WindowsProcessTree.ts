@@ -22,7 +22,7 @@ import type { WindowsSystemTools }                         from './WindowsProces
 
 const TASK_KILL_FILE = 'taskkill.exe';
 
-const NO_SYSTEM_ROOT_REASON = 'SystemRoot is not an absolute folder, so taskkill.exe cannot be run by absolute path';
+const NO_SYSTEM_ROOT_REFUSAL = { verdict: 'refused', refusal: { cause: 'no-system-root' } } as const;
 
 type MemberStop = 'stopped' | 'gone' | 'failed';
 
@@ -109,11 +109,11 @@ export function createWindowsProcessTree(
   }
 
   function forceMembers(members: readonly ProcessTreeMember[]): ProcessTreeStopOutcome {
-    if (systemTools === null) return { verdict: 'refused', reason: NO_SYSTEM_ROOT_REASON };
+    if (systemTools === null) return NO_SYSTEM_ROOT_REFUSAL;
     const tools = systemTools;
     const results = [...members].reverse().map((member) => ({ processId: member.processId, result: stopMember(tools, member) }));
     const failedIds = results.filter(({ result }) => result === 'failed').map(({ processId }) => processId);
-    if (failedIds.length > 0) return { verdict: 'refused', reason: `the processes ${failedIds.join(', ')} could not be ended` };
+    if (failedIds.length > 0) return { verdict: 'refused', refusal: { cause: 'processes-not-ended', processIds: failedIds } };
     return results.some(({ result }) => result === 'stopped') ? { verdict: 'signalled' } : { verdict: 'group-gone' };
   }
 
@@ -124,21 +124,21 @@ export function createWindowsProcessTree(
 
   function stopTree(leader: ProcessIdentity, stage: ProcessStopStage, treeMembers: readonly ProcessTreeMember[] = []): ProcessTreeStopOutcome {
     const reading = treeReadingOf(leader, treeMembers);
-    if (reading.verdict === 'unreadable-snapshot') return { verdict: 'refused', reason: `the process tree of ${leader.processId} could not be read` };
+    if (reading.verdict === 'unreadable-snapshot') return { verdict: 'refused', refusal: { cause: 'tree-unreadable', leaderProcessId: leader.processId } };
     if (reading.verdict === 'unreadable-children') {
       if (stage === 'ask') return { verdict: 'no-ask-stage' };
-      return { verdict: 'refused', reason: `the start of the listed processes ${reading.processIds.join(', ')} in the tree of ${leader.processId} could not be read` };
+      return { verdict: 'refused', refusal: { cause: 'tree-starts-unreadable', leaderProcessId: leader.processId, processIds: reading.processIds } };
     }
     if (reading.members.length === 0) return emptyTreeOutcome(leader);
     return stage === 'ask' ? { verdict: 'no-ask-stage' } : forceMembers(reading.members);
   }
 
   function stopProcess(processId: number, stage: ProcessStopStage): ProcessStopOutcome {
-    if (stage === 'ask') return { verdict: 'refused', reason: `the process ${processId} cannot be asked to stop from outside on Windows` };
+    if (stage === 'ask') return { verdict: 'refused', refusal: { cause: 'no-outside-ask', processId } };
     if (kernel.creationTimeOf(processId) === null) return { verdict: 'gone' };
-    if (systemTools === null) return { verdict: 'refused', reason: NO_SYSTEM_ROOT_REASON };
+    if (systemTools === null) return NO_SYSTEM_ROOT_REFUSAL;
     if (primitives.outputOfProgram(stopArgvOf(systemTools, processId, false), systemTools.environment) !== null) return { verdict: 'signalled' };
-    return kernel.creationTimeOf(processId) === null ? { verdict: 'gone' } : { verdict: 'refused', reason: `the process ${processId} could not be ended` };
+    return kernel.creationTimeOf(processId) === null ? { verdict: 'gone' } : { verdict: 'refused', refusal: { cause: 'process-not-ended', processId } };
   }
 
   /** A kill from outside this handle reads as exit 1, so a stop that was forced says so itself. */

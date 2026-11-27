@@ -56,7 +56,7 @@ function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: BoardTra
     kind: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
   });
   if (prediction.verdict === 'prediction-failed') throw new OperationRefusal('refused', {
-    kind: 'merge-accept-prediction-failed', ticketId, target, gitReason: prediction.reason
+    kind: 'merge-accept-prediction-failed', ticketId, target, problem: prediction.problem
   });
   return change.board.setTicketMergeAccepted(ticketId, true, change.at);
 }
@@ -84,7 +84,7 @@ function updateBranch(command: ControlCommandOf<'merge-update'>, change: BoardTr
   const targetTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, `refs/heads/${target}`);
   if (startTip === null || targetTip === null) {
     throw new OperationRefusal('refused', {
-      kind: 'merge-update-failed', ticketId, target, gitReason: startTip === null ? `${worktree} has no readable HEAD` : `${target} does not resolve`
+      kind: 'merge-update-failed', ticketId, target, problem: startTip === null ? { code: 'worktree-head-unreadable', worktree } : { code: 'target-unresolved' }
     });
   }
   const merge = MergeRun.mergeInOnce(worktree, { startTip, mergedTip: targetTip });
@@ -93,7 +93,7 @@ function updateBranch(command: ControlCommandOf<'merge-update'>, change: BoardTr
   undoMergeUpdate(worktree, startTip);
   if (merge.verdict !== 'conflicted') {
     throw new OperationRefusal('refused', {
-      kind: 'merge-update-failed', ticketId, target, gitReason: merge.verdict === 'git-failed' ? merge.reason : 'unknown commit'
+      kind: 'merge-update-failed', ticketId, target, problem: merge.verdict === 'git-failed' ? merge.problem : { code: 'unknown-commit' }
     });
   }
   return change.board.recordMergeUpdated(ticketId, target, 'conflicted', change.at);

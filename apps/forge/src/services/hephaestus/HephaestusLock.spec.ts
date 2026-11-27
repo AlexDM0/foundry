@@ -77,7 +77,7 @@ describeWhenRecorded(['process-table-recording'], 'a claim where hard links fail
     }
     expect(refusal instanceof OperationRefusal ? refusal.status : null).toBe('refused');
     const hephaestusLockFilePath = HephaestusLock.filePathFor(hephaestusDirectory, 1);
-    const detail = { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, reason: `Error: ${EXAMPLE_LINK_REFUSAL_MESSAGE}` } as const;
+    const detail = { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath, systemError: `Error: ${EXAMPLE_LINK_REFUSAL_MESSAGE}` } as const;
     expect(refusal instanceof OperationRefusal ? refusal.detail : null).toEqual(detail);
     expect(HephaestusLock.generationsIn(hephaestusDirectory)).toEqual([]);
   });

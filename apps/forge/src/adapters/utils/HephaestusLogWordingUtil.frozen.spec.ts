@@ -11,7 +11,66 @@ interface FrozenRow {
   details: string;
 }
 
-const ROWS = FROZEN_ROWS as unknown as readonly FrozenRow[];
+/** A kind whose free-text key became typed values after the freeze: its row's text stands for the clause those values word. */
+interface RetypedKind {
+  readonly legacyKey: string;
+  readonly typedKeys: Readonly<Record<string, unknown>>;
+  readonly clause:    string;
+}
+
+const WORKTREE_REMOVAL_RETYPED: RetypedKind = {
+  legacyKey: 'removalReason',
+  typedKeys: {
+    problem: {
+      code: 'git-exited', gitArguments: ['worktree', 'remove', '--force', '/worktrees/example'], exitCode: 128, gitMessage: 'fatal: locked'
+    }
+  },
+  clause: 'git worktree remove --force /worktrees/example exited with 128: fatal: locked',
+};
+
+const RETYPED_KINDS: Partial<Record<HephaestusLogKind, RetypedKind>> = {
+  'tool-left-off-search-path': {
+    legacyKey: 'resolverRefusal',
+    typedKeys: { toolPath: '/example/repository/bin/example-tool', forbiddenRoot: '/example/repository' },
+    clause:    '/example/repository/bin/example-tool sits inside /example/repository',
+  },
+  'session-confinement-refused': {
+    legacyKey: 'confinementRefusal',
+    typedKeys: { confinementRefusal: { cause: 'confinement-unavailable', unavailability: { cause: 'mechanism-unusable', mechanism: 'sandbox-exec' } } },
+    clause:    'sandbox-exec cannot apply a profile here',
+  },
+  'cleanup-declined': {
+    legacyKey: 'gitMessage',
+    typedKeys: {
+      problem: {
+        code: 'git-exited', gitArguments: ['worktree', 'remove', '/worktrees/example'], exitCode: 128, gitMessage: 'fatal: locked'
+      }
+    },
+    clause: 'git worktree remove /worktrees/example exited with 128: fatal: locked',
+  },
+  'worktree-creation-failed': {
+    legacyKey: 'worktreeFailure',
+    typedKeys: { failure: { code: 'worktree-add-refused', gitMessage: 'fatal: invalid reference: main' } },
+    clause:    'fatal: invalid reference: main',
+  },
+  'gate-profile-worktree-left-over':   WORKTREE_REMOVAL_RETYPED,
+  'pipeline-check-worktree-left-over': WORKTREE_REMOVAL_RETYPED,
+  'document-agent-snapshot-left-over': WORKTREE_REMOVAL_RETYPED,
+  'pipeline-agent-snapshot-left-over': WORKTREE_REMOVAL_RETYPED,
+};
+
+function currentRowOf(row: FrozenRow): FrozenRow {
+  const retyped = RETYPED_KINDS[row.record.kind];
+  if (retyped === undefined) return row;
+  const { [retyped.legacyKey]: legacyText, ...keptKeys } = row.record as unknown as Record<string, unknown>;
+  return {
+    case:    row.case,
+    record:  { ...keptKeys, ...retyped.typedKeys } as unknown as HephaestusLogRecord,
+    details: row.details.replace(String(legacyText), retyped.clause),
+  };
+}
+
+const ROWS = (FROZEN_ROWS as unknown as readonly FrozenRow[]).map(currentRowOf);
 
 /** Every kind, so a kind added to the union fails here until it has its frozen row. */
 const EVERY_KIND: Readonly<Record<HephaestusLogKind, true>> = {

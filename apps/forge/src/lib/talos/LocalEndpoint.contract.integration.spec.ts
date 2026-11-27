@@ -199,7 +199,7 @@ const CLAUSES: readonly PortClause<LocalEndpoint>[] = [
       port.prepareEndpoint(endpoint);
       const holder = await talosSocketOn(port, endpoint);
       const second = await talosSocketOn(port, endpoint);
-      expect(second).toMatchObject({ verdict: 'unbindable', reason: expect.stringContaining('EADDRINUSE') });
+      expect(second).toMatchObject({ verdict: 'unbindable', systemError: expect.stringContaining('EADDRINUSE') });
       if (holder.verdict === 'listening') holder.server.close();
       expect(holder.verdict).toBe('listening');
     },
@@ -260,7 +260,7 @@ test('a folder that cannot be made is a refused verdict, never a throw', () => {
       throw new Error('example EACCES');
     },
   }, MACOS_SOCKET_PATH_LIMIT_BYTES);
-  expect(failing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EACCES' });
+  expect(failing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', refusal: { cause: 'system-error', systemError: 'Error: example EACCES' } });
 });
 
 test('a folder that cannot be proved owner-only is a refused verdict, and the old socket file stays', () => {
@@ -270,7 +270,8 @@ test('a folder that cannot be proved owner-only is a refused verdict, and the ol
     restrictFolder: (folder) => ({ verdict: 'refused', cause: 'not-proved-owner-only', path: folder }),
     removeFile:     (path) => removedFiles.push(path),
   }, MACOS_SOCKET_PATH_LIMIT_BYTES);
-  expect(refusing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'not-proved-owner-only: /example/private' });
+  const privateFolderRefusal = { cause: 'folder-not-private', restrictionCause: 'not-proved-owner-only', path: '/example/private' } as const;
+  expect(refusing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', refusal: privateFolderRefusal });
   expect(removedFiles).toEqual([]);
 });
 
@@ -281,7 +282,7 @@ test('a socket file that cannot be removed is a refused verdict at the release, 
       throw new Error('example EPERM');
     },
   }, MACOS_SOCKET_PATH_LIMIT_BYTES);
-  expect(failing.releaseEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EPERM' });
+  expect(failing.releaseEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', refusal: { cause: 'system-error', systemError: 'Error: example EPERM' } });
 });
 
 describe('a Windows pipe', () => {
@@ -323,7 +324,7 @@ describe('a Windows pipe', () => {
 });
 
 describe('a platform with no adapter', () => {
-  const refusal = { verdict: 'refused', reason: 'no local endpoint exists for the platform example-os' } as const;
+  const refusal = { verdict: 'refused', refusal: { cause: 'no-adapter', platformName: 'example-os' } } as const;
 
   test('names no endpoint, fits none and refuses to prepare or release', () => {
     const unsupported = createUnsupportedLocalEndpoint('example-os');

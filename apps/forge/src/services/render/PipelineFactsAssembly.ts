@@ -287,12 +287,12 @@ function setupEntityFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineS
  */
 function applyRefusalOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): ApplyRefusalFacts | null {
   const forgeConstitution = input.mainLineTexts.mainConstitution();
-  if (forgeConstitution.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: forgeConstitution.reason };
+  if (forgeConstitution.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', problem: forgeConstitution.problem };
   const draftEntities = setup.draft?.entities;
   const entityConstitutions: Record<EntityKey, MainConstitution | null> = {};
   for (const [entityKey, entity] of Object.entries(draftEntities ?? {})) {
     const reading = input.mainLineTexts.mainConstitution(EntityFoldersUtil.constitutionPathOf(entity));
-    if (reading.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: reading.reason };
+    if (reading.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', problem: reading.problem };
     entityConstitutions[entityKey] = reading.verdict === 'read' ? reading.constitution : null;
   }
   const refusal = input.board.applyRefusalOf(setup.setupId, {

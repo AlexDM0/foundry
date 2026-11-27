@@ -5,8 +5,13 @@
  * namespace keeps Hephaestus's `/proc/<pid>/environ` out of reach. A denied path absent at launch renders nothing, since a bind would
  * create its mount point; a caller makes a denied root inside a writable bind before the launch, so it exists and gets its mount.
  */
-import { ancestorBinFoldersOf }                                           from './AncestorBinFolders.ts';
-import type { ConfinementAvailability, ConfinementPlan, GateConfinement } from './GateConfinement.ts';
+import { ancestorBinFoldersOf } from './AncestorBinFolders.ts';
+import type {
+  ConfinementAvailability,
+  ConfinementPlan,
+  ConfinementUnavailability,
+  GateConfinement
+} from './GateConfinement.ts';
 
 export type HostPathKind = 'directory' | 'file' | 'absent';
 
@@ -131,23 +136,22 @@ function firstLineOf(output: string): string {
 
 type BubblewrapProbe = { readonly availability: ConfinementAvailability; readonly install: BubblewrapInstall | null };
 
-function unavailable(reason: string): BubblewrapProbe {
-  return { availability: { verdict: 'unavailable', reason }, install: null };
+function unavailable(unavailability: ConfinementUnavailability): BubblewrapProbe {
+  return { availability: { verdict: 'unavailable', unavailability }, install: null };
 }
 
 function probeOf(primitives: BubblewrapPrimitives): BubblewrapProbe {
   const executablePath = primitives.executablePathOf(BUBBLEWRAP_EXECUTABLE_NAME);
-  if (executablePath === null) return unavailable('bwrap (bubblewrap) is not on the search path');
+  if (executablePath === null) return unavailable({ cause: 'bubblewrap-not-on-search-path' });
   const versionRun = primitives.runProgram([executablePath, '--version']);
   const version = versionRun.exitCode === 0 ? versionOf(versionRun.output) : null;
-  if (version === null) return unavailable(`bwrap --version gave no version: ${firstLineOf(versionRun.output)}`);
+  if (version === null) return unavailable({ cause: 'bubblewrap-version-unread', processMessage: firstLineOf(versionRun.output) });
   const install = { executablePath, refusesNestedNamespaces: versionIsAtLeast(version, NESTED_NAMESPACE_REFUSAL_VERSION.split('.').map(Number)) };
   const namespaceRun = primitives.runProgram([
     executablePath, '--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc', ...namespaceArgumentsOf(install, false), '--', PROBED_PROGRAM,
   ]);
   if (namespaceRun.exitCode !== 0) {
-    return unavailable('bwrap cannot create its namespaces here, as under an AppArmor user-namespace rule such as Ubuntu 24.04\'s'
-      + ` kernel.apparmor_restrict_unprivileged_userns or in many containers: ${firstLineOf(namespaceRun.output)}`);
+    return unavailable({ cause: 'bubblewrap-namespaces-refused', processMessage: firstLineOf(namespaceRun.output) });
   }
   const mechanism = install.refusesNestedNamespaces
     ? BUBBLEWRAP_MECHANISM

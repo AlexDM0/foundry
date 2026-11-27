@@ -8,9 +8,10 @@
 import { unlinkSync }       from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 
-import { writeFileAtomically } from '../atomic-file/AtomicFile.ts';
-import { GitProcess }          from './GitProcess.ts';
-import { GitWorktrees }        from './GitWorktrees.ts';
+import { writeFileAtomically }      from '../atomic-file/AtomicFile.ts';
+import type { WorktreeStepProblem } from './@types/GitProblem.ts';
+import { GitProcess }               from './GitProcess.ts';
+import { GitWorktrees }             from './GitWorktrees.ts';
 
 function runInWorktree(worktreePath: string, gitArguments: readonly string[]): ReturnType<typeof GitProcess.run> {
   return GitProcess.run(worktreePath, gitArguments, 'hooks-off', undefined, GitWorktrees.ceilingOf(worktreePath));
@@ -34,20 +35,20 @@ export interface WorktreeRequest {
 export type WorktreeAdditionOutcome =
   | { verdict: 'added'; worktreePath: string; headCommit: string }
   | { verdict: 'unknown-commit' }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; problem: WorktreeStepProblem };
 
 export type WorktreePruneOutcome =
   | { verdict: 'pruned' }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; problem: WorktreeStepProblem };
 
 export type IndexLockRemovalOutcome =
   | { verdict: 'removed'; lockPath: string }
   | { verdict: 'absent'; lockPath: string }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; problem: WorktreeStepProblem };
 
 export type UncommittedWorkSaveOutcome =
   | { verdict: 'saved'; patchPath: string; untrackedFiles: string[] }
-  | { verdict: 'refused'; reason: string };
+  | { verdict: 'refused'; problem: WorktreeStepProblem };
 
 function errorCodeOf(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : undefined;
@@ -64,7 +65,7 @@ export function addWorktreeFromCommit(request: WorktreeRequest): WorktreeAdditio
   const worktreePath      = join(request.worktreesFolder, request.worktreeName);
   const additionArguments = ['worktree', 'add', '--quiet', '-b', request.newBranch, worktreePath, startCommit];
   const run               = GitProcess.run(request.repositoryDirectory, additionArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, additionArguments) };
+  if (!GitProcess.succeeded(run)) return { verdict: 'refused', problem: GitProcess.failureOf(run, additionArguments) };
   return { verdict: 'added', worktreePath, headCommit: startCommit };
 }
 
@@ -82,7 +83,7 @@ export function changedTrackedPathsOf(worktreePath: string): string[] | null {
 export function pruneWorktrees(repositoryDirectory: string): WorktreePruneOutcome {
   const pruneArguments = ['worktree', 'prune'];
   const run            = GitProcess.run(repositoryDirectory, pruneArguments);
-  return GitProcess.succeeded(run) ? { verdict: 'pruned' } : { verdict: 'refused', reason: GitProcess.failureReasonOf(run, pruneArguments) };
+  return GitProcess.succeeded(run) ? { verdict: 'pruned' } : { verdict: 'refused', problem: GitProcess.failureOf(run, pruneArguments) };
 }
 
 /**
@@ -92,7 +93,7 @@ export function pruneWorktrees(repositoryDirectory: string): WorktreePruneOutcom
 export function removeStaleIndexLock(worktreePath: string): IndexLockRemovalOutcome {
   const lockPathArguments = ['rev-parse', '--git-path', 'index.lock'];
   const run               = runInWorktree(worktreePath, lockPathArguments);
-  if (!GitProcess.succeeded(run)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(run, lockPathArguments) };
+  if (!GitProcess.succeeded(run)) return { verdict: 'refused', problem: GitProcess.failureOf(run, lockPathArguments) };
   const printedPath = run.standardOutput.trim();
   const lockPath    = isAbsolute(printedPath) ? printedPath : join(worktreePath, printedPath);
   try {
@@ -100,7 +101,7 @@ export function removeStaleIndexLock(worktreePath: string): IndexLockRemovalOutc
     return { verdict: 'removed', lockPath };
   } catch (error) {
     if (errorCodeOf(error) === MISSING_FILE_CODE) return { verdict: 'absent', lockPath };
-    return { verdict: 'refused', reason: `${lockPath} could not be removed: ${String(error)}` };
+    return { verdict: 'refused', problem: { code: 'index-lock-not-removed', lockPath, systemError: String(error) } };
   }
 }
 
@@ -118,22 +119,22 @@ function untrackedFilePatchOf(worktreePath: string, untrackedFile: string): stri
 export function saveUncommittedWork(worktreePath: string, patchPath: string): UncommittedWorkSaveOutcome {
   const trackedArguments = ['diff', '--binary', 'HEAD', '--'];
   const trackedRun       = runInWorktree(worktreePath, trackedArguments);
-  if (!GitProcess.succeeded(trackedRun)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(trackedRun, trackedArguments) };
+  if (!GitProcess.succeeded(trackedRun)) return { verdict: 'refused', problem: GitProcess.failureOf(trackedRun, trackedArguments) };
   const untrackedArguments = ['ls-files', '--others', '--exclude-standard', '-z'];
   const untrackedRun       = runInWorktree(worktreePath, untrackedArguments);
-  if (!GitProcess.succeeded(untrackedRun)) return { verdict: 'refused', reason: GitProcess.failureReasonOf(untrackedRun, untrackedArguments) };
+  if (!GitProcess.succeeded(untrackedRun)) return { verdict: 'refused', problem: GitProcess.failureOf(untrackedRun, untrackedArguments) };
 
   const untrackedFiles = nulSeparatedFieldsOf(untrackedRun.standardOutput);
   const patchParts     = [trackedRun.standardOutput];
   for (const untrackedFile of untrackedFiles) {
     const untrackedPatch = untrackedFilePatchOf(worktreePath, untrackedFile);
-    if (untrackedPatch === null) return { verdict: 'refused', reason: `git diff --no-index could not save the untracked file ${untrackedFile}.` };
+    if (untrackedPatch === null) return { verdict: 'refused', problem: { code: 'untracked-file-not-saved', untrackedFile } };
     patchParts.push(untrackedPatch);
   }
   try {
     writeFileAtomically(patchPath, patchParts.join(''));
   } catch (error) {
-    return { verdict: 'refused', reason: `${patchPath} could not be written: ${String(error)}` };
+    return { verdict: 'refused', problem: { code: 'patch-not-written', patchPath, systemError: String(error) } };
   }
   return { verdict: 'saved', patchPath, untrackedFiles };
 }

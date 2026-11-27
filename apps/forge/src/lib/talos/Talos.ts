@@ -43,6 +43,7 @@ import {
 import { type TalosSocketServer, listenOnTalosSocket }         from './TalosSocketServer.ts';
 import { type TalosStartFile, talosStartFileOf }               from './TalosStartFile.ts';
 import { TALOS_PROTOCOL_VERSION, TALOS_RECORD_FORMAT_VERSION } from './constants/TalosProtocol.ts';
+import { TalosLogWordingUtil }                                 from './utils/TalosLogWordingUtil.ts';
 
 const TALOS_DONE_EXIT_CODE    = 0;
 const TALOS_REFUSED_EXIT_CODE = 1;
@@ -220,14 +221,14 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
       record = { ...record, ...changes };
       return calls.writeRecord(talosRecordFilePath, talosRecordTextOf(record), false);
     };
-    const refuseStart = async (reason: string): Promise<void> => {
-      await calls.appendText(talosLogPath, `start refused: ${reason}\n`);
+    const refuseStart = async (sentence: string): Promise<void> => {
+      await calls.appendText(talosLogPath, `start refused: ${sentence}\n`);
       await writeTalosRecord({ state: 'quit', quitReason: 'start-refused' });
       finish(TALOS_REFUSED_EXIT_CODE);
     };
     const preparation = await calls.prepareEndpoint(startFile.endpoint);
     if (preparation.verdict === 'refused') {
-      await refuseStart(`the endpoint cannot be prepared: ${preparation.reason}`);
+      await refuseStart(`the endpoint cannot be prepared: ${TalosLogWordingUtil.endpointRefusalOf(preparation.refusal)}`);
       return;
     }
 
@@ -332,7 +333,7 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
       onClientFrame:     async (frame): Promise<DoneFrame> => ({ kind: 'done', frameId: frame.frameId, ...(await verdictOf(frame)) }),
     });
     if (listening.verdict === 'unbindable') {
-      await refuseStart(`the endpoint cannot be bound: ${listening.reason}`);
+      await refuseStart(`the endpoint cannot be bound: ${listening.systemError}`);
       return;
     }
     ({ server } = listening);

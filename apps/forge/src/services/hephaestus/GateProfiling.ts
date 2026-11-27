@@ -187,7 +187,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
 
   function removeWorktree(worktreePath: string): void {
     const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
-    if (removal.verdict === 'left') context.log({ kind: 'gate-profile-worktree-left-over', worktreePath, removalReason: removal.reason });
+    if (removal.verdict === 'left') context.log({ kind: 'gate-profile-worktree-left-over', worktreePath, problem: removal.problem });
   }
 
   function appendOutput(profileRunId: string, text: string): void {

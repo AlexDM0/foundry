@@ -70,7 +70,7 @@ async function servedTalos(onClientFrame: TalosSocketOptions['onClientFrame']): 
       return onClientFrame(frame);
     },
   });
-  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.reason}`);
+  if (listening.verdict !== 'listening') throw new Error(`the Talos endpoint cannot listen: ${listening.systemError}`);
   return {
     endpoint, framesSeen, broadcast: listening.server.broadcast, close: listening.server.close
   };

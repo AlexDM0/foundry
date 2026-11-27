@@ -14,6 +14,7 @@ import type { EntityRefusal }                                from '../../lib/tra
 import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
 import type { HoldJournalProblem }                           from '../../shared/@types/HoldJournalProblem.ts';
+import type { MergeUpdateProblem }                           from '../../shared/@types/MergeUpdateProblem.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
 import { type BranchNamespaceRefusal, branchNamesOf }        from '../../shared/BranchNames.ts';
@@ -22,6 +23,9 @@ import type { OperationRefusalDetail }                       from '../../shared/
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
 import { ROOT_OVERRIDE_VARIABLE }                            from '../../shared/constants/RootOverrideVariable.ts';
 import { AgentProgramWordingUtil }                           from '../../shared/utils/AgentProgramWordingUtil.ts';
+import { ConfinementRefusalWording }                         from '../ConfinementRefusalWording.ts';
+import { ExecutableRefusalWording }                          from '../ExecutableRefusalWording.ts';
+import { GitProblemWording }                                 from '../GitProblemWording.ts';
 import { UnreadableRecordProblemWording }                    from '../UnreadableRecordProblemWording.ts';
 import { HoldJournalProblemWording }                         from '../hold-journal/HoldJournalProblemWording.ts';
 import { InstallManifestProblemWording }                     from '../install/InstallManifestProblemWording.ts';
@@ -29,6 +33,7 @@ import { LogFileProblemWording }                             from '../log/LogFil
 import { MachineConfigProblemWording }                       from '../machine-config/MachineConfigProblemWording.ts';
 import { EntityRefusalWording }                              from '../pipeline/EntityRefusalWording.ts';
 import { GateProfilesProblemWording }                        from '../pipeline/GateProfilesProblemWording.ts';
+import { MainConstitutionProblemWording }                    from '../pipeline/MainConstitutionProblemWording.ts';
 import { PipelineProblemWording }                            from '../pipeline/PipelineProblemWording.ts';
 import { PipelineSetupProblemWording }                       from '../pipeline/PipelineSetupProblemWording.ts';
 import { ProgressFileProblemWording }                        from '../progress/ProgressFileProblemWording.ts';
@@ -73,6 +78,15 @@ function backIntoDraftPastCommittedAdviceOf(ticketId: string, channel: RefusalCh
 }
 
 /** The sentences joined by a space, an empty one left out. */
+function mergeUpdateClauseOf(problem: MergeUpdateProblem, target: string): string {
+  switch (problem.code) {
+    case 'worktree-head-unreadable': return `${problem.worktree} has no readable HEAD`;
+    case 'target-unresolved':        return `${target} does not resolve`;
+    case 'unknown-commit':           return 'unknown commit';
+    default:                         return GitProblemWording.sentenceOf(problem);
+  }
+}
+
 function sentencesOf(...sentences: readonly string[]): string {
   return sentences.filter((sentence) => sentence !== '').join(' ');
 }
@@ -839,8 +853,8 @@ function malformedHoldJournalText(journalFilePath: string, problem: HoldJournalP
     + 'Repair that file, or remove it to leave that write unfinished, and try again.';
 }
 
-function holdJournalUnremovableText(journalFilePath: string, reason: string): string {
-  return `The write finished, but ${journalFilePath} could not be removed (${reason}), so a later command would replay it. `
+function holdJournalUnremovableText(journalFilePath: string, systemError: string): string {
+  return `The write finished, but ${journalFilePath} could not be removed (${systemError}), so a later command would replay it. `
     + 'Close whatever holds that file and try again; the next command finishes it.';
 }
 
@@ -870,7 +884,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'malformed-hold-journal':
       return malformedHoldJournalText(detail.journalFilePath, detail.problem);
     case 'hold-journal-unremovable':
-      return holdJournalUnremovableText(detail.journalFilePath, detail.reason);
+      return holdJournalUnremovableText(detail.journalFilePath, detail.systemError);
     case 'install-version-mismatch':
       return installVersionMismatchSentenceOf(detail, channel);
     case 'no-readable-ticket':
@@ -908,7 +922,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'hephaestus-contended':
       return `Another Hephaestus started in ${detail.hephaestusDirectory} at the same moment and holds the newer Hephaestus lock, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
-      return `Gates and install lines cannot run confined here, so Hephaestus did not start: ${detail.reason}.`;
+      return `Gates and install lines cannot run confined here, so Hephaestus did not start: ${ConfinementRefusalWording.unavailabilitySentenceOf(detail.unavailability)}.`;
     case 'malformed-hephaestus-poll-interval':
       return `${detail.variable} must be a positive whole number of milliseconds, not ${JSON.stringify(detail.value)}. Unset it or correct it.`;
     case 'malformed-versions-answer':
@@ -919,7 +933,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'hephaestus-lock-taken':
       return `A newer Hephaestus took this board over from the Hephaestus lock ${detail.hephaestusLockFilePath}, so this Hephaestus stopped without acting.`;
     case 'hephaestus-lock-not-created-whole':
-      return `The Hephaestus lock ${detail.hephaestusLockFilePath} cannot be created whole (${detail.reason}), so Hephaestus did not start. Its claim needs a `
+      return `The Hephaestus lock ${detail.hephaestusLockFilePath} cannot be created whole (${detail.systemError}), so Hephaestus did not start. Its claim needs a `
         + 'hard link: move the data folder to a filesystem that allows one.';
     case 'hephaestus-port-in-use':
       return detail.firstPort === detail.lastPort
@@ -967,12 +981,12 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
         NOTHING_WAS_WRITTEN,
       );
     case 'main-constitution-unreadable':
-      return `CONSTITUTION.md on the main line could not be read: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
+      return `CONSTITUTION.md on the main line could not be read: ${MainConstitutionProblemWording.sentenceOf(detail.problem)}. ${NOTHING_WAS_WRITTEN}`;
     case 'agent-program-does-not-run':
       return `The program was not kept: ${AgentProgramWordingUtil.programClauseOf(detail.cause, detail.agentName, detail.programPath, detail.outputLine)}. `
         + NOTHING_WAS_WRITTEN;
     case 'tool-refused':
-      return `The tool ${detail.name} was not kept: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
+      return `The tool ${detail.name} was not kept: ${ExecutableRefusalWording.sentenceOf(detail.refusal)}. ${NOTHING_WAS_WRITTEN}`;
     case 'tool-not-found':
       return `No program ${detail.name} is in ${detail.searchedFolders.length === 0 ? 'any place installers use' : detail.searchedFolders.join(', ')}: `
         + `name the tool with its path. ${NOTHING_WAS_WRITTEN}`;
@@ -1029,10 +1043,10 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `Ticket #${detail.ticketId} was not accepted: its branch conflicts with ${detail.target} in ${detail.conflictedFiles.join(', ')}. `
         + `Bring it up to date${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} merge update ${detail.ticketId}\``, '')} first. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-accept-prediction-failed':
-      return `Ticket #${detail.ticketId} was not accepted: git could not predict its merge into ${detail.target} (${detail.gitReason}). `
+      return `Ticket #${detail.ticketId} was not accepted: git could not predict its merge into ${detail.target} (${GitProblemWording.sentenceOf(detail.problem)}). `
         + `${NOTHING_WAS_WRITTEN}`;
     case 'merge-update-failed':
-      return `The merge of ${detail.target} into ticket #${detail.ticketId}'s worktree failed: ${detail.gitReason}. ${NOTHING_WAS_WRITTEN}`;
+      return `The merge of ${detail.target} into ticket #${detail.ticketId}'s worktree failed: ${mergeUpdateClauseOf(detail.problem, detail.target)}. ${NOTHING_WAS_WRITTEN}`;
     case 'no-open-incident':
       return `${detail.subject} has no open incident that allows ${detail.move}; it is legal only as an incident's move. ${NOTHING_WAS_WRITTEN}`;
     case 'several-open-incidents':
@@ -1042,7 +1056,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The worktree ${detail.worktreePath} of #${detail.ticketId} holds uncommitted work that could not be saved to a patch, so it `
         + `was not recreated. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-repair-failed':
-      return `Git refused the ${detail.step} repair of the worktree of #${detail.ticketId}: ${detail.gitReason} ${NOTHING_WAS_WRITTEN}`;
+      return `Git refused the ${detail.step} repair of the worktree of #${detail.ticketId}: ${GitProblemWording.sentenceOf(detail.problem)} ${NOTHING_WAS_WRITTEN}`;
     case 'document-agent-not-live':
       return boardRefusalSentenceOf({
         reason: 'document-agent-not-live', ticketId: detail.ticketId, document: detail.document, jobId: detail.jobId
@@ -1069,7 +1083,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'namespace-board-has-jobs':
       return `The board has ${detail.jobCount} job(s) on it, which run under its current branch names; let them end first. ${NOTHING_WAS_WRITTEN}`;
     case 'namespace-branch-list-failed':
-      return `git did not list the branches (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
+      return `git did not list the branches (${GitProblemWording.sentenceOf(detail.problem)}). ${NOTHING_WAS_WRITTEN}`;
     case 'namespace-not-free':
       return `${namespaceRefusalText(detail.refusal, detail.wantedNamespace)} ${NOTHING_WAS_WRITTEN}`;
     case 'merge-job-holds-no-slot':
